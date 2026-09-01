@@ -114,7 +114,11 @@ def test_loopback_sends_one_c9_reads_one_application_frame_and_never_replies(
     assert guarded.inbound_frames == 1
     assert 1 < guarded.inbound_read_calls <= 16
     assert guarded.inbound_bytes == len(response) <= 64
-    assert public_adapter["registration"] == {"sent": False, "supported": False}
+    assert public_adapter["registration"]["sent"] is False
+    assert public_adapter["registration"]["supported"] is False
+    assert public_adapter["registration"]["requested"] is False
+    assert public_adapter["registration"]["offline_reference_available"] is True
+    assert public_adapter["registration"]["external_send_allowed"] is False
     assert public_adapter["collection"]["frame_count"] == 1
     assert public_adapter["decisions"][0]["should_respond"] is False
     assert public_adapter["decisions"][0]["terminate_session"] is True

@@ -1,0 +1,86 @@
+services:
+  valleyrat-winos-external-observer:
+    image: local/defensive-valleyrat-winos-external-observer:20260829
+    build:
+      context: /home/kali/rat-emulator-latest-20260829
+      dockerfile: /home/kali/rat-emulator-latest-20260829/analysis-framework/docker/rat-emulators/winos-external-observer.Dockerfile
+    command:
+      - python
+      - -B
+      - /opt/winos-external-observer/winos_external_observer_entrypoint.py
+      - observe
+      - --profile-id
+      - valleyrat-winos-heartbeat-20260810-64-81-30-192-6666
+      - --acknowledge-profile
+      - valleyrat-winos-heartbeat-20260810-64-81-30-192-6666
+      - --duration-seconds
+      - "28800"
+      - --maximum-retries
+      - "3"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    volumes:
+      - /home/kali/valleyrat-winos-external-20260829-8h/transcripts:/var/lib/rat-emulator/transcripts:rw
+      - /home/kali/rat-emulator-external-20260824/maxmind:/var/cache/rat-emulator/maxmind:ro
+      - /home/kali/valleyrat-winos-external-20260829-8h/arm/observer.arm:/run/rat-emulator/armed:ro
+    secrets:
+      - maxmind_license_key
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 0.50
+    restart: "no"
+    stop_grace_period: 15s
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "5"
+    networks:
+      rat-winos-external:
+        ipv4_address: 172.30.54.10
+
+  valleyrat-winos-wire-capture:
+    image: local/defensive-valleyrat-winos-wire-capture:20260829
+    build:
+      context: /home/kali/rat-emulator-latest-20260829
+      dockerfile: /home/kali/rat-emulator-latest-20260829/analysis-framework/docker/rat-emulators/winos-wire-capture.Dockerfile
+    network_mode: service:valleyrat-winos-external-observer
+    depends_on:
+      valleyrat-winos-external-observer:
+        condition: service_started
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    volumes:
+      - /home/kali/valleyrat-winos-external-20260829-8h/captures:/captures:rw
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_RAW
+    pids_limit: 32
+    mem_limit: 256m
+    cpus: 0.25
+    restart: "no"
+    stop_grace_period: 15s
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "5"
+
+networks:
+  rat-winos-external:
+    driver: bridge
+    enable_ipv6: false
+    ipam:
+      config:
+        - subnet: 172.30.54.0/28
+
+secrets:
+  maxmind_license_key:
+    file: /run/rat-emulator-secrets/maxmind-license-key

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PureRAT host adapter result mapper with an exact offline policy."""
+"""PureRAT host adapter result mapper with exact offline/external policies."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from collections.abc import Mapping
 from typing import Any
 
 RESULT_SCOPE = "offline_or_loopback_only"
+EXTERNAL_RESULT_SCOPE = "leased_external_observation_only"
 MAXIMUM_FRAME_BYTES = 65536
 EMPTY_GCLASS4_SHA256 = "102b51b9765a56a3e899f7cf0ee38e5251f9c503b357b330a49183eb7b155604"
 EMPTY_GCLASS4_FRAME_SHA256 = "fae7f27b56eed121c893860cd4764d64541fe1a0b67bc22da050e70161f44001"
@@ -51,6 +52,21 @@ EXPECTED_PROFILE = {
         "maximum_commands": 1,
         "minimum_send_interval_seconds": 0.0,
     },
+}
+EXTERNAL_EXPECTED_PROFILE = {
+    **EXPECTED_PROFILE,
+    "protocol_profile_object_sha256": (
+        "5c8adebae47c9567f33e949a40128767ed57f5354ed2933bd584f32d7259e287"
+    ),
+    "evidence_source": (
+        "analysis-framework/malware/purehvnc/"
+        "purerat_441_external_observer_evidence.json"
+    ),
+    "evidence_sha256": (
+        "a405d4d6ffda53a7b6b38c584e5fad9e439568e3a83ed435686a83163aac3667"
+    ),
+    "live_scope": "leased_external",
+    "limits": {**EXPECTED_PROFILE["limits"], "duration_seconds": 30.0},
 }
 EXPECTED_DECISION = {
     1: (
@@ -164,7 +180,12 @@ def _sha256(source: Mapping[str, Any], key: str, *, optional: bool = False) -> s
 
 
 def _validate_profile(profile: Mapping[str, Any]) -> None:
-    for key, expected in EXPECTED_PROFILE.items():
+    expected_profile = (
+        EXTERNAL_EXPECTED_PROFILE
+        if profile.get("live_scope") == "leased_external"
+        else EXPECTED_PROFILE
+    )
+    for key, expected in expected_profile.items():
         _require(
             profile.get(key) == expected,
             f"PureRAT profile.{key} does not match the reviewed pin",
@@ -301,7 +322,11 @@ def build_public_purerat_result(result: Mapping[str, Any], profile: Mapping[str,
         )
     return {
         "c2_confirmed": False,
-        "result_scope": RESULT_SCOPE,
+        "result_scope": (
+            EXTERNAL_RESULT_SCOPE
+            if profile.get("live_scope") == "leased_external"
+            else RESULT_SCOPE
+        ),
         **top,
         "certificate_mismatch_is_negative_evidence": False,
         "registration": _public_registration(result),

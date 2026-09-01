@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "protocol_profile_registry": {
+    "source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+    "sha256": "7ecb84899c5cec29662665ea081335931a317a528312a0d5099c9582add0d86c"
+  },
+  "profiles": [
+    {
+      "profile_id": "valleyrat-winos-heartbeat-20260810-64-81-30-192-6666",
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260810-64-81-30-192-6666",
+      "protocol_profile_object_sha256": "6772a1af8766883d249c57efbfbf72185dc96c6620059adbebcc803b9632bcc5",
+      "family": "valleyrat",
+      "adapter_id": "valleyrat_winos_external_v1",
+      "host": "64.81.30.192",
+      "port": 6666,
+      "pinned_ips": [
+        "64.81.30.192"
+      ],
+      "transport": "raw_tcp",
+      "tls_version": null,
+      "sni": null,
+      "expected_certificate_sha256": null,
+      "certificate_mismatch_is_negative_evidence": false,
+      "sample_sha256s": [
+        "6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25"
+      ],
+      "evidence_source": "analysis-results/malware/valleyrat/versions/unknown/cases/6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25/network-evidence.json",
+      "evidence_sha256": "98fc20c622018d3ef4b781f96f92c8d8f2a2cbece1d0a7cde1f91ac01bd6aa14",
+      "registration_mode": "fixed_c9_heartbeat",
+      "station_id_sent": false,
+      "unknown_task_action": "no_response",
+      "file_transfer_action": "reject_and_close",
+      "fake_result_scope": "loopback_or_offline_only",
+      "allow_live_fake_results": false,
+      "live_scope": "leased_external",
+      "limits": {
+        "duration_seconds": 28800.0,
+        "maximum_connections": 1,
+        "maximum_outbound_frames": 1,
+        "maximum_outbound_bytes": 15,
+        "maximum_inbound_frames": 256,
+        "maximum_inbound_read_calls": 65536,
+        "maximum_inbound_bytes": 16384,
+        "maximum_frame_bytes": 64,
+        "maximum_commands": 256,
+        "minimum_send_interval_seconds": 0.0
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "profile_registry": {
+    "source": "analysis-framework/common/rat_emulator_profiles.json",
+    "sha256": "a6bc69914f7824ecaf51f3578b5c60790c40ed293dd51e3eb1fcb8fe93d1acde"
+  },
+  "leases": [
+    {
+      "profile_id": "valleyrat-n520-host-d11e793-9999",
+      "reviewed_at_utc": "2026-08-24T06:00:00Z",
+      "expires_at_utc": "2026-08-25T05:59:00Z",
+      "review_owner": "security-analysis-review"
+    }
+  ]
+}

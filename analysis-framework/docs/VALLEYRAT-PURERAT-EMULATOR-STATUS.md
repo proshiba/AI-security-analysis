@@ -9,7 +9,7 @@ ValleyRATとPureRATの防御的エミュレーターについて、現在実装�
 | family／系統 | 準備度 | 利用範囲 | 外部live | 主な未実装 |
 |---|---|---|---|---|
 | ValleyRAT N520 | `bounded_host_emulation` | 44-byte handshake、session鍵、認証frame、空command 1登録、最大16 command分類。offline fake-result判断はresult command `2`まで固定 | profileと有効な短期leaseがある場合だけ。fake resultのlive送信は禁止 | command 2のpayload serializer、ACK値、plugin／file転送 |
-| ValleyRAT Winos | `exact_offline_multi_variant_classification`＋legacy loopback | raw downloader 1 profileとcommand session 5 profileをexact provenance、framing、cipher、direction、shapeへ固定。raw stageは復号metadataだけを生成しhandoffを拒否 | 不可。`offline_or_loopback_only` | 非remote client reply body serializer、delegated／plugin body完全契約 |
+| ValleyRAT Winos | `exact_offline_multi_variant_classification`＋完全一致8時間external observer | raw downloader 1 profileとcommand session 5 profileをoffline分類。2026-08-10の単1 endpointだけは固定C9 heartbeat 1 frame、8時間の受信・記録・破棄、最大3再接続を許可。`C9 01`をregistration challengeとして区別 | `64.81.30.192:6666`の専用profileと有効な短期leaseがある場合だけ。registration送信は禁止 | exact sampleのlogin token、registration serializer／sequence、非remote client reply body serializer、delegated／plugin body完全契約 |
 | ValleyRAT vvaS | `exact_bounded_probe`＋`header_only_loopback` | 固定`33 32 00`、14-byte header確認。loopbackでは明示flag時だけheaderを返し、stage bodyは0 byte | host emulatorとしては不可。個別承認のexact probe以外は通信しない | terminal stage、task channel、task result serializer |
 | ValleyRAT Onyx terminal | `passive_loopback_sink` | numeric loopbackでHTTP request 1件を分類し、空bodyの204／400 ACKで終了 | 不可 | valid Onyx response、payload配信、task/result protocol |
 | PureRAT／PureHVNC 4.4.1 | `exact_offline_codec_and_session` | TLS 1.0、LE32＋GZip＋protobuf-net、全8 subtypeとfield contract、匿名registration、heartbeat、config／plugin／command拒否を再現 | 不可。`offline_or_loopback_only` | tag `4`の方向、plugin operation／result、command result serializer |
@@ -35,7 +35,7 @@ synthetic behaviorは、wire byteを送るものとmetadataだけを返すもの
 
 `winos_offline_orchestrator.py`は、raw downloader 1 profileとcommand session 5 profileをexact provenanceへ固定します。CA00 rolling、CA01 fixed XOR、NVML CA01 rollingを別profileとし、`CA01`末尾からcipherを推測しません。server→clientを完全に分類できるのは各dispatcherで復元済みのshapeだけで、remote desktopだけが方向別contractを持ちます。raw downloaderは`36 34 00`（ASCII `64\\0`）と307,214-byte stage frameを別state machineで扱い、復号metadataを生成してhandoffを拒否します。
 
-外部live、DNS、socket、検体実行、process／file／registry／screen／input操作、module load、payload handoff、推測replyはありません。非remote系のclient reply body serializerと、delegated／plugin bodyの完全契約は未解決です。
+exact multi-variant classifier自体には外部live、DNS、socket、検体実行、process／file／registry／screen／input操作、module load、payload handoff、推測replyはありません。別の`valleyrat_winos_external_v1`は2026-08-10の完全一致endpointにだけ15-byte heartbeatを1回送信し、64 byte以内のframeを最大256件までprivate transcriptへ記録して破棄します。最初のframeでは終了せず8時間接続を維持し、peer close、reset、接続拒否時の再接続は3回までです。
 
 横断回帰テストは外部通信なしで実行できます。
 
@@ -99,6 +99,7 @@ private transcript、raw frame、復号command、鍵、token、合成IDはGitへ
 |---|---|---|---|
 | ValleyRAT N520 | `valleyrat-n520-host-d11e793-9999` | `valleyrat_n520_v1` | `leased_external` |
 | ValleyRAT Winos | `valleyrat-winos-heartbeat-20260803-ljdnxz` | `valleyrat_winos_v1` | `offline_or_loopback_only` |
+| ValleyRAT Winos external | `valleyrat-winos-heartbeat-20260810-64-81-30-192-6666` | `valleyrat_winos_external_v1` | `leased_external` |
 | PureRAT 4.4.1 | `purerat-441-d025a296-direct-tls10-empty-gclass4` | `purerat_direct_tls_v1` | `offline_or_loopback_only` |
 
 profile ID、host、port、pinned IP、SNI、送信frame、上限はCLIから置き換えません。N520のpreflightは短期leaseも検証するため、lease期限切れなら通信せず失敗するのが正しい動作です。

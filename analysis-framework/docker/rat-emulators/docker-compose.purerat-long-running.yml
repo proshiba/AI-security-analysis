@@ -1,0 +1,123 @@
+services:
+  maxmind-refresh:
+    profiles:
+      - setup
+    image: local/defensive-purerat-observer:20260826
+    build:
+      context: ../../..
+      dockerfile: analysis-framework/docker/rat-emulators/purerat-external-observer.Dockerfile
+    command:
+      - python
+      - -B
+      - /opt/rat-external-observer/purerat_external_observer_entrypoint.py
+      - maxmind-refresh
+      - --profile-id
+      - purerat-441-d025a296-direct-tls10-empty-gclass4
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    volumes:
+      - /home/kali/rat-emulator-external-20260824/maxmind:/var/cache/rat-emulator/maxmind:rw
+    secrets:
+      - maxmind_license_key
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 0.50
+    restart: "no"
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  purerat-observer:
+    image: local/defensive-purerat-observer:20260826
+    build:
+      context: ../../..
+      dockerfile: analysis-framework/docker/rat-emulators/purerat-external-observer.Dockerfile
+    command:
+      - python
+      - -B
+      - /opt/rat-external-observer/purerat_external_observer_entrypoint.py
+      - observe
+      - --profile-id
+      - purerat-441-d025a296-direct-tls10-empty-gclass4
+      - --acknowledge-profile
+      - purerat-441-d025a296-direct-tls10-empty-gclass4
+      - --base-cooldown-seconds
+      - "30"
+      - --maximum-cooldown-seconds
+      - "900"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    volumes:
+      - /home/kali/purerat-observer/observations:/var/lib/rat-emulator/observations:rw
+      - /home/kali/rat-emulator-external-20260824/maxmind:/var/cache/rat-emulator/maxmind:ro
+      - /home/kali/purerat-observer/arm/purerat.arm:/run/rat-emulator/armed:ro
+      - ./purerat-external-rat-emulator-live-leases.json:/opt/rat-external-observer/analysis-framework/common/rat_emulator_live_leases.json:ro
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 0.50
+    restart: unless-stopped
+    stop_grace_period: 15s
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "5"
+    networks:
+      purerat-observation:
+        ipv4_address: 172.30.53.10
+
+  purerat-wire-capture:
+    image: local/defensive-purerat-wire-capture:20260826
+    build:
+      context: ../../..
+      dockerfile: analysis-framework/docker/rat-emulators/purerat-wire-capture.Dockerfile
+    network_mode: service:purerat-observer
+    depends_on:
+      purerat-observer:
+        condition: service_started
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    volumes:
+      - /home/kali/purerat-observer/captures:/captures:rw
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_RAW
+    # tcpdumpだけにimage内のfile capabilityでNET_RAWを付与するため、
+    # no-new-privilegesはこのsidecarに限って設定しない。image内の
+    # setuid/setgid bitはbuild時に全て除去し、observer側は引き続き有効にする。
+    pids_limit: 32
+    mem_limit: 256m
+    cpus: 0.25
+    restart: unless-stopped
+    stop_grace_period: 15s
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "5"
+
+networks:
+  purerat-observation:
+    driver: bridge
+    enable_ipv6: false
+    ipam:
+      config:
+        - subnet: 172.30.53.0/28
+
+secrets:
+  maxmind_license_key:
+    file: /run/rat-emulator-secrets/maxmind-license-key

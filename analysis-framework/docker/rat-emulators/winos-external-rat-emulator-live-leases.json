@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "profile_registry": {
+    "source": "analysis-framework/common/rat_emulator_profiles.json",
+    "sha256": "a9ced4b103d7f4e371af243492e535ead83f932517d1ffe9c8771a7b44ae8762"
+  },
+  "leases": [
+    {
+      "profile_id": "valleyrat-winos-heartbeat-20260810-64-81-30-192-6666",
+      "reviewed_at_utc": "2026-08-29T07:53:00Z",
+      "expires_at_utc": "2026-08-30T07:52:00Z",
+      "review_owner": "security-analysis-review"
+    }
+  ]
+}
