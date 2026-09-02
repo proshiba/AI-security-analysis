@@ -1,0 +1,398 @@
+{
+  "analysis_window": {
+    "end": "2026-09-02T23:59:59+09:00",
+    "start": "リポジトリ収録開始"
+  },
+  "collection_scope": "reviewed_protocol_profiles_only",
+  "daily_source_handoffs": [],
+  "generated_from_run": "2026-09-02",
+  "inventory_summary": {
+    "candidate_evidence_record_count": 417,
+    "dns_only_target_count": 88,
+    "duplicate_evidence_record_count": 20,
+    "network_service_endpoint_count": 173,
+    "ordinary_candidate_host_count": 230,
+    "ordinary_host_coverage_percent": 100.0,
+    "parse_error_count": 0,
+    "planned_endpoint_count": 261,
+    "planned_ordinary_host_count": 230,
+    "rejected_protocol_profile_count": 1,
+    "reviewed_profile_only_target_count": 13,
+    "reviewed_protocol_target_count": 21,
+    "scanned_daily_ioc_summary_file_count": 1,
+    "scanned_indicators_json_file_count": 128,
+    "scanned_ioc_file_count": 3113,
+    "scanned_iocs_json_file_count": 2984
+  },
+  "lifecycle_policy": {
+    "minimum_off_observations": 2,
+    "retirement_after_days_without_on": 7,
+    "shared_cdn_rotation_counts_as_infrastructure_change": false
+  },
+  "onion_excluded_by_policy": true,
+  "protocol_profile_registry": {
+    "sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2",
+    "source": "analysis-framework/common/c2_protocol_probe_profiles.json"
+  },
+  "remus_review_registry": {
+    "sha256": "e01941f1d7e81703c7051a11e38202502c7a8d2176293e0876ceffb5595fa144",
+    "source": "analysis-framework/common/remus_active_profile_review_registry.json"
+  },
+  "schema_version": 1,
+  "targets": [
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "asyncrat",
+      "host": "191.96.78.221",
+      "maximum_request_bytes": 96,
+      "maximum_response_bytes": 64,
+      "method": "asyncrat_tls_messagepack",
+      "port": 7788,
+      "protocol": "asyncrat",
+      "protocol_profile_id": "asyncrat-058-20f21565-191-96-78-221-7788",
+      "protocol_profile_registry_sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "AsyncRAT 0.5.8 TLS MessagePack C2"
+      ],
+      "sample_sha256s": [
+        "20f21565d7e77f3b3b7247099af91da43dcde0078c173f8e6efc74a6d40b44c3"
+      ],
+      "selection_basis": "レビュー済みmalware固有C2 protocol profile",
+      "sources": [
+        "analysis-results/research/c2-protocol-profiles/2026-08-04/profiles-evidence.json:analysis[0]"
+      ],
+      "target_id": "reviewed-asyncrat-058-20f21565-191-96-78-221-7788",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "redlinestealer",
+      "host": "192.144.32.84",
+      "http_path": "/",
+      "maximum_request_bytes": 357,
+      "maximum_response_bytes": 4096,
+      "method": "redline_checkconnect_soap11",
+      "port": 16383,
+      "protocol": "redlinestealer",
+      "protocol_hints": [],
+      "protocol_profile_endpoint_json_pointer": "/config/network_candidates/0",
+      "protocol_profile_evidence_sha256": "99ce975eef7d10f152a6a3c0d8e9832905b06b73fa9d3d3551da29bd25a122b2",
+      "protocol_profile_evidence_source": "analysis-results/malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02/config.json",
+      "protocol_profile_family_registry_sha256": "c09dec08c439efc1bed280bef60ac15c27256196f2800cf3ec9b0c7ed1a031db",
+      "protocol_profile_family_registry_source": "analysis-framework/malware/redlinestealer/active_profiles.json",
+      "protocol_profile_id": "redline-3f3ac0a3-checkconnect-v1",
+      "protocol_profile_registry_sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "protocol_profile_request_sha256": "dd8c02ce792cd8d4e9ce3e05c32ff19c8d1633d24312203b9ec5018645e45f33",
+      "protocol_profile_review_id": "redline-3f3ac0a3-static-config-v1",
+      "protocol_profile_terminal_cil_semantic_sha256": "3ef4c2b5a3acaf779ecc23f622df36d2db8db169fa7859a72832ba674d253a42",
+      "protocol_profile_terminal_mvid": "b9bb7589-ca7d-4755-974e-86d58a25c8d8",
+      "roles": [
+        "c2_endpoint"
+      ],
+      "sample_sha256s": [
+        "3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02/config.json:/config/network_candidates/0",
+        "analysis-results/malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02/indicators.json:indicators[1]",
+        "analysis-results/malware/redlinestealer/versions/unknown/cases/3f3ac0a31d28e9bbc85df54dd4300c9b15bf255b192fab15d94505ea1e528b02/indicators.json:indicators[2]"
+      ],
+      "target_id": "all-history-274cb680e6df",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "192.252.180.45",
+      "maximum_request_bytes": null,
+      "maximum_response_bytes": 64,
+      "method": "winos_heartbeat",
+      "port": 6666,
+      "protocol": "winos",
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260810-192-252-180-45-6666",
+      "protocol_profile_registry_sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "Winos stage/control共用channel"
+      ],
+      "sample_sha256s": [
+        "6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25"
+      ],
+      "selection_basis": "レビュー済みmalware固有C2 protocol profile",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25/network-evidence.json:live_check"
+      ],
+      "target_id": "reviewed-valleyrat-winos-heartbeat-20260810-192-252-180-45-6666",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "stealc",
+      "host": "31.77.228.62",
+      "maximum_request_bytes": 4096,
+      "maximum_response_bytes": 16384,
+      "method": "stealc_v2_registration_task",
+      "port": 80,
+      "protocol": "stealc",
+      "protocol_profile_id": "stealc-v2-1backs-31-77-228-62-80",
+      "protocol_profile_registry_sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "StealC v2の合成端末登録・loader task取得先"
+      ],
+      "sample_sha256s": [
+        "47854afb3cfeb64a85dda148e00e5ca83168f431a28e5c5fb28733e37f484b13"
+      ],
+      "selection_basis": "レビュー済みmalware固有C2 protocol profile",
+      "sources": [
+        "analysis-results/research/stealer-protocol-profiles/2026-08-04/analysis-summary.json:samples[0]",
+        "analysis-results/research/stealer-protocol-profiles/2026-08-04/analysis-summary.json:analysis[0]"
+      ],
+      "target_id": "reviewed-stealc-v2-1backs-31-77-228-62-80",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 2,
+      "family": "purehvnc",
+      "host": "45.192.211.77",
+      "maximum_request_bytes": 0,
+      "maximum_response_bytes": 0,
+      "method": "purerat_direct_tls_certificate_pin",
+      "port": 56001,
+      "protocol": "purerat_direct_tls",
+      "protocol_profile_id": "purerat-441-d025a296-45-192-211-77-56001-direct-tls10",
+      "protocol_profile_registry_sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "PureRAT 4.4.1 TLS-first certificate pin"
+      ],
+      "sample_sha256s": [
+        "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677",
+        "df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7"
+      ],
+      "selection_basis": "レビュー済みmalware固有C2 protocol profile",
+      "sources": [
+        "analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json"
+      ],
+      "target_id": "reviewed-purerat-441-d025a296-45-192-211-77-56001-direct-tls10",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "64.81.30.192",
+      "maximum_request_bytes": null,
+      "maximum_response_bytes": 64,
+      "method": "winos_heartbeat",
+      "port": 6666,
+      "protocol": "winos",
+      "protocol_hints": [],
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260810-64-81-30-192-6666",
+      "protocol_profile_registry_sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "Winos stage/control共用channel",
+        "control_failover"
+      ],
+      "sample_sha256s": [
+        "6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25/iocs.json:network[1]",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/6469edd613ceb62dd8e14a75628a6b75fa443ef4311da2b45e805bc7d18afe25/network-evidence.json:live_check"
+      ],
+      "target_id": "all-history-d7b75378c19a",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "auk218.club",
+      "maximum_request_bytes": null,
+      "maximum_response_bytes": 64,
+      "method": "winos_heartbeat",
+      "port": 7800,
+      "protocol": "winos",
+      "protocol_hints": [],
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260803-auk218",
+      "protocol_profile_registry_sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "Winos control channel",
+        "control"
+      ],
+      "sample_sha256s": [
+        "12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d/iocs.json:network[1]",
+        "analysis-results/malware/valleyrat/versions/unknown/cases/12a22fece1fb6c9aa5620ae910b9b0a98b9013b0b8efb77369ec1bed40ddb18d/network-evidence.json:live_check"
+      ],
+      "target_id": "all-history-70e309f4ba71",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "lummastealer",
+      "host": "bizsmmit.cyou",
+      "maximum_request_bytes": 4096,
+      "maximum_response_bytes": 65536,
+      "method": "lumma_v6_registration_task",
+      "port": 80,
+      "protocol": "lummastealer",
+      "protocol_profile_id": "lumma-v6-f63c436b-bizsmmit-80",
+      "protocol_profile_registry_sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "Lumma v6の設定登録・plugin task取得先"
+      ],
+      "sample_sha256s": [
+        "4b7d75f5c35d8d326af5723fb77c44d769478c90ca2f88e2edfb3e08817fb29c"
+      ],
+      "selection_basis": "レビュー済みmalware固有C2 protocol profile",
+      "sources": [
+        "analysis-results/research/stealer-protocol-profiles/2026-08-04/analysis-summary.json:samples[2]",
+        "analysis-results/research/stealer-protocol-profiles/2026-08-04/analysis-summary.json:analysis[2]"
+      ],
+      "target_id": "reviewed-lumma-v6-f63c436b-bizsmmit-80",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "agenttesla",
+      "host": "ftp.vilimorin.com",
+      "maximum_request_bytes": null,
+      "maximum_response_bytes": 1024,
+      "method": "ftp_authenticated",
+      "port": 21,
+      "protocol": "ftp",
+      "protocol_hints": [
+        "ftp"
+      ],
+      "protocol_profile_id": "agenttesla-ftp-auth-3f091457-vilimorin",
+      "protocol_profile_registry_sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "FTP credential exfiltration endpoint",
+        "credential_exfiltration"
+      ],
+      "sample_sha256s": [
+        "3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/agenttesla/versions/2026-07-js-luajit-donut-ftp/cases/3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333/config.json:config_endpoints[0]",
+        "analysis-results/malware/agenttesla/versions/2026-07-js-luajit-donut-ftp/cases/3f09145757282e6a59cd69319ac3b9da3265022a1d4f92a1646f8ddbaad89333/iocs.json:network[0]"
+      ],
+      "target_id": "all-history-8786572d839f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "haochisadnka.cc",
+      "maximum_request_bytes": null,
+      "maximum_response_bytes": 64,
+      "method": "winos_heartbeat",
+      "port": 6685,
+      "protocol": "winos",
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260727",
+      "protocol_profile_registry_sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "Winos control channel"
+      ],
+      "sample_sha256s": [
+        "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791"
+      ],
+      "selection_basis": "レビュー済みmalware固有C2 protocol profile",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791/iocs.json:network[0]"
+      ],
+      "target_id": "reviewed-valleyrat-winos-heartbeat-20260727",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "valleyrat",
+      "host": "ljdnxz.cc",
+      "maximum_request_bytes": null,
+      "maximum_response_bytes": 64,
+      "method": "winos_heartbeat",
+      "port": 8868,
+      "protocol": "winos",
+      "protocol_profile_id": "valleyrat-winos-heartbeat-20260803-ljdnxz",
+      "protocol_profile_registry_sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "Winos control channel"
+      ],
+      "sample_sha256s": [
+        "e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648"
+      ],
+      "selection_basis": "レビュー済みmalware固有C2 protocol profile",
+      "sources": [
+        "analysis-results/malware/valleyrat/versions/unknown/cases/e0e1ae775ef8e530875235f035fb623b217d48fa810537144c872fcf41592648/network-evidence.json:live_check"
+      ],
+      "target_id": "reviewed-valleyrat-winos-heartbeat-20260803-ljdnxz",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "family": "venomrat",
+      "host": "s2gj9tonn.localto.net",
+      "maximum_request_bytes": 96,
+      "maximum_response_bytes": 64,
+      "method": "venomrat_tls_messagepack",
+      "port": 6377,
+      "protocol": "venomrat",
+      "protocol_hints": [],
+      "protocol_profile_id": "venomrat-603-6a24ba25-localto-6377",
+      "protocol_profile_registry_sha256": "ceebc289e8836b7b8b9a27829b939f4afe2e2622d5f87b8a43fafdc68995c9f2",
+      "protocol_profile_registry_source": "analysis-framework/common/c2_protocol_probe_profiles.json",
+      "roles": [
+        "VenomRAT 6.0.3 TLS MessagePack C2",
+        "c2_monitoring_target"
+      ],
+      "sample_sha256s": [
+        "6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073"
+      ],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/malware/venomrat/versions/v6.0.3/cases/6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073/iocs.json:network[2]",
+        "analysis-results/research/c2-protocol-profiles/2026-08-04/profiles-evidence.json:analysis[1]"
+      ],
+      "target_id": "all-history-e8d091ae4378",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    }
+  ]
+}

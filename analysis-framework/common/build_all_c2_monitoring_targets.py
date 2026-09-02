@@ -353,13 +353,21 @@ def build_inventory(
     *,
     generated_date: str,
     daily_source_date: str | None = None,
+    daily_source_summary_path: Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
+    if daily_source_summary_path is not None and daily_source_date is None:
+        raise ValueError("daily_source_summary_pathにはdaily_source_dateが必要です")
     if daily_source_date is not None:
         try:
             if date.fromisoformat(daily_source_date).isoformat() != daily_source_date:
                 raise ValueError
         except (TypeError, ValueError) as exc:
             raise ValueError("daily_source_dateはcanonical YYYY-MM-DDである必要があります") from exc
+    if daily_source_summary_path is not None and (
+        daily_source_summary_path.name != "ioc-summary.json"
+        or daily_source_summary_path.parent.name != daily_source_date
+    ):
+        raise ValueError("daily_source_summary_pathの日付/path bindingが不正です")
     records: list[dict[str, Any]] = []
     exclusions: list[dict[str, Any]] = []
     scanned = 0
@@ -378,6 +386,8 @@ def build_inventory(
         if daily_source_date is not None
         else set()
     )
+    if daily_source_summary_path is not None:
+        daily_input_paths.add(daily_source_summary_path)
     input_paths = sorted(
         set(results_root.glob("**/iocs.json"))
         | set(results_root.glob("**/indicators.json"))
@@ -387,9 +397,7 @@ def build_inventory(
     for path in input_paths:
         scanned += 1
         scanned_by_name[path.name] += 1
-        is_daily_summary = (
-            path.name == "ioc-summary.json" and path.parent.parent.name == "daily-news-malware"
-        )
+        is_daily_summary = path in daily_input_paths
         is_requested_daily_summary = (
             is_daily_summary and path.parent.name == daily_source_date
         )
@@ -400,8 +408,13 @@ def build_inventory(
                 raise ValueError(f"指定daily source summaryを安全に読めません: {daily_source_date}") from exc
             parse_errors.append({"source": str(path), "error": str(exc)})
             continue
-        case_key = path.parent.relative_to(results_root).as_posix()
-        source = path.as_posix()
+        if is_daily_summary:
+            case_key = f"research/daily-news-malware/{path.parent.name}"
+            source = f"analysis-results/{case_key}/ioc-summary.json"
+        else:
+            case_key = path.parent.relative_to(results_root).as_posix()
+            relative_source = path.relative_to(results_root).as_posix()
+            source = f"{results_root.name}/{relative_source}"
         if is_daily_summary:
             source_date = str(payload.get("source_date") or "")
             bind_daily_source = source_date == daily_source_date
@@ -709,12 +722,18 @@ def main() -> int:
         "--daily-source-date",
         help="この日付のdaily ioc-summaryだけを実効targetへ厳密結合する",
     )
+    parser.add_argument(
+        "--daily-source-summary",
+        type=Path,
+        help="未昇格stagingにある当日ioc-summary.jsonを厳密結合する",
+    )
     parser.add_argument("--write", action="store_true")
     args = parser.parse_args()
     plan, inventory = build_inventory(
         args.results_root,
         generated_date=args.date,
         daily_source_date=args.daily_source_date,
+        daily_source_summary_path=args.daily_source_summary,
     )
     if args.write:
         args.output_plan.parent.mkdir(parents=True, exist_ok=True)

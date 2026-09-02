@@ -3035,10 +3035,33 @@ def _production_c2_monitoring(context: DailyContext) -> StageOutcome:
     )
     targets_path = output / "targets.json"
     inventory_path = output / "candidate-inventory.json"
+    public_daily_summary = (
+        context.repository
+        / "analysis-results"
+        / "research"
+        / "daily-news-malware"
+        / context.request.news_source_date
+        / "ioc-summary.json"
+    )
+    staged_daily_summary = (
+        context.state_root
+        / "news-public-staging"
+        / context.request.news_source_date
+        / "ioc-summary.json"
+    )
+    daily_source_summary_path = None
+    if not public_daily_summary.is_file() and staged_daily_summary.is_file():
+        _verify_context_news_source(context)
+        _reject_reparse_components(
+            staged_daily_summary,
+            label="daily news staged C2 handoff",
+        )
+        daily_source_summary_path = staged_daily_summary
     plan, inventory = build_all_c2_monitoring_targets.build_inventory(
         context.repository / "analysis-results",
         generated_date=context.request.analysis_date,
         daily_source_date=context.request.news_source_date,
+        daily_source_summary_path=daily_source_summary_path,
     )
     output.mkdir(parents=True, exist_ok=True)
     analysis_job_runner.atomic_json(targets_path, plan)

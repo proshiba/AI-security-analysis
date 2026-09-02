@@ -42,6 +42,14 @@ from render_c2_maxmind_section import insert_section, render_maxmind_section
 
 DEFAULT_MAX_BUILD_AGE_HOURS = 24.0
 RAT_EMULATION_EVIDENCE_FILENAME = "rat-emulation-evidence.json"
+PUBLIC_JSON_FILENAMES = (
+    "targets.json",
+    "candidate-inventory.json",
+    "effective-targets.json",
+    "active-targets.json",
+    "monitoring-history.json",
+    "monitoring-results.json",
+)
 
 
 def _maxminddb_module() -> Any:
@@ -209,6 +217,82 @@ def render_enriched_report(result: dict[str, Any]) -> str:
     return insert_section(render_markdown(result), render_maxmind_section(result))
 
 
+def _logical_public_source(value: str) -> str:
+    normalized = value.replace("\\", "/")
+    marker = "/analysis-results/"
+    if marker in normalized:
+        return "analysis-results/" + normalized.split(marker, 1)[1]
+    return value
+
+
+def normalize_public_source_fields(value: Any) -> int:
+    """公開JSON内のsource絶対pathを論理pathへ変換し、source listを重複排除する。"""
+
+    changes = 0
+    if isinstance(value, dict):
+        for key, child in list(value.items()):
+            if key == "sources" and isinstance(child, list):
+                normalized_sources: list[Any] = []
+                seen_strings: set[str] = set()
+                for item in child:
+                    if isinstance(item, str):
+                        normalized = _logical_public_source(item)
+                        changes += int(normalized != item)
+                        if normalized in seen_strings:
+                            changes += 1
+                            continue
+                        seen_strings.add(normalized)
+                        normalized_sources.append(normalized)
+                    else:
+                        changes += normalize_public_source_fields(item)
+                        normalized_sources.append(item)
+                value[key] = normalized_sources
+            elif isinstance(child, str) and (key == "source" or key.endswith("_source")):
+                normalized = _logical_public_source(child)
+                changes += int(normalized != child)
+                value[key] = normalized
+            else:
+                changes += normalize_public_source_fields(child)
+    elif isinstance(value, list):
+        for item in value:
+            changes += normalize_public_source_fields(item)
+    return changes
+
+
+def normalize_existing_public_outputs(output_directory: Path) -> dict[str, Any]:
+    """既存C2成果物をnetwork接触なしでsource path正規化し、READMEを再描画する。"""
+
+    changed_files: list[str] = []
+    normalized_values = 0
+    monitoring_result: dict[str, Any] | None = None
+    for filename in PUBLIC_JSON_FILENAMES:
+        path = output_directory / filename
+        if not path.is_file():
+            continue
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError(f"{filename}はJSON objectである必要があります")
+        changes = normalize_public_source_fields(payload)
+        normalized_values += changes
+        if changes:
+            write_json(path, payload)
+            changed_files.append(filename)
+        if filename == "monitoring-results.json":
+            monitoring_result = payload
+    if monitoring_result is not None:
+        readme_path = output_directory / "README.md"
+        rendered = render_enriched_report(monitoring_result)
+        previous = readme_path.read_text(encoding="utf-8") if readme_path.is_file() else None
+        if previous != rendered:
+            readme_path.write_text(rendered, encoding="utf-8")
+            changed_files.append("README.md")
+    return {
+        "normalized_source_values": normalized_values,
+        "changed_files": sorted(set(changed_files)),
+        "network_contacted": False,
+    }
+
+
 def load_optional_rat_emulation_evidence(
     path: Path | None,
     expected_sha256: str | None,
@@ -297,6 +381,29 @@ def validate_daily_handoff_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
     return normalized
 
 
+def restrict_to_reviewed_profiles(plan: dict[str, Any]) -> dict[str, Any]:
+    """レビュー済み完全一致profileだけを残し、未監視daily bindingを除外する。"""
+
+    targets = plan.get("targets")
+    if not isinstance(targets, list) or any(not isinstance(item, dict) for item in targets):
+        raise ValueError("reviewed profile限定前のtarget集合が不正です")
+    reviewed: list[dict[str, Any]] = []
+    for target in targets:
+        profile_id = target.get("protocol_profile_id")
+        if not isinstance(profile_id, str) or not profile_id:
+            continue
+        normalized = dict(target)
+        normalized.pop("daily_source_dates", None)
+        reviewed.append(normalized)
+    if not reviewed:
+        raise ValueError("レビュー済み完全一致C2 profileがありません")
+    restricted = dict(plan)
+    restricted["collection_scope"] = "reviewed_protocol_profiles_only"
+    restricted["daily_source_handoffs"] = []
+    restricted["targets"] = reviewed
+    return restricted
+
+
 def attach_daily_handoff_result_bindings(
     result: dict[str, Any],
     plan: dict[str, Any],
@@ -362,6 +469,16 @@ def main() -> int:
     )
     parser.add_argument("--allow-network", action="store_true")
     parser.add_argument(
+        "--normalize-existing-output",
+        action="store_true",
+        help="既存の公開C2成果物をnetwork接触なしでsource path正規化する",
+    )
+    parser.add_argument(
+        "--reviewed-profiles-only",
+        action="store_true",
+        help="レビュー済み完全一致protocol profileだけを限定観測する",
+    )
+    parser.add_argument(
         "--nmap",
         help="C2観測に使用するNmap実体。省略時はNMAP_EXE、固定候補、PATHの順で解決します。",
     )
@@ -418,6 +535,16 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    if args.normalize_existing_output:
+        if args.allow_network:
+            parser.error("--normalize-existing-outputでは--allow-networkを指定できません")
+        try:
+            result = normalize_existing_public_outputs(args.output_directory)
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            parser.error(str(exc))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     try:
         plan = json.loads(args.targets.read_text(encoding="utf-8"))
         history_root = (args.history_root or args.output_directory.parent).resolve()
@@ -426,6 +553,9 @@ def main() -> int:
             current_run_name=args.output_directory.name,
         )
         plan, carried_forward = carry_forward_active_targets(plan, previous_active)
+        if args.reviewed_profiles_only:
+            plan = restrict_to_reviewed_profiles(plan)
+        normalize_public_source_fields(plan)
         validate_plan(plan)
         daily_handoffs = validate_daily_handoff_plan(plan)
         rat_emulation = load_optional_rat_emulation_evidence(
@@ -467,6 +597,7 @@ def main() -> int:
             "previous_active_plan_found": previous_active is not None,
             "carried_forward_target_count": carried_forward,
             "effective_target_count": len(plan["targets"]),
+            "reviewed_profiles_only": args.reviewed_profiles_only,
         }
         result, maxmind_summary = enrich_with_acquired_databases(result, acquired, freshness)
         result, monitoring_history, active_plan = apply_monitoring_history(
@@ -475,6 +606,9 @@ def main() -> int:
             history_root=history_root,
             current_run_name=args.output_directory.name,
         )
+        normalize_public_source_fields(result)
+        normalize_public_source_fields(monitoring_history)
+        normalize_public_source_fields(active_plan)
     except (OSError, json.JSONDecodeError, PlanError, ValueError, MaxMindDownloadError) as exc:
         parser.error(str(exc))
 

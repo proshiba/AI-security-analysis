@@ -119,6 +119,12 @@ control planeまたは固定adapterのsource SHA-256が変わった場合、古�
 
 news laneの公開成果物はrun固有のwork stagingへ8種類すべてを書き、consumer終了後にsource commitmentを再検証してから、固定file集合だけをrepositoryへfile単位でatomic昇格します。埋込みCLIのSystemExitもstage failureへ変換するため、stateをrunningのまま残しません。固定Python subprocessのstdout／stderrはpipeで有界captureし、大量logを直接diskへ流しません。
 
+news laneが`partial`の場合、8成果物は公開先へ昇格しません。ただし、同じrunのstagingにある`ioc-summary.json`は、source commitment、日付、path、通常file境界を再検証したうえで、当日のC2 handoff入力に限って使用できます。C2 target builderはこの入力を正規の論理source pathへ固定し、stagingの絶対pathを公開成果物へ記録しません。
+
+運用承認がレビュー済み完全一致profileだけに限定される場合、`run_c2_monitoring_pipeline.py --reviewed-profiles-only`を使用します。このモードは`protocol_profile_id`を持たないtargetをnetwork接触前に除外し、未観測の当日targetに対するhandoff bindingも結果へ継承しません。したがって、限定観測結果を全targetの観測完了として扱うことはできません。
+
+公開C2成果物に旧run由来のlocal絶対pathが残った場合は、同じoutput directoryへ`--normalize-existing-output`を指定して修復します。このモードは固定JSONだけを読み、source fieldを`analysis-results/...`へ正規化・重複排除してREADMEを再描画します。`--allow-network`との同時指定は拒否するため、C2を再観測しません。
+
 ## statusとverify
 
 ~~~powershell
