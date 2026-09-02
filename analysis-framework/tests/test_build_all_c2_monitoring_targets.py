@@ -244,6 +244,55 @@ def test_daily_ioc_summary_is_bound_to_effective_targets_without_phishing(tmp_pa
     assert inventory["scanned_daily_ioc_summary_file_count"] == 1
 
 
+def test_staged_daily_ioc_summary_is_bound_without_public_promotion(tmp_path: Path) -> None:
+    results = tmp_path / "analysis-results"
+    source_date = "2026-08-24"
+    staged = tmp_path / "daily-run" / "news-public-staging" / source_date / "ioc-summary.json"
+    staged.parent.mkdir(parents=True)
+    staged.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "source_date": source_date,
+                "items": [
+                    {
+                        "ioc_type": "domain",
+                        "ioc_value": "staged-c2.example",
+                        "category": "c2",
+                        "malware": "Fixture",
+                        "valid": True,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    plan, inventory = build_inventory(
+        results,
+        generated_date=source_date,
+        daily_source_date=source_date,
+        daily_source_summary_path=staged,
+    )
+
+    assert not (results / "research" / "daily-news-malware" / source_date).exists()
+    target = next(item for item in plan["targets"] if item["host"] == "staged-c2.example")
+    assert target["daily_source_dates"] == [source_date]
+    assert target["sources"] == [
+        f"analysis-results/research/daily-news-malware/{source_date}/ioc-summary.json:daily_news_handoff[0]"
+    ]
+    assert inventory["scanned_daily_ioc_summary_file_count"] == 1
+
+
+def test_staged_daily_ioc_summary_requires_date_binding(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="daily_source_date"):
+        build_inventory(
+            tmp_path / "analysis-results",
+            generated_date="2026-08-24",
+            daily_source_summary_path=tmp_path / "2026-08-24" / "ioc-summary.json",
+        )
+
+
 def _write_daily_summary(results: Path, source_date: str, items: list[dict]) -> Path:
     summary = results / "research" / "daily-news-malware" / source_date / "ioc-summary.json"
     summary.parent.mkdir(parents=True)

@@ -50,6 +50,10 @@ def test_c2_ui_keeps_raw_cdn_rotation_but_excludes_infrastructure_change(
                 "port": 443,
                 "protocol": "tcp",
                 "transport": "direct",
+                "sources": [
+                    "analysis-results/malware/example/iocs.json:network[0]",
+                    "C:/Users/operator/repo/analysis-results/malware/example/iocs.json:network[0]",
+                ],
                 "availability_status": "on",
                 "observation": {
                     "timestamp_utc": "2026-08-02T00:00:00+00:00",
@@ -103,6 +107,9 @@ def test_c2_ui_keeps_raw_cdn_rotation_but_excludes_infrastructure_change(
 
     assert generated["runs"][0]["monitoring_history"]["active_target_count"] == 1
     assert generated["endpoints"][0]["active"] is True
+    assert generated["endpoints"][0]["sources"] == [
+        "analysis-results/malware/example/iocs.json:network[0]"
+    ]
     timeline = generated["ip_history"][0]
     assert timeline["raw_changes"] == 1
     assert timeline["changes"] == 0

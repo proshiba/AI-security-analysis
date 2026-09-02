@@ -3,7 +3,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
-from run_c2_monitoring_pipeline import render_enriched_report, stale_build_epochs
+from run_c2_monitoring_pipeline import (
+    normalize_public_source_fields,
+    render_enriched_report,
+    restrict_to_reviewed_profiles,
+    stale_build_epochs,
+)
 
 
 def test_render_enriched_report_includes_maxmind_section_once() -> None:
@@ -45,6 +50,63 @@ def test_stale_build_epochs_rejects_invalid_threshold_and_naive_time() -> None:
         stale_build_epochs({}, now=datetime.now(UTC), max_age_hours=0)
     with pytest.raises(ValueError, match="timezone-aware"):
         stale_build_epochs({}, now=datetime(2026, 8, 2), max_age_hours=24)
+
+
+def test_restrict_to_reviewed_profiles_removes_unapproved_targets_and_daily_binding() -> None:
+    plan = {
+        "schema_version": 1,
+        "collection_scope": "all_historical_c2",
+        "daily_source_handoffs": [{"source_date": "2026-08-24"}],
+        "targets": [
+            {
+                "target_id": "reviewed",
+                "host": "reviewed.example",
+                "port": 443,
+                "protocol_profile_id": "fixture-profile",
+                "daily_source_dates": ["2026-08-24"],
+            },
+            {
+                "target_id": "ordinary",
+                "host": "ordinary.example",
+                "port": 443,
+            },
+        ],
+    }
+
+    restricted = restrict_to_reviewed_profiles(plan)
+
+    assert restricted["collection_scope"] == "reviewed_protocol_profiles_only"
+    assert restricted["daily_source_handoffs"] == []
+    assert [item["target_id"] for item in restricted["targets"]] == ["reviewed"]
+    assert "daily_source_dates" not in restricted["targets"][0]
+    assert len(plan["targets"]) == 2
+
+
+def test_restrict_to_reviewed_profiles_rejects_empty_selection() -> None:
+    with pytest.raises(ValueError, match="完全一致"):
+        restrict_to_reviewed_profiles({"targets": [{"target_id": "ordinary"}]})
+
+
+def test_normalize_public_source_fields_removes_absolute_prefix_and_duplicates() -> None:
+    payload = {
+        "source": "C:/Users/operator/repo/analysis-results/research/item.json",
+        "targets": [
+            {
+                "sources": [
+                    "analysis-results/malware/example/iocs.json:network[0]",
+                    "C:/Users/operator/repo/analysis-results/malware/example/iocs.json:network[0]",
+                ]
+            }
+        ],
+    }
+
+    changes = normalize_public_source_fields(payload)
+
+    assert changes == 3
+    assert payload["source"] == "analysis-results/research/item.json"
+    assert payload["targets"][0]["sources"] == [
+        "analysis-results/malware/example/iocs.json:network[0]"
+    ]
 
 
 def test_daily_handoff_is_bound_to_result_without_network() -> None:

@@ -259,6 +259,27 @@ C2_STATE_LABELS = {
 }
 
 
+def logical_public_sources(values: object) -> list[str]:
+    """C2履歴のsourceをrepository相対pathへ正規化し、重複を除く。"""
+
+    if not isinstance(values, list):
+        return []
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if not isinstance(value, str):
+            continue
+        portable = value.replace("\\", "/")
+        marker = "/analysis-results/"
+        if marker in portable:
+            portable = "analysis-results/" + portable.split(marker, 1)[1]
+        if portable in seen:
+            continue
+        seen.add(portable)
+        normalized.append(portable)
+    return normalized
+
+
 def c2_geo_table(run_dirs: list[Path]) -> dict[str, dict]:
     """C2監視結果に含まれるMaxMind GeoLite2の詳細を、新しい観測優先で集める。
 
@@ -441,7 +462,7 @@ def load_c2_monitoring(known_shas: set[str]) -> dict:
                     ],
                     "case_count": entry.get("associated_case_count"),
                     "analyzed_dates": entry.get("analyzed_dates") or [],
-                    "sources": entry.get("sources") or [],
+                    "sources": logical_public_sources(entry.get("sources")),
                     "shodan": observation.get("shodan"),
                     "active": (entry.get("monitoring_lifecycle") or {}).get("active", True),
                     "lifecycle": entry.get("monitoring_lifecycle") or {},
