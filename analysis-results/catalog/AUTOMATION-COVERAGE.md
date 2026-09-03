@@ -3,19 +3,19 @@
 本表はdetector、静的handler、品質policyの実装構造、format別AST監査、検体を渡さない隔離runtime import確認から自動生成しています。検体実行、外部通信、生成AIは使用しません。
 この割合は実検体を解析して測定した成功率ではなく、解析完了率、config／C2抽出成功率、終端payload到達率、誤検知率を示しません。
 
-- 対象family: 87件
-- detector＋AST監査＋runtime import確認済みhandler＋品質policyが揃う構造: 77件（88.51%）
+- 対象family: 88件
+- detector＋AST監査＋runtime import確認済みhandler＋品質policyが揃う構造: 78件（88.64%）
 - 代表fixtureで自動解析完了を実証済み: 0件
-- detector＋安全handlerでfamily自動選択可能: 77件
-- automatic宣言済みfamily: 85件（97.7%）
-- AST監査＋runtime import確認済みscript-only handler: 85件（97.7%）
-- 品質policy宣言済み: 85件 / 安全handler＋品質policy: 85件
+- detector＋安全handlerでfamily自動選択可能: 78件
+- automatic宣言済みfamily: 86件（97.73%）
+- AST監査＋runtime import確認済みscript-only handler: 86件（97.73%）
+- 品質policy宣言済み: 86件 / 安全handler＋品質policy: 86件
 - 安全handlerはあるが品質policy未宣言: 0件
-- handler実装: 宣言97件 / AST監査通過97件 / runtime import確認済み97件 / 停止0件
+- handler実装: 宣言98件 / AST監査通過98件 / runtime import確認済み98件 / 停止0件
 - automatic handlerがAST監査またはruntime importで停止: 0件
 - handlerによる候補検証のみ: 8件
-- 実行したformat別preflight: 1041件（上限2048件）
-- 実行した検体なしruntime import確認: 97件（計画97件）
+- 実行したformat別preflight: 1055件（上限2048件）
+- 実行した検体なしruntime import確認: 98件（計画98件）
 
 | family | 状態 | detector | 品質policy | 宣言handler | 安全handler | blocker |
 |---|---|---:|---:|---:|---:|---|
@@ -45,6 +45,7 @@
 | freepbx_k_php | fully_routable | あり | あり | 1 | 1 | なし |
 | genddos_bot | fully_routable | あり | あり | 1 | 1 | なし |
 | gh0strat | fully_routable | あり | あり | 1 | 1 | なし |
+| ghostdesk | fully_routable | あり | あり | 1 | 1 | なし |
 | go_synthetic_workload | candidate_verification_only | なし | あり | 1 | 1 | detector_missing |
 | guloader | fully_routable | あり | あり | 1 | 1 | なし |
 | hijackloader | fully_routable | あり | あり | 1 | 1 | なし |

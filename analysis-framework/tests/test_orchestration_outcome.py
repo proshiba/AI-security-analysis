@@ -5,6 +5,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
@@ -249,6 +251,27 @@ def test_network_output_redacts_credentials_query_and_token_path() -> None:
     assert len(matching[0]["provenance"]) == 2
 
 
+def test_network_structural_labels_are_not_parsed_as_endpoints() -> None:
+    outputs = summarize_handler_outputs(
+        [
+            _record(
+                "vidar",
+                {
+                    "findings": [
+                        {
+                            "kind": "network.url",
+                            "status": "candidate",
+                            "value": "https://example.test/bootstrap",
+                        }
+                    ]
+                },
+            )
+        ]
+    )
+
+    assert [item["host"] for item in outputs["network_endpoints"]] == ["example.test"]
+
+
 def test_evidence_walk_terminates_on_cycle_and_huge_sequence() -> None:
     cycle: dict[str, object] = {}
     cycle["self"] = cycle
@@ -455,6 +478,220 @@ def test_static_config_correlated_c2_satisfies_network_and_config_gates() -> Non
     assert endpoint["evidence_basis"] == ["static_config_correlation"]
     assert endpoint["provenance"][0]["handler_id"] == "valleyrat:extract"
     assert result["outputs"]["config_evidence"][0]["correlated_keys"] == ["config", "findings"]
+    assert result["status"] == "complete"
+
+
+@pytest.mark.parametrize(
+    "role",
+    ["remote_management_relay", "screenconnect_clickonce_bootstrap"],
+)
+def test_exact_dual_use_management_role_satisfies_network_without_becoming_c2(
+    role: str,
+) -> None:
+    classification = (
+        "dual_use_not_c2_by_itself"
+        if role == "remote_management_relay"
+        else "dual_use_management_endpoint_not_c2_by_itself"
+    )
+    endpoint = {
+        "role": role,
+        "host": "192.0.2.10",
+        "port": 8041,
+        "transport": "tcp_tls",
+        "confidence": "confirmed_static_configuration",
+        "evidence": {
+            "kind": "screenconnect_embedded_management_endpoint",
+            "c2_classification": classification,
+            "malicious_use_confirmed": False,
+        },
+    }
+    if role == "screenconnect_clickonce_bootstrap":
+        endpoint.update(
+            {
+                "url": "https://192.0.2.10:8041/Bin/ScreenConnect.Client.application",
+                "path": "/Bin/ScreenConnect.Client.application",
+            }
+        )
+    result = build_outcome(
+        sample_sha256=SHA256,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[
+            _candidate(
+                "screenconnect_rmm",
+                "known_hash",
+                requirements={"config_required": True, "network_required": True},
+            )
+        ],
+        handler_records=[
+            _record(
+                "screenconnect_rmm",
+                {
+                    "schema_version": 1,
+                    "family": "ScreenConnect RMM",
+                    "classification": "commercial_rmm_dual_use",
+                    "malware_by_itself": False,
+                    "abuse_attribution": "not_established",
+                    "network_contacted": False,
+                    "sample_executed": False,
+                    "malicious_use_context": {
+                        "assessment": "requires_incident_context",
+                        "malicious_use_confirmed": False,
+                        "unauthorized_installation_observed": False,
+                        "embedded_management_endpoint_observed": True,
+                        "requires_authorization_and_delivery_context": True,
+                    },
+                    "config": {
+                        "static_config_recovered": True,
+                        "config_endpoints": [endpoint],
+                        "static_evidence": {
+                            "all_expected_fields_validated": True,
+                            "source": "screenconnect_embedded_management_configuration",
+                            "dual_use_endpoint": True,
+                        },
+                    }
+                },
+            )
+        ],
+        function_analysis_available=True,
+    )
+
+    endpoint = result["outputs"]["qualified_network_endpoints"][0]
+    assert endpoint["role"] == role
+    assert endpoint["role"] != "c2"
+    assert endpoint["evidence_basis"] == ["static_config_correlation"]
+    assert result["status"] == "complete"
+
+
+def test_structured_host_and_port_are_one_qualified_endpoint() -> None:
+    """同一mappingのhostをportなしscalarへ二重資格化せず1件へ結合する。"""
+
+    result = build_outcome(
+        sample_sha256=SHA256,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[
+            _candidate(
+                "ghostdesk",
+                "known_hash",
+                requirements={"config_required": True, "network_required": True},
+            )
+        ],
+        handler_records=[
+            _record(
+                "ghostdesk",
+                {
+                    "decoded_config_recovered": True,
+                    "c2": [
+                        {
+                            "host": "node.example",
+                            "port": 4444,
+                            "role": "configured_external_c2",
+                            "transport": "websocket_over_raw_tcp",
+                        }
+                    ],
+                },
+            )
+        ],
+        function_analysis_available=True,
+    )
+
+    assert len(result["outputs"]["qualified_network_endpoints"]) == 1
+    endpoint = result["outputs"]["qualified_network_endpoints"][0]
+    assert endpoint["host"] == "node.example"
+    assert endpoint["port"] == 4444
+    assert endpoint["contacted"] is False
+
+
+def test_unlisted_remote_management_role_remains_unqualified() -> None:
+    result = build_outcome(
+        sample_sha256=SHA256,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[
+            _candidate(
+                "screenconnect_rmm",
+                "known_hash",
+                requirements={"config_required": True, "network_required": True},
+            )
+        ],
+        handler_records=[
+            _record(
+                "screenconnect_rmm",
+                {
+                    "config": {
+                        "static_config_recovered": True,
+                        "config_endpoints": [
+                            {
+                                "role": "remote_management_gateway",
+                                "host": "192.0.2.11",
+                                "port": 443,
+                            }
+                        ],
+                    }
+                },
+            )
+        ],
+        function_analysis_available=True,
+    )
+
+    assert result["outputs"]["qualified_network_endpoints"] == []
+    assert result["quality_gates"]["network"]["status"] == "required_missing"
+    assert result["status"] == "partial"
+
+
+def test_legacy_screenconnect_result_satisfies_config_and_network_as_dual_use() -> None:
+    result = build_outcome(
+        sample_sha256=SHA256,
+        generic_status="complete",
+        layer_status="complete",
+        candidates=[
+            _candidate(
+                "screenconnect_rmm",
+                "known_hash",
+                requirements={"config_required": True, "network_required": True},
+            )
+        ],
+        handler_records=[
+            _record(
+                "screenconnect_rmm",
+                {
+                    "schema_version": 1,
+                    "family": "ScreenConnect RMM",
+                    "classification": "commercial_rmm_dual_use",
+                    "malware_by_itself": False,
+                    "abuse_attribution": "not_established",
+                    "artifact_role": "access_agent_installer",
+                    "logic": ["埋め込み管理先を静的に回収"],
+                    "network_contacted": False,
+                    "sample_executed": False,
+                    "malicious_use_context": {
+                        "assessment": "requires_incident_context",
+                        "malicious_use_confirmed": False,
+                        "unauthorized_installation_observed": False,
+                        "embedded_management_endpoint_observed": True,
+                        "requires_authorization_and_delivery_context": True,
+                    },
+                    "relay": {
+                        "host": "192.0.2.12",
+                        "port": 8041,
+                        "transport": "tcp_tls",
+                        "role": "remote_management_relay",
+                        "c2_classification": "dual_use_not_c2_by_itself",
+                        "tenant_key_sha256": "b" * 64,
+                        "tenant_key_length": 407,
+                        "redacted_query": "?h=192.0.2.12&p=8041&k=<redacted>",
+                    },
+                },
+            )
+        ],
+        function_analysis_available=True,
+    )
+
+    endpoint = result["outputs"]["qualified_network_endpoints"][0]
+    assert endpoint["role"] == "remote_management_relay"
+    assert endpoint["role"] != "c2"
+    assert result["outputs"]["config_recovered"] is True
     assert result["status"] == "complete"
 
 

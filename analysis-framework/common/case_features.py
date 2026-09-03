@@ -42,6 +42,7 @@ BEHAVIOR_HEADINGS = (
     "配送経路",
     "観測した",
     "静的な処理能力の手掛かり",
+    "コマンド実行能力",
 )
 EXCLUDED_HEADINGS = (
     "制約",
@@ -138,6 +139,36 @@ BEHAVIOR_VOCABULARY = (
     VocabularyFeature("execution:wmi", "実行", "WMIを介した実行", (r"\bwmi\b",)),
     VocabularyFeature("execution:runpe", "実行", "RunPE／プロセス置換", (r"runpe", r"process hollow")),
     VocabularyFeature("execution:process_creation", "実行", "プロセス起動API", (r"process_creation", r"プロセス起動api")),
+    VocabularyFeature(
+        "execution:embedded_pe_drop_launch",
+        "実行",
+        "埋め込みPEの書出しと起動",
+        (r"埋め込みpe書出し", r"createfilea.*writefile"),
+    ),
+    VocabularyFeature(
+        "execution:remote_command",
+        "実行",
+        "双用途管理clientの遠隔コマンド実行能力",
+        (r"遠隔コマンド実行能力", r"runcommandlineprogram"),
+    ),
+    VocabularyFeature(
+        "execution:command_script_launcher",
+        "実行",
+        "cmd／PowerShell一時script launcher",
+        (r"launcher command-line template", r"run\.cmd.*run\.ps1"),
+    ),
+    VocabularyFeature(
+        "execution:runtime_operator_command_body",
+        "解析境界",
+        "operator command bodyは実行時入力",
+        (r"固定operator command:.*command body自体は実行時",),
+    ),
+    VocabularyFeature(
+        "context:screenconnect_separate_c2_boundary",
+        "通信文脈",
+        "別個のmalware C2と双用途管理clientを分離",
+        (r"no_c2_capability_verified.*別個のmalware c2",),
+    ),
     VocabularyFeature("execution:process_injection", "実行", "プロセス注入", (r"process injection", r"process_injection", r"プロセス注入", r"virtualallocex", r"writeprocessmemory")),
     VocabularyFeature("network:api_access", "通信", "ネットワークAPI", (r"network_access", r"ネットワーク接続・取得api")),
     VocabularyFeature("persistence:registry_access", "永続化", "Registry更新API", (r"registry_access", r"registry更新api")),
@@ -206,12 +237,18 @@ def _positive_lines(lines: Iterable[str]) -> list[str]:
     return output
 
 
-def _redact_concrete_values(value: str) -> str:
+def _redact_concrete_values(
+    value: str,
+    *,
+    preserve_sha256: bool = False,
+) -> str:
     """挙動の説明を維持しつつ、IOCになり得る具体値を除く。"""
 
     output = URL_VALUE_RE.sub("[URLはIOC-LIST.mdを参照]", value)
     output = DOMAIN_ENDPOINT_VALUE_RE.sub("[接続先はIOC-LIST.mdを参照]", output)
     output = IPV4_VALUE_RE.sub("[IPはIOC-LIST.mdを参照]", output)
+    if preserve_sha256:
+        return output
     return SHA256_VALUE_RE.sub("[SHA-256はcase識別子を参照]", output)
 
 
@@ -235,7 +272,12 @@ def _match_vocabulary(
                     "label": feature.label,
                     "confidence": "documented",
                     "source": source,
-                    "evidence": _redact_concrete_values(line)[:300],
+                    "evidence": _redact_concrete_values(
+                        line,
+                        preserve_sha256=(
+                            feature.feature_id == "execution:embedded_pe_drop_launch"
+                        ),
+                    )[:600],
                 }
     return list(output.values())
 
@@ -440,7 +482,7 @@ def _assessment(
     declared_status = str(report_case_state.get("status") or "").casefold()
     declared_incomplete = bool(report_case_state) and (
         report_case_state.get("complete") is False
-        or report_case_state.get("resumable") is True
+        or report_case_state.get("resumable") is False
         or declared_status in {"partial", "insufficient", "blocked"}
     )
     declared_blockers = {

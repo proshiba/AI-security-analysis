@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -54,8 +56,8 @@ def confirmed_handler_artifact(
         "network_contacted": False,
     }
 
-def valid_source_case(tmp_path: Path, digest: str = "a" * 64) -> tuple[Path, dict]:
 
+def valid_source_case(tmp_path: Path, digest: str = "a" * 64) -> tuple[Path, dict]:
     """公開前整合性を満たす最小の通常解析caseを作る。"""
 
     source = tmp_path / digest
@@ -195,6 +197,7 @@ def test_choose_family_rejects_modern_result_without_handler_execution() -> None
         {"formbook", "nanocore", "unclassified"},
     ) == ("nanocore", "malwarebazaar_reported_signature")
 
+
 @pytest.mark.parametrize(
     ("internal_family", "public_family"),
     [
@@ -280,6 +283,7 @@ def test_choose_family_ambiguous_mapped_results_use_provider_fallback() -> None:
         },
     ) == ("nanocore", "malwarebazaar_reported_signature")
 
+
 def test_choose_family_is_conservative_for_provider_labels() -> None:
     """対応済み直接ラベルだけを採用し、dropped-byを本体分類へ流用しない。"""
     known = {"efimer", "vidar", "unclassified"}
@@ -301,6 +305,30 @@ def test_choose_family_is_conservative_for_provider_labels() -> None:
         "unclassified",
         "unsupported_reported_signature",
     )
+
+
+@pytest.mark.parametrize(
+    ("reported_label", "family"),
+    [("Vidar", "vidar"), ("RemusStealer", "remusstealer")],
+)
+def test_provider_only_attribution_is_not_static_confirmation(
+    reported_label: str,
+    family: str,
+) -> None:
+    """提供元報告だけのVidar/RemusStealerを静的確認済みと扱わない。"""
+
+    attribution = publisher.build_family_attribution(
+        family,
+        "malwarebazaar_reported_signature",
+        {"signature": reported_label, "tags": ["exe"]},
+    )
+
+    assert attribution["status"] == "provider_reported_not_statically_confirmed"
+    assert attribution["catalog_family_role"] == "provider_reported_grouping"
+    assert attribution["provider_reported_label"] == reported_label
+    assert attribution["provider_reported_family"] == family
+    assert attribution["statically_confirmed_family"] is None
+    assert attribution["supports_attribution"] is False
 
 
 def test_choose_family_keeps_triaged_unknown_unclassified() -> None:
@@ -417,6 +445,410 @@ def test_render_readme_replaces_unreadable_provider_filename() -> None:
 
     assert "providerで判読不能な名前（拡張子 .exe）" in rendered
     assert "???" not in rendered
+
+
+def test_screenconnect_internal_family_maps_to_existing_public_family() -> None:
+    assert publisher.public_family_id("screenconnect_rmm") == "screenconnect-rmm"
+
+
+def test_legacy_screenconnect_orchestration_refresh_separates_management_endpoint() -> None:
+    digest = "a" * 64
+    handler_id = "screenconnect_rmm:fixture:extract_config"
+    payload = {
+        "schema_version": 1,
+        "family": "ScreenConnect RMM",
+        "classification": "commercial_rmm_dual_use",
+        "malware_by_itself": False,
+        "abuse_attribution": "not_established",
+        "artifact_role": "access_agent_installer",
+        "logic": ["埋め込み管理先を静的に回収"],
+        "network_contacted": False,
+        "sample_executed": False,
+        "malicious_use_context": {
+            "assessment": "requires_incident_context",
+            "malicious_use_confirmed": False,
+            "unauthorized_installation_observed": False,
+            "embedded_management_endpoint_observed": True,
+            "requires_authorization_and_delivery_context": True,
+        },
+        "relay": {
+            "host": "192.0.2.12",
+            "port": 8041,
+            "transport": "tcp_tls",
+            "role": "remote_management_relay",
+            "c2_classification": "dual_use_not_c2_by_itself",
+            "tenant_key_sha256": "b" * 64,
+            "tenant_key_length": 407,
+            "redacted_query": "?h=192.0.2.12&p=8041&k=<redacted>",
+        },
+    }
+    quality = analysis_contract.handler_result_quality(payload)
+    assert quality["sufficient"] is True
+    execution = {
+        "handler_id": handler_id,
+        "status": "succeeded",
+        "selected_evidence": quality,
+        "selected_layer_sha256": digest,
+    }
+    artifact = {
+        "handler": {"id": handler_id, "family": "screenconnect_rmm"},
+        "result": payload,
+        "selected_evidence": quality,
+        "executed_sample": False,
+        "network_contacted": False,
+    }
+    satisfied_gate = {
+        "required": True,
+        "satisfied": True,
+        "observed": None,
+        "status": "satisfied",
+    }
+    missing_gate = {
+        "required": True,
+        "satisfied": False,
+        "observed": None,
+        "status": "required_missing",
+    }
+    outcome = {
+        "schema_version": 2,
+        "sample_sha256": digest,
+        "status": "partial",
+        "family_resolution": {
+            "status": "resolved",
+            "family": "screenconnect_rmm",
+        },
+        "quality_gates": {
+            "config": dict(missing_gate),
+            "family_resolution": dict(satisfied_gate),
+            "function_analysis": dict(missing_gate),
+            "generic_triage": dict(missing_gate),
+            "handler_evidence": dict(satisfied_gate),
+            "network": {**missing_gate, "observed": False},
+            "requirements_policy": dict(satisfied_gate),
+            "static_layers": dict(satisfied_gate),
+            "terminal_payload": {
+                "required": False,
+                "satisfied": False,
+                "observed": None,
+                "status": "not_applicable",
+            },
+        },
+        "blockers": ["config", "function_analysis", "generic_triage", "network"],
+        "next_actions_ja": [
+            "family固有config extractorを追加または更新してください。",
+            "特徴関数と全体ロジックの静的解析を追加してください。",
+            "汎用静的triageの失敗または部分結果を再処理してください。",
+            "復号configから通信先を抽出する処理を追加してください。",
+        ],
+    }
+    report = {
+        "candidate_handler_assessment": {"planned_attempt_count": 0},
+        "case_state": {
+            "status": "partial",
+            "complete": False,
+            "resumable": False,
+            "blockers": [
+                "generic_triage_partial",
+                "orchestration:config",
+                "orchestration:function_analysis",
+                "orchestration:generic_triage",
+                "orchestration:network",
+                "representative_function_analysis_required",
+            ],
+        },
+    }
+
+    assert (
+        publisher._refresh_legacy_screenconnect_orchestration(
+            report,
+            outcome,
+            [(execution, artifact)],
+        )
+        is True
+    )
+    assert outcome["blockers"] == ["function_analysis", "generic_triage"]
+    assert outcome["quality_gates"]["config"]["status"] == "satisfied"
+    assert outcome["quality_gates"]["network"]["status"] == "satisfied"
+    endpoints = outcome["outputs"]["qualified_network_endpoints"]
+    assert len(endpoints) == 1
+    assert endpoints[0]["role"] == "remote_management_relay"
+    assert endpoints[0]["role"] != "c2"
+    assert "orchestration:config" not in report["case_state"]["blockers"]
+    assert "orchestration:network" not in report["case_state"]["blockers"]
+    layer_report = {
+        "counts": {"recovered_layers": 128, "limit_events": 0},
+        "limit_events": [],
+    }
+    assert (
+        publisher._build_screenconnect_management_contract(
+            digest=digest,
+            public_family="screenconnect-rmm",
+            layer_report=layer_report,
+            handler_results=[(execution, artifact)],
+            report=report,
+            orchestration=outcome,
+        )
+        is None
+    )
+    mismatched_pending = {**outcome, "sample_sha256": "b" * 64}
+    with pytest.raises(ValueError, match="pending C2契約の対象identity"):
+        publisher._build_screenconnect_management_contract(
+            digest=digest,
+            public_family="screenconnect-rmm",
+            layer_report=layer_report,
+            handler_results=[(execution, artifact)],
+            report=report,
+            orchestration=mismatched_pending,
+        )
+    mismatched_pending_status = copy.deepcopy(outcome)
+    mismatched_pending_status.update({"status": "complete", "blockers": [], "next_actions_ja": []})
+    with pytest.raises(ValueError, match="pending C2契約の対象identity"):
+        publisher._build_screenconnect_management_contract(
+            digest=digest,
+            public_family="screenconnect-rmm",
+            layer_report=layer_report,
+            handler_results=[(execution, artifact)],
+            report=report,
+            orchestration=mismatched_pending_status,
+        )
+
+    for name in ("function_analysis", "generic_triage"):
+        outcome["quality_gates"][name] = dict(satisfied_gate)
+    outcome["status"] = "complete"
+    outcome["blockers"] = []
+    outcome["next_actions_ja"] = []
+    report["case_state"].update(
+        {
+            "status": "complete",
+            "complete": True,
+            "resumable": True,
+            "blockers": [],
+        }
+    )
+    report["case_state"]["resumable"] = False
+    with pytest.raises(ValueError, match="外側静的品質gate"):
+        publisher._build_screenconnect_management_contract(
+            digest=digest,
+            public_family="screenconnect-rmm",
+            layer_report=layer_report,
+            handler_results=[(execution, artifact)],
+            report=report,
+            orchestration=outcome,
+        )
+    report["case_state"]["resumable"] = True
+    outcome["quality_gates"]["terminal_payload"]["status"] = "satisfied"
+    with pytest.raises(ValueError, match="外側静的品質gate"):
+        publisher._build_screenconnect_management_contract(
+            digest=digest,
+            public_family="screenconnect-rmm",
+            layer_report=layer_report,
+            handler_results=[(execution, artifact)],
+            report=report,
+            orchestration=outcome,
+        )
+    outcome["quality_gates"]["terminal_payload"]["status"] = "not_applicable"
+    layer_report["counts"]["limit_events"] = False
+    with pytest.raises(ValueError, match="外側静的品質gate"):
+        publisher._build_screenconnect_management_contract(
+            digest=digest,
+            public_family="screenconnect-rmm",
+            layer_report=layer_report,
+            handler_results=[(execution, artifact)],
+            report=report,
+            orchestration=outcome,
+        )
+    layer_report["counts"]["limit_events"] = 0
+    rebuilt = publisher._build_screenconnect_management_contract(
+        digest=digest,
+        public_family="screenconnect-rmm",
+        layer_report=layer_report,
+        handler_results=[(execution, artifact)],
+        report=report,
+        orchestration=outcome,
+    )
+    assert rebuilt is not None
+    patterns, contract = rebuilt
+    assert len(patterns["communication"]["confirmed_static_management_endpoints"]) == 1
+    assert contract["c2"]["outcome"] == "no_c2_capability_verified"
+    assert contract["c2"]["protocol"]["status"] == "not_applicable"
+    assert contract["deep_analysis"]["blockers"] == []
+
+    mismatched_execution = {**execution, "selected_layer_sha256": "b" * 64}
+    with pytest.raises(ValueError, match="対象root handler"):
+        publisher._build_screenconnect_management_contract(
+            digest=digest,
+            public_family="screenconnect-rmm",
+            layer_report=layer_report,
+            handler_results=[(mismatched_execution, artifact)],
+            report=report,
+            orchestration=outcome,
+        )
+
+    mismatched_family_artifact = {
+        **artifact,
+        "handler": {"id": handler_id, "family": "vidar"},
+    }
+    with pytest.raises(ValueError, match="対象root handler"):
+        publisher._build_screenconnect_management_contract(
+            digest=digest,
+            public_family="screenconnect-rmm",
+            layer_report=layer_report,
+            handler_results=[(execution, mismatched_family_artifact)],
+            report=report,
+            orchestration=outcome,
+        )
+
+    application = {
+        "url": "https://192.0.2.12:8041/Bin/ScreenConnect.Client.application",
+        "scheme": "https",
+        "host": "192.0.2.12",
+        "port": 8041,
+        "path": "/Bin/ScreenConnect.Client.application",
+        "transport": "tcp_tls",
+        "role": "screenconnect_clickonce_bootstrap",
+        "contacted": False,
+        "c2_classification": "dual_use_management_endpoint_not_c2_by_itself",
+    }
+    two_endpoint_payload = {**payload, "application": application}
+    two_endpoint_artifact = {**artifact, "result": two_endpoint_payload}
+    rebuilt_legacy_two = publisher._build_screenconnect_management_contract(
+        digest=digest,
+        public_family="screenconnect-rmm",
+        layer_report=layer_report,
+        handler_results=[(execution, two_endpoint_artifact)],
+        report=report,
+        orchestration=outcome,
+    )
+    assert rebuilt_legacy_two is not None
+    assert len(rebuilt_legacy_two[0]["communication"]["confirmed_static_management_endpoints"]) == 2
+
+    modern_payload = copy.deepcopy(two_endpoint_payload)
+    modern_payload["config"] = {
+        "static_config_recovered": True,
+        "config_endpoints": [
+            {
+                "host": "192.0.2.12",
+                "port": 8041,
+                "transport": "tcp_tls",
+                "role": "remote_management_relay",
+                "confidence": "confirmed_static_configuration",
+                "evidence": {
+                    "kind": "screenconnect_embedded_management_endpoint",
+                    "c2_classification": "dual_use_not_c2_by_itself",
+                    "malicious_use_confirmed": False,
+                },
+            },
+            {
+                "url": application["url"],
+                "host": application["host"],
+                "port": application["port"],
+                "transport": application["transport"],
+                "path": application["path"],
+                "role": application["role"],
+                "confidence": "confirmed_static_configuration",
+                "evidence": {
+                    "kind": "screenconnect_embedded_management_endpoint",
+                    "c2_classification": ("dual_use_management_endpoint_not_c2_by_itself"),
+                    "malicious_use_confirmed": False,
+                },
+            },
+        ],
+        "static_evidence": {
+            "all_expected_fields_validated": True,
+            "source": "screenconnect_embedded_management_configuration",
+            "dual_use_endpoint": True,
+        },
+    }
+    modern_artifact = {**artifact, "result": modern_payload}
+    rebuilt_modern = publisher._build_screenconnect_management_contract(
+        digest=digest,
+        public_family="screenconnect-rmm",
+        layer_report=layer_report,
+        handler_results=[(execution, modern_artifact)],
+        report=report,
+        orchestration=outcome,
+    )
+    assert rebuilt_modern is not None
+    assert len(rebuilt_modern[0]["communication"]["confirmed_static_management_endpoints"]) == 2
+
+
+def test_legacy_vidar_refresh_removes_only_exact_structural_network_label() -> None:
+    digest = "a" * 64
+    handler_id = "vidar:fixture:extract"
+    payload = {
+        "version": "3.2",
+        "findings": [
+            {"kind": "network.url", "value": "https://example.test/bootstrap"},
+            {"kind": "network.url", "value": "https://t.me/example"},
+        ],
+    }
+    quality = analysis_contract.handler_result_quality(payload)
+    assert quality["sufficient"] is True
+    execution = {
+        "handler_id": handler_id,
+        "status": "succeeded",
+        "selected_evidence": quality,
+        "selected_layer_sha256": digest,
+    }
+    artifact = {
+        "handler": {"id": handler_id, "family": "vidar"},
+        "result": payload,
+        "selected_evidence": quality,
+        "executed_sample": False,
+        "network_contacted": False,
+    }
+    record = {
+        "source": "selected_family_analysis",
+        "family": "vidar",
+        "handler_id": handler_id,
+        "status": "succeeded",
+        "selected_evidence": quality,
+        "selected_layer_sha256": digest,
+        "result": artifact,
+    }
+    refreshed = publisher.orchestration_outcome.summarize_handler_outputs(
+        [record],
+        family_filter="vidar",
+    )
+    fake = {
+        "host": "network.url",
+        "port": None,
+        "scheme": None,
+        "path": None,
+        "contacted": False,
+        "provenance": [
+            {
+                "family": "vidar",
+                "handler_id": handler_id,
+                "source": "selected_family_analysis",
+                "evidence_path": "findings.0.kind",
+            }
+        ],
+    }
+    legacy = copy.deepcopy(refreshed)
+    legacy["network_endpoints"].append(fake)
+    outcome = {
+        "schema_version": 2,
+        "family_resolution": {"status": "resolved", "family": "vidar"},
+        "outputs": legacy,
+        "candidate_outputs": copy.deepcopy(legacy),
+    }
+    report_document = {
+        "candidate_handler_assessment": {"planned_attempt_count": 0},
+    }
+
+    assert (
+        publisher._refresh_legacy_vidar_structural_network_labels(
+            report_document,
+            outcome,
+            [(execution, artifact)],
+        )
+        is True
+    )
+    assert [item["host"] for item in outcome["outputs"]["network_endpoints"]] == [
+        "example.test",
+        "t.me",
+    ]
 
 
 def test_confirmed_static_handler_iocs_are_sanitized_deduplicated_and_traceable() -> None:
@@ -600,7 +1032,6 @@ def test_root_static_config_flags_require_boolean_true(flag_name: str) -> None:
 
     artifact["result"][flag_name] = 1
     assert publisher.static_config_recovered([(execution, artifact)], []) is False
-
 
 
 def test_find_case_source_requires_exactly_one_completed_report(tmp_path: Path) -> None:
@@ -1238,6 +1669,7 @@ def test_parser_accepts_post_analysis_resource_hardening_counts() -> None:
     assert args.post_analysis_resource_scan_observations == 93
     assert args.post_analysis_resource_failures == 0
 
+
 def test_acquisition_manifest_count_keeps_legacy_100_default() -> None:
     """requestedを持たない旧manifestは従来どおり100件として検証する。"""
 
@@ -1322,6 +1754,80 @@ def test_publish_rejects_unexpected_analysis_contract_sha256_before_writing(tmp_
             "expected-contract-test",
             expected_contract_sha256="d" * 64,
         )
+    assert not (repository / "analysis-results").exists()
+
+
+def test_collection_build_failure_preserves_existing_collection_byte_identical(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """2件目の生成失敗でも既存collectionを部分更新しない。"""
+
+    repository = tmp_path / "repository"
+    results = repository / "analysis-results"
+    (results / "malware" / "unclassified").mkdir(parents=True)
+    canonical = results / "collections" / "atomic-collection"
+    canonical.mkdir(parents=True)
+    (canonical / "sentinel.txt").write_text("old-complete\n", encoding="utf-8")
+    before = publisher.analysis_job_runner.analysis_output_content_manifest(canonical)
+    cases = tmp_path / "one-shot" / "cases"
+    cases.mkdir(parents=True)
+    digests = ["a" * 64, "b" * 64]
+    for digest in digests:
+        valid_source_case(cases, digest)
+    manifest = tmp_path / "manifest.json"
+    publisher.write_json(
+        manifest,
+        {
+            "requested": 2,
+            "downloaded": 2,
+            "pending": 0,
+            "complete": True,
+            "items": [{"sha256": digest, "metadata": {}} for digest in digests],
+        },
+    )
+    calls = 0
+
+    def fail_second_case(*_args: object, **_kwargs: object) -> tuple:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("injected second-case failure")
+        return "unclassified", cases / digests[0], {}
+
+    monkeypatch.setattr(publisher, "publish_case", fail_second_case)
+
+    with pytest.raises(OSError, match="second-case failure"):
+        publisher._publish_from_snapshots(
+            repository,
+            manifest,
+            [tmp_path / "one-shot"],
+            "atomic-collection",
+        )
+
+    assert calls == 2
+    assert publisher.analysis_job_runner.analysis_output_content_manifest(canonical) == before
+
+
+def test_collection_rejects_datastore_upload_name_case_insensitively(
+    tmp_path: Path,
+) -> None:
+    """private tree内のdatastore receipt候補を公開処理の最初に拒否する。"""
+
+    one_shot = tmp_path / "one-shot"
+    nested = one_shot / "cases" / ("a" * 64) / "private"
+    nested.mkdir(parents=True)
+    (nested / "Datastore-Upload.JSON").write_text("{}\n", encoding="utf-8")
+    repository = tmp_path / "repository"
+
+    with pytest.raises(ValueError, match="公開できないprivate artifact名"):
+        publisher._publish_from_snapshots(
+            repository,
+            tmp_path / "missing-manifest.json",
+            [one_shot],
+            "forbidden-receipt",
+        )
+
     assert not (repository / "analysis-results").exists()
 
 
@@ -1477,8 +1983,10 @@ def test_partial_staging_preserves_all_original_blockers(
     ]
 
     report_value["case_state"]["blockers"] = [
+        "generic_triage_partial",
         "orchestration:config",
         "orchestration:function_analysis",
+        "orchestration:generic_triage",
         "orchestration:network",
         "orchestration:static_layers",
         "orchestration:terminal_payload",
@@ -1568,6 +2076,7 @@ def test_reseal_canonical_report_refreshes_generated_artifact_hash(
         == []
     )
 
+
 def test_publish_case_uses_unclassified_case_kind(tmp_path: Path) -> None:
     digest = "8" * 64
     source, report_value = valid_source_case(tmp_path, digest)
@@ -1600,6 +2109,451 @@ def test_publish_case_uses_unclassified_case_kind(tmp_path: Path) -> None:
     analysis = publisher.load_json(destination / "analysis.json")
     assert analysis["artifacts"]["overall_logic"] == "OVERALL-LOGIC.md"
     assert "[OVERALL-LOGIC.md](OVERALL-LOGIC.md)" in (destination / "README.md").read_text(encoding="utf-8")
+
+
+def test_publish_case_helper_failure_preserves_existing_case_byte_identical(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """staging内の後段helper失敗では既存canonical caseを一切変更しない。"""
+
+    digest = "7" * 64
+    source, source_report = valid_source_case(tmp_path, digest)
+    publisher.write_json(
+        source / "static-logic.json",
+        static_logic.build_static_logic_report(
+            sha256=digest,
+            family="unclassified",
+            source_name="sample.bin",
+        ),
+    )
+    publisher.reseal_canonical_report(source, source_report)
+    repository = tmp_path / "r"
+    repository.mkdir()
+    _family, destination, _summary = publisher.publish_case(
+        repository,
+        repository / "analysis-results",
+        "atomic-fixture",
+        source,
+        {"sha256": digest, "metadata": {}},
+        {"unclassified"},
+    )
+    before = publisher.analysis_job_runner.analysis_output_content_manifest(destination)
+
+    def fail_after_staging_writes(**_kwargs: object) -> None:
+        raise OSError("injected helper failure")
+
+    monkeypatch.setattr(
+        publisher,
+        "_build_screenconnect_management_contract",
+        fail_after_staging_writes,
+    )
+    with pytest.raises(OSError, match="injected helper failure"):
+        publisher.publish_case(
+            repository,
+            repository / "analysis-results",
+            "atomic-fixture",
+            source,
+            {"sha256": digest, "metadata": {}},
+            {"unclassified"},
+        )
+
+    assert publisher.analysis_job_runner.analysis_output_content_manifest(destination) == before
+    assert not publisher._publication_journal_path(destination).exists()
+    prefix = f".casepub-{publisher._publication_case_name_key(destination)}."
+    assert not any(path.name.startswith(prefix) for path in destination.parent.iterdir())
+
+
+def test_publish_case_recovers_build_kill_and_removes_partial_staging(
+    tmp_path: Path,
+) -> None:
+    """staging生成中のprocess killを模擬し、次回publishでorphanを回収する。"""
+
+    digest = "6" * 64
+    source, source_report = valid_source_case(tmp_path, digest)
+    publisher.write_json(
+        source / "static-logic.json",
+        static_logic.build_static_logic_report(
+            sha256=digest,
+            family="unclassified",
+            source_name="sample.bin",
+        ),
+    )
+    publisher.reseal_canonical_report(source, source_report)
+    repository = tmp_path / "r"
+    repository.mkdir()
+    results = repository / "analysis-results"
+    _family, destination, _summary = publisher.publish_case(
+        repository,
+        results,
+        "kill-fixture",
+        source,
+        {"sha256": digest, "metadata": {}},
+        {"unclassified"},
+    )
+    old_sha256 = publisher._case_tree_sha256(destination)
+    key = publisher._publication_case_name_key(destination)
+    container = destination.parent / f".casepub-{key}.killed.staging"
+    backup = destination.parent / f".casepub-{key}.killed.backup"
+    journal = {
+        "schema_version": publisher.CASE_PUBLICATION_TRANSACTION_SCHEMA,
+        "case_sha256": digest,
+        "destination_path_sha256": publisher._publication_case_path_sha256(destination),
+        "existing_destination": True,
+        "old_tree_sha256": old_sha256,
+        "new_tree_sha256": None,
+        "staging_name": container.name,
+        "backup_name": backup.name,
+        "phase": "building",
+    }
+    publisher._atomic_publication_journal(
+        publisher._publication_journal_path(destination),
+        journal,
+        require_absent=True,
+    )
+    partial = publisher._publication_io_path(container) / digest
+    partial.mkdir(parents=True)
+    (partial / "part.tmp").write_bytes(b"partial")
+
+    publisher.publish_case(
+        repository,
+        results,
+        "kill-fixture",
+        source,
+        {"sha256": digest, "metadata": {}},
+        {"unclassified"},
+    )
+
+    assert destination.is_dir()
+    assert not publisher._publication_journal_path(destination).exists()
+    assert not os.path.lexists(container)
+
+
+def test_case_publication_rejects_parallel_publisher(
+    tmp_path: Path,
+) -> None:
+    """同じcanonical caseを同時に更新する2つ目のpublisherを拒否する。"""
+
+    digest = "5" * 64
+    source, source_report = valid_source_case(tmp_path, digest)
+    publisher.write_json(
+        source / "static-logic.json",
+        static_logic.build_static_logic_report(
+            sha256=digest,
+            family="unclassified",
+            source_name="sample.bin",
+        ),
+    )
+    publisher.reseal_canonical_report(source, source_report)
+    repository = tmp_path / "r"
+    repository.mkdir()
+    results = repository / "analysis-results"
+    destination = publisher.resolve_catalog_case_path(
+        results,
+        digest,
+        family="unclassified",
+    )
+    destination.parent.mkdir(parents=True)
+
+    with publisher._CasePublicationLock(destination):
+        with pytest.raises(ValueError, match="既に実行中"):
+            publisher.publish_case(
+                repository,
+                results,
+                "parallel-fixture",
+                source,
+                {"sha256": digest, "metadata": {}},
+                {"unclassified"},
+            )
+    assert not destination.exists()
+
+
+def test_case_publication_recovers_kill_between_directory_renames(
+    tmp_path: Path,
+) -> None:
+    """backup退避後のkill状態は次回回復で旧caseへbyte-identicalに戻す。"""
+
+    digest = "4" * 64
+    source, source_report = valid_source_case(tmp_path, digest)
+    publisher.write_json(
+        source / "static-logic.json",
+        static_logic.build_static_logic_report(
+            sha256=digest,
+            family="unclassified",
+            source_name="sample.bin",
+        ),
+    )
+    publisher.reseal_canonical_report(source, source_report)
+    repository = tmp_path / "r"
+    repository.mkdir()
+    results = repository / "analysis-results"
+    _family, destination, _summary = publisher.publish_case(
+        repository,
+        results,
+        "rename-kill-fixture",
+        source,
+        {"sha256": digest, "metadata": {}},
+        {"unclassified"},
+    )
+    old_manifest = publisher.analysis_job_runner.analysis_output_content_manifest(destination)
+    old_sha256 = publisher._case_tree_sha256(destination)
+    key = publisher._publication_case_name_key(destination)
+    container = destination.parent / f".casepub-{key}.renamekill.staging"
+    staged_case = publisher._publication_io_path(container) / digest
+    backup = destination.parent / f".casepub-{key}.renamekill.backup"
+    shutil.copytree(publisher._publication_io_path(destination), staged_case)
+    (staged_case / "README.md").write_text("# 新しい未確定case\n", encoding="utf-8")
+    new_sha256 = publisher._case_tree_sha256(staged_case)
+    journal = {
+        "schema_version": publisher.CASE_PUBLICATION_TRANSACTION_SCHEMA,
+        "case_sha256": digest,
+        "destination_path_sha256": publisher._publication_case_path_sha256(destination),
+        "existing_destination": True,
+        "old_tree_sha256": old_sha256,
+        "new_tree_sha256": new_sha256,
+        "staging_name": container.name,
+        "backup_name": backup.name,
+        "phase": "applying",
+    }
+    publisher._atomic_publication_journal(
+        publisher._publication_journal_path(destination),
+        journal,
+        require_absent=True,
+    )
+    os.replace(
+        publisher._publication_io_path(destination),
+        publisher._publication_io_path(backup),
+    )
+    os.replace(staged_case, publisher._publication_io_path(destination))
+    publisher._publication_io_path(container).rmdir()
+
+    assert publisher._recover_case_publication(destination) == "rolled_back"
+    assert publisher.analysis_job_runner.analysis_output_content_manifest(destination) == old_manifest
+    assert not backup.exists()
+    assert not publisher._publication_journal_path(destination).exists()
+
+
+def test_publish_case_separates_provider_label_from_static_attribution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """provider-onlyのVidar整理先を内部静的確認済みfamilyとして表示しない。"""
+
+    digest = "3" * 64
+    source, source_report = valid_source_case(tmp_path, digest)
+    publisher.write_json(
+        source / "static-logic.json",
+        static_logic.build_static_logic_report(
+            sha256=digest,
+            family="unclassified",
+            source_name="sample.bin",
+        ),
+    )
+    publisher.reseal_canonical_report(source, source_report)
+    repository = tmp_path / "r"
+    (repository / "analysis-results" / "malware" / "vidar").mkdir(
+        parents=True,
+    )
+    monkeypatch.setattr(
+        publisher,
+        "choose_family",
+        lambda *_args: ("vidar", "malwarebazaar_reported_signature"),
+    )
+
+    family, destination, summary = publisher.publish_case(
+        repository,
+        repository / "analysis-results",
+        "provider-only-fixture",
+        source,
+        {
+            "sha256": digest,
+            "metadata": {
+                "signature": "Vidar",
+                "tags": ["exe"],
+                "file_type": "exe",
+            },
+        },
+        {"vidar", "unclassified"},
+    )
+
+    assert family == "vidar"
+    assert summary["family"] == "vidar"
+    assert summary["family_attribution_status"] == "provider_reported_not_statically_confirmed"
+    assert summary["statically_confirmed_family"] is None
+    attribution = publisher.load_json(destination / "classification.json")["publication_attribution"]
+    assert attribution["catalog_family"] == "vidar"
+    assert attribution["provider_reported_label"] == "Vidar"
+    assert attribution["statically_confirmed_family"] is None
+    assert attribution["supports_attribution"] is False
+    analysis = publisher.load_json(destination / "analysis.json")
+    assert analysis["case"]["family"] == "vidar"
+    assert analysis["case"]["family_role"] == "provider_reported_grouping"
+    assert analysis["case"]["statically_confirmed_family"] is None
+    features = publisher.load_json(destination / "features.json")
+    assert features["family_attribution"]["status"] == "provider_reported_not_statically_confirmed"
+    assert publisher.load_json(destination / "static-logic.json")["family"] == "unclassified"
+    for markdown_name in ("README.md", "FEATURES.md"):
+        markdown = (destination / markdown_name).read_text(encoding="utf-8")
+        assert "提供元報告" in markdown
+        assert "内部静的確認済みファミリー: `なし`" in markdown
+        assert "正規分類" not in markdown
+    refreshed = publisher.load_json(destination / "report.json")
+    assert (
+        analysis_contract.case_integrity_errors(
+            destination,
+            refreshed,
+            expected_digest=digest,
+            require_resumable=False,
+        )
+        == []
+    )
+
+
+def test_collection_summary_counts_provider_only_separately(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """collection集計でも整理先labelと内部静的確認件数を分離する。"""
+
+    digest = "2" * 64
+    cases = tmp_path / "one-shot" / "cases"
+    cases.mkdir(parents=True)
+    source, source_report = valid_source_case(cases, digest)
+    publisher.write_json(
+        source / "static-logic.json",
+        static_logic.build_static_logic_report(
+            sha256=digest,
+            family="unclassified",
+            source_name="sample.bin",
+        ),
+    )
+    publisher.reseal_canonical_report(source, source_report)
+    repository = tmp_path / "r"
+    (repository / "analysis-results" / "malware" / "vidar").mkdir(
+        parents=True,
+    )
+    manifest = tmp_path / "manifest.json"
+    publisher.write_json(
+        manifest,
+        {
+            "requested": 1,
+            "downloaded": 1,
+            "pending": 0,
+            "complete": True,
+            "selected_at": "2026-09-02T00:00:00Z",
+            "items": [
+                {
+                    "sha256": digest,
+                    "metadata": {
+                        "signature": "Vidar",
+                        "tags": ["exe"],
+                        "file_type": "exe",
+                    },
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        publisher,
+        "choose_family",
+        lambda *_args: ("vidar", "malwarebazaar_reported_signature"),
+    )
+    publisher._publish_from_snapshots(
+        repository,
+        manifest,
+        [tmp_path / "one-shot"],
+        "provider-only-collection",
+    )
+
+    collection = repository / "analysis-results" / "collections" / "provider-only-collection"
+    readme = (collection / "README.md").read_text(encoding="utf-8")
+    assert "| 整理先ラベル |" in readme
+    assert "正規分類" not in readme
+    assert "提供元報告のみで内部静的ファミリー未確認: `1`" in readme
+    family_readme = (collection / "sources" / "vidar" / "README.md").read_text(encoding="utf-8")
+    assert "整理先ラベル" in family_readme
+    assert "提供元報告のみ（内部静的未確認）: `1`" in family_readme
+    family_summary = publisher.load_json(collection / "sources" / "vidar" / "summary.json")
+    assert family_summary["family_role"] == "collection_grouping_label"
+    assert family_summary["family_attribution_status"] == {"provider_reported_not_statically_confirmed": 1}
+    publication_summary = publisher.load_json(collection / "publication-summary.json")
+    assert publication_summary["family_attribution_status"] == {"provider_reported_not_statically_confirmed": 1}
+    catalog = publisher.load_json(repository / "analysis-results" / "catalog" / "cases.json")
+    assert catalog["cases"][digest]["family"] == "vidar"
+    case_path = repository.joinpath(*catalog["cases"][digest]["canonical_path"].split("/"))
+    assert publisher.load_json(case_path / "metadata.json")["collections"] == ["provider-only-collection"]
+
+
+def test_screenconnect_readme_separates_management_and_malware_c2() -> None:
+    """人間向け説明で管理能力、管理先、別C2、悪性利用を分離する。"""
+
+    rendered = publisher.render_readme(
+        "1" * 64,
+        "screenconnect-rmm",
+        "one_shot_static_detector",
+        {"signature": "ScreenConnect", "tags": ["exe"]},
+        {"type": "pe", "size": 4096},
+        [],
+        {
+            "status": "reviewed_function_logic",
+            "functions": [
+                {
+                    "name": "ScreenConnect.WindowsExtensions.RunCommandLineCommands",
+                    "api_calls": ["RunCommandLineProgram"],
+                    "callees": [],
+                }
+            ],
+        },
+        1,
+        0,
+        confirmed_network_count=1,
+        confirmed_management_count=1,
+    )
+
+    assert "双用途のScreenConnect管理client" in rendered
+    assert "remote command能力も静的に確認" in rendered
+    assert "管理endpoint" in rendered
+    assert "別個のmalware C2は未確認" in rendered
+    assert "悪性利用" in rendered
+
+
+def test_screenconnect_features_separates_management_and_malware_c2() -> None:
+    """FEATURESでも管理能力、管理先、別C2、悪性利用を分離する。"""
+
+    rendered = publisher.render_published_features_markdown(
+        {
+            "sha256": "1" * 64,
+            "family": "screenconnect-rmm",
+            "campaign_type": "unknown",
+            "sample_characteristics": [],
+            "behaviors": [],
+            "analysis_assessment": {
+                "status": "partial",
+                "score": 0,
+                "maximum_score": 1,
+                "unresolved": ["static_function_logic"],
+                "next_actions": [],
+            },
+            "family_attribution": publisher.build_family_attribution(
+                "screenconnect-rmm",
+                "one_shot_static_detector",
+                {"signature": "ScreenConnect", "tags": ["exe"]},
+            ),
+            "screenconnect_management_assessment": {
+                "dual_use_management_client": True,
+                "remote_command_capability_statically_confirmed": True,
+                "management_endpoint_observations": 1,
+                "separate_malware_c2_observations": 0,
+                "malicious_use_confirmed": False,
+            },
+        }
+    )
+
+    assert "## 双用途管理能力の評価" in rendered
+    assert "remote command能力: `静的関数証拠で確認済み`" in rendered
+    assert "確認済み管理endpoint: `1`件" in rendered
+    assert "別個のmalware C2: `未確認`" in rendered
+    assert "管理endpointの悪性利用: `未確認`" in rendered
 
 
 def test_publish_case_reuses_catalog_versioned_path_and_metadata_version(
@@ -1802,7 +2756,6 @@ def test_publish_case_reflects_confirmed_static_c2_and_keeps_report_integrity(
         )
         == []
     )
-
 
 
 @pytest.mark.parametrize(

@@ -4,8 +4,6 @@
 from __future__ import annotations
 
 import argparse
-from contextlib import contextmanager
-from dataclasses import dataclass
 import base64
 import binascii
 import hashlib
@@ -13,7 +11,6 @@ import io
 import json
 import math
 import os
-from pathlib import Path, PurePosixPath
 import re
 import stat
 import struct
@@ -24,33 +21,28 @@ import threading
 import time
 import zipfile
 import zlib
-from unpackers.path_safety import safe_member_name as validate_member_name
+from contextlib import contextmanager
+from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
 
 import cabarchive
 import dnfile
 import olefile
 import pefile
 import pyzipper
+from refinery.lib.cab import Cabinet as RefineryCabinet
+
+from unpackers.path_safety import safe_member_name as validate_member_name
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from unpackers.asar_unpacker import is_asar, recover_asar
-from unpackers.javascript_dropper_unpacker import recover_javascript_dropper
-from unpackers.javascript_obfuscator import (
-    decode_script_text,
-    deobfuscate_plain_string_array,
-    deobfuscate_string_array,
-)
-from unpackers.nsis_unpacker import recover_nsis_scripted_layers
-from unpackers.onyx_qt_loader import (
-    matches_onyx_qt_profile,
-    recover_onyx_qt_payload,
-)
-from unpackers.rzk_lece_unpacker import (
-    ENCODED_LECE_MAGIC,
-    candidate_report as rzk_lece_candidate_report,
-    find_rzk_lece_streams,
+from unpackers.bounded_pe_scan import (
+    BoundedExtent,
+    CarvedPeArtifacts,
+    inspect_structural_pe_extent,
+    scan_embedded_pe_candidates,
 )
 from unpackers.container_recovery import (
     recover_inflated_pe,
@@ -61,32 +53,58 @@ from unpackers.donut_unpacker import recover_donut_payloads
 from unpackers.donut_wrapper_unpacker import recover_xor32_donut_wrapper
 from unpackers.dotnet_bundle_unpacker import recover_dotnet_bundle
 from unpackers.embedded_installer_archive import recover_embedded_installer_archive
-from unpackers.profiled_transform import recover_profiled_transforms
-from unpackers.rotated_xor_donut import legacy_report_from_attempt
+from unpackers.javascript_dropper_unpacker import recover_javascript_dropper
+from unpackers.javascript_obfuscator import (
+    decode_script_text,
+    deobfuscate_plain_string_array,
+    deobfuscate_string_array,
+)
 from unpackers.managed_il_triage import (
     _contain_parser_diagnostics,
     analyze_managed_pe,
 )
 from unpackers.managed_proxy_deobfuscator import analyze_managed_protector
-from unpackers.static_control_flow import analyze_pe_control_flow
-from unpackers.bounded_pe_scan import (
-    BoundedExtent,
-    CarvedPeArtifacts,
-    inspect_structural_pe_extent,
-    scan_embedded_pe_candidates,
+from unpackers.nsis_unpacker import recover_nsis_scripted_layers
+from unpackers.onyx_qt_loader import (
+    matches_onyx_qt_profile,
+    recover_onyx_qt_payload,
 )
+from unpackers.profiled_transform import recover_profiled_transforms
+from unpackers.rotated_xor_donut import legacy_report_from_attempt
+from unpackers.rzk_lece_unpacker import (
+    ENCODED_LECE_MAGIC,
+    find_rzk_lece_streams,
+)
+from unpackers.rzk_lece_unpacker import (
+    candidate_report as rzk_lece_candidate_report,
+)
+from unpackers.static_control_flow import analyze_pe_control_flow
 
 COMMON_ROOT = Path(__file__).resolve().parents[1] / "analysis-framework" / "common"
 if str(COMMON_ROOT) not in sys.path:
     sys.path.insert(0, str(COMMON_ROOT))
 
+from analysis_contract import ensure_no_reparse_components  # noqa: E402
 from analyze_iso9660 import (  # noqa: E402
     is_iso9660,
     recover_iso9660_members,
     validate_iso9660_members,
 )
-from analysis_contract import ensure_no_reparse_components  # noqa: E402
 from bounded_process import ProcessContainment  # noqa: E402
+from extract_pyinstaller_archive import (  # noqa: E402
+    DEFAULT_FULL_VALIDATION_MAX_TOTAL_SIZE as PYINSTALLER_VALIDATION_TOTAL_LIMIT,
+)
+from extract_pyinstaller_archive import (  # noqa: E402
+    DEFAULT_MAX_ENTRY_SIZE as PYINSTALLER_ENTRY_LIMIT,
+)
+from extract_pyinstaller_archive import (  # noqa: E402
+    DEFAULT_SELECTIVE_MAX_TOTAL_SIZE as PYINSTALLER_RETENTION_TOTAL_LIMIT,
+)
+from extract_pyinstaller_archive import (  # noqa: E402
+    MemoryCArchiveError,
+    MemoryCArchiveReader,
+    analyze_carchive_bytes,
+)
 
 MAX_ARTIFACT = 256 * 1024 * 1024
 ENTROPY_FULL_LIMIT = 8 * 1024 * 1024
@@ -97,6 +115,22 @@ MAX_RETAINED_MEMBERS = 128
 MAX_SELECTIVE_ARCHIVE_SCAN_MEMBERS = 8192
 MAX_COMPRESSION_RATIO = 200.0
 ARCHIVE_READ_CHUNK_SIZE = 1024 * 1024
+MAX_CAB_DATA_BLOCKS = 8192
+MAX_CAB_MEMBER_NAME_BYTES = 4096
+MAX_CAB_BLOCK_UNCOMPRESSED_SIZE = 32 * 1024
+CAB_LZX_MIN_WINDOW_BITS = 15
+CAB_LZX_MAX_WINDOW_BITS = 21
+CAB_LZX_UNSUPPORTED_ERROR = "LZX compression not supported"
+MAX_CAB_LZX_WORKER_MEMORY_BYTES = 1024 * 1024 * 1024
+CAB_LZX_RUNTIME_MEMORY_RESERVE_BYTES = 256 * 1024 * 1024
+CAB_LZX_MEMBER_METADATA_RESERVE_BYTES = 8 * 1024
+CAB_LZX_FOLDER_METADATA_RESERVE_BYTES = 64 * 1024
+CAB_LZX_BLOCK_METADATA_RESERVE_BYTES = 1024
+CAB_HEADER = struct.Struct("<4sIIIIIBBHHHHH")
+CAB_RESERVE_HEADER = struct.Struct("<HBB")
+CAB_FOLDER = struct.Struct("<IHH")
+CAB_FILE = struct.Struct("<IIHHHH")
+CAB_DATA = struct.Struct("<IHH")
 MACHO_MAGICS = {
     b"\xcf\xfa\xed\xfe",
     b"\xfe\xed\xfa\xcf",
@@ -104,6 +138,9 @@ MACHO_MAGICS = {
     b"\xbe\xba\xfe\xca",
 }
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+PDF_MAGIC = b"%PDF-"
+GDPF_FOOTER_MAGIC = b"GDPF"
+GDPF_FOOTER_SIZE = 8
 MAX_PNG_CHUNKS = 4096
 MAX_DETACHED_IDAT_CANDIDATES = 256
 PADDING_PREFILTER_BYTES = 64 * 1024
@@ -166,6 +203,93 @@ class StaticToolExecutionError(RuntimeError):
     def __init__(self, reason: str) -> None:
         super().__init__(reason)
         self.reason = reason
+
+
+class _CabLzxFallbackError(ValueError):
+    """LZX CABを外部processなしで安全に処理できない理由を保持する。"""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+@dataclass(frozen=True)
+class _CabLzxMember:
+    """preflightで検証済みのCFFILE metadata。"""
+
+    name: str
+    size: int
+    offset: int
+    folder_index: int
+
+
+@dataclass(frozen=True)
+class _CabLzxMemoryBudget:
+    """LZX fallbackの保守的なprocess peak memory見積り。"""
+
+    worker_limit_bytes: int
+    runtime_reserve_bytes: int
+    input_bytes: int
+    folder_cache_bytes: int
+    member_materialization_bytes: int
+    decoder_window_bytes: int
+    metadata_reserve_bytes: int
+    estimated_peak_bytes: int
+
+    def public(self) -> dict[str, object]:
+        """予算判定を検体内容を含めず公開する。"""
+
+        return {
+            "status": "passed",
+            "worker_limit_bytes": self.worker_limit_bytes,
+            "runtime_reserve_bytes": self.runtime_reserve_bytes,
+            "input_bytes": self.input_bytes,
+            "folder_cache_bytes": self.folder_cache_bytes,
+            "member_materialization_bytes": self.member_materialization_bytes,
+            "decoder_window_bytes": self.decoder_window_bytes,
+            "metadata_reserve_bytes": self.metadata_reserve_bytes,
+            "estimated_peak_bytes": self.estimated_peak_bytes,
+            "headroom_bytes": self.worker_limit_bytes - self.estimated_peak_bytes,
+        }
+
+
+@dataclass(frozen=True)
+class _CabLzxPreflight:
+    """展開前に確定したCAB境界と出力予算。"""
+
+    members: tuple[_CabLzxMember, ...]
+    folder_output_sizes: tuple[int, ...]
+    window_bits: tuple[int, ...]
+    compression: str
+    data_block_count: int
+    checksum_blocks_verified: int
+    declared_file_total_size: int
+    memory_budget: _CabLzxMemoryBudget | None
+
+    def public(self, cabinet_size: int) -> dict[str, object]:
+        """検体byteやmember名を含めない公開可能な検証結果を返す。"""
+
+        result: dict[str, object] = {
+            "status": "passed",
+            "cabinet_size": cabinet_size,
+            "folder_count": len(self.folder_output_sizes),
+            "file_count": len(self.members),
+            "data_block_count": self.data_block_count,
+            "declared_file_total_size": self.declared_file_total_size,
+            "declared_folder_output_total_size": sum(self.folder_output_sizes),
+            "compression": self.compression,
+            "lzx_window_bits": sorted({value for value in self.window_bits if value}),
+            "multi_volume": False,
+            "checksum_blocks_required": (
+                self.data_block_count if self.compression == "lzx" else 0
+            ),
+            "checksum_blocks_verified": self.checksum_blocks_verified,
+            "path_validation": "passed",
+            "bounds_validation": "passed",
+        }
+        if self.memory_budget is not None:
+            result["lzx_peak_memory_budget"] = self.memory_budget.public()
+        return result
 
 
 @dataclass(frozen=True)
@@ -650,6 +774,8 @@ def detect_format(data: bytes, name: str = "sample") -> str:
         return "elf"
     if data.startswith(PNG_MAGIC):
         return "png"
+    if data.startswith(PDF_MAGIC):
+        return "pdf"
     if is_asar(data):
         return "asar"
     if data[:4] in MACHO_MAGICS:
@@ -703,6 +829,89 @@ def detect_format(data: bytes, name: str = "sample") -> str:
         ):
             return "script"
     return "data"
+
+
+def recover_gdpf_pdf_overlay(
+    data: bytes,
+    *,
+    minimum_offset: int,
+    maximum_size: int = MAX_ARTIFACT,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """EOFの<u32 size>GDPFからPDFデコイを境界検証付きで復元する。
+
+    GhostDesk識別文字列を持つ検体は、自身のPE末尾からこの形式を読み、
+    一時PDFとして開く。誤検出を避けるため、footer、サイズ、PE overlay
+    境界、PDF magicの全条件が一致した場合だけ子レイヤーへ渡す。
+    """
+
+    report: dict[str, object] = {
+        "status": "no_footer",
+        "footer_magic": GDPF_FOOTER_MAGIC.decode("ascii"),
+        "executed": False,
+        "network_contacted": False,
+    }
+    if not data.endswith(GDPF_FOOTER_MAGIC):
+        return report, []
+
+    report["footer_offset"] = len(data) - len(GDPF_FOOTER_MAGIC)
+    if len(data) < GDPF_FOOTER_SIZE:
+        report["status"] = "truncated_footer"
+        return report, []
+    if (
+        isinstance(minimum_offset, bool)
+        or not isinstance(minimum_offset, int)
+        or minimum_offset < 0
+        or minimum_offset > len(data)
+    ):
+        report["status"] = "invalid_minimum_offset"
+        return report, []
+    if (
+        isinstance(maximum_size, bool)
+        or not isinstance(maximum_size, int)
+        or maximum_size <= 0
+    ):
+        report["status"] = "invalid_maximum_size"
+        return report, []
+
+    payload_end = len(data) - GDPF_FOOTER_SIZE
+    declared_size = struct.unpack_from("<I", data, payload_end)[0]
+    payload_offset = payload_end - declared_size
+    report.update(
+        {
+            "declared_size": declared_size,
+            "payload_offset": payload_offset,
+            "payload_end": payload_end,
+            "minimum_offset": minimum_offset,
+            "size_field_little_endian": True,
+        }
+    )
+    if declared_size <= 100:
+        report["status"] = "declared_size_below_profile_minimum"
+        return report, []
+    if declared_size > maximum_size:
+        report["status"] = "declared_size_budget_exceeded"
+        return report, []
+    if payload_offset < minimum_offset or payload_offset < 0:
+        report["status"] = "payload_outside_pe_overlay"
+        return report, []
+
+    payload = data[payload_offset:payload_end]
+    if len(payload) != declared_size:
+        report["status"] = "payload_truncated"
+        return report, []
+    if not payload.startswith(PDF_MAGIC):
+        report["status"] = "payload_magic_mismatch"
+        return report, []
+
+    report.update(
+        {
+            "status": "pdf_recovered",
+            "payload_format": "pdf",
+            "payload_sha256": sha256_bytes(payload),
+            "payload_content_in_report": False,
+        }
+    )
+    return report, [("gdpf-pdf-decoy.pdf", payload)]
 
 
 def recover_iso9660_layers(
@@ -1121,26 +1330,43 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
     )
     overlay_offset = pe.get_overlay_data_start_offset()
     image_end = overlay_offset if overlay_offset is not None else len(data)
-    marker_probe = data[: min(image_end, 32 * 1024 * 1024)].lower()
+    image_marker_probe = data[: min(image_end, 32 * 1024 * 1024)].lower()
+    installer_marker_probe = data[: min(len(data), 1024 * 1024)].lower()
     markers = sorted(
-        marker.decode()
-        for marker in (
-            b"UPX!",
-            b"MPRESS1",
-            b"MPRESS2",
-            b"Themida",
-            b"VMProtect",
-            b"Nullsoft",
-        )
-        if marker.lower() in marker_probe
+        {
+            marker.decode()
+            for marker in (
+                b"UPX!",
+                b"MPRESS1",
+                b"MPRESS2",
+                b"Themida",
+                b"VMProtect",
+            )
+            if marker.lower() in image_marker_probe
+        }
+        | {
+            marker.decode()
+            for marker in (b"Nullsoft", b"Inno Setup")
+            if marker.lower() in installer_marker_probe
+        }
     )
     artifacts: list[tuple[str, bytes]] = []
     overlay = data[overlay_offset:] if overlay_offset is not None else b""
     overlay_format = detect_format(overlay, "overlay.bin") if overlay else "data"
     overlay_padding = repetitive_padding(overlay) if overlay else None
+    gdpf_pdf_footer, gdpf_pdf_artifacts = recover_gdpf_pdf_overlay(
+        data,
+        minimum_offset=image_end,
+    )
+    artifacts.extend(gdpf_pdf_artifacts)
     if overlay and overlay_padding is not None and overlay_offset is not None:
         artifacts.append(("pe-overlay-padding-removed", data[:overlay_offset]))
-    if overlay and overlay_format != "data" and overlay_padding is None:
+    if (
+        overlay
+        and overlay_format != "data"
+        and overlay_padding is None
+        and not gdpf_pdf_artifacts
+    ):
         artifacts.append((f"pe-overlay-{overlay_format}", overlay))
     overlay_embedded = carve_embedded_pes(overlay)
     artifacts.extend(overlay_embedded)
@@ -1269,7 +1495,9 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         and item["raw_size"] >= 4096
         and item["name"].lower() not in {".rsrc", ".reloc"}
     ]
-    containerized = "Nullsoft" in markers or archive_resources > 0
+    containerized = (
+        bool({"Nullsoft", "Inno Setup"}.intersection(markers)) or archive_resources > 0
+    )
     virtualized_shape = (
         isinstance(imports, int)
         and imports <= 2
@@ -1397,6 +1625,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             "overlay_size": len(overlay),
             "overlay_format": overlay_format,
             "overlay_repetitive_padding": overlay_padding,
+            "gdpf_pdf_footer": gdpf_pdf_footer,
             "resource_count": resource_count,
             "opaque_resources_recovered": opaque_resources,
             "archive_resources_recovered": archive_resources,
@@ -2403,6 +2632,104 @@ def recovery_candidate_priority(blob: bytes, kind: str, name: str) -> int:
     return 1
 
 
+def recover_pyinstaller_carchive(
+    data: bytes,
+    *,
+    max_member_size: int = MAX_ARTIFACT,
+    max_total_size: int = MAX_EXTRACTED_TOTAL,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """PyInstaller CArchiveを全件検証し、高価値entryだけをメモリへ保持する。"""
+
+    if MemoryCArchiveReader.COOKIE_MAGIC not in data:
+        return {
+            "status": "not_pyinstaller_carchive",
+            "executed": False,
+            "network_contacted": False,
+        }, []
+    entry_limit = min(max_member_size, PYINSTALLER_ENTRY_LIMIT)
+    retention_limit = min(max_total_size, PYINSTALLER_RETENTION_TOTAL_LIMIT)
+    validation_limit = min(max_total_size, PYINSTALLER_VALIDATION_TOTAL_LIMIT)
+    try:
+        result = analyze_carchive_bytes(
+            data,
+            max_entry_compressed_size=entry_limit,
+            max_entry_uncompressed_size=entry_limit,
+            max_total_compressed_size=retention_limit,
+            max_total_uncompressed_size=retention_limit,
+            max_validation_entry_compressed_size=entry_limit,
+            max_validation_entry_uncompressed_size=entry_limit,
+            max_validation_total_compressed_size=validation_limit,
+            max_validation_total_uncompressed_size=validation_limit,
+        )
+        public = dict(result.report)
+        sample = public.get("sample")
+        selection = public.get("selection")
+        selected = (
+            selection.get("selected_entries") if isinstance(selection, dict) else None
+        )
+        if (
+            not isinstance(sample, dict)
+            or sample.get("sha256") != sha256_bytes(data)
+            or sample.get("size") != len(data)
+            or not isinstance(selection, dict)
+            or type(selection.get("retained_count")) is not int
+            or selection["retained_count"] != len(result.recovered_entries)
+            or not isinstance(selected, list)
+            or len(selected) != len(result.recovered_entries)
+        ):
+            raise MemoryCArchiveError(
+                "PyInstaller公開contractと復元entryが一致しません"
+            )
+        artifacts: list[tuple[str, bytes]] = []
+        for index, (metadata, entry) in enumerate(
+            zip(selected, result.recovered_entries, strict=True)
+        ):
+            payload = entry.payload
+            if (
+                not isinstance(metadata, dict)
+                or metadata.get("sha256") != entry.sha256
+                or metadata.get("uncompressed_size") != len(payload)
+                or entry.sha256 != sha256_bytes(payload)
+                or len(payload) > entry_limit
+            ):
+                raise MemoryCArchiveError(
+                    "PyInstaller選択entryのidentityが一致しません"
+                )
+            basename = PurePosixPath(entry.normalized_path).name
+            label = re.sub(r"[^A-Za-z0-9._-]+", "_", basename).strip("._")
+            label = (label or "entry")[:48]
+            artifacts.append(
+                (
+                    f"pyinstaller-{entry.category}-{index:03d}-{label}",
+                    payload,
+                )
+            )
+    except MemoryCArchiveError as exc:
+        return {
+            "schema_version": 1,
+            "status": "parse_failed",
+            "error_type": type(exc).__name__,
+            "reason": str(exc)[:512],
+            "executed": False,
+            "external_process_started": False,
+            "network_contacted": False,
+            "file_written": False,
+        }, []
+
+    complete = public.get("complete") is True
+    public["status"] = (
+        "artifacts_recovered"
+        if complete and artifacts
+        else "inventory_validated"
+        if complete
+        else "partial_artifacts_recovered"
+        if artifacts
+        else "partial_inventory"
+    )
+    public["retained_artifact_count"] = len(artifacts)
+    return public, artifacts
+
+
 def sevenzip_extract(
     data: bytes,
     executable: Path,
@@ -2464,7 +2791,11 @@ def sevenzip_extract(
     if not supported_archive:
         return {**listing, "status": "not_archive_container"}, []
     selective_members: list[dict[str, object]] = []
-    if listing.get("total_members", 0) > max_members:
+    member_limit_exceeded = int(listing.get("total_members", 0)) > max_members
+    total_size_limit_exceeded = (
+        int(listing.get("declared_total_size", 0)) > max_total_size
+    )
+    if member_limit_exceeded or total_size_limit_exceeded:
         selective_members = select_high_value_archive_members(
             member_records,
             max_members=min(MAX_RETAINED_MEMBERS, max_members),
@@ -2472,9 +2803,14 @@ def sevenzip_extract(
             max_total_size=max_total_size,
         )
         if not selective_members:
-            return {**listing, "status": "member_limit_blocked"}, []
-    if listing.get("declared_total_size", 0) > max_total_size and not selective_members:
-        return {**listing, "status": "declared_size_blocked"}, []
+            status = (
+                "member_and_total_size_limit_blocked"
+                if member_limit_exceeded and total_size_limit_exceeded
+                else "member_limit_blocked"
+                if member_limit_exceeded
+                else "declared_size_blocked"
+            )
+            return {**listing, "status": status}, []
     password_candidates = [effective_password]
     if any(value.startswith("rar") for value in archive_types):
         for candidate in ("WNcry@2ol7",):
@@ -2713,9 +3049,17 @@ def sevenzip_extract(
                 "retained_members": len(selected),
                 "selective_extraction": {
                     "enabled": bool(selective_members),
-                    "reason": "archive_member_limit"
-                    if selective_members
-                    else "not_required",
+                    "reason": (
+                        "archive_member_and_total_size_limit"
+                        if selective_members
+                        and member_limit_exceeded
+                        and total_size_limit_exceeded
+                        else "archive_member_limit"
+                        if selective_members and member_limit_exceeded
+                        else "archive_total_size_limit"
+                        if selective_members
+                        else "not_required"
+                    ),
                     "selected_members": selective_members,
                     "selected_total_size": sum(
                         int(item["size"]) for item in selective_members
@@ -2815,42 +3159,469 @@ def recover_ole_streams(
     }, artifacts
 
 
-def recover_cab_members(
+def _cab_safety_fields() -> dict[str, object]:
+    """CAB処理が副作用を持たないことをreportへ明示する。"""
+
+    return {
+        "executed": False,
+        "network_contacted": False,
+        "external_process_started": False,
+        "disk_written": False,
+    }
+
+
+def _cab_data_checksum(payload: memoryview, seed: int) -> int:
+    """MS-CAB CFDATA checksumを有界block上で計算する。"""
+
+    checksum = seed
+    trailing_size = len(payload) % 4
+    body_size = len(payload) - trailing_size
+    for offset in range(0, body_size, 4):
+        checksum ^= struct.unpack_from("<I", payload, offset)[0]
+    if trailing_size:
+        checksum ^= int.from_bytes(payload[body_size:], "big")
+    return checksum & 0xFFFFFFFF
+
+
+def _cab_lzx_memory_budget(
+    *,
+    cabinet_size: int,
+    members: tuple[_CabLzxMember, ...],
+    folder_output_sizes: tuple[int, ...],
+    window_bits: tuple[int, ...],
+    data_block_count: int,
+) -> _CabLzxMemoryBudget:
+    """refineryのcacheとbytes化を含む最悪peakを保守的に見積もる。"""
+
+    folder_cache_bytes = sum(folder_output_sizes)
+    member_materialization_bytes = sum(member.size for member in members)
+    decoder_window_bytes = 1 << max(window_bits)
+    metadata_reserve_bytes = (
+        len(members) * CAB_LZX_MEMBER_METADATA_RESERVE_BYTES
+        + len(folder_output_sizes) * CAB_LZX_FOLDER_METADATA_RESERVE_BYTES
+        + data_block_count * CAB_LZX_BLOCK_METADATA_RESERVE_BYTES
+        + MAX_CAB_BLOCK_UNCOMPRESSED_SIZE
+    )
+    estimated_peak_bytes = (
+        CAB_LZX_RUNTIME_MEMORY_RESERVE_BYTES
+        + cabinet_size
+        + folder_cache_bytes
+        + member_materialization_bytes
+        + decoder_window_bytes
+        + metadata_reserve_bytes
+    )
+    return _CabLzxMemoryBudget(
+        worker_limit_bytes=MAX_CAB_LZX_WORKER_MEMORY_BYTES,
+        runtime_reserve_bytes=CAB_LZX_RUNTIME_MEMORY_RESERVE_BYTES,
+        input_bytes=cabinet_size,
+        folder_cache_bytes=folder_cache_bytes,
+        member_materialization_bytes=member_materialization_bytes,
+        decoder_window_bytes=decoder_window_bytes,
+        metadata_reserve_bytes=metadata_reserve_bytes,
+        estimated_peak_bytes=estimated_peak_bytes,
+    )
+
+
+def _cab_preflight(
     data: bytes,
     *,
-    max_members: int = MAX_ARCHIVE_MEMBERS,
-    max_member_size: int = MAX_ARTIFACT,
-    max_total_size: int = MAX_EXTRACTED_TOTAL,
-) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
-    """CABをPython parserだけで有界に展開し、解析価値のあるmemberを返す。"""
+    max_members: int,
+    max_member_size: int,
+    max_total_size: int,
+) -> _CabLzxPreflight:
+    """CAB parserへ渡す前に単一volume CABの全境界と予算を検証する。"""
 
-    if not data.startswith(b"MSCF"):
-        return {"status": "not_cab"}, []
+    for value, reason in (
+        (max_members, "invalid_member_limit"),
+        (max_member_size, "invalid_member_size_limit"),
+        (max_total_size, "invalid_total_size_limit"),
+    ):
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise _CabLzxFallbackError(reason)
+    if len(data) > MAX_ARTIFACT:
+        raise _CabLzxFallbackError("cabinet_input_size_limit_exceeded")
+    if len(data) < CAB_HEADER.size:
+        raise _CabLzxFallbackError("truncated_header")
+
+    (
+        signature,
+        reserved_1,
+        cabinet_size,
+        reserved_2,
+        file_table_offset,
+        reserved_3,
+        version_minor,
+        version_major,
+        folder_count,
+        file_count,
+        flags,
+        _set_id,
+        cabinet_index,
+    ) = CAB_HEADER.unpack_from(data)
+    if signature != b"MSCF":
+        raise _CabLzxFallbackError("invalid_signature")
+    if any((reserved_1, reserved_2, reserved_3)):
+        raise _CabLzxFallbackError("reserved_header_nonzero")
+    if cabinet_size != len(data):
+        raise _CabLzxFallbackError("cabinet_size_mismatch")
+    if (version_major, version_minor) != (1, 3):
+        raise _CabLzxFallbackError("unsupported_version")
+    if flags & ~0x0007:
+        raise _CabLzxFallbackError("invalid_flags")
+    if flags & 0x0003 or cabinet_index != 0:
+        raise _CabLzxFallbackError("multi_volume_not_supported")
+    if folder_count == 0 or folder_count > max_members:
+        raise _CabLzxFallbackError("folder_count_limit_exceeded")
+    if file_count == 0 or file_count > max_members:
+        raise _CabLzxFallbackError("file_count_limit_exceeded")
+
+    cursor = CAB_HEADER.size
+    folder_reserve_size = 0
+    data_reserve_size = 0
+    if flags & 0x0004:
+        if cursor + CAB_RESERVE_HEADER.size > len(data):
+            raise _CabLzxFallbackError("truncated_reserve_header")
+        header_reserve_size, folder_reserve_size, data_reserve_size = (
+            CAB_RESERVE_HEADER.unpack_from(data, cursor)
+        )
+        cursor += CAB_RESERVE_HEADER.size
+        if cursor + header_reserve_size > len(data):
+            raise _CabLzxFallbackError("header_reserve_out_of_bounds")
+        cursor += header_reserve_size
+
+    folders: list[tuple[int, int, int, int]] = []
+    total_block_count = 0
+    for _ in range(folder_count):
+        folder_end = cursor + CAB_FOLDER.size + folder_reserve_size
+        if folder_end > len(data):
+            raise _CabLzxFallbackError("folder_table_out_of_bounds")
+        block_offset, block_count, compression = CAB_FOLDER.unpack_from(data, cursor)
+        cursor = folder_end
+        if block_count == 0:
+            raise _CabLzxFallbackError("empty_folder")
+        total_block_count += block_count
+        if total_block_count > MAX_CAB_DATA_BLOCKS:
+            raise _CabLzxFallbackError("data_block_count_limit_exceeded")
+        compression_type = compression & 0x000F
+        window_bits = 0
+        if compression_type == 3:
+            window_bits = (compression >> 8) & 0x1F
+            if compression != 3 | (window_bits << 8):
+                raise _CabLzxFallbackError("invalid_lzx_compression_flags")
+            if not CAB_LZX_MIN_WINDOW_BITS <= window_bits <= CAB_LZX_MAX_WINDOW_BITS:
+                raise _CabLzxFallbackError("lzx_window_out_of_range")
+        elif compression_type in {0, 1}:
+            if compression != compression_type:
+                raise _CabLzxFallbackError("invalid_compression_flags")
+        else:
+            raise _CabLzxFallbackError("unsupported_compression")
+        folders.append((block_offset, block_count, compression_type, window_bits))
+
+    compression_types = {folder[2] for folder in folders}
+    if 3 in compression_types and compression_types != {3}:
+        raise _CabLzxFallbackError("mixed_lzx_compression_not_supported")
+    compression_name = (
+        "lzx"
+        if compression_types == {3}
+        else "none"
+        if compression_types == {0}
+        else "mszip"
+        if compression_types == {1}
+        else "none_or_mszip"
+    )
+
+    if file_table_offset < cursor or file_table_offset >= len(data):
+        raise _CabLzxFallbackError("file_table_out_of_bounds")
+
+    members: list[_CabLzxMember] = []
+    seen_names: set[str] = set()
+    declared_file_total_size = 0
+    cursor = file_table_offset
+    for _ in range(file_count):
+        if cursor + CAB_FILE.size > len(data):
+            raise _CabLzxFallbackError("file_entry_out_of_bounds")
+        size, offset, folder_index, _date, _time, attributes = CAB_FILE.unpack_from(
+            data, cursor
+        )
+        name_start = cursor + CAB_FILE.size
+        name_limit = min(len(data), name_start + MAX_CAB_MEMBER_NAME_BYTES + 1)
+        name_end = data.find(b"\0", name_start, name_limit)
+        if name_end < 0:
+            raise _CabLzxFallbackError("member_name_unterminated_or_too_long")
+        raw_name = data[name_start:name_end]
+        if not raw_name:
+            raise _CabLzxFallbackError("empty_member_name")
+        try:
+            decoded_name = raw_name.decode(
+                "utf-8" if attributes & 0x0080 else "latin-1"
+            )
+            name = validate_member_name(decoded_name)
+        except (UnicodeDecodeError, ValueError) as exc:
+            raise _CabLzxFallbackError("unsafe_member_path") from exc
+        collision_key = name.casefold()
+        if collision_key in seen_names:
+            raise _CabLzxFallbackError("duplicate_member_path")
+        seen_names.add(collision_key)
+        if folder_index >= folder_count:
+            reason = (
+                "multi_volume_file_not_supported"
+                if folder_index in {0xFFFD, 0xFFFE, 0xFFFF}
+                else "invalid_folder_index"
+            )
+            raise _CabLzxFallbackError(reason)
+        if size > max_member_size:
+            raise _CabLzxFallbackError("member_size_limit_exceeded")
+        declared_file_total_size += size
+        if declared_file_total_size > max_total_size:
+            raise _CabLzxFallbackError("declared_file_total_size_limit_exceeded")
+        members.append(
+            _CabLzxMember(
+                name=name,
+                size=size,
+                offset=offset,
+                folder_index=folder_index,
+            )
+        )
+        cursor = name_end + 1
+
+    file_table_end = cursor
+    folder_output_sizes: list[int] = []
+    folder_ranges: list[tuple[int, int]] = []
+    verified_checksum_count = 0
+    for block_offset, block_count, compression_type, _window_bits in folders:
+        if block_offset < file_table_end or block_offset >= len(data):
+            raise _CabLzxFallbackError("folder_data_out_of_bounds")
+        cursor = block_offset
+        folder_output_size = 0
+        for _ in range(block_count):
+            block_header_end = cursor + CAB_DATA.size + data_reserve_size
+            if block_header_end > len(data):
+                raise _CabLzxFallbackError("data_block_header_out_of_bounds")
+            checksum, compressed_size, uncompressed_size = CAB_DATA.unpack_from(
+                data, cursor
+            )
+            if compressed_size == 0:
+                raise _CabLzxFallbackError("empty_compressed_data_block")
+            if not 0 < uncompressed_size <= MAX_CAB_BLOCK_UNCOMPRESSED_SIZE:
+                raise _CabLzxFallbackError("invalid_uncompressed_data_block_size")
+            block_end = block_header_end + compressed_size
+            if block_end > len(data):
+                raise _CabLzxFallbackError("data_block_out_of_bounds")
+            if compression_type == 0 and compressed_size != uncompressed_size:
+                raise _CabLzxFallbackError("uncompressed_block_size_mismatch")
+            if compression_type == 1 and (
+                compressed_size < 2
+                or data[block_header_end : block_header_end + 2] != b"CK"
+            ):
+                raise _CabLzxFallbackError("invalid_mszip_block_header")
+            if compression_type == 3 and checksum == 0:
+                raise _CabLzxFallbackError("missing_data_block_checksum")
+            if checksum:
+                seed = compressed_size | (uncompressed_size << 16)
+                actual_checksum = _cab_data_checksum(
+                    memoryview(data)[block_header_end:block_end], seed
+                )
+                if actual_checksum != checksum:
+                    raise _CabLzxFallbackError("data_block_checksum_mismatch")
+                verified_checksum_count += 1
+            folder_output_size += uncompressed_size
+            if folder_output_size > max_total_size:
+                raise _CabLzxFallbackError("folder_output_size_limit_exceeded")
+            cursor = block_end
+        folder_output_sizes.append(folder_output_size)
+        folder_ranges.append((block_offset, cursor))
+
+    previous_end = file_table_end
+    for range_start, range_end in sorted(folder_ranges):
+        if range_start < previous_end:
+            raise _CabLzxFallbackError("folder_data_overlap")
+        previous_end = range_end
+    if sum(folder_output_sizes) > max_total_size:
+        raise _CabLzxFallbackError("declared_folder_output_limit_exceeded")
+    if compression_name == "lzx" and verified_checksum_count != total_block_count:
+        raise _CabLzxFallbackError("checksum_coverage_incomplete")
+
+    extents_by_folder: dict[int, list[tuple[int, int]]] = {}
+    for member in members:
+        member_end = member.offset + member.size
+        if member_end > folder_output_sizes[member.folder_index]:
+            raise _CabLzxFallbackError("member_extent_out_of_bounds")
+        if member.size:
+            extents_by_folder.setdefault(member.folder_index, []).append(
+                (member.offset, member_end)
+            )
+    for extents in extents_by_folder.values():
+        previous_end = 0
+        for extent_start, extent_end in sorted(extents):
+            if extent_start < previous_end:
+                raise _CabLzxFallbackError("member_extent_overlap")
+            previous_end = extent_end
+
+    memory_budget: _CabLzxMemoryBudget | None = None
+    if compression_name == "lzx":
+        memory_budget = _cab_lzx_memory_budget(
+            cabinet_size=len(data),
+            members=tuple(members),
+            folder_output_sizes=tuple(folder_output_sizes),
+            window_bits=tuple(folder[3] for folder in folders),
+            data_block_count=total_block_count,
+        )
+        if memory_budget.estimated_peak_bytes > memory_budget.worker_limit_bytes:
+            raise _CabLzxFallbackError("lzx_peak_memory_budget_exceeded")
+
+    return _CabLzxPreflight(
+        members=tuple(members),
+        folder_output_sizes=tuple(folder_output_sizes),
+        window_bits=tuple(folder[3] for folder in folders),
+        compression=compression_name,
+        data_block_count=total_block_count,
+        checksum_blocks_verified=verified_checksum_count,
+        declared_file_total_size=declared_file_total_size,
+        memory_budget=memory_budget,
+    )
+
+
+def _refinery_lzx_members(
+    data: bytes,
+    preflight: _CabLzxPreflight,
+    *,
+    max_total_size: int,
+) -> list[tuple[str, bytes]]:
+    """検証済みCABをbinary-refineryで一度だけin-memory展開する。"""
+
+    if (
+        preflight.compression != "lzx"
+        or preflight.checksum_blocks_verified != preflight.data_block_count
+    ):
+        raise _CabLzxFallbackError("lzx_preflight_contract_mismatch")
+    expected_memory_budget = _cab_lzx_memory_budget(
+        cabinet_size=len(data),
+        members=preflight.members,
+        folder_output_sizes=preflight.folder_output_sizes,
+        window_bits=preflight.window_bits,
+        data_block_count=preflight.data_block_count,
+    )
+    if (
+        preflight.memory_budget != expected_memory_budget
+        or expected_memory_budget.estimated_peak_bytes
+        > expected_memory_budget.worker_limit_bytes
+    ):
+        raise _CabLzxFallbackError("lzx_peak_memory_budget_contract_mismatch")
     try:
-        archive = cabarchive.CabArchive(data)
-        members = list(archive.items())
+        cabinet = RefineryCabinet(memoryview(data), compute_checksums=True)
     except Exception as exc:
-        return {"status": "parse_failed", "error": f"{type(exc).__name__}: {exc}"}, []
+        raise _CabLzxFallbackError("refinery_parse_failed") from exc
+    try:
+        cabinet.check(checksums=True)
+    except Exception as exc:
+        raise _CabLzxFallbackError("refinery_checksum_validation_failed") from exc
+    try:
+        cabinet.process()
+        disk_groups = list(cabinet.disks.values())
+        if len(disk_groups) != 1 or len(disk_groups[0]) != 1:
+            raise _CabLzxFallbackError("refinery_volume_contract_mismatch")
+        folders = list(disk_groups[0][0].folders)
+        if len(folders) != len(preflight.folder_output_sizes):
+            raise _CabLzxFallbackError("refinery_folder_count_mismatch")
+        for index, folder in enumerate(folders):
+            method = getattr(folder, "method", None)
+            if (
+                not isinstance(method, tuple)
+                or len(method) != 2
+                or (int(method[0]) & 0x0F) != 3
+                or int(method[1]) != preflight.window_bits[index]
+            ):
+                raise _CabLzxFallbackError("refinery_compression_contract_mismatch")
+            if len(folder.decompress()) != preflight.folder_output_sizes[index]:
+                raise _CabLzxFallbackError("refinery_folder_size_mismatch")
+        parsed_members = list(cabinet.get_files())
+    except _CabLzxFallbackError:
+        raise
+    except Exception as exc:
+        raise _CabLzxFallbackError("refinery_decompression_failed") from exc
+
+    expected = sorted(
+        (
+            member.name,
+            member.size,
+            member.offset,
+            member.folder_index,
+        )
+        for member in preflight.members
+    )
+    parsed: list[tuple[tuple[str, int, int, int], int, object]] = []
+    for ordinal, member in enumerate(parsed_members):
+        raw_name = getattr(member, "name", None)
+        size = getattr(member, "size", None)
+        offset = getattr(member, "offset", None)
+        folder_index = getattr(member, "_index", None)
+        if not isinstance(raw_name, str):
+            raise _CabLzxFallbackError("refinery_member_metadata_mismatch")
+        try:
+            name = validate_member_name(raw_name)
+        except ValueError as exc:
+            raise _CabLzxFallbackError("refinery_member_path_mismatch") from exc
+        if any(
+            isinstance(value, bool) or not isinstance(value, int) or value < 0
+            for value in (size, offset, folder_index)
+        ):
+            raise _CabLzxFallbackError("refinery_member_metadata_mismatch")
+        parsed.append(((name, size, offset, folder_index), ordinal, member))
+    parsed.sort(key=lambda item: (*item[0], item[1]))
+    if [metadata for metadata, _ordinal, _member in parsed] != expected:
+        raise _CabLzxFallbackError("refinery_member_table_mismatch")
+
+    recovered: list[tuple[str, bytes]] = []
+    actual_total_size = 0
+    for metadata, _ordinal, member in parsed:
+        name, expected_size, _offset, _folder_index = metadata
+        try:
+            blob = bytes(member.decompress())
+        except Exception as exc:
+            raise _CabLzxFallbackError("refinery_member_decompression_failed") from exc
+        if len(blob) != expected_size:
+            raise _CabLzxFallbackError("refinery_member_size_mismatch")
+        actual_total_size += len(blob)
+        if actual_total_size > max_total_size:
+            raise _CabLzxFallbackError("actual_total_size_limit_exceeded")
+        recovered.append((name, blob))
+    if actual_total_size != preflight.declared_file_total_size:
+        raise _CabLzxFallbackError("actual_total_size_mismatch")
+    return recovered
+
+
+def _cab_inventory_report(
+    members: list[tuple[str, bytes]],
+    *,
+    max_members: int,
+    max_member_size: int,
+    max_total_size: int,
+    parser: str,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """展開済みCAB memberを決定的順序で再検証し、保持対象を選ぶ。"""
+
+    members = sorted(members, key=lambda item: (str(item[0]).casefold(), str(item[0])))
     if len(members) > max_members:
         return {
             "status": "member_limit_blocked",
             "member_count": len(members),
             "max_members": max_members,
             "inventory": [],
+            "parser": parser,
+            "backend": "in_memory_python",
+            **_cab_safety_fields(),
         }, []
 
     inventory: list[dict[str, object]] = []
     artifacts: list[tuple[str, bytes]] = []
     total_size = 0
-    for raw_name, member in members:
+    for raw_name, raw_blob in members:
         try:
             name = validate_member_name(str(raw_name))
         except ValueError:
             inventory.append({"name": str(raw_name), "status": "path_blocked"})
             continue
-        blob = member.buf
-        if not isinstance(blob, bytes):
-            blob = bytes(blob)
+        blob = raw_blob if isinstance(raw_blob, bytes) else bytes(raw_blob)
         size = len(blob)
         item: dict[str, object] = {"name": name, "size": size}
         if size > max_member_size:
@@ -2876,9 +3647,183 @@ def recover_cab_members(
         "member_count": len(inventory),
         "extracted_total_size": total_size,
         "inventory": inventory,
-        "executed": False,
-        "network_contacted": False,
+        "parser": parser,
+        "backend": "in_memory_python",
+        "deterministic_member_order": True,
+        **_cab_safety_fields(),
     }, artifacts
+
+
+def recover_cab_members(
+    data: bytes,
+    *,
+    max_members: int = MAX_ARCHIVE_MEMBERS,
+    max_member_size: int = MAX_ARTIFACT,
+    max_total_size: int = MAX_EXTRACTED_TOTAL,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """CABをPython parserだけで有界に展開し、解析価値のあるmemberを返す。"""
+
+    if not data.startswith(b"MSCF"):
+        return {"status": "not_cab", **_cab_safety_fields()}, []
+    try:
+        preflight = _cab_preflight(
+            data,
+            max_members=max_members,
+            max_member_size=max_member_size,
+            max_total_size=max_total_size,
+        )
+    except _CabLzxFallbackError as preflight_error:
+        return {
+            "status": "parse_failed",
+            "parser": "cab-preflight",
+            "lzx_fallback_attempted": False,
+            "lzx_fallback_completed": False,
+            "failure_reason": preflight_error.reason,
+            **_cab_safety_fields(),
+        }, []
+    try:
+        archive = cabarchive.CabArchive(data)
+        archive_items = list(archive.items())
+    except cabarchive.NotSupportedError as exc:
+        if str(exc) != CAB_LZX_UNSUPPORTED_ERROR or preflight.compression != "lzx":
+            return {
+                "status": "parse_failed",
+                "error": f"{type(exc).__name__}: {exc}",
+                "parser": "cabarchive",
+                "lzx_fallback_attempted": False,
+                "lzx_fallback_completed": False,
+                "preflight": preflight.public(len(data)),
+                **_cab_safety_fields(),
+            }, []
+        try:
+            member_blobs = _refinery_lzx_members(
+                data,
+                preflight,
+                max_total_size=max_total_size,
+            )
+        except _CabLzxFallbackError as fallback_error:
+            return {
+                "status": "parse_failed",
+                "parser": "cabarchive",
+                "fallback_parser": "binary-refinery",
+                "lzx_fallback_attempted": True,
+                "lzx_fallback_completed": False,
+                "failure_reason": fallback_error.reason,
+                **_cab_safety_fields(),
+            }, []
+        report, artifacts = _cab_inventory_report(
+            member_blobs,
+            max_members=max_members,
+            max_member_size=max_member_size,
+            max_total_size=max_total_size,
+            parser="binary-refinery",
+        )
+        complete_inventory = (
+            report.get("member_count") == len(preflight.members)
+            and report.get("extracted_total_size") == preflight.declared_file_total_size
+            and all(
+                item.get("status") == "extracted"
+                for item in report.get("inventory", [])
+                if isinstance(item, dict)
+            )
+        )
+        if not complete_inventory:
+            return {
+                "status": "parse_failed",
+                "parser": "binary-refinery",
+                "lzx_fallback_attempted": True,
+                "lzx_fallback_completed": False,
+                "failure_reason": "post_decompression_inventory_mismatch",
+                **_cab_safety_fields(),
+            }, []
+        report.update(
+            {
+                "fallback_from": "cabarchive_lzx_unsupported",
+                "lzx_fallback_attempted": True,
+                "lzx_fallback_completed": True,
+                "preflight": preflight.public(len(data)),
+                "in_memory_extraction": {
+                    "contract_version": 2,
+                    "status": "complete",
+                    "parser": "binary-refinery",
+                    "backend": "in_memory_python",
+                    "compression": "lzx",
+                    "preflight_status": "passed",
+                    "checksum_status": "verified",
+                    "checksum_blocks_verified": preflight.data_block_count,
+                    "data_block_count": preflight.data_block_count,
+                    "member_count": len(preflight.members),
+                    "complete_member_inventory": True,
+                    "path_validation": "passed",
+                    "declared_size_validation": "passed",
+                    "actual_size_validation": "passed",
+                    "deterministic_member_order": True,
+                    "multi_volume": False,
+                    "peak_memory_budget": preflight.memory_budget.public(),
+                    **_cab_safety_fields(),
+                },
+            }
+        )
+        return report, artifacts
+    except Exception as exc:
+        return {
+            "status": "parse_failed",
+            "error": f"{type(exc).__name__}: {exc}",
+            "parser": "cabarchive",
+            "lzx_fallback_attempted": False,
+            "lzx_fallback_completed": False,
+            "preflight": preflight.public(len(data)),
+            **_cab_safety_fields(),
+        }, []
+
+    try:
+        parsed_metadata = sorted(
+            (validate_member_name(str(raw_name)), len(member))
+            for raw_name, member in archive_items
+        )
+    except (TypeError, ValueError) as exc:
+        return {
+            "status": "parse_failed",
+            "parser": "cabarchive",
+            "lzx_fallback_attempted": False,
+            "lzx_fallback_completed": False,
+            "failure_reason": "cabarchive_member_metadata_invalid",
+            "preflight": preflight.public(len(data)),
+            "error_type": type(exc).__name__,
+            **_cab_safety_fields(),
+        }, []
+    expected_metadata = sorted(
+        (member.name, member.size) for member in preflight.members
+    )
+    if parsed_metadata != expected_metadata:
+        return {
+            "status": "parse_failed",
+            "parser": "cabarchive",
+            "lzx_fallback_attempted": False,
+            "lzx_fallback_completed": False,
+            "failure_reason": "cabarchive_member_table_mismatch",
+            "preflight": preflight.public(len(data)),
+            **_cab_safety_fields(),
+        }, []
+    member_blobs = [
+        (validate_member_name(str(raw_name)), member.buf)
+        for raw_name, member in archive_items
+    ]
+    report, artifacts = _cab_inventory_report(
+        member_blobs,
+        max_members=max_members,
+        max_member_size=max_member_size,
+        max_total_size=max_total_size,
+        parser="cabarchive",
+    )
+    report.update(
+        {
+            "preflight": preflight.public(len(data)),
+            "lzx_fallback_attempted": False,
+            "lzx_fallback_completed": False,
+        }
+    )
+    return report, artifacts
 
 
 def unpack_bytes(
@@ -2918,6 +3863,13 @@ def unpack_bytes(
         [] if iso9660_candidate else recover_whole_file_base64(data)
     )
     static_data = data
+    if MemoryCArchiveReader.COOKIE_MAGIC in data:
+        report["pyinstaller"], recovered = recover_pyinstaller_carchive(
+            data,
+            max_member_size=max_archive_member_size,
+            max_total_size=max_archive_total_size,
+        )
+        artifacts.extend(recovered)
     if kind == "pe":
         report["inflated_pe"], recovered_blob = recover_inflated_pe(data)
         if recovered_blob:
@@ -2997,6 +3949,13 @@ def unpack_bytes(
             report["sevenzip"]["forced_by_reviewed_hint"] = bool(
                 force_container_probe and not report["pe"]["containerized"]
             )
+            if (
+                report["pe"]["containerized"]
+                and report["sevenzip"].get("status") == "not_archive_container"
+            ):
+                report["unpack_status"] = "container_parser_unavailable"
+        elif report["pe"]["containerized"]:
+            report["unpack_status"] = "container_extractor_unavailable"
     elif kind == "macho":
         report["macho"] = macho_summary(data)
         report["macho_slices"], recovered = recover_macho_slices(data)
@@ -3024,7 +3983,16 @@ def unpack_bytes(
             max_total_size=max_archive_total_size,
         )
         artifacts.extend(recovered)
-        if sevenzip and not recovered:
+        if (
+            sevenzip
+            and not recovered
+            and not report["cab"].get("lzx_fallback_attempted", False)
+            and report["cab"].get("parser") != "cab-preflight"
+            and not (
+                isinstance(report["cab"].get("preflight"), dict)
+                and report["cab"]["preflight"].get("compression") == "lzx"
+            )
+        ):
             report["sevenzip"], recovered = sevenzip_extract(
                 data,
                 sevenzip,
@@ -3141,20 +4109,22 @@ def unpack_bytes(
                 None,
             )
             if legacy_attempt is not None:
-                report["rotated_xor_donut"] = legacy_report_from_attempt(
-                    legacy_attempt
-                )
+                report["rotated_xor_donut"] = legacy_report_from_attempt(legacy_attempt)
     if not iso9660_candidate and len(static_data) <= 32 * 1024 * 1024:
         if b"rzk-stream-v3" in static_data and ENCODED_LECE_MAGIC in static_data:
             rzk_lece = find_rzk_lece_streams(static_data)
             report["rzk_lece"] = {
-                "status": "encrypted_container_recovered" if rzk_lece else "profile_matched_recovery_failed",
+                "status": "encrypted_container_recovered"
+                if rzk_lece
+                else "profile_matched_recovery_failed",
                 "candidates": rzk_lece_candidate_report(rzk_lece),
                 "executed": False,
                 "network_contacted": False,
                 "family_classification": "independent_verification_required",
             }
-            artifacts.extend(("rzk-lece-encrypted-container", item.data) for item in rzk_lece)
+            artifacts.extend(
+                ("rzk-lece-encrypted-container", item.data) for item in rzk_lece
+            )
         if matches_onyx_qt_profile(static_data):
             onyx_result = recover_onyx_qt_payload(static_data)
             if onyx_result is None:

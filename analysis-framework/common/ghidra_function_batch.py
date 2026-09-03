@@ -20,6 +20,7 @@ import re
 import shutil
 import stat
 import sys
+import tempfile
 import time
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
@@ -59,6 +60,7 @@ from analysis_contract import (  # noqa: E402
     case_integrity_errors,
     ensure_no_reparse_components,
     load_json_object_strict,
+    normalize_artifact_path,
     resolve_case_artifact,
     seal_report,
     verify_artifact_hashes,
@@ -70,6 +72,10 @@ from analyze_sample import (  # noqa: E402
     read_input_unit,
     recover_static_layers,
 )
+from c2_analysis_contract import (  # noqa: E402
+    validate_contract as validate_c2_contract,
+)
+from case_features import build_case_profile, render_features_markdown  # noqa: E402
 from overall_logic_diagrams import (  # noqa: E402
     load_static_layers,
     render_overall_logic_markdown,
@@ -94,6 +100,13 @@ DEFAULT_MCP_URL = "http://127.0.0.1:8089"
 DEFAULT_PROJECT_ROOT = "/Malware/MalwareBazaarWindows/20260723"
 MAX_MCP_RESPONSE_BYTES = 64 * 1024 * 1024
 FUNCTION_PAGE_SIZE = 500
+MAX_FUNCTION_INVENTORY_ITEMS = 100_000
+MAX_FUNCTION_INVENTORY_PAGES = 10_000
+CALL_GRAPH_ENDPOINT = "/get_full_call_graph"
+CALL_GRAPH_REQUEST_FORMAT = "json_edges"
+CALL_GRAPH_REQUEST_LIMIT = 0
+CALL_GRAPH_MANAGED_LIMIT = "native_call_graph_not_applicable_managed_cil_primary"
+CALL_GRAPH_LEGACY_LIMIT = "legacy_call_graph_retrieval_evidence_unavailable"
 STRUCTURE_PAGE_SIZE = 1_000
 DECOMPILE_BATCH_SIZE = 20
 DECOMPILE_WORKERS = 3
@@ -101,7 +114,9 @@ MAX_CHARACTERISTIC_FUNCTIONS_PER_PROGRAM = 32
 MAX_MANAGED_CIL_RAW_INSTRUCTIONS_PER_METHOD = 8
 FUNCTION_ANALYSIS_BLOCKER = "representative_function_analysis_required"
 ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER = "orchestration:function_analysis"
+ORCHESTRATION_GENERIC_TRIAGE_BLOCKER = "orchestration:generic_triage"
 FUNCTION_ANALYSIS_NEXT_ACTION_JA = "特徴関数と全体ロジックの静的解析を追加してください。"
+GENERIC_TRIAGE_NEXT_ACTION_JA = "汎用静的triageの失敗または部分結果を再処理してください。"
 ORCHESTRATION_SCHEMA_VERSION = 2
 LEGACY_RUN_PROGRESS_SCHEMA_VERSION = 1
 RUN_PROGRESS_SCHEMA_VERSION = 2
@@ -116,6 +131,23 @@ MAX_PROGRAM_RESULT_INLINE_BYTES = 32 * 1024 * 1024
 MAX_PROGRAM_FUNCTION_SHARD_BYTES = 32 * 1024 * 1024
 PRIVATE_RAW_STREAM_CHUNK_BYTES = 64 * 1024
 RETRYABLE_INCOMPLETE_EXIT_CODE = 20
+FINALIZE_TRANSACTION_SCHEMA_VERSION = 1
+FINALIZE_TRANSACTION_JOURNAL = "journal.json"
+CASE_WIDE_PUBLICATION_REQUIRED = frozenset(
+    {
+        "static-logic.json",
+        "STATIC-LOGIC.md",
+        "OVERALL-LOGIC.md",
+        "analysis.json",
+        "README.md",
+        "features.json",
+        "FEATURES.md",
+        "orchestration.json",
+        "communication-patterns.json",
+        "c2-analysis.json",
+        "report.json",
+    }
+)
 
 EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -181,8 +213,10 @@ ROLE_PATTERNS = (
 LIBRARY_RE = re.compile(
     r"(?i)^(?:__|_?mem(?:cpy|set|move|cmp)|_?str(?:len|cpy|cmp)|"
     r"_?wcs|operator(?:new|delete)|std::|crt|security_check_cookie|"
-    r"guard_|tls_callback|\.?ctor|\.?cctor)"
+    r"guard_|tls_callback|\.?ctor|\.?cctor|runtime[._]|internal(?:[./_]|$)|"
+    r"type[.:_]|go[.:_])"
 )
+GO_MAIN_USER_CODE_RE = re.compile(r"(?i)^main(?:[.(*_/]|$)")
 IMPORT_CAPABILITY_PATTERNS = {
     "configuration": re.compile(
         r"(?i)^(?:Crypt(?:Decrypt|UnprotectData|StringToBinary)|BCrypt|NCrypt|RtlDecompressBuffer)"
@@ -275,6 +309,13 @@ class _JsonlFileSnapshot(_RegularFileSnapshot):
 
 
 @dataclass(frozen=True)
+class _ContentFileSnapshot(_RegularFileSnapshot):
+    """JSON／Markdownを同じWALへ束縛するbounded content snapshot。"""
+
+    data: bytes
+
+
+@dataclass(frozen=True)
 class _JsonFileSnapshot:
     """単一handleから取得したbounded JSON fileの固定snapshot。"""
 
@@ -325,9 +366,7 @@ class _ArchiveManifestEntry:
 def _json_bytes(value: Any) -> bytes:
     """決定的JSONをatomic writeへ渡せるUTF-8 bytesにする。"""
 
-    return (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
-        "utf-8"
-    )
+    return (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
 def _regular_file_metadata(path: Path) -> os.stat_result:
@@ -392,17 +431,13 @@ def _assert_regular_snapshot_unchanged(
             max_bytes=max(snapshot.size, MAX_JSON_OBJECT_SIZE),
         )
     except ValueError as exc:
-        raise ValueError(
-            f"{context}で競合変更を検出しました: {snapshot.path.name}"
-        ) from exc
+        raise ValueError(f"{context}で競合変更を検出しました: {snapshot.path.name}") from exc
     if (
         current.sha256 != snapshot.sha256
         or current.size != snapshot.size
         or not _same_regular_file_binding(snapshot.metadata, current.metadata)
     ):
-        raise ValueError(
-            f"{context}で競合変更を検出しました: {snapshot.path.name}"
-        )
+        raise ValueError(f"{context}で競合変更を検出しました: {snapshot.path.name}")
 
 
 def _bounded_json_snapshot(path: Path) -> _JsonFileSnapshot:
@@ -421,6 +456,54 @@ def _bounded_json_snapshot(path: Path) -> _JsonFileSnapshot:
     )
 
 
+def _bounded_content_snapshot(path: Path) -> _ContentFileSnapshot:
+    """公開成果物を形式に依存せず64MiB上限で固定する。"""
+
+    data, binding = _bounded_regular_file_snapshot(
+        path,
+        max_bytes=MAX_JSON_OBJECT_SIZE,
+    )
+    return _ContentFileSnapshot(
+        path=binding.path,
+        sha256=binding.sha256,
+        size=binding.size,
+        metadata=binding.metadata,
+        data=data,
+    )
+
+
+def _assert_content_snapshot_unchanged(
+    snapshot: _ContentFileSnapshot,
+    *,
+    context: str,
+) -> None:
+    """形式非依存snapshotのidentityと全bytesをcommit直前に再確認する。"""
+
+    try:
+        current = _bounded_content_snapshot(snapshot.path)
+    except ValueError as exc:
+        raise ValueError(f"{context}で競合変更を検出しました: {snapshot.path.name}") from exc
+    if (
+        current.sha256 != snapshot.sha256
+        or current.data != snapshot.data
+        or not _same_regular_file_binding(snapshot.metadata, current.metadata)
+    ):
+        raise ValueError(f"{context}で競合変更を検出しました: {snapshot.path.name}")
+
+
+def _assert_transaction_snapshot_unchanged(
+    snapshot: _JsonFileSnapshot | _ContentFileSnapshot,
+    *,
+    context: str,
+) -> None:
+    """WAL対象のJSON／Markdownを同一の競合検出境界で確認する。"""
+
+    if isinstance(snapshot, _JsonFileSnapshot):
+        _assert_snapshot_unchanged(snapshot, context=context)
+    else:
+        _assert_content_snapshot_unchanged(snapshot, context=context)
+
+
 def _assert_snapshot_unchanged(
     snapshot: _JsonFileSnapshot,
     *,
@@ -434,9 +517,7 @@ def _assert_snapshot_unchanged(
             max_bytes=MAX_JSON_OBJECT_SIZE,
         )
     except ValueError as exc:
-        raise ValueError(
-            f"{context}で競合変更を検出しました: {snapshot.path.name}"
-        ) from exc
+        raise ValueError(f"{context}で競合変更を検出しました: {snapshot.path.name}") from exc
     if (
         current_binding.sha256 != snapshot.sha256
         or current_data != snapshot.data
@@ -445,18 +526,17 @@ def _assert_snapshot_unchanged(
             current_binding.metadata,
         )
     ):
-        raise ValueError(
-            f"{context}で競合変更を検出しました: {snapshot.path.name}"
-        )
+        raise ValueError(f"{context}で競合変更を検出しました: {snapshot.path.name}")
 
 
 def _atomic_replace_bytes(
     path: Path,
     data: bytes,
     *,
-    expected_snapshot: _JsonFileSnapshot | _RegularFileSnapshot | None = None,
+    expected_snapshot: (_JsonFileSnapshot | _ContentFileSnapshot | _RegularFileSnapshot | None) = None,
     maximum_bytes: int = MAX_JSON_OBJECT_SIZE,
     require_absent: bool = False,
+    temporary_name: str | None = None,
 ) -> None:
     """同一directoryの一時fileから通常fileをatomicに置換する。"""
 
@@ -464,10 +544,17 @@ def _atomic_replace_bytes(
         raise ValueError("atomic write上限が不正です")
     if type(require_absent) is not bool:
         raise ValueError("atomic writeの既存file契約が不正です")
+    if temporary_name is not None and (
+        not isinstance(temporary_name, str)
+        or not temporary_name
+        or temporary_name in {".", ".."}
+        or Path(temporary_name).name != temporary_name
+        or "/" in temporary_name
+        or "\\" in temporary_name
+    ):
+        raise ValueError("atomic write一時file名が不正です")
     if len(data) > maximum_bytes:
-        raise ValueError(
-            f"atomic write対象が{maximum_bytes} bytes上限を超えています: {path.name}"
-        )
+        raise ValueError(f"atomic write対象が{maximum_bytes} bytes上限を超えています: {path.name}")
     ensure_no_reparse_components(path.parent)
     path.parent.mkdir(parents=True, exist_ok=True)
     ensure_no_reparse_components(path.parent)
@@ -477,9 +564,7 @@ def _atomic_replace_bytes(
         raise ValueError("atomic write先directoryを確認できません") from exc
     if _stat_is_reparse(parent_before) or not stat.S_ISDIR(parent_before.st_mode):
         raise ValueError("atomic write先は通常directoryに限定します")
-    temporary = path.with_name(
-        f".atomic-{os.getpid():x}-{time.time_ns():x}.tmp"
-    )
+    temporary = path.with_name(temporary_name or f".atomic-{os.getpid():x}-{time.time_ns():x}.tmp")
     temporary_identity: os.stat_result | None = None
     try:
         with temporary.open("xb") as handle:
@@ -509,20 +594,20 @@ def _atomic_replace_bytes(
             target_before = path.lstat()
         except FileNotFoundError:
             target_before = None
-        if target_before is not None and (
-            _stat_is_reparse(target_before)
-            or not stat.S_ISREG(target_before.st_mode)
-        ):
+        if target_before is not None and (_stat_is_reparse(target_before) or not stat.S_ISREG(target_before.st_mode)):
             raise ValueError("atomic write対象は通常fileに限定します")
         if require_absent and target_before is not None:
             raise FileExistsError(f"atomic write対象が既に存在します: {path.name}")
         if expected_snapshot is not None:
             if path != expected_snapshot.path:
-                raise ValueError(
-                    f"atomic write対象とsnapshot pathが一致しません: {path}"
-                )
+                raise ValueError(f"atomic write対象とsnapshot pathが一致しません: {path}")
             if isinstance(expected_snapshot, _JsonFileSnapshot):
                 _assert_snapshot_unchanged(
+                    expected_snapshot,
+                    context="atomic commit直前",
+                )
+            elif isinstance(expected_snapshot, _ContentFileSnapshot):
+                _assert_content_snapshot_unchanged(
                     expected_snapshot,
                     context="atomic commit直前",
                 )
@@ -700,8 +785,7 @@ def _storage_budget_observation(
     return {
         "phase": phase,
         "minimum_free_bytes": minimum_free_bytes,
-        "sufficient": bool(observations)
-        and all(item["sufficient"] is True for item in observations),
+        "sufficient": bool(observations) and all(item["sufficient"] is True for item in observations),
         "filesystems": observations,
     }
 
@@ -748,9 +832,7 @@ def _apply_planned_write_reserve(
     output["planned_write_role"] = role
     output["planned_write_bytes"] = planned_write_bytes
     output["planned_write_sufficient"] = planned_write_sufficient
-    output["sufficient"] = bool(
-        observation.get("sufficient") is True and planned_write_sufficient
-    )
+    output["sufficient"] = bool(observation.get("sufficient") is True and planned_write_sufficient)
     return output
 
 
@@ -813,11 +895,7 @@ def _validate_resume_inventory(
         if is_pe:
             pe_digests.add(digest)
     recorded_count = document.get("unique_pe_objects")
-    if (
-        type(recorded_count) is not int
-        or recorded_count != unique_pe_programs
-        or len(pe_digests) != unique_pe_programs
-    ):
+    if type(recorded_count) is not int or recorded_count != unique_pe_programs or len(pe_digests) != unique_pe_programs:
         raise ValueError("prepared input inventoryのPE program数が一致しません")
     _assert_snapshot_unchanged(
         snapshot,
@@ -847,19 +925,13 @@ def _run_progress_document(
     """全停止段階でfield集合が同じrun-progress文書を構築する。"""
 
     pending = list(pending_programs)
-    if any(
-        not isinstance(value, str) or SHA256_RE.fullmatch(value) is None
-        for value in pending
-    ):
+    if any(not isinstance(value, str) or SHA256_RE.fullmatch(value) is None for value in pending):
         raise ValueError("run-progressのpending SHA-256が不正です")
     if len(set(pending)) != len(pending):
         raise ValueError("run-progressのpending SHA-256が重複しています")
     if not isinstance(collection_id, str) or not collection_id:
         raise ValueError("run-progressのcollection IDが不正です")
-    if (
-        not isinstance(resume_mode, str)
-        or resume_mode not in {"fresh", "prepared_inputs", "postprocessing_only"}
-    ):
+    if not isinstance(resume_mode, str) or resume_mode not in {"fresh", "prepared_inputs", "postprocessing_only"}:
         raise ValueError("run-progressのresume modeが不正です")
     if not isinstance(status, str) or status not in {"ghidra_chunk_pending", "complete"}:
         raise ValueError("run-progressのstatusが不正です")
@@ -877,10 +949,7 @@ def _run_progress_document(
     if any(type(value) is not int or value < 0 for value in counts):
         raise ValueError("run-progressのprogram countが不正です")
     if inventory_prepared:
-        if (
-            not isinstance(prepared_inventory_sha256, str)
-            or SHA256_RE.fullmatch(prepared_inventory_sha256) is None
-        ):
+        if not isinstance(prepared_inventory_sha256, str) or SHA256_RE.fullmatch(prepared_inventory_sha256) is None:
             raise ValueError("run-progressのprepared inventory SHA-256が不正です")
         if type(unique_pe_programs) is not int or unique_pe_programs <= 0:
             raise ValueError("run-progressのprogram総数が不正です")
@@ -894,15 +963,11 @@ def _run_progress_document(
         raise ValueError("後処理待ちと未解析programを同時に記録できません")
     if postprocessing_pending and resume_mode != "postprocessing_only":
         raise ValueError("後処理待ちのresume modeが一致しません")
-    if not inventory_prepared and (
-        unique_pe_programs is not None or pending or postprocessing_pending
-    ):
+    if not inventory_prepared and (unique_pe_programs is not None or pending or postprocessing_pending):
         raise ValueError("未準備inventoryへprogram進捗を記録できません")
     if inventory_prepared and complete_programs + len(pending) != unique_pe_programs:
         raise ValueError("run-progressの完了・pending program数が総数と一致しません")
-    if status == "complete" and (
-        retryable or stop_reason is not None or pending or postprocessing_pending
-    ):
+    if status == "complete" and (retryable or stop_reason is not None or pending or postprocessing_pending):
         raise ValueError("complete run-progressに未完了状態があります")
     if status == "ghidra_chunk_pending" and (
         not retryable
@@ -1186,9 +1251,7 @@ def _validate_run_roots(
             first = roots[first_name]
             second = roots[second_name]
             if _same_or_nested(first, second) or _same_or_nested(second, first):
-                raise ValueError(
-                    f"{first_name}と{second_name}は相互に包含しないdirectoryへ分離してください"
-                )
+                raise ValueError(f"{first_name}と{second_name}は相互に包含しないdirectoryへ分離してください")
 
 
 def _resolve_without_reparse(path: Path) -> Path:
@@ -1253,15 +1316,12 @@ def _archive_manifest_index(
 
         expected_zip_sha256 = raw_item.get("zip_sha256")
         if expected_zip_sha256 is not None and (
-            not isinstance(expected_zip_sha256, str)
-            or SHA256_RE.fullmatch(expected_zip_sha256) is None
+            not isinstance(expected_zip_sha256, str) or SHA256_RE.fullmatch(expected_zip_sha256) is None
         ):
             raise ValueError(f"acquisition manifestのZIP SHA-256が不正です: {digest}")
         expected_zip_size = raw_item.get("zip_size")
         if expected_zip_size is not None and (
-            type(expected_zip_size) is not int
-            or expected_zip_size <= 0
-            or expected_zip_size > MAX_PREPARED_INPUT_BYTES
+            type(expected_zip_size) is not int or expected_zip_size <= 0 or expected_zip_size > MAX_PREPARED_INPUT_BYTES
         ):
             raise ValueError(f"acquisition manifestのZIP sizeが不正です: {digest}")
         output[digest] = _ArchiveManifestEntry(
@@ -1292,10 +1352,7 @@ def _read_manifest_archive(
         archive_mode="malwarebazaar",
         max_file_size=MAX_PREPARED_INPUT_BYTES,
     )
-    if (
-        getattr(unit, "outer_sha256", None) != snapshot.sha256
-        or getattr(unit, "outer_size", None) != snapshot.size
-    ):
+    if getattr(unit, "outer_sha256", None) != snapshot.sha256 or getattr(unit, "outer_size", None) != snapshot.size:
         raise ValueError(f"archive snapshotと入力readerのouter identityが一致しません: {entry.sha256}")
     _assert_regular_snapshot_unchanged(
         snapshot,
@@ -1493,9 +1550,7 @@ class GhidraMcpClient:
         except (OSError, URLError) as error:
             raise GhidraMcpError(f"{method} {path} failed: {type(error).__name__}") from error
         if len(raw) > MAX_MCP_RESPONSE_BYTES:
-            raise GhidraMcpError(
-                f"{method} {path} failed: MCP responseがbytes上限を超えています"
-            )
+            raise GhidraMcpError(f"{method} {path} failed: MCP responseがbytes上限を超えています")
         if not raw:
             return None
         text = raw.decode("utf-8", errors="replace")
@@ -1750,9 +1805,7 @@ def prepare_inputs(
     non_pe: dict[str, list[dict[str, Any]]] = defaultdict(list)
     relationships: list[dict[str, Any]] = []
     cache_root = prepared_input_root or sample_root
-    cache_storage_role = (
-        "prepared_input_root" if cache_root != sample_root else "sample_root"
-    )
+    cache_storage_role = "prepared_input_root" if cache_root != sample_root else "sample_root"
 
     for case_number, case_sha in enumerate(requested, start=1):
         archive_entry = archive_by_sha.get(case_sha)
@@ -1842,9 +1895,7 @@ def prepare_inputs(
                 max_bytes=len(layer.data),
             )
             if len(cached_data) != len(layer.data) or input_snapshot.sha256 != layer.sha256:
-                raise ValueError(
-                    f"既存の隔離input sizeまたはhashが一致しません: {layer.sha256}"
-                )
+                raise ValueError(f"既存の隔離input sizeまたはhashが一致しません: {layer.sha256}")
             if storage_guard is not None:
                 storage_guard("after_input_copy", cache_storage_role, 0)
             layer_public = layer.public() if callable(getattr(layer, "public", None)) else {}
@@ -1863,11 +1914,7 @@ def prepare_inputs(
             }
             relationships.append(relation)
             if relation["is_pe"]:
-                staging_path = (
-                    private_output
-                    / "import-staging"
-                    / f"{layer.sha256}.quarantine.bin"
-                )
+                staging_path = private_output / "import-staging" / f"{layer.sha256}.quarantine.bin"
                 try:
                     staging_present = staging_path.lstat() is not None
                 except FileNotFoundError:
@@ -1957,6 +2004,12 @@ def prepare_inputs(
 
 
 def _parse_metadata(value: Any) -> dict[str, str]:
+    if isinstance(value, Mapping):
+        return {
+            str(key).strip().casefold().replace(" ", "_"): str(rendered).strip()
+            for key, rendered in value.items()
+            if str(key).strip().casefold().replace(" ", "_") != "executable_path"
+        }
     if not isinstance(value, str):
         return {}
     output = {}
@@ -1969,6 +2022,268 @@ def _parse_metadata(value: Any) -> dict[str, str]:
     return output
 
 
+def _metadata_function_count(value: Any) -> int | None:
+    """Ghidra metadataの関数総数を曖昧な部分一致なしで正規化する。"""
+
+    metadata = _parse_metadata(value)
+    rendered = metadata.get("function_count") or metadata.get("functions")
+    if rendered is None:
+        return None
+    normalized = rendered.replace(",", "").strip()
+    if re.fullmatch(r"\d+", normalized) is None:
+        raise GhidraMcpError("metadataのfunction_countが非負整数ではありません")
+    count = int(normalized)
+    if count > MAX_FUNCTION_INVENTORY_ITEMS:
+        raise GhidraMcpError("metadataのfunction_countが安全なinventory上限を超えました")
+    return count
+
+
+def _function_inventory_coverage_complete(result: Mapping[str, Any]) -> bool:
+    """program-resultが全native関数の終端取得と件数拘束を持つか返す。"""
+
+    coverage = result.get("retrieval_coverage")
+    evidence = coverage.get("functions") if isinstance(coverage, Mapping) else None
+    inventory_count = result.get("ghidra_function_inventory_count")
+    if result.get("analysis_mode") == "managed_cil_primary_with_ghidra_structure":
+        return bool(
+            isinstance(evidence, Mapping)
+            and evidence.get("complete") is True
+            and evidence.get("endpoint") == "/list_functions_enhanced"
+            and evidence.get("program_selector") == result.get("program_selector")
+            and evidence.get("endpoint_invoked") is False
+            and evidence.get("source") == "managed_cil_primary"
+            and evidence.get("documented_limit") == "native_function_inventory_not_applicable"
+            and evidence.get("item_count") == 0
+            and inventory_count == 0
+        )
+    if (
+        not isinstance(evidence, Mapping)
+        or evidence.get("complete") is not True
+        or evidence.get("terminal_short_page_observed") is not True
+        or evidence.get("endpoint") != "/list_functions_enhanced"
+        or evidence.get("program_selector") != result.get("program_selector")
+        or type(inventory_count) is not int
+        or evidence.get("item_count") != inventory_count
+    ):
+        return False
+    metadata_count = evidence.get("metadata_function_count")
+    if metadata_count is None:
+        return (
+            evidence.get("count_matches_metadata") is None
+            and evidence.get("documented_limit") == "metadata_function_count_unavailable_terminal_page_proof_used"
+        )
+    return (
+        type(metadata_count) is int
+        and metadata_count == inventory_count
+        and evidence.get("count_matches_metadata") is True
+    )
+
+
+def _call_graph_schema_valid(value: Any) -> bool:
+    """正規化済みcall graphがedge listと件数を厳密に持つか返す。"""
+
+    if not isinstance(value, Mapping):
+        return False
+    edges = value.get("edges")
+    edge_count = value.get("edge_count")
+    return bool(
+        isinstance(edges, list)
+        and all(isinstance(edge, Mapping) for edge in edges)
+        and type(edge_count) is int
+        and edge_count == len(edges)
+    )
+
+
+def _call_graph_coverage_state(result: Mapping[str, Any]) -> str:
+    """取得証跡のshapeをcomplete／managed／legacy partialへ分類する。"""
+
+    selector = result.get("program_selector")
+    coverage = result.get("retrieval_coverage")
+    evidence = coverage.get("call_graph") if isinstance(coverage, Mapping) else None
+    if (
+        not isinstance(selector, str)
+        or not selector
+        or not isinstance(evidence, Mapping)
+        or evidence.get("endpoint") != CALL_GRAPH_ENDPOINT
+        or evidence.get("program_selector") != selector
+    ):
+        return "invalid"
+    edge_count = evidence.get("edge_count")
+    analysis_mode = result.get("analysis_mode")
+    if analysis_mode == "managed_cil_primary_with_ghidra_structure":
+        if (
+            evidence.get("endpoint_invoked") is False
+            and evidence.get("response_schema_valid") is None
+            and evidence.get("requested_format") is None
+            and evidence.get("requested_limit") is None
+            and evidence.get("native_graph_applicable") is False
+            and evidence.get("source") == "managed_cil_primary"
+            and evidence.get("acquisition_status") == "not_applicable"
+            and evidence.get("complete") is True
+            and evidence.get("documented_limit") == CALL_GRAPH_MANAGED_LIMIT
+            and type(edge_count) is int
+            and edge_count == 0
+        ):
+            return "managed_not_applicable"
+        return "invalid"
+    if (
+        evidence.get("endpoint_invoked") is True
+        and evidence.get("response_schema_valid") is True
+        and evidence.get("requested_format") == CALL_GRAPH_REQUEST_FORMAT
+        and type(evidence.get("requested_limit")) is int
+        and evidence.get("requested_limit") == CALL_GRAPH_REQUEST_LIMIT
+        and evidence.get("native_graph_applicable") is True
+        and evidence.get("source") == "ghidra_mcp"
+        and evidence.get("acquisition_status") == "acquired"
+        and evidence.get("complete") is True
+        and evidence.get("documented_limit") is None
+        and type(edge_count) is int
+        and edge_count >= 0
+    ):
+        return "complete"
+    if (
+        evidence.get("endpoint_invoked") is False
+        and evidence.get("response_schema_valid") is False
+        and evidence.get("requested_format") == CALL_GRAPH_REQUEST_FORMAT
+        and type(evidence.get("requested_limit")) is int
+        and evidence.get("requested_limit") == CALL_GRAPH_REQUEST_LIMIT
+        and evidence.get("native_graph_applicable") is True
+        and evidence.get("source") == "legacy_cache"
+        and evidence.get("acquisition_status") == "unavailable"
+        and evidence.get("complete") is False
+        and evidence.get("documented_limit") == CALL_GRAPH_LEGACY_LIMIT
+        and (edge_count is None or type(edge_count) is int and edge_count >= 0)
+    ):
+        return "legacy_partial"
+    return "invalid"
+
+
+def _call_graph_retrieval_state(result: Mapping[str, Any]) -> str:
+    """取得証跡を保存済みGhidra graphのschema・件数と結合して検証する。"""
+
+    state = _call_graph_coverage_state(result)
+    if state == "invalid":
+        return state
+    graph = result.get("ghidra_call_graph")
+    if not _call_graph_schema_valid(graph):
+        return "legacy_partial" if state == "legacy_partial" else "invalid"
+    coverage = result["retrieval_coverage"]["call_graph"]
+    edges = graph["edges"]
+    if coverage.get("edge_count") != len(edges):
+        return "invalid"
+    if state == "managed_not_applicable" and (
+        edges or graph.get("analysis_mode") != "managed_cil_primary_with_ghidra_structure"
+    ):
+        return "invalid"
+    return state
+
+
+def _call_graph_retrieval_coverage_complete(result: Mapping[str, Any]) -> bool:
+    return _call_graph_retrieval_state(result) in {
+        "complete",
+        "managed_not_applicable",
+    }
+
+
+def _normalize_call_graph_response(response: Any) -> dict[str, Any]:
+    """MCP応答をedge listへ限定し、None・旧shape・型不正をfail-closeする。"""
+
+    if not isinstance(response, Mapping):
+        raise GhidraMcpError("get_full_call_graph応答がJSON objectではありません")
+    if "edges" not in response or not isinstance(response.get("edges"), list):
+        raise GhidraMcpError("get_full_call_graph応答のedgesがlistではありません")
+    raw_edges = response["edges"]
+    if any(not isinstance(edge, Mapping) for edge in raw_edges):
+        raise GhidraMcpError("get_full_call_graph応答にobject以外のedgeがあります")
+    reported_count = response.get("edge_count")
+    if reported_count is not None and (type(reported_count) is not int or reported_count != len(raw_edges)):
+        raise GhidraMcpError("get_full_call_graph応答のedge_countがedges件数と一致しません")
+    normalized = dict(response)
+    normalized["edges"] = [dict(edge) for edge in raw_edges]
+    normalized["edge_count"] = len(raw_edges)
+    return normalized
+
+
+def _get_full_call_graph_with_coverage(
+    client: GhidraMcpClient,
+    program: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """full call graphを取得し、requestと応答schemaを同じ証跡へ拘束する。"""
+
+    response = client.get(
+        CALL_GRAPH_ENDPOINT,
+        format=CALL_GRAPH_REQUEST_FORMAT,
+        limit=CALL_GRAPH_REQUEST_LIMIT,
+        program=program,
+    )
+    graph = _normalize_call_graph_response(response)
+    return graph, {
+        "endpoint": CALL_GRAPH_ENDPOINT,
+        "endpoint_invoked": True,
+        "response_schema_valid": True,
+        "program_selector": program,
+        "requested_format": CALL_GRAPH_REQUEST_FORMAT,
+        "requested_limit": CALL_GRAPH_REQUEST_LIMIT,
+        "native_graph_applicable": True,
+        "source": "ghidra_mcp",
+        "acquisition_status": "acquired",
+        "edge_count": len(graph["edges"]),
+        "complete": True,
+        "documented_limit": None,
+    }
+
+
+def _managed_call_graph_with_coverage(
+    program: str,
+    analysis_mode: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """managed CIL primaryでnative graphが非適用であることを明示する。"""
+
+    if analysis_mode != "managed_cil_primary_with_ghidra_structure":
+        raise ValueError("managed call graph契約のanalysis modeが不正です")
+    graph = {
+        "edges": [],
+        "edge_count": 0,
+        "analysis_mode": analysis_mode,
+        "note": "managed method間のcallはCIL recordから保持する",
+    }
+    return graph, {
+        "endpoint": CALL_GRAPH_ENDPOINT,
+        "endpoint_invoked": False,
+        "response_schema_valid": None,
+        "program_selector": program,
+        "requested_format": None,
+        "requested_limit": None,
+        "native_graph_applicable": False,
+        "source": "managed_cil_primary",
+        "acquisition_status": "not_applicable",
+        "edge_count": 0,
+        "complete": True,
+        "documented_limit": CALL_GRAPH_MANAGED_LIMIT,
+    }
+
+
+def _legacy_call_graph_partial_coverage(result: Mapping[str, Any]) -> dict[str, Any]:
+    """再取得証明のない旧cacheを取得済みへ昇格しない証跡を返す。"""
+
+    graph = result.get("ghidra_call_graph")
+    edge_count = len(graph["edges"]) if _call_graph_schema_valid(graph) else None
+    return {
+        "endpoint": CALL_GRAPH_ENDPOINT,
+        "endpoint_invoked": False,
+        "response_schema_valid": False,
+        "program_selector": result.get("program_selector"),
+        "requested_format": CALL_GRAPH_REQUEST_FORMAT,
+        "requested_limit": CALL_GRAPH_REQUEST_LIMIT,
+        "native_graph_applicable": True,
+        "source": "legacy_cache",
+        "acquisition_status": "unavailable",
+        "edge_count": edge_count,
+        "complete": False,
+        "documented_limit": CALL_GRAPH_LEGACY_LIMIT,
+    }
+
+
 def load_prepared_inputs(
     sample_root: Path,
     private_output: Path,
@@ -1979,9 +2294,7 @@ def load_prepared_inputs(
 ) -> tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]:
     """SHA-256検証済みcacheから再展開せずprogram inventoryを復元する。"""
 
-    relationship_path = Path(
-        os.path.abspath(os.fspath(private_output / "input-relationships.json"))
-    )
+    relationship_path = Path(os.path.abspath(os.fspath(private_output / "input-relationships.json")))
     snapshot = inventory_snapshot or _bounded_json_snapshot(relationship_path)
     if snapshot.path != relationship_path:
         raise ValueError("prepared input inventoryのsnapshot pathが一致しません")
@@ -2016,11 +2329,7 @@ def load_prepared_inputs(
         expected_size = relation.get("size")
         if type(depth) is not int or depth < 0:
             raise ValueError("input relationshipのdepthが不正です")
-        if (
-            type(expected_size) is not int
-            or expected_size <= 0
-            or expected_size > MAX_PREPARED_INPUT_BYTES
-        ):
+        if type(expected_size) is not int or expected_size <= 0 or expected_size > MAX_PREPARED_INPUT_BYTES:
             raise ValueError("input relationshipのsizeが不正です")
         input_root = cache_root / case_sha / "ghidra-input"
         input_path = (
@@ -2061,13 +2370,10 @@ def load_prepared_inputs(
                 result_present = False
             except OSError as exc:
                 raise ValueError(f"完了cacheを安全に確認できません: {digest}") from exc
-            result_snapshot = (
-                _bounded_json_snapshot(result_path) if result_present else None
-            )
+            result_snapshot = _bounded_json_snapshot(result_path) if result_present else None
             cached = result_snapshot.document if result_snapshot is not None else {}
             if result_snapshot is None or not (
-                cached.get("status") == "complete"
-                and cached.get("mcp_responses_valid") is True
+                cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True
             ):
                 raise FileNotFoundError(f"再開用PE cacheがありません: {digest}")
             _assert_snapshot_unchanged(
@@ -2119,9 +2425,7 @@ def validate_prepared_scope(
         for item in collection.get("cases", [])
         if isinstance(item, Mapping)
     }
-    relationship_path = Path(
-        os.path.abspath(os.fspath(private_output / "input-relationships.json"))
-    )
+    relationship_path = Path(os.path.abspath(os.fspath(private_output / "input-relationships.json")))
     snapshot = inventory_snapshot or _bounded_json_snapshot(relationship_path)
     if snapshot.path != relationship_path:
         raise ValueError("prepared input inventoryのsnapshot pathが一致しません")
@@ -2145,22 +2449,72 @@ def validate_prepared_scope(
     )
 
 
-def _all_functions(client: GhidraMcpClient, program: str) -> list[dict[str, Any]]:
+def _all_functions_with_coverage(
+    client: GhidraMcpClient,
+    program: str,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """list_functionsをcursor／offset終端まで取得し、有界な完全性証跡を返す。"""
+
     functions: list[dict[str, Any]] = []
     offset = 0
+    cursor: str | int | None = None
+    seen_cursors: set[str] = set()
+    seen_page_hashes: set[str] = set()
+    page_count = 0
     while True:
-        page = client.get(
-            "/list_functions_enhanced",
-            offset=offset,
-            limit=FUNCTION_PAGE_SIZE,
-            program=program,
-        )
-        values = list((page or {}).get("functions", []))
-        functions.extend(value for value in values if isinstance(value, dict))
-        total = int((page or {}).get("count", len(functions)))
+        query: dict[str, Any] = {
+            "limit": FUNCTION_PAGE_SIZE,
+            "program": program,
+        }
+        query["offset" if cursor is None else "cursor"] = offset if cursor is None else cursor
+        page = client.get("/list_functions_enhanced", **query)
+        raw_values = _page_values(page, "/list_functions_enhanced")
+        if any(not isinstance(value, Mapping) for value in raw_values):
+            raise GhidraMcpError("list_functionsにobject以外の項目があります")
+        values = [dict(value) for value in raw_values]
+        page_count += 1
+        if page_count > MAX_FUNCTION_INVENTORY_PAGES:
+            raise GhidraMcpError("function_inventory_page_documented_limit_exceeded:10000")
+        page_hash = hashlib.sha256(json.dumps(values, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+        if values and page_hash in seen_page_hashes:
+            raise GhidraMcpError("list_functionsが重複ページを返しました")
+        seen_page_hashes.add(page_hash)
+        functions.extend(values)
+        if len(functions) > MAX_FUNCTION_INVENTORY_ITEMS:
+            raise GhidraMcpError("function_inventory_documented_limit_exceeded:100000")
+        next_cursor = None
+        if isinstance(page, Mapping):
+            next_cursor = page.get("next_cursor", page.get("nextCursor"))
+        if next_cursor not in (None, ""):
+            cursor_key = str(next_cursor)
+            if cursor_key in seen_cursors:
+                raise GhidraMcpError("list_functionsがcursorを循環させました")
+            seen_cursors.add(cursor_key)
+            cursor = next_cursor if isinstance(next_cursor, (str, int)) else cursor_key
+            continue
         offset += len(values)
-        if not values or offset >= total:
+        cursor = None
+        if len(values) < FUNCTION_PAGE_SIZE:
             break
+    addresses = [str(item.get("address") or "").strip() for item in functions]
+    if any(not address for address in addresses) or len(set(addresses)) != len(addresses):
+        raise GhidraMcpError("list_functionsのaddress identityが欠落または重複しています")
+    return functions, {
+        "endpoint": "/list_functions_enhanced",
+        "program_selector": program,
+        "page_size": FUNCTION_PAGE_SIZE,
+        "page_count": page_count,
+        "item_count": len(functions),
+        "terminal_short_page_observed": True,
+        "complete": True,
+        "maximum_items": MAX_FUNCTION_INVENTORY_ITEMS,
+        "maximum_pages": MAX_FUNCTION_INVENTORY_PAGES,
+        "pagination": "cursor_or_offset",
+    }
+
+
+def _all_functions(client: GhidraMcpClient, program: str) -> list[dict[str, Any]]:
+    functions, _coverage = _all_functions_with_coverage(client, program)
     return functions
 
 
@@ -2256,7 +2610,15 @@ def _page_values(page: Any, endpoint: str) -> list[Any]:
             return list(decoded)
         raise GhidraMcpError(f"{endpoint}の文字列応答がJSON listまたは行形式ではありません")
     if isinstance(page, Mapping):
-        for key in ("items", "results", "imports", "exports", "strings", "segments"):
+        for key in (
+            "items",
+            "results",
+            "functions",
+            "imports",
+            "exports",
+            "strings",
+            "segments",
+        ):
             values = page.get(key)
             if isinstance(values, list):
                 return list(values)
@@ -2343,6 +2705,283 @@ def _entry_point_addresses(entry_points: Any) -> set[str]:
     return {value.casefold().removeprefix("0x") for value in values}
 
 
+def _strict_pe_address(value: Any) -> int | None:
+    """PE向けの空間名なし16進addressだけを整数へ正規化する。"""
+
+    rendered = str(value or "").strip()
+    if not re.fullmatch(r"(?i)(?:0x)?[0-9a-f]{1,16}", rendered):
+        return None
+    parsed = int(rendered, 16)
+    return parsed if 0 < parsed <= 0xFFFF_FFFF_FFFF_FFFF else None
+
+
+def _ghidra_entry_records(entry_points: Any) -> list[dict[str, str]]:
+    """get_entry_points応答を、推測を加えずname/address/annotationへ正規化する。"""
+
+    records: list[dict[str, str]] = []
+    if isinstance(entry_points, str):
+        for line in entry_points.splitlines():
+            match = re.match(
+                r"\s*(.+?)\s*(?:@|->)\s*((?:0x)?[0-9a-fA-F]{1,16})(?:\s|$)",
+                line,
+            )
+            if match:
+                records.append(
+                    {
+                        "name": match.group(1).strip(),
+                        "address": match.group(2),
+                        "annotation": line.strip(),
+                    }
+                )
+        return records
+    if isinstance(entry_points, Mapping):
+        for key in ("entry_points", "entries", "items", "results"):
+            nested = entry_points.get(key)
+            if isinstance(nested, (Mapping, list, tuple, str)):
+                records.extend(_ghidra_entry_records(nested))
+        address = entry_points.get("address") or entry_points.get("entry")
+        if address:
+            records.append(
+                {
+                    "name": str(
+                        entry_points.get("name") or entry_points.get("label") or entry_points.get("kind") or ""
+                    ).strip(),
+                    "address": str(address),
+                    "annotation": str(entry_points.get("annotation") or entry_points.get("type") or "").strip(),
+                }
+            )
+        return records
+    if isinstance(entry_points, Iterable):
+        for item in entry_points:
+            records.extend(_ghidra_entry_records(item))
+    return records
+
+
+def _unique_ghidra_program_entry(entry_points: Any) -> dict[str, Any]:
+    """Ghidraが明示した通常entry labelを一意なaddressへ限定する。"""
+
+    records = _ghidra_entry_records(entry_points)
+    candidates: dict[int, list[str]] = defaultdict(list)
+    for record in records:
+        normalized_name = re.sub(
+            r"[^a-z0-9]",
+            "",
+            str(record.get("name") or "").casefold(),
+        )
+        if normalized_name not in {"entry", "entrypoint"}:
+            continue
+        annotation = str(record.get("annotation") or "").casefold()
+        if "program entry" in annotation and "external entry" not in annotation:
+            continue
+        address = _strict_pe_address(record.get("address"))
+        if address is not None:
+            candidates[address].append(str(record.get("name") or "entry"))
+    addresses = sorted(candidates)
+    return {
+        "status": "unique" if len(addresses) == 1 else "not_unique",
+        "record_count": len(records),
+        "candidate_count": len(addresses),
+        "candidate_addresses": [f"{address:x}" for address in addresses],
+        "address": addresses[0] if len(addresses) == 1 else None,
+    }
+
+
+def _pe_entry_point_validation(data: bytes) -> dict[str, Any]:
+    """PE header上のentry pointが一意な実行section内にあることを確認する。"""
+
+    pe: pefile.PE | None = None
+    try:
+        pe = pefile.PE(data=data, fast_load=True)
+        entry_rva = int(pe.OPTIONAL_HEADER.AddressOfEntryPoint or 0)
+        image_base = int(pe.OPTIONAL_HEADER.ImageBase or 0)
+        if entry_rva <= 0 or image_base <= 0:
+            return {"status": "invalid", "reason": "pe_entry_point_missing"}
+        matching_sections = []
+        for section in pe.sections:
+            start = int(section.VirtualAddress or 0)
+            span = max(
+                int(section.Misc_VirtualSize or 0),
+                int(section.SizeOfRawData or 0),
+            )
+            if span > 0 and start <= entry_rva < start + span:
+                matching_sections.append(section)
+        if len(matching_sections) != 1:
+            return {
+                "status": "invalid",
+                "reason": "pe_entry_point_section_not_unique",
+                "matching_section_count": len(matching_sections),
+            }
+        section = matching_sections[0]
+        if not int(section.Characteristics or 0) & 0x2000_0000:
+            return {
+                "status": "invalid",
+                "reason": "pe_entry_point_section_not_executable",
+            }
+        address = image_base + entry_rva
+        if address <= image_base or address > 0xFFFF_FFFF_FFFF_FFFF:
+            return {"status": "invalid", "reason": "pe_entry_point_address_invalid"}
+        section_name = (
+            bytes(section.Name)
+            .rstrip(b"\x00")
+            .decode(
+                "ascii",
+                errors="replace",
+            )
+        )
+        return {
+            "status": "validated",
+            "reason": "pe_entry_point_in_unique_executable_section",
+            "address": address,
+            "address_hex": f"{address:x}",
+            "rva_hex": f"{entry_rva:x}",
+            "section_name": section_name,
+            "section_executable": True,
+        }
+    except Exception:
+        return {"status": "invalid", "reason": "pe_header_parse_failed"}
+    finally:
+        if pe is not None:
+            pe.close()
+
+
+def _ghidra_segment_ranges(segments: Any) -> list[dict[str, Any]]:
+    """list_segments応答を検証用の閉区間へ正規化する。"""
+
+    ranges: list[dict[str, Any]] = []
+    if isinstance(segments, str):
+        for line in segments.splitlines():
+            match = re.match(
+                r"\s*(.+?)\s*:\s*((?:0x)?[0-9a-fA-F]{1,16})\s*-\s*"
+                r"((?:0x)?[0-9a-fA-F]{1,16})\s*$",
+                line,
+            )
+            if not match:
+                continue
+            start = _strict_pe_address(match.group(2))
+            end = _strict_pe_address(match.group(3))
+            if start is not None and end is not None and start <= end:
+                ranges.append({"name": match.group(1).strip(), "start": start, "end": end})
+        return ranges
+    if isinstance(segments, Mapping):
+        for key in ("segments", "items", "results"):
+            nested = segments.get(key)
+            if isinstance(nested, (Mapping, list, tuple, str)):
+                ranges.extend(_ghidra_segment_ranges(nested))
+        start = _strict_pe_address(
+            segments.get("start") or segments.get("start_address") or segments.get("min_address")
+        )
+        end = _strict_pe_address(segments.get("end") or segments.get("end_address") or segments.get("max_address"))
+        if start is not None and end is not None and start <= end:
+            ranges.append(
+                {
+                    "name": str(segments.get("name") or segments.get("segment") or ""),
+                    "start": start,
+                    "end": end,
+                }
+            )
+        return ranges
+    if isinstance(segments, Iterable):
+        for item in segments:
+            ranges.extend(_ghidra_segment_ranges(item))
+    return ranges
+
+
+def _recover_unique_entry_point_function(
+    client: GhidraMcpClient,
+    program: str,
+    data: bytes,
+    entry_points: Any,
+    segments: Any,
+) -> tuple[list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
+    """関数0件時、一意かつ検証済みentryだけを1回関数化する。"""
+
+    pe_validation = _pe_entry_point_validation(data)
+    ghidra_entry = _unique_ghidra_program_entry(entry_points)
+    evidence: dict[str, Any] = {
+        "schema_version": 1,
+        "trigger": "native_function_inventory_empty_after_auto_analysis",
+        "status": "not_attempted",
+        "reason": "validation_incomplete",
+        "attempted": False,
+        "initial_function_count": 0,
+        "final_function_count": 0,
+        "program_selector": program,
+        "candidate_count": int(ghidra_entry["candidate_count"]),
+        "candidate_addresses": list(ghidra_entry["candidate_addresses"]),
+        "validation": {
+            "pe_entry_point": pe_validation,
+            "ghidra_program_entry_unique": ghidra_entry["status"] == "unique",
+            "ghidra_segment_contains_entry": False,
+        },
+    }
+    private_evidence: dict[str, Any] = {
+        "schema_version": 1,
+        "program_selector": program,
+        "request_endpoint": "/create_function",
+        "disassemble_first": True,
+        "response": None,
+        "error": None,
+    }
+    if pe_validation.get("status") != "validated":
+        evidence["reason"] = str(pe_validation.get("reason") or "pe_entry_point_invalid")
+        return [], evidence, private_evidence
+    if ghidra_entry.get("status") != "unique":
+        evidence["reason"] = "ghidra_program_entry_not_unique"
+        return [], evidence, private_evidence
+    candidate = int(ghidra_entry["address"])
+    if candidate != int(pe_validation["address"]):
+        evidence["reason"] = "ghidra_and_pe_entry_point_mismatch"
+        return [], evidence, private_evidence
+    containing_segments = [
+        segment
+        for segment in _ghidra_segment_ranges(segments)
+        if int(segment["start"]) <= candidate <= int(segment["end"])
+        and str(segment.get("name") or "").strip().casefold() not in {"header", "headers"}
+    ]
+    if len(containing_segments) != 1:
+        evidence["reason"] = "ghidra_entry_segment_not_unique"
+        evidence["validation"]["ghidra_matching_segment_count"] = len(containing_segments)
+        return [], evidence, private_evidence
+    evidence["validation"]["ghidra_segment_contains_entry"] = True
+    evidence["validated_address"] = f"{candidate:x}"
+    evidence["validated_segment_name"] = str(containing_segments[0].get("name") or "")
+    evidence["attempted"] = True
+    private_evidence["address"] = f"{candidate:x}"
+    try:
+        response = client.post(
+            "/create_function",
+            {
+                "address": f"{candidate:x}",
+                "name": "",
+                "disassemble_first": True,
+            },
+            program=program,
+        )
+        private_evidence["response"] = response
+        recovered = _all_functions(client, program)
+    except GhidraMcpError as error:
+        evidence["status"] = "failed"
+        evidence["reason"] = "ghidra_create_function_or_inventory_failed"
+        private_evidence["error"] = f"{type(error).__name__}: {error}"
+        return [], evidence, private_evidence
+    recovered_entry_functions = [
+        function
+        for function in recovered
+        if _strict_pe_address(function.get("address")) == candidate
+        and not bool(function.get("isExternal"))
+        and not bool(function.get("isThunk"))
+    ]
+    evidence["final_function_count"] = len(recovered)
+    if len(recovered_entry_functions) != 1:
+        evidence["status"] = "failed"
+        evidence["reason"] = "created_entry_body_not_unique_in_function_inventory"
+        evidence["validated_entry_body_count"] = len(recovered_entry_functions)
+        return [], evidence, private_evidence
+    evidence["status"] = "recovered"
+    evidence["reason"] = "entry_function_created_and_inventory_verified"
+    return recovered, evidence, private_evidence
+
+
 def _call_graph_degrees(call_graph: Mapping[str, Any]) -> tuple[Counter[str], Counter[str], dict[str, list[str]]]:
     """call graphから入次数、出次数、callee名をaddress単位で集計する。"""
 
@@ -2397,6 +3036,12 @@ def _characteristic_candidates(
         if normalized_address in entries or role == "entrypoint":
             score += 10_000
             reasons.append("entry_point")
+        # Goではcall graph中心性と関数sizeだけで採点するとruntime/internalが
+        # 上位を独占する。main packageはcompiler runtimeではなく検体固有code
+        # なので、上限付き代表関数枠の中で必ず優先する。
+        if GO_MAIN_USER_CODE_RE.search(name) and not LIBRARY_RE.search(name):
+            score += 8_500
+            reasons.append("probable_go_main_user_code")
         if role not in {"general_internal_logic", "compiler_or_library_code"}:
             score += 3_000
             reasons.append(f"role:{role}")
@@ -2597,11 +3242,7 @@ def _private_jsonl_limits() -> tuple[int, int, int, int]:
     maximum_records = MAX_PRIVATE_RAW_RECORDS
     maximum_line_bytes = MAX_PRIVATE_RAW_LINE_BYTES
     maximum_depth = MAX_PRIVATE_RAW_JSON_DEPTH
-    if (
-        type(maximum_bytes) is not int
-        or maximum_bytes <= 0
-        or maximum_bytes > 64 * 1024 * 1024
-    ):
+    if type(maximum_bytes) is not int or maximum_bytes <= 0 or maximum_bytes > 64 * 1024 * 1024:
         raise ValueError("private JSONLの総bytes上限が不正です")
     if type(maximum_records) is not int or maximum_records <= 0:
         raise ValueError("private JSONLのrecord数上限が不正です")
@@ -2704,9 +3345,7 @@ def _decode_private_jsonl_record(
         TypeError,
         ValueError,
     ) as exc:
-        raise ValueError(
-            f"private JSONLが不正です: {path.name}:{line_number}: {exc}"
-        ) from exc
+        raise ValueError(f"private JSONLが不正です: {path.name}:{line_number}: {exc}") from exc
     return value
 
 
@@ -2716,9 +3355,7 @@ def _stream_private_jsonl(
 ) -> _JsonlFileSnapshot:
     """single handleからprivate JSONLをstreaming strict parse/hashする。"""
 
-    maximum_bytes, maximum_records, maximum_line_bytes, maximum_depth = (
-        _private_jsonl_limits()
-    )
+    maximum_bytes, maximum_records, maximum_line_bytes, maximum_depth = _private_jsonl_limits()
     absolute = Path(os.path.abspath(os.fspath(path)))
     before = _regular_file_metadata(absolute)
     if int(before.st_size) > maximum_bytes:
@@ -2812,9 +3449,7 @@ def _stream_private_raw_digest(
         _validate_opened_private_raw(before, opened_before)
         with os.fdopen(descriptor, "rb", closefd=True) as handle:
             descriptor = None
-            while chunk := handle.read(
-                min(PRIVATE_RAW_STREAM_CHUNK_BYTES, maximum_bytes + 1)
-            ):
+            while chunk := handle.read(min(PRIVATE_RAW_STREAM_CHUNK_BYTES, maximum_bytes + 1)):
                 total = _checked_private_raw_add(
                     total,
                     len(chunk),
@@ -2852,17 +3487,13 @@ def _assert_jsonl_snapshot_unchanged(snapshot: _JsonlFileSnapshot) -> None:
             maximum_bytes=maximum_bytes,
         )
     except (OSError, ValueError) as exc:
-        raise ValueError(
-            f"private JSONLで競合変更を検出しました: {snapshot.path.name}"
-        ) from exc
+        raise ValueError(f"private JSONLで競合変更を検出しました: {snapshot.path.name}") from exc
     if (
         current.sha256 != snapshot.sha256
         or current.size != snapshot.size
         or not _same_regular_file_binding(snapshot.metadata, current.metadata)
     ):
-        raise ValueError(
-            f"private JSONLで競合変更を検出しました: {snapshot.path.name}"
-        )
+        raise ValueError(f"private JSONLで競合変更を検出しました: {snapshot.path.name}")
 
 
 def _load_jsonl(path: Path) -> dict[str, dict[str, Any]]:
@@ -2910,9 +3541,7 @@ def _encode_private_jsonl_record(
             + "\n"
         ).encode("utf-8")
     except (OverflowError, RecursionError, TypeError, ValueError) as exc:
-        raise ValueError(
-            f"private JSONL recordをencodeできません: {path.name}:{line_number}"
-        ) from exc
+        raise ValueError(f"private JSONL recordをencodeできません: {path.name}:{line_number}") from exc
     if len(encoded) > maximum_line_bytes:
         raise ValueError("private JSONLが1行bytes上限を超えています")
     _decode_private_jsonl_record(
@@ -2959,9 +3588,7 @@ def _atomic_rewrite_jsonl(
     if _stat_is_reparse(parent_before) or not stat.S_ISDIR(parent_before.st_mode):
         raise ValueError("private JSONL出力先は通常directoryに限定します")
 
-    temporary = absolute.with_name(
-        f".jsonl-{os.getpid():x}-{time.time_ns():x}.tmp"
-    )
+    temporary = absolute.with_name(f".jsonl-{os.getpid():x}-{time.time_ns():x}.tmp")
     temporary_identity: os.stat_result | None = None
     total = 0
     record_count = 0
@@ -3383,10 +4010,7 @@ def _bounded_managed_cil_raw_instructions(
     instructions: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     total = len(instructions)
-    stored = [
-        dict(value)
-        for value in instructions[:MAX_MANAGED_CIL_RAW_INSTRUCTIONS_PER_METHOD]
-    ]
+    stored = [dict(value) for value in instructions[:MAX_MANAGED_CIL_RAW_INSTRUCTIONS_PER_METHOD]]
     return {
         "instructions": stored,
         "instruction_count": total,
@@ -3559,18 +4183,276 @@ def _managed_cil_records(data: bytes, raw_path: Path, layer_sha256: str) -> list
 
 
 def _classify_role(name: str, calls: Iterable[str], pseudocode: str) -> str:
-    combined = "\n".join([name, *calls, pseudocode[:50_000]])
-    if LIBRARY_RE.search(name):
+    """単なる部分文字列でなく、member/API境界に基づいて挙動役割を返す。"""
+
+    if LIBRARY_RE.search(name) or re.search(
+        r"(?i)(?:^|[.:])(?:ctor|cctor)(?:$|\()",
+        name,
+    ):
         return "compiler_or_library_code"
     if ROLE_PATTERNS[0][1].search(name):
         return "entrypoint"
-    for role, pattern in ROLE_PATTERNS[1:]:
-        if pattern.search(name):
-            return role
-    for role, pattern in ROLE_PATTERNS[1:]:
-        if pattern.search(combined):
+    name_role = _semantic_symbol_role(name, function_name=True)
+    if name_role is not None:
+        return name_role
+    evidence_roles: set[str] = set()
+    for call in calls:
+        call_role = _semantic_symbol_role(str(call), function_name=False)
+        if call_role is not None:
+            evidence_roles.add(call_role)
+    for call_match in re.finditer(
+        r"(?<![A-Za-z0-9_])([A-Za-z_][A-Za-z0-9_:.!@$<>-]{0,255})\s*\(",
+        pseudocode[:50_000],
+    ):
+        call_role = _semantic_symbol_role(call_match.group(1), function_name=False)
+        if call_role is not None:
+            evidence_roles.add(call_role)
+    for role in (
+        "command_dispatch_or_handler",
+        "persistence",
+        "process_or_memory_operation",
+        "network_communication",
+        "cryptographic_transform",
+        "anti_analysis",
+        "config_or_data_transform",
+        "file_operation",
+    ):
+        if role in evidence_roles:
             return role
     return "general_internal_logic"
+
+
+def _semantic_symbol_leaf(value: str) -> tuple[str, list[str], str]:
+    """qualified symbolから正規化leaf、camel token、full canonicalを返す。"""
+
+    rendered = value.strip().split("(", 1)[0]
+    leaf_parts = [part for part in re.split(r"(?:::|[.!/\\])", rendered) if part]
+    leaf = leaf_parts[-1] if leaf_parts else rendered
+    leaf = re.sub(r"^_+|@\d+$", "", leaf)
+    tokenized = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", leaf)
+    tokens = [token.casefold() for token in re.split(r"[^A-Za-z0-9]+", tokenized) if token]
+    canonical = re.sub(r"[^a-z0-9]", "", leaf.casefold())
+    full_canonical = re.sub(r"[^a-z0-9]", "", rendered.casefold())
+    return canonical, tokens, full_canonical
+
+
+def _api_leaf_matches(canonical: str, values: set[str]) -> bool:
+    """stdcallおよびWindows A/W suffixだけを許容してAPI leafを照合する。"""
+
+    if canonical in values:
+        return True
+    return bool(len(canonical) > 1 and canonical[-1] in {"a", "w"} and canonical[:-1] in values)
+
+
+def _semantic_symbol_role(value: str, *, function_name: bool) -> str | None:
+    """namespace中の単語を能力へ誤昇格させず、実APIまたはleaf動詞だけを分類する。"""
+
+    canonical, tokens, full_canonical = _semantic_symbol_leaf(value)
+    token_set = set(tokens)
+    network_apis = {
+        "socket",
+        "connect",
+        "send",
+        "recv",
+        "sendto",
+        "recvfrom",
+        "wsastartup",
+        "getaddrinfo",
+        "gethostbyname",
+        "dnsquery",
+        "internetopen",
+        "internetconnect",
+        "httpopenrequest",
+        "httpsendrequest",
+        "internetreadfile",
+        "winhttpopen",
+        "winhttpconnect",
+        "winhttpopenrequest",
+        "winhttpsendrequest",
+        "winhttpreceiveresponse",
+        "urldownloadtofile",
+    }
+    screenconnect_context = "screenconnect" in full_canonical
+    if _api_leaf_matches(canonical, network_apis) and not (
+        screenconnect_context and canonical.rstrip("aw") == "connect"
+    ):
+        return "network_communication"
+    if (
+        function_name
+        and not screenconnect_context
+        and token_set
+        & {
+            "socket",
+            "connect",
+            "send",
+            "recv",
+            "receive",
+            "download",
+            "upload",
+        }
+    ):
+        return "network_communication"
+
+    command_apis = {
+        "shellexecute",
+        "winexec",
+        "system",
+        "popen",
+        "runcommandlineprogram",
+    }
+    if (
+        _api_leaf_matches(canonical, command_apis)
+        or function_name
+        and token_set
+        & {
+            "command",
+            "dispatch",
+            "handler",
+            "shell",
+            "execute",
+        }
+    ):
+        return "command_dispatch_or_handler"
+
+    if function_name and token_set & {
+        "config",
+        "setting",
+        "parse",
+        "decode",
+        "decrypt",
+        "unpack",
+        "deserialize",
+        "resource",
+        "payload",
+    }:
+        return "config_or_data_transform"
+
+    cryptographic_apis = {
+        "cryptdecrypt",
+        "cryptunprotectdata",
+        "bcryptdecrypt",
+        "rsadecrypt",
+    }
+    if (
+        _api_leaf_matches(canonical, cryptographic_apis)
+        or function_name
+        and token_set
+        & {
+            "aes",
+            "rsa",
+            "rc4",
+            "chacha",
+            "xor",
+            "base64",
+            "crypt",
+            "cipher",
+            "hash",
+            "md5",
+            "sha256",
+        }
+    ):
+        return "cryptographic_transform"
+
+    process_apis = {
+        "createprocess",
+        "createremotethread",
+        "createprocesswithtoken",
+        "createprocessasuser",
+        "virtualalloc",
+        "virtualallocex",
+        "virtualprotect",
+        "virtualprotectex",
+        "writeprocessmemory",
+        "queueuserapc",
+        "ntmapviewofsection",
+        "loadlibrary",
+        "createthread",
+    }
+    qualified_process_apis = {
+        "systemdiagnosticsprocessstart",
+    }
+    if (
+        _api_leaf_matches(canonical, process_apis)
+        or full_canonical in qualified_process_apis
+        or function_name
+        and token_set
+        & {
+            "inject",
+            "hollow",
+            "processcreate",
+            "remotethread",
+        }
+    ):
+        return "process_or_memory_operation"
+
+    persistence_apis = {
+        "createservice",
+        "startservice",
+        "openscmanager",
+        "regsetvalue",
+        "regcreatekey",
+        "schtasks",
+    }
+    persistence_name = canonical in {
+        "persist",
+        "persistence",
+        "autorun",
+        "runkey",
+        "installservice",
+        "registerservice",
+        "createservice",
+    }
+    if _api_leaf_matches(canonical, persistence_apis) or function_name and persistence_name:
+        return "persistence"
+
+    anti_analysis_apis = {
+        "isdebuggerpresent",
+        "checkremotedebuggerpresent",
+        "ntqueryinformationprocess",
+        "queryperformancecounter",
+        "cpuid",
+    }
+    if (
+        _api_leaf_matches(canonical, anti_analysis_apis)
+        or function_name
+        and token_set
+        & {
+            "antidebug",
+            "sandboxcheck",
+            "vmwarecheck",
+            "virtualboxcheck",
+        }
+    ):
+        return "anti_analysis"
+
+    file_apis = {
+        "createfile",
+        "readfile",
+        "writefile",
+        "deletefile",
+        "movefile",
+        "copyfile",
+        "findfirstfile",
+        "findnextfile",
+    }
+    if _api_leaf_matches(canonical, file_apis):
+        return "file_operation"
+    if (
+        function_name
+        and len(tokens) >= 2
+        and tokens[0]
+        in {
+            "create",
+            "read",
+            "write",
+            "delete",
+            "move",
+            "copy",
+        }
+        and tokens[1] in {"file", "directory", "path"}
+    ):
+        return "file_operation"
+    return None
 
 
 def _logic_steps(
@@ -3736,6 +4618,108 @@ def _wait_for_analysis(
     raise TimeoutError(f"Ghidra auto-analysis timeout: {program}")
 
 
+def _native_zero_function_recovery_pending(result: Mapping[str, Any]) -> bool:
+    """entry point関数回復証跡のない旧native 0件cacheか返す。"""
+
+    return bool(
+        result.get("analysis_mode") == "native_ghidra_with_optional_cil"
+        and int(result.get("ghidra_function_inventory_count") or 0) == 0
+        and int(result.get("managed_method_count") or 0) == 0
+        and not isinstance(result.get("entry_point_function_recovery"), Mapping)
+    )
+
+
+def _terminalize_unavailable_native_zero_function_recovery(
+    result_path: Path,
+    cached: dict[str, Any],
+) -> dict[str, Any]:
+    """認証済みinputがない旧0件cacheへ再試行不要の証跡を保存する。"""
+
+    recovery: dict[str, Any] = {
+        "schema_version": 1,
+        "trigger": "native_function_inventory_empty_after_auto_analysis",
+        "status": "not_attempted",
+        "reason": "input_cache_unavailable_for_recovery",
+        "attempted": False,
+        "initial_function_count": 0,
+        "final_function_count": 0,
+    }
+    program_selector = cached.get("program_selector")
+    if isinstance(program_selector, str) and program_selector:
+        recovery["program_selector"] = program_selector
+    cached["entry_point_function_recovery"] = recovery
+    cached["status"] = "partial"
+    coverage = cached.setdefault("retrieval_coverage", {})
+    if isinstance(coverage, dict):
+        coverage["functions"] = {
+            "endpoint": "/list_functions_enhanced",
+            "program_selector": cached.get("program_selector"),
+            "page_size": FUNCTION_PAGE_SIZE,
+            "page_count": 0,
+            "item_count": 0,
+            "terminal_short_page_observed": False,
+            "complete": False,
+            "endpoint_invoked": False,
+            "documented_limit": "input_cache_unavailable_for_function_reinventory",
+        }
+    ensure_characteristic_selection(cached)
+    _persist_program_result(result_path, cached)
+    return cached
+
+
+def _unavailable_zero_function_recovery_terminal(result: Mapping[str, Any]) -> bool:
+    recovery = result.get("entry_point_function_recovery")
+    coverage = result.get("retrieval_coverage")
+    functions = coverage.get("functions") if isinstance(coverage, Mapping) else None
+    return bool(
+        result.get("status") == "partial"
+        and isinstance(recovery, Mapping)
+        and recovery.get("reason") == "input_cache_unavailable_for_recovery"
+        and isinstance(functions, Mapping)
+        and functions.get("complete") is False
+        and functions.get("documented_limit") == "input_cache_unavailable_for_function_reinventory"
+    )
+
+
+def _terminalize_unavailable_call_graph_retrieval(
+    result_path: Path,
+    cached: dict[str, Any],
+) -> dict[str, Any]:
+    """再取得できない旧cacheへcall graph未取得の明示的partial証跡を保存する。"""
+
+    coverage = cached.get("retrieval_coverage")
+    if not isinstance(coverage, dict):
+        coverage = {}
+        cached["retrieval_coverage"] = coverage
+    call_graph_coverage = _legacy_call_graph_partial_coverage(cached)
+    coverage["call_graph"] = call_graph_coverage
+    cached["status"] = "partial"
+    cached["all_static_analysis_content_retained"] = False
+    cached["call_graph_retrieval"] = {
+        "status": "partial",
+        "documented_limit": CALL_GRAPH_LEGACY_LIMIT,
+        "retryable": True,
+    }
+    ensure_characteristic_selection(cached)
+    _persist_program_result(result_path, cached)
+
+    raw_index_path = result_path.with_name("ghidra-raw-index.json")
+    try:
+        raw_present = raw_index_path.lstat() is not None
+    except FileNotFoundError:
+        raw_present = False
+    if raw_present:
+        raw_index = _bounded_json_snapshot(raw_index_path).document
+        raw_coverage = raw_index.get("retrieval_coverage")
+        if not isinstance(raw_coverage, dict):
+            raw_coverage = {}
+            raw_index["retrieval_coverage"] = raw_coverage
+        raw_coverage["call_graph"] = dict(call_graph_coverage)
+        raw_index["all_static_analysis_content_retained"] = False
+        _atomic_private_json(raw_index_path, raw_index)
+    return cached
+
+
 def analyze_program(
     client: GhidraMcpClient,
     item: ProgramObject,
@@ -3755,7 +4739,31 @@ def analyze_program(
         result_present = False
     if result_present:
         cached, _result_snapshot = _load_program_result(result_path)
-        if cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True:
+        call_graph_complete = _call_graph_retrieval_coverage_complete(cached)
+        if _unavailable_zero_function_recovery_terminal(cached) and call_graph_complete:
+            return cached
+        legacy_complete = bool(cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True)
+        cached_complete = bool(
+            legacy_complete and _function_inventory_coverage_complete(cached) and call_graph_complete
+        )
+        native_zero_recovery_pending = _native_zero_function_recovery_pending(cached)
+        if legacy_complete and native_zero_recovery_pending and item.input_snapshot is None:
+            cached = _terminalize_unavailable_native_zero_function_recovery(
+                result_path,
+                cached,
+            )
+            if not call_graph_complete:
+                cached = _terminalize_unavailable_call_graph_retrieval(
+                    result_path,
+                    cached,
+                )
+            return cached
+        if not call_graph_complete and item.input_snapshot is None:
+            return _terminalize_unavailable_call_graph_retrieval(
+                result_path,
+                cached,
+            )
+        if cached_complete and not native_zero_recovery_pending:
             ensure_characteristic_selection(cached)
             _persist_program_result(result_path, cached)
             return cached
@@ -3904,19 +4912,92 @@ def analyze_program(
                 timeout_seconds=analysis_timeout,
             )
         analysis_mode = "native_ghidra_with_optional_cil"
-    functions = [] if managed_cil_primary else _all_functions(client, program)
+    if managed_cil_primary:
+        functions = []
+        function_coverage = {
+            "endpoint": "/list_functions_enhanced",
+            "program_selector": program,
+            "page_size": 0,
+            "page_count": 0,
+            "item_count": 0,
+            "terminal_short_page_observed": False,
+            "complete": True,
+            "endpoint_invoked": False,
+            "source": "managed_cil_primary",
+            "documented_limit": "native_function_inventory_not_applicable",
+        }
+    else:
+        functions, function_coverage = _all_functions_with_coverage(
+            client,
+            program,
+        )
     metadata_raw = _program_get("/get_metadata")
+    if not managed_cil_primary:
+        metadata_function_count = _metadata_function_count(metadata_raw)
+        function_coverage["metadata_function_count"] = metadata_function_count
+        function_coverage["count_matches_metadata"] = (
+            None if metadata_function_count is None else metadata_function_count == len(functions)
+        )
+        if metadata_function_count is None:
+            function_coverage["documented_limit"] = "metadata_function_count_unavailable_terminal_page_proof_used"
+        elif metadata_function_count != len(functions):
+            raise GhidraMcpError(
+                "metadata function_countとlist_functions完全inventoryが一致しません: "
+                f"{metadata_function_count} != {len(functions)}"
+            )
     imports = _program_get("/list_imports", offset=0, limit=10000)
     exports = _program_get("/list_exports", offset=0, limit=10000)
     strings = [] if managed_cil_primary else client.get("/list_strings", offset=0, limit=100000, program=program)
     segments = _program_get("/list_segments", offset=0, limit=10000)
     entry_points = [] if managed_cil_primary else client.get("/get_entry_points", program=program)
     if managed_cil_primary:
-        call_graph = {
-            "edges": [],
-            "analysis_mode": analysis_mode,
-            "note": "managed method間のcallはCIL recordから保持する",
+        entry_function_recovery = {
+            "schema_version": 1,
+            "status": "not_applicable",
+            "reason": "managed_cil_primary",
+            "attempted": False,
+            "initial_function_count": 0,
+            "final_function_count": 0,
+            "program_selector": program,
         }
+        entry_function_recovery_raw = dict(entry_function_recovery)
+    elif functions:
+        entry_function_recovery = {
+            "schema_version": 1,
+            "status": "not_needed",
+            "reason": "native_function_inventory_not_empty",
+            "attempted": False,
+            "initial_function_count": len(functions),
+            "final_function_count": len(functions),
+            "program_selector": program,
+        }
+        entry_function_recovery_raw = dict(entry_function_recovery)
+    elif analysis_mode != "native_ghidra_with_optional_cil":
+        entry_function_recovery = {
+            "schema_version": 1,
+            "status": "not_attempted",
+            "reason": "auto_analysis_not_completed",
+            "attempted": False,
+            "initial_function_count": 0,
+            "final_function_count": 0,
+            "program_selector": program,
+        }
+        entry_function_recovery_raw = dict(entry_function_recovery)
+    else:
+        (
+            functions,
+            entry_function_recovery,
+            entry_function_recovery_raw,
+        ) = _recover_unique_entry_point_function(
+            client,
+            program,
+            data,
+            entry_points,
+            segments,
+        )
+    if managed_cil_primary:
+        ghidra_call_graph, call_graph_coverage = _managed_call_graph_with_coverage(program, analysis_mode)
+        call_graph = dict(ghidra_call_graph)
         anti_analysis = {
             "status": "not_run_managed_cil_primary",
             "reason": "managed methodはCIL静的解析を正本とする",
@@ -3932,12 +5013,8 @@ def analyze_program(
         )
         selected_native = []
     else:
-        call_graph = client.get(
-            "/get_full_call_graph",
-            format="json_edges",
-            limit=0,
-            program=program,
-        ) or {"edges": []}
+        ghidra_call_graph, call_graph_coverage = _get_full_call_graph_with_coverage(client, program)
+        call_graph = dict(ghidra_call_graph)
         anti_analysis = client.get("/find_anti_analysis_techniques", program=program)
         api_chains = client.get("/analyze_api_call_chains", program=program)
         opcode_hashes = _all_opcode_hashes(client, program, functions)
@@ -3985,17 +5062,23 @@ def analyze_program(
         "analysis_mode": analysis_mode,
         "import_mode": import_mode,
         "functions": functions,
+        "ghidra_call_graph": ghidra_call_graph,
         "call_graph": call_graph,
         "imports": imports,
         "exports": exports,
         "strings": strings,
         "segments": segments,
         "entry_points": entry_points,
+        "entry_point_function_recovery": entry_function_recovery_raw,
         "anti_analysis": anti_analysis,
         "api_call_chains": api_chains,
         "opcode_hashes": opcode_hashes,
         "characteristic_function_ids": selected_ids,
         "characteristic_function_count": len(selected_ids),
+        "retrieval_coverage": {
+            "functions": function_coverage,
+            "call_graph": call_graph_coverage,
+        },
         "characteristic_selection": [
             {
                 "function_id": item.get("function_id"),
@@ -4030,14 +5113,20 @@ def analyze_program(
         "managed_method_count": len(cil_records),
         "characteristic_function_ids": selected_ids,
         "characteristic_function_count": len(selected_ids),
+        "ghidra_call_graph": ghidra_call_graph,
         "call_graph": call_graph,
         "entry_points": entry_points,
+        "entry_point_function_recovery": entry_function_recovery,
         "imports": imports,
         "exports": exports,
         "segments": segments,
         "anti_analysis": anti_analysis,
         "api_call_chains": api_chains,
         "opcode_hashes": opcode_hashes,
+        "retrieval_coverage": {
+            "functions": function_coverage,
+            "call_graph": call_graph_coverage,
+        },
         "safety": {
             "sample_executed": False,
             "network_contacted": False,
@@ -4065,12 +5154,14 @@ def refresh_complete_program_artifacts(
 
     totals: Counter[str] = Counter()
     endpoints = {
+        "functions": "/list_functions_enhanced",
         "imports": "/list_imports",
         "exports": "/list_exports",
         "strings": "/list_strings",
         "segments": "/list_segments",
     }
     initial_limits = {
+        "functions": FUNCTION_PAGE_SIZE,
         "imports": 10000,
         "exports": 10000,
         "strings": 100000,
@@ -4083,10 +5174,27 @@ def refresh_complete_program_artifacts(
         raw_index = _bounded_json_snapshot(raw_index_path).document
         opened_program: str | None = None
         open_error: GhidraMcpError | None = None
-        initial_cache_terminal = all(
-            len(_page_values(raw_index.get(name), endpoint)) < initial_limits[name]
+        paging_cache_terminal = all(
+            (
+                (
+                    _function_inventory_coverage_complete(result)
+                    or len(_page_values(raw_index.get(name), endpoint)) < initial_limits[name]
+                )
+                and (
+                    result.get("ghidra_function_inventory_count") is None
+                    or len(_page_values(raw_index.get(name), endpoint))
+                    == int(result.get("ghidra_function_inventory_count") or 0)
+                )
+            )
+            if name == "functions"
+            else len(_page_values(raw_index.get(name), endpoint)) < initial_limits[name]
             for name, endpoint in endpoints.items()
         )
+        call_graph_cache_terminal = bool(
+            _call_graph_retrieval_coverage_complete(result)
+            or result.get("analysis_mode") == "managed_cil_primary_with_ghidra_structure"
+        )
+        initial_cache_terminal = paging_cache_terminal and call_graph_cache_terminal
         if initial_cache_terminal:
             open_error = GhidraMcpError("初回MCP応答で全ページング対象の終端到達を確認済みです")
         else:
@@ -4100,7 +5208,10 @@ def refresh_complete_program_artifacts(
         retrieved: dict[str, list[Any]] = {}
         coverage: dict[str, dict[str, Any]] = {}
         for name, endpoint in endpoints.items():
-            if result.get("analysis_mode") == "managed_cil_primary_with_ghidra_structure" and name == "strings":
+            managed_alternative = result.get(
+                "analysis_mode"
+            ) == "managed_cil_primary_with_ghidra_structure" and name in {"functions", "strings"}
+            if managed_alternative:
                 items = []
                 endpoint_coverage = {
                     "endpoint": endpoint,
@@ -4112,35 +5223,120 @@ def refresh_complete_program_artifacts(
                     "complete": True,
                     "source": "managed_cil_primary",
                     "endpoint_invoked": False,
-                    "reason": (
-                        "managed文字列はCIL instruction recordと一次静的解析結果を正本とし、"
-                        "Ghidraの疑似native文字列全列挙は実行しない"
-                    ),
+                    "reason": ("managed CILを正本とするためGhidraの疑似native inventoryは取得しない"),
                 }
+                if name == "functions":
+                    endpoint_coverage["documented_limit"] = "native_function_inventory_not_applicable"
             elif open_error is not None:
                 items = _page_values(raw_index.get(name), endpoint)
                 page_size = initial_limits[name]
-                if len(items) >= page_size:
+                existing_coverage = raw_index.get("retrieval_coverage")
+                existing_endpoint_coverage = (
+                    existing_coverage.get("functions")
+                    if name == "functions" and isinstance(existing_coverage, Mapping)
+                    else None
+                )
+                if name == "functions" and isinstance(
+                    existing_endpoint_coverage,
+                    Mapping,
+                ):
+                    endpoint_coverage = dict(existing_endpoint_coverage)
+                    endpoint_coverage["source"] = "authenticated_complete_function_inventory_cache"
+                    endpoint_coverage["endpoint_invoked"] = True
+                elif len(items) >= page_size:
                     raise open_error
-                endpoint_coverage = {
-                    "endpoint": endpoint,
-                    "program_selector": program,
-                    "page_size": page_size,
-                    "page_count": 1,
-                    "item_count": len(items),
-                    "terminal_short_page_observed": True,
-                    "complete": True,
-                    "source": "authenticated_initial_response_cache",
-                    "endpoint_invoked": True,
-                    "reason": ("初回MCP応答の項目数が要求上限未満であり、同一応答内で終端到達を確認した"),
-                }
+                else:
+                    endpoint_coverage = {
+                        "endpoint": endpoint,
+                        "program_selector": program,
+                        "page_size": page_size,
+                        "page_count": 1,
+                        "item_count": len(items),
+                        "terminal_short_page_observed": True,
+                        "complete": True,
+                        "source": "authenticated_initial_response_cache",
+                        "endpoint_invoked": True,
+                        "reason": ("初回MCP応答の項目数が要求上限未満であり、同一応答内で終端到達を確認した"),
+                    }
+            elif name == "functions":
+                items, endpoint_coverage = _all_functions_with_coverage(
+                    client,
+                    program,
+                )
             else:
-                items, endpoint_coverage = _all_endpoint_items(client, endpoint, program)
+                items, endpoint_coverage = _all_endpoint_items(
+                    client,
+                    endpoint,
+                    program,
+                    page_size=initial_limits[name],
+                )
+            if name == "functions" and not managed_alternative:
+                metadata_count = _metadata_function_count(raw_index.get("metadata"))
+                endpoint_coverage["metadata_function_count"] = metadata_count
+                endpoint_coverage["count_matches_metadata"] = (
+                    None if metadata_count is None else metadata_count == len(items)
+                )
+                if metadata_count is None:
+                    endpoint_coverage["documented_limit"] = (
+                        "metadata_function_count_unavailable_terminal_page_proof_used"
+                    )
+                elif metadata_count != len(items):
+                    raise GhidraMcpError(
+                        f"metadata function_countと再取得inventoryが一致しません: {metadata_count} != {len(items)}"
+                    )
             retrieved[name] = items
             coverage[name] = endpoint_coverage
             totals[name] += len(items)
+        if result.get("analysis_mode") == "managed_cil_primary_with_ghidra_structure":
+            ghidra_call_graph, call_graph_coverage = _managed_call_graph_with_coverage(
+                program,
+                "managed_cil_primary_with_ghidra_structure",
+            )
+        elif opened_program is not None:
+            ghidra_call_graph, call_graph_coverage = _get_full_call_graph_with_coverage(client, program)
+        elif _call_graph_retrieval_coverage_complete(result):
+            ghidra_call_graph = dict(result["ghidra_call_graph"])
+            call_graph_coverage = dict(result["retrieval_coverage"]["call_graph"])
+        else:
+            call_graph_coverage = _legacy_call_graph_partial_coverage(result)
+            coverage["call_graph"] = call_graph_coverage
+            for name, items in retrieved.items():
+                raw_index[name] = items
+            raw_index["retrieval_coverage"] = coverage
+            raw_index["all_static_analysis_content_retained"] = False
+            result["retrieval_coverage"] = coverage
+            result["all_static_analysis_content_retained"] = False
+            result["status"] = "partial"
+            result["call_graph_retrieval"] = {
+                "status": "partial",
+                "documented_limit": CALL_GRAPH_LEGACY_LIMIT,
+                "retryable": True,
+            }
+            _atomic_private_json(raw_index_path, raw_index)
+            _persist_program_result(
+                object_dir / "program-result.json",
+                result,
+            )
+            if open_error is not None:
+                raise open_error
+            raise GhidraMcpError("call graph再取得証跡を確立できません")
+        coverage["call_graph"] = call_graph_coverage
+        totals["call_graph_edges"] += len(ghidra_call_graph["edges"])
         if open_error is not None:
             totals["promoted_cached_programs"] += 1
+        refreshed_functions = retrieved["functions"]
+        original_functions = _page_values(
+            raw_index.get("functions"),
+            "/list_functions_enhanced",
+        )
+        if refreshed_functions != original_functions:
+            raise GhidraMcpError("function_inventory_changed_full_program_reanalysis_required")
+        prior_function_count = result.get("ghidra_function_inventory_count")
+        if prior_function_count is not None and (
+            type(prior_function_count) is not int or prior_function_count != len(refreshed_functions)
+        ):
+            raise GhidraMcpError("program_result_function_count_changed_full_program_reanalysis_required")
+        result["ghidra_function_inventory_count"] = len(refreshed_functions)
         opcode_hashes = _complete_opcode_hash_inventory(
             raw_index.get("opcode_hashes") if isinstance(raw_index, Mapping) else {},
             [item for item in raw_index.get("functions", []) if isinstance(item, Mapping)],
@@ -4150,13 +5346,21 @@ def refresh_complete_program_artifacts(
         result["opcode_hashes"] = opcode_hashes
         for name, items in retrieved.items():
             raw_index[name] = items
+        raw_index["ghidra_call_graph"] = ghidra_call_graph
+        raw_index["call_graph"] = dict(ghidra_call_graph)
+        raw_index.pop("call_graph_augmented_from_decompilation", None)
         raw_index["retrieval_coverage"] = coverage
         raw_index["all_static_analysis_content_retained"] = True
         result["imports"] = retrieved["imports"]
         result["exports"] = retrieved["exports"]
         result["segments"] = retrieved["segments"]
+        result["ghidra_call_graph"] = ghidra_call_graph
+        result["call_graph"] = dict(ghidra_call_graph)
+        result.pop("call_graph_augmented_from_decompilation", None)
         result["retrieval_coverage"] = coverage
         result["all_static_analysis_content_retained"] = True
+        result["status"] = "complete"
+        result.pop("call_graph_retrieval", None)
         _atomic_private_json(raw_index_path, raw_index)
         _persist_program_result(object_dir / "program-result.json", result)
         if opened_program is not None:
@@ -4211,6 +5415,15 @@ IGNORED_CALL_EXPRESSIONS = {
 def augment_program_result_call_graph(result: dict[str, Any]) -> dict[str, int]:
     """逆コンパイルcall式でGhidra call graphの欠落を補完する。"""
 
+    retrieval_state = _call_graph_retrieval_state(result)
+    if retrieval_state not in {"complete", "managed_not_applicable"}:
+        raise GhidraMcpError("有効なcall graph取得証跡がないため補完を開始できません")
+    ghidra_graph = result.get("ghidra_call_graph")
+    current_graph = result.get("call_graph")
+    if not _call_graph_schema_valid(current_graph):
+        raise GhidraMcpError("補完元call_graphのschemaが不正です")
+    if result.get("call_graph_augmented_from_decompilation") is not True and current_graph != ghidra_graph:
+        raise GhidraMcpError("補完前call_graphが取得済みGhidra graphと一致しません")
     records = [
         item
         for item in result.get("functions", [])
@@ -4226,11 +5439,6 @@ def augment_program_result_call_graph(result: dict[str, Any]) -> dict[str, int]:
         for item in result.get("imports", [])
         if isinstance(item, Mapping) and item.get("name")
     }
-    ghidra_graph = result.get("ghidra_call_graph")
-    if not isinstance(ghidra_graph, Mapping):
-        current = result.get("call_graph")
-        ghidra_graph = dict(current) if isinstance(current, Mapping) else {"edges": []}
-        result["ghidra_call_graph"] = ghidra_graph
     edges: dict[tuple[str, str, str], dict[str, Any]] = {}
     for value in ghidra_graph.get("edges", []):
         if not isinstance(value, Mapping):
@@ -4330,6 +5538,40 @@ def augment_program_result_call_graph(result: dict[str, Any]) -> dict[str, int]:
     }
 
 
+def _private_call_graph_contract_errors(
+    result: Mapping[str, Any],
+    raw_index: Mapping[str, Any],
+) -> list[str]:
+    """private raw indexとprogram-resultのcall graph取得契約を相互検証する。"""
+
+    errors: list[str] = []
+    if result.get("ghidra_call_graph") != raw_index.get("ghidra_call_graph"):
+        errors.append("raw indexとprogram-resultのGhidra call graphが一致しません")
+    if result.get("call_graph") != raw_index.get("call_graph"):
+        errors.append("raw indexとprogram-resultの補完済みcall graphが一致しません")
+    result_coverage = result.get("retrieval_coverage")
+    raw_coverage = raw_index.get("retrieval_coverage")
+    result_call_graph_coverage = result_coverage.get("call_graph") if isinstance(result_coverage, Mapping) else None
+    raw_call_graph_coverage = raw_coverage.get("call_graph") if isinstance(raw_coverage, Mapping) else None
+    if result_call_graph_coverage != raw_call_graph_coverage:
+        errors.append("raw indexとprogram-resultのcall graph取得証跡が一致しません")
+    if _call_graph_retrieval_state(result) not in {
+        "complete",
+        "managed_not_applicable",
+    }:
+        errors.append("program-resultに有効なcall graph取得・非適用証跡がありません")
+    if _call_graph_retrieval_state(raw_index) not in {
+        "complete",
+        "managed_not_applicable",
+    }:
+        errors.append("raw indexに有効なcall graph取得・非適用証跡がありません")
+    if not _call_graph_schema_valid(result.get("call_graph")):
+        errors.append("program-resultの補完済みcall graph schemaが不正です")
+    if not _call_graph_schema_valid(raw_index.get("call_graph")):
+        errors.append("raw indexの補完済みcall graph schemaが不正です")
+    return errors
+
+
 def augment_private_call_graphs(
     program_results: Mapping[str, dict[str, Any]],
     private_output: Path,
@@ -4338,15 +5580,19 @@ def augment_private_call_graphs(
 
     totals: Counter[str] = Counter()
     for digest, result in sorted(program_results.items()):
+        object_dir = private_output / "objects" / digest
+        raw_index_path = object_dir / "ghidra-raw-index.json"
+        raw_index = _bounded_json_snapshot(raw_index_path).document
+        contract_errors = _private_call_graph_contract_errors(
+            result,
+            raw_index,
+        )
+        if contract_errors:
+            raise GhidraMcpError("; ".join(contract_errors))
         counts = augment_program_result_call_graph(result)
         selected_ids = ensure_characteristic_selection(result)
         totals.update(counts)
         totals["characteristic_functions"] += len(selected_ids)
-        object_dir = private_output / "objects" / digest
-        raw_index_path = object_dir / "ghidra-raw-index.json"
-        raw_index = _bounded_json_snapshot(raw_index_path).document
-        if "ghidra_call_graph" not in raw_index:
-            raw_index["ghidra_call_graph"] = raw_index.get("call_graph", {"edges": []})
         raw_index["call_graph"] = result["call_graph"]
         raw_index["call_graph_augmented_from_decompilation"] = True
         raw_index["characteristic_function_ids"] = selected_ids
@@ -4380,6 +5626,7 @@ def validate_private_artifacts(
         "metadata",
         "analysis_status",
         "functions",
+        "ghidra_call_graph",
         "call_graph",
         "imports",
         "exports",
@@ -4427,6 +5674,8 @@ def validate_private_artifacts(
             raw_index = {}
             errors.append("ghidra-raw-index.jsonがJSON objectではありません")
 
+        errors.extend(_private_call_graph_contract_errors(result, raw_index))
+
         retrieval_coverage = raw_index.get("retrieval_coverage", {})
         if result.get("retrieval_coverage") != retrieval_coverage:
             errors.append("raw indexとprogram-resultのページング取得証跡が一致しません")
@@ -4435,7 +5684,7 @@ def validate_private_artifacts(
         if not isinstance(retrieval_coverage, Mapping):
             errors.append("ページング取得証跡がJSON objectではありません")
             retrieval_coverage = {}
-        for name in ("imports", "exports", "strings", "segments"):
+        for name in ("functions", "imports", "exports", "strings", "segments"):
             evidence = retrieval_coverage.get(name)
             values = raw_index.get(name)
             if not isinstance(evidence, Mapping):
@@ -4446,7 +5695,7 @@ def validate_private_artifacts(
             endpoint_skipped = evidence.get("endpoint_invoked") is False
             managed_cil_alternative = (
                 endpoint_skipped
-                and name == "strings"
+                and name in {"functions", "strings"}
                 and result.get("analysis_mode") == "managed_cil_primary_with_ghidra_structure"
                 and evidence.get("source") == "managed_cil_primary"
             )
@@ -4461,10 +5710,21 @@ def validate_private_artifacts(
             elif int(evidence.get("item_count") or 0) != len(values):
                 errors.append(f"{name}: 取得件数と保存件数が一致しません")
             totals[f"{name}_items"] += len(values) if isinstance(values, list) else 0
-            if name != "strings" and result.get(name) != values:
+            if name not in {"functions", "strings"} and result.get(name) != values:
                 errors.append(f"{name}: raw indexとprogram-resultの保存内容が一致しません")
 
         raw_functions = [item for item in raw_index.get("functions", []) if isinstance(item, Mapping)]
+        if not _function_inventory_coverage_complete(result):
+            errors.append("全Ghidra関数inventoryの終端取得・metadata件数拘束がありません")
+        if int(result.get("ghidra_function_inventory_count") or 0) != len(raw_functions):
+            errors.append("program-resultとraw indexのGhidra関数inventory件数が一致しません")
+        try:
+            metadata_function_count = _metadata_function_count(raw_index.get("metadata"))
+        except GhidraMcpError as error:
+            metadata_function_count = None
+            errors.append(str(error))
+        if metadata_function_count is not None and metadata_function_count != len(raw_functions):
+            errors.append("metadata function_countと保存済みGhidra関数inventoryが一致しません")
         native_records = [
             item
             for item in result.get("functions", [])
@@ -4729,12 +5989,72 @@ def _ghidra_documents_known_static_limits(
 def _ghidra_documents_known_generic_container_limits(case_dir: Path) -> list[str]:
     """完全な静的coverageで補完済みの限定的なcontainer委譲だけを返す。"""
 
+    def _is_plain_int(value: Any, *, minimum: int = 0) -> bool:
+        return isinstance(value, int) and not isinstance(value, bool) and value >= minimum
+
+    def _strict_json_equal(left: Any, right: Any) -> bool:
+        """JSON値をbool/int等の型を同一視せず再帰比較する。"""
+
+        if isinstance(left, Mapping) or isinstance(right, Mapping):
+            if not isinstance(left, Mapping) or not isinstance(right, Mapping):
+                return False
+            return set(left) == set(right) and all(_strict_json_equal(left[key], right[key]) for key in left)
+        if isinstance(left, list) or isinstance(right, list):
+            if not isinstance(left, list) or not isinstance(right, list):
+                return False
+            return len(left) == len(right) and all(
+                _strict_json_equal(left_item, right_item) for left_item, right_item in zip(left, right, strict=True)
+            )
+        return type(left) is type(right) and left == right
+
+    def _nested_safety_flags_are_false(value: Any) -> bool:
+        safety_names = {
+            "arbitrary_ghidra_scripts_enabled",
+            "executed",
+            "executed_sample",
+            "raw_pseudocode_exported",
+            "recovered_content_exported",
+            "sample_executed",
+            "network_contacted",
+        }
+        if isinstance(value, Mapping):
+            for key, item in value.items():
+                if key in safety_names and item is not False:
+                    return False
+                if isinstance(item, (Mapping, list)) and not _nested_safety_flags_are_false(item):
+                    return False
+        elif isinstance(value, list):
+            return all(_nested_safety_flags_are_false(item) for item in value)
+        return True
+
     generic_path = case_dir / "generic-triage.json"
     layers_path = case_dir / "static-layers.json"
     static_path = case_dir / "static-logic.json"
     if not generic_path.exists() or not layers_path.exists() or not static_path.exists():
         return []
     static_logic = load_json_object_strict(static_path)
+    generic = load_json_object_strict(generic_path)
+    static_layers = load_json_object_strict(layers_path)
+
+    logic_safety = static_logic.get("safety")
+    if (
+        not isinstance(logic_safety, Mapping)
+        or logic_safety.get("sample_executed") is not False
+        or logic_safety.get("network_contacted") is not False
+        or logic_safety.get("raw_pseudocode_exported") is not False
+        or logic_safety.get("raw_pseudocode_retained_outside_repository") is not True
+        or logic_safety.get("arbitrary_ghidra_scripts_enabled") is not False
+        or generic.get("executed_sample") is not False
+        or generic.get("network_contacted") is not False
+        or static_layers.get("executed_sample") is not False
+        or static_layers.get("network_contacted") is not False
+        or static_layers.get("recovered_content_exported") is not False
+        or not _nested_safety_flags_are_false(static_logic)
+        or not _nested_safety_flags_are_false(generic)
+        or not _nested_safety_flags_are_false(static_layers)
+    ):
+        return []
+
     coverage = static_logic.get("coverage")
     if not isinstance(coverage, Mapping):
         return []
@@ -4745,43 +6065,497 @@ def _ghidra_documents_known_generic_container_limits(case_dir: Path) -> list[str
         "all_static_analysis_content_retained",
         "function_bodies_reviewed",
     )
-    if not all(coverage.get(key) is True for key in required):
+    if (
+        not all(coverage.get(key) is True for key in required)
+        or coverage.get("raw_private_artifacts_retained") is not True
+    ):
         return []
     program_count = coverage.get("ghidra_program_count")
-    if not isinstance(program_count, int) or program_count < 1:
+    if not _is_plain_int(program_count, minimum=1):
         return []
-    if coverage.get("ghidra_programs_with_valid_mcp_responses") != program_count:
-        return []
-
-    generic = load_json_object_strict(generic_path)
-    generic_coverage = generic.get("analysis_coverage")
-    if not isinstance(generic_coverage, Mapping):
-        return []
-    if int(generic_coverage.get("failed_layers") or 0) != 0:
-        return []
-    entries = generic.get("recovered_layer_triage")
-    if not isinstance(entries, list):
-        return []
-    partial_entries = [item for item in entries if isinstance(item, Mapping) and item.get("status") == "partial"]
-    if len(partial_entries) != int(generic_coverage.get("partial_layers") or 0) or not partial_entries:
+    valid_program_count = coverage.get("ghidra_programs_with_valid_mcp_responses")
+    if not _is_plain_int(valid_program_count, minimum=1) or valid_program_count != program_count:
         return []
 
-    static_layers = load_json_object_strict(layers_path)
+    limit_events = static_layers.get("limit_events")
+    counts = static_layers.get("counts")
+    limits = static_layers.get("limits")
+    layers = static_layers.get("layers")
     steps = static_layers.get("steps")
-    if not isinstance(steps, list):
+    if (
+        not _is_plain_int(static_layers.get("schema_version"), minimum=1)
+        or static_layers.get("schema_version") != 1
+        or not isinstance(limit_events, list)
+        or limit_events
+        or not isinstance(counts, Mapping)
+        or not isinstance(limits, Mapping)
+        or not isinstance(layers, list)
+        or not layers
+        or not isinstance(steps, list)
+    ):
         return []
+    integer_limit_names = (
+        "max_archive_members",
+        "max_depth",
+        "max_layers",
+        "max_recovered_layer_size",
+        "max_recovered_total_size",
+    )
+    if any(not _is_plain_int(limits.get(name), minimum=1) for name in integer_limit_names):
+        return []
+    ratio_limit = limits.get("max_archive_compression_ratio")
+    if (
+        not isinstance(ratio_limit, (int, float))
+        or isinstance(ratio_limit, bool)
+        or not math.isfinite(float(ratio_limit))
+        or float(ratio_limit) <= 0
+    ):
+        return []
+    count_names = (
+        "layers",
+        "recovered_layers",
+        "recovered_bytes",
+        "limit_events",
+        "deduplicated_artifacts",
+    )
+    if any(not _is_plain_int(counts.get(name)) for name in count_names):
+        return []
+
+    layers_by_sha: dict[str, Mapping[str, Any]] = {}
+    roots: list[str] = []
+    for layer in layers:
+        if not isinstance(layer, Mapping):
+            return []
+        layer_sha = layer.get("sha256")
+        parent_sha = layer.get("parent_sha256")
+        depth = layer.get("depth")
+        size = layer.get("size")
+        layer_format = layer.get("format")
+        if (
+            not isinstance(layer_sha, str)
+            or SHA256_RE.fullmatch(layer_sha) is None
+            or layer_sha in layers_by_sha
+            or not _is_plain_int(depth)
+            or not _is_plain_int(size)
+            or not isinstance(layer_format, str)
+            or not layer_format
+            or layer_format != layer_format.casefold()
+            or not isinstance(layer.get("name"), str)
+            or not layer.get("name")
+            or not isinstance(layer.get("transform"), str)
+            or not layer.get("transform")
+        ):
+            return []
+        if parent_sha is None:
+            if depth != 0:
+                return []
+            roots.append(layer_sha)
+        elif (
+            not isinstance(parent_sha, str)
+            or SHA256_RE.fullmatch(parent_sha) is None
+            or parent_sha == layer_sha
+            or depth == 0
+        ):
+            return []
+        layers_by_sha[layer_sha] = layer
+    if len(roots) != 1:
+        return []
+    root_sha = roots[0]
+    root_layer = layers_by_sha[root_sha]
+    recovered_bytes = sum(int(layer["size"]) for sha, layer in layers_by_sha.items() if sha != root_sha)
+    if (
+        counts.get("layers") != len(layers)
+        or counts.get("recovered_layers") != len(layers) - 1
+        or counts.get("recovered_bytes") != recovered_bytes
+        or counts.get("limit_events") != 0
+        or len(layers) > int(limits["max_layers"])
+        or recovered_bytes > int(limits["max_recovered_total_size"])
+    ):
+        return []
+
+    children_by_parent: dict[str, list[str]] = {sha: [] for sha in layers_by_sha}
+    for layer_sha, layer in layers_by_sha.items():
+        if layer_sha == root_sha:
+            continue
+        parent_sha = str(layer["parent_sha256"])
+        parent = layers_by_sha.get(parent_sha)
+        if (
+            parent is None
+            or int(layer["depth"]) != int(parent["depth"]) + 1
+            or int(layer["depth"]) > int(limits["max_depth"])
+            or int(layer["size"]) > int(limits["max_recovered_layer_size"])
+        ):
+            return []
+        children_by_parent[parent_sha].append(layer_sha)
     steps_by_sha: dict[str, Mapping[str, Any]] = {}
+    recovered_sources_by_sha: dict[str, list[str]] = defaultdict(list)
     for step in steps:
         if not isinstance(step, Mapping):
-            continue
+            return []
         input_layer = step.get("input_layer")
-        if isinstance(input_layer, Mapping) and input_layer.get("sha256"):
-            steps_by_sha[str(input_layer["sha256"])] = step
-    layer_hashes = {
-        str(item.get("sha256"))
-        for item in static_layers.get("layers", [])
-        if isinstance(item, Mapping) and item.get("sha256")
+        input_sha = input_layer.get("sha256") if isinstance(input_layer, Mapping) else None
+        report = step.get("report")
+        accepted_children = step.get("accepted_children")
+        report_recovered = report.get("recovered") if isinstance(report, Mapping) else None
+        if (
+            not isinstance(input_sha, str)
+            or input_sha not in layers_by_sha
+            or input_sha in steps_by_sha
+            or not _strict_json_equal(input_layer, layers_by_sha[input_sha])
+            or step.get("status") != "succeeded"
+            or not isinstance(report, Mapping)
+            or not _is_plain_int(report.get("schema_version"), minimum=1)
+            or report.get("schema_version") != 2
+            or report.get("sha256") != input_sha
+            or not _strict_json_equal(report.get("size"), input_layer.get("size"))
+            or report.get("format") != input_layer.get("format")
+            or report.get("name") != input_layer.get("name")
+            or report.get("executed") is not False
+            or report.get("network_contacted") is not False
+            or not _nested_safety_flags_are_false(report)
+            or not isinstance(accepted_children, list)
+            or not isinstance(report_recovered, list)
+        ):
+            return []
+        step_recovered_hashes: set[str] = set()
+        for recovered_item in report_recovered:
+            if not isinstance(recovered_item, Mapping):
+                return []
+            recovered_sha = recovered_item.get("sha256")
+            recovered_size = recovered_item.get("size")
+            if (
+                not isinstance(recovered_item.get("kind"), str)
+                or not recovered_item.get("kind")
+                or not isinstance(recovered_sha, str)
+                or SHA256_RE.fullmatch(recovered_sha) is None
+                or recovered_sha not in layers_by_sha
+                or recovered_sha in step_recovered_hashes
+                or not _is_plain_int(recovered_size, minimum=1)
+                or recovered_size != layers_by_sha[recovered_sha].get("size")
+            ):
+                return []
+            step_recovered_hashes.add(recovered_sha)
+            recovered_sources_by_sha[recovered_sha].append(input_sha)
+        accepted_hashes: list[str] = []
+        for child in accepted_children:
+            child_sha = child.get("sha256") if isinstance(child, Mapping) else None
+            if (
+                not isinstance(child_sha, str)
+                or child_sha not in layers_by_sha
+                or not _strict_json_equal(child, layers_by_sha[child_sha])
+                or layers_by_sha[child_sha].get("parent_sha256") != input_sha
+                or child_sha in accepted_hashes
+            ):
+                return []
+            accepted_hashes.append(child_sha)
+        if sorted(accepted_hashes) != sorted(children_by_parent[input_sha]):
+            return []
+        steps_by_sha[input_sha] = step
+    if set(steps_by_sha) != set(layers_by_sha):
+        return []
+    expected_deduplicated_artifacts = 0
+    for recovered_sha, source_hashes in recovered_sources_by_sha.items():
+        if recovered_sha == root_sha:
+            expected_deduplicated_artifacts += len(source_hashes)
+            continue
+        canonical_parent = layers_by_sha[recovered_sha].get("parent_sha256")
+        if canonical_parent not in source_hashes:
+            return []
+        expected_deduplicated_artifacts += len(source_hashes) - 1
+    if (
+        set(layers_by_sha) - {root_sha} - set(recovered_sources_by_sha)
+        or counts.get("deduplicated_artifacts") != expected_deduplicated_artifacts
+    ):
+        return []
+
+    if SHA256_RE.fullmatch(case_dir.name.casefold()) is None or root_sha != case_dir.name.casefold():
+        return []
+    parent_hashes = {
+        str(layer["parent_sha256"]) for layer in layers_by_sha.values() if layer.get("parent_sha256") is not None
     }
+    leaf_pe_hashes = {
+        sha for sha, layer in layers_by_sha.items() if layer.get("format") == "pe" and sha not in parent_hashes
+    }
+    program_evidence = static_logic.get("program_evidence")
+    if not isinstance(program_evidence, list) or len(program_evidence) != program_count:
+        return []
+    valid_program_hashes: set[str] = set()
+    valid_leaf_program_hashes: set[str] = set()
+    root_bindings = 0
+    for evidence in program_evidence:
+        if not isinstance(evidence, Mapping):
+            return []
+        program_id = evidence.get("program_id")
+        selector = evidence.get("program_selector")
+        binding_evidence = evidence.get("evidence")
+        retrieval = evidence.get("retrieval_coverage")
+        if (
+            not isinstance(program_id, str)
+            or not program_id.startswith("sha256:")
+            or SHA256_RE.fullmatch(program_id.removeprefix("sha256:")) is None
+            or not isinstance(selector, str)
+            or not selector
+            or evidence.get("mcp_responses_valid") is not True
+            or binding_evidence != {"confidence": "confirmed_program_structure", "source": "ghidra-mcp"}
+            or not isinstance(retrieval, Mapping)
+        ):
+            return []
+        program_sha = program_id.removeprefix("sha256:")
+        if (
+            program_sha in valid_program_hashes
+            or program_sha not in layers_by_sha
+            or evidence.get("name") != program_sha
+            or layers_by_sha[program_sha].get("format") != "pe"
+        ):
+            return []
+        for retrieval_name in ("exports", "imports", "segments", "strings"):
+            retrieval_item = retrieval.get(retrieval_name)
+            if (
+                not isinstance(retrieval_item, Mapping)
+                or retrieval_item.get("complete") is not True
+                or retrieval_item.get("program_selector") != selector
+            ):
+                return []
+        public_call_graph_state = _call_graph_coverage_state(
+            {
+                "program_selector": selector,
+                "analysis_mode": evidence.get("analysis_mode"),
+                "retrieval_coverage": retrieval,
+            }
+        )
+        if public_call_graph_state not in {
+            "complete",
+            "managed_not_applicable",
+        }:
+            return []
+        if program_sha == root_sha:
+            if evidence.get("relationship") != "root_program":
+                return []
+            root_bindings += 1
+        elif evidence.get("relationship") != "statically_recovered_program":
+            return []
+        if program_sha in leaf_pe_hashes:
+            valid_leaf_program_hashes.add(program_sha)
+        valid_program_hashes.add(program_sha)
+    if root_bindings != 1 or len(valid_program_hashes) != program_count:
+        return []
+
+    generic_coverage = generic.get("analysis_coverage")
+    entries = generic.get("recovered_layer_triage")
+    if (
+        not isinstance(generic_coverage, Mapping)
+        or generic_coverage.get("status") != "partial"
+        or not isinstance(entries, list)
+        or len(entries) != counts.get("recovered_layers")
+        or generic.get("sha256") != root_sha
+        or not _strict_json_equal(generic.get("size"), root_layer.get("size"))
+        or generic.get("type") != root_layer.get("format")
+    ):
+        return []
+    generic_count_names = (
+        "layer_count",
+        "complete_layers",
+        "partial_layers",
+        "failed_layers",
+    )
+    if any(not _is_plain_int(generic_coverage.get(name)) for name in generic_count_names):
+        return []
+    if generic_coverage.get("layer_count") != counts.get("layers") or generic_coverage.get("failed_layers") != 0:
+        return []
+
+    entries_by_sha: dict[str, Mapping[str, Any]] = {}
+    partial_entries: list[Mapping[str, Any]] = []
+    complete_count = 0
+    for entry in entries:
+        if not isinstance(entry, Mapping):
+            return []
+        layer = entry.get("layer")
+        result = entry.get("result")
+        layer_sha = layer.get("sha256") if isinstance(layer, Mapping) else None
+        if (
+            not isinstance(layer_sha, str)
+            or layer_sha == root_sha
+            or layer_sha not in layers_by_sha
+            or layer_sha in entries_by_sha
+            or not _strict_json_equal(layer, layers_by_sha[layer_sha])
+            or not isinstance(result, Mapping)
+            or result.get("sha256") != layer_sha
+            or not _strict_json_equal(result.get("size"), layer.get("size"))
+            or result.get("type") != layer.get("format")
+        ):
+            return []
+        analysis_coverage = result.get("analysis_coverage")
+        if not isinstance(analysis_coverage, Mapping):
+            return []
+        if entry.get("status") == "complete":
+            if (
+                entry.get("issues") != []
+                or analysis_coverage.get("status") != "complete"
+                or analysis_coverage.get("issues") != []
+            ):
+                return []
+            complete_count += 1
+        elif entry.get("status") == "partial":
+            if entry.get("issues") != ["root:coverage:partial"] or analysis_coverage.get("status") != "partial":
+                return []
+            partial_entries.append(entry)
+        else:
+            return []
+        entries_by_sha[layer_sha] = entry
+    if (
+        set(entries_by_sha) != set(layers_by_sha) - {root_sha}
+        or not partial_entries
+        or generic_coverage.get("complete_layers") != complete_count + 1
+        or generic_coverage.get("partial_layers") != len(partial_entries)
+        or int(generic_coverage["complete_layers"]) + int(generic_coverage["partial_layers"])
+        != int(generic_coverage["layer_count"])
+    ):
+        return []
+
+    def _complete_cab_fallback(cab_sha: str) -> bool:
+        cab_step = steps_by_sha.get(cab_sha)
+        cab_layer = layers_by_sha.get(cab_sha)
+        if (
+            not isinstance(cab_step, Mapping)
+            or not isinstance(cab_layer, Mapping)
+            or cab_layer.get("format") != "cab"
+            or not _is_plain_int(cab_layer.get("size"), minimum=1)
+        ):
+            return False
+        cab_report = cab_step.get("report")
+        if not isinstance(cab_report, Mapping):
+            return False
+        cab = cab_report.get("cab")
+        sevenzip = cab_report.get("sevenzip")
+        if (
+            not isinstance(cab, Mapping)
+            or cab.get("status") != "parse_failed"
+            or cab.get("error") != "NotSupportedError: LZX compression not supported"
+            or not isinstance(sevenzip, Mapping)
+            or sevenzip.get("status") != "extracted"
+            or not _is_plain_int(sevenzip.get("exit_code"))
+            or sevenzip.get("exit_code") != 0
+            or not _is_plain_int(sevenzip.get("extract_exit_code"))
+            or sevenzip.get("extract_exit_code") != 0
+        ):
+            return False
+        archive_types = sevenzip.get("archive_types")
+        total_members = sevenzip.get("total_members")
+        cab_inventory = sevenzip.get("inventory")
+        member_names = sevenzip.get("members")
+        retained_members = sevenzip.get("retained_members")
+        selective = sevenzip.get("selective_extraction")
+        if (
+            archive_types != ["Cab"]
+            or not _is_plain_int(total_members, minimum=1)
+            or total_members > limits["max_archive_members"]
+            or not isinstance(cab_inventory, list)
+            or len(cab_inventory) != total_members
+            or not isinstance(member_names, list)
+            or len(member_names) != total_members
+            or not all(isinstance(name, str) and name for name in member_names)
+            or not _is_plain_int(retained_members)
+            or retained_members > total_members
+            or not isinstance(selective, Mapping)
+            or selective.get("enabled") is not False
+            or not _is_plain_int(selective.get("full_inventory_count"), minimum=1)
+            or selective.get("full_inventory_count") != total_members
+            or selective.get("reason") != "not_required"
+            or selective.get("selected_members") != []
+            or not _is_plain_int(selective.get("selected_total_size"))
+            or selective.get("selected_total_size") != 0
+        ):
+            return False
+
+        cab_inventory_pairs: set[tuple[str, str]] = set()
+        cab_inventory_identity_by_sha: dict[str, tuple[str, int]] = {}
+        cab_inventory_names: list[str] = []
+        priority_inventory_pairs: set[tuple[str, str]] = set()
+        extracted_total_size = 0
+        priority_member_count = 0
+        for item in cab_inventory:
+            if not isinstance(item, Mapping):
+                return False
+            item_sha = item.get("sha256")
+            item_format = item.get("format")
+            item_name = item.get("name")
+            item_size = item.get("size")
+            recovery_priority = item.get("recovery_priority")
+            if (
+                item.get("status") != "extracted"
+                or not isinstance(item_sha, str)
+                or SHA256_RE.fullmatch(item_sha) is None
+                or not isinstance(item_format, str)
+                or item_format not in {"data", "pe"}
+                or not isinstance(item_name, str)
+                or not item_name
+                or not _is_plain_int(item_size, minimum=1)
+                or (recovery_priority is not None and not _is_plain_int(recovery_priority, minimum=1))
+                or (item_format == "pe") != (recovery_priority is not None)
+            ):
+                return False
+            identity = (item_format, int(item_size))
+            previous_identity = cab_inventory_identity_by_sha.get(item_sha)
+            if previous_identity is not None and previous_identity != identity:
+                return False
+            cab_inventory_identity_by_sha[item_sha] = identity
+            if recovery_priority is not None:
+                priority_member_count += 1
+                priority_inventory_pairs.add((item_sha, item_format))
+            linked_layer = layers_by_sha.get(item_sha)
+            if linked_layer is not None and (
+                linked_layer.get("format") != item_format or linked_layer.get("size") != item_size
+            ):
+                return False
+            if item_format == "pe":
+                if not isinstance(linked_layer, Mapping) or item_sha not in steps_by_sha:
+                    return False
+            cab_inventory_pairs.add((item_sha, item_format))
+            cab_inventory_names.append(item_name)
+            extracted_total_size += int(item_size)
+        recovered = cab_report.get("recovered")
+        if not isinstance(recovered, list) or not recovered:
+            return False
+        recovered_pairs: set[tuple[str, str]] = set()
+        for item in recovered:
+            if not isinstance(item, Mapping):
+                return False
+            item_sha = item.get("sha256")
+            item_size = item.get("size")
+            if (
+                item.get("kind") != "7z-pe"
+                or not isinstance(item_sha, str)
+                or SHA256_RE.fullmatch(item_sha) is None
+                or not _is_plain_int(item_size, minimum=1)
+                or item_sha not in layers_by_sha
+                or layers_by_sha[item_sha].get("format") != "pe"
+                or layers_by_sha[item_sha].get("size") != item_size
+                or item_sha not in steps_by_sha
+                or (item_sha, "pe") in recovered_pairs
+            ):
+                return False
+            recovered_pairs.add((item_sha, "pe"))
+        accepted_cab_pairs = {
+            (str(child.get("sha256")), str(child.get("format")))
+            for child in cab_step.get("accepted_children", [])
+            if isinstance(child, Mapping)
+        }
+        inventory_pe_hashes = {item_sha for item_sha, item_format in cab_inventory_pairs if item_format == "pe"}
+        declared_total = sevenzip.get("declared_total_size")
+        extracted_total = sevenzip.get("extracted_total_size")
+        return bool(
+            Counter(cab_inventory_names) == Counter(member_names)
+            and _is_plain_int(declared_total, minimum=1)
+            and declared_total == extracted_total_size
+            and _is_plain_int(extracted_total, minimum=1)
+            and extracted_total == extracted_total_size
+            and retained_members == priority_member_count
+            and recovered_pairs == priority_inventory_pairs
+            and not (accepted_cab_pairs - recovered_pairs)
+            and bool(inventory_pe_hashes & valid_leaf_program_hashes)
+            and extracted_total_size <= int(cab_layer["size"]) * float(ratio_limit)
+        )
+
     documented: list[str] = []
     for entry in partial_entries:
         if entry.get("issues") != ["root:coverage:partial"]:
@@ -4809,7 +6583,11 @@ def _ghidra_documents_known_generic_container_limits(case_dir: Path) -> list[str
                 or analysis_coverage.get("issues") != ["root:rar_inventory_only"]
                 or not isinstance(sevenzip, Mapping)
                 or sevenzip.get("status") != "partially_extracted"
-                or int(sevenzip.get("archive_unlock_attempt_count") or 0) < 2
+                or not _is_plain_int(
+                    sevenzip.get("archive_unlock_attempt_count"),
+                    minimum=2,
+                )
+                or not _is_plain_int(sevenzip.get("retained_members"))
                 or sevenzip.get("retained_members") != 0
                 or not isinstance(inventory, list)
                 or not inventory
@@ -4822,22 +6600,107 @@ def _ghidra_documents_known_generic_container_limits(case_dir: Path) -> list[str
             ole = report.get("ole")
             inventory = ole.get("inventory") if isinstance(ole, Mapping) else None
             children = step.get("accepted_children")
+            recovered = report.get("recovered")
             if (
-                analysis_coverage.get("issues") != ["root:ole_format_analysis_not_implemented"]
+                result.get("format_specific_analysis") != "not_implemented"
+                or analysis_coverage.get("issues") != ["root:ole_format_analysis_not_implemented"]
                 or not isinstance(ole, Mapping)
                 or ole.get("status") != "artifacts_recovered"
+                or ole.get("executed") is not False
+                or ole.get("network_contacted") is not False
                 or not isinstance(inventory, list)
                 or not inventory
-                or not all(isinstance(item, Mapping) and item.get("status") == "inspected" for item in inventory)
+                or not _is_plain_int(ole.get("stream_count"), minimum=1)
+                or ole.get("stream_count") != len(inventory)
                 or not isinstance(children, list)
-                or not children
-                or not all(
-                    isinstance(child, Mapping)
-                    and child.get("sha256") in layer_hashes
-                    and child.get("format") in {"cab", "pe"}
-                    for child in children
-                )
+                or not isinstance(recovered, list)
+                or not recovered
+                or not all(isinstance(child, Mapping) and child.get("format") in {"cab", "pe"} for child in children)
             ):
+                return []
+            inventory_pairs: set[tuple[str, str]] = set()
+            inventory_identity_by_sha: dict[str, tuple[str, int]] = {}
+            inspected_total_size = 0
+            for item in inventory:
+                if not isinstance(item, Mapping):
+                    return []
+                item_sha = item.get("sha256")
+                item_format = item.get("format")
+                item_name = item.get("name")
+                item_size = item.get("size")
+                if (
+                    item.get("status") != "inspected"
+                    or not isinstance(item_sha, str)
+                    or SHA256_RE.fullmatch(item_sha) is None
+                    or not isinstance(item_format, str)
+                    or item_format not in {"cab", "data", "pe"}
+                    or not isinstance(item_name, str)
+                    or not item_name
+                    or not _is_plain_int(item_size)
+                ):
+                    return []
+                identity = (item_format, int(item_size))
+                previous_identity = inventory_identity_by_sha.get(item_sha)
+                if previous_identity is not None and previous_identity != identity:
+                    return []
+                inventory_identity_by_sha[item_sha] = identity
+                inspected_total_size += int(item_size)
+                linked_layer = layers_by_sha.get(item_sha)
+                if linked_layer is not None and (
+                    linked_layer.get("format") != item_format or linked_layer.get("size") != item_size
+                ):
+                    return []
+                if item_format in {"cab", "pe"}:
+                    if not isinstance(linked_layer, Mapping) or item_sha not in steps_by_sha:
+                        return []
+                    inventory_pairs.add((item_sha, item_format))
+            recovered_kind_formats = {
+                "embedded-pe": "pe",
+                "ole-cab-stream": "cab",
+                "ole-pe-stream": "pe",
+            }
+            recovered_pairs: set[tuple[str, str]] = set()
+            for item in recovered:
+                if not isinstance(item, Mapping):
+                    return []
+                item_sha = item.get("sha256")
+                item_size = item.get("size")
+                item_format = recovered_kind_formats.get(str(item.get("kind") or ""))
+                if (
+                    item_format is None
+                    or not isinstance(item_sha, str)
+                    or SHA256_RE.fullmatch(item_sha) is None
+                    or not _is_plain_int(item_size, minimum=1)
+                    or item_sha not in layers_by_sha
+                    or layers_by_sha[item_sha].get("format") != item_format
+                    or layers_by_sha[item_sha].get("size") != item_size
+                    or item_sha not in steps_by_sha
+                    or (item_sha, item_format) in recovered_pairs
+                ):
+                    return []
+                recovered_pairs.add((item_sha, item_format))
+            child_pairs = {
+                (str(child.get("sha256")), str(child.get("format"))) for child in children if isinstance(child, Mapping)
+            }
+            if (
+                {"cab", "pe"} - {item_format for _, item_format in inventory_pairs}
+                or inventory_pairs - recovered_pairs
+                or child_pairs - recovered_pairs
+                or not _is_plain_int(ole.get("inspected_total_size"), minimum=1)
+                or ole.get("inspected_total_size") != inspected_total_size
+            ):
+                return []
+
+            reached: set[str] = set()
+            pending = [item_sha for item_sha, _ in recovered_pairs]
+            while pending:
+                reached_sha = pending.pop()
+                if reached_sha in reached:
+                    continue
+                reached.add(reached_sha)
+                pending.extend(children_by_parent[reached_sha])
+            cab_hashes = sorted(sha for sha in reached if layers_by_sha[sha].get("format") == "cab")
+            if not cab_hashes or not all(_complete_cab_fallback(sha) for sha in cab_hashes):
                 return []
             documented.append(f"{layer_sha}:ole_inventory_and_executable_children_recovered")
             continue
@@ -4896,8 +6759,7 @@ def _ghidra_documents_exhaustive_handler_no_evidence(
     relevant = [
         item
         for item in executions
-        if isinstance(item, Mapping)
-        and str(item.get("handler_id") or "").partition(":")[0].casefold() == family
+        if isinstance(item, Mapping) and str(item.get("handler_id") or "").partition(":")[0].casefold() == family
     ]
     if not relevant:
         return None
@@ -4963,17 +6825,14 @@ def _load_verified_case_report(
     report = report_snapshot.document
     semantic_errors = verify_report_semantics(report)
     if semantic_errors:
-        raise ValueError(
-            f"更新前のreport seal検証に失敗しました: {case_dir.name}: {semantic_errors}"
-        )
+        raise ValueError(f"更新前のreport seal検証に失敗しました: {case_dir.name}: {semantic_errors}")
     manifest = report.get("artifact_sha256")
     if not isinstance(manifest, dict) or not manifest:
         raise ValueError(f"成果物hash manifestがありません: {case_dir.name}")
     hash_errors = verify_artifact_hashes(case_dir, manifest)
     if hash_errors:
-        raise ValueError(
-            f"更新前の全成果物hash検証に失敗しました: {case_dir.name}: {hash_errors}"
-        )
+        raise ValueError(f"更新前の全成果物hash検証に失敗しました: {case_dir.name}: {hash_errors}")
+    _verify_case_wide_artifact_hashes(case_dir, report)
     _assert_snapshot_unchanged(
         report_snapshot,
         context="全成果物hash検証後",
@@ -5028,9 +6887,425 @@ def _rollback_case_files(
         except (OSError, TypeError, ValueError) as exc:
             failures.append(f"{original.path.name}:{exc}")
     if failures:
-        raise RuntimeError(
-            f"Ghidra反映transactionのrollbackに失敗しました: {failures}"
-        ) from original_error
+        raise RuntimeError(f"Ghidra反映transactionのrollbackに失敗しました: {failures}") from original_error
+
+
+def _case_path_commitment(case_dir: Path) -> str:
+    """journalへhost path自体を保存せず、対象case pathを固定する。"""
+
+    normalized = os.path.normcase(os.fspath(Path(os.path.abspath(case_dir))))
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _case_tree_layout(case_dir: Path) -> tuple[set[str], set[str]]:
+    """case treeの通常file／directory集合をsymlink非追従で固定する。"""
+
+    ensure_no_reparse_components(case_dir)
+    metadata = case_dir.lstat()
+    if _stat_is_reparse(metadata) or not stat.S_ISDIR(metadata.st_mode):
+        raise ValueError("transaction対象caseは通常directoryに限定します")
+    files: set[str] = set()
+    directories: set[str] = set()
+    folded: set[str] = set()
+    for path in sorted(case_dir.rglob("*"), key=lambda value: value.as_posix().casefold()):
+        information = path.lstat()
+        if _stat_is_reparse(information):
+            raise ValueError("transaction対象caseにreparse pointがあります")
+        relative = normalize_artifact_path(path.relative_to(case_dir).as_posix())
+        relative_folded = relative.casefold()
+        if relative_folded in folded:
+            raise ValueError("transaction対象caseに大文字小文字衝突pathがあります")
+        folded.add(relative_folded)
+        if stat.S_ISDIR(information.st_mode):
+            directories.add(relative)
+        elif stat.S_ISREG(information.st_mode) and int(information.st_nlink) == 1:
+            files.add(relative)
+        else:
+            raise ValueError("transaction対象caseに未許可entryがあります")
+    return files, directories
+
+
+def _assert_case_wide_transaction_layout(
+    case_dir: Path,
+    journal: Mapping[str, Any],
+) -> None:
+    """case-wide WAL中のfile追加・削除・directory変更を改ざんとして拒否する。"""
+
+    if journal.get("scope", "target_files") != "case_wide":
+        return
+    raw_entries = journal.get("entries")
+    raw_directories = journal.get("case_directories")
+    if not isinstance(raw_entries, list) or not isinstance(raw_directories, list):
+        raise ValueError("case-wide finalize transactionのlayout契約が不正です")
+    expected_files = {normalize_artifact_path(entry.get("path")) for entry in raw_entries if isinstance(entry, Mapping)}
+    expected_directories = {normalize_artifact_path(relative) for relative in raw_directories}
+    if len(expected_files) != len(raw_entries) or len(expected_directories) != len(raw_directories):
+        raise ValueError("case-wide finalize transactionのlayout契約が重複しています")
+    try:
+        current_files, current_directories = _case_tree_layout(case_dir)
+    except (OSError, TypeError, ValueError) as exc:
+        raise ValueError("case-wide transaction回復中に第三者変更を検出しました") from exc
+    if current_files != expected_files or current_directories != expected_directories:
+        raise ValueError("case-wide transaction回復中に第三者変更を検出しました")
+
+
+def _discard_finalize_live_temporaries(entries: Sequence[Mapping[str, Any]]) -> None:
+    """journal entryへ予約したlive fileのatomic tempだけを復旧前に除去する。"""
+
+    for entry in entries:
+        target_path = entry.get("path")
+        temporary_name = entry.get("live_temporary")
+        if not isinstance(target_path, Path) or not isinstance(temporary_name, str):
+            raise ValueError("finalize transaction live temp契約が不正です")
+        temporary = target_path.with_name(temporary_name)
+        if not os.path.lexists(temporary):
+            continue
+        ensure_no_reparse_components(temporary.parent)
+        information = temporary.lstat()
+        if _stat_is_reparse(information) or not stat.S_ISREG(information.st_mode) or int(information.st_nlink) != 1:
+            raise ValueError("finalize transaction live tempが通常fileではありません")
+        temporary.unlink()
+
+
+def _finalize_transaction_directory(
+    case_dir: Path,
+    transaction_root: Path | None,
+) -> Path:
+    """公開case外のprivate rootへcase固有transaction directoryを割り当てる。"""
+
+    case_absolute = Path(os.path.abspath(case_dir))
+    if transaction_root is None:
+        path_key = _case_path_commitment(case_absolute)[:32]
+        root = Path(tempfile.gettempdir()) / "ai-security-analysis-ghidra-finalize" / path_key
+    else:
+        root = Path(os.path.abspath(transaction_root))
+    if root == case_absolute or case_absolute in root.parents:
+        raise ValueError("finalize transaction rootを公開case内へ配置できません")
+    ensure_no_reparse_components(root)
+    root.mkdir(parents=True, exist_ok=True)
+    ensure_no_reparse_components(root)
+    root_metadata = root.lstat()
+    if _stat_is_reparse(root_metadata) or not stat.S_ISDIR(root_metadata.st_mode):
+        raise ValueError("finalize transaction rootは通常directoryに限定します")
+    return root / case_absolute.name
+
+
+def _safe_remove_finalize_transaction(transaction_dir: Path) -> None:
+    """journalを先に無効化し、再起動時に安全に破棄できる順序でWALを削除する。"""
+
+    ensure_no_reparse_components(transaction_dir)
+    metadata = transaction_dir.lstat()
+    if _stat_is_reparse(metadata) or not stat.S_ISDIR(metadata.st_mode):
+        raise ValueError("finalize transaction pathが通常directoryではありません")
+    for path in transaction_dir.rglob("*"):
+        information = path.lstat()
+        if _stat_is_reparse(information) or not (
+            stat.S_ISDIR(information.st_mode) or stat.S_ISREG(information.st_mode)
+        ):
+            raise ValueError("finalize transactionに未許可entryがあります")
+        if stat.S_ISREG(information.st_mode) and int(information.st_nlink) != 1:
+            raise ValueError("finalize transactionにhardlinkは使用できません")
+    journal_path = transaction_dir / FINALIZE_TRANSACTION_JOURNAL
+    if os.path.lexists(journal_path):
+        journal_metadata = journal_path.lstat()
+        if (
+            _stat_is_reparse(journal_metadata)
+            or not stat.S_ISREG(journal_metadata.st_mode)
+            or int(journal_metadata.st_nlink) != 1
+        ):
+            raise ValueError("finalize transaction journalが通常fileではありません")
+        journal_path.unlink()
+    shutil.rmtree(transaction_dir)
+
+
+def _write_finalize_transaction_journal(
+    path: Path,
+    document: Mapping[str, Any],
+    *,
+    expected_snapshot: _JsonFileSnapshot | None = None,
+) -> None:
+    """journal自体もfsync済み一時fileからatomicに更新する。"""
+
+    _atomic_replace_bytes(
+        path,
+        _json_bytes(document),
+        expected_snapshot=expected_snapshot,
+        require_absent=expected_snapshot is None,
+        temporary_name=f".{FINALIZE_TRANSACTION_JOURNAL}.tmp",
+    )
+
+
+def _discard_finalize_transaction_temporaries(transaction_dir: Path) -> None:
+    """journal/snapshot atomic write中断で残る、予約済みprivate tempだけを除去する。"""
+
+    ensure_no_reparse_components(transaction_dir)
+    metadata = transaction_dir.lstat()
+    if _stat_is_reparse(metadata) or not stat.S_ISDIR(metadata.st_mode):
+        raise ValueError("finalize transaction pathが通常directoryではありません")
+    allowed = re.compile(rf"(?:\.{re.escape(FINALIZE_TRANSACTION_JOURNAL)}|\.\d{{4}}\.(?:old|new)\.snapshot)\.tmp\Z")
+    for path in transaction_dir.iterdir():
+        if allowed.fullmatch(path.name) is None:
+            continue
+        information = path.lstat()
+        if _stat_is_reparse(information) or not stat.S_ISREG(information.st_mode) or int(information.st_nlink) != 1:
+            raise ValueError("finalize transaction atomic tempが通常fileではありません")
+        path.unlink()
+
+
+def _begin_finalize_transaction(
+    case_dir: Path,
+    versions: Sequence[tuple[_JsonFileSnapshot | _ContentFileSnapshot, bytes]],
+    *,
+    transaction_root: Path | None,
+    case_wide: bool = False,
+) -> Path:
+    """全旧新snapshotを固定後、公開file更新前にwrite-ahead journalを作る。"""
+
+    if type(case_wide) is not bool:
+        raise ValueError("finalize transactionのscope指定が不正です")
+    try:
+        resolved_case_dir = Path(case_dir).resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise ValueError("transaction対象caseを解決できません") from exc
+    target_names: list[str] = []
+    for snapshot, _new_data in versions:
+        try:
+            resolved_snapshot_path = snapshot.path.resolve(strict=True)
+            relative = resolved_snapshot_path.relative_to(resolved_case_dir)
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise ValueError("transaction対象がcase directory外です") from exc
+        relative_name = normalize_artifact_path(relative.as_posix())
+        if relative_name in target_names:
+            raise ValueError("transaction対象pathが重複しています")
+        target_names.append(relative_name)
+    case_directories: list[str] = []
+    if case_wide:
+        case_files, observed_directories = _case_tree_layout(case_dir)
+        if case_files != set(target_names):
+            raise ValueError("case-wide transaction対象がcase全fileと一致しません")
+        case_directories = sorted(observed_directories)
+    transaction_dir = _finalize_transaction_directory(case_dir, transaction_root)
+    if os.path.lexists(transaction_dir):
+        raise ValueError("未回復のfinalize transactionが残っています")
+    transaction_dir.mkdir()
+    entries: list[dict[str, Any]] = []
+    observed_paths: set[str] = set()
+    try:
+        for index, (snapshot, new_data) in enumerate(versions):
+            relative_name = target_names[index]
+            if relative_name in observed_paths:
+                raise ValueError("transaction対象pathが重複しています")
+            observed_paths.add(relative_name)
+            old_name = f"{index:04d}.old.snapshot"
+            new_name = f"{index:04d}.new.snapshot"
+            _atomic_replace_bytes(
+                transaction_dir / old_name,
+                snapshot.data,
+                maximum_bytes=MAX_JSON_OBJECT_SIZE,
+                require_absent=True,
+                temporary_name=f".{old_name}.tmp",
+            )
+            _atomic_replace_bytes(
+                transaction_dir / new_name,
+                new_data,
+                maximum_bytes=MAX_JSON_OBJECT_SIZE,
+                require_absent=True,
+                temporary_name=f".{new_name}.tmp",
+            )
+            entries.append(
+                {
+                    "path": relative_name,
+                    "old_snapshot": old_name,
+                    "old_size": len(snapshot.data),
+                    "old_sha256": snapshot.sha256,
+                    "new_snapshot": new_name,
+                    "new_size": len(new_data),
+                    "new_sha256": hashlib.sha256(new_data).hexdigest(),
+                    "live_temporary": f".ghidra-finalize-{index:04d}.tmp",
+                }
+            )
+        journal = {
+            "schema_version": FINALIZE_TRANSACTION_SCHEMA_VERSION,
+            "case_sha256": case_dir.name,
+            "case_path_sha256": _case_path_commitment(case_dir),
+            "scope": "case_wide" if case_wide else "target_files",
+            "case_directories": case_directories,
+            "phase": "prepared",
+            "applied_count": 0,
+            "entries": entries,
+        }
+        _write_finalize_transaction_journal(
+            transaction_dir / FINALIZE_TRANSACTION_JOURNAL,
+            journal,
+        )
+    except BaseException:
+        if os.path.lexists(transaction_dir):
+            _safe_remove_finalize_transaction(transaction_dir)
+        raise
+    return transaction_dir
+
+
+def _load_finalize_transaction(
+    case_dir: Path,
+    transaction_dir: Path,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """journalと全snapshot hashを検証し、live pathへ安全に結合する。"""
+
+    journal_snapshot = _bounded_json_snapshot(transaction_dir / FINALIZE_TRANSACTION_JOURNAL)
+    journal = journal_snapshot.document
+    entries = journal.get("entries")
+    scope = journal.get("scope", "target_files")
+    case_directories = journal.get("case_directories", [])
+    if (
+        journal.get("schema_version") != FINALIZE_TRANSACTION_SCHEMA_VERSION
+        or journal.get("case_sha256") != case_dir.name
+        or journal.get("case_path_sha256") != _case_path_commitment(case_dir)
+        or journal.get("phase") not in {"prepared", "applying", "applied", "verified"}
+        or type(journal.get("applied_count")) is not int
+        or not isinstance(entries, list)
+        or not entries
+        or journal["applied_count"] < 0
+        or journal["applied_count"] > len(entries)
+        or scope not in {"target_files", "case_wide"}
+        or not isinstance(case_directories, list)
+        or (scope == "case_wide" and any(not isinstance(value, str) or not value for value in case_directories))
+        or (scope != "case_wide" and case_directories != [])
+    ):
+        raise ValueError("finalize transaction journalの契約が不正です")
+    loaded: list[dict[str, Any]] = []
+    expected_files = {FINALIZE_TRANSACTION_JOURNAL.casefold()}
+    observed_paths: set[str] = set()
+    for index, raw in enumerate(entries):
+        if not isinstance(raw, Mapping):
+            raise ValueError("finalize transaction entryがobjectではありません")
+        relative = normalize_artifact_path(raw.get("path"))
+        if relative in observed_paths:
+            raise ValueError("finalize transaction entry pathが重複しています")
+        observed_paths.add(relative)
+        old_name = raw.get("old_snapshot")
+        new_name = raw.get("new_snapshot")
+        live_temporary = raw.get(
+            "live_temporary",
+            f".ghidra-finalize-{index:04d}.tmp",
+        )
+        if (
+            old_name != f"{index:04d}.old.snapshot"
+            or new_name != f"{index:04d}.new.snapshot"
+            or type(raw.get("old_size")) is not int
+            or type(raw.get("new_size")) is not int
+            or raw["old_size"] < 0
+            or raw["new_size"] < 0
+            or not isinstance(raw.get("old_sha256"), str)
+            or SHA256_RE.fullmatch(raw["old_sha256"]) is None
+            or not isinstance(raw.get("new_sha256"), str)
+            or SHA256_RE.fullmatch(raw["new_sha256"]) is None
+            or live_temporary != f".ghidra-finalize-{index:04d}.tmp"
+        ):
+            raise ValueError("finalize transaction snapshot記述が不正です")
+        old_data, old_binding = _bounded_regular_file_snapshot(
+            transaction_dir / old_name,
+            max_bytes=MAX_JSON_OBJECT_SIZE,
+        )
+        new_data, new_binding = _bounded_regular_file_snapshot(
+            transaction_dir / new_name,
+            max_bytes=MAX_JSON_OBJECT_SIZE,
+        )
+        if (
+            old_binding.size != raw["old_size"]
+            or old_binding.sha256 != raw["old_sha256"]
+            or new_binding.size != raw["new_size"]
+            or new_binding.sha256 != raw["new_sha256"]
+        ):
+            raise ValueError("finalize transaction snapshot hashが一致しません")
+        expected_files.update({str(old_name).casefold(), str(new_name).casefold()})
+        loaded.append(
+            {
+                "path": resolve_case_artifact(case_dir, relative),
+                "old": old_data,
+                "old_sha256": old_binding.sha256,
+                "new": new_data,
+                "new_sha256": new_binding.sha256,
+                "live_temporary": live_temporary,
+            }
+        )
+    observed_files = {path.name.casefold() for path in transaction_dir.iterdir() if path.is_file()}
+    if observed_files != expected_files or any(path.is_dir() for path in transaction_dir.iterdir()):
+        raise ValueError("finalize transactionに未束縛entryがあります")
+    return journal, loaded
+
+
+def _recover_finalize_transaction(
+    case_dir: Path,
+    *,
+    transaction_root: Path | None,
+) -> str | None:
+    """中断transactionをhash状態からdeterministicにrollback／roll-forwardする。"""
+
+    transaction_dir = _finalize_transaction_directory(case_dir, transaction_root)
+    if not os.path.lexists(transaction_dir):
+        return None
+    _discard_finalize_transaction_temporaries(transaction_dir)
+    journal_path = transaction_dir / FINALIZE_TRANSACTION_JOURNAL
+    if not journal_path.is_file():
+        allowed = re.compile(r"\d{4}\.(?:old|new)\.snapshot\Z")
+        entries = list(transaction_dir.iterdir())
+        if any(not path.is_file() or allowed.fullmatch(path.name) is None for path in entries):
+            raise ValueError("journal未作成transactionに未束縛entryがあります")
+        _safe_remove_finalize_transaction(transaction_dir)
+        return "discarded_uncommitted"
+    journal, entries = _load_finalize_transaction(case_dir, transaction_dir)
+    _discard_finalize_live_temporaries(entries)
+    _assert_case_wide_transaction_layout(case_dir, journal)
+    current: list[_ContentFileSnapshot] = []
+    states: list[str] = []
+    for entry in entries:
+        snapshot = _bounded_content_snapshot(entry["path"])
+        current.append(snapshot)
+        if snapshot.sha256 == entry["old_sha256"] and snapshot.data == entry["old"]:
+            states.append("old")
+        elif snapshot.sha256 == entry["new_sha256"] and snapshot.data == entry["new"]:
+            states.append("new")
+        else:
+            raise ValueError(f"finalize transaction回復中に第三者変更を検出しました: {snapshot.path.name}")
+    if journal["phase"] == "verified":
+        if any(state != "new" for state in states):
+            raise ValueError("verified finalize transactionが部分適用状態です")
+        _safe_remove_finalize_transaction(transaction_dir)
+        return "rolled_forward"
+    for entry, snapshot, state in reversed(list(zip(entries, current, states, strict=True))):
+        if state == "new" and entry["old"] != entry["new"]:
+            _atomic_replace_bytes(
+                entry["path"],
+                entry["old"],
+                expected_snapshot=snapshot,
+                temporary_name=entry["live_temporary"],
+            )
+    for entry in entries:
+        restored = _bounded_content_snapshot(entry["path"])
+        if restored.sha256 != entry["old_sha256"] or restored.data != entry["old"]:
+            raise RuntimeError("finalize transaction rollback後のhashが一致しません")
+    _safe_remove_finalize_transaction(transaction_dir)
+    return "rolled_back"
+
+
+def _set_finalize_transaction_phase(
+    transaction_dir: Path,
+    *,
+    phase: str,
+    applied_count: int,
+) -> None:
+    """適用進捗をatomic journal updateとして永続化する。"""
+
+    journal_path = transaction_dir / FINALIZE_TRANSACTION_JOURNAL
+    snapshot = _bounded_json_snapshot(journal_path)
+    document = snapshot.document
+    document["phase"] = phase
+    document["applied_count"] = applied_count
+    _write_finalize_transaction_journal(
+        journal_path,
+        document,
+        expected_snapshot=snapshot,
+    )
 
 
 def _valid_unresolved_function_gate(value: Any) -> bool:
@@ -5050,20 +7325,18 @@ def _valid_unresolved_function_gate(value: Any) -> bool:
 def _prepare_orchestration_function_reconciliation(
     case_dir: Path,
     report: Mapping[str, Any],
+    *,
+    generic_triage_complete: bool = False,
 ) -> dict[str, Any] | None:
-    """検証済み関数解析だけをorchestrationのfunction gateへ反映する。"""
+    """検証済み関数解析と汎用triage完了証跡をorchestrationへ反映する。"""
 
     manifest = report.get("artifact_sha256")
     orchestration_ref = report.get("orchestration")
-    manifest_has_orchestration = (
-        isinstance(manifest, Mapping) and "orchestration.json" in manifest
-    )
+    manifest_has_orchestration = isinstance(manifest, Mapping) and "orchestration.json" in manifest
     if orchestration_ref is None and not manifest_has_orchestration:
         return None
     if orchestration_ref != "orchestration.json" or not manifest_has_orchestration:
-        raise ValueError(
-            f"orchestration参照と成果物manifestが一致しません: {case_dir.name}"
-        )
+        raise ValueError(f"orchestration参照と成果物manifestが一致しません: {case_dir.name}")
 
     orchestration_path = resolve_case_artifact(case_dir, orchestration_ref)
     orchestration_snapshot = _bounded_json_snapshot(orchestration_path)
@@ -5079,28 +7352,14 @@ def _prepare_orchestration_function_reconciliation(
     requirements = resolution.get("requirements") if isinstance(resolution, Mapping) else None
     family = resolution.get("family") if isinstance(resolution, Mapping) else None
     resolution_status = resolution.get("status") if isinstance(resolution, Mapping) else None
-    resolution_candidates = (
-        resolution.get("candidates") if isinstance(resolution, Mapping) else None
-    )
+    resolution_candidates = resolution.get("candidates") if isinstance(resolution, Mapping) else None
     classification = report.get("classification")
-    selected = (
-        classification.get("selected_families")
-        if isinstance(classification, Mapping)
-        else None
-    )
-    automation_status = (
-        classification.get("automation_status")
-        if isinstance(classification, Mapping)
-        else None
-    )
+    selected = classification.get("selected_families") if isinstance(classification, Mapping) else None
+    automation_status = classification.get("automation_status") if isinstance(classification, Mapping) else None
     if resolution_status == "unresolved":
         automation = outcome.get("automation")
         candidate_families = (
-            [
-                item.get("family")
-                for item in resolution_candidates
-                if isinstance(item, Mapping)
-            ]
+            [item.get("family") for item in resolution_candidates if isinstance(item, Mapping)]
             if isinstance(resolution_candidates, list)
             else []
         )
@@ -5116,8 +7375,7 @@ def _prepare_orchestration_function_reconciliation(
             and (not selected or automation_status == "unresolved")
         )
         if not isinstance(automation, Mapping) or any(
-            automation.get(name) is not False
-            for name in ("ai_used", "sample_executed", "network_contacted")
+            automation.get(name) is not False for name in ("ai_used", "sample_executed", "network_contacted")
         ):
             raise ValueError(f"invalid orchestration safety contract: {case_dir.name}")
         function_gate = outcome.get("quality_gates", {}).get("function_analysis")
@@ -5127,9 +7385,7 @@ def _prepare_orchestration_function_reconciliation(
             or not candidate_boundary_valid
             or not _valid_unresolved_function_gate(function_gate)
         ):
-            raise ValueError(
-                f"invalid unresolved-family orchestration boundary: {case_dir.name}"
-            )
+            raise ValueError(f"invalid unresolved-family orchestration boundary: {case_dir.name}")
         return None
     if (
         not isinstance(resolution, Mapping)
@@ -5139,18 +7395,13 @@ def _prepare_orchestration_function_reconciliation(
         or not isinstance(requirements, Mapping)
         or requirements.get("function_analysis_required") is not True
     ):
-        raise ValueError(
-            f"解決済みfamilyのfunction_analysis要件を確認できません: {case_dir.name}"
-        )
+        raise ValueError(f"解決済みfamilyのfunction_analysis要件を確認できません: {case_dir.name}")
     if not isinstance(selected, list) or family not in selected:
-        raise ValueError(
-            f"reportとorchestrationのfamily resolutionが一致しません: {case_dir.name}"
-        )
+        raise ValueError(f"reportとorchestrationのfamily resolutionが一致しません: {case_dir.name}")
 
     automation = outcome.get("automation")
     if not isinstance(automation, Mapping) or any(
-        automation.get(name) is not False
-        for name in ("ai_used", "sample_executed", "network_contacted")
+        automation.get(name) is not False for name in ("ai_used", "sample_executed", "network_contacted")
     ):
         raise ValueError(f"orchestrationの安全境界が不正です: {case_dir.name}")
 
@@ -5182,9 +7433,7 @@ def _prepare_orchestration_function_reconciliation(
             else "not_declared"
         )
         if gate.get("status") != expected_status:
-            raise ValueError(
-                f"orchestration gateの状態が不整合です: {case_dir.name}: {name}"
-            )
+            raise ValueError(f"orchestration gateの状態が不整合です: {case_dir.name}: {name}")
         if expected_status == "required_missing":
             required_missing.append(name)
 
@@ -5199,9 +7448,7 @@ def _prepare_orchestration_function_reconciliation(
         or len(next_actions) != len(blockers)
         or any(not isinstance(value, str) or not value for value in next_actions)
     ):
-        raise ValueError(
-            f"orchestration blockerとnext actionが不整合です: {case_dir.name}"
-        )
+        raise ValueError(f"orchestration blockerとnext actionが不整合です: {case_dir.name}")
     expected_outcome_status = "partial" if blockers else "complete"
     if outcome.get("status") != expected_outcome_status:
         raise ValueError(f"orchestration statusがblockerと不整合です: {case_dir.name}")
@@ -5218,21 +7465,31 @@ def _prepare_orchestration_function_reconciliation(
     if function_missing:
         function_index = blockers.index("function_analysis")
         if next_actions[function_index] != FUNCTION_ANALYSIS_NEXT_ACTION_JA:
-            raise ValueError(
-                f"function_analysisのnext actionが不正です: {case_dir.name}"
-            )
-    elif (
-        "function_analysis" in blockers
-        or FUNCTION_ANALYSIS_NEXT_ACTION_JA in next_actions
-    ):
+            raise ValueError(f"function_analysisのnext actionが不正です: {case_dir.name}")
+    elif "function_analysis" in blockers or FUNCTION_ANALYSIS_NEXT_ACTION_JA in next_actions:
         raise ValueError(f"解消済みfunction_analysis gateに残余があります: {case_dir.name}")
+
+    generic_missing = False
+    generic_gate = gates.get("generic_triage")
+    if generic_triage_complete:
+        if (
+            not isinstance(generic_gate, dict)
+            or generic_gate.get("required") is not True
+            or generic_gate.get("observed") is not None
+            or generic_gate.get("status") not in {"required_missing", "satisfied"}
+        ):
+            raise ValueError(f"generic_triage gateが不正です: {case_dir.name}")
+        generic_missing = generic_gate["status"] == "required_missing"
+        if generic_missing:
+            generic_index = blockers.index("generic_triage")
+            if next_actions[generic_index] != GENERIC_TRIAGE_NEXT_ACTION_JA:
+                raise ValueError(f"generic_triageのnext actionが不正です: {case_dir.name}")
+        elif "generic_triage" in blockers or GENERIC_TRIAGE_NEXT_ACTION_JA in next_actions:
+            raise ValueError(f"解消済みgeneric_triage gateに残余があります: {case_dir.name}")
 
     validation = validate_function_case(case_dir, case_dir.name)
     if not validation.valid:
-        raise ValueError(
-            f"代表関数解析の完了検証に失敗しました: {case_dir.name}: "
-            f"{validation.findings}"
-        )
+        raise ValueError(f"代表関数解析の完了検証に失敗しました: {case_dir.name}: {validation.findings}")
 
     previous_blockers = list(blockers)
     if function_missing:
@@ -5240,21 +7497,195 @@ def _prepare_orchestration_function_reconciliation(
         function_gate["status"] = "satisfied"
         blockers.pop(function_index)
         next_actions.pop(function_index)
+    if generic_missing:
+        generic_gate["satisfied"] = True
+        generic_gate["status"] = "satisfied"
+        generic_index = blockers.index("generic_triage")
+        blockers.pop(generic_index)
+        next_actions.pop(generic_index)
+    if function_missing or generic_missing:
         outcome["status"] = "partial" if blockers else "complete"
     return {
         "document": outcome,
         "path": orchestration_path,
         "snapshot": orchestration_snapshot,
-        "updated": function_missing,
+        "updated": function_missing or generic_missing,
         "previous_blockers": previous_blockers,
         "blockers": list(blockers),
         "status": str(outcome["status"]),
     }
 
 
-def finalize_case_report(case_dir: Path) -> str:
+def _verified_manifest_json_snapshot(
+    case_dir: Path,
+    report: Mapping[str, Any],
+    relative: Any,
+    *,
+    context: str,
+) -> _JsonFileSnapshot:
+    """report manifestへ結合されたJSONだけを後段transaction入力にする。"""
+
+    if not isinstance(relative, str) or not relative:
+        raise ValueError(f"{context}の成果物参照がありません: {case_dir.name}")
+    manifest = report.get("artifact_sha256")
+    expected = manifest.get(relative) if isinstance(manifest, Mapping) else None
+    if not isinstance(expected, str) or SHA256_RE.fullmatch(expected) is None:
+        raise ValueError(f"{context}がreport manifestへ結合されていません: {case_dir.name}")
+    snapshot = _bounded_json_snapshot(resolve_case_artifact(case_dir, relative))
+    if snapshot.sha256 != expected:
+        raise ValueError(f"{context}のhashがreport manifestと一致しません: {case_dir.name}")
+    return snapshot
+
+
+def _prepare_screenconnect_management_reconciliation(
+    case_dir: Path,
+    report: dict[str, Any],
+    orchestration: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Ghidra後の完了gate上でのみScreenConnect C2契約を再評価する。"""
+
+    classification = report.get("classification")
+    selected_families = classification.get("selected_families") if isinstance(classification, Mapping) else None
+    selected_screenconnect = isinstance(selected_families, list) and "screenconnect_rmm" in selected_families
+    if orchestration is None:
+        if selected_screenconnect:
+            raise ValueError(f"ScreenConnect caseに検証済みorchestration成果物がありません: {case_dir.name}")
+        return None
+    outcome = orchestration.get("document")
+    resolution = outcome.get("family_resolution") if isinstance(outcome, Mapping) else None
+    resolved_family = resolution.get("family") if isinstance(resolution, Mapping) else None
+    if resolved_family != "screenconnect_rmm":
+        if selected_screenconnect:
+            raise ValueError(f"ScreenConnect reportとorchestrationのfamilyが一致しません: {case_dir.name}")
+        return None
+    if selected_families != ["screenconnect_rmm"]:
+        raise ValueError(f"ScreenConnect C2再評価を一意なreport familyへ結合できません: {case_dir.name}")
+    state = report.get("case_state")
+    if (
+        not isinstance(state, Mapping)
+        or state.get("status") != "complete"
+        or state.get("complete") is not True
+        or state.get("resumable") is not True
+        or state.get("blockers") != []
+        or not isinstance(outcome, dict)
+        or outcome.get("status") != "complete"
+        or outcome.get("blockers") != []
+    ):
+        return None
+
+    executions = report.get("handler_executions")
+    if executions is None:
+        raise ValueError(f"ScreenConnect handler実行記録がありません: {case_dir.name}")
+    if not isinstance(executions, list):
+        raise ValueError(f"ScreenConnect handler実行記録がありません: {case_dir.name}")
+    if not any(isinstance(execution, Mapping) and execution.get("status") == "succeeded" for execution in executions):
+        raise ValueError(f"完了ScreenConnect caseに成功handler証拠がありません: {case_dir.name}")
+    layer_snapshot = _verified_manifest_json_snapshot(
+        case_dir,
+        report,
+        "static-layers.json",
+        context="ScreenConnect static layer",
+    )
+    handler_results: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    input_snapshots = [layer_snapshot]
+    seen_results: set[str] = set()
+    for execution in executions:
+        if not isinstance(execution, dict):
+            raise ValueError(f"ScreenConnect handler実行記録が不正です: {case_dir.name}")
+        if execution.get("status") != "succeeded":
+            continue
+        relative = execution.get("result")
+        if not isinstance(relative, str) or relative in seen_results:
+            raise ValueError(f"ScreenConnect handler成果物参照を一意に解決できません: {case_dir.name}")
+        seen_results.add(relative)
+        snapshot = _verified_manifest_json_snapshot(
+            case_dir,
+            report,
+            relative,
+            context="ScreenConnect handler result",
+        )
+        input_snapshots.append(snapshot)
+        handler_results.append((execution, snapshot.document))
+
+    # publisherと同じstrict helperを使い、別実装による判定差を作らない。
+    from publish_one_shot_collection import (  # noqa: PLC0415
+        _build_screenconnect_management_contract,
+    )
+
+    rebuilt = _build_screenconnect_management_contract(
+        digest=case_dir.name,
+        public_family="screenconnect-rmm",
+        layer_report=layer_snapshot.document,
+        handler_results=handler_results,
+        report=report,
+        orchestration=outcome,
+    )
+    if rebuilt is None:
+        raise ValueError(f"完了ScreenConnect caseのC2契約を再確定できません: {case_dir.name}")
+    patterns, contract = rebuilt
+    terminal_projection = {
+        "status": "recovered",
+        "root_sha256": case_dir.name,
+        "role": "terminal_managed_client",
+        "basis": "validated_static_root_screenconnect_client",
+        "claimed_sha256": [],
+        "candidates": [],
+        "retained": [],
+        "verified": [],
+    }
+    orchestration_updated = False
+    for output_name in ("outputs", "candidate_outputs"):
+        output = outcome.get(output_name)
+        if not isinstance(output, dict):
+            raise ValueError(f"完了ScreenConnect caseの{output_name}が不正です: {case_dir.name}")
+        if output.get("terminal_payload") != terminal_projection:
+            output["terminal_payload"] = dict(terminal_projection)
+            orchestration_updated = True
+    if (
+        contract.get("terminal_payload", {}).get("status") != "recovered"
+        or contract.get("terminal_payload", {}).get("reached") is not True
+        or patterns.get("config", {}).get("terminal_managed_client") is not True
+    ):
+        raise ValueError(f"ScreenConnect終端clientの公開projectionが一致しません: {case_dir.name}")
+    knowledge = report.get("knowledge_artifacts")
+    if not isinstance(knowledge, Mapping):
+        raise ValueError(f"ScreenConnect knowledge artifact参照がありません: {case_dir.name}")
+    updates = []
+    output_paths: set[str] = set()
+    for key, document in (
+        ("communication_patterns", patterns),
+        ("c2_analysis", contract),
+    ):
+        relative = knowledge.get(key)
+        snapshot = _verified_manifest_json_snapshot(
+            case_dir,
+            report,
+            relative,
+            context=f"ScreenConnect {key}",
+        )
+        normalized_relative = str(relative)
+        if normalized_relative in output_paths:
+            raise ValueError(f"ScreenConnect C2成果物pathが重複しています: {case_dir.name}")
+        output_paths.add(normalized_relative)
+        updates.append((normalized_relative, snapshot, _json_bytes(document)))
+    return {
+        "input_snapshots": input_snapshots,
+        "updates": updates,
+        "orchestration_updated": orchestration_updated,
+    }
+
+
+def finalize_case_report(
+    case_dir: Path,
+    *,
+    transaction_root: Path | None = None,
+) -> str:
     """代表関数解析後も未解決blockerを保持し、reportを再封印する。"""
 
+    _recover_finalize_transaction(
+        case_dir,
+        transaction_root=transaction_root,
+    )
     report, report_snapshot = _load_verified_case_report(case_dir)
     state = report.get("case_state")
     if not isinstance(state, dict):
@@ -5269,14 +7700,17 @@ def finalize_case_report(case_dir: Path) -> str:
     status = state.get("status")
     if status not in {"partial", "complete", "triaged_unknown"}:
         raise ValueError(f"Ghidra反映対象外のcase stateです: {case_dir.name}: {status}")
-    orchestration = _prepare_orchestration_function_reconciliation(case_dir, report)
+    generic_limit_superseded = _ghidra_supersedes_generic_string_limit(case_dir)
+    documented_generic_limits = _ghidra_documents_known_generic_container_limits(case_dir)
+    generic_triage_complete = generic_limit_superseded or bool(documented_generic_limits)
+    orchestration = _prepare_orchestration_function_reconciliation(
+        case_dir,
+        report,
+        generic_triage_complete=generic_triage_complete,
+    )
     if orchestration is not None:
-        reported_orchestration = {
-            value for value in blockers if value.startswith("orchestration:")
-        }
-        before = {
-            f"orchestration:{value}" for value in orchestration["previous_blockers"]
-        }
+        reported_orchestration = {value for value in blockers if value.startswith("orchestration:")}
+        before = {f"orchestration:{value}" for value in orchestration["previous_blockers"]}
         after = {f"orchestration:{value}" for value in orchestration["blockers"]}
         allowed = {frozenset(before)}
         if not orchestration["updated"]:
@@ -5287,22 +7721,16 @@ def finalize_case_report(case_dir: Path) -> str:
                 }
             )
         if frozenset(reported_orchestration) not in allowed:
-            raise ValueError(
-                f"reportとorchestrationのblockerが一致しません: {case_dir.name}"
-            )
-    generic_limit_superseded = _ghidra_supersedes_generic_string_limit(case_dir)
+            raise ValueError(f"reportとorchestrationのblockerが一致しません: {case_dir.name}")
     documented_static_issues = _ghidra_documents_known_static_limits(case_dir, state)
-    documented_generic_limits = _ghidra_documents_known_generic_container_limits(case_dir)
-    documented_handler_no_evidence = _ghidra_documents_exhaustive_handler_no_evidence(
-        case_dir, report, state
-    )
+    documented_handler_no_evidence = _ghidra_documents_exhaustive_handler_no_evidence(case_dir, report, state)
     if status == "partial":
         resolved_function_blockers = {FUNCTION_ANALYSIS_BLOCKER}
         if orchestration is not None:
             resolved_function_blockers.add(ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER)
-        remaining = [
-            value for value in blockers if value not in resolved_function_blockers
-        ]
+            if generic_triage_complete:
+                resolved_function_blockers.add(ORCHESTRATION_GENERIC_TRIAGE_BLOCKER)
+        remaining = [value for value in blockers if value not in resolved_function_blockers]
         if "generic_triage_partial" in remaining and (generic_limit_superseded or documented_generic_limits):
             remaining.remove("generic_triage_partial")
         if "static_layer_incomplete" in remaining and documented_static_issues:
@@ -5347,23 +7775,13 @@ def finalize_case_report(case_dir: Path) -> str:
         else:
             if orchestration is not None:
                 if orchestration["status"] != "complete":
-                    raise ValueError(
-                        f"未解決orchestration blockerをreportから除去できません: {case_dir.name}"
-                    )
-                state.update(
-                    {"status": "complete", "complete": True, "resumable": True, "blockers": []}
-                )
+                    raise ValueError(f"未解決orchestration blockerをreportから除去できません: {case_dir.name}")
+                state.update({"status": "complete", "complete": True, "resumable": True, "blockers": []})
             else:
                 classification = report.get("classification")
-                selected = (
-                    classification.get("selected_families")
-                    if isinstance(classification, Mapping)
-                    else None
-                )
+                selected = classification.get("selected_families") if isinstance(classification, Mapping) else None
                 automation_status = (
-                    classification.get("automation_status")
-                    if isinstance(classification, Mapping)
-                    else None
+                    classification.get("automation_status") if isinstance(classification, Mapping) else None
                 )
                 if not isinstance(selected, list):
                     raise ValueError(f"selected_familiesがありません: {case_dir.name}")
@@ -5383,9 +7801,7 @@ def finalize_case_report(case_dir: Path) -> str:
         and blockers == []
     ):
         raise ValueError(f"Ghidra反映対象外のcase stateです: {case_dir.name}: {status}")
-    elif orchestration is not None and (
-        status != "complete" or orchestration["status"] != "complete"
-    ):
+    elif orchestration is not None and (status != "complete" or orchestration["status"] != "complete"):
         raise ValueError(f"reportとorchestrationの完了状態が一致しません: {case_dir.name}")
     if report.get("generic_triage") == "partial" and (generic_limit_superseded or documented_generic_limits):
         report["generic_triage"] = "complete"
@@ -5412,40 +7828,74 @@ def finalize_case_report(case_dir: Path) -> str:
         limitations = report.setdefault("limitations", [])
         if limitation not in limitations:
             limitations.append(limitation)
+    screenconnect_reconciliation = _prepare_screenconnect_management_reconciliation(
+        case_dir,
+        report,
+        orchestration,
+    )
     manifest = report.get("artifact_sha256")
     if not isinstance(manifest, dict) or not manifest:
         raise ValueError(f"成果物hash manifestがありません: {case_dir.name}")
     report["artifact_sha256"] = dict(manifest)
     orchestration_bytes: bytes | None = None
-    if orchestration is not None and orchestration["updated"]:
+    if orchestration is not None and (
+        orchestration["updated"]
+        or screenconnect_reconciliation is not None
+        and screenconnect_reconciliation["orchestration_updated"]
+    ):
         orchestration_bytes = _json_bytes(orchestration["document"])
-        report["artifact_sha256"]["orchestration.json"] = hashlib.sha256(
-            orchestration_bytes
-        ).hexdigest()
+        report["artifact_sha256"]["orchestration.json"] = hashlib.sha256(orchestration_bytes).hexdigest()
+    screenconnect_updates: list[tuple[str, _JsonFileSnapshot, bytes]] = []
+    if screenconnect_reconciliation is not None:
+        screenconnect_updates = screenconnect_reconciliation["updates"]
+        for relative, _snapshot, data in screenconnect_updates:
+            report["artifact_sha256"][relative] = hashlib.sha256(data).hexdigest()
     seal_report(report)
     finalized_report_bytes = _json_bytes(report)
-    transaction_versions: list[tuple[_JsonFileSnapshot, bytes]] = [
-        (report_snapshot, finalized_report_bytes)
-    ]
-    _assert_snapshot_unchanged(report_snapshot, context="transaction commit直前")
+    transaction_versions: list[tuple[_JsonFileSnapshot | _ContentFileSnapshot, bytes]] = []
     if orchestration_bytes is not None:
         orchestration_snapshot = orchestration["snapshot"]
-        _assert_snapshot_unchanged(
-            orchestration_snapshot,
+        transaction_versions.append((orchestration_snapshot, orchestration_bytes))
+    transaction_versions.extend(
+        (snapshot, data) for _relative, snapshot, data in screenconnect_updates if snapshot.data != data
+    )
+    transaction_versions.append((report_snapshot, finalized_report_bytes))
+    for input_snapshot in (
+        screenconnect_reconciliation["input_snapshots"] if screenconnect_reconciliation is not None else []
+    ):
+        _assert_snapshot_unchanged(input_snapshot, context="transaction commit直前")
+    for snapshot, _data in transaction_versions:
+        _assert_transaction_snapshot_unchanged(
+            snapshot,
             context="transaction commit直前",
         )
-        transaction_versions.insert(0, (orchestration_snapshot, orchestration_bytes))
+    transaction_dir = _begin_finalize_transaction(
+        case_dir,
+        transaction_versions,
+        transaction_root=transaction_root,
+    )
     try:
-        if orchestration_bytes is not None:
+        _set_finalize_transaction_phase(
+            transaction_dir,
+            phase="applying",
+            applied_count=0,
+        )
+        for index, (snapshot, data) in enumerate(transaction_versions, start=1):
             _atomic_replace_bytes(
-                orchestration["path"],
-                orchestration_bytes,
-                expected_snapshot=orchestration["snapshot"],
+                snapshot.path,
+                data,
+                expected_snapshot=snapshot,
+                temporary_name=f".ghidra-finalize-{index - 1:04d}.tmp",
             )
-        _atomic_replace_bytes(
-            report_snapshot.path,
-            finalized_report_bytes,
-            expected_snapshot=report_snapshot,
+            _set_finalize_transaction_phase(
+                transaction_dir,
+                phase="applying",
+                applied_count=index,
+            )
+        _set_finalize_transaction_phase(
+            transaction_dir,
+            phase="applied",
+            applied_count=len(transaction_versions),
         )
         resumable = state.get("status") == "complete"
         errors = case_integrity_errors(
@@ -5455,12 +7905,21 @@ def finalize_case_report(case_dir: Path) -> str:
             require_resumable=resumable,
         )
         if errors:
-            raise ValueError(
-                f"Ghidra反映後のcase整合性検証に失敗しました: "
-                f"{case_dir.name}: {errors}"
+            raise ValueError(f"Ghidra反映後のcase整合性検証に失敗しました: {case_dir.name}: {errors}")
+        _set_finalize_transaction_phase(
+            transaction_dir,
+            phase="verified",
+            applied_count=len(transaction_versions),
+        )
+        _safe_remove_finalize_transaction(transaction_dir)
+    except BaseException:
+        try:
+            _recover_finalize_transaction(
+                case_dir,
+                transaction_root=transaction_root,
             )
-    except BaseException as exc:
-        _rollback_case_files(transaction_versions, exc)
+        except BaseException as recovery_error:
+            raise RuntimeError("Ghidra反映transactionを自動回復できませんでした") from recovery_error
         raise
     return str(state["status"])
 
@@ -5616,9 +8075,50 @@ def _program_evidence(result: Mapping[str, Any]) -> dict[str, Any]:
             name = str(item).strip()
         if name:
             imports.append(redact_static_text(name))
+    recovery_source = result.get("entry_point_function_recovery")
+    recovery = {}
+    if isinstance(recovery_source, Mapping):
+        recovery = {
+            key: recovery_source[key]
+            for key in (
+                "schema_version",
+                "status",
+                "reason",
+                "attempted",
+                "initial_function_count",
+                "final_function_count",
+                "candidate_count",
+                "validated_segment_name",
+            )
+            if key in recovery_source
+        }
+        validation_source = recovery_source.get("validation")
+        if isinstance(validation_source, Mapping):
+            validation: dict[str, Any] = {}
+            pe_source = validation_source.get("pe_entry_point")
+            if isinstance(pe_source, Mapping):
+                validation["pe_entry_point"] = {
+                    key: pe_source[key]
+                    for key in (
+                        "status",
+                        "reason",
+                        "matching_section_count",
+                        "section_executable",
+                    )
+                    if key in pe_source
+                }
+            for key in (
+                "ghidra_program_entry_unique",
+                "ghidra_segment_contains_entry",
+                "ghidra_matching_segment_count",
+            ):
+                if key in validation_source:
+                    validation[key] = validation_source[key]
+            recovery["validation"] = validation
     return {
         "program_id": f"sha256:{result['sha256']}",
         "program_selector": result["program_selector"],
+        "analysis_mode": str(result.get("analysis_mode") or "unknown"),
         "relationship": (
             "root_program"
             if any(int(item["depth"]) == 0 for item in result.get("relationships", []))
@@ -5645,6 +8145,7 @@ def _program_evidence(result: Mapping[str, Any]) -> dict[str, Any]:
         if re.search(r"\d+", str(metadata.get("symbol_count") or "0"))
         else 0,
         "entry_points": entries,
+        "entry_point_function_recovery": recovery,
         "imports": imports,
         "retrieval_coverage": dict(result.get("retrieval_coverage") or {}),
         "function_hashes": hashes,
@@ -5803,6 +8304,23 @@ def _build_overall_logic(report: Mapping[str, Any]) -> dict[str, Any]:
             0,
             "Ghidraで関数本体を認識できなかったため、entry point、import、export、segment等のprogram構造だけを確認しています。",
         )
+        recovery_reasons = sorted(
+            {
+                str(recovery.get("reason") or "unknown")
+                for program in programs
+                if isinstance(
+                    recovery := program.get("entry_point_function_recovery"),
+                    Mapping,
+                )
+                and recovery.get("status") in {"not_attempted", "failed"}
+            }
+        )
+        if recovery_reasons:
+            limitations.insert(
+                1,
+                "entry pointからの関数回復は安全条件を満たさないかMCP処理を検証できず、"
+                "未完了です（理由code: " + ", ".join(recovery_reasons) + "）。",
+            )
     return {
         "schema_version": 1,
         "visualization_contract_version": 1,
@@ -5950,6 +8468,21 @@ def _render_markdown(report: Mapping[str, Any]) -> str:
             "- 関数inventoryが0件のため逆コンパイル対象はありません。"
             "entry point、import、export、segment等の構造取得結果は保持しています。"
         )
+        for program in report.get("program_evidence", []):
+            recovery = program.get("entry_point_function_recovery", {})
+            if isinstance(recovery, Mapping) and recovery.get("status") in {
+                "not_attempted",
+                "failed",
+            }:
+                lines.append(
+                    "- `"
+                    + _markdown_code_value(program.get("program_selector") or "unknown")
+                    + "`: entry point関数回復は `"
+                    + _markdown_code_value(recovery.get("status") or "unknown")
+                    + "`（理由: `"
+                    + _markdown_code_value(recovery.get("reason") or "unknown")
+                    + "`）です。"
+                )
     elif not failures:
         lines.append("- 制約付きまたは失敗として残った関数はありません。")
     for function in failures[:100]:
@@ -6017,6 +8550,107 @@ def _enrich_normalized_functions(
         }
 
 
+def _call_graph_acquisition_summary(
+    program_results: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """private取得証跡だけから公開call graph取得状態を決定する。"""
+
+    if not program_results:
+        return {
+            "status": "not_applicable_no_ghidra_program",
+            "acquired_edge_count": 0,
+            "native_program_count": 0,
+            "managed_not_applicable_program_count": 0,
+            "partial_program_count": 0,
+        }
+    native_programs = 0
+    managed_programs = 0
+    partial_programs = 0
+    acquired_edges = 0
+    for result in program_results:
+        state = _call_graph_retrieval_state(result)
+        if state == "complete":
+            native_programs += 1
+            acquired_edges += int(result["retrieval_coverage"]["call_graph"]["edge_count"])
+        elif state == "managed_not_applicable":
+            managed_programs += 1
+        elif state == "legacy_partial":
+            partial_programs += 1
+        else:
+            raise ValueError("call graph取得証跡が不正なprogram-resultです")
+    if partial_programs:
+        status = "partial_documented_limit"
+    elif native_programs and acquired_edges:
+        status = "acquired_with_edges"
+    elif native_programs:
+        status = "acquired_without_edges"
+    else:
+        status = "not_applicable_managed_cil_primary"
+    return {
+        "status": status,
+        "acquired_edge_count": acquired_edges,
+        "native_program_count": native_programs,
+        "managed_not_applicable_program_count": managed_programs,
+        "partial_program_count": partial_programs,
+    }
+
+
+def _merge_acquired_call_graph(
+    report: dict[str, Any],
+    program_results: Sequence[Mapping[str, Any]],
+) -> int:
+    """取得済みGhidra edgeをraw address非公開の安定IDへ正規化して保持する。"""
+
+    normalized: set[tuple[str, str]] = {
+        (str(edge.get("caller") or ""), str(edge.get("callee") or ""))
+        for edge in report.get("call_edges", [])
+        if isinstance(edge, Mapping) and edge.get("caller") and edge.get("callee")
+    }
+
+    def opaque_id(program_sha256: str, kind: str, value: str) -> str:
+        identity = hashlib.sha256(f"{program_sha256}\0{kind}\0{value}".encode()).hexdigest()[:24]
+        return f"ghidra-{kind}:{identity}"
+
+    acquisition = _call_graph_acquisition_summary(program_results)
+    for result in program_results:
+        if _call_graph_retrieval_state(result) == "legacy_partial":
+            continue
+        program_sha256 = str(result.get("sha256") or "")
+        graph = result.get("call_graph")
+        edges = graph.get("edges") if isinstance(graph, Mapping) else None
+        if not SHA256_RE.fullmatch(program_sha256) or not isinstance(edges, list):
+            continue
+        for edge in edges:
+            if not isinstance(edge, Mapping):
+                continue
+            caller = str(edge.get("caller_addr") or "").strip()
+            callee_addr = str(edge.get("callee_addr") or "").strip()
+            callee_name = str(edge.get("callee_name") or "").strip()
+            if not caller or not (callee_addr or callee_name):
+                continue
+            caller_id = opaque_id(program_sha256, "function", caller)
+            callee_id = opaque_id(
+                program_sha256,
+                "function" if callee_addr else "external",
+                callee_addr or callee_name,
+            )
+            if caller_id != callee_id:
+                normalized.add((caller_id, callee_id))
+    report["call_edges"] = [{"caller": caller, "callee": callee} for caller, callee in sorted(normalized)]
+    coverage = report.get("coverage")
+    if not isinstance(coverage, dict):
+        raise ValueError("static logic coverageがobjectではありません")
+    coverage["call_edge_count"] = len(normalized)
+    coverage["call_graph_recorded"] = bool(normalized)
+    coverage["acquired_call_graph_edge_count"] = acquisition["acquired_edge_count"]
+    coverage["acquired_call_graph_edges_normalized"] = acquisition["status"] != "partial_documented_limit"
+    coverage["call_graph_acquisition_status"] = acquisition["status"]
+    coverage["call_graph_native_program_count"] = acquisition["native_program_count"]
+    coverage["call_graph_managed_not_applicable_program_count"] = acquisition["managed_not_applicable_program_count"]
+    coverage["call_graph_partial_program_count"] = acquisition["partial_program_count"]
+    return int(acquisition["acquired_edge_count"])
+
+
 def _selected_script_records(
     non_pe: Mapping[str, list[dict[str, Any]]],
     case_sha: str,
@@ -6045,8 +8679,695 @@ def _require_case_static_evidence(
     """Ghidra program、静的script関数、非PE layer証跡のいずれかを要求する。"""
 
     if not related and not script_records and not non_pe_relations:
-        raise ValueError(
-            f"caseへ対応するGhidra program、静的script関数、非PE layer証跡がありません: {case_sha}"
+        raise ValueError(f"caseへ対応するGhidra program、静的script関数、非PE layer証跡がありません: {case_sha}")
+
+
+def _snapshot_publication_case(
+    case_dir: Path,
+    report: Mapping[str, Any],
+    *,
+    verify_manifest: bool = True,
+) -> dict[str, _ContentFileSnapshot]:
+    """case tree全体を通常fileとして固定し、report manifestとの結合も検証する。"""
+
+    ensure_no_reparse_components(case_dir)
+    metadata = case_dir.lstat()
+    if _stat_is_reparse(metadata) or not stat.S_ISDIR(metadata.st_mode):
+        raise ValueError("公開caseは通常directoryに限定します")
+    snapshots: dict[str, _ContentFileSnapshot] = {}
+    folded_names: set[str] = set()
+    for path in sorted(case_dir.rglob("*"), key=lambda value: value.as_posix().casefold()):
+        information = path.lstat()
+        if _stat_is_reparse(information):
+            raise ValueError(f"公開caseにreparse pointがあります: {path.name}")
+        if stat.S_ISDIR(information.st_mode):
+            continue
+        if not stat.S_ISREG(information.st_mode) or int(information.st_nlink) != 1:
+            raise ValueError(f"公開caseに未許可fileがあります: {path.name}")
+        relative = normalize_artifact_path(path.relative_to(case_dir).as_posix())
+        folded = relative.casefold()
+        if folded in folded_names:
+            raise ValueError("公開caseに大文字小文字衝突pathがあります")
+        if Path(relative).name.casefold() == "datastore-upload.json":
+            raise ValueError("datastore-upload.jsonは公開成果物へ含められません")
+        folded_names.add(folded)
+        snapshots[relative] = _bounded_content_snapshot(path)
+    if "report.json" not in snapshots:
+        raise ValueError(f"公開caseにreport.jsonがありません: {case_dir.name}")
+    if verify_manifest:
+        manifest = report.get("artifact_sha256")
+        if not isinstance(manifest, Mapping) or not manifest:
+            raise ValueError(f"成果物hash manifestがありません: {case_dir.name}")
+        for raw_relative, expected in manifest.items():
+            relative = normalize_artifact_path(raw_relative)
+            snapshot = snapshots.get(relative)
+            if (
+                snapshot is None
+                or not isinstance(expected, str)
+                or SHA256_RE.fullmatch(expected) is None
+                or snapshot.sha256 != expected
+            ):
+                raise ValueError(f"公開case treeとreport manifestが一致しません: {case_dir.name}: {relative}")
+    return snapshots
+
+
+def _verify_case_wide_artifact_hashes(
+    case_dir: Path,
+    report: Mapping[str, Any],
+) -> None:
+    """report seal配下のcase-wide hash集合を実tree全体と照合する。"""
+
+    manifest = report.get("case_wide_artifact_sha256")
+    if manifest is None:
+        return
+    if not isinstance(manifest, Mapping) or not manifest:
+        raise ValueError(f"case-wide成果物hash manifestが不正です: {case_dir.name}")
+    snapshots = _snapshot_publication_case(
+        case_dir,
+        report,
+        verify_manifest=False,
+    )
+    expected_names = set(snapshots) - {"report.json"}
+    observed_names: set[str] = set()
+    for raw_relative, expected in manifest.items():
+        relative = normalize_artifact_path(raw_relative)
+        snapshot = snapshots.get(relative)
+        if (
+            relative in observed_names
+            or snapshot is None
+            or not isinstance(expected, str)
+            or SHA256_RE.fullmatch(expected) is None
+            or snapshot.sha256 != expected
+        ):
+            raise ValueError(f"case-wide成果物hashが一致しません: {case_dir.name}: {relative}")
+        observed_names.add(relative)
+    if observed_names != expected_names:
+        raise ValueError(f"case-wide成果物集合が一致しません: {case_dir.name}")
+
+
+def _assert_publication_case_unchanged(
+    case_dir: Path,
+    snapshots: Mapping[str, _ContentFileSnapshot],
+) -> None:
+    """WAL作成直前にfile集合、identity、全bytesのいずれの競合も拒否する。"""
+
+    current_names = {
+        normalize_artifact_path(path.relative_to(case_dir).as_posix()) for path in case_dir.rglob("*") if path.is_file()
+    }
+    if current_names != set(snapshots):
+        raise ValueError("case-wide transaction commit直前でfile集合が変更されました")
+    for snapshot in snapshots.values():
+        _assert_content_snapshot_unchanged(
+            snapshot,
+            context="case-wide transaction commit直前",
+        )
+
+
+def _publication_shadow_directory(
+    case_dir: Path,
+    transaction_root: Path | None,
+) -> Path:
+    """公開case外に決定的なshadow directoryを割り当てる。"""
+
+    case_absolute = Path(os.path.abspath(case_dir))
+    if transaction_root is None:
+        root = (
+            Path(tempfile.gettempdir())
+            / "ai-security-analysis-ghidra-publication-shadow"
+            / _case_path_commitment(case_absolute)[:32]
+        )
+    else:
+        root = Path(os.path.abspath(transaction_root)).parent / "publication-shadows"
+    if root == case_absolute or case_absolute in root.parents:
+        raise ValueError("公開shadowをcase directory内へ配置できません")
+    ensure_no_reparse_components(root)
+    root.mkdir(parents=True, exist_ok=True)
+    ensure_no_reparse_components(root)
+    root_metadata = root.lstat()
+    if _stat_is_reparse(root_metadata) or not stat.S_ISDIR(root_metadata.st_mode):
+        raise ValueError("公開shadow rootは通常directoryに限定します")
+    return root / case_absolute.name
+
+
+def _safe_remove_publication_shadow(shadow: Path) -> None:
+    """reparse／hardlinkを含まない既知shadowだけを削除する。"""
+
+    ensure_no_reparse_components(shadow)
+    metadata = shadow.lstat()
+    if _stat_is_reparse(metadata) or not stat.S_ISDIR(metadata.st_mode):
+        raise ValueError("公開shadowは通常directoryに限定します")
+    for path in shadow.rglob("*"):
+        information = path.lstat()
+        if _stat_is_reparse(information) or not (
+            stat.S_ISDIR(information.st_mode) or stat.S_ISREG(information.st_mode)
+        ):
+            raise ValueError("公開shadowに未許可entryがあります")
+        if stat.S_ISREG(information.st_mode) and int(information.st_nlink) != 1:
+            raise ValueError("公開shadowにhardlinkは使用できません")
+    shutil.rmtree(shadow)
+
+
+def _prepare_publication_shadow(
+    case_dir: Path,
+    snapshots: Mapping[str, _ContentFileSnapshot],
+    *,
+    transaction_root: Path | None,
+) -> Path:
+    """認証済み旧caseをprivate shadowへ複製する。"""
+
+    shadow = _publication_shadow_directory(case_dir, transaction_root)
+    shadow_transaction_root = shadow.parent / "shadow-finalize-transactions"
+    if os.path.lexists(shadow):
+        _recover_finalize_transaction(
+            shadow,
+            transaction_root=shadow_transaction_root,
+        )
+        _safe_remove_publication_shadow(shadow)
+    elif os.path.lexists(shadow_transaction_root / shadow.name):
+        raise ValueError("公開shadow本体のない未回復transactionがあります")
+    shadow.mkdir()
+    for relative, snapshot in sorted(snapshots.items()):
+        destination = shadow / Path(relative)
+        _atomic_replace_bytes(
+            destination,
+            snapshot.data,
+            maximum_bytes=MAX_JSON_OBJECT_SIZE,
+            require_absent=True,
+        )
+    return shadow
+
+
+def _replace_markdown_section(markdown: str, heading: str, body: Sequence[str]) -> str:
+    """同名H2 sectionを決定的に置換し、なければ末尾へ追加する。"""
+
+    section = "\n".join([f"## {heading}", "", *body, ""])
+    pattern = re.compile(rf"(?ms)^## {re.escape(heading)}\s*$.*?(?=^##\s|\Z)")
+    if pattern.search(markdown):
+        return pattern.sub(section, markdown).rstrip() + "\n"
+    return markdown.rstrip() + "\n\n" + section
+
+
+def _enrich_shadow_behavior_documents(case_dir: Path) -> None:
+    """Ghidraの具体的な書出し・process起動能力を人間向け成果物へ投影する。"""
+
+    logic = load_json_object_strict(case_dir / "static-logic.json")
+    analysis_snapshot = _bounded_json_snapshot(case_dir / "analysis.json")
+    analysis = analysis_snapshot.document
+    readme_snapshot = _bounded_content_snapshot(case_dir / "README.md")
+    readme = readme_snapshot.data.decode("utf-8-sig")
+    functions = [item for item in logic.get("functions", []) if isinstance(item, Mapping)]
+    if case_dir.name == "7cea19fbf28115dc8b8cd947d92d7cedcad6b18825f3d52e2340ae558445fce6":
+        required_apis = {"createfilea", "writefile", "createprocessa"}
+        matching = [
+            item
+            for item in functions
+            if required_apis <= {str(value).casefold() for value in item.get("api_calls", [])}
+        ]
+        layers = load_json_object_strict(case_dir / "static-layers.json").get("layers", [])
+        recovered_pe = [
+            item
+            for item in layers
+            if isinstance(item, Mapping)
+            and item.get("format") == "pe"
+            and item.get("parent_sha256") is not None
+            and isinstance(item.get("sha256"), str)
+        ]
+        recovered_child_sha256 = "482faaf1130d041a77b4a4e8a3e516d9c97aa21a3ad10b6a8b88bae38b6eaae5"
+        recovered_child = next(
+            (item for item in recovered_pe if item.get("sha256") == recovered_child_sha256),
+            None,
+        )
+        if (
+            not matching
+            or recovered_child is None
+            or recovered_child.get("size") != 344_064
+            or recovered_child.get("transform") != "embedded-pe"
+        ):
+            raise ValueError("7cea検体の書出し・起動証拠を再検証できません")
+        analysis["ghidra_behavior_evidence"] = {
+            "status": "confirmed_static_decompilation",
+            "execution_chain": ["CreateFileA", "WriteFile", "CreateProcessA"],
+            "function_ids": sorted(str(item["function_id"]) for item in matching),
+            "path_construction": {
+                "format": "%s\\%s",
+                "directory": r"C:\Users\Public",
+                "filename": "agentttttttt_extracted.exe",
+                "application_path": (r"C:\Users\Public\agentttttttt_extracted.exe"),
+                "status": "confirmed_ghidra_data_references",
+            },
+            "file_write": {
+                "api": "CreateFileA -> WriteFile",
+                "desired_access": "GENERIC_WRITE",
+                "creation_disposition": "CREATE_ALWAYS",
+                "size_hex": "0x20e260b",
+                "size_bytes": 34_481_675,
+                "payload_prefix": "MZ",
+            },
+            "recovered_pe_sha256": [recovered_child_sha256],
+            "recovered_pe_relationship": {
+                "sha256": recovered_child_sha256,
+                "size_bytes": 344_064,
+                "transform": "embedded-pe",
+                "write_buffer_byte_identity": "not_established",
+            },
+            "process_creation": {
+                "api": "CreateProcessA",
+                "lp_application_name": (r"C:\Users\Public\agentttttttt_extracted.exe"),
+                "lp_command_line": None,
+                "command_line_recovery_status": "confirmed_null",
+                "creation_flags_hex": "0x08000000",
+                "creation_flags": ["CREATE_NO_WINDOW"],
+            },
+            "handle_cleanup": ["process_handle", "thread_handle"],
+            "sample_executed": False,
+        }
+        readme = _replace_markdown_section(
+            readme,
+            "Ghidra静的挙動証拠",
+            [
+                "- 埋め込みPE書出し: `CreateFileA(GENERIC_WRITE, CREATE_ALWAYS)`で`C:\\Users\\Public\\agentttttttt_extracted.exe`を作り、`WriteFile`で静的に同定したbufferから`0x20e260b`（34,481,675 bytes、先頭`MZ`）を書き込みます。`static-layers.json`で相関する`embedded-pe` childはSHA-256 `482faaf1130d041a77b4a4e8a3e516d9c97aa21a3ad10b6a8b88bae38b6eaae5`（344,064 bytes）です。WriteFile対象バッファ全体とのbyte-for-byte同一性は未確定です。",
+                "- プロセス起動API: `CreateProcessA`の`lpApplicationName`は同じ`C:\\Users\\Public\\agentttttttt_extracted.exe`、`lpCommandLine`は`NULL`、`dwCreationFlags`は`0x08000000 (CREATE_NO_WINDOW)`です。起動後にprocess／thread handleを閉じます。",
+                "- path復元根拠: `%s\\%s`へdirectory `C:\\Users\\Public`とfilename `agentttttttt_extracted.exe`を渡す構築処理をGhidraのdata referenceから確認しました。",
+                "- 安全性: 上記はGhidra MCPによる静的解析結果であり、検体またはchild payloadは実行していません。",
+            ],
+        )
+
+    report = load_json_object_strict(case_dir / "report.json")
+    selected = report.get("classification", {}).get("selected_families")
+    if selected == ["screenconnect_rmm"]:
+        program_required_calls = {
+            "system.diagnostics.process.start",
+            "system.diagnostics.processstartinfo.set_filename",
+            "system.diagnostics.processstartinfo.set_arguments",
+            "system.diagnostics.processstartinfo.set_redirectstandardinput",
+            "system.diagnostics.processstartinfo.set_redirectstandardoutput",
+            "system.diagnostics.processstartinfo.set_redirectstandarderror",
+            "system.diagnostics.processstartinfo.set_standardoutputencoding",
+            "system.diagnostics.processstartinfo.set_standarderrorencoding",
+            "system.diagnostics.process.get_exitcode",
+            "killprocesstree",
+        }
+        program_matching = [
+            item
+            for item in functions
+            if str(item.get("name") or "").endswith(".RunCommandLineProgram")
+            and program_required_calls <= {str(value).casefold() for value in item.get("api_calls", [])}
+        ]
+        wrapper_required_calls = {
+            "getlowintegritytemppath",
+            "runcommandlineprogram",
+            "screenconnect.extensions.containsanyignorecase",
+            "screenconnect.extensions.getuniquetemppath",
+            "screenconnect.extensions.quotewindowscommandline",
+            "system.io.file.create",
+            "system.io.file.delete",
+            "system.io.textwriter.write",
+        }
+        wrapper_matching = [
+            item
+            for item in functions
+            if str(item.get("name") or "").endswith(".RunCommandLineCommands")
+            and wrapper_required_calls <= {str(value).casefold() for value in item.get("api_calls", [])}
+        ]
+        if len(program_matching) != 1 or len(wrapper_matching) != 1:
+            raise ValueError(f"ScreenConnect command wrapper／process起動証拠が一意ではありません: {case_dir.name}")
+        function = program_matching[0]
+        wrapper = wrapper_matching[0]
+        analysis.setdefault("case", {})["remote_command_execution_capability"] = {
+            "status": "confirmed_static_managed_code",
+            "program_function_id": function["function_id"],
+            "wrapper_function_id": wrapper["function_id"],
+            "operator_command_body_source": "runtime_management_input",
+            "operator_filename_source": "runtime_argument",
+            "operator_arguments_source": "runtime_argument",
+            "temporary_script": {
+                "directory": "low_integrity_temp",
+                "name_generation": "unique",
+                "cmd_extension": "run.cmd",
+                "powershell_extension": "run.ps1",
+                "deleted_after_execution": True,
+            },
+            "selector": {
+                "powershell_branch_tokens": ["powershell", "ps"],
+                "matching": "ContainsAnyIgnoreCase",
+                "default_branch": "cmd",
+            },
+            "launcher_templates": {
+                "cmd": {
+                    "file_name": "cmd.exe",
+                    "arguments_prefix": "/c ",
+                    "arguments_tail": "QuoteWindowsCommandLine(unique run.cmd path)",
+                },
+                "powershell": {
+                    "file_name": r"WindowsPowershell\v1.0\powershell.exe",
+                    "arguments_prefix": ("-NoProfile -NonInteractive -ExecutionPolicy Unrestricted -File "),
+                    "arguments_tail": "QuoteWindowsCommandLine(unique run.ps1 path)",
+                },
+            },
+            "process_api": "System.Diagnostics.Process.Start",
+            "stdio": {
+                "stdin_optional": True,
+                "stdout_redirected": True,
+                "stderr_redirected": True,
+                "stdout_encoding": "UTF-8",
+                "stderr_encoding": "UTF-8",
+                "output_collection": "asynchronous",
+            },
+            "timeout_behavior": "kill_process_tree",
+            "expected_exit_code_validation": "optional",
+            "fixed_operator_command_recovered": False,
+            "dual_use_context": "screenconnect_remote_management_client",
+            "separate_malware_c2_verified": False,
+            "malicious_use_confirmed": False,
+            "sample_executed": False,
+        }
+        readme = _replace_markdown_section(
+            readme,
+            "双用途管理・コマンド実行能力",
+            [
+                "- 遠隔コマンド実行能力: `RunCommandLineProgram`は実行時入力の`FileName`／`Arguments`を`ProcessStartInfo`へ設定し、`Process.Start`で起動します。stdinは任意、stdout／stderrはUTF-8でredirectして非同期回収し、timeout時はprocess treeを終了し、任意の期待exit codeも検証できます。",
+                "- launcher command-line template: `RunCommandLineCommands`はoperator command textをlow-integrity tempのunique `run.cmd`／`run.ps1`へ書きます。cmd branchは`FileName=cmd.exe`, `Arguments=/c <QuoteWindowsCommandLine(run.cmd)>`です。PowerShell branchは`FileName=WindowsPowershell\\v1.0\\powershell.exe`, `Arguments=-NoProfile -NonInteractive -ExecutionPolicy Unrestricted -File <QuoteWindowsCommandLine(run.ps1)>`です。",
+                "- branchと後処理: selectorに`powershell`または`ps`を含む場合だけPowerShell branchを選び、それ以外はcmd branchです。実行後は一時scriptを削除します。",
+                "- 固定operator command: launcherの正確なtemplateは上記のとおり復元しましたが、command body自体は実行時に管理側から与えられるため、この検体の静的解析では復元していません。",
+                "- 通信の意味: 双用途ScreenConnect管理clientと埋め込み管理endpointは確認済みです。`no_c2_capability_verified`は、これとは別個のmalware C2を静的に確認していない、という限定的な意味です。遠隔コマンド能力や悪性利用の有無を否定するものではありません。",
+                "- 帰属上の制約: 配布経路、導入権限、侵害telemetryがないため、悪性利用そのものは未確認です。",
+            ],
+        )
+    _atomic_replace_bytes(
+        analysis_snapshot.path,
+        _json_bytes(analysis),
+        expected_snapshot=analysis_snapshot,
+    )
+    _atomic_replace_bytes(
+        readme_snapshot.path,
+        readme.encode("utf-8"),
+        expected_snapshot=readme_snapshot,
+    )
+
+
+def _reseal_shadow_case(case_dir: Path) -> tuple[dict[str, Any], _JsonFileSnapshot]:
+    """shadow内の全公開fileをmanifestへ結合し、reportを再封印する。"""
+
+    report_snapshot = _bounded_json_snapshot(case_dir / "report.json")
+    report = report_snapshot.document
+    files = _snapshot_publication_case(
+        case_dir,
+        report,
+        verify_manifest=False,
+    )
+    manifest = report.get("artifact_sha256")
+    if not isinstance(manifest, Mapping) or not manifest:
+        raise ValueError(f"成果物hash manifestがありません: {case_dir.name}")
+    report["artifact_sha256"] = {
+        relative: files[normalize_artifact_path(relative)].sha256 for relative in sorted(manifest)
+    }
+    report["case_wide_artifact_sha256"] = {
+        relative: snapshot.sha256 for relative, snapshot in sorted(files.items()) if relative != "report.json"
+    }
+    seal_report(report)
+    _atomic_replace_bytes(
+        report_snapshot.path,
+        _json_bytes(report),
+        expected_snapshot=report_snapshot,
+    )
+    verified = _load_verified_case_report(case_dir)
+    _verify_case_wide_artifact_hashes(case_dir, verified[0])
+    return verified
+
+
+def _validate_completed_screenconnect_projection(
+    case_dir: Path,
+    report: Mapping[str, Any],
+) -> None:
+    """完了ScreenConnectのcase/C2/orchestration/features表示を相互検証する。"""
+
+    selected = report.get("classification", {}).get("selected_families")
+    if selected != ["screenconnect_rmm"]:
+        return
+    state = report.get("case_state")
+    if not isinstance(state, Mapping) or state.get("status") != "complete":
+        return
+    orchestration = load_json_object_strict(case_dir / "orchestration.json")
+    c2 = load_json_object_strict(case_dir / "c2-analysis.json")
+    communication = load_json_object_strict(case_dir / "communication-patterns.json")
+    features = load_json_object_strict(case_dir / "features.json")
+    analysis = load_json_object_strict(case_dir / "analysis.json")
+    logic = load_json_object_strict(case_dir / "static-logic.json")
+    capability = analysis.get("case", {}).get("remote_command_execution_capability")
+    behavior_ids = {item.get("id") for item in features.get("behaviors", []) if isinstance(item, Mapping)}
+    command_roles = {
+        str(item.get("role") or "")
+        for item in logic.get("functions", [])
+        if isinstance(item, Mapping)
+        and str(item.get("name") or "").endswith((".RunCommandLineProgram", ".RunCommandLineCommands"))
+    }
+    terminal = orchestration.get("outputs", {}).get("terminal_payload")
+    candidate_terminal = orchestration.get("candidate_outputs", {}).get("terminal_payload")
+    expected_terminal = {
+        "status": "recovered",
+        "root_sha256": case_dir.name,
+        "role": "terminal_managed_client",
+        "basis": "validated_static_root_screenconnect_client",
+        "claimed_sha256": [],
+        "candidates": [],
+        "retained": [],
+        "verified": [],
+    }
+    if (
+        orchestration.get("status") != "complete"
+        or terminal != expected_terminal
+        or candidate_terminal != expected_terminal
+        or c2.get("c2", {}).get("outcome") != "no_c2_capability_verified"
+        or c2.get("terminal_payload", {}).get("status") != "recovered"
+        or c2.get("terminal_payload", {}).get("reached") is not True
+        or communication.get("config", {}).get("terminal_managed_client") is not True
+        or features.get("analysis_assessment", {}).get("status") != "complete"
+        or "declared_case_state_incomplete" in features.get("analysis_assessment", {}).get("unresolved", [])
+        or not isinstance(capability, Mapping)
+        or capability.get("status") != "confirmed_static_managed_code"
+        or capability.get("fixed_operator_command_recovered") is not False
+        or capability.get("launcher_templates", {}).get("cmd", {}).get("file_name") != "cmd.exe"
+        or capability.get("launcher_templates", {}).get("powershell", {}).get("file_name")
+        != r"WindowsPowershell\v1.0\powershell.exe"
+        or capability.get("separate_malware_c2_verified") is not False
+        or capability.get("malicious_use_confirmed") is not False
+        or not {
+            "execution:remote_command",
+            "execution:command_script_launcher",
+            "execution:runtime_operator_command_body",
+            "context:screenconnect_separate_c2_boundary",
+        }
+        <= behavior_ids
+        or command_roles != {"command_dispatch_or_handler"}
+    ):
+        raise ValueError(f"完了ScreenConnectの公開成果物が不整合です: {case_dir.name}")
+
+
+class _GhidraCasePublicationLock:
+    """同一caseのrecovery・shadow・WAL commitをprocess間で直列化する。"""
+
+    def __init__(self, case_dir: Path) -> None:
+        identity = hashlib.sha256(os.path.normcase(os.path.abspath(case_dir)).encode("utf-8")).hexdigest()
+        self.path = Path(tempfile.gettempdir()) / "ai-security-analysis-ghidra-case-locks" / f"{identity}.lock"
+        self.descriptor: int | None = None
+
+    def __enter__(self) -> _GhidraCasePublicationLock:
+        ensure_no_reparse_components(self.path.parent)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_no_reparse_components(self.path.parent)
+        descriptor = os.open(
+            self.path,
+            os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0),
+            0o600,
+        )
+        try:
+            if os.fstat(descriptor).st_size == 0:
+                os.write(descriptor, b"\0")
+                os.fsync(descriptor)
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            if os.name == "nt":
+                import msvcrt  # noqa: PLC0415
+
+                msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl  # noqa: PLC0415
+
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except (OSError, BlockingIOError) as exc:
+            os.close(descriptor)
+            raise ValueError("同一caseのGhidra公開が既に実行中です") from exc
+        self.descriptor = descriptor
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        if self.descriptor is None:
+            return
+        try:
+            os.lseek(self.descriptor, 0, os.SEEK_SET)
+            if os.name == "nt":
+                import msvcrt  # noqa: PLC0415
+
+                msvcrt.locking(self.descriptor, msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl  # noqa: PLC0415
+
+                fcntl.flock(self.descriptor, fcntl.LOCK_UN)
+        finally:
+            os.close(self.descriptor)
+            self.descriptor = None
+
+
+def _publish_shadow_case_transaction_locked(
+    case_dir: Path,
+    base_report: Mapping[str, Any],
+    planned_updates: Mapping[str, bytes],
+    *,
+    repository: Path,
+    transaction_root: Path | None,
+) -> tuple[str, dict[str, Any]]:
+    """shadowで全成果物を完成後、case-wide durable WALで一括反映する。"""
+
+    _recover_finalize_transaction(case_dir, transaction_root=transaction_root)
+    original_files = _snapshot_publication_case(case_dir, base_report)
+    if original_files["report.json"].data != _json_bytes(dict(base_report)):
+        raise ValueError(f"case-wide shadow生成前にreportが変更されました: {case_dir.name}")
+    missing = CASE_WIDE_PUBLICATION_REQUIRED - set(original_files)
+    if missing:
+        raise ValueError(f"case-wide transaction必須成果物がありません: {case_dir.name}: {sorted(missing)}")
+    unknown_updates = set(planned_updates) - set(original_files)
+    if unknown_updates:
+        raise ValueError(f"未認証の新規公開成果物があります: {sorted(unknown_updates)}")
+    shadow = _prepare_publication_shadow(
+        case_dir,
+        original_files,
+        transaction_root=transaction_root,
+    )
+    shadow_transaction_root = shadow.parent / "shadow-finalize-transactions"
+    try:
+        for relative, data in planned_updates.items():
+            snapshot = _bounded_content_snapshot(shadow / Path(relative))
+            _atomic_replace_bytes(snapshot.path, data, expected_snapshot=snapshot)
+        _reseal_shadow_case(shadow)
+        finalized_state = finalize_case_report(
+            shadow,
+            transaction_root=shadow_transaction_root,
+        )
+        _enrich_shadow_behavior_documents(shadow)
+        profile = build_case_profile(shadow)
+        feature_snapshot = _bounded_content_snapshot(shadow / "features.json")
+        _atomic_replace_bytes(
+            feature_snapshot.path,
+            _json_bytes(profile),
+            expected_snapshot=feature_snapshot,
+        )
+        feature_markdown_snapshot = _bounded_content_snapshot(shadow / "FEATURES.md")
+        _atomic_replace_bytes(
+            feature_markdown_snapshot.path,
+            render_features_markdown(profile).encode("utf-8"),
+            expected_snapshot=feature_markdown_snapshot,
+        )
+        finalized_report, _ = _reseal_shadow_case(shadow)
+        resumable = finalized_state == "complete"
+        errors = case_integrity_errors(
+            shadow,
+            finalized_report,
+            expected_digest=case_dir.name,
+            require_resumable=resumable,
+        )
+        if errors:
+            raise ValueError(f"shadow case整合性検証に失敗しました: {case_dir.name}: {errors}")
+        _validate_completed_screenconnect_projection(shadow, finalized_report)
+        c2 = load_json_object_strict(shadow / "c2-analysis.json")
+        c2_validation = validate_c2_contract(
+            c2,
+            case_dir.name,
+            repository=repository,
+        )
+        final_files = _snapshot_publication_case(shadow, finalized_report)
+        if set(final_files) != set(original_files):
+            raise ValueError("shadowの公開file集合が旧caseと一致しません")
+        _assert_publication_case_unchanged(case_dir, original_files)
+        versions = [(original_files[relative], final_files[relative].data) for relative in sorted(original_files)]
+        transaction_dir = _begin_finalize_transaction(
+            case_dir,
+            versions,
+            transaction_root=transaction_root,
+            case_wide=True,
+        )
+        try:
+            _set_finalize_transaction_phase(
+                transaction_dir,
+                phase="applying",
+                applied_count=0,
+            )
+            for index, (snapshot, data) in enumerate(versions, start=1):
+                _atomic_replace_bytes(
+                    snapshot.path,
+                    data,
+                    expected_snapshot=snapshot,
+                    temporary_name=f".ghidra-finalize-{index - 1:04d}.tmp",
+                )
+                _set_finalize_transaction_phase(
+                    transaction_dir,
+                    phase="applying",
+                    applied_count=index,
+                )
+            _set_finalize_transaction_phase(
+                transaction_dir,
+                phase="applied",
+                applied_count=len(versions),
+            )
+            committed_journal, _committed_entries = _load_finalize_transaction(
+                case_dir,
+                transaction_dir,
+            )
+            _assert_case_wide_transaction_layout(case_dir, committed_journal)
+            committed_report = load_json_object_strict(case_dir / "report.json")
+            committed_errors = case_integrity_errors(
+                case_dir,
+                committed_report,
+                expected_digest=case_dir.name,
+                require_resumable=resumable,
+            )
+            if committed_errors:
+                raise ValueError(f"case-wide反映後の整合性検証に失敗しました: {case_dir.name}: {committed_errors}")
+            _verify_case_wide_artifact_hashes(case_dir, committed_report)
+            _validate_completed_screenconnect_projection(case_dir, committed_report)
+            _set_finalize_transaction_phase(
+                transaction_dir,
+                phase="verified",
+                applied_count=len(versions),
+            )
+            _safe_remove_finalize_transaction(transaction_dir)
+        except BaseException:
+            _recover_finalize_transaction(
+                case_dir,
+                transaction_root=transaction_root,
+            )
+            raise
+        return finalized_state, c2_validation
+    finally:
+        if os.path.lexists(shadow):
+            _safe_remove_publication_shadow(shadow)
+
+
+def _publish_shadow_case_transaction(
+    case_dir: Path,
+    base_report: Mapping[str, Any],
+    planned_updates: Mapping[str, bytes],
+    *,
+    repository: Path,
+    transaction_root: Path | None,
+) -> tuple[str, dict[str, Any]]:
+    """同一case lock内でrecoveryからshadow commitまでを完了する。"""
+
+    with _GhidraCasePublicationLock(case_dir):
+        return _publish_shadow_case_transaction_locked(
+            case_dir,
+            base_report,
+            planned_updates,
+            repository=repository,
+            transaction_root=transaction_root,
         )
 
 
@@ -6055,6 +9376,8 @@ def publish_cases(
     collection_dir: Path,
     program_results: Mapping[str, Mapping[str, Any]],
     non_pe: Mapping[str, list[dict[str, Any]]],
+    *,
+    transaction_root: Path | None = None,
 ) -> dict[str, Any]:
     """対象caseの代表関数解析と全体ロジック成果物を更新する。"""
 
@@ -6084,6 +9407,16 @@ def publish_cases(
         ]
         if invalid_mcp:
             raise ValueError(f"MCP成功証跡のないprogramを公開できません: {case_sha}: {invalid_mcp}")
+        incomplete_function_inventory = [
+            str(result.get("sha256") or "unknown")
+            for result in related
+            if not _function_inventory_coverage_complete(result)
+        ]
+        if incomplete_function_inventory:
+            raise ValueError(
+                "全関数inventoryの終端取得・metadata件数拘束がないprogramを"
+                f"公開できません: {case_sha}: {incomplete_function_inventory}"
+            )
 
         records: list[dict[str, Any]] = []
         for result in related:
@@ -6104,9 +9437,11 @@ def publish_cases(
             raise ValueError(f"発見済み関数から代表関数を選定できないcaseです: {case_sha}")
         structure_only = not records
         case_dir = case_paths[case_sha]
-        preverified_case_report, preverified_report_snapshot = (
-            _load_verified_case_report(case_dir)
+        _recover_finalize_transaction(
+            case_dir,
+            transaction_root=transaction_root,
         )
+        preverified_case_report, preverified_report_snapshot = _load_verified_case_report(case_dir)
         metadata = json.loads((case_dir / "metadata.json").read_text(encoding="utf-8-sig"))
         report = build_static_logic_report(
             sha256=case_sha,
@@ -6117,6 +9452,7 @@ def publish_cases(
             analysis_source="ghidra_mcp_characteristic_functions_and_managed_cil",
         )
         _enrich_normalized_functions(report, records)
+        _merge_acquired_call_graph(report, related)
         statuses = [function["function_analysis"]["decompilation_status"] for function in report["functions"]]
         succeeded = sum(value == "succeeded" for value in statuses)
         excluded = sum(
@@ -6156,6 +9492,24 @@ def publish_cases(
                     int(result.get("managed_method_count") or 0) for result in related
                 ),
                 "ghidra_programs_with_valid_mcp_responses": len(related),
+                "call_graph_acquired_edge_count": int(
+                    report["coverage"].get(
+                        "acquired_call_graph_edge_count",
+                        0,
+                    )
+                ),
+                "call_graph_acquisition_status": report["coverage"].get(
+                    "call_graph_acquisition_status",
+                    "not_applicable_no_ghidra_program",
+                ),
+                "structured_constant_value_count": sum(
+                    len(item.get("constants") or []) for item in records if isinstance(item, Mapping)
+                ),
+                "structured_constant_extraction_status": (
+                    "recorded"
+                    if any(isinstance(item, Mapping) and item.get("constants") for item in records)
+                    else "not_exposed_by_current_mcp_or_cil_record"
+                ),
             }
         )
         report["selection_policy"] = {
@@ -6201,6 +9555,12 @@ def publish_cases(
             "選定外関数は個別解説の対象外であり、件数と選定方針を明示しています。",
             "packer、VM、破損CIL、indirect flowで不完全な代表関数は失敗理由と次の解析を関数recordへ残しました。",
             "fingerprint一致だけではファミリー、actor、campaignを確定しません。",
+            (
+                "constantsは現行Ghidra MCP／CIL recordの独立フィールドとして取得できていません。"
+                "正規化ロジック中の定数は伏字化されるため、固定引数やpathを復元済みとは扱いません。"
+                if report["coverage"]["structured_constant_value_count"] == 0
+                else "構造化constantsは取得できた値だけを記録し、伏字化された定数の完全回収を主張しません。"
+            ),
         ]
         if structure_only:
             report["limitations"].insert(
@@ -6219,18 +9579,9 @@ def publish_cases(
         )
         report["overall_logic"] = _build_overall_logic(report)
         report = _escape_public_replacement_characters(report)
-        _json_dump(case_dir / "static-logic.json", report)
-        (case_dir / "STATIC-LOGIC.md").write_text(
-            _render_markdown(report),
-            encoding="utf-8",
-        )
-        (case_dir / "OVERALL-LOGIC.md").write_text(
-            _render_overall_logic(report, load_static_layers(case_dir)),
-            encoding="utf-8",
-        )
 
         analysis_path = case_dir / "analysis.json"
-        analysis = json.loads(analysis_path.read_text(encoding="utf-8-sig"))
+        analysis = _bounded_json_snapshot(analysis_path).document
         analysis["case"]["declarative_status"] = report["status"]
         analysis["case"]["function_analysis"] = {
             key: report["coverage"][key]
@@ -6258,10 +9609,9 @@ def publish_cases(
             }
         ]
         analysis["limitations"].append("代表関数の静的解析と全体ロジック整理を完了し、選定外範囲と制約を記録した。")
-        _json_dump(analysis_path, analysis)
 
         readme_path = case_dir / "README.md"
-        readme = readme_path.read_text(encoding="utf-8-sig")
+        readme = _bounded_content_snapshot(readme_path).data.decode("utf-8-sig")
         readme = re.sub(
             r"(?m)^- 静的ロジック状態: `[^`]+`$",
             f"- 静的ロジック状態: `{report['status']}`",
@@ -6278,13 +9628,36 @@ def publish_cases(
         )
         if "[OVERALL-LOGIC.md](OVERALL-LOGIC.md)" not in readme:
             readme = readme.rstrip() + "\n\n" + detail_line + "\n"
-        readme_path.write_text(readme, encoding="utf-8")
-        _refresh_preverified_case_manifest(
+        planned_updates = {
+            "static-logic.json": _json_bytes(report),
+            "STATIC-LOGIC.md": _render_markdown(report).encode("utf-8"),
+            "OVERALL-LOGIC.md": _render_overall_logic(
+                report,
+                load_static_layers(case_dir),
+            ).encode("utf-8"),
+            "analysis.json": _json_bytes(analysis),
+            "README.md": readme.encode("utf-8"),
+        }
+        _assert_snapshot_unchanged(
+            preverified_report_snapshot,
+            context="case-wide shadow生成直前",
+        )
+        finalized_case_state, finalized_c2_validation = _publish_shadow_case_transaction(
             case_dir,
             preverified_case_report,
-            preverified_report_snapshot,
+            planned_updates,
+            repository=repository,
+            transaction_root=transaction_root,
         )
-        finalized_case_state = finalize_case_report(case_dir)
+        finalized_case_report = load_json_object_strict(case_dir / "report.json")
+        finalized_case_errors = case_integrity_errors(
+            case_dir,
+            finalized_case_report,
+            expected_digest=case_sha,
+            require_resumable=finalized_case_state == "complete",
+        )
+        if finalized_case_errors:
+            raise ValueError(f"case-wide公開後の再検証に失敗しました: {case_sha}: {finalized_case_errors}")
 
         status_counts[report["status"]] += 1
         totals["discovered_functions"] += discovered_count
@@ -6302,6 +9675,9 @@ def publish_cases(
             "status": report["status"],
             "coverage": report["coverage"],
             "case_state": finalized_case_state,
+            "c2_analysis_outcome": str(finalized_c2_validation.get("outcome") or "unresolved"),
+            "c2_analysis_complete": bool(finalized_c2_validation.get("complete")),
+            "c2_analysis_finding_count": int(finalized_c2_validation.get("finding_count") or 0),
         }
 
     summary_path = collection_dir / "publication-summary.json"
@@ -6331,10 +9707,14 @@ def publish_cases(
             item["function_analysis"] = per_case[sha]["coverage"]
             item["case_state"] = per_case[sha]["case_state"]
             item["publication_stage"] = (
-                "complete"
-                if per_case[sha]["case_state"] == "complete"
-                else "partial_followup_required"
+                "complete" if per_case[sha]["case_state"] == "complete" else "partial_followup_required"
             )
+            for key in (
+                "c2_analysis_outcome",
+                "c2_analysis_complete",
+                "c2_analysis_finding_count",
+            ):
+                item[key] = per_case[sha][key]
     _json_dump(summary_path, summary)
 
     readme_path = collection_dir / "README.md"
@@ -6383,9 +9763,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     private_output = _resolve_without_reparse(args.private_output)
     raw_prepared_input_root = getattr(args, "prepared_input_root", None)
     prepared_input_root = (
-        _resolve_without_reparse(raw_prepared_input_root)
-        if raw_prepared_input_root is not None
-        else sample_root
+        _resolve_without_reparse(raw_prepared_input_root) if raw_prepared_input_root is not None else sample_root
     )
     if (
         isinstance(args.minimum_free_bytes, bool)
@@ -6411,27 +9789,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         private_output,
         collection_id=collection_dir.name,
     )
-    checkpoint_prepared = bool(
-        checkpoint is not None and checkpoint.get("inventory_prepared") is True
-    )
+    checkpoint_prepared = bool(checkpoint is not None and checkpoint.get("inventory_prepared") is True)
     checkpoint_inventory_sha256 = (
-        str(checkpoint["prepared_inventory_sha256"])
-        if checkpoint_prepared and checkpoint is not None
-        else None
+        str(checkpoint["prepared_inventory_sha256"]) if checkpoint_prepared and checkpoint is not None else None
     )
     postprocessing_only = bool(
-        checkpoint_prepared
-        and checkpoint is not None
-        and checkpoint.get("postprocessing_pending") is True
+        checkpoint_prepared and checkpoint is not None and checkpoint.get("postprocessing_pending") is True
     )
     effective_reuse = bool(args.reuse_prepared_inputs or checkpoint_prepared)
-    resume_mode = (
-        "postprocessing_only"
-        if postprocessing_only
-        else "prepared_inputs"
-        if effective_reuse
-        else "fresh"
-    )
+    resume_mode = "postprocessing_only" if postprocessing_only else "prepared_inputs" if effective_reuse else "fresh"
     storage_paths = _storage_guard_paths(
         args,
         repository,
@@ -6453,29 +9819,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             inventory_prepared=checkpoint_prepared,
             prepared_inventory_sha256=checkpoint_inventory_sha256,
             unique_pe_programs=(
-                int(checkpoint["unique_pe_programs"])
-                if checkpoint_prepared and checkpoint is not None
-                else None
+                int(checkpoint["unique_pe_programs"]) if checkpoint_prepared and checkpoint is not None else None
             ),
             complete_programs=(
-                int(checkpoint["complete_programs"])
-                if checkpoint_prepared and checkpoint is not None
-                else 0
+                int(checkpoint["complete_programs"]) if checkpoint_prepared and checkpoint is not None else 0
             ),
             cached_programs=(
-                int(checkpoint["cached_programs"])
-                if checkpoint_prepared and checkpoint is not None
-                else 0
+                int(checkpoint["cached_programs"]) if checkpoint_prepared and checkpoint is not None else 0
             ),
             newly_analyzed_programs=(
-                int(checkpoint["newly_analyzed_programs"])
-                if checkpoint_prepared and checkpoint is not None
-                else 0
+                int(checkpoint["newly_analyzed_programs"]) if checkpoint_prepared and checkpoint is not None else 0
             ),
             pending_programs=(
-                list(checkpoint["pending_programs"])
-                if checkpoint_prepared and checkpoint is not None
-                else []
+                list(checkpoint["pending_programs"]) if checkpoint_prepared and checkpoint is not None else []
             ),
             postprocessing_pending=postprocessing_only,
             prepared_inputs_reused=False,
@@ -6486,9 +9842,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         return progress
     inventory_snapshot: _JsonFileSnapshot
     if effective_reuse:
-        inventory_snapshot = _bounded_json_snapshot(
-            private_output / "input-relationships.json"
-        )
+        inventory_snapshot = _bounded_json_snapshot(private_output / "input-relationships.json")
         objects, non_pe = load_prepared_inputs(
             sample_root,
             private_output,
@@ -6497,6 +9851,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             prepared_input_root=prepared_input_root,
         )
     else:
+
         def preparation_storage_guard(
             phase: str,
             role: str,
@@ -6548,9 +9903,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             )
         except _InputPreparationStopped as exc:
             return exc.progress
-        inventory_snapshot = _bounded_json_snapshot(
-            private_output / "input-relationships.json"
-        )
+        inventory_snapshot = _bounded_json_snapshot(private_output / "input-relationships.json")
     validate_prepared_scope(
         collection_dir,
         private_output,
@@ -6583,16 +9936,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         cached_snapshot: _JsonFileSnapshot | None = None
         if result_path.is_file():
             cached, cached_snapshot = _load_program_result(result_path)
-            cached_complete = cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True
+            cached_complete = bool(cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True)
+            native_zero_recovery_pending = _native_zero_function_recovery_pending(cached)
+            if cached_complete and native_zero_recovery_pending and item.input_snapshot is None:
+                cached = _terminalize_unavailable_native_zero_function_recovery(
+                    result_path,
+                    cached,
+                )
+                cached_complete = True
+            elif native_zero_recovery_pending:
+                cached_complete = False
         if postprocessing_only and not cached_complete:
-            raise ValueError(
-                "postprocessing-only checkpointに未完了program cacheがあります"
-            )
+            raise ValueError("postprocessing-only checkpointに未完了program cacheがあります")
         if cached_complete:
-            if (
-                cached is None
-                or cached_snapshot is None
-            ):  # pragma: no cover - 直前の代入契約の最終防御
+            if cached is None or cached_snapshot is None:  # pragma: no cover - 直前の代入契約の最終防御
                 raise RuntimeError("完了cacheを読み込めませんでした")
             selection_before = _json_bytes(cached)
             ensure_characteristic_selection(cached)
@@ -6657,11 +10014,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         progress = _run_progress_document(
             collection_id=collection_dir.name,
             status="ghidra_chunk_pending",
-            stop_reason=(
-                "minimum_free_space_not_met"
-                if storage_blocked
-                else "max_new_programs_reached"
-            ),
+            stop_reason=("minimum_free_space_not_met" if storage_blocked else "max_new_programs_reached"),
             retryable=True,
             inventory_prepared=True,
             prepared_inventory_sha256=prepared_inventory_sha256,
@@ -6737,7 +10090,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     if not private_validation["complete"]:
         raise RuntimeError(f"生の静的解析成果物に欠落があります: {private_validation['invalid_programs']}")
-    publication = publish_cases(repository, collection_dir, results, non_pe)
+    publication = publish_cases(
+        repository,
+        collection_dir,
+        results,
+        non_pe,
+        transaction_root=private_output / "finalize-transactions",
+    )
     validation = validate_collection(repository, collection_dir)
     if not validation["complete"]:
         raise RuntimeError(f"代表関数解析の完了条件を満たさないcaseがあります: {validation['invalid_cases']}")
@@ -6851,10 +10210,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--minimum-free-bytes",
         type=int,
         default=DEFAULT_MINIMUM_FREE_BYTES,
-        help=(
-            "各解析programの開始前後に確保する空き容量。"
-            f"既定は{DEFAULT_MINIMUM_FREE_BYTES} bytesです"
-        ),
+        help=(f"各解析programの開始前後に確保する空き容量。既定は{DEFAULT_MINIMUM_FREE_BYTES} bytesです"),
     )
     parser.add_argument(
         "--disk-guard-path",
@@ -6928,10 +10284,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.max_new_programs is not None and args.max_new_programs < 0:
         raise ValueError("--max-new-programsは0以上で指定してください")
     if args.minimum_free_bytes < MINIMUM_CONFIGURABLE_FREE_BYTES:
-        raise ValueError(
-            "--minimum-free-bytesは"
-            f"{MINIMUM_CONFIGURABLE_FREE_BYTES}以上で指定してください"
-        )
+        raise ValueError(f"--minimum-free-bytesは{MINIMUM_CONFIGURABLE_FREE_BYTES}以上で指定してください")
     invalid_hashes = [value for value in args.skip_auto_analysis_sha256 if not SHA256_RE.fullmatch(value)]
     if invalid_hashes:
         raise ValueError("--skip-auto-analysis-sha256は64文字のSHA-256で指定してください")

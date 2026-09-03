@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 
-
 FRAMEWORK = Path(__file__).parents[1]
 REPOSITORY = FRAMEWORK.parent
 BATCH13 = REPOSITORY / "analysis-results/research/malwarebazaar/batches/batch-0013"
@@ -105,6 +104,29 @@ def test_screenconnect_extractor_redacts_synthetic_tenant_key() -> None:
     assert result["relay"]["tenant_key_length"] == len(key)
     assert key not in json.dumps(result, ensure_ascii=False)
     assert result["relay"]["redacted_query"].endswith("&k=<redacted>")
+    assert result["config"]["static_config_recovered"] is True
+    assert result["config"]["static_evidence"] == {
+        "all_expected_fields_validated": True,
+        "source": "screenconnect_embedded_management_configuration",
+        "dual_use_endpoint": True,
+    }
+    assert result["config"]["config_endpoints"] == [
+        {
+            "host": "tenant-lab-relay.screenconnect.com",
+            "port": 443,
+            "transport": "tcp_tls",
+            "role": "remote_management_relay",
+            "confidence": "confirmed_static_configuration",
+            "evidence": {
+                "kind": "screenconnect_embedded_management_endpoint",
+                "c2_classification": "dual_use_not_c2_by_itself",
+                "malicious_use_confirmed": False,
+            },
+        }
+    ]
+    assert "tenant_key" not in json.dumps(
+        result["config"], ensure_ascii=False
+    ).casefold()
 
 
 def test_screenconnect_file_detector_requires_extractor_compatible_query() -> None:
@@ -124,9 +146,214 @@ def test_screenconnect_file_detector_requires_extractor_compatible_query() -> No
     assert result["campaigns"][0]["reasons"] == [
         "screenconnect_product",
         "installer_marker",
-        "relay_suffix",
+        "direct_or_tenant_relay_host",
         "extractor_compatible_query",
     ]
+
+
+def test_screenconnect_direct_ip_relay_query_is_shared_and_redacted() -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    extractor = family_module("screenconnect_rmm")
+    key = "synthetic-direct-ip-key-0123456789-abcdefghijklmnop"
+    data = (
+        b"MZScreenConnect.WindowsInstaller\x00ClientSetup\x00"
+        + f"?h=102.220.160.93&p=8041&k={key}".encode("ascii")
+    )
+
+    detected = detector.detect(data, Path("synthetic-direct-ip.exe"))
+    extracted = extractor.extract_config(data)
+
+    assert detected["matched"] is True
+    assert detected["observations"]["relay_suffix"] is False
+    assert detected["observations"]["extractor_compatible_query"] is True
+    assert detected["campaigns"][0]["reasons"] == [
+        "screenconnect_product",
+        "installer_marker",
+        "direct_or_tenant_relay_host",
+        "extractor_compatible_query",
+    ]
+    assert extracted["relay"]["host"] == "102.220.160.93"
+    assert extracted["relay"]["port"] == 8041
+    assert extracted["relay"]["tenant_key_sha256"] == hashlib.sha256(
+        key.encode("ascii")
+    ).hexdigest()
+    assert key not in json.dumps(extracted, ensure_ascii=False)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "?h=-invalid.example&p=443&k=" + "a" * 40,
+        "?h=relay.example&p=65536&k=" + "b" * 40,
+        "?h=999.999.999.999&p=443&k=" + "c" * 40,
+    ],
+    ids=["invalid_host", "invalid_port", "invalid_numeric_ip"],
+)
+def test_screenconnect_shared_relay_parser_rejects_invalid_endpoint(query: str) -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    extractor = family_module("screenconnect_rmm")
+    data = b"MZScreenConnect.WindowsInstaller\x00ClientSetup\x00" + query.encode("ascii")
+
+    assert detector.detect(data, Path("invalid.exe"))["matched"] is False
+    with pytest.raises(ValueError, match="埋め込みリレー照会"):
+        extractor.extract_config(data)
+
+
+def test_screenconnect_shared_relay_parser_rejects_ambiguous_queries() -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    extractor = family_module("screenconnect_rmm")
+    first = "?h=192.0.2.10&p=443&k=" + "a" * 40
+    second = "?h=192.0.2.11&p=8443&k=" + "b" * 40
+    data = (
+        b"MZScreenConnect.WindowsInstaller\x00ClientSetup\x00"
+        + first.encode("ascii")
+        + b"\x00"
+        + second.encode("ascii")
+    )
+
+    assert detector.detect(data, Path("ambiguous.exe"))["matched"] is False
+    with pytest.raises(ValueError, match="複数の異なるリレー照会"):
+        extractor.extract_config(data)
+
+
+@pytest.mark.parametrize(
+    ("key_length", "accepted"),
+    [(31, False), (32, True), (2048, True), (2049, False)],
+)
+def test_screenconnect_relay_key_length_has_exact_token_boundary(
+    key_length: int,
+    accepted: bool,
+) -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    extractor = family_module("screenconnect_rmm")
+    key = "a" * key_length
+    data = (
+        b"MZScreenConnect.WindowsInstaller\x00ClientSetup\x00"
+        + f"?h=192.0.2.10&p=443&k={key}".encode("ascii")
+    )
+
+    detected = detector.detect(data, Path("key-boundary.exe"))
+    assert detected["matched"] is accepted
+    if accepted:
+        result = extractor.extract_config(data)
+        assert result["relay"]["tenant_key_length"] == key_length
+    else:
+        with pytest.raises(ValueError, match="埋め込みリレー照会"):
+            extractor.extract_config(data)
+
+
+def test_screenconnect_auxiliary_malformed_url_is_skipped_without_leak() -> None:
+    extractor = family_module("screenconnect_rmm")
+    key = "a" * 40
+    sentinel = "sensitive-sentinel"
+    data = (
+        b"MZScreenConnect.WindowsInstaller\x00ClientSetup\x00"
+        + f"?h=192.0.2.10&p=443&k={key}".encode("ascii")
+        + b"\x00http://["
+        + sentinel.encode("ascii")
+    )
+
+    result = extractor.extract_config(data)
+
+    assert result["relay"]["host"] == "192.0.2.10"
+    assert sentinel not in json.dumps(result, ensure_ascii=False)
+
+
+@pytest.mark.parametrize(
+    "relay_host",
+    ["attacker.example", "localhost", "999.999.999.999"],
+)
+def test_screenconnect_relay_query_rejects_nonvendor_dns_and_invalid_numeric_host(
+    relay_host: str,
+) -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    extractor = family_module("screenconnect_rmm")
+    data = (
+        b"MZScreenConnect.WindowsInstaller\x00ClientSetup\x00"
+        + f"?h={relay_host}&p=443&k=".encode("ascii")
+        + b"a" * 40
+    )
+
+    assert detector.detect(data, Path("invalid-relay-host.exe"))["matched"] is False
+    with pytest.raises(ValueError, match="埋め込みリレー照会"):
+        extractor.extract_config(data)
+
+
+def test_screenconnect_detector_rejects_unique_relay_with_ambiguous_applications() -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    extractor = family_module("screenconnect_rmm")
+    data = (
+        b"MZScreenConnect.WindowsInstaller\x00ClientSetup\x00"
+        b"ScreenConnect.Client.application\x00"
+        b"?h=192.0.2.10&p=443&k=" + b"a" * 40
+        + b"\x00https://192.0.2.20/Bin/ScreenConnect.Client.application"
+        + b"\x00https://192.0.2.21/Bin/ScreenConnect.Client.application"
+    )
+
+    assert detector.detect(data, Path("ambiguous-applications.exe"))["matched"] is False
+    with pytest.raises(ValueError, match="複数の異なるScreenConnect application URL"):
+        extractor.extract_config(data)
+
+
+def test_screenconnect_detector_rejects_ambiguous_relays_with_unique_application() -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    extractor = family_module("screenconnect_rmm")
+    data = (
+        b"MZScreenConnect.WindowsInstaller\x00ClientSetup\x00"
+        b"ScreenConnect.Client.application\x00"
+        b"?h=192.0.2.10&p=443&k=" + b"a" * 40
+        + b"\x00?h=192.0.2.11&p=8443&k=" + b"b" * 40
+        + b"\x00https://192.0.2.20/Bin/ScreenConnect.Client.application"
+    )
+
+    assert detector.detect(data, Path("ambiguous-relays.exe"))["matched"] is False
+    with pytest.raises(ValueError, match="複数の異なるリレー照会"):
+        extractor.extract_config(data)
+
+
+def test_screenconnect_odd_offset_utf16_markers_share_detector_contract() -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    extractor = family_module("screenconnect_rmm")
+    data = (
+        b"MZX"
+        + "ScreenConnect.WindowsInstaller".encode("utf-16le")
+        + b"\x00?h=192.0.2.10&p=443&k="
+        + b"a" * 40
+    )
+
+    detected = detector.detect(data, Path("odd-offset-wide.exe"))
+    extracted = extractor.extract_config(data)
+
+    assert detected["matched"] is True
+    assert extracted["artifact_role"] == "access_agent_installer"
+    assert extracted["relay"]["host"] == "192.0.2.10"
+
+
+def test_screenconnect_relay_without_installer_marker_is_rejected_by_both() -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    extractor = family_module("screenconnect_rmm")
+    data = (
+        b"MZScreenConnect\x00?h=192.0.2.10&p=443&k="
+        + b"a" * 40
+    )
+
+    assert detector.detect(data, Path("markerless-relay.exe"))["matched"] is False
+    with pytest.raises(ValueError, match="installer marker"):
+        extractor.extract_config(data)
+
+
+def test_screenconnect_unique_application_does_not_mask_markerless_relay() -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    extractor = family_module("screenconnect_rmm")
+    data = (
+        b"MZScreenConnect.Client.application\x00"
+        b"?h=192.0.2.10&p=443&k=" + b"a" * 40
+        + b"\x00https://192.0.2.20/Bin/ScreenConnect.Client.application"
+    )
+
+    assert detector.detect(data, Path("mixed-markerless-relay.exe"))["matched"] is False
+    with pytest.raises(ValueError, match="installer marker"):
+        extractor.extract_config(data)
 
 
 @pytest.mark.parametrize(
@@ -152,6 +379,8 @@ def test_screenconnect_file_detector_rejects_nonextractable_query(query: str) ->
         "installer_marker": True,
         "relay_suffix": True,
         "extractor_compatible_query": False,
+        "application_marker": False,
+        "extractor_compatible_application_url": False,
     }
     assert result["campaigns"] == []
     with pytest.raises(ValueError, match="埋め込みリレー照会"):
@@ -172,6 +401,189 @@ def test_screenconnect_file_detector_preserves_exact_reviewed_hash(
     assert result["observations"]["extractor_compatible_query"] is False
     assert result["campaigns"][0]["confidence"] == "high"
     assert result["campaigns"][0]["reasons"] == ["reviewed_sha256"]
+
+
+def test_screenconnect_support_client_application_profile_is_deterministic() -> None:
+    extractor = family_module("screenconnect_rmm")
+    application_url = (
+        "http://31.42.176.91:5001/Bin/ScreenConnect.Client.application"
+    )
+    certificate_url = "http://cacerts.digicert.com/DigiCertAssuredIDRootCA.crt"
+    data = (
+        b"MZScreenConnect.Client.application\x00ClickOnceRunner\x00"
+        + application_url.encode("ascii")
+        + b"\x00ScreenConnect.ClientService.dll25.2.4.92290"
+        + b"ScreenConnect.Client.dll\x00"
+        + certificate_url.encode("ascii")
+        + b"\x001.3.6.1\x00"
+    )
+
+    result = extractor.extract_config(data)
+
+    assert result["classification"] == "commercial_rmm_dual_use"
+    assert result["artifact_role"] == "clickonce_bootstrap_client"
+    assert result["version"] == "25.2.4.92290"
+    assert result["build"] == {
+        "status": "recovered",
+        "value": "25.2.4.92290",
+        "source": "screenconnect_adjacent_version_string",
+    }
+    assert "relay" not in result
+    assert result["application"] == {
+        "url": application_url,
+        "scheme": "http",
+        "host": "31.42.176.91",
+        "port": 5001,
+        "path": "/Bin/ScreenConnect.Client.application",
+        "transport": "tcp",
+        "role": "screenconnect_clickonce_bootstrap",
+        "contacted": False,
+        "c2_classification": "dual_use_management_endpoint_not_c2_by_itself",
+    }
+    assert result["network_contacted"] is False
+    assert result["sample_executed"] is False
+    assert result["malicious_use_context"] == {
+        "assessment": "requires_incident_context",
+        "malicious_use_confirmed": False,
+        "unauthorized_installation_observed": False,
+        "embedded_management_endpoint_observed": True,
+        "requires_authorization_and_delivery_context": True,
+        "rationale_ja": (
+            "ScreenConnectはデュアルユース製品であり、埋め込み管理先だけでは"
+            "不正導入またはC2利用を確定できない"
+        ),
+    }
+    assert result["indicator_filter"]["authenticode_certificate_url_count"] >= 1
+    assert result["indicator_filter"]["asn1_oid_count"] >= 1
+    assert result["indicator_filter"]["excluded_values_published"] is False
+    assert result["hunt_guidance"]["shodan_queries"] == [
+        "ip:31.42.176.91 port:5001"
+    ]
+    serialized = json.dumps(result, ensure_ascii=False)
+    assert certificate_url not in serialized
+    assert "1.3.6.1" not in serialized
+
+
+@pytest.mark.parametrize(
+    ("application_url", "expected_host", "expected_port", "expected_transport"),
+    [
+        (
+            "http://31.42.176.91:5001/Bin/ScreenConnect.Client.application",
+            "31.42.176.91", 5001, "tcp",
+        ),
+        (
+            "http://23.146.240.17/Bin/ScreenConnect.Client.application",
+            "23.146.240.17", 80, "tcp",
+        ),
+        (
+            "http://23.148.146.148/Bin/ScreenConnect.Client.application",
+            "23.148.146.148", 80, "tcp",
+        ),
+        (
+            "https://102.220.160.93/Bin/ScreenConnect.Client.application",
+            "102.220.160.93", 443, "tcp_tls",
+        ),
+        (
+            "http://23.146.242.101/Bin/ScreenConnect.Client.application",
+            "23.146.242.101", 80, "tcp",
+        ),
+        (
+            "https://102.220.160.223/Bin/ScreenConnect.Client.application",
+            "102.220.160.223", 443, "tcp_tls",
+        ),
+        (
+            "https://93.152.221.193/Bin/ScreenConnect.Client.application",
+            "93.152.221.193", 443, "tcp_tls",
+        ),
+    ],
+    ids=[
+        "0142e425", "249e01fa", "824b7cfe", "8a08133e",
+        "ab60f3ec", "eb528aa8", "f0885b53",
+    ],
+)
+def test_screenconnect_support_client_detector_requires_exact_application_url(
+    application_url: str,
+    expected_host: str,
+    expected_port: int,
+    expected_transport: str,
+) -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    extractor = family_module("screenconnect_rmm")
+    data = b"MZScreenConnect.Client.application\x00" + application_url.encode("ascii")
+
+    result = detector.detect(data, Path("support.client.exe"))
+    config = extractor.extract_config(data)
+
+    assert result["matched"] is True
+    assert result["classification"] == "commercial_rmm_dual_use"
+    assert result["malware_by_itself"] is False
+    assert result["requires_incident_context"] is True
+    assert result["observations"]["extractor_compatible_query"] is False
+    assert result["observations"]["application_marker"] is True
+    assert result["observations"]["extractor_compatible_application_url"] is True
+    assert result["campaigns"][0]["reasons"] == [
+        "screenconnect_product",
+        "application_marker",
+        "extractor_compatible_application_url",
+    ]
+    assert config["application"]["url"] == application_url
+    assert config["application"]["host"] == expected_host
+    assert config["application"]["port"] == expected_port
+    assert config["application"]["transport"] == expected_transport
+    assert config["network_contacted"] is False
+    assert config["sample_executed"] is False
+
+
+def test_screenconnect_support_client_rejects_multiple_application_urls() -> None:
+    extractor = family_module("screenconnect_rmm")
+    data = (
+        b"MZScreenConnect.Client.application\x00"
+        b"http://31.42.176.91:5001/Bin/ScreenConnect.Client.application\x00"
+        b"http://23.146.240.17/Bin/ScreenConnect.Client.application\x00"
+    )
+
+    with pytest.raises(ValueError, match="複数の異なるScreenConnect application URL"):
+        extractor.extract_config(data)
+
+
+@pytest.mark.parametrize(
+    "application_url",
+    [
+        "https://example.com/Bin/ScreenConnect.Client.application.evil",
+        "https://example.com/Bin/ScreenConnect.Client.application?tenant=1",
+        "https://example.com/Bin/ScreenConnect.Client.application#fragment",
+        "https://example.com/bin/other.application",
+        "https://bad..example/Bin/ScreenConnect.Client.application",
+        "https://user@example.com/Bin/ScreenConnect.Client.application",
+        "https://example.com:/Bin/ScreenConnect.Client.application",
+        "https://example.com:0/Bin/ScreenConnect.Client.application",
+        "https://example.com:65536/Bin/ScreenConnect.Client.application",
+        "https://example.com/Bin/ScreenConnect%2EClient%2Eapplication",
+    ],
+)
+def test_screenconnect_application_parser_rejects_prefix_spoof_and_invalid_url(
+    application_url: str,
+) -> None:
+    detector = family_module("screenconnect_rmm", "detect.py")
+    extractor = family_module("screenconnect_rmm")
+    data = (
+        b"MZScreenConnect.Client.application\x00"
+        + application_url.encode("ascii")
+        + b"\x00"
+    )
+
+    detection = detector.detect(data, Path("spoofed-support-client.exe"))
+
+    assert detection["matched"] is False
+    assert (
+        detection["observations"]["extractor_compatible_application_url"]
+        is False
+    )
+    with pytest.raises(
+        ValueError,
+        match="埋め込みリレー照会またはapplication URL",
+    ):
+        extractor.extract_config(data)
 
 
 def test_screenconnect_detector_requires_product_and_authorization_context() -> None:

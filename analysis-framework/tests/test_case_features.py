@@ -106,6 +106,35 @@ def test_profile_contains_only_positive_documented_behavior(tmp_path: Path) -> N
     assert "通信は未確認" not in rendered
 
 
+def test_profile_records_screenconnect_remote_command_capability(tmp_path: Path) -> None:
+    """双用途clientの実コマンド能力を、悪性利用の断定と分離して残す。"""
+
+    case = _case(tmp_path)
+    (case / "README.md").write_text(
+        """# fixture
+
+## 双用途管理・コマンド実行能力
+
+- 遠隔コマンド実行能力: `RunCommandLineProgram`は実行時のFileName／ArgumentsをProcess.Startへ渡します。
+- 固定operator commandは静的に未復元です。
+
+## 制約
+
+- 悪性利用そのものは未確認です。
+""",
+        encoding="utf-8",
+    )
+
+    profile = build_case_profile(case)
+
+    assert "execution:remote_command" in {
+        item["id"] for item in profile["behaviors"]
+    }
+    serialized = json.dumps(profile, ensure_ascii=False)
+    assert "固定operator command" not in serialized
+    assert "悪性利用そのもの" not in serialized
+
+
 def test_profile_records_in_memory_processing_behavior(tmp_path: Path) -> None:
     """network機能がない計算programも実挙動を空欄にしない。"""
 
@@ -338,7 +367,7 @@ def test_complete_report_does_not_reduce_complete_assessment(tmp_path: Path) -> 
                 "case_state": {
                     "status": "complete",
                     "complete": True,
-                    "resumable": False,
+                    "resumable": True,
                 },
             }
         ),

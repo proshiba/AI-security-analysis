@@ -3,14 +3,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
-from pathlib import Path
+import heapq
 import re
-from typing import Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 from unpackers.static_unpacker import detect_format
-
 
 MAX_STATIC_LAYERS = 64
 MAX_STATIC_DEPTH = 6
@@ -18,6 +19,23 @@ MAX_RECOVERED_LAYER_SIZE = 128 * 1024 * 1024
 MAX_RECOVERED_TOTAL_SIZE = 256 * 1024 * 1024
 MAX_STATIC_COMPRESSION_RATIO = 100.0
 MAX_ARCHIVE_MEMBERS = 512
+
+ACTIONABLE_FORMATS = frozenset(
+    {"pe", "elf", "macho", "script", "autoit-a3x", "java-class"}
+)
+CONTAINER_FORMATS = frozenset(
+    {"7z", "zip", "cab", "rar", "xz", "asar", "ole", "apple-disk-image"}
+)
+HIGH_VALUE_KIND_RE = re.compile(
+    r"(?:^|[._-])(?:config|command|script|powershell|javascript|js|vbs|"
+    r"shellcode|payload|stage|loader|embedded|decoded|decrypted|"
+    r"decompressed|reassembled)(?:$|[._-])",
+    re.IGNORECASE,
+)
+LOW_VALUE_RESOURCE_KIND_RE = re.compile(
+    r"(?:^|[._-])(?:png|jpe?g|gif|bmp|ico|icon|wav|audio|font|ttf|otf)(?:$|[._-])",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -84,6 +102,17 @@ class StaticLayer:
 
 
 @dataclass(frozen=True)
+class _PendingStaticLayer:
+    """digestごとの保留中最良候補と安定順序を保持する。"""
+
+    priority: int
+    sequence: int
+    revision: int
+    layer: StaticLayer
+    parent_step: dict[str, Any] | None
+
+
+@dataclass(frozen=True)
 class StaticLayerPolicy:
     """再帰展開の件数・深さ・容量・圧縮率上限をまとめた共有ポリシー。"""
 
@@ -137,7 +166,7 @@ def _safe_sanitize(sanitizer: Sanitizer, value: Any) -> Any:
 
     try:
         return sanitizer(value)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - 任意sanitizer境界をfail closedにする
         return {
             "sanitization_failed": True,
             "error_type": type(exc).__name__,
@@ -149,11 +178,28 @@ def _artifact_label(value: object) -> str:
 
     try:
         text = str(value)
-    except Exception:
+    except Exception:  # noqa: BLE001 - 任意labelの__str__失敗を閉じ込める
         return "artifact"
     text = "".join(character if 32 <= ord(character) < 127 else "_" for character in text)
     text = re.sub(r"[^A-Za-z0-9._-]+", "_", text).strip("._")
     return (text or "artifact")[:80]
+
+
+def _artifact_analysis_priority(artifact_kind: str, blob: bytes) -> int:
+    """magicと信頼済みtransform種別から静的解析queueの価値tierを返す。"""
+
+    artifact_format = detect_format(blob, artifact_kind)
+    if artifact_format in CONTAINER_FORMATS:
+        return 0
+    if artifact_format in ACTIONABLE_FORMATS:
+        return 1
+    if artifact_format == "png" or LOW_VALUE_RESOURCE_KIND_RE.search(artifact_kind):
+        return 5
+    if HIGH_VALUE_KIND_RE.search(artifact_kind):
+        return 2
+    if "opaque" in artifact_kind.casefold():
+        return 3
+    return 4
 
 
 def recover_static_layers(
@@ -184,15 +230,53 @@ def recover_static_layers(
         transform="submission",
     )
     layers = [root]
-    seen = {root.sha256}
+    processed_digests: set[str] = set()
     steps: list[dict[str, Any]] = []
     recovered_total = 0
+    reserved_total = 0
     deduplicated_artifacts = 0
-    cursor = 0
+    discovery_sequence = 0
+    queue_revision = 0
+    root_pending = _PendingStaticLayer(
+        priority=-1,
+        sequence=discovery_sequence,
+        revision=queue_revision,
+        layer=root,
+        parent_step=None,
+    )
+    pending_best = {root.sha256: root_pending}
+    pending_layers: list[tuple[int, int, int, int, str]] = [
+        (-1, 0, discovery_sequence, queue_revision, root.sha256)
+    ]
     limit_events: list[dict[str, Any]] = []
-    while cursor < len(layers):
-        layer = layers[cursor]
-        cursor += 1
+    while pending_layers:
+        _priority, _negative_depth, _sequence, revision, digest = heapq.heappop(
+            pending_layers
+        )
+        pending = pending_best.get(digest)
+        if pending is None or pending.revision != revision:
+            continue
+        del pending_best[digest]
+        processed_digests.add(digest)
+        layer = pending.layer
+        if layer.parent_sha256 is not None:
+            if len(layers) >= effective_policy.max_layers:
+                limit_events.append(
+                    {
+                        "parent_sha256": layer.parent_sha256,
+                        "kind": layer.transform,
+                        "sha256": layer.sha256,
+                        "size": len(layer.data),
+                        "reason": "layer_count_limit",
+                    }
+                )
+                continue
+            layers.append(layer)
+            recovered_total += len(layer.data)
+            parent_step = pending.parent_step
+            if parent_step is None:
+                raise RuntimeError("queued static layerのparent stepがありません")
+            parent_step["accepted_children"].append(layer.public())
         if layer.depth >= effective_policy.max_depth:
             steps.append(
                 {
@@ -201,20 +285,18 @@ def recover_static_layers(
                 }
             )
             continue
-        remaining_total = effective_policy.max_total_size - recovered_total
-        remaining_layers = effective_policy.max_layers - len(layers)
-        if remaining_total <= 0 or remaining_layers <= 0:
-            reason = "recovered_total_limit" if remaining_total <= 0 else "layer_count_limit"
+        remaining_total = effective_policy.max_total_size - reserved_total
+        if remaining_total <= 0:
             limit_events.append(
                 {
                     "parent_sha256": layer.sha256,
-                    "reason": reason,
+                    "reason": "recovered_total_limit",
                 }
             )
             steps.append(
                 {
                     "input_layer": layer.public(),
-                    "status": f"skipped_{reason}",
+                    "status": "skipped_recovered_total_limit",
                 }
             )
             continue
@@ -243,7 +325,7 @@ def recover_static_layers(
                 "report": _safe_sanitize(sanitizer, report),
                 "accepted_children": [],
             }
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - 任意unpacker境界をfail closedにする
             steps.append(
                 {
                     "input_layer": layer.public(),
@@ -252,7 +334,8 @@ def recover_static_layers(
                 }
             )
             continue
-        for artifact in artifacts:
+        candidates: list[tuple[int, int, str, bytes, str]] = []
+        for artifact_index, artifact in enumerate(artifacts):
             if not isinstance(artifact, tuple) or len(artifact) != 2:
                 limit_events.append(
                     {
@@ -282,9 +365,6 @@ def recover_static_layers(
                 )
                 continue
             digest = hashlib.sha256(blob).hexdigest()
-            if digest in seen:
-                deduplicated_artifacts += 1
-                continue
             if len(blob) > effective_policy.max_layer_size:
                 limit_events.append(
                     {
@@ -296,7 +376,53 @@ def recover_static_layers(
                     }
                 )
                 continue
-            if recovered_total + len(blob) > effective_policy.max_total_size:
+            candidates.append(
+                (
+                    _artifact_analysis_priority(artifact_kind, blob),
+                    artifact_index,
+                    artifact_kind,
+                    blob,
+                    digest,
+                )
+            )
+        for priority, _index, artifact_kind, blob, digest in sorted(candidates):
+            if digest in processed_digests:
+                deduplicated_artifacts += 1
+                continue
+            existing = pending_best.get(digest)
+            if existing is not None:
+                deduplicated_artifacts += 1
+                if priority >= existing.priority:
+                    continue
+                child = StaticLayer(
+                    name=f"{layer.name}::{artifact_kind}",
+                    data=blob,
+                    sha256=digest,
+                    parent_sha256=layer.sha256,
+                    depth=layer.depth + 1,
+                    transform=str(artifact_kind),
+                )
+                queue_revision += 1
+                replacement = _PendingStaticLayer(
+                    priority=priority,
+                    sequence=existing.sequence,
+                    revision=queue_revision,
+                    layer=child,
+                    parent_step=step,
+                )
+                pending_best[digest] = replacement
+                heapq.heappush(
+                    pending_layers,
+                    (
+                        priority,
+                        -child.depth,
+                        existing.sequence,
+                        queue_revision,
+                        digest,
+                    ),
+                )
+                continue
+            if reserved_total + len(blob) > effective_policy.max_total_size:
                 limit_events.append(
                     {
                         "parent_sha256": layer.sha256,
@@ -304,17 +430,6 @@ def recover_static_layers(
                         "sha256": digest,
                         "size": len(blob),
                         "reason": "recovered_total_limit",
-                    }
-                )
-                continue
-            if len(layers) >= effective_policy.max_layers:
-                limit_events.append(
-                    {
-                        "parent_sha256": layer.sha256,
-                        "kind": str(artifact_kind),
-                        "sha256": digest,
-                        "size": len(blob),
-                        "reason": "layer_count_limit",
                     }
                 )
                 continue
@@ -326,10 +441,26 @@ def recover_static_layers(
                 depth=layer.depth + 1,
                 transform=str(artifact_kind),
             )
-            layers.append(child)
-            seen.add(digest)
-            recovered_total += len(blob)
-            step["accepted_children"].append(child.public())
+            reserved_total += len(blob)
+            discovery_sequence += 1
+            queue_revision += 1
+            pending_best[digest] = _PendingStaticLayer(
+                priority=priority,
+                sequence=discovery_sequence,
+                revision=queue_revision,
+                layer=child,
+                parent_step=step,
+            )
+            heapq.heappush(
+                pending_layers,
+                (
+                    priority,
+                    -child.depth,
+                    discovery_sequence,
+                    queue_revision,
+                    digest,
+                ),
+            )
         steps.append(step)
     public = {
         "schema_version": 1,

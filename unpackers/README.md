@@ -6,12 +6,16 @@
 
 | Layer | 静的方法 | 結果 |
 |---|---|---|
-| ZIP/CAB/7z/RAR | 上限付き 7-Zip inventory と抽出 | 保持対象 member と再帰解析 |
+| ZIP/7z/RAR とCABの外部fallback | 上限付き 7-Zip inventory と抽出 | 保持対象 member と再帰解析 |
+| CAB (None/MSZIP) | 宣言件数・size・offsetを事前検証後、`cabarchive`でmemory展開 | 検証済みmemberと再帰解析 |
+| CAB (LZX) | 単一volume、window、全CFDATA checksum、path・size・境界を事前検証後、`binary-refinery`でmemory展開 | 検証済みmemberと再帰解析 |
 | NSIS | NSIS 対応 7-Zip による script decompile | `[NSIS].nsi`、member、明示された script 変換 |
 | NSIS hexadecimal XOR stream | `IntOp` と `IntFmt %08X` の word decode を再現 | System plugin の call stream |
 | NSIS native XOR loader | 上限付き x64 定数伝播後に dword XOR | 実行しない中間 loader |
+| PyInstaller CArchive | cookie／TOC／全entry境界・path衝突・圧縮stream終端・実sizeをmemory上で検証 | script、module、PYZ、PE、入れ子archiveの優先保持と全inventory commitment |
 | UPX | 隔離した入力に対して信頼済み UPX utility を実行 | UPX が file を検証できた場合の unpack 済み PE |
 | PE resource と overlay | offset と size を parse し、有効な PE 範囲を carve | child PE/resource |
+| GDPF PDF overlay | EOFのlittle-endian size、GDPF footer、PE overlay境界、%PDF- magicを同時検証 | 実在する場合だけPDFデコイを子レイヤー化 |
 | .NET ResourceSet | object を deserialize せず serialized resource を parse | string、byte array、image |
 | .NET bitmap steganography | 上限付き RGB column traversal を再現 | 埋め込み managed PE |
 | AutoIt A3X | script が手順を明示する場合に literal、RC4、LZNT1 を decode | 埋め込み PE |
@@ -26,6 +30,12 @@
 
 `static_unpacker.py` が orchestrator です。`javascript_obfuscator.py` は script encoding と string array layer、`javascript_dropper_unpacker.py` は numeric array、Unicode environment、AES-CBC、GZip chain、`nsis_unpacker.py` は明示的な NSIS script と native constant XOR layer を処理します。`static_control_flow.py` は、上限付きの再帰的 x86/x64 entry CFG triage を提供します。`managed_il_triage.py` は CLR を load せず、managed metadata、CIL、resource を棚卸しします。`managed_proxy_deobfuscator.py` は埋込みresourceのhash・entropy・保護候補を列挙し、確認済みEazfuscator系DynamicMethod proxy表をfield→methodの対応へ静的復号します。
 
+CABはparserを呼ぶ前に`MSCF` headerとversion、予約field、cabinet実size、単一volume、folder・file・data block件数、file/folder offset、宣言size、path衝突を検証します。None/MSZIPはこの予算検証後に`cabarchive`へ渡します。LZXはwindow 15–21と全blockの非zero checksumも検証し、`cabarchive`が正確に`LZX compression not supported`を返した場合だけ`binary-refinery`へ切り替えます。LZX固有のpeak memory事前判定は、入力CAB、全folderの復号cache、全memberの`bytes`化、最大decoder window、member・folder・block metadataを合算し、さらにPython runtimeと周辺解析用に256 MiBを予約します。この保守的な見積りが1 GiBを1 byteでも超える場合はdecoder起動前に拒否し、判定内訳と残余byte数を正常時の機械可読contractへ記録します。展開後もfolder/member sizeとmember tableを再照合し、全条件が一致した場合だけ結果を保持します。一時file、外部process、検体・payloadの実行、network通信は使わず、検証失敗時に7-Zipへ迂回しません。checksumを持たないLZX CAB、multi-volume CAB、Quantum圧縮、重複pathは安全側に拒否します。
+
+PyInstaller CArchiveは最大16,384件（hard limit 65,536件）のTOCを先に全検証します。既定budget内では全entryを1件ずつ展開してzlib EOF、宣言size、実size、SHA-256、形式を検証し、非候補bytesは直ちに破棄します。後段へ保持するのは最大128件で、caller指定、Python script、module、PYZ、PE名候補、入れ子archiveの順です。1 entryは64 MiB、保持総量は128 MiB、全内容検証は256 MiB／120秒を上限とし、超過や高価値候補の未保持は`partial`とblockerへ残します。公開reportは全entry列ではなく件数・形式集計とinventory/content commitmentを持ち、PyInstallerという包装形式だけからmalware familyや悪性意図を推定しません。
+
+PE imageの直後1 MiB以内にある`Nullsoft`または`Inno Setup` markerは、image内のUPX等のpacker markerと分離してinstaller候補にします。信頼済み7-Zipが設定されていれば手動`--force-container-probe`なしで境界付きinventoryへ送り、parserが対応しないinstallerは空の成功へせず`container_parser_unavailable`として残します。member件数だけでなく宣言総量が上限を超えるarchiveも、app本体、script、設定、PE等を上限内で選択復元します。
+
 ## 使用 tool
 
 推奨する 7-Zip binary は NSIS decompile 対応 build です。信頼済み archive parser としてだけ使用し、installer は実行しません。
@@ -33,10 +43,10 @@
 外部toolは`PATH`から探索せず、絶対pathで明示した通常fileだけを使います。各processは子孫process containment、active process 8件、memory 1 GiB、stdout／stderr各1 MiB、明示timeout、一時tree最大10,000 entry／1 GiBの内側で実行します。API keyやPython注入環境を継承せず、一時treeのreparse、hardlink、特殊file、path escapeを拒否し、保持する出力は単一handleからsize上限付きで再読込します。これらはkernel sandboxではありません。WebUI／APIのproduction経路では下記の直接path引数を使わず、operatorがSHA-256 pinしたmanifestからjob-private UPX／7zz snapshotを作る`analysis_job_runner.py`を使用します。DIECはproduction契約では無効です。
 
 ```powershell
-$Python = 'C:\Users\Administrator\Tools\Python313\python.exe'
-$SevenZipNSIS = 'C:\Users\Administrator\Tools\7z-nsis-26.02\7z.exe'
-$UPX = 'C:\Users\Administrator\Tools\upx\upx-5.1.1-win64\upx.exe'
-$DiE = 'C:\Users\Administrator\Tools\DetectItEasy-3.21\die\diec.exe'
+$Python = 'C:\Tools\Python313\python.exe'
+$SevenZipNSIS = 'C:\Tools\7z-nsis\7z.exe'
+$UPX = 'C:\Tools\upx\upx.exe'
+$DiE = 'C:\Tools\DetectItEasy\diec.exe'
 
 & $Python .\unpackers\static_unpacker.py `
   --input C:\analysis\sample.quarantine.bin `
@@ -70,8 +80,8 @@ family 全体を offline で解析する場合は、NSIS 対応 binary を使用
 
 ```powershell
 & $Python .\analysis-framework\common\analyze_stealer_set.py `
-  --manifest C:\Users\Administrator\MalwareSamples\remcosrat\<version-key>\manifest.json `
-  --output C:\Users\Administrator\malware-lab\remcosrat\<version-key> `
+  --manifest C:\malware-lab\samples\remcosrat\<version-key>\manifest.json `
+  --output C:\malware-lab\work\remcosrat\<version-key> `
   --definitions .\analysis-framework\definitions `
   --upx $UPX `
   --sevenzip $SevenZipNSIS `
@@ -114,7 +124,7 @@ report では次の blocker class を使用します。
 & $Python -m pydoc unpackers.nsis_unpacker
 ```
 
-unit test は、上限付き decode、malformed input、正確な hash/size、JavaScript rotation、UTF-16 normalization、numeric array と Unicode environment の復元、AES-CBC/GZip 変換、分割 CMD Base64 の再構築、.NET bitmap 復元、AutoIt layer、split reconstruction、NSIS word decode、静的 XOR loop 認識、synthetic NSIS の end-to-end 復元を検証します。
+unit test は、上限付き decode、malformed input、正確な hash/size、GDPF PDFのsize・overlay境界・magic、LZX CABのchecksum・window・volume・path・size・決定的順序、JavaScript rotation、UTF-16 normalization、numeric array と Unicode environment の復元、AES-CBC/GZip 変換、分割 CMD Base64 の再構築、.NET bitmap 復元、AutoIt layer、split reconstruction、NSIS word decode、静的 XOR loop 認識、synthetic NSIS の end-to-end 復元を検証します。
 
 ## PureHVNC と CHRD/Donut の復元
 

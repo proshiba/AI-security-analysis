@@ -8,16 +8,16 @@
 | 項目 | 件数 |
 |---|---:|
 | static-logic.json | 3105 |
-| fingerprint対象関数 | 43733 |
-| 完全一致group | 4380 |
-| SimHash完全一致group | 2417 |
-| 評価した非一致候補pair | 21840966 |
-| 条件に一致した類似候補pair | 21425476 |
-| 最終順位付けへ保持した類似候補pair | 964180 |
+| fingerprint対象関数 | 43748 |
+| 完全一致group | 4346 |
+| SimHash完全一致group | 2414 |
+| 評価した非一致候補pair | 19205009 |
+| 条件に一致した類似候補pair | 18793614 |
+| 最終順位付けへ保持した類似候補pair | 958055 |
 | JSONへ保持した類似候補pair | 100000 |
-| 上限により省略した類似候補pair | 21325476 |
-| Ghidra関数hash | 1914 |
-| Ghidra完全一致group | 79 |
+| 上限により省略した類似候補pair | 18693614 |
+| Ghidra関数hash | 1932 |
+| Ghidra完全一致group | 81 |
 
 ## Ghidra opcode hash完全一致
 
@@ -48,6 +48,7 @@
 | `50351f88d592f30dd71328f084b3ca8589c8d5870659324f82c4b62dfdb1bd29` | `8a2c70f0dcfb:/Malware/MalwareBazaarWindows/20260723/8a2c70f0/8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3.quarantine.bin:runtime.lockRank.String`, `ead799be2622:/DailyAnalysis/20260818/Followup47/ead799be/ead799be2622dc833d3b851c6abb6b5fb7b13d0399aa6cdb87354a4ec134e5a0.quarantine.bin:runtime.lockRank.String` |
 | `5384ba208500f9b3ed0df91e65836f9396267932b4a47e5385108c4fdea1d7c8` | `8a2c70f0dcfb:/Malware/MalwareBazaarWindows/20260723/8a2c70f0/8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3.quarantine.bin:runtime.f64equal`, `ead799be2622:/DailyAnalysis/20260818/Followup47/ead799be/ead799be2622dc833d3b851c6abb6b5fb7b13d0399aa6cdb87354a4ec134e5a0.quarantine.bin:runtime.f64equal` |
 | `541880a1913d10393e85f4f897995a91fc67aeabf9fbb19916f06d1eb675b79c` | `8a2c70f0dcfb:/Malware/MalwareBazaarWindows/20260723/8a2c70f0/8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3.quarantine.bin:runtime.memhash32Fallback`, `ead799be2622:/DailyAnalysis/20260818/Followup47/ead799be/ead799be2622dc833d3b851c6abb6b5fb7b13d0399aa6cdb87354a4ec134e5a0.quarantine.bin:runtime.memhash32Fallback` |
+| `5479b66dc69486690a9a10f8a8f858607ba75b4dcd7e48e2ab6a723284b46bcd` | `43d0e094c015:/daily/malwarebazaar-windows-20260902-0050/43d0e094/43d0e094c015b78412cc58c2ef1ab1b5734c8096e96add06105cae3e44bfdb8b.quarantine.bin:entry`, `f69edeeabed5:/daily/malwarebazaar-windows-20260902-0050/f69edeea/f69edeeabed57cde46630459b12577c97ab13cf1bcd0c6f35bdcf5c6ff84cb7e.quarantine.bin:entry` |
 | `556da44355f19db29eac577e324eaa805c145c13b83fe9ccb0bbcea9b9300e0c` | `8a2c70f0dcfb:/Malware/MalwareBazaarWindows/20260723/8a2c70f0/8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3.quarantine.bin:runtime.(*timeHistogram).record`, `ead799be2622:/DailyAnalysis/20260818/Followup47/ead799be/ead799be2622dc833d3b851c6abb6b5fb7b13d0399aa6cdb87354a4ec134e5a0.quarantine.bin:runtime.(*timeHistogram).record` |
 | `55e677b97fb4396bb0fd38be3612769a98b63ad8aa817432b98f389d29228753` | `8a2c70f0dcfb:/Malware/MalwareBazaarWindows/20260723/8a2c70f0/8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3.quarantine.bin:runtime.init.func1`, `ead799be2622:/DailyAnalysis/20260818/Followup47/ead799be/ead799be2622dc833d3b851c6abb6b5fb7b13d0399aa6cdb87354a4ec134e5a0.quarantine.bin:runtime.init.func1` |
 | `5b1d6e68cb4c1209ad3457c00975a0f0bb608d1cb5efd10ef26c0e0d5900cee9` | `8a2c70f0dcfb:/Malware/MalwareBazaarWindows/20260723/8a2c70f0/8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3.quarantine.bin:runtime.(*itabTableType).add`, `ead799be2622:/DailyAnalysis/20260818/Followup47/ead799be/ead799be2622dc833d3b851c6abb6b5fb7b13d0399aa6cdb87354a4ec134e5a0.quarantine.bin:runtime.(*itabTableType).add` |
@@ -76,6 +77,7 @@
 | `9e973f345b1efa9fbcefb9d83598a12e566e75892024819fd78cd40aa8656049` | `8a2c70f0dcfb:/Malware/MalwareBazaarWindows/20260723/8a2c70f0/8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3.quarantine.bin:runtime.gcMarkTermination.func1`, `ead799be2622:/DailyAnalysis/20260818/Followup47/ead799be/ead799be2622dc833d3b851c6abb6b5fb7b13d0399aa6cdb87354a4ec134e5a0.quarantine.bin:runtime.gcMarkTermination.func1` |
 | `a2ddbe4fd72c1b64eb539023e3bf4b257c4b3873c4e91662324bb6055b2b1431` | `8a2c70f0dcfb:/Malware/MalwareBazaarWindows/20260723/8a2c70f0/8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3.quarantine.bin:runtime.init.1`, `ead799be2622:/DailyAnalysis/20260818/Followup47/ead799be/ead799be2622dc833d3b851c6abb6b5fb7b13d0399aa6cdb87354a4ec134e5a0.quarantine.bin:runtime.init.1` |
 | `abe685bf3b48103f94ec414b3a4ede3ba344161a103abb82b7be3306f9360ee5` | `8a2c70f0dcfb:/Malware/MalwareBazaarWindows/20260723/8a2c70f0/8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3.quarantine.bin:runtime.chanrecv1`, `ead799be2622:/DailyAnalysis/20260818/Followup47/ead799be/ead799be2622dc833d3b851c6abb6b5fb7b13d0399aa6cdb87354a4ec134e5a0.quarantine.bin:runtime.chanrecv1` |
+| `acf5fbaaa1740ba6e3e61b462a47a31797f090dd6954e5bc9cf4b81bff8dba0c` | `0d946f5226d7:/daily/malwarebazaar-windows-20260902-0050/0d946f52/layers/ad606221/ad6062215032ab58369403b1221562b5e7fb5ae7d52b29b7fad69eefb2d8455b.quarantine.bin:entry`, `0eb45fdc5504:/daily/malwarebazaar-windows-20260902-0050/0d946f52/layers/ad606221/ad6062215032ab58369403b1221562b5e7fb5ae7d52b29b7fad69eefb2d8455b.quarantine.bin:entry`, `7f1bf2b8f4a5:/daily/malwarebazaar-windows-20260902-0050/0d946f52/layers/ad606221/ad6062215032ab58369403b1221562b5e7fb5ae7d52b29b7fad69eefb2d8455b.quarantine.bin:entry`, `9b990729e29e:/daily/malwarebazaar-windows-20260902-0050/0d946f52/layers/ad606221/ad6062215032ab58369403b1221562b5e7fb5ae7d52b29b7fad69eefb2d8455b.quarantine.bin:entry`, `9c0bdd1100a6:/daily/malwarebazaar-windows-20260902-0050/0d946f52/layers/ad606221/ad6062215032ab58369403b1221562b5e7fb5ae7d52b29b7fad69eefb2d8455b.quarantine.bin:entry`, `a107ca6f200f:/daily/malwarebazaar-windows-20260902-0050/0d946f52/layers/ad606221/ad6062215032ab58369403b1221562b5e7fb5ae7d52b29b7fad69eefb2d8455b.quarantine.bin:entry`, `fd54e12a3dde:/daily/malwarebazaar-windows-20260902-0050/0d946f52/layers/ad606221/ad6062215032ab58369403b1221562b5e7fb5ae7d52b29b7fad69eefb2d8455b.quarantine.bin:entry`, `2344c98693cb:/daily/malwarebazaar-windows-20260902-0050/0d946f52/layers/ad606221/ad6062215032ab58369403b1221562b5e7fb5ae7d52b29b7fad69eefb2d8455b.quarantine.bin:entry` |
 | `adfad984c92d2f8c6a551f494ee523eb3b15d61fcf57aef4c99bb1c6d4a7064c` | `8a2c70f0dcfb:/Malware/MalwareBazaarWindows/20260723/8a2c70f0/8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3.quarantine.bin:runtime.memequal`, `ead799be2622:/DailyAnalysis/20260818/Followup47/ead799be/ead799be2622dc833d3b851c6abb6b5fb7b13d0399aa6cdb87354a4ec134e5a0.quarantine.bin:runtime.memequal` |
 | `b08c2d678d327986ed8271e95d21f7137698b90c50143ad9a022ff889fc162b0` | `8a2c70f0dcfb:/Malware/MalwareBazaarWindows/20260723/8a2c70f0/8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3.quarantine.bin:runtime.c128equal`, `ead799be2622:/DailyAnalysis/20260818/Followup47/ead799be/ead799be2622dc833d3b851c6abb6b5fb7b13d0399aa6cdb87354a4ec134e5a0.quarantine.bin:runtime.c128equal` |
 | `b7c21261df1e16eb98392bed1c13f8d9c86a5ff6702f9b632da6d5e4fc833fe7` | `8a2c70f0dcfb:/Malware/MalwareBazaarWindows/20260723/8a2c70f0/8a2c70f0dcfb78bc50954ecf43103e1917b510668e1671d53999915042509fa3.quarantine.bin:runtime.(*pageBits).setRange`, `ead799be2622:/DailyAnalysis/20260818/Followup47/ead799be/ead799be2622dc833d3b851c6abb6b5fb7b13d0399aa6cdb87354a4ec134e5a0.quarantine.bin:runtime.(*pageBits).setRange` |

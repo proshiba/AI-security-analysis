@@ -16,6 +16,10 @@ from typing import Any
 from urllib.parse import unquote, urlsplit
 
 from analysis_contract import handler_result_quality
+from screenconnect_evidence import (
+    legacy_screenconnect_config,
+    screenconnect_management_role,
+)
 
 SCHEMA_VERSION = 2
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -97,6 +101,22 @@ CONFIG_NEGATIVE_VALUES = frozenset(
 )
 NETWORK_ENDPOINT_VALUE_KEYS = frozenset({"address", "endpoint", "uri", "url", "value"})
 NETWORK_PROTOCOL_KEYS = frozenset({"protocol", "scheme", "transport"})
+NETWORK_STRUCTURAL_VALUE_KEYS = frozenset(
+    {
+        "c2_classification",
+        "classification",
+        "domain",
+        "host",
+        "kind",
+        "port",
+        "protocol",
+        "role",
+        "scheme",
+        "status",
+        "transport",
+        "type",
+    }
+)
 CONTROL_NETWORK_ROLES = frozenset(
     {
         "c2",
@@ -741,6 +761,23 @@ def _config_evidence_for_record(
                 "correlated_keys": correlated_keys,
                 "provenance": provenance,
             }
+    legacy_config = legacy_screenconnect_config(payload)
+    if legacy_config is not None:
+        correlated_keys = ["config_endpoints"]
+        provenance = _provenance(
+            record,
+            ("legacy_screenconnect_projection", "static_config_recovered"),
+        )
+        identity = (
+            "static_config_recovered",
+            tuple(correlated_keys),
+            *provenance.values(),
+        )
+        evidence[identity] = {
+            "recovery_type": "static_config_recovered",
+            "correlated_keys": correlated_keys,
+            "provenance": provenance,
+        }
     return [evidence[key] for key in sorted(evidence, key=lambda item: tuple(map(str, item)))]
 
 
@@ -926,14 +963,33 @@ def _verified_output_audit(value: object, *, output_count: int) -> dict[str, Any
     ):
         return None
     reasons = value.get("reasons")
+    zero_output_negative_proof = (
+        output_count == 0
+        and value.get("observed_output_count") == 0
+        and value.get("retained_output_count") == 0
+        and value.get("binary_values_seen") == 0
+        and value.get("binary_bytes_seen") == 0
+        and value.get("retained_for_follow_on_analysis") is False
+        and value.get("follow_on_analysis_complete") is False
+        and value.get("observation_scope")
+        in {"parent_verified_zero_output", "wrapper_hash_metadata_only"}
+        and value.get("truncated") is False
+        and reasons == []
+    )
     if (
         value.get("schema_version") != 1
         or value.get("maximum_outputs") != 64
         or value.get("maximum_total_size") != 256 * 1024 * 1024
         or value.get("retained_output_count") != output_count
         or int(value.get("observed_output_count", 0)) < output_count
-        or value.get("retained_for_follow_on_analysis") is not True
-        or value.get("observation_scope") != "parent_rehashed_case_artifact"
+        or (
+            not zero_output_negative_proof
+            and (
+                value.get("retained_for_follow_on_analysis") is not True
+                or value.get("observation_scope")
+                != "parent_rehashed_case_artifact"
+            )
+        )
         or type(value.get("follow_on_analysis_complete")) is not bool
         or type(value.get("truncated")) is not bool
         or not isinstance(reasons, Sequence)
@@ -943,8 +999,9 @@ def _verified_output_audit(value: object, *, output_count: int) -> dict[str, Any
     ):
         return None
     return {
-        "retained": True,
+        "retained": not zero_output_negative_proof,
         "analysis_complete": value.get("follow_on_analysis_complete") is True,
+        "zero_output_proven": zero_output_negative_proof,
     }
 
 
@@ -1050,6 +1107,8 @@ def summarize_handler_outputs(
                 claimed_hashes.add(value)
             if not any(part in NETWORK_KEYS for part in evidence_path):
                 continue
+            if key in NETWORK_STRUCTURAL_VALUE_KEYS:
+                continue
             values = [value] if isinstance(value, str) else []
             if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
                 values.extend(item for item in islice(value, MAX_CONTAINER_ITEMS) if isinstance(item, str))
@@ -1081,6 +1140,8 @@ def summarize_handler_outputs(
 
         for mapping_path, mapping in _walk_mappings(payload):
             role = _normalized_role(mapping.get("role")) or _role_from_path(mapping_path)
+            if role is None and record_family == "screenconnect_rmm":
+                role = screenconnect_management_role(payload, mapping)
             if role is None:
                 continue
             for endpoint_path, endpoint in _mapping_endpoints(mapping_path, mapping):

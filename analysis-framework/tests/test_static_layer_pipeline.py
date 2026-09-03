@@ -211,3 +211,150 @@ def test_unpacker_contract_violations_become_failed_steps(result: object) -> Non
     layers, report = recover_static_layers(_unit(), unpacker=unpacker)  # type: ignore[arg-type]
     assert len(layers) == 1
     assert report["steps"][0]["status"] == "failed"
+
+
+def test_cab_last_reaches_nested_pe_before_many_terminal_pe_siblings() -> None:
+    """>maxのPEが先に並んでも末尾CAB内PEへ層上限前に到達する。"""
+
+    sibling_pes = [
+        (f"pe-sibling-{index}", b"MZterminal-sibling-" + bytes([index]))
+        for index in range(1, 8)
+    ]
+    cab = b"MSCFcab-fixture"
+    nested_pe = b"MZnested-cab-payload"
+    calls: list[bytes] = []
+
+    def unpacker(data: bytes, _name: str, **_kwargs):
+        calls.append(data)
+        if data == b"root":
+            recovered = [
+                {
+                    "kind": kind,
+                    "size": len(blob),
+                    "sha256": hashlib.sha256(blob).hexdigest(),
+                }
+                for kind, blob in [*sibling_pes, ("late-cab", cab)]
+            ]
+            return {"status": "fixture", "recovered": recovered}, [
+                *sibling_pes,
+                ("late-cab", cab),
+            ]
+        if data == cab:
+            return {"status": "fixture"}, [("cab-member-pe", nested_pe)]
+        return {"status": "terminal"}, []
+
+    layers, report = recover_static_layers(
+        _unit(),
+        unpacker=unpacker,
+        policy=StaticLayerPolicy(
+            max_layers=3,
+            max_depth=4,
+            max_layer_size=1024,
+            max_total_size=4096,
+        ),
+    )
+
+    assert [item.data for item in layers] == [b"root", cab, nested_pe]
+    assert [item.transform for item in layers] == [
+        "submission",
+        "late-cab",
+        "cab-member-pe",
+    ]
+    assert calls == [b"root", cab, nested_pe]
+    assert report["limit_events"] == [
+        {
+            "parent_sha256": hashlib.sha256(b"root").hexdigest(),
+            "kind": kind,
+            "sha256": hashlib.sha256(blob).hexdigest(),
+            "size": len(blob),
+            "reason": "layer_count_limit",
+        }
+        for kind, blob in sibling_pes
+    ]
+    assert len(report["steps"][0]["report"]["recovered"]) == len(sibling_pes) + 1
+    assert report["steps"][0]["accepted_children"] == [layers[1].public()]
+
+
+def test_pending_duplicate_uses_later_better_priority_provenance() -> None:
+    """保留digestを高priorityで再発見した場合はtransformと親を更新する。"""
+
+    shared_blob = b"shared opaque payload fixture"
+    cab = b"MSCFduplicate-provenance-cab"
+    calls: list[bytes] = []
+
+    def unpacker(data: bytes, _name: str, **_kwargs):
+        calls.append(data)
+        if data == b"root":
+            return {}, [
+                ("opaque-resource", shared_blob),
+                ("late-cab", cab),
+            ]
+        if data == cab:
+            return {}, [("decoded-payload", shared_blob)]
+        return {}, []
+
+    layers, report = recover_static_layers(
+        _unit(),
+        unpacker=unpacker,
+        policy=StaticLayerPolicy(
+            max_layers=4,
+            max_depth=4,
+            max_layer_size=1024,
+            max_total_size=4096,
+        ),
+    )
+
+    assert [item.data for item in layers] == [b"root", cab, shared_blob]
+    assert layers[2].parent_sha256 == hashlib.sha256(cab).hexdigest()
+    assert layers[2].transform == "decoded-payload"
+    assert layers[2].depth == 2
+    assert calls == [b"root", cab, shared_blob]
+    assert report["counts"]["deduplicated_artifacts"] == 1
+    assert report["steps"][0]["accepted_children"] == [layers[1].public()]
+    assert report["steps"][1]["accepted_children"] == [layers[2].public()]
+
+
+def test_script_and_config_precede_media_without_reordering_equal_tiers() -> None:
+    """script/configをmediaより優先し、同tier内は発見順を維持する。"""
+
+    png = b"\x89PNG\r\n\x1a\nresource"
+    first_config = b'{"host":"one.example"}'
+    second_config = b'{"host":"two.example"}'
+    script = b"Write-Output 'fixture'"
+
+    def unpacker(data: bytes, _name: str, **_kwargs):
+        if data == b"root":
+            return {}, [
+                ("dotnet-resource-png", png),
+                ("decoded-config-one", first_config),
+                ("decoded-config-two", second_config),
+                ("zip-script-run.ps1", script),
+            ]
+        return {}, []
+
+    layers, report = recover_static_layers(
+        _unit(),
+        unpacker=unpacker,
+        policy=StaticLayerPolicy(
+            max_layers=4,
+            max_depth=2,
+            max_layer_size=1024,
+            max_total_size=4096,
+        ),
+    )
+
+    assert [item.data for item in layers] == [
+        b"root",
+        script,
+        first_config,
+        second_config,
+    ]
+    assert report["limit_events"] == [
+        {
+            "parent_sha256": hashlib.sha256(b"root").hexdigest(),
+            "kind": "dotnet-resource-png",
+            "sha256": hashlib.sha256(png).hexdigest(),
+            "size": len(png),
+            "reason": "layer_count_limit",
+        }
+    ]

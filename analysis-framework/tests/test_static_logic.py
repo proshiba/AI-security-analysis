@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 COMMON = Path(__file__).parents[1] / "common"
 sys.path.insert(0, str(COMMON))
@@ -20,7 +19,6 @@ from static_logic import (  # noqa: E402
     render_static_logic_markdown,
     simhash_similarity,
 )
-
 
 SHA_A = "a" * 64
 SHA_B = "b" * 64
@@ -45,6 +43,39 @@ def _reviewed_record(pseudocode: str, address: str) -> dict:
         "program_selector": f"sha256:{SHA_A}",
         "confidence": "confirmed_static_decompilation",
     }
+
+
+def test_call_edges_resolve_raw_function_ids_before_public_hash_redaction() -> None:
+    """callee IDのSHA伏字化で選定関数間edgeを失わない。"""
+
+    caller_id = f"{SHA_A}:ghidra:0x1000"
+    callee_id = f"{SHA_A}:ghidra:0x2000"
+    records = [
+        {
+            **_reviewed_record("decrypt_config();", "1000"),
+            "function_id": caller_id,
+            "callees": [callee_id],
+        },
+        {
+            **_reviewed_record("return 1;", "2000"),
+            "function_id": callee_id,
+            "name": "decrypt_config",
+            "callers": [caller_id],
+            "callees": [],
+        },
+    ]
+
+    report = build_static_logic_report(
+        sha256=SHA_A,
+        family="fixture",
+        source_name="fixture.bin",
+        records=records,
+    )
+
+    assert report["call_edges"] == [{"caller": caller_id, "callee": callee_id}]
+    assert report["coverage"]["call_edge_count"] == 1
+    assert report["coverage"]["call_graph_recorded"] is True
+    assert report["functions"][0]["callees"] == ["[hash省略]:ghidra:0x2000"]
 
 
 def test_normalization_ignores_addresses_literals_and_local_names() -> None:

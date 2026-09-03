@@ -15,13 +15,12 @@ import sys
 import tempfile
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 import analysis_job_runner
-
 
 SCHEMA_VERSION = 2
 STATE_SCHEMA_VERSION = 1
@@ -48,6 +47,11 @@ MAX_STAGE_ATTEMPTS = {
     "validation": 1024,
     "private_archive": 1024,
 }
+DAILY_INITIAL_STATIC_LAYERS = 6
+# 日次取得検体はinstaller内に多数のPEと画像resourceを同梱することがある。
+# 初回は軽量な上限を維持し、実際にlayer_count_limitへ達した検体だけ、
+# 共有pipelineの総容量・深さ制限とrunnerの固定hard limit内で再解析する。
+DAILY_RETRY_STATIC_LAYERS = analysis_job_runner.MAX_RETRY_STATIC_LAYERS
 STAGES = (
     "news_intake",
     "malwarebazaar_acquisition",
@@ -92,7 +96,10 @@ MIN_GHIDRA_FREE_BYTES = 256 * 1024 * 1024
 MAX_GHIDRA_FREE_BYTES = 1024 * 1024 * 1024 * 1024
 MAX_STATIC_TIMEOUT_SECONDS = analysis_job_runner.MAX_TIMEOUT_SECONDS
 MIB = 1024 * 1024
-PREFLIGHT_SAMPLE_ARCHIVE_BYTES = 24 * MIB
+# 2026-09-03のWindows取得では、暗号化ZIP 35件だけで約1.26 GiBとなり、
+# 従来の24 MiB/件budgetでは50件へ到達できなかった。単体256 MiB上限と
+# runnerの2 GiB総入力上限を維持しつつ、日次batchの実測分布を吸収する。
+PREFLIGHT_SAMPLE_ARCHIVE_BYTES = 40 * MIB
 PREFLIGHT_ANALYSIS_BYTES = 8 * MIB
 PREFLIGHT_REPOSITORY_BYTES = 256 * MIB
 PREFLIGHT_C2_PRIVATE_BYTES = 256 * MIB
@@ -176,6 +183,10 @@ class DailyContext:
     ghidra_project_store: Path
     request: DailyRequest
     allow_live_c2: bool
+    trusted_tool_configuration: analysis_job_runner.TrustedToolConfiguration | None = field(
+        default=None,
+        repr=False,
+    )
 
     @property
     def collection_id(self) -> str:
@@ -607,8 +618,7 @@ def _reject_reparse_components(path: Path, *, label: str) -> None:
             break
         information = current.lstat()
         if current.is_symlink() or bool(
-            getattr(information, "st_file_attributes", 0)
-            & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+            getattr(information, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
         ):
             raise DailyOrchestrationError(
                 "reparse_forbidden",
@@ -629,8 +639,7 @@ def _regular_file_without_reparse(path: Path) -> bool:
         and information.st_size > 0
         and not path.is_symlink()
         and not bool(
-            getattr(information, "st_file_attributes", 0)
-            & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+            getattr(information, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
         )
     )
 
@@ -670,8 +679,7 @@ def _bounded_tree_files(root: Path) -> list[Path]:
                     "日次source entryを安全に確認できません",
                 ) from exc
             reparse = entry.is_symlink() or bool(
-                getattr(information, "st_file_attributes", 0)
-                & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+                getattr(information, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
             )
             if reparse:
                 raise DailyOrchestrationError(
@@ -746,10 +754,7 @@ def discover_latest_news_source(tech_memo: Path) -> dict[str, Any]:
     result = {
         "schema_version": 1,
         "source_date": source_date,
-        "files": {
-            name: paths[0].relative_to(root).as_posix()
-            for name, paths in sorted(record.items())
-        },
+        "files": {name: paths[0].relative_to(root).as_posix() for name, paths in sorted(record.items())},
         "network_contacted": False,
     }
     verified = verify_news_source_date(root, source_date)
@@ -777,11 +782,7 @@ def verify_news_source_date(tech_memo: Path, source_date: str) -> dict[str, Any]
                 "news_source_layout_invalid",
                 "tech-memoの日次source配置が不正です",
             )
-        candidates = [
-            path
-            for path in _bounded_tree_files(search_root)
-            if path.name == f"{compact}{suffix}"
-        ]
+        candidates = [path for path in _bounded_tree_files(search_root) if path.name == f"{compact}{suffix}"]
         if len(candidates) != 1:
             raise DailyOrchestrationError(
                 "news_source_incomplete",
@@ -831,6 +832,7 @@ def _validate_context(
     ghidra_project_store: Path,
     allow_live_c2: bool,
     create_roots: bool,
+    trusted_tool_configuration: analysis_job_runner.TrustedToolConfiguration | None = None,
 ) -> DailyContext:
     repository = _absolute(repository)
     intelligence_root = _absolute(intelligence_root)
@@ -877,10 +879,7 @@ def _validate_context(
         raise DailyOrchestrationError("tech_memo_invalid", "tech-memo入力が通常fileまたはdirectoryではありません")
     if intelligence_root != resolved_memo and intelligence_root not in resolved_memo.parents:
         raise DailyOrchestrationError("tech_memo_invalid", "tech-memo入力がintelligence root外です")
-    if any(
-        _overlaps(resolved_memo, root)
-        for root in (private_root, work_root, ghidra_project_store)
-    ):
+    if any(_overlaps(resolved_memo, root) for root in (private_root, work_root, ghidra_project_store)):
         raise DailyOrchestrationError(
             "tech_memo_overlap",
             "tech-memo入力をprivate／work／Ghidra project rootと分離してください",
@@ -916,8 +915,10 @@ def _validate_context(
         ghidra_project_store=ghidra_project_store,
         request=request,
         allow_live_c2=allow_live_c2,
+        trusted_tool_configuration=trusted_tool_configuration,
     )
     _validate_context_derived_paths(context)
+    _load_context_trusted_tool_policy(context)
     return context
 
 
@@ -973,6 +974,55 @@ def _validate_context_derived_paths(context: DailyContext) -> None:
             )
 
 
+def _load_context_trusted_tool_policy(
+    context: DailyContext,
+) -> analysis_job_runner.TrustedToolPolicy | None:
+    """operator CLIで固定されたtool manifestをpath非公開のまま再検証する。"""
+
+    configuration = context.trusted_tool_configuration
+    if configuration is None:
+        return None
+    if not isinstance(configuration, analysis_job_runner.TrustedToolConfiguration):
+        raise DailyOrchestrationError(
+            "trusted_tool_configuration_invalid",
+            "trusted tool設定はoperator CLIの固定pairで指定してください",
+        )
+    if not configuration.manifest_path.is_absolute():
+        raise DailyOrchestrationError(
+            "trusted_tool_manifest_path_invalid",
+            "trusted tool manifestはoperatorが固定した絶対pathで指定してください",
+        )
+    try:
+        return analysis_job_runner.load_trusted_tool_policy(
+            configuration,
+            forbidden_roots=(context.source_root, context.jobs_root),
+        )
+    except analysis_job_runner.JobContractError as exc:
+        raise DailyOrchestrationError(exc.code, str(exc)) from exc
+
+
+def _trusted_tool_preflight(context: DailyContext) -> dict[str, Any]:
+    """PATH探索を行わず、operator pinとsource snapshot identityだけを検証する。"""
+
+    policy = _load_context_trusted_tool_policy(context)
+    if policy is None:
+        return {
+            "configured": False,
+            "ready": True,
+            "automatic_path_discovery": False,
+            "job_private_snapshot_deferred": False,
+        }
+    return {
+        "configured": True,
+        "ready": True,
+        "profile_id": policy.profile_id,
+        "operator_manifest_sha256": policy.operator_manifest_sha256,
+        "tools": policy.identities(),
+        "automatic_path_discovery": False,
+        "job_private_snapshot_deferred": True,
+    }
+
+
 def draft_request_document(
     *,
     intelligence_root: Path,
@@ -988,9 +1038,7 @@ def draft_request_document(
     root = _absolute(intelligence_root)
     _reject_reparse_components(root, label="intelligence root")
     root = _canonical_path(root)
-    memo = root.joinpath(
-        *PurePosixPath(normalized_tech_memo).parts
-    )
+    memo = root.joinpath(*PurePosixPath(normalized_tech_memo).parts)
     _reject_reparse_components(memo, label="tech-memo")
     canonical_memo = _canonical_path(memo)
     if root != canonical_memo and root not in canonical_memo.parents:
@@ -1105,9 +1153,7 @@ def _projected_archive_staging_bytes(
         if context.request.network["provider_lookups"]:
             news_projection += 32 * MIB
         if context.request.network["sample_download"]:
-            news_projection += count * (
-                PREFLIGHT_SAMPLE_ARCHIVE_BYTES + PREFLIGHT_ANALYSIS_BYTES
-            )
+            news_projection += count * (PREFLIGHT_SAMPLE_ARCHIVE_BYTES + PREFLIGHT_ANALYSIS_BYTES)
         candidates.append(
             _archive_preflight_source_bytes(
                 context.daily_news_private_output,
@@ -1176,12 +1222,8 @@ def build_capacity_preflight(
             context.private_root,
             count * PREFLIGHT_SAMPLE_ARCHIVE_BYTES,
         )
-    if (
-        context.request.network["sample_download"]
-        and (
-            "news_intake" in pending
-            or "malwarebazaar_acquisition" in pending
-        )
+    if context.request.network["sample_download"] and (
+        "news_intake" in pending or "malwarebazaar_acquisition" in pending
     ):
         add(
             "sample_download_reserve",
@@ -1266,6 +1308,7 @@ def build_preflight_report(
     state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     capacity = build_capacity_preflight(context, state)
+    trusted_tools = _trusted_tool_preflight(context)
     pending = _pending_capacity_stages(context, state)
     source = (
         _verify_context_news_source(context)
@@ -1278,26 +1321,15 @@ def build_preflight_report(
         }
     )
     live_required = bool(context.request.network["c2_monitoring"])
-    provider_required = (
-        "news_intake" in pending
-        and context.request.network["provider_lookups"]
-    )
-    sample_credential_required = (
-        context.request.network["sample_download"]
-        and bool(
-            {"news_intake", "malwarebazaar_acquisition"}.intersection(pending)
-        )
+    provider_required = "news_intake" in pending and context.request.network["provider_lookups"]
+    sample_credential_required = context.request.network["sample_download"] and bool(
+        {"news_intake", "malwarebazaar_acquisition"}.intersection(pending)
     )
     provider_ready = not provider_required or bool(
         os.environ.get("MALWAREBAZAAR_AUTH_KEY") or os.environ.get("VT_API_KEY")
     )
-    sample_credential_ready = not sample_credential_required or bool(
-        os.environ.get("MALWAREBAZAAR_AUTH_KEY")
-    )
-    datastore_required = (
-        "private_archive" in pending
-        and context.request.network["datastore_upload"]
-    )
+    sample_credential_ready = not sample_credential_required or bool(os.environ.get("MALWAREBAZAAR_AUTH_KEY"))
+    datastore_required = "private_archive" in pending and context.request.network["datastore_upload"]
     datastore_tool_ready = True
     if datastore_required:
         try:
@@ -1315,9 +1347,10 @@ def build_preflight_report(
     return {
         "schema_version": 1,
         "run_id": context.request.run_id,
-        "ready": capacity["ready"] and authorization_ready,
+        "ready": capacity["ready"] and authorization_ready and trusted_tools["ready"],
         "source": source,
         "capacity": capacity,
+        "trusted_static_tools": trusted_tools,
         "authorization": {
             "live_c2_required": live_required,
             "live_c2_authorized_for_invocation": context.allow_live_c2,
@@ -1432,13 +1465,16 @@ def _capacity_semantics_valid(value: Any) -> bool:
 
 
 def _atomic_json(path: Path, value: Mapping[str, Any]) -> None:
-    payload = json.dumps(
-        value,
-        ensure_ascii=False,
-        indent=2,
-        sort_keys=True,
-        allow_nan=False,
-    ).encode("utf-8") + b"\n"
+    payload = (
+        json.dumps(
+            value,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+            allow_nan=False,
+        ).encode("utf-8")
+        + b"\n"
+    )
     if len(payload) > MAX_STATE_BYTES:
         raise DailyOrchestrationError("state_too_large", "日次stateがsize上限を超えています")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -1524,15 +1560,12 @@ def _load_state(context: DailyContext) -> dict[str, Any]:
             and not isinstance(record.get("error"), Mapping)
         ):
             raise DailyOrchestrationError("state_invalid", "保存済みstage状態が不正です")
-        if (
-            context.request.stages[name] is False
-            and (
-                record["status"] != "skipped"
-                or record["attempts"] != 0
-                or record["retryable"] is not False
-                or record["result"] != {}
-                or record["error"] is not None
-            )
+        if context.request.stages[name] is False and (
+            record["status"] != "skipped"
+            or record["attempts"] != 0
+            or record["retryable"] is not False
+            or record["result"] != {}
+            or record["error"] is not None
         ):
             raise DailyOrchestrationError(
                 "state_stage_mismatch",
@@ -1582,27 +1615,25 @@ def _load_state(context: DailyContext) -> dict[str, Any]:
             "state_status_mismatch",
             "日次state全体とstage状態が一致しません",
         )
+    static_record = state["stages"]["static_analysis"]
+    if context.trusted_tool_configuration is not None and static_record["status"] in {"complete", "partial"}:
+        job_id = static_record["result"].get("job_id")
+        if not isinstance(job_id, str) or analysis_job_runner.JOB_ID_RE.fullmatch(job_id) is None:
+            raise DailyOrchestrationError(
+                "static_trusted_tool_mismatch",
+                "保存済み静的解析stageに検証可能なjob IDがありません",
+            )
+        _static_job_result_for_id(context, job_id)
     return state
 
 
 def _capacity_remediation(outcome: StageOutcome) -> dict[str, Any] | None:
-    if (
-        outcome.status == "partial"
-        and outcome.result.get("status") == "archive_staging_capacity_insufficient"
-    ):
+    if outcome.status == "partial" and outcome.result.get("status") == "archive_staging_capacity_insufficient":
         required = outcome.result.get("required_staging_bytes")
         reserve = outcome.result.get("minimum_reserve_bytes")
         free = outcome.result.get("observed_free_bytes")
-        minimum = (
-            required + reserve
-            if type(required) is int and type(reserve) is int
-            else None
-        )
-        deficit = (
-            max(0, minimum - free)
-            if type(minimum) is int and type(free) is int
-            else None
-        )
+        minimum = required + reserve if type(required) is int and type(reserve) is int else None
+        deficit = max(0, minimum - free) if type(minimum) is int and type(free) is int else None
         return {
             "reason": "archive_staging_capacity_insufficient",
             "minimum_free_bytes": minimum,
@@ -1745,9 +1776,7 @@ def _verify_pending_news_source(
 
 
 def _verify_context_news_source(context: DailyContext) -> dict[str, Any]:
-    memo = context.intelligence_root.joinpath(
-        *PurePosixPath(context.request.tech_memo).parts
-    )
+    memo = context.intelligence_root.joinpath(*PurePosixPath(context.request.tech_memo).parts)
     source = verify_news_source_date(memo, context.request.news_source_date)
     if source["source_manifest_sha256"] != context.request.source_manifest_sha256:
         raise DailyOrchestrationError(
@@ -1832,9 +1861,7 @@ def _run_lock(context: DailyContext) -> Iterator[None]:
     lock_root.mkdir(parents=True, exist_ok=True)
     _reject_reparse_components(lock_root, label="global run lock root")
     lock_root = _canonical_path(lock_root)
-    repository_key = hashlib.sha256(
-        os.path.normcase(os.fspath(context.repository)).encode("utf-8")
-    ).hexdigest()[:32]
+    repository_key = hashlib.sha256(os.path.normcase(os.fspath(context.repository)).encode("utf-8")).hexdigest()[:32]
     lock_path = lock_root / f"{repository_key}.lock"
     _reject_reparse_components(lock_path, label="run lock")
     flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
@@ -1848,11 +1875,7 @@ def _run_lock(context: DailyContext) -> Iterator[None]:
     acquired = False
     try:
         information = os.fstat(descriptor)
-        if (
-            not stat.S_ISREG(information.st_mode)
-            or information.st_nlink != 1
-            or information.st_size not in {0, 1}
-        ):
+        if not stat.S_ISREG(information.st_mode) or information.st_nlink != 1 or information.st_size not in {0, 1}:
             raise DailyOrchestrationError(
                 "run_lock_invalid",
                 "日次run lockのfile identityが不正です",
@@ -1923,6 +1946,10 @@ def _execute(context: DailyContext, state: dict[str, Any], actions: DailyActions
         record["status"] = "running"
         record["attempts"] += 1
         record["error"] = None
+        # 再開前の全体状態が failed / partial でも、stage adapter は実行中の
+        # stateを読み直すことがある。stageだけrunningへ変更すると、その読込時に
+        # 全体状態との整合性検証で失敗するため、checkpointもrunningとして保存する。
+        state["status"] = "running"
         _write_state(context, state)
         try:
             outcome = getattr(actions, name)(context)
@@ -1998,12 +2025,7 @@ def _run_daily_unlocked(
     _validate_context_derived_paths(context)
     _verify_pending_news_source(context, None)
     _ensure_collection_binding(context, create=True)
-    public_collection = (
-        context.repository
-        / "analysis-results"
-        / "collections"
-        / context.collection_id
-    )
+    public_collection = context.repository / "analysis-results" / "collections" / context.collection_id
     if public_collection.exists():
         raise DailyOrchestrationError(
             "public_collection_exists",
@@ -2119,8 +2141,7 @@ def drive_daily(
             ):
                 break
             retryable = any(
-                record.get("retryable") is True
-                and record.get("status") in {"partial", "failed"}
+                record.get("retryable") is True and record.get("status") in {"partial", "failed"}
                 for record in state["stages"].values()
                 if isinstance(record, Mapping)
             )
@@ -2211,8 +2232,7 @@ def _validate_acquisition_tree_layout(
         )
     selected = set(selected_hashes) if selected_hashes is not None else None
     if selected is not None and (
-        len(selected) != len(selected_hashes)
-        or any(SHA256_RE.fullmatch(value) is None for value in selected_hashes)
+        len(selected) != len(selected_hashes) or any(SHA256_RE.fullmatch(value) is None for value in selected_hashes)
     ):
         raise DailyOrchestrationError(
             "acquisition_selection_invalid",
@@ -2245,8 +2265,7 @@ def _validate_acquisition_tree_layout(
                 "MalwareBazaar source entryを安全に確認できません",
             ) from exc
         reparse = entry.is_symlink() or bool(
-            getattr(item, "st_file_attributes", 0)
-            & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+            getattr(item, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
         )
         if reparse:
             raise DailyOrchestrationError(
@@ -2261,8 +2280,7 @@ def _validate_acquisition_tree_layout(
             ):
                 raise DailyOrchestrationError(
                     "acquisition_tree_unbound_entry",
-                    "MalwareBazaar source rootに未束縛fileがあります: "
-                    f"{entry.name!r}",
+                    f"MalwareBazaar source rootに未束縛fileがあります: {entry.name!r}",
                 )
             continue
         if not stat.S_ISDIR(item.st_mode) or SHA256_RE.fullmatch(entry.name) is None:
@@ -2383,8 +2401,7 @@ def _load_acquisition_manifest(
     if (
         not isinstance(stored_selection_commitment, str)
         or SHA256_RE.fullmatch(stored_selection_commitment) is None
-        or stored_selection_commitment
-        != malwarebazaar_batch._windows_selection_commitment(document)
+        or stored_selection_commitment != malwarebazaar_batch._windows_selection_commitment(document)
     ):
         raise DailyOrchestrationError(
             "acquisition_selection_commitment_invalid",
@@ -2401,10 +2418,8 @@ def _load_acquisition_manifest(
         or document.get("downloaded") != count
         or document.get("pending") != 0
         or document.get("max_download_bytes") != SAMPLE_DOWNLOAD_MAX_BYTES
-        or document.get("max_total_download_bytes")
-        != count * PREFLIGHT_SAMPLE_ARCHIVE_BYTES
-        or document.get("minimum_free_bytes")
-        != SAMPLE_DOWNLOAD_MINIMUM_FREE_BYTES
+        or document.get("max_total_download_bytes") != count * PREFLIGHT_SAMPLE_ARCHIVE_BYTES
+        or document.get("minimum_free_bytes") != SAMPLE_DOWNLOAD_MINIMUM_FREE_BYTES
         or document.get("archives_remain_encrypted") is not True
         or document.get("samples_executed") is not False
         or not isinstance(items, list)
@@ -2506,10 +2521,8 @@ def _load_acquisition_manifest(
                 "automatic_source_deletion",
             }
             or binding.get("schema_version") != 1
-            or
-            binding.get("request_sha256") != _sha256_value(context.request.public())
-            or binding.get("selection_commitment_sha256")
-            != stored_selection_commitment
+            or binding.get("request_sha256") != _sha256_value(context.request.public())
+            or binding.get("selection_commitment_sha256") != stored_selection_commitment
             or binding.get("selected_hashes") != selected
             or binding.get("automatic_source_deletion") is not False
         ):
@@ -2571,11 +2584,7 @@ def _production_news_intake(context: DailyContext) -> StageOutcome:
             "news_intake_failed",
             "日次news取込が固定安全契約を満たしませんでした",
         )
-    publication = (
-        _promote_news_public_staging(context, staging_base)
-        if exit_code == 0
-        else None
-    )
+    publication = _promote_news_public_staging(context, staging_base) if exit_code == 0 else None
     return StageOutcome(
         status="complete" if exit_code == 0 else "partial",
         retryable=False,
@@ -2638,11 +2647,7 @@ def _promote_news_public_staging(
             }
         )
     final = (
-        context.repository
-        / "analysis-results"
-        / "research"
-        / "daily-news-malware"
-        / context.request.news_source_date
+        context.repository / "analysis-results" / "research" / "daily-news-malware" / context.request.news_source_date
     )
     _reject_reparse_components(final, label="daily news public output")
     final.mkdir(parents=True, exist_ok=True)
@@ -2680,10 +2685,7 @@ def _production_malwarebazaar_acquisition(context: DailyContext) -> StageOutcome
             "file_types": malwarebazaar_batch.WINDOWS_FILE_TYPES,
             "query_limit": int(context.request.limits["query_limit"]),
             "max_download_bytes": SAMPLE_DOWNLOAD_MAX_BYTES,
-            "max_total_download_bytes": (
-                context.request.malwarebazaar_count
-                * PREFLIGHT_SAMPLE_ARCHIVE_BYTES
-            ),
+            "max_total_download_bytes": (context.request.malwarebazaar_count * PREFLIGHT_SAMPLE_ARCHIVE_BYTES),
             "minimum_free_bytes": SAMPLE_DOWNLOAD_MINIMUM_FREE_BYTES,
         }
         selected = malwarebazaar_batch.download_windows(
@@ -2708,14 +2710,10 @@ def _production_malwarebazaar_acquisition(context: DailyContext) -> StageOutcome
             context.source_root,
             auth_key,
             selection_only=False,
-            expected_selection_commitment_sha256=selected[
-                "selection_commitment_sha256"
-            ],
+            expected_selection_commitment_sha256=selected["selection_commitment_sha256"],
             **options,
         )
-        if downloaded.get("selection_commitment_sha256") != selected.get(
-            "selection_commitment_sha256"
-        ):
+        if downloaded.get("selection_commitment_sha256") != selected.get("selection_commitment_sha256"):
             raise DailyOrchestrationError(
                 "acquisition_selection_changed",
                 "MalwareBazaar取得中に選定commitmentが変更されました",
@@ -2732,9 +2730,7 @@ def _production_malwarebazaar_acquisition(context: DailyContext) -> StageOutcome
         )
         _bind_acquisition_selection(context, provisional_manifest)
     manifest = _load_acquisition_manifest(context)
-    hints = malwarebazaar_batch.write_verification_family_hints(
-        context.source_root / "manifest.json"
-    )
+    hints = malwarebazaar_batch.write_verification_family_hints(context.source_root / "manifest.json")
     if hints.get("schema_version") != 1:
         raise DailyOrchestrationError(
             "family_hint_manifest_invalid",
@@ -2746,12 +2742,24 @@ def _production_malwarebazaar_acquisition(context: DailyContext) -> StageOutcome
             "selected": len(manifest["selected_hashes"]),
             "downloaded": manifest["downloaded"],
             "pending": manifest["pending"],
-            "selection_commitment_sha256": manifest[
-                "selection_commitment_sha256"
-            ],
+            "selection_commitment_sha256": manifest["selection_commitment_sha256"],
             "archives_remain_encrypted": True,
             "sample_executed": False,
         },
+    )
+
+
+def _static_execution_cache_key(context: DailyContext, input_cache_key: str) -> str:
+    """入力identityとoperator tool pinをjob IDへ結合する。"""
+
+    configuration = context.trusted_tool_configuration
+    return _sha256_value(
+        {
+            "input_cache_key_sha256": input_cache_key,
+            "trusted_tool_operator_manifest_sha256": (
+                configuration.manifest_sha256 if configuration is not None else None
+            ),
+        }
     )
 
 
@@ -2773,8 +2781,8 @@ def _static_request(context: DailyContext) -> tuple[Any, Any]:
             "options": {
                 "archive_mode": "malwarebazaar",
                 "max_files": max(context.request.malwarebazaar_count * 4, 64),
-                "max_static_layers": 6,
-                "retry_max_static_layers": 10,
+                "max_static_layers": DAILY_INITIAL_STATIC_LAYERS,
+                "retry_max_static_layers": DAILY_RETRY_STATIC_LAYERS,
             },
         }
     )
@@ -2783,10 +2791,12 @@ def _static_request(context: DailyContext) -> tuple[Any, Any]:
         provisional,
         source_root,
     )
-    job_id = f"{context.collection_id}-{identity.cache_key_sha256[:12]}"
-    request = analysis_job_runner.validate_request_object(
-        {**provisional.public(), "job_id": job_id}
+    execution_cache_key = _static_execution_cache_key(
+        context,
+        identity.cache_key_sha256,
     )
+    job_id = f"{context.collection_id}-{execution_cache_key[:12]}"
+    request = analysis_job_runner.validate_request_object({**provisional.public(), "job_id": job_id})
     confirmed = daily_news_malware_intake._daily_static_input_identity(
         analysis_job_runner,
         request,
@@ -2800,10 +2810,108 @@ def _static_request(context: DailyContext) -> tuple[Any, Any]:
     return request, confirmed
 
 
-def _static_job_result(context: DailyContext, request: Any) -> dict[str, Any]:
-    job_dir = context.jobs_root / request.job_id
+def _validate_static_tool_preparation(
+    context: DailyContext,
+    validation: Mapping[str, Any],
+) -> None:
+    """validate_jobのtool identityを現在のoperator pinと照合する。"""
+
+    policy = _load_context_trusted_tool_policy(context)
+    observed = validation.get("trusted_static_tools")
+    if policy is None:
+        if observed is not None:
+            raise DailyOrchestrationError(
+                "static_trusted_tool_mismatch",
+                "未指定のtrusted toolが静的解析検証結果に含まれています",
+            )
+        return
+    expected = {
+        "profile_id": policy.profile_id,
+        "operator_manifest_sha256": policy.operator_manifest_sha256,
+        "tools": policy.identities(),
+    }
+    if observed != expected:
+        raise DailyOrchestrationError(
+            "static_trusted_tool_mismatch",
+            "静的解析検証結果のtrusted tool identityがoperator pinと一致しません",
+        )
+
+
+def _expected_static_snapshot_tool_identities(
+    policy: analysis_job_runner.TrustedToolPolicy,
+) -> dict[str, dict[str, Any] | None]:
+    """operator toolをjob-private名へ固定した後のidentityを返す。"""
+
+    identities = policy.identities()
+    for tool_id, identity in identities.items():
+        if identity is not None:
+            identity["name"] = f"{tool_id}.exe" if os.name == "nt" else tool_id
+    return identities
+
+
+def _validate_static_tool_result(
+    context: DailyContext,
+    result: Mapping[str, Any],
+) -> None:
+    """終端resultとjob-private tool snapshotをoperator pinへ再結合する。"""
+
+    policy = _load_context_trusted_tool_policy(context)
+    observed = result.get("trusted_static_tools")
+    artifacts = result.get("artifacts")
+    if not isinstance(artifacts, Mapping):
+        raise DailyOrchestrationError(
+            "static_result_invalid",
+            "日次静的解析resultのartifact manifestが不正です",
+        )
+    manifest_path = artifacts.get("trusted_static_tools_manifest")
+    manifest_sha256 = artifacts.get("trusted_static_tools_manifest_sha256")
+    if policy is None:
+        if observed is not None or manifest_path is not None or manifest_sha256 is not None:
+            raise DailyOrchestrationError(
+                "static_trusted_tool_mismatch",
+                "未指定のtrusted tool snapshotが静的解析resultに含まれています",
+            )
+        return
+    if not isinstance(observed, Mapping):
+        raise DailyOrchestrationError(
+            "static_trusted_tool_mismatch",
+            "指定済みtrusted tool snapshotが静的解析resultにありません",
+        )
+    snapshot_sha256 = observed.get("snapshot_manifest_sha256")
+    if (
+        set(observed)
+        != {
+            "profile_id",
+            "operator_manifest_sha256",
+            "snapshot_manifest_sha256",
+            "tools",
+        }
+        or observed.get("profile_id") != policy.profile_id
+        or observed.get("operator_manifest_sha256") != policy.operator_manifest_sha256
+        or observed.get("tools") != _expected_static_snapshot_tool_identities(policy)
+        or not isinstance(snapshot_sha256, str)
+        or SHA256_RE.fullmatch(snapshot_sha256) is None
+        or manifest_path != "contract-inputs/trusted-static-tools.json"
+        or manifest_sha256 != snapshot_sha256
+    ):
+        raise DailyOrchestrationError(
+            "static_trusted_tool_mismatch",
+            "静的解析resultのtrusted tool provenanceがoperator pinと一致しません",
+        )
+
+
+def _static_job_result_for_id(
+    context: DailyContext,
+    job_id: str,
+) -> dict[str, Any]:
+    if analysis_job_runner.JOB_ID_RE.fullmatch(job_id) is None:
+        raise DailyOrchestrationError(
+            "static_result_invalid",
+            "日次静的解析job IDが不正です",
+        )
+    job_dir = context.jobs_root / job_id
     try:
-        return analysis_job_runner.load_json_object_strict(
+        result = analysis_job_runner.load_json_object_strict(
             job_dir / "result.json",
             max_bytes=analysis_job_runner.MAX_SUMMARY_BYTES,
         )
@@ -2812,11 +2920,27 @@ def _static_job_result(context: DailyContext, request: Any) -> dict[str, Any]:
             "static_result_invalid",
             "日次静的解析resultを安全に読めません",
         ) from exc
+    _validate_static_tool_result(context, result)
+    return result
+
+
+def _static_job_result(context: DailyContext, request: Any) -> dict[str, Any]:
+    return _static_job_result_for_id(context, request.job_id)
 
 
 def _production_static_analysis(context: DailyContext) -> StageOutcome:
     request, identity = _static_request(context)
     context.jobs_root.mkdir(parents=True, exist_ok=True)
+    try:
+        validation = analysis_job_runner.validate_job(
+            request,
+            input_root=context.source_root,
+            jobs_root=context.jobs_root,
+            trusted_tool_configuration=context.trusted_tool_configuration,
+        )
+    except analysis_job_runner.JobContractError as exc:
+        raise DailyOrchestrationError(exc.code, str(exc)) from exc
+    _validate_static_tool_preparation(context, validation)
     job_dir = context.jobs_root / request.job_id
     if job_dir.exists():
         temporary_root = context.work_root / "completed-job-verification"
@@ -2839,6 +2963,7 @@ def _production_static_analysis(context: DailyContext) -> StageOutcome:
             input_root=context.source_root,
             jobs_root=context.jobs_root,
             timeout_seconds=int(context.request.limits["static_timeout_seconds"]),
+            trusted_tool_configuration=context.trusted_tool_configuration,
         )
         if exit_code not in {0, 20}:
             raise DailyOrchestrationError(
@@ -2860,7 +2985,15 @@ def _production_static_analysis(context: DailyContext) -> StageOutcome:
             "analysis_state": analysis_state,
             "input_snapshot_manifest_sha256": identity.input_snapshot_manifest_sha256,
             "family_hint_manifest_sha256": identity.family_hint_manifest_sha256,
-            "implementation_cache_key_sha256": identity.cache_key_sha256,
+            "implementation_cache_key_sha256": _static_execution_cache_key(
+                context,
+                identity.cache_key_sha256,
+            ),
+            "trusted_tool_operator_manifest_sha256": (
+                context.trusted_tool_configuration.manifest_sha256
+                if context.trusted_tool_configuration is not None
+                else None
+            ),
             "sample_executed": False,
             "network_contacted": False,
         },
@@ -3008,10 +3141,7 @@ def _run_fixed_python(
         ) from exc
     analysis_job_runner._atomic_bytes(stdout_path, completed.stdout)
     analysis_job_runner._atomic_bytes(stderr_path, completed.stderr)
-    if (
-        completed.stdout_observed_bytes > 8 * MIB
-        or completed.stderr_observed_bytes > 8 * MIB
-    ):
+    if completed.stdout_observed_bytes > 8 * MIB or completed.stderr_observed_bytes > 8 * MIB:
         raise DailyOrchestrationError(
             f"{stage}_log_limit_exceeded",
             f"{stage}のprocess logがsize上限を超えました",
@@ -3026,13 +3156,7 @@ def _run_fixed_python(
 def _production_c2_monitoring(context: DailyContext) -> StageOutcome:
     import build_all_c2_monitoring_targets
 
-    output = (
-        context.repository
-        / "analysis-results"
-        / "research"
-        / "c2-monitoring"
-        / context.request.analysis_date
-    )
+    output = context.repository / "analysis-results" / "research" / "c2-monitoring" / context.request.analysis_date
     targets_path = output / "targets.json"
     inventory_path = output / "candidate-inventory.json"
     public_daily_summary = (
@@ -3044,10 +3168,7 @@ def _production_c2_monitoring(context: DailyContext) -> StageOutcome:
         / "ioc-summary.json"
     )
     staged_daily_summary = (
-        context.state_root
-        / "news-public-staging"
-        / context.request.news_source_date
-        / "ioc-summary.json"
+        context.state_root / "news-public-staging" / context.request.news_source_date / "ioc-summary.json"
     )
     daily_source_summary_path = None
     if not public_daily_summary.is_file() and staged_daily_summary.is_file():
@@ -3156,15 +3277,15 @@ def _production_validation(context: DailyContext) -> StageOutcome:
             "complete": result.get("complete") is True,
             "finding_count": result.get("finding_count"),
             "lanes": {
-                str(item.get("name")): item.get("complete") is True
-                for item in lanes
-                if isinstance(item, Mapping)
-            } if isinstance(lanes, list) else {},
+                str(item.get("name")): item.get("complete") is True for item in lanes if isinstance(item, Mapping)
+            }
+            if isinstance(lanes, list)
+            else {},
             "quality_gates": {
-                str(item.get("name")): item.get("complete") is True
-                for item in quality
-                if isinstance(item, Mapping)
-            } if isinstance(quality, list) else {},
+                str(item.get("name")): item.get("complete") is True for item in quality if isinstance(item, Mapping)
+            }
+            if isinstance(quality, list)
+            else {},
             "sample_executed": False,
             "network_contacted": False,
         },
@@ -3181,8 +3302,7 @@ def _tree_size(path: Path, *, maximum_entries: int = 500_000) -> int:
         current = pending.pop()
         information = current.lstat()
         if current.is_symlink() or bool(
-            getattr(information, "st_file_attributes", 0)
-            & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+            getattr(information, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
         ):
             raise DailyOrchestrationError(
                 "archive_source_reparse_forbidden",
@@ -3264,19 +3384,82 @@ def _source_commitment(source: Path) -> tuple[str, int, int]:
     import archive_analysis_datastore
 
     files = archive_analysis_datastore.collect_source_files([source])
-    records = [
-        {"path": item.archive_name, "size": item.size, "sha256": item.sha256}
-        for item in files
-    ]
+    records = [{"path": item.archive_name, "size": item.size, "sha256": item.sha256} for item in files]
     return _sha256_value(records), len(records), sum(item.size for item in files)
 
 
-def _archive_one(context: DailyContext, *, role: str, source: Path, target: str) -> dict[str, Any]:
+def _reverify_archive_head(
+    report: Mapping[str, Any],
+    *,
+    target: str,
+) -> None:
+    """再利用直前にもS3 HeadObjectを再取得し、保存時commitmentを照合する。"""
+
+    import archive_analysis_datastore
+
+    object_uri = report.get("object_uri")
+    archive_size = report.get("archive_size")
+    match = re.fullmatch(r"s3://([^/]+)/(.+)", object_uri) if isinstance(object_uri, str) else None
+    if match is None or type(archive_size) is not int or archive_size <= 0:
+        raise DailyOrchestrationError(
+            "archive_report_invalid",
+            "再利用するS3 archive reportのobject束縛が不正です",
+        )
+    try:
+        aws_cli = archive_analysis_datastore.find_aws_cli(None)
+        response = archive_analysis_datastore._run_aws(
+            aws_cli,
+            [
+                "s3api",
+                "head-object",
+                "--bucket",
+                match.group(1),
+                "--key",
+                match.group(2),
+                "--region",
+                archive_analysis_datastore.DEFAULT_REGION,
+                "--output",
+                "json",
+            ],
+            expect_json=True,
+        )
+        archive_analysis_datastore.verify_head_object(
+            response,
+            expected_size=archive_size,
+            archive_sha256=str(report["archive_sha256"]),
+            manifest_sha256=str(report["manifest_sha256"]),
+            target=target,
+        )
+    except (archive_analysis_datastore.DatastoreError, OSError) as exc:
+        raise DailyOrchestrationError(
+            "archive_remote_reverification_failed",
+            "再利用するS3 archiveをHeadObjectで再検証できません",
+        ) from exc
+
+
+def _archive_one(
+    context: DailyContext,
+    *,
+    role: str,
+    source: Path,
+    target: str,
+    expected_source: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     import archive_analysis_datastore
 
     target = _bounded_datastore_target(target)
     report_path = context.state_root / "archive-reports" / f"{target}.json"
     binding_path = _archive_binding_path(context, target)
+    commitment, file_count, total_size = _source_commitment(source)
+    if expected_source is not None and (
+        expected_source.get("source_tree_sha256") != commitment
+        or expected_source.get("file_count") != file_count
+        or expected_source.get("total_size") != total_size
+    ):
+        raise DailyOrchestrationError(
+            "archive_staging_commitment_changed",
+            "case stagingが検証済みhandoff commitmentから変更されました",
+        )
     existing = _verified_archive_report(report_path, target)
     if existing is not None and binding_path.is_file():
         try:
@@ -3289,7 +3472,6 @@ def _archive_one(context: DailyContext, *, role: str, source: Path, target: str)
                 "archive_binding_invalid",
                 "S3 archive source bindingを安全に読めません",
             ) from exc
-        commitment, file_count, total_size = _source_commitment(source)
         if (
             binding.get("target") != target
             or binding.get("source_role") != role
@@ -3302,6 +3484,7 @@ def _archive_one(context: DailyContext, *, role: str, source: Path, target: str)
                 "archive_source_changed",
                 "S3検証後にlocal sourceが変更されたため別archiveが必要です",
             )
+        _reverify_archive_head(existing, target=target)
         return {
             "target": target,
             "source_role": role,
@@ -3309,8 +3492,9 @@ def _archive_one(context: DailyContext, *, role: str, source: Path, target: str)
             "archive_sha256": existing["archive_sha256"],
             "manifest_sha256": existing["manifest_sha256"],
             "source_tree_sha256": commitment,
+            "file_count": file_count,
+            "total_size": total_size,
         }
-    commitment, file_count, total_size = _source_commitment(source)
     exit_code = archive_analysis_datastore.main(
         [
             "--target",
@@ -3356,7 +3540,130 @@ def _archive_one(context: DailyContext, *, role: str, source: Path, target: str)
         "archive_sha256": report["archive_sha256"],
         "manifest_sha256": report["manifest_sha256"],
         "source_tree_sha256": commitment,
+        "file_count": file_count,
+        "total_size": total_size,
     }
+
+
+def _archive_analysis_cases(
+    context: DailyContext,
+    *,
+    one_shot_root: Path,
+) -> list[dict[str, Any]]:
+    """完了済みsample collectionを1 caseずつ分離・保管してstagingを回収する。"""
+
+    import stage_case_analysis_datastore
+
+    acquisition = _load_acquisition_manifest(context)
+    selected = acquisition.get("selected_hashes")
+    if (
+        not isinstance(selected, list)
+        or len(selected) != context.request.malwarebazaar_count
+        or len(set(selected)) != len(selected)
+        or any(not isinstance(value, str) or SHA256_RE.fullmatch(value) is None for value in selected)
+    ):
+        raise DailyOrchestrationError(
+            "case_archive_selection_invalid",
+            "case別archiveの検体集合を取得manifestへ束縛できません",
+        )
+    staging_root = context.state_root / "case-datastore-staging"
+    archived: list[dict[str, Any]] = []
+    for digest in sorted(selected):
+        try:
+            expected_target = stage_case_analysis_datastore._datastore_target(
+                context.collection_id,
+                digest,
+            )
+            if os.path.lexists(staging_root / expected_target):
+                staged = stage_case_analysis_datastore.reuse_case_staging(
+                    output_root=staging_root,
+                    collection_id=context.collection_id,
+                    case_sha256=digest,
+                )
+            else:
+                common_arguments = {
+                    "repository": context.repository,
+                    "collection_id": context.collection_id,
+                    "source_root": context.source_root,
+                    "one_shot_root": one_shot_root,
+                    "output_root": staging_root,
+                    "case_sha256s": [digest],
+                }
+                if context.request.stages["ghidra"]:
+                    staged = stage_case_analysis_datastore.stage_cases(
+                        **common_arguments,
+                        ghidra_root=context.ghidra_private_output,
+                    )
+                else:
+                    staged = stage_case_analysis_datastore.stage_cases_without_ghidra(
+                        **common_arguments,
+                    )
+        except stage_case_analysis_datastore.CaseStagingError as exc:
+            raise DailyOrchestrationError(
+                "case_archive_staging_failed",
+                f"case別archive stagingに失敗しました: {digest[:12]}",
+            ) from exc
+        cases = staged.get("cases")
+        if (
+            staged.get("case_count") != 1
+            or not isinstance(cases, list)
+            or len(cases) != 1
+            or not isinstance(cases[0], Mapping)
+        ):
+            raise DailyOrchestrationError(
+                "case_archive_handoff_invalid",
+                "case staging helperが単一caseのhandoffを返しませんでした",
+            )
+        case = cases[0]
+        target = case.get("target")
+        source_value = case.get("source_path")
+        if (
+            case.get("case_sha256") != digest
+            or not isinstance(target, str)
+            or _bounded_datastore_target(target) != target
+            or not isinstance(source_value, str)
+        ):
+            raise DailyOrchestrationError(
+                "case_archive_handoff_invalid",
+                "case staging helperのcase・target・source束縛が不正です",
+            )
+        source = Path(source_value)
+        expected_source = staging_root / target
+        if _absolute(source) != _absolute(expected_source):
+            raise DailyOrchestrationError(
+                "case_archive_handoff_invalid",
+                "case staging helperがowned staging外を返しました",
+            )
+        archive_result = _archive_one(
+            context,
+            role="analysis_case",
+            source=source,
+            target=target,
+            expected_source=case,
+        )
+        try:
+            cleanup = stage_case_analysis_datastore.remove_case_staging_after_verified_archive(
+                output_root=staging_root,
+                source_path=source,
+                collection_id=context.collection_id,
+                case_sha256=digest,
+                archive_result=archive_result,
+            )
+        except stage_case_analysis_datastore.CaseStagingError as exc:
+            raise DailyOrchestrationError(
+                "case_archive_cleanup_failed",
+                f"remote検証後のowned case stagingを削除できません: {digest[:12]}",
+            ) from exc
+        archived.append(
+            {
+                **archive_result,
+                "case_sha256": digest,
+                "case_separated": True,
+                "owned_staging_removed": cleanup.get("removed") is True,
+                "local_source_deleted": False,
+            }
+        )
+    return archived
 
 
 def _production_private_archive(context: DailyContext) -> StageOutcome:
@@ -3374,9 +3681,7 @@ def _production_private_archive(context: DailyContext) -> StageOutcome:
     if context.state_root.exists():
         state = _load_state(context)
         upstream_failed = any(
-            state["stages"][name]["status"] == "failed"
-            for name in STAGES
-            if name != "private_archive"
+            state["stages"][name]["status"] == "failed" for name in STAGES if name != "private_archive"
         )
     candidates: list[tuple[str, Path, str]] = []
     static_input_enabled = any(
@@ -3388,16 +3693,7 @@ def _production_private_archive(context: DailyContext) -> StageOutcome:
             "ghidra",
         )
     )
-    if static_input_enabled and (context.source_root.exists() or not upstream_failed):
-        candidates.append(
-            (
-                "source",
-                context.source_root,
-                _bounded_datastore_target(
-                    f"{context.collection_id}-{context.request.run_id}-source"
-                ),
-            )
-        )
+    one_shot_case_root: Path | None = None
     if context.request.stages["static_analysis"] or context.request.stages["publication"]:
         try:
             request, _identity = _static_request(context)
@@ -3406,19 +3702,8 @@ def _production_private_archive(context: DailyContext) -> StageOutcome:
                 raise
         else:
             job_path = context.jobs_root / request.job_id
-            if job_path.exists() or not upstream_failed:
-                candidates.append(
-                    (
-                        "one_shot_job",
-                        job_path,
-                        _bounded_datastore_target(
-                            f"{context.collection_id}-{context.request.run_id}-one-shot-job"
-                        ),
-                    )
-                )
-    if context.request.stages["news_intake"] and (
-        context.daily_news_private_output.exists() or not upstream_failed
-    ):
+            one_shot_case_root = job_path / "analysis"
+    if context.request.stages["news_intake"] and (context.daily_news_private_output.exists() or not upstream_failed):
         candidates.append(
             (
                 "daily_news",
@@ -3428,9 +3713,12 @@ def _production_private_archive(context: DailyContext) -> StageOutcome:
                 ),
             )
         )
+    ghidra_enabled = context.request.stages["ghidra"]
     ghidra_progress = context.ghidra_private_output / "run-progress.json"
-    ghidra_complete = False
-    if ghidra_progress.is_file():
+    # Ghidraを明示的に無効化したrunでは、その未生成結果をcase archiveの
+    # 前提にしない。過去runのstale checkpointもこのrunへ混入させない。
+    ghidra_complete = not ghidra_enabled
+    if ghidra_enabled and ghidra_progress.is_file():
         try:
             progress = analysis_job_runner.load_json_object_strict(
                 ghidra_progress,
@@ -3443,7 +3731,7 @@ def _production_private_archive(context: DailyContext) -> StageOutcome:
                 "Ghidra進捗を安全に確認できません",
             ) from exc
     ghidra_has_data = False
-    if context.ghidra_private_output.is_dir():
+    if ghidra_enabled and context.ghidra_private_output.is_dir():
         try:
             with os.scandir(context.ghidra_private_output) as iterator:
                 ghidra_has_data = next(iterator, None) is not None
@@ -3452,24 +3740,32 @@ def _production_private_archive(context: DailyContext) -> StageOutcome:
                 "ghidra_progress_invalid",
                 "Ghidra private結果を安全に確認できません",
             ) from exc
-    if ghidra_has_data:
-        ghidra_commitment, _file_count, _total_size = _source_commitment(
-            context.ghidra_private_output
-        )
-        generation = "final" if ghidra_complete else "checkpoint"
+    if ghidra_has_data and not ghidra_complete:
+        ghidra_commitment, _file_count, _total_size = _source_commitment(context.ghidra_private_output)
         candidates.append(
             (
-                "ghidra_static_results" if ghidra_complete else "ghidra_checkpoint",
+                "ghidra_checkpoint",
                 context.ghidra_private_output,
                 (
                     _bounded_datastore_target(
-                        f"{context.collection_id}-{context.request.run_id}-ghidra-"
-                        f"{generation}-{ghidra_commitment[:16]}"
+                        f"{context.collection_id}-{context.request.run_id}-ghidra-checkpoint-{ghidra_commitment[:16]}"
                     )
                 ),
             )
         )
-    if not candidates:
+    case_archive_ready = (
+        static_input_enabled
+        and context.source_root.is_dir()
+        and one_shot_case_root is not None
+        and one_shot_case_root.is_dir()
+        and ghidra_complete
+    )
+    if static_input_enabled and ghidra_complete and not case_archive_ready and not upstream_failed:
+        raise DailyOrchestrationError(
+            "case_archive_source_missing",
+            "case別archiveに必要なsourceまたはone-shot private結果がありません",
+        )
+    if not candidates and not case_archive_ready:
         return StageOutcome(
             status="partial",
             retryable=upstream_failed,
@@ -3489,22 +3785,23 @@ def _production_private_archive(context: DailyContext) -> StageOutcome:
             "archive_source_missing",
             "S3保管対象の解析dataがありません",
         )
-    required = max(_tree_size(source) for _role, source, _target in candidates)
-    free = shutil.disk_usage(tempfile.gettempdir()).free
-    reserve = 512 * 1024 * 1024
-    if free < required + reserve:
-        return StageOutcome(
-            status="partial",
-            retryable=True,
-            result={
-                "status": "archive_staging_capacity_insufficient",
-                "required_staging_bytes": required,
-                "minimum_reserve_bytes": reserve,
-                "observed_free_bytes": free,
-                "local_source_deleted": False,
-                "automatic_source_deletion": False,
-            },
-        )
+    if candidates:
+        required = max(_tree_size(source) for _role, source, _target in candidates)
+        free = shutil.disk_usage(tempfile.gettempdir()).free
+        reserve = 512 * 1024 * 1024
+        if free < required + reserve:
+            return StageOutcome(
+                status="partial",
+                retryable=True,
+                result={
+                    "status": "archive_staging_capacity_insufficient",
+                    "required_staging_bytes": required,
+                    "minimum_reserve_bytes": reserve,
+                    "observed_free_bytes": free,
+                    "local_source_deleted": False,
+                    "automatic_source_deletion": False,
+                },
+            )
     generation_candidates: list[tuple[str, Path, str]] = []
     for role, source, target in candidates:
         commitment, _file_count, _total_size = _source_commitment(source)
@@ -3516,9 +3813,13 @@ def _production_private_archive(context: DailyContext) -> StageOutcome:
             )
         )
     archived = [
-        _archive_one(context, role=role, source=source, target=target)
-        for role, source, target in generation_candidates
+        _archive_one(context, role=role, source=source, target=target) for role, source, target in generation_candidates
     ]
+    if case_archive_ready:
+        assert one_shot_case_root is not None
+        archived.extend(_archive_analysis_cases(context, one_shot_root=one_shot_case_root))
+    case_archive_count = sum(item.get("source_role") == "analysis_case" for item in archived)
+    ghidra_checkpoint_archived = ghidra_has_data and not ghidra_complete
     if upstream_failed:
         return StageOutcome(
             status="partial",
@@ -3526,7 +3827,8 @@ def _production_private_archive(context: DailyContext) -> StageOutcome:
             result={
                 "status": "upstream_failed_private_checkpoint_verified",
                 "verified_targets": archived,
-                "ghidra_checkpoint_archived": ghidra_has_data,
+                "ghidra_checkpoint_archived": ghidra_checkpoint_archived,
+                "case_archive_count": case_archive_count,
                 "local_source_deleted": False,
                 "automatic_source_deletion": False,
             },
@@ -3538,7 +3840,8 @@ def _production_private_archive(context: DailyContext) -> StageOutcome:
             result={
                 "status": "upstream_ghidra_pending",
                 "verified_targets": archived,
-                "ghidra_checkpoint_archived": ghidra_has_data,
+                "ghidra_checkpoint_archived": ghidra_checkpoint_archived,
+                "case_archive_count": case_archive_count,
                 "local_source_deleted": False,
                 "automatic_source_deletion": False,
             },
@@ -3548,7 +3851,8 @@ def _production_private_archive(context: DailyContext) -> StageOutcome:
         result={
             "status": "verified",
             "verified_targets": archived,
-            "ghidra_checkpoint_archived": ghidra_has_data,
+            "ghidra_checkpoint_archived": ghidra_checkpoint_archived,
+            "case_archive_count": case_archive_count,
             "local_source_deleted": False,
             "automatic_source_deletion": False,
         },
@@ -3603,6 +3907,45 @@ def _add_context_arguments(parser: argparse.ArgumentParser, *, request_required:
         "--allow-live-c2",
         action="store_true",
         help="request側のnetwork.c2_monitoring=trueに加え、現在の実行で限定ライブ監視を明示許可します",
+    )
+    parser.add_argument(
+        "--trusted-tools-manifest",
+        type=Path,
+        help="operator管理の信頼済みUPX／7zz manifest。request JSONからは指定できません",
+    )
+    parser.add_argument(
+        "--trusted-tools-manifest-sha256",
+        help="trusted tools manifest raw bytesの小文字SHA-256 pin。manifestと同時指定します",
+    )
+
+
+def _trusted_tool_configuration_from_args(
+    args: argparse.Namespace,
+) -> analysis_job_runner.TrustedToolConfiguration | None:
+    """operator CLIのpathとraw digestだけをpairとして受理する。"""
+
+    manifest = getattr(args, "trusted_tools_manifest", None)
+    digest = getattr(args, "trusted_tools_manifest_sha256", None)
+    if manifest is None and digest is None:
+        return None
+    if manifest is None or digest is None:
+        raise DailyOrchestrationError(
+            "trusted_tool_configuration_incomplete",
+            "trusted tool manifestとSHA-256 pinは同時に指定してください",
+        )
+    if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
+        raise DailyOrchestrationError(
+            "trusted_tool_manifest_pin_invalid",
+            "trusted tool manifest SHA-256 pinは小文字64桁で指定してください",
+        )
+    if not isinstance(manifest, Path) or not manifest.is_absolute():
+        raise DailyOrchestrationError(
+            "trusted_tool_manifest_path_invalid",
+            "trusted tool manifestは絶対pathで指定してください",
+        )
+    return analysis_job_runner.TrustedToolConfiguration(
+        manifest_path=manifest,
+        manifest_sha256=digest,
     )
 
 
@@ -3714,6 +4057,7 @@ def main(argv: list[str] | None = None) -> int:
             state = read_status(args.work_root, args.run_id)
             _print_json(state)
             return _exit_code(str(state.get("status")))
+        trusted_tool_configuration = _trusted_tool_configuration_from_args(args)
         request = load_request(args.request)
         context = _validate_context(
             request,
@@ -3724,6 +4068,7 @@ def main(argv: list[str] | None = None) -> int:
             ghidra_project_store=args.ghidra_project_store,
             allow_live_c2=args.allow_live_c2,
             create_roots=args.command in {"run", "resume", "drive"},
+            trusted_tool_configuration=trusted_tool_configuration,
         )
         if args.command == "plan":
             _print_json(

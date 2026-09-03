@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -11,6 +12,7 @@ import shutil
 import stat
 import sys
 import tempfile
+import time
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
@@ -21,6 +23,8 @@ if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
 import analysis_job_runner  # noqa: E402
+import orchestration_outcome  # noqa: E402
+from automated_case_analysis import build_case_automation_artifacts  # noqa: E402
 from analysis_contract import (  # noqa: E402
     artifact_hashes,
     case_integrity_errors,
@@ -32,6 +36,7 @@ from analysis_contract import (  # noqa: E402
     seal_report,
 )
 from c2_analysis_contract import (  # noqa: E402
+    REQUIRED_PHASES,
     build_unresolved_contract,
 )
 from c2_analysis_contract import (  # noqa: E402
@@ -40,7 +45,9 @@ from c2_analysis_contract import (  # noqa: E402
 from case_features import build_case_profile, render_features_markdown  # noqa: E402
 from handler_evidence import (  # noqa: E402
     confirmed_static_handler_iocs,
+    is_dual_use_management_endpoint,
     static_config_recovered,
+    trusted_handler_result,
 )
 from ioc_markdown import render_submitted_iocs  # noqa: E402
 from malwarebazaar_family_labels import (  # noqa: E402
@@ -55,10 +62,28 @@ from result_publication import (  # noqa: E402
     detect_publication_context,
     register_publication_cases,
 )
+from screenconnect_evidence import (  # noqa: E402
+    legacy_screenconnect_config,
+    validated_screenconnect_config,
+)
 from static_logic import render_static_logic_markdown  # noqa: E402
 
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
+CASE_PUBLICATION_TRANSACTION_SCHEMA = 1
+STATIC_FAMILY_ATTRIBUTION_BASES = frozenset(
+    {
+        "one_shot_static_detector",
+        "one_shot_recovered_layer_detector",
+    }
+)
+PROVIDER_FAMILY_ATTRIBUTION_BASES = frozenset(
+    {
+        "malwarebazaar_reported_signature",
+        "malwarebazaar_direct_tag",
+    }
+)
 COLLECTION_RE = re.compile(r"[a-z0-9][a-z0-9-]{2,79}")
+FORBIDDEN_PUBLICATION_BASENAMES = frozenset({"datastore-upload.json"})
 FUNCTION_ANALYSIS_BLOCKER = "representative_function_analysis_required"
 ROOT_TO_TERMINAL_LINEAGE_BLOCKER = "root_to_terminal_byte_derivation_incomplete"
 ANALYSIS_FOLLOWUP_BLOCKERS = {
@@ -80,6 +105,7 @@ PARTIAL_STAGING_ALLOWED_BLOCKERS = {
     "static_layer_incomplete",
     "orchestration:config",
     "orchestration:function_analysis",
+    "orchestration:generic_triage",
     "orchestration:network",
     "orchestration:static_layers",
     "orchestration:terminal_payload",
@@ -93,6 +119,7 @@ INTERNAL_FAMILY_TO_PUBLIC = {
     "formbook_loader": "formbook",
     "linux_downloader": "linux-downloader",
     "maskgram_stealer": "maskgram-stealer",
+    "screenconnect_rmm": "screenconnect-rmm",
 }
 PUBLIC_METADATA_KEYS = (
     "sha256_hash",
@@ -111,6 +138,8 @@ PUBLIC_METADATA_KEYS = (
     "signature",
     "tags",
 )
+
+
 def load_json(path: Path) -> dict[str, Any]:
     return load_json_object_strict(path)
 
@@ -147,11 +176,7 @@ def build_post_analysis_publication_record(
         raise ValueError("relevant_resource_failuresが観測数を超えています")
 
     result_changed = relevant_resource_failures > 0
-    impact = (
-        "該当失敗があるため、影響検体の再解析が必要。"
-        if result_changed
-        else "該当失敗は0件で、抽出結果は不変。"
-    )
+    impact = "該当失敗があるため、影響検体の再解析が必要。" if result_changed else "該当失敗は0件で、抽出結果は不変。"
     return {
         "status": POST_ANALYSIS_HARDENING_STATUS,
         "sample_count": sample_count,
@@ -195,8 +220,7 @@ def selected_family_has_handler_support(report: dict[str, Any], internal_family:
     relevant = [
         item
         for item in executions
-        if isinstance(item, dict)
-        and str(item.get("handler_id") or "").partition(":")[0].casefold() == internal_family
+        if isinstance(item, dict) and str(item.get("handler_id") or "").partition(":")[0].casefold() == internal_family
     ]
     if not relevant:
         return False
@@ -220,9 +244,7 @@ def choose_family(metadata: dict[str, Any], report: dict[str, Any], existing_fam
     forced_family = settings.get("forced_family") if isinstance(settings, dict) else None
     if selection_basis != "explicit_operator_selection" and not forced_family:
         selected_public = public_family_id(selected_internal)
-        if selected_public in existing_families and selected_family_has_handler_support(
-            report, selected_internal
-        ):
+        if selected_public in existing_families and selected_family_has_handler_support(report, selected_internal):
             return selected_public, "one_shot_static_detector"
         selected_families = classification.get("selected_families")
         if (
@@ -263,6 +285,149 @@ def choose_family(metadata: dict[str, Any], report: dict[str, Any], existing_fam
     if len(mapped_tags) == 1:
         return mapped_tags.pop(), "malwarebazaar_direct_tag"
     return "unclassified", "no_supported_family_evidence"
+
+
+def build_family_attribution(
+    family: str,
+    attribution_basis: str,
+    metadata: dict[str, Any],
+) -> dict[str, Any]:
+    """整理先ラベル、provider報告、内部静的確認を混同しない帰属契約を作る。"""
+
+    reported_label = str(metadata.get("signature") or "").strip() or None
+    reported_family = None
+    if reported_label:
+        reported_family = REPORTED_FAMILY_ALIASES.get(normalize_reported_name(reported_label))
+    if reported_family is None:
+        mapped_tags = [
+            (str(value), REPORTED_FAMILY_ALIASES.get(normalize_reported_name(value)))
+            for value in (metadata.get("tags") or [])
+            if not str(value).casefold().startswith("dropped-by-")
+        ]
+        matching_tags = [(label, mapped) for label, mapped in mapped_tags if mapped is not None and mapped == family]
+        if len(matching_tags) == 1:
+            reported_label, reported_family = matching_tags[0]
+
+    statically_confirmed = attribution_basis in STATIC_FAMILY_ATTRIBUTION_BASES
+    provider_only = attribution_basis in PROVIDER_FAMILY_ATTRIBUTION_BASES
+    if statically_confirmed:
+        status = "statically_confirmed"
+        catalog_role = "statically_confirmed_family"
+        note_ja = "内部の静的handler証拠でファミリーを確認しました。"
+    elif provider_only:
+        status = "provider_reported_not_statically_confirmed"
+        catalog_role = "provider_reported_grouping"
+        note_ja = (
+            "整理先は提供元報告ラベルに基づきます。内部の静的証拠では"
+            "ファミリーを確認しておらず、帰属確定として扱いません。"
+        )
+    else:
+        status = "unresolved"
+        catalog_role = "unclassified_grouping"
+        note_ja = "内部の静的証拠ではファミリーを解決できていません。"
+    return {
+        "status": status,
+        "basis": attribution_basis,
+        "catalog_family": family,
+        "catalog_family_role": catalog_role,
+        "provider_reported_label": reported_label,
+        "provider_reported_family": reported_family,
+        "statically_confirmed_family": family if statically_confirmed else None,
+        "supports_attribution": statically_confirmed,
+        "note_ja": note_ja,
+    }
+
+
+def _family_attribution_readme_lines(
+    attribution: dict[str, Any],
+) -> list[str]:
+    family = attribution["catalog_family"]
+    status = attribution["status"]
+    if status == "statically_confirmed":
+        return [
+            f"- 整理先ラベル: `{family}`",
+            f"- 内部静的確認済みファミリー: `{family}`",
+            "- ファミリー帰属状態: `statically_confirmed`",
+        ]
+    if status == "provider_reported_not_statically_confirmed":
+        label = attribution.get("provider_reported_label") or family
+        return [
+            f"- 整理先ラベル: `{family}`（提供元報告に基づく）",
+            f"- 提供元報告ラベル: `{label}`",
+            "- 内部静的確認済みファミリー: `なし`",
+            "- ファミリー帰属状態: `provider_reported_not_statically_confirmed`",
+            f"- 注意: {attribution['note_ja']}",
+        ]
+    return [
+        f"- 整理先ラベル: `{family}`",
+        "- 内部静的確認済みファミリー: `なし`",
+        "- ファミリー帰属状態: `unresolved`",
+        f"- 注意: {attribution['note_ja']}",
+    ]
+
+
+def _screenconnect_remote_command_capability(logic: dict[str, Any]) -> bool:
+    """レビュー済み関数名／callからScreenConnectのremote command能力を判定する。"""
+
+    markers = {
+        "runcommandlineprogram",
+        "runcommandlinecommands",
+        "createremoteprocess",
+    }
+    for function in logic.get("functions") or []:
+        if not isinstance(function, dict):
+            continue
+        values = [
+            function.get("name"),
+            *(function.get("api_calls") or []),
+            *(function.get("callees") or []),
+        ]
+        if any(any(marker in str(value).casefold() for marker in markers) for value in values):
+            return True
+    return False
+
+
+def render_published_features_markdown(profile: dict[str, Any]) -> str:
+    """FEATURESの整理先familyへ帰属状態を併記する。"""
+
+    rendered = render_features_markdown(profile)
+    attribution = profile.get("family_attribution")
+    if not isinstance(attribution, dict):
+        return rendered
+    original = f"- ファミリー: `{profile['family']}`"
+    replacement = "\n".join(_family_attribution_readme_lines(attribution))
+    if rendered.count(original) != 1:
+        raise ValueError("FEATURES.mdのfamily表示位置を一意に特定できません")
+    rendered = rendered.replace(original, replacement)
+    management = profile.get("screenconnect_management_assessment")
+    if not isinstance(management, dict):
+        return rendered
+    marker = "\n## 範囲と制約\n"
+    if rendered.count(marker) != 1:
+        raise ValueError("FEATURES.mdの制約節を一意に特定できません")
+    management_lines = [
+        "",
+        "## 双用途管理能力の評価",
+        "",
+        "- 双用途管理client: `確認済み`",
+        (
+            "- remote command能力: `静的関数証拠で確認済み`"
+            if management["remote_command_capability_statically_confirmed"]
+            else "- remote command能力: `静的確認未完了`"
+        ),
+        (f"- 確認済み管理endpoint: `{management['management_endpoint_observations']}`件"),
+        (
+            "- 別個のmalware C2: "
+            + (
+                f"`{management['separate_malware_c2_observations']}`件を確認"
+                if management["separate_malware_c2_observations"]
+                else "`未確認`"
+            )
+        ),
+        "- 管理endpointの悪性利用: `未確認`",
+        "",
+    ]
+    return rendered.replace(marker, "\n".join(management_lines) + marker)
 
 
 def safe_metadata(item: dict[str, Any]) -> dict[str, Any]:
@@ -368,8 +533,7 @@ def validate_source_case(
         report,
         expected_digest=digest,
         expected_contract=expected_contract,
-        require_resumable=(report.get("case_state") or {}).get("status")
-        == "complete",
+        require_resumable=(report.get("case_state") or {}).get("status") == "complete",
     )
     if errors:
         raise ValueError(f"one-shot解析caseの整合性検証に失敗しました: {digest} ({errors})")
@@ -402,7 +566,12 @@ def load_validated_source_report(
     return report, stage
 
 
-def reseal_canonical_report(case_dir: Path, report: dict[str, Any]) -> None:
+def reseal_canonical_report(
+    case_dir: Path,
+    report: dict[str, Any],
+    *,
+    expected_digest: str | None = None,
+) -> None:
     """生成後の正規成果物に合わせてhash manifestとreport sealを更新する。"""
 
     source_manifest = report.get("artifact_sha256")
@@ -411,12 +580,12 @@ def reseal_canonical_report(case_dir: Path, report: dict[str, Any]) -> None:
     report["artifact_sha256"] = artifact_hashes(case_dir, source_manifest)
     seal_report(report)
     write_json(case_dir / "report.json", report)
+    bound_digest = case_dir.name if expected_digest is None else normalize_sha256_digest(expected_digest)
     errors = case_integrity_errors(
         case_dir,
         report,
-        expected_digest=case_dir.name,
-        require_resumable=(report.get("case_state") or {}).get("status")
-        == "complete",
+        expected_digest=bound_digest,
+        require_resumable=(report.get("case_state") or {}).get("status") == "complete",
     )
     if errors:
         raise ValueError(f"正規caseの再封印後検証に失敗しました: {case_dir.name} ({errors})")
@@ -531,7 +700,47 @@ def render_readme(
     logic: dict[str, Any],
     handler_count: int,
     confirmed_c2_count: int,
+    confirmed_network_count: int | None = None,
+    confirmed_management_count: int = 0,
+    family_attribution: dict[str, Any] | None = None,
 ) -> str:
+    if confirmed_network_count is None:
+        confirmed_network_count = confirmed_c2_count
+    attribution = family_attribution or build_family_attribution(
+        family,
+        attribution_basis,
+        metadata,
+    )
+    remote_command_confirmed = family == "screenconnect-rmm" and _screenconnect_remote_command_capability(logic)
+    if family == "screenconnect-rmm" and confirmed_management_count:
+        c2_assessment = (
+            f"双用途のScreenConnect管理clientと管理endpointを"
+            f"`{confirmed_management_count}`件、静的設定から確認しました。"
+            + (
+                "レビュー済み関数の`RunCommandLineProgram`等からremote command能力も静的に確認しました。"
+                if remote_command_confirmed
+                else "remote command実行経路はこの成果物では静的確認未完了です。"
+            )
+            + (
+                f"別個のmalware C2観測を`{confirmed_c2_count}`件記録しました。"
+                if confirmed_c2_count
+                else "別個のmalware C2は未確認です。"
+            )
+            + "管理endpointの悪性利用、所有者、到達性は確認していません。"
+        )
+    elif confirmed_network_count:
+        c2_assessment = (
+            f"ファミリー固有handlerの静的設定構造から、確認済み通信先を"
+            f"`{confirmed_network_count}`件、そのうちC2観測を"
+            f"`{confirmed_c2_count}`件記録しました。"
+            "重複するendpointでもroleまたはevidenceが異なる観測は保持しています。"
+            "到達性、所有者、稼働状況は未確認です。"
+        )
+    else:
+        c2_assessment = (
+            "汎用文字列走査の候補をC2として採用していません。"
+            "ファミリー固有設定で裏付けられない限り、現在のC2、所有者、到達性は未確認です。"
+        )
     signature = metadata.get("signature") or "未報告"
     tags = ", ".join(str(value) for value in (metadata.get("tags") or [])) or "なし"
     lines = [
@@ -539,7 +748,7 @@ def render_readme(
         "",
         "## 概要",
         "",
-        f"- 正規分類: `{family}`",
+        *_family_attribution_readme_lines(attribution),
         f"- 分類根拠: `{attribution_basis}`",
         f"- MalwareBazaar報告signature: `{signature}`",
         f"- MalwareBazaarタグ: `{tags}`",
@@ -568,10 +777,7 @@ def render_readme(
     else:
         lines.append("- import相関だけでは特徴的な処理能力を確定できませんでした。")
     capability_materials = (
-        "、".join(
-            f"`{item['capability']}`（`{item['imports']}`）"
-            for item in capabilities
-        )
+        "、".join(f"`{item['capability']}`（`{item['imports']}`）" for item in capabilities)
         if capabilities
         else "特徴的なimport相関なし"
     )
@@ -595,13 +801,7 @@ def render_readme(
             "",
             "## C2／通信IOC",
             "",
-            (
-                f"ファミリー固有handlerの静的設定構造から、確認済みC2観測を`{confirmed_c2_count}`件記録しました。"
-                "重複するendpointでもroleまたはevidenceが異なる観測は保持しています。"
-                "到達性、所有者、稼働状況は未確認です。"
-                if confirmed_c2_count
-                else "汎用文字列走査の候補をC2として採用していません。ファミリー固有設定で裏付けられない限り、現在のC2、所有者、到達性は未確認です。"
-            ),
+            c2_assessment,
             "公開可能な通信IOCは[IOC-LIST.md](IOC-LIST.md)を参照してください。",
             "",
             "## Sigma／YARA材料",
@@ -635,6 +835,795 @@ def render_readme(
     return "\n".join(lines)
 
 
+def _refresh_legacy_screenconnect_orchestration(
+    report: dict[str, Any],
+    outcome: dict[str, Any],
+    handler_results: list[tuple[dict[str, Any], dict[str, Any]]],
+) -> bool:
+    """封印済み旧ScreenConnect成果物からconfig・通信gateだけを再評価する。"""
+
+    resolution = outcome.get("family_resolution")
+    gates = outcome.get("quality_gates")
+    state = report.get("case_state")
+    if (
+        outcome.get("schema_version") != 2
+        or not isinstance(resolution, dict)
+        or resolution.get("status") != "resolved"
+        or resolution.get("family") != "screenconnect_rmm"
+        or not isinstance(gates, dict)
+        or not isinstance(state, dict)
+        or (report.get("candidate_handler_assessment") or {}).get("planned_attempt_count") != 0
+    ):
+        return False
+    old_blockers = outcome.get("blockers")
+    old_actions = outcome.get("next_actions_ja")
+    report_blockers = state.get("blockers")
+    if (
+        not isinstance(old_blockers, list)
+        or old_blockers != sorted(set(old_blockers))
+        or not isinstance(old_actions, list)
+        or len(old_actions) != len(old_blockers)
+        or not isinstance(report_blockers, list)
+        or {
+            value.removeprefix("orchestration:")
+            for value in report_blockers
+            if isinstance(value, str) and value.startswith("orchestration:")
+        }
+        != set(old_blockers)
+    ):
+        raise ValueError("ScreenConnect旧成果物のblocker整合性を確認できません")
+    action_by_blocker = dict(zip(old_blockers, old_actions, strict=True))
+    expected_actions = {
+        "config": "family固有config extractorを追加または更新してください。",
+        "network": "復号configから通信先を抽出する処理を追加してください。",
+    }
+    records: list[dict[str, Any]] = []
+    for execution, artifact in handler_results:
+        payload = artifact.get("result")
+        if legacy_screenconnect_config(payload) is None:
+            continue
+        if not trusted_handler_result(execution, artifact):
+            raise ValueError("ScreenConnect旧成果物のhandler信頼境界を確認できません")
+        handler = artifact.get("handler")
+        if (
+            not isinstance(handler, dict)
+            or handler.get("family") != "screenconnect_rmm"
+            or handler.get("id") != execution.get("handler_id")
+        ):
+            raise ValueError("ScreenConnect旧成果物のhandler identityが一致しません")
+        record = {
+            "source": "selected_family_analysis",
+            "family": "screenconnect_rmm",
+            "handler_id": execution["handler_id"],
+            "status": execution.get("status"),
+            "selected_evidence": execution.get("selected_evidence"),
+            "selected_layer_sha256": execution.get("selected_layer_sha256"),
+            "result": artifact,
+        }
+        verified = artifact.get("verified_binary_outputs")
+        if isinstance(verified, list) and verified:
+            record["verified_binary_outputs"] = verified
+        audit = artifact.get("verified_binary_output_audit")
+        if isinstance(audit, dict):
+            record["verified_binary_output_audit"] = audit
+        records.append(record)
+    if not records:
+        return False
+    if len(records) != 1:
+        raise ValueError("ScreenConnect旧成果物の適格handlerが一意ではありません")
+
+    outputs = orchestration_outcome.summarize_handler_outputs(
+        records,
+        family_filter="screenconnect_rmm",
+    )
+    endpoints = outputs.get("qualified_network_endpoints")
+    if (
+        outputs.get("config_recovered") is not True
+        or not isinstance(endpoints, list)
+        or not endpoints
+        or any(
+            not isinstance(endpoint, dict)
+            or endpoint.get("role") not in {"remote_management_relay", "screenconnect_clickonce_bootstrap"}
+            for endpoint in endpoints
+        )
+    ):
+        raise ValueError("ScreenConnect旧成果物から双用途管理先を厳格に再評価できません")
+    for name, observed in (("config", None), ("network", True)):
+        gate = gates.get(name)
+        if (
+            not isinstance(gate, dict)
+            or gate.get("required") is not True
+            or gate.get("status") not in {"required_missing", "satisfied"}
+            or name in action_by_blocker
+            and action_by_blocker[name] != expected_actions[name]
+        ):
+            raise ValueError(f"ScreenConnect旧成果物の{name} gateが不正です")
+        gate["satisfied"] = True
+        gate["observed"] = observed
+        gate["status"] = "satisfied"
+
+    outcome["outputs"] = outputs
+    outcome["candidate_outputs"] = orchestration_outcome.summarize_handler_outputs(
+        records,
+        verified_only=False,
+    )
+    refreshed_blockers = sorted(
+        name for name, gate in gates.items() if isinstance(gate, dict) and gate.get("status") == "required_missing"
+    )
+    if any(name not in action_by_blocker for name in refreshed_blockers):
+        raise ValueError("ScreenConnect旧成果物の残余next actionを確認できません")
+    outcome["blockers"] = refreshed_blockers
+    outcome["next_actions_ja"] = [action_by_blocker[name] for name in refreshed_blockers]
+    outcome["status"] = "partial" if refreshed_blockers else "complete"
+    state["blockers"] = sorted(
+        {value for value in report_blockers if isinstance(value, str) and not value.startswith("orchestration:")}
+        | {f"orchestration:{name}" for name in refreshed_blockers}
+    )
+    state["status"] = "partial" if state["blockers"] else "complete"
+    state["complete"] = not state["blockers"]
+    state["resumable"] = not state["blockers"]
+    return True
+
+
+def _build_screenconnect_management_contract(
+    *,
+    digest: str,
+    public_family: str,
+    layer_report: dict[str, Any],
+    handler_results: list[tuple[dict[str, Any], dict[str, Any]]],
+    report: dict[str, Any],
+    orchestration: dict[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """検証済みScreenConnect終端clientだけC2非該当契約へ再構築する。"""
+
+    if public_family != "screenconnect-rmm":
+        return None
+    state = report.get("case_state")
+    resolution = orchestration.get("family_resolution") if isinstance(orchestration, dict) else None
+    gates = orchestration.get("quality_gates") if isinstance(orchestration, dict) else None
+    counts = layer_report.get("counts")
+    limit_events = layer_report.get("limit_events")
+    state_pending = (
+        isinstance(state, dict)
+        and state.get("status") == "partial"
+        and state.get("complete") is False
+        and state.get("resumable") is False
+        and isinstance(state.get("blockers"), list)
+        and bool(state["blockers"])
+        and all(isinstance(value, str) and bool(value) for value in state["blockers"])
+        and len(state["blockers"]) == len(set(state["blockers"]))
+    )
+    orchestration_pending = (
+        isinstance(orchestration, dict)
+        and orchestration.get("status") == "partial"
+        and isinstance(orchestration.get("blockers"), list)
+        and bool(orchestration["blockers"])
+        and all(isinstance(value, str) and bool(value) for value in orchestration["blockers"])
+        and len(orchestration["blockers"]) == len(set(orchestration["blockers"]))
+    )
+    if state_pending or orchestration_pending:
+        if (
+            not (state_pending and orchestration_pending)
+            or not isinstance(orchestration, dict)
+            or type(orchestration.get("schema_version")) is not int
+            or orchestration.get("schema_version") != 2
+            or orchestration.get("sample_sha256") != digest
+            or not isinstance(resolution, dict)
+            or resolution.get("status") != "resolved"
+            or resolution.get("family") != "screenconnect_rmm"
+            or not isinstance(gates, dict)
+        ):
+            raise ValueError("ScreenConnect pending C2契約の対象identityが不正です")
+        return None
+    if (
+        not isinstance(state, dict)
+        or state.get("status") != "complete"
+        or state.get("complete") is not True
+        or state.get("resumable") is not True
+        or state.get("blockers") != []
+        or not isinstance(orchestration, dict)
+        or type(orchestration.get("schema_version")) is not int
+        or orchestration.get("schema_version") != 2
+        or orchestration.get("sample_sha256") != digest
+        or orchestration.get("status") != "complete"
+        or orchestration.get("blockers") != []
+        or orchestration.get("next_actions_ja") != []
+        or not isinstance(resolution, dict)
+        or resolution.get("status") != "resolved"
+        or resolution.get("family") != "screenconnect_rmm"
+        or not isinstance(gates, dict)
+        or any(
+            not isinstance(gate, dict)
+            or not (
+                (gate.get("required") is True and gate.get("satisfied") is True and gate.get("status") == "satisfied")
+                or (
+                    gate.get("required") is False
+                    and gate.get("satisfied") is False
+                    and gate.get("status") == "not_applicable"
+                )
+            )
+            for gate in gates.values()
+        )
+        or any(
+            not isinstance(gates.get(name), dict)
+            or gates[name].get("required") is not True
+            or gates[name].get("satisfied") is not True
+            or gates[name].get("status") != "satisfied"
+            for name in (
+                "generic_triage",
+                "static_layers",
+                "family_resolution",
+                "handler_evidence",
+                "config",
+                "network",
+                "function_analysis",
+                "requirements_policy",
+            )
+        )
+        or not isinstance(gates.get("terminal_payload"), dict)
+        or gates["terminal_payload"].get("required") is not False
+        or gates["terminal_payload"].get("satisfied") is not False
+        or gates["terminal_payload"].get("status") != "not_applicable"
+        or not isinstance(counts, dict)
+        or type(counts.get("limit_events")) is not int
+        or counts.get("limit_events") != 0
+        or limit_events != []
+    ):
+        raise ValueError("ScreenConnect C2非該当判定の外側静的品質gateが未完了です")
+    eligible = [
+        (execution, artifact)
+        for execution, artifact in handler_results
+        if validated_screenconnect_config(artifact.get("result")) is not None
+    ]
+    if not eligible:
+        raise ValueError("完了ScreenConnect caseのconfig証拠を再検証できません")
+    if len(eligible) != 1 or len(handler_results) != 1:
+        raise ValueError("ScreenConnect C2契約を一意なhandler証拠へ結合できません")
+    execution, artifact = eligible[0]
+    if not trusted_handler_result(execution, artifact):
+        raise ValueError("ScreenConnect C2契約のhandler信頼境界を確認できません")
+    handler = artifact.get("handler")
+    if (
+        not isinstance(handler, dict)
+        or handler.get("family") != "screenconnect_rmm"
+        or handler.get("id") != execution.get("handler_id")
+        or execution.get("selected_layer_sha256") != digest
+    ):
+        raise ValueError("ScreenConnect C2契約を対象root handlerへ結合できません")
+    validated_config = validated_screenconnect_config(artifact.get("result"))
+    if validated_config is None:
+        raise ValueError("ScreenConnect C2契約のconfigを再検証できません")
+    patterns, contract = build_case_automation_artifacts(
+        sha256=digest,
+        family="screenconnect_rmm",
+        layer_report=layer_report,
+        handler_results=eligible,
+        screenconnect_no_c2_completion_verified=True,
+    )
+    config = patterns.get("config")
+    communication = patterns.get("communication")
+    phases = {item.get("phase"): item for item in contract.get("phase_evidence", []) if isinstance(item, dict)}
+    if (
+        not isinstance(config, dict)
+        or config.get("static_config_recovered") is not True
+        or config.get("terminal_managed_client") is not True
+        or not isinstance(communication, dict)
+        or not 1 <= len(communication.get("confirmed_static_management_endpoints", [])) <= 2
+        or len(communication["confirmed_static_management_endpoints"]) != len(validated_config["config_endpoints"])
+        or communication.get("confirmed_static_endpoints") != communication["confirmed_static_management_endpoints"]
+        or communication.get("confirmed_static_c2_endpoints") != []
+        or communication.get("candidate_patterns") != []
+        or communication.get("protocol_confirmed") is not False
+        or communication.get("protocol_evidence") != []
+        or contract.get("c2", {}).get("outcome") != "no_c2_capability_verified"
+        or contract.get("c2", {}).get("endpoints") != []
+        or contract.get("c2", {}).get("protocol", {}).get("status") != "not_applicable"
+        or any(
+            not isinstance(phases.get(name), dict) or phases[name].get("status") == "blocked"
+            for name in REQUIRED_PHASES
+        )
+        or contract.get("terminal_payload", {}).get("blockers") != []
+        or contract.get("deep_analysis", {}).get("blockers") != []
+    ):
+        raise ValueError("ScreenConnect終端clientのC2非該当契約を厳格に再構築できません")
+    validation = validate_c2_contract(contract, digest)
+    if validation.get("complete") is not True:
+        raise ValueError("ScreenConnect C2非該当契約が完了条件を満たしません")
+    return patterns, contract
+
+
+def _is_legacy_vidar_structural_endpoint(
+    value: Any,
+    *,
+    handler_id: str,
+) -> bool:
+    """旧集計器がkind=network.urlをhost化したexact recordだけを識別する。"""
+
+    if not isinstance(value, dict) or set(value) != {
+        "host",
+        "port",
+        "scheme",
+        "path",
+        "contacted",
+        "provenance",
+    }:
+        return False
+    provenance = value.get("provenance")
+    return bool(
+        value.get("host") == "network.url"
+        and value.get("port") is None
+        and value.get("scheme") is None
+        and value.get("path") is None
+        and value.get("contacted") is False
+        and isinstance(provenance, list)
+        and provenance
+        and all(
+            isinstance(item, dict)
+            and set(item) == {"family", "handler_id", "source", "evidence_path"}
+            and item.get("family") == "vidar"
+            and item.get("handler_id") == handler_id
+            and item.get("source") == "selected_family_analysis"
+            and isinstance(item.get("evidence_path"), str)
+            and re.fullmatch(r"findings\.[0-9]+\.kind", item["evidence_path"]) is not None
+            for item in provenance
+        )
+    )
+
+
+def _refresh_legacy_vidar_structural_network_labels(
+    report: dict[str, Any],
+    outcome: dict[str, Any],
+    handler_results: list[tuple[dict[str, Any], dict[str, Any]]],
+) -> bool:
+    """旧Vidar成果物からschema labelの偽endpointだけをfail-closedで除去する。"""
+
+    resolution = outcome.get("family_resolution")
+    if (
+        outcome.get("schema_version") != 2
+        or not isinstance(resolution, dict)
+        or resolution.get("status") != "resolved"
+        or resolution.get("family") != "vidar"
+        or (report.get("candidate_handler_assessment") or {}).get("planned_attempt_count") != 0
+    ):
+        return False
+
+    records: list[dict[str, Any]] = []
+    handler_ids: list[str] = []
+    for execution, artifact in handler_results:
+        handler = artifact.get("handler")
+        if not isinstance(handler, dict) or handler.get("family") != "vidar":
+            continue
+        if not trusted_handler_result(execution, artifact):
+            raise ValueError("Vidar旧成果物のhandler信頼境界を確認できません")
+        handler_id = execution.get("handler_id")
+        if not isinstance(handler_id, str) or handler.get("id") != handler_id:
+            raise ValueError("Vidar旧成果物のhandler identityが一致しません")
+        record = {
+            "source": "selected_family_analysis",
+            "family": "vidar",
+            "handler_id": handler_id,
+            "status": execution.get("status"),
+            "selected_evidence": execution.get("selected_evidence"),
+            "selected_layer_sha256": execution.get("selected_layer_sha256"),
+            "result": artifact,
+        }
+        verified = artifact.get("verified_binary_outputs")
+        if isinstance(verified, list) and verified:
+            record["verified_binary_outputs"] = verified
+        audit = artifact.get("verified_binary_output_audit")
+        if isinstance(audit, dict):
+            record["verified_binary_output_audit"] = audit
+        records.append(record)
+        handler_ids.append(handler_id)
+    if not records:
+        return False
+    if len(records) != 1:
+        raise ValueError("Vidar旧成果物の適格handlerが一意ではありません")
+
+    refreshed = orchestration_outcome.summarize_handler_outputs(
+        records,
+        family_filter="vidar",
+    )
+    refreshed_candidates = orchestration_outcome.summarize_handler_outputs(
+        records,
+        verified_only=False,
+    )
+
+    def without_legacy_label(value: Any, label: str) -> dict[str, Any]:
+        if not isinstance(value, dict):
+            raise ValueError(f"Vidar旧成果物の{label}がobjectではありません")
+        endpoints = value.get("network_endpoints")
+        if not isinstance(endpoints, list):
+            raise ValueError(f"Vidar旧成果物の{label}.network_endpointsが不正です")
+        kept = [
+            endpoint
+            for endpoint in endpoints
+            if not _is_legacy_vidar_structural_endpoint(
+                endpoint,
+                handler_id=handler_ids[0],
+            )
+        ]
+        if len(kept) == len(endpoints):
+            raise ValueError(f"Vidar旧成果物の{label}にexact structural labelがありません")
+        return {**value, "network_endpoints": kept}
+
+    old_outputs = without_legacy_label(outcome.get("outputs"), "outputs")
+    old_candidates = without_legacy_label(
+        outcome.get("candidate_outputs"),
+        "candidate_outputs",
+    )
+    if old_outputs != refreshed or old_candidates != refreshed_candidates:
+        raise ValueError("Vidar旧成果物はstructural label以外にも差分があります")
+    outcome["outputs"] = refreshed
+    outcome["candidate_outputs"] = refreshed_candidates
+    return True
+
+
+def _publication_case_path_sha256(path: Path) -> str:
+    normalized = os.path.normcase(os.fspath(Path(os.path.abspath(path))))
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _publication_io_path(path: Path) -> Path:
+    """Windowsのdeep canonical layoutではextended-length pathでI/Oする。"""
+
+    absolute = Path(os.path.abspath(path))
+    if os.name != "nt":
+        return absolute
+    value = os.fspath(absolute)
+    if value.startswith("\\\\?\\"):
+        return absolute
+    if value.startswith("\\\\"):
+        return Path(f"\\\\?\\UNC\\{value.lstrip(chr(92))}")
+    return Path(f"\\\\?\\{value}")
+
+
+def _same_publication_path(first: Path, second: Path) -> bool:
+    def normalized(path: Path) -> str:
+        value = os.fspath(path)
+        if value.startswith("\\\\?\\UNC\\"):
+            value = "\\\\" + value[8:]
+        elif value.startswith("\\\\?\\"):
+            value = value[4:]
+        return os.path.normcase(os.path.abspath(value))
+
+    return normalized(first) == normalized(second)
+
+
+def _case_tree_sha256(path: Path) -> str:
+    manifest = analysis_job_runner.analysis_output_content_manifest(path)
+    return analysis_job_runner.analysis_output_content_sha256(manifest)
+
+
+def _publication_case_name_key(destination: Path) -> str:
+    if SHA256_RE.fullmatch(destination.name) is not None:
+        return destination.name
+    return _publication_case_path_sha256(destination)
+
+
+def _publication_journal_path(destination: Path) -> Path:
+    return _publication_io_path(
+        destination.parent / f".casepub-{_publication_case_name_key(destination)}.transaction.json"
+    )
+
+
+class _CasePublicationLock:
+    """同一canonical caseのpublisherをprocess間で排他する。"""
+
+    def __init__(self, destination: Path) -> None:
+        commitment = _publication_case_path_sha256(destination)
+        self.path = Path(tempfile.gettempdir()) / "ai-security-analysis-case-publication-locks" / f"{commitment}.lock"
+        self.descriptor: int | None = None
+
+    def __enter__(self) -> _CasePublicationLock:
+        ensure_no_reparse_components(self.path.parent)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_no_reparse_components(self.path.parent)
+        descriptor = os.open(
+            self.path,
+            os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0),
+            0o600,
+        )
+        try:
+            if os.fstat(descriptor).st_size == 0:
+                os.write(descriptor, b"\0")
+                os.fsync(descriptor)
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            if os.name == "nt":
+                import msvcrt  # noqa: PLC0415
+
+                msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl  # noqa: PLC0415
+
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except (OSError, BlockingIOError) as exc:
+            os.close(descriptor)
+            raise ValueError("同一caseのpublisherが既に実行中です") from exc
+        self.descriptor = descriptor
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        if self.descriptor is None:
+            return
+        try:
+            os.lseek(self.descriptor, 0, os.SEEK_SET)
+            if os.name == "nt":
+                import msvcrt  # noqa: PLC0415
+
+                msvcrt.locking(self.descriptor, msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl  # noqa: PLC0415
+
+                fcntl.flock(self.descriptor, fcntl.LOCK_UN)
+        finally:
+            os.close(self.descriptor)
+            self.descriptor = None
+
+
+def _atomic_publication_journal(
+    path: Path,
+    document: dict[str, Any],
+    *,
+    expected_sha256: str | None = None,
+    require_absent: bool = False,
+) -> str:
+    """case昇格journalをfsync済み同一親fileからatomicに置換する。"""
+
+    ensure_no_reparse_components(path.parent)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_no_reparse_components(path.parent)
+    current_sha256: str | None = None
+    if path.is_file():
+        raw, _current = analysis_job_runner.load_json_object_snapshot(
+            path,
+            max_bytes=1024 * 1024,
+        )
+        current_sha256 = hashlib.sha256(raw).hexdigest()
+    elif os.path.lexists(path):
+        raise ValueError("case公開journalが通常fileではありません")
+    if require_absent and current_sha256 is not None:
+        raise ValueError("case公開journalが既に存在します")
+    if expected_sha256 is not None and current_sha256 != expected_sha256:
+        raise ValueError("case公開journalが競合変更されました")
+    payload = (json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    temporary = path.with_name(f".{path.name}.{os.getpid():x}.{time.time_ns():x}.tmp")
+    try:
+        with temporary.open("xb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        if expected_sha256 is not None:
+            raw, _current = analysis_job_runner.load_json_object_snapshot(
+                path,
+                max_bytes=1024 * 1024,
+            )
+            if hashlib.sha256(raw).hexdigest() != expected_sha256:
+                raise ValueError("case公開journalがcommit直前に変更されました")
+        elif require_absent and os.path.lexists(path):
+            raise ValueError("case公開journalがcommit直前に作成されました")
+        os.replace(temporary, path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _unlink_publication_journal(path: Path, *, expected_sha256: str) -> None:
+    """読込時commitmentと一致するjournalだけを削除する。"""
+
+    raw, _document = analysis_job_runner.load_json_object_snapshot(
+        path,
+        max_bytes=1024 * 1024,
+    )
+    if hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise ValueError("case公開journalが回復中に変更されました")
+    path.unlink()
+
+
+def _remove_committed_case_tree(path: Path, *, expected_sha256: str) -> None:
+    """transaction journalへhash結合されたcase treeだけを削除する。"""
+
+    if _case_tree_sha256(path) != expected_sha256:
+        raise ValueError("case公開transaction treeがcommitmentから変更されました")
+    ensure_no_reparse_components(path)
+    shutil.rmtree(path)
+
+
+def _remove_owned_partial_staging(container: Path, *, destination: Path) -> None:
+    """pre-build journalへ束縛した同一親のpartial stagingだけを除去する。"""
+
+    prefix = f".casepub-{_publication_case_name_key(destination)}."
+    if (
+        not _same_publication_path(container.parent, destination.parent)
+        or not container.name.startswith(prefix)
+        or not container.name.endswith(".staging")
+    ):
+        raise ValueError("partial case stagingのowned境界が不正です")
+    ensure_no_reparse_components(container)
+    information = container.lstat()
+    if not stat.S_ISDIR(information.st_mode):
+        raise ValueError("partial case stagingがdirectoryではありません")
+    for path in container.rglob("*"):
+        metadata = path.lstat()
+        if getattr(metadata, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400):
+            raise ValueError("partial case stagingにreparse pointがあります")
+        if stat.S_ISREG(metadata.st_mode) and metadata.st_nlink != 1:
+            raise ValueError("partial case stagingにhardlinkがあります")
+        if not (stat.S_ISREG(metadata.st_mode) or stat.S_ISDIR(metadata.st_mode)):
+            raise ValueError("partial case stagingに未許可entryがあります")
+    shutil.rmtree(container)
+
+
+def _recover_case_publication(destination: Path) -> str | None:
+    """中断したcase directory昇格を内容hashによりrollback／roll-forwardする。"""
+
+    journal_path = _publication_journal_path(destination)
+    if not os.path.lexists(journal_path):
+        return None
+    raw, journal = analysis_job_runner.load_json_object_snapshot(
+        journal_path,
+        max_bytes=1024 * 1024,
+    )
+    journal_sha256 = hashlib.sha256(raw).hexdigest()
+    existing = journal.get("existing_destination")
+    old_sha256 = journal.get("old_tree_sha256")
+    new_sha256 = journal.get("new_tree_sha256")
+    staging_name = journal.get("staging_name")
+    backup_name = journal.get("backup_name")
+    if (
+        journal.get("schema_version") != CASE_PUBLICATION_TRANSACTION_SCHEMA
+        or journal.get("case_sha256") != destination.name
+        or journal.get("destination_path_sha256") != _publication_case_path_sha256(destination)
+        or journal.get("phase") not in {"building", "prepared", "applying", "verified"}
+        or type(existing) is not bool
+        or (existing and (not isinstance(old_sha256, str) or SHA256_RE.fullmatch(old_sha256) is None))
+        or (not existing and old_sha256 is not None)
+        or (journal.get("phase") == "building" and new_sha256 is not None)
+        or (
+            journal.get("phase") != "building"
+            and (not isinstance(new_sha256, str) or SHA256_RE.fullmatch(new_sha256) is None)
+        )
+        or not isinstance(staging_name, str)
+        or not isinstance(backup_name, str)
+        or Path(staging_name).name != staging_name
+        or Path(backup_name).name != backup_name
+        or not staging_name.startswith(f".casepub-{_publication_case_name_key(destination)}.")
+        or not staging_name.endswith(".staging")
+        or not backup_name.startswith(f".casepub-{_publication_case_name_key(destination)}.")
+        or not backup_name.endswith(".backup")
+    ):
+        raise ValueError("case公開transaction journalの契約が不正です")
+    staging_container = _publication_io_path(destination.parent / staging_name)
+    staging = staging_container / destination.name
+    backup = _publication_io_path(destination.parent / backup_name)
+
+    def observed(path: Path) -> str | None:
+        if not os.path.lexists(path):
+            return None
+        if not path.is_dir():
+            raise ValueError("case公開transaction pathがdirectoryではありません")
+        return _case_tree_sha256(path)
+
+    destination_sha = observed(destination)
+    if os.path.lexists(staging_container):
+        if not staging_container.is_dir():
+            raise ValueError("case公開staging containerがdirectoryではありません")
+        children = list(staging_container.iterdir())
+        if any(path.name != destination.name for path in children):
+            raise ValueError("case公開staging containerに未束縛entryがあります")
+    staging_sha = None if journal["phase"] == "building" else observed(staging)
+    backup_sha = observed(backup)
+    allowed_destination = {None, old_sha256}
+    if isinstance(new_sha256, str):
+        allowed_destination.add(new_sha256)
+    if destination_sha not in allowed_destination:
+        raise ValueError("case公開先に第三者変更を検出しました")
+    if staging_sha not in ({None, new_sha256} if isinstance(new_sha256, str) else {None}):
+        raise ValueError("case公開stagingに第三者変更を検出しました")
+    if backup_sha not in ({None, old_sha256} if existing else {None}):
+        raise ValueError("case公開backupに第三者変更を検出しました")
+
+    if journal["phase"] == "building":
+        if backup_sha is not None or destination_sha != old_sha256:
+            raise ValueError("building中のcase公開transactionが公開先を変更しています")
+        if os.path.lexists(staging_container):
+            _remove_owned_partial_staging(
+                staging_container,
+                destination=destination,
+            )
+        _unlink_publication_journal(
+            journal_path,
+            expected_sha256=journal_sha256,
+        )
+        return "discarded_partial_build"
+
+    if journal["phase"] == "verified":
+        if destination_sha != new_sha256 or staging_sha is not None:
+            raise ValueError("verified case公開transactionが部分適用状態です")
+        if os.path.lexists(staging_container):
+            staging_container.rmdir()
+        if backup_sha is not None:
+            _remove_committed_case_tree(backup, expected_sha256=old_sha256)
+        _unlink_publication_journal(
+            journal_path,
+            expected_sha256=journal_sha256,
+        )
+        return "rolled_forward"
+
+    if destination_sha == new_sha256:
+        _remove_committed_case_tree(destination, expected_sha256=new_sha256)
+        destination_sha = None
+    if existing:
+        if destination_sha == old_sha256 and backup_sha == old_sha256:
+            _remove_committed_case_tree(backup, expected_sha256=old_sha256)
+            backup_sha = None
+        elif destination_sha is None and backup_sha == old_sha256:
+            os.replace(backup, _publication_io_path(destination))
+            destination_sha = _case_tree_sha256(destination)
+            backup_sha = None
+        if destination_sha != old_sha256 or backup_sha is not None:
+            raise ValueError("case公開transactionを元caseへrollbackできません")
+    elif destination_sha is not None or backup_sha is not None:
+        raise ValueError("新規case公開transactionを未公開状態へrollbackできません")
+    if staging_sha == new_sha256:
+        _remove_committed_case_tree(staging, expected_sha256=new_sha256)
+    if os.path.lexists(staging_container):
+        staging_container.rmdir()
+    _unlink_publication_journal(
+        journal_path,
+        expected_sha256=journal_sha256,
+    )
+    return "rolled_back"
+
+
+def _promote_case_publication(
+    destination: Path,
+    staging: Path,
+    *,
+    new_tree_sha256: str,
+    journal: dict[str, Any],
+    journal_sha256: str,
+) -> None:
+    """検証済みstagingをdurable journal付きでcanonical caseへ昇格する。"""
+
+    existing = journal["existing_destination"]
+    old_tree_sha256 = journal["old_tree_sha256"]
+    destination_io = _publication_io_path(destination)
+    backup = _publication_io_path(destination.parent / journal["backup_name"])
+    journal_path = _publication_journal_path(destination)
+    try:
+        if _case_tree_sha256(staging) != new_tree_sha256:
+            raise ValueError("case公開stagingが昇格直前に変更されました")
+        if existing and _case_tree_sha256(destination) != old_tree_sha256:
+            raise ValueError("canonical caseが昇格直前に変更されました")
+        journal["phase"] = "applying"
+        journal_sha256 = _atomic_publication_journal(
+            journal_path,
+            journal,
+            expected_sha256=journal_sha256,
+        )
+        if existing:
+            os.replace(destination_io, backup)
+        os.replace(staging, destination_io)
+        staging.parent.rmdir()
+        if _case_tree_sha256(destination) != new_tree_sha256:
+            raise ValueError("昇格後canonical caseのtree hashが一致しません")
+        journal["phase"] = "verified"
+        _atomic_publication_journal(
+            journal_path,
+            journal,
+            expected_sha256=journal_sha256,
+        )
+        _recover_case_publication(destination)
+    except BaseException:
+        try:
+            _recover_case_publication(destination)
+        except BaseException as recovery_error:
+            raise RuntimeError("case公開transactionを自動回復できませんでした") from recovery_error
+        raise
+
+
 def publish_case(
     repository: Path,
     results: Path,
@@ -644,6 +1633,7 @@ def publish_case(
     existing_families: set[str],
     *,
     allow_function_staging: bool = False,
+    _staging_destination: Path | None = None,
 ) -> tuple[str, Path, dict[str, Any]]:
     digest = item.get("sha256")
     digest = normalize_sha256_digest(digest)
@@ -654,8 +1644,14 @@ def publish_case(
     )
     metadata = safe_metadata(item)
     family, attribution_basis = choose_family(metadata, report, existing_families)
-    destination = resolve_catalog_case_path(results, digest, family=family)
-    existing_metadata_path = destination / "metadata.json"
+    family_attribution = build_family_attribution(
+        family,
+        attribution_basis,
+        metadata,
+    )
+    statically_confirmed_family = family_attribution["statically_confirmed_family"]
+    canonical_destination = resolve_catalog_case_path(results, digest, family=family)
+    existing_metadata_path = canonical_destination / "metadata.json"
     existing_version = None
     if existing_metadata_path.is_file():
         existing_metadata = load_json(existing_metadata_path)
@@ -667,6 +1663,81 @@ def publish_case(
         if not isinstance(candidate_version, dict):
             raise ValueError(f"既存metadataのmalware_versionが不正です: {digest}")
         existing_version = dict(candidate_version)
+    if _staging_destination is None:
+        canonical_destination.parent.mkdir(parents=True, exist_ok=True)
+        with _CasePublicationLock(canonical_destination):
+            _recover_case_publication(canonical_destination)
+            existing = canonical_destination.is_dir()
+            if not existing and os.path.lexists(canonical_destination):
+                raise ValueError("canonical case pathがdirectoryではありません")
+            old_tree_sha256 = _case_tree_sha256(canonical_destination) if existing else None
+            token = f".casepub-{_publication_case_name_key(canonical_destination)}.{os.getpid():x}-{time.time_ns():x}"
+            staging_container = canonical_destination.parent / f"{token}.staging"
+            staging_container_io = _publication_io_path(staging_container)
+            staging = staging_container_io / digest
+            backup = canonical_destination.parent / f"{token}.backup"
+            journal = {
+                "schema_version": CASE_PUBLICATION_TRANSACTION_SCHEMA,
+                "case_sha256": digest,
+                "destination_path_sha256": _publication_case_path_sha256(canonical_destination),
+                "existing_destination": existing,
+                "old_tree_sha256": old_tree_sha256,
+                "new_tree_sha256": None,
+                "staging_name": staging_container.name,
+                "backup_name": backup.name,
+                "phase": "building",
+            }
+            journal_path = _publication_journal_path(canonical_destination)
+            journal_sha256 = _atomic_publication_journal(
+                journal_path,
+                journal,
+                require_absent=True,
+            )
+            try:
+                staging_container_io.mkdir()
+                family_value, _destination, summary = publish_case(
+                    repository,
+                    results,
+                    collection_id,
+                    source,
+                    item,
+                    existing_families,
+                    allow_function_staging=allow_function_staging,
+                    _staging_destination=staging,
+                )
+                new_tree_sha256 = _case_tree_sha256(staging)
+                journal["new_tree_sha256"] = new_tree_sha256
+                journal["phase"] = "prepared"
+                journal_sha256 = _atomic_publication_journal(
+                    journal_path,
+                    journal,
+                    expected_sha256=journal_sha256,
+                )
+                _promote_case_publication(
+                    canonical_destination,
+                    staging,
+                    new_tree_sha256=new_tree_sha256,
+                    journal=journal,
+                    journal_sha256=journal_sha256,
+                )
+                return family_value, canonical_destination, summary
+            except BaseException:
+                try:
+                    _recover_case_publication(canonical_destination)
+                except BaseException as recovery_error:
+                    raise RuntimeError("case公開build transactionを自動回復できませんでした") from recovery_error
+                raise
+    destination = _staging_destination
+    if (
+        destination.name != digest
+        or not _same_publication_path(
+            destination.parent.parent,
+            canonical_destination.parent,
+        )
+        or not destination.parent.name.startswith(f".casepub-{_publication_case_name_key(canonical_destination)}.")
+        or not destination.parent.name.endswith(".staging")
+    ):
+        raise ValueError("case公開stagingはcanonical caseと同じparentに限定します")
     destination.mkdir(parents=True, exist_ok=True)
 
     documents = {}
@@ -679,6 +1750,8 @@ def publish_case(
         "campaign-labels.json",
     ):
         documents[name] = load_json(resolve_case_artifact(source, name))
+        if name == "classification.json":
+            documents[name]["publication_attribution"] = family_attribution
         write_json(destination / name, documents[name])
     for relative_value in (report.get("knowledge_artifacts") or {}).values():
         relative = normalize_artifact_path(relative_value)
@@ -700,10 +1773,48 @@ def publish_case(
             trusted_handler_results.append((execution, result))
     write_json(destination / "handler-results.json", {"schema_version": 1, "results": handler_results})
     network_iocs = confirmed_static_handler_iocs(trusted_handler_results)
+    evidence_family = "screenconnect_rmm" if family == "screenconnect-rmm" else family
+    management_iocs = [
+        record
+        for record in network_iocs
+        if is_dual_use_management_endpoint(
+            record,
+            family=evidence_family,
+            handler_results=trusted_handler_results,
+        )
+    ]
+    management_identities = {
+        json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")) for record in management_iocs
+    }
+    confirmed_c2_iocs = [
+        record
+        for record in network_iocs
+        if json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")) not in management_identities
+    ]
     config_recovered = static_config_recovered(trusted_handler_results, network_iocs)
+    orchestration_path = destination / "orchestration.json"
+    orchestration_document: dict[str, Any] | None = None
+    if orchestration_path.is_file():
+        orchestration_document = load_json(orchestration_path)
+        orchestration_refreshed = _refresh_legacy_screenconnect_orchestration(
+            report,
+            orchestration_document,
+            trusted_handler_results,
+        )
+        orchestration_refreshed = (
+            _refresh_legacy_vidar_structural_network_labels(
+                report,
+                orchestration_document,
+                trusted_handler_results,
+            )
+            or orchestration_refreshed
+        )
+        if orchestration_refreshed:
+            write_json(orchestration_path, orchestration_document)
 
     logic = load_json(resolve_case_artifact(source, "static-logic.json"))
-    logic["family"] = family
+    logic["family"] = statically_confirmed_family or "unclassified"
+    logic["publication_attribution"] = family_attribution
     write_json(destination / "static-logic.json", logic)
     (destination / "STATIC-LOGIC.md").write_text(render_static_logic_markdown(logic), encoding="utf-8")
     (destination / "OVERALL-LOGIC.md").write_text(
@@ -721,7 +1832,7 @@ def publish_case(
         "reason": "no_approved_sample_specific_version_evidence",
         "evidence": [],
     }
-    canonical_path = destination.relative_to(repository).as_posix()
+    canonical_path = canonical_destination.relative_to(repository).as_posix()
     metadata_document = {
         "schema_version": 1,
         "sha256": digest,
@@ -737,7 +1848,7 @@ def publish_case(
             "reported_metadata": metadata,
         },
         "attribution": {
-            "basis": attribution_basis,
+            **family_attribution,
             "reported_signature": metadata.get("signature"),
             "reported_tags": metadata.get("tags") or [],
         },
@@ -751,17 +1862,43 @@ def publish_case(
     ]
     source_c2_path = source / "c2-analysis.json"
     source_c2 = load_json(source_c2_path) if source_c2_path.is_file() else {}
-    if source_c2.get("sha256") == digest:
+    screenconnect_contract = _build_screenconnect_management_contract(
+        digest=digest,
+        public_family=family,
+        layer_report=documents["static-layers.json"],
+        handler_results=trusted_handler_results,
+        report=report,
+        orchestration=orchestration_document,
+    )
+    if screenconnect_contract is not None:
+        communication_patterns, c2_analysis = screenconnect_contract
+        write_json(destination / "communication-patterns.json", communication_patterns)
+    elif source_c2.get("sha256") == digest and not (
+        family == "screenconnect-rmm" and source_c2.get("c2", {}).get("outcome") == "no_c2_capability_verified"
+    ):
         c2_analysis = source_c2
     else:
         c2_analysis = build_unresolved_contract(digest, family, handlers=handler_ids)
     c2_validation = validate_c2_contract(c2_analysis, digest, repository=repository)
     write_json(destination / "c2-analysis.json", c2_analysis)
+    screenconnect_management_assessment = None
+    if family == "screenconnect-rmm":
+        screenconnect_management_assessment = {
+            "dual_use_management_client": True,
+            "remote_command_capability_statically_confirmed": (_screenconnect_remote_command_capability(logic)),
+            "management_endpoint_observations": len(management_iocs),
+            "separate_malware_c2_observations": len(confirmed_c2_iocs),
+            "malicious_use_confirmed": False,
+        }
     analysis = {
         "schema_version": 1,
         "case": {
             "sha256": digest,
             "family": family,
+            "family_role": family_attribution["catalog_family_role"],
+            "family_attribution_status": family_attribution["status"],
+            "statically_confirmed_family": statically_confirmed_family,
+            "provider_reported_family": family_attribution["provider_reported_family"],
             "version": "unknown",
             "format": pe.get("type") or metadata.get("file_type") or "unknown",
             "packing_suspected": bool((pe.get("entropy") or 0) >= 7.2),
@@ -771,13 +1908,16 @@ def publish_case(
                 int((documents["static-layers.json"].get("counts") or {}).get("recovered_layers") or 0),
             ),
             "static_config_recovered": config_recovered,
-            "confirmed_static_c2_observations": len(network_iocs),
+            "confirmed_static_network_observations": len(network_iocs),
+            "confirmed_static_c2_observations": len(confirmed_c2_iocs),
+            "confirmed_static_management_observations": len(management_iocs),
             "declarative_status": "function_review_required"
             if logic.get("status") == "function_analysis_required"
             else "ready",
             "sample_executed": False,
             "network_contacted": False,
         },
+        "family_attribution": family_attribution,
         "source_attribution": metadata_document["attribution"],
         "pe_static_summary": pe,
         "capability_hints": capabilities,
@@ -799,6 +1939,8 @@ def publish_case(
             "関数本体未レビューのbinaryは完了扱いにしていない。",
         ],
     }
+    if screenconnect_management_assessment is not None:
+        analysis["screenconnect_management_assessment"] = screenconnect_management_assessment
     write_json(destination / "analysis.json", analysis)
     write_json(
         destination / "iocs.json",
@@ -807,7 +1949,9 @@ def publish_case(
             "sha256": [digest],
             "network": network_iocs,
             "assessment": (
-                "ファミリー固有handlerの静的設定証拠から確認済みC2を収録した。到達性は検証していない"
+                "ファミリー固有handlerの静的設定証拠から双用途管理先を収録した。悪性利用とC2帰属は確定していない"
+                if management_iocs and not confirmed_c2_iocs
+                else "ファミリー固有handlerの静的設定証拠から確認済み通信先を収録した。到達性は検証していない"
                 if network_iocs
                 else "汎用文字列候補はC2へ昇格していない"
             ),
@@ -826,18 +1970,32 @@ def publish_case(
             capabilities,
             logic,
             len(handler_results),
-            len(network_iocs),
+            len(confirmed_c2_iocs),
+            confirmed_network_count=len(network_iocs),
+            confirmed_management_count=len(management_iocs),
+            family_attribution=family_attribution,
         ),
         encoding="utf-8",
     )
     profile = build_case_profile(destination)
     profile["family"] = family
+    profile["family_attribution"] = family_attribution
+    if screenconnect_management_assessment is not None:
+        profile["screenconnect_management_assessment"] = screenconnect_management_assessment
     write_json(destination / "features.json", profile)
-    (destination / "FEATURES.md").write_text(render_features_markdown(profile), encoding="utf-8")
-    reseal_canonical_report(destination, report)
+    (destination / "FEATURES.md").write_text(
+        render_published_features_markdown(profile),
+        encoding="utf-8",
+    )
+    reseal_canonical_report(destination, report, expected_digest=digest)
     summary = {
         "sha256": digest,
         "family": family,
+        "family_role": family_attribution["catalog_family_role"],
+        "family_attribution_status": family_attribution["status"],
+        "provider_reported_label": family_attribution["provider_reported_label"],
+        "provider_reported_family": family_attribution["provider_reported_family"],
+        "statically_confirmed_family": statically_confirmed_family,
         "attribution_basis": attribution_basis,
         "reported_signature": metadata.get("signature"),
         "first_seen": metadata.get("first_seen"),
@@ -849,14 +2007,16 @@ def publish_case(
             for value in (report.get("handler_executions") or [])
         ),
         "static_config_recovered": analysis["case"]["static_config_recovered"],
-        "confirmed_static_c2_observations": len(network_iocs),
+        "confirmed_static_network_observations": len(network_iocs),
+        "confirmed_static_c2_observations": len(confirmed_c2_iocs),
+        "confirmed_static_management_observations": len(management_iocs),
         "c2_analysis_outcome": str(c2_validation.get("outcome") or "unresolved"),
         "c2_analysis_complete": bool(c2_validation.get("complete")),
         "c2_analysis_finding_count": int(c2_validation.get("finding_count") or 0),
         "case_path": canonical_path,
         "publication_stage": publication_stage,
     }
-    return family, destination, summary
+    return family, canonical_destination, summary
 
 
 def initialize_collection(
@@ -865,8 +2025,9 @@ def initialize_collection(
     manifest: dict[str, Any],
     *,
     publication_stage: str,
+    _destination: Path | None = None,
 ) -> Path:
-    root = results / "collections" / collection_id
+    root = _destination or results / "collections" / collection_id
     public_items = []
     for item in manifest.get("items") or []:
         public_items.append(
@@ -909,6 +2070,27 @@ def initialize_collection(
     return root
 
 
+def _reject_forbidden_publication_names(roots: list[Path]) -> None:
+    """private snapshot全体でrepo非公開名を大小文字非依存に拒否する。"""
+
+    for root in roots:
+        for path in (root, *root.rglob("*")):
+            if path.name.casefold() in FORBIDDEN_PUBLICATION_BASENAMES:
+                raise ValueError(f"repositoryへ公開できないprivate artifact名です: {path.name}")
+
+
+def _verify_snapshot_expectations(
+    expectations: dict[Path, dict[str, Any]] | None,
+) -> None:
+    """publisher snapshotが固定時のexact content manifestから不変か確認する。"""
+
+    if expectations is None:
+        return
+    for snapshot, expected in expectations.items():
+        if analysis_job_runner.analysis_output_content_manifest(snapshot) != expected:
+            raise ValueError("公開用private snapshotが公開処理中に変更されました")
+
+
 def find_case_source(one_shots: list[Path], digest: str) -> Path:
     """分割run群から完了caseを返し、明示familyの追加解析を優先する。"""
     matches = [root / "cases" / digest for root in one_shots if (root / "cases" / digest / "report.json").is_file()]
@@ -924,6 +2106,7 @@ def find_case_source(one_shots: list[Path], digest: str) -> Path:
     raise ValueError(
         f"完了case sourceまたは明示family追加解析は1件必要です: {digest} (全{len(matches)}件、明示{len(explicit)}件)"
     )
+
 
 def _validate_acquisition_manifest_count(manifest: dict[str, Any]) -> tuple[int, list[Any]]:
     """取得manifestの要求件数と完了件数を検証する。
@@ -952,11 +2135,14 @@ def _publish_from_snapshots(
     expected_contract_sha256: str | None = None,
     post_analysis_resource_scan_observations: int | None = None,
     post_analysis_resource_failures: int = 0,
+    _expected_snapshot_manifests: dict[Path, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     if not COLLECTION_RE.fullmatch(collection_id):
         raise ValueError("collection IDは小文字英数とhyphenだけで指定してください")
     if expected_contract_sha256 is not None:
         expected_contract_sha256 = normalize_sha256_digest(expected_contract_sha256)
+    _reject_forbidden_publication_names(one_shots)
+    _verify_snapshot_expectations(_expected_snapshot_manifests)
     results = repository / "analysis-results"
     manifest = load_json(manifest_path)
     requested_count, items = _validate_acquisition_manifest_count(manifest)
@@ -968,9 +2154,7 @@ def _publish_from_snapshots(
             relevant_resource_failures=post_analysis_resource_failures,
         )
     elif post_analysis_resource_failures != 0:
-        raise ValueError(
-            "post_analysis_resource_failuresにはresource scan観測数も必要です"
-        )
+        raise ValueError("post_analysis_resource_failuresにはresource scan観測数も必要です")
     validated_sources = {}
     source_stages: dict[str, str] = {}
     baseline_contract: dict[str, Any] | None = None
@@ -1009,11 +2193,20 @@ def _publish_from_snapshots(
     publication_stage = (
         "analysis_followup_pending" if "analysis_followup_pending" in source_stages.values() else "complete"
     )
+    canonical_collection = results / "collections" / collection_id
+    canonical_collection.parent.mkdir(parents=True, exist_ok=True)
+    with _CasePublicationLock(canonical_collection):
+        _recover_case_publication(canonical_collection)
+    collection_token = f".casepub-{_publication_case_name_key(canonical_collection)}.{os.getpid():x}-{time.time_ns():x}"
+    collection_staging_container = canonical_collection.parent / f"{collection_token}.staging"
+    collection_staging_container_io = _publication_io_path(collection_staging_container)
+    collection_staging_container_io.mkdir()
     collection = initialize_collection(
         results,
         collection_id,
         manifest,
         publication_stage=publication_stage,
+        _destination=collection_staging_container_io / collection_id,
     )
     existing_families = {path.name for path in (results / "malware").iterdir() if path.is_dir()}
     existing_families.add("unclassified")
@@ -1038,12 +2231,15 @@ def _publish_from_snapshots(
         aggregate = collection / "sources" / family
         aggregate.mkdir(parents=True, exist_ok=True)
         family_summaries = [item for item in summaries if item["family"] == family]
+        family_attribution_counts = Counter(item["family_attribution_status"] for item in family_summaries)
         write_json(
             aggregate / "summary.json",
             {
                 "schema_version": 1,
                 "family": family,
+                "family_role": "collection_grouping_label",
                 "count": len(family_summaries),
+                "family_attribution_status": dict(family_attribution_counts),
                 "cases": family_summaries,
                 "sample_executed": False,
                 "network_contacted": False,
@@ -1054,7 +2250,19 @@ def _publish_from_snapshots(
                 [
                     f"# {family} 収録ケース",
                     "",
-                    f"このcollectionでは{len(family_summaries)}件を収録しました。分類根拠と制約は各ケースを参照してください。",
+                    (
+                        f"`{family}`はこのcollectionの整理先ラベルです。"
+                        "各ケースの内部静的確認済みファミリーとは同義ではありません。"
+                    ),
+                    "",
+                    f"- 収録件数: `{len(family_summaries)}`",
+                    (f"- 内部静的確認済み: `{family_attribution_counts.get('statically_confirmed', 0)}`"),
+                    (
+                        "- 提供元報告のみ（内部静的未確認）: "
+                        f"`{family_attribution_counts.get('provider_reported_not_statically_confirmed', 0)}`"
+                    ),
+                    (f"- 未解決: `{family_attribution_counts.get('unresolved', 0)}`"),
+                    "- 分類根拠と制約は各ケースを参照してください。",
                     "",
                     "- 検体実行: なし",
                     "- 外部接続: なし",
@@ -1063,17 +2271,20 @@ def _publish_from_snapshots(
             ),
             encoding="utf-8",
         )
-        context = detect_publication_context(aggregate, family)
+        canonical_aggregate = canonical_collection / "sources" / family
+        context = detect_publication_context(canonical_aggregate, family)
         if context is None:
             raise ValueError(f"collection公開contextを解決できません: {family}")
         register_publication_cases(context, case_paths)
 
     counts = Counter(item["family"] for item in summaries)
     status_counts = Counter(item["static_logic_status"] for item in summaries)
+    attribution_status_counts = Counter(item["family_attribution_status"] for item in summaries)
     handler_successes = sum(item["handler_successes"] for item in summaries)
     handler_failures = sum(item["handler_failures"] for item in summaries)
     static_config_count = sum(bool(item["static_config_recovered"]) for item in summaries)
     confirmed_c2_count = sum(item["confirmed_static_c2_observations"] for item in summaries)
+    confirmed_network_count = sum(item["confirmed_static_network_observations"] for item in summaries)
     display = collection_display_metadata(manifest, items)
     lines = [
         f"# MalwareBazaar Windows検体{requested_count}件（{display['selected_date']}）",
@@ -1090,15 +2301,27 @@ def _publish_from_snapshots(
         f"- ファミリー固有handler成功結果: `{handler_successes}`",
         f"- handler失敗／事前確認失敗: `{handler_failures}`",
         f"- 静的設定回収: `{static_config_count}`",
+        f"- 確認済み静的通信先観測: `{confirmed_network_count}`",
         f"- 確認済み静的C2観測: `{confirmed_c2_count}`",
+        (
+            "- 提供元報告のみで内部静的ファミリー未確認: "
+            f"`{attribution_status_counts.get('provider_reported_not_statically_confirmed', 0)}`"
+        ),
         "",
-        "## 分類内訳",
+        "## 整理先ラベル内訳",
         "",
-        "| 正規分類 | 件数 |",
-        "|---|---:|",
+        "| 整理先ラベル | 件数 | 内部静的確認済み | 提供元報告のみ・内部静的未確認 | 未解決 |",
+        "|---|---:|---:|---:|---:|",
     ]
     for family, count in sorted(counts.items(), key=lambda value: (-value[1], value[0])):
-        lines.append(f"| [{family}](sources/{family}/README.md) | {count} |")
+        family_summaries = [item for item in summaries if item["family"] == family]
+        family_attribution_counts = Counter(item["family_attribution_status"] for item in family_summaries)
+        lines.append(
+            f"| [{family}](sources/{family}/README.md) | {count} | "
+            f"{family_attribution_counts.get('statically_confirmed', 0)} | "
+            f"{family_attribution_counts.get('provider_reported_not_statically_confirmed', 0)} | "
+            f"{family_attribution_counts.get('unresolved', 0)} |"
+        )
     lines.extend(
         [
             "",
@@ -1113,7 +2336,7 @@ def _publish_from_snapshots(
     lines.extend(
         [
             "",
-            "個別のPE構造、import由来能力、適用可否、復元層、静的ロジック、IOC評価は各正規ケースに記録しています。全件一覧は[manifest.json](manifest.json)を参照してください。",
+            "個別のPE構造、import由来能力、適用可否、復元層、静的ロジック、IOC評価、帰属状態は各ケースに記録しています。全件一覧は[manifest.json](manifest.json)を参照してください。",
             "",
         ]
     )
@@ -1142,11 +2365,13 @@ def _publish_from_snapshots(
         "analysis_complete": publication_stage == "complete",
         "analysis_contract_sha256": analysis_contract_sha256,
         "counts": dict(counts),
+        "family_attribution_status": dict(attribution_status_counts),
         "static_logic_status": dict(status_counts),
         "handler_successes": handler_successes,
         "handler_failures": handler_failures,
         "static_config_recovered": static_config_count,
         "confirmed_static_c2_observations": confirmed_c2_count,
+        "confirmed_static_network_observations": confirmed_network_count,
         "cases": summaries,
         "samples_executed": False,
         "network_contacted": False,
@@ -1154,12 +2379,45 @@ def _publish_from_snapshots(
     if post_analysis_publication is not None:
         publication_summary["post_analysis_publication"] = post_analysis_publication
     write_json(collection / "publication-summary.json", publication_summary)
+    _verify_snapshot_expectations(_expected_snapshot_manifests)
+    new_collection_sha256 = _case_tree_sha256(collection)
+    with _CasePublicationLock(canonical_collection):
+        _recover_case_publication(canonical_collection)
+        existing_collection = canonical_collection.is_dir()
+        if not existing_collection and os.path.lexists(canonical_collection):
+            raise ValueError("canonical collection pathがdirectoryではありません")
+        old_collection_sha256 = _case_tree_sha256(canonical_collection) if existing_collection else None
+        collection_backup = canonical_collection.parent / f"{collection_token}.backup"
+        collection_journal = {
+            "schema_version": CASE_PUBLICATION_TRANSACTION_SCHEMA,
+            "case_sha256": collection_id,
+            "destination_path_sha256": _publication_case_path_sha256(canonical_collection),
+            "existing_destination": existing_collection,
+            "old_tree_sha256": old_collection_sha256,
+            "new_tree_sha256": new_collection_sha256,
+            "staging_name": collection_staging_container.name,
+            "backup_name": collection_backup.name,
+            "phase": "prepared",
+        }
+        collection_journal_path = _publication_journal_path(canonical_collection)
+        collection_journal_sha256 = _atomic_publication_journal(
+            collection_journal_path,
+            collection_journal,
+            require_absent=True,
+        )
+        _promote_case_publication(
+            canonical_collection,
+            collection,
+            new_tree_sha256=new_collection_sha256,
+            journal=collection_journal,
+            journal_sha256=collection_journal_sha256,
+        )
     return {
         "published": len(summaries),
         "publication_stage": publication_stage,
         "analysis_contract_sha256": analysis_contract_sha256,
         "families": dict(counts),
-        "collection": str(collection),
+        "collection": str(canonical_collection),
     }
 
 
@@ -1240,6 +2498,9 @@ def publish(
                 expected_contract_sha256=expected_contract_sha256,
                 post_analysis_resource_scan_observations=post_analysis_resource_scan_observations,
                 post_analysis_resource_failures=post_analysis_resource_failures,
+                _expected_snapshot_manifests={
+                    snapshot: expected_manifest for snapshot, expected_manifest in snapshot_records
+                },
             )
         finally:
             for snapshot in snapshots:

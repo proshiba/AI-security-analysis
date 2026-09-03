@@ -54,6 +54,7 @@ def build_case_automation_artifacts(
     family: str,
     layer_report: Mapping[str, Any],
     handler_results: Sequence[tuple[Mapping[str, Any], Mapping[str, Any]]],
+    screenconnect_no_c2_completion_verified: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """通信パターン文書とfail-closedのC2解析契約を同じ証拠から生成する。"""
 
@@ -110,7 +111,7 @@ def build_case_automation_artifacts(
         )
         contract["terminal_payload"] = {
             "reached": True,
-            "status": "no_additional_payload_verified",
+            "status": "recovered",
             "family": family,
             "blockers": [],
             "next_actions": ["必要に応じて限定live観測を別履歴として実施します。"],
@@ -126,22 +127,46 @@ def build_case_automation_artifacts(
         ),
     )
     confirmed = patterns["communication"]["confirmed_static_endpoints"]
+    confirmed_c2 = patterns["communication"]["confirmed_static_c2_endpoints"]
+    management_endpoints = patterns["communication"][
+        "confirmed_static_management_endpoints"
+    ]
     candidates = patterns["communication"]["candidate_patterns"]
+    management_only = bool(management_endpoints) and not confirmed_c2 and not candidates
+    terminal_management_only = management_only and terminal_managed_client
+    terminal_management_complete = (
+        terminal_management_only
+        and not protocol_confirmed
+        and screenconnect_no_c2_completion_verified is True
+    )
     _set_phase(
         contract,
         "c2_endpoint_extraction",
-        "completed" if confirmed or candidates else "blocked",
+        "not_applicable"
+        if management_only
+        else "completed"
+        if confirmed_c2 or candidates
+        else "blocked",
         (
-            f"静的設定endpoint {len(confirmed)}件と未確定pattern {len(candidates)}件を分離して記録した。"
-            if confirmed or candidates
+            f"双用途管理endpoint {len(management_endpoints)}件をC2から分離して記録した。"
+            if management_only
+            else f"確認済みC2 endpoint {len(confirmed_c2)}件と未確定pattern {len(candidates)}件を分離して記録した。"
+            if confirmed_c2 or candidates
             else "信頼済みhandler成果物から通信endpointを回収できなかった。"
         ),
     )
     _set_phase(
         contract,
         "c2_protocol_analysis",
-        "completed" if protocol_confirmed else "blocked",
+        "not_applicable"
+        if terminal_management_complete
+        else "completed"
+        if protocol_confirmed
+        else "blocked",
         (
+            "静的品質gateを完了した終端clientの双用途管理通信であり、malware C2 protocolとしては評価対象外です。"
+            if terminal_management_complete
+            else
             "family固有の登録、frame、dispatcherを静的method証拠で確認しました。"
             if protocol_confirmed
             else "通信候補だけではprotocol確認へ昇格せず、family固有frameまたは通信関数の追加解析を要求する。"
@@ -154,24 +179,40 @@ def build_case_automation_artifacts(
             "source": str(record.get("source") or "static_handler"),
             "confidence": str(record.get("confidence") or "confirmed_static_configuration"),
         }
-        for record in confirmed
+        for record in confirmed_c2
         if (value := _endpoint_value(record)) is not None
     ]
     contract["c2"]["evidence"] = [
-        "静的設定endpointと候補patternをcommunication-patterns.jsonへ分離して記録した。"
-        if confirmed or candidates
+        "終端clientの双用途管理endpointを分離し、外側の静的品質gate完了下で別のmalware C2 evidenceがないことを確認した。"
+        if terminal_management_complete
+        else "双用途管理endpointをcommunication-patterns.jsonへ記録し、C2へ昇格していない。"
+        if management_only
+        else "静的C2 endpointと候補patternをcommunication-patterns.jsonへ分離して記録した。"
+        if confirmed_c2 or candidates
         else "汎用文字列候補をC2へ昇格せず、静的handlerによる抽出不足を記録した。"
     ]
     hints = patterns["communication"]["protocol_hints"]
     selected_protocol = protocols[0] if protocol_confirmed else {}
     contract["c2"]["protocol"] = {
-        "status": ("static_confirmed_live_unverified" if protocol_confirmed else "unresolved"),
+        "status": (
+            "not_applicable"
+            if terminal_management_complete
+            else "static_confirmed_live_unverified"
+            if protocol_confirmed
+            else "unresolved"
+        ),
         "method": selected_protocol.get("method") if protocol_confirmed else None,
         "confidence": selected_protocol.get("confidence", "none"),
         "tcp_open_only": False,
         "static_hints": hints,
         "live_verified": False,
     }
+    if terminal_management_complete:
+        contract["c2"]["outcome"] = "no_c2_capability_verified"
+        contract["c2"]["live_check"] = {
+            "status": "not_applicable",
+            "target_registered": False,
+        }
     contract["automation"].update(
         {
             "status": (
@@ -192,7 +233,19 @@ def build_case_automation_artifacts(
         "通信pattern正規化",
         "family固有protocol methodの静的検証",
     ]
-    if protocol_confirmed:
+    if terminal_management_complete:
+        contract["deep_analysis"].update(
+            {
+                "status": "complete",
+                "priority": "low",
+                "queue": "not_required",
+                "blockers": [],
+                "next_minimum_step": (
+                    "不正利用の有無を判断する場合だけ、配布経路、導入権限、侵害後telemetryを相関する。"
+                ),
+            }
+        )
+    elif protocol_confirmed:
         contract["deep_analysis"]["blockers"] = ["静的protocolは確認済みですが限定live観測は未実施です。"]
         contract["deep_analysis"]["next_minimum_step"] = (
             "必要な場合だけ、安全gate下で限定live観測を別履歴として実施する。"
@@ -200,7 +253,11 @@ def build_case_automation_artifacts(
     else:
         contract["deep_analysis"]["next_minimum_step"] = (
             "終端payloadの通信関数またはfamily固有frameを静的に復元し、protocol evidenceを追加する。"
-            if confirmed or candidates
+            if confirmed_c2 or candidates
+            else "双用途管理先とは分離した。C2 capabilityを否定するには、静的layer・generic triage・必要なfunction解析の外側quality gateを完了する。"
+            if terminal_management_only
+            else "双用途管理先の不正利用を判断するには、配布経路、導入権限、侵害後telemetryを相関する。"
+            if management_only
             else "追加の復元層、memory、公開sandbox成果物、またはfamily固有config decoderを1つ追加する。"
         )
     return patterns, contract

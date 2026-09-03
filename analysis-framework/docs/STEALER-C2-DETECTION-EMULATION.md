@@ -55,7 +55,28 @@ py -3.13 .\analysis-framework\common\stealer_protocol_evidence.py `
 
 ### Vidar dead-drop snapshotの相関
 
-[`dead_drop_snapshot.py`](../malware/vidar/dead_drop_snapshot.py)はlive接続を行わず、別工程で保存済みのTelegram、Pinterest、Steam profile本文だけを解析します。manifestは検体SHA-256、静的configに存在する元URL、取得日時、本文SHA-256へ完全に束縛し、本文sizeは読込時に上限内で計測します。1サービスにつきsnapshotは1件に限定し、異なる2サービス以上が同じpublic IPv4:portを示した場合だけ`probable_c2=true`とします。
+[`dead_drop_capture.py`](../malware/vidar/dead_drop_capture.py)は、静的configへ束縛されたTelegram、Pinterest、Steam、Epic Games community profile候補を取得計画へ正規化します。既定はnetworkへ接続せず、取得可否と未確認候補をJSON表示するだけです。
+
+```powershell
+py -3.13 .\analysis-framework\malware\vidar\dead_drop_capture.py `
+  --config C:\isolated\vidar-config.json
+```
+
+実取得は`--allow-network`、一意な`--service`、repository外にある**存在しない新規path**の`--private-output-directory`を同時に指定した場合だけ有効です。Windowsでは既存のlocal fixed drive上の親directoryだけを許可し、作成と同時にcurrent user＋Administrators限定のprotected DACLを設定・再検証します。UNC、mapped network drive、removable media、CD-ROM、RAM diskは拒否します。POSIXではmode `0700`を要求します。
+
+静的に完全一致したHTTPS host／routeへ1回だけGETし、全DNS応答がglobal unicastであることを確認して選択IPへpinします。DNS、TLS、HTTP header、本文受信の全体を1つのabsolute deadlineでkill可能な子processへ隔離します。HTTP `200`、一意な`Content-Length`、その値と完全一致する非空UTF-8本文だけを受理し、redirect、圧縮、partial response、`Transfer-Encoding`、不明Content-Type、上限超過を拒否します。復元endpointには接続しません。raw本文、取得metadata、manifestはnetwork前に固定したfile handleへ保存し、directory handle、device／inode、symlink／reparse point、size、SHA-256を保存前後に再検証します。
+
+```powershell
+py -3.13 .\analysis-framework\malware\vidar\dead_drop_capture.py `
+  --config C:\isolated\vidar-config.json `
+  --sample-sha256 <64桁SHA-256> `
+  --service telegram `
+  --service epic_games `
+  --private-output-directory C:\isolated\vidar-snapshots `
+  --allow-network
+```
+
+[`dead_drop_snapshot.py`](../malware/vidar/dead_drop_snapshot.py)はlive接続を行わず、analystが保存したoffline snapshotまたは上記限定取得manifestだけを解析します。限定取得receiptは検体SHA-256、正規化した静的configのSHA-256、元URL、service、取得時刻、本文path／size／SHA-256、取得metadataのSHA-256へ完全に束縛し、相関器が保存fileから再計算します。offline入力についてrepository公開状態は断定せず`not_assessed`とし、限定取得toolが管理したpathだけを非公開保存検証済みとして区別します。1サービスにつきsnapshotは1件に限定し、異なる2サービス以上が同じglobal unicast IPv4:portを示した場合だけ`probable_c2=true`とします。
 
 ```powershell
 py -3.13 .\analysis-framework\malware\vidar\dead_drop_snapshot.py `
@@ -64,7 +85,7 @@ py -3.13 .\analysis-framework\malware\vidar\dead_drop_snapshot.py `
   --output C:\isolated\vidar-dead-drop-result.json
 ```
 
-この結果は共有サービスそのものをC2とせず、相関endpointも`c2_confirmed=false`、confidence `0.85`の候補に固定します。snapshotが1サービスだけ、本文に複数endpointがある、source URLやSHA-256が不一致、private／loopback IPだけの場合はfail-closedです。tool自身にはHTTP client、redirect、認証、live probe、検体実行機能がありません。
+この結果は共有サービスそのものをC2とせず、相関endpointも`c2_confirmed=false`、confidence `0.85`の候補に固定します。snapshotが1サービスだけ、本文に複数endpointがある、source URLやSHA-256が不一致、private／loopback／multicast IPだけの場合はfail-closedです。相関tool自身にはHTTP client、認証、live probe、検体実行機能がなく、限定取得toolも検体や復元endpointを実行・照会しません。
 
 ## Nmapによる観測
 
