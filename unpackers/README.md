@@ -28,7 +28,9 @@
 | 一般的な base64/hex | size と format を gate とする decode | child layer |
 | Mach-O | header と segment の inventory | packing 評価だけ |
 
-`static_unpacker.py` が orchestrator です。`javascript_obfuscator.py` は script encoding と string array layer、`javascript_dropper_unpacker.py` は numeric array、Unicode environment、AES-CBC、GZip chain、`nsis_unpacker.py` は明示的な NSIS script と native constant XOR layer を処理します。`static_control_flow.py` は、上限付きの再帰的 x86/x64 entry CFG triage を提供します。`managed_il_triage.py` は CLR を load せず、managed metadata、CIL、resource を棚卸しします。`managed_proxy_deobfuscator.py` は埋込みresourceのhash・entropy・保護候補を列挙し、確認済みEazfuscator系DynamicMethod proxy表をfield→methodの対応へ静的復号します。
+`static_unpacker.py` が orchestrator です。`javascript_obfuscator.py` は script encoding と string array layer、`javascript_dropper_unpacker.py` は numeric array、Unicode environment、AES-CBC、GZip chain、`nsis_unpacker.py` は明示的な NSIS script と native constant XOR layer を処理します。`static_control_flow.py` は、上限付きの再帰的 x86/x64 entry CFG triage を提供します。`opaque_native_entry.py` はimportless native PEに限定し、entry CFG、PEB／export resolver、API hash候補、変換loop、埋込みPE候補を実行やCPU emulationなしで調べます。byte走査の完了と意味的な復元完了を分離し、未知hashや動的pointer tableが残る場合は完了扱いにしません。候補関数、追跡関数、resolver callsite、変換loop、API／module hash、entry CFG、埋込み候補は`total`、`returned`、`truncated`で記録し、いずれかの上限到達を`coverage_complete=false`へ反映します。`managed_il_triage.py` は CLR を load せず、managed metadata、CIL、resource を棚卸しします。`managed_proxy_deobfuscator.py` は埋込みresourceのhash・entropy・保護候補を列挙し、確認済みEazfuscator系DynamicMethod proxy表をfield→methodの対応へ静的復号します。
+
+collection単位の再開では `analysis-framework/common/collection_followup_planner.py` が、公開済みreportの契約と登録済みblockerだけを読み、未完了caseを再試行可能性別に分類します。同一証拠で解消できないblockerは無益に再実行せず、新しいterminal evidenceまたは対応実装を待つ計画として残します。
 
 CABはparserを呼ぶ前に`MSCF` headerとversion、予約field、cabinet実size、単一volume、folder・file・data block件数、file/folder offset、宣言size、path衝突を検証します。None/MSZIPはこの予算検証後に`cabarchive`へ渡します。LZXはwindow 15–21と全blockの非zero checksumも検証し、`cabarchive`が正確に`LZX compression not supported`を返した場合だけ`binary-refinery`へ切り替えます。LZX固有のpeak memory事前判定は、入力CAB、全folderの復号cache、全memberの`bytes`化、最大decoder window、member・folder・block metadataを合算し、さらにPython runtimeと周辺解析用に256 MiBを予約します。この保守的な見積りが1 GiBを1 byteでも超える場合はdecoder起動前に拒否し、判定内訳と残余byte数を正常時の機械可読contractへ記録します。展開後もfolder/member sizeとmember tableを再照合し、全条件が一致した場合だけ結果を保持します。一時file、外部process、検体・payloadの実行、network通信は使わず、検証失敗時に7-Zipへ迂回しません。checksumを持たないLZX CAB、multi-volume CAB、Quantum圧縮、重複pathは安全側に拒否します。
 
@@ -119,10 +121,16 @@ report では次の blocker class を使用します。
 ```powershell
 & $Python -m pytest .\unpackers\tests -q
 & $Python -m pydoc unpackers.static_unpacker
+& $Python -m pydoc unpackers.opaque_native_entry
 & $Python -m pydoc unpackers.javascript_obfuscator
 & $Python -m pydoc unpackers.javascript_dropper_unpacker
 & $Python -m pydoc unpackers.nsis_unpacker
+& $Python -m pydoc unpackers.electron_nsis_unpacker
+& $Python -m pydoc unpackers.inno_sideload_bundle
+& $Python -m pydoc collection_followup_planner
 ```
+
+HTML API文書はrepository root、`analysis-framework`、`analysis-framework/common`を `PYTHONPATH` に設定し、`docs/pydoc` で `python -m pydoc -w collection_followup_planner unpackers.opaque_native_entry unpackers.electron_nsis_unpacker unpackers.inno_sideload_bundle` を実行して再生成します。
 
 unit test は、上限付き decode、malformed input、正確な hash/size、GDPF PDFのsize・overlay境界・magic、LZX CABのchecksum・window・volume・path・size・決定的順序、JavaScript rotation、UTF-16 normalization、numeric array と Unicode environment の復元、AES-CBC/GZip 変換、分割 CMD Base64 の再構築、.NET bitmap 復元、AutoIt layer、split reconstruction、NSIS word decode、静的 XOR loop 認識、synthetic NSIS の end-to-end 復元を検証します。
 
@@ -155,6 +163,7 @@ command の順序と失敗時の確認は `docs/APT-C60-2026-WORKFLOW.md` を参
 
 - `asar_unpacker.py` は、memory 内 member を返す前に Chromium ASAR pickle の境界、member offset、integrity metadata、path traversal を防ぐ name、総出力上限を検証します。
 - `electron_nsis_unpacker.py` は 7-Zip を parser としてだけ使用し、入れ子の Electron archive を特定して `resources/app.asar` を復元します。NSIS、Electron、JavaScript、復元 payload は起動しません。
+- `inno_sideload_bundle.py` は Inno Setup memberの相対path、launcher import、同名DLL配置を上限付きで照合し、launcher／side-load DLL候補を決定的に記録します。installer、launcher、DLLは起動しません。
 - `static_unpacker.py` は両経路を再帰的に適用し、JavaScript を評価せず、レビュー済みの plain JavaScript string array rotation を難読化解除できます。
 - Java class file と universal Mach-O は `CAFEBABE` magic を共有します。format detector は、妥当で上限付きの Mach-O architecture table を要求し、それ以外を `java-class` と分類します。
 

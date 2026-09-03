@@ -559,6 +559,8 @@ def _implementation_sha256() -> str:
         "follow_on_commitment.py",
         "publish_one_shot_collection.py",
         "ghidra_function_batch.py",
+        "sync_collection_publication.py",
+        "collection_followup_planner.py",
         "build_all_c2_monitoring_targets.py",
         "run_c2_monitoring_pipeline.py",
         "validate_daily_analysis.py",
@@ -3054,7 +3056,9 @@ def _production_publication(context: DailyContext) -> StageOutcome:
 
 
 def _production_ghidra(context: DailyContext) -> StageOutcome:
+    import collection_followup_planner
     import ghidra_function_batch
+    import sync_collection_publication
 
     context.ghidra_private_output.mkdir(parents=True, exist_ok=True)
     context.ghidra_sample_root.mkdir(parents=True, exist_ok=True)
@@ -3085,6 +3089,39 @@ def _production_ghidra(context: DailyContext) -> StageOutcome:
     status = result.get("status")
     if status not in {"complete", "ghidra_chunk_pending"}:
         raise DailyOrchestrationError("ghidra_result_invalid", "Ghidra一括解析の状態が不正です")
+    collection = context.repository / "analysis-results" / "collections" / context.collection_id
+    publication_projection: dict[str, Any] = {"status": "collection_not_available"}
+    followup: dict[str, Any] = {"status": "collection_not_available"}
+    if collection.is_dir():
+        try:
+            publication_projection = sync_collection_publication.synchronize_collection_projection(
+                context.repository,
+                collection,
+                write=True,
+            )
+        except (sync_collection_publication.ProjectionError, OSError, TypeError, ValueError) as exc:
+            raise DailyOrchestrationError(
+                "collection_publication_projection_failed",
+                "Ghidra後のcollection公開集計を安全に同期できませんでした",
+            ) from exc
+        try:
+            planned = collection_followup_planner.sync_plan(
+                context.repository,
+                collection,
+                # chunk途中は全archiveの再hashを避け、完了chunkで1回だけ照合する。
+                input_root=context.source_root if status == "complete" else None,
+                write=True,
+            )
+        except (collection_followup_planner.FollowupPlanError, OSError, ValueError) as exc:
+            raise DailyOrchestrationError(
+                "static_followup_plan_failed",
+                "未完了静的解析のfollow-up計画を安全に生成できませんでした",
+            ) from exc
+        followup = {
+            "status": "generated",
+            "planned_case_count": planned["planned_case_count"],
+            "plan_sha256": planned["plan_sha256"],
+        }
     return StageOutcome(
         status="complete" if status == "complete" else "partial",
         retryable=status == "ghidra_chunk_pending",
@@ -3100,6 +3137,8 @@ def _production_ghidra(context: DailyContext) -> StageOutcome:
             "sample_executed": False,
             "network_contacted": False,
             "arbitrary_ghidra_scripts_enabled": False,
+            "collection_publication_projection": publication_projection,
+            "static_followup_plan": followup,
         },
     )
 

@@ -13,14 +13,13 @@ from types import SimpleNamespace
 
 import pytest
 
-
 COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import daily_analysis_orchestrator as target  # noqa: E402
-import daily_news_malware_intake as news_intake  # noqa: E402
-import archive_analysis_datastore as datastore_archive  # noqa: E402
+import archive_analysis_datastore as datastore_archive
+import daily_analysis_orchestrator as target
+import daily_news_malware_intake as news_intake
 
 
 def test_reused_archive_is_reverified_with_remote_head(
@@ -557,8 +556,8 @@ def test_plan_declares_fixed_safety_and_network_boundaries() -> None:
 def test_sample_download_limits_fit_provider_and_static_analyzer_bounds() -> None:
     """大容量候補を許可してもprovider・batch合計・後段上限を超えない。"""
 
-    import malwarebazaar_batch
     import daily_news_malware_intake
+    import malwarebazaar_batch
 
     assert target.SAMPLE_DOWNLOAD_MAX_BYTES == 256 * target.MIB
     assert target.SAMPLE_DOWNLOAD_MAX_BYTES == daily_news_malware_intake.DAILY_SAMPLE_DOWNLOAD_MAX_BYTES
@@ -639,6 +638,140 @@ def test_production_ghidra_separates_prepared_inputs_from_source(
     assert daily_context.ghidra_sample_root == (daily_context.work_root / "gi" / daily_context.request.run_id)
     assert daily_context.ghidra_sample_root.is_dir()
     assert daily_context.ghidra_sample_root != daily_context.source_root
+
+
+def test_production_ghidra_generates_static_followup_plan(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ghidra後の公開caseから未完了静的解析queueを自動更新する。"""
+
+    import collection_followup_planner
+    import ghidra_function_batch
+    import sync_collection_publication
+
+    daily_context = context(tmp_path)
+    collection = daily_context.repository / "analysis-results" / "collections" / daily_context.collection_id
+    collection.mkdir(parents=True)
+    captured = {}
+    call_order = []
+
+    monkeypatch.setattr(
+        ghidra_function_batch,
+        "run",
+        lambda _arguments: {
+            "status": "complete",
+            "unique_pe_programs": 1,
+            "complete_programs": 1,
+            "pending_programs": [],
+        },
+    )
+
+    def fake_sync(repository, observed_collection, *, input_root, write):
+        call_order.append("followup")
+        captured.update(
+            {
+                "repository": repository,
+                "collection": observed_collection,
+                "input_root": input_root,
+                "write": write,
+            }
+        )
+        return {
+            "planned_case_count": 3,
+            "plan_sha256": "a" * 64,
+        }
+
+    def fake_projection(repository, observed_collection, *, write):
+        call_order.append("projection")
+        assert repository == daily_context.repository
+        assert observed_collection == collection
+        assert write is True
+        return {
+            "status": "updated",
+            "stale_files": ["manifest.json", "publication-summary.json"],
+            "case_count": 50,
+            "write_performed": True,
+            "check_passed": True,
+        }
+
+    monkeypatch.setattr(sync_collection_publication, "synchronize_collection_projection", fake_projection)
+    monkeypatch.setattr(collection_followup_planner, "sync_plan", fake_sync)
+
+    outcome = target._production_ghidra(daily_context)
+
+    assert captured == {
+        "repository": daily_context.repository,
+        "collection": collection,
+        "input_root": daily_context.source_root,
+        "write": True,
+    }
+    assert call_order == ["projection", "followup"]
+    assert outcome.result["collection_publication_projection"] == {
+        "status": "updated",
+        "stale_files": ["manifest.json", "publication-summary.json"],
+        "case_count": 50,
+        "write_performed": True,
+        "check_passed": True,
+    }
+    assert outcome.result["static_followup_plan"] == {
+        "status": "generated",
+        "planned_case_count": 3,
+        "plan_sha256": "a" * 64,
+    }
+
+    monkeypatch.setattr(
+        ghidra_function_batch,
+        "run",
+        lambda _arguments: {
+            "status": "ghidra_chunk_pending",
+            "unique_pe_programs": 2,
+            "complete_programs": 1,
+            "pending_programs": ["b" * 64],
+        },
+    )
+    captured.clear()
+    call_order.clear()
+    pending = target._production_ghidra(daily_context)
+    assert pending.status == "partial"
+    assert captured["input_root"] is None
+    assert call_order == ["projection", "followup"]
+
+
+def test_production_ghidra_stops_before_followup_when_projection_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """公開集計同期に失敗した状態からstaleなfollow-up計画を生成しない。"""
+
+    import collection_followup_planner
+    import ghidra_function_batch
+    import sync_collection_publication
+
+    daily_context = context(tmp_path)
+    collection = daily_context.repository / "analysis-results" / "collections" / daily_context.collection_id
+    collection.mkdir(parents=True)
+    monkeypatch.setattr(
+        ghidra_function_batch,
+        "run",
+        lambda _arguments: {"status": "complete", "pending_programs": []},
+    )
+    monkeypatch.setattr(
+        sync_collection_publication,
+        "synchronize_collection_projection",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(sync_collection_publication.ProjectionError("broken")),
+    )
+    followup_called = False
+
+    def unexpected_followup(*_args, **_kwargs):
+        nonlocal followup_called
+        followup_called = True
+
+    monkeypatch.setattr(collection_followup_planner, "sync_plan", unexpected_followup)
+    with pytest.raises(target.DailyOrchestrationError) as observed:
+        target._production_ghidra(daily_context)
+    assert observed.value.code == "collection_publication_projection_failed"
+    assert followup_called is False
 
 
 def test_run_and_resume_retries_only_retryable_partial_stages(tmp_path: Path) -> None:
@@ -1196,10 +1329,9 @@ def test_repository_lock_conflicts_across_different_work_roots(
         allow_live_c2=False,
         create_roots=True,
     )
-    with target._run_lock(first):
-        with pytest.raises(target.DailyOrchestrationError) as captured:
-            with target._run_lock(second):
-                pass
+    with target._run_lock(first), pytest.raises(target.DailyOrchestrationError) as captured:
+        with target._run_lock(second):
+            pass
     assert captured.value.code == "run_locked"
 
 

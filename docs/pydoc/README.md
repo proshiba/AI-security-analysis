@@ -20,12 +20,13 @@ $env:PYTHONPATH = '<repo-root>\analysis-framework\src;<repo-root>\analysis-frame
 cd <repo-root>\docs\pydoc
 python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.compiler asa.cli `
   asa.discovery asa.runner asa.runtime_cli `
-  malwarebazaar_batch analyze_sample analysis_contract analysis_job_runner analysis_lifecycle analysis_resume_planner bounded_process `
+  malwarebazaar_batch analyze_sample analysis_contract analysis_job_runner analysis_lifecycle analysis_resume_planner collection_followup_planner sync_collection_publication bounded_process `
   c2_detector nmap nmap.nmap_c2_detector nmap.verify_nse `
   follow_on_commitment handler_catalog job_artifact_schemas runtime_contract classifiers.classify_sample `
   analyze_stealer_set c2_candidate_detector generate_stealer_reports `
   generate_ioc_lists deep_static_triage `
-  unpackers.static_unpacker unpackers.msi_static_inventory unpackers.static_control_flow unpackers.managed_il_triage `
+  unpackers.static_unpacker unpackers.msi_static_inventory unpackers.opaque_native_entry unpackers.static_control_flow unpackers.managed_il_triage `
+  unpackers.electron_nsis_unpacker unpackers.inno_sideload_bundle `
   unpackers.javascript_obfuscator unpackers.javascript_dropper_unpacker unpackers.nsis_unpacker `
   emulators.stealers.lab `
   extractors extractors.common extractors.config_extractor extractors.stealer_common `
@@ -46,6 +47,8 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 - `analysis_job_runner.html`：WebUI／ローカルAPI向けの要求検証、入力snapshot、job状態、成果物再検証
 - `analysis_lifecycle.html`：識別、静的解析、公開、完了判定、派生更新、S3保管を接続する固定stage runner
 - `analysis_resume_planner.html`：保存済みstateを検証し、同一証拠の無益な再試行を止めるread-only再開計画
+- `collection_followup_planner.html`：collection内の未完了caseを契約済みblockerと新規証拠の有無から分類し、上限付きの再解析計画を生成
+- `sync_collection_publication.html`：公開case成果物を検証し、collectionのmanifest／publication summary集計を原子的に再投影
 - `bounded_process.html`：timeout、process／memory上限、子孫cleanupを担うOS別の共通process境界
 - `follow_on_commitment.html`：保持metadata残余の親別canonical多重集合commitment
 - `handler_catalog.html`：既存静的解析器の安全な棚卸し、読み込み、実行、公開値の無害化
@@ -67,6 +70,9 @@ active C2観測は後者だけを標準入口とし、JARMやPython direct socke
 ## 深層静的解析module
 
 - `deep_static_triage.html`：範囲限定のinventory orchestration、memory内layer復元、公開可能なreport
+- `unpackers.opaque_native_entry.html`：importless native PEのentry、resolver、API hash、変換loop、埋込みpayload候補を実行せず上限付きで解析
+- `unpackers.electron_nsis_unpacker.html`：NSIS／Electron bundleからASARとterminal候補を上限付きで静的復元
+- `unpackers.inno_sideload_bundle.html`：Inno Setupのmember配置、launcher、side-load DLL候補を実行せず決定的に相関
 - `unpackers.static_control_flow.html`：範囲限定のnative PE／raw x86 control-flow triage
 - `unpackers.managed_il_triage.html`：範囲限定の.NET metadata、IL、managed obfuscation triage
 - `unpackers.msi_static_inventory.html`：MSIの主要テーブルを読み取り専用で棚卸しし、File IDとCustomActionを相関
@@ -100,7 +106,7 @@ active C2観測は後者だけを標準入口とし、JARMやPython direct socke
 これらのpageは、repository root、framework source、common moduleを `PYTHONPATH` に設定し、`docs/pydoc` から再生成します。
 
 ```powershell
-python -m pydoc -w deep_static_triage unpackers.static_control_flow unpackers.managed_il_triage
+python -m pydoc -w deep_static_triage collection_followup_planner sync_collection_publication unpackers.opaque_native_entry unpackers.static_control_flow unpackers.managed_il_triage unpackers.electron_nsis_unpacker unpackers.inno_sideload_bundle
 ```
 
 ## ShadowPadモジュール
@@ -146,6 +152,7 @@ python -m pydoc -w deep_static_triage unpackers.static_control_flow unpackers.ma
 - `update_unknown_analysis_history.html`：batch caseに対する冪等かつ保守的なhistory entry
 - `unpackers.asar_unpacker.html`：範囲限定のASAR検証と復元
 - `unpackers.electron_nsis_unpacker.html`：NSIS／Electron ASARに限定した復元
+- `unpackers.inno_sideload_bundle.html`：Inno Setup memberのlauncher／DLL side-load関係を上限付きで静的に相関
 
 ## profile定義型family拡張module
 

@@ -3,19 +3,19 @@
 本表はdetector、静的handler、品質policyの実装構造、format別AST監査、検体を渡さない隔離runtime import確認から自動生成しています。検体実行、外部通信、生成AIは使用しません。
 この割合は実検体を解析して測定した成功率ではなく、解析完了率、config／C2抽出成功率、終端payload到達率、誤検知率を示しません。
 
-- 対象family: 88件
-- detector＋AST監査＋runtime import確認済みhandler＋品質policyが揃う構造: 78件（88.64%）
+- 対象family: 89件
+- detector＋AST監査＋runtime import確認済みhandler＋品質policyが揃う構造: 79件（88.76%）
 - 代表fixtureで自動解析完了を実証済み: 0件
-- detector＋安全handlerでfamily自動選択可能: 78件
-- automatic宣言済みfamily: 86件（97.73%）
-- AST監査＋runtime import確認済みscript-only handler: 86件（97.73%）
-- 品質policy宣言済み: 86件 / 安全handler＋品質policy: 86件
+- detector＋安全handlerでfamily自動選択可能: 79件
+- automatic宣言済みfamily: 87件（97.75%）
+- AST監査＋runtime import確認済みscript-only handler: 87件（97.75%）
+- 品質policy宣言済み: 87件 / 安全handler＋品質policy: 87件
 - 安全handlerはあるが品質policy未宣言: 0件
-- handler実装: 宣言98件 / AST監査通過98件 / runtime import確認済み98件 / 停止0件
+- handler実装: 宣言99件 / AST監査通過99件 / runtime import確認済み99件 / 停止0件
 - automatic handlerがAST監査またはruntime importで停止: 0件
 - handlerによる候補検証のみ: 8件
-- 実行したformat別preflight: 1055件（上限2048件）
-- 実行した検体なしruntime import確認: 98件（計画98件）
+- 実行したformat別preflight: 1056件（上限2048件）
+- 実行した検体なしruntime import確認: 99件（計画99件）
 
 | family | 状態 | detector | 品質policy | 宣言handler | 安全handler | blocker |
 |---|---|---:|---:|---:|---:|---|
@@ -90,6 +90,7 @@
 | screenconnect_rmm | fully_routable | あり | あり | 1 | 1 | なし |
 | shadowpad | fully_routable | あり | あり | 1 | 1 | なし |
 | signed_dht_bot | fully_routable | あり | あり | 1 | 1 | なし |
+| sliver | fully_routable | あり | あり | 1 | 1 | なし |
 | snakekeylogger | fully_routable | あり | あり | 1 | 1 | なし |
 | sobfox_launcher | candidate_verification_only | なし | あり | 1 | 1 | detector_missing |
 | softbot | fully_routable | あり | あり | 1 | 1 | なし |

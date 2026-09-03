@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import PurePosixPath
 import struct
+from pathlib import PurePosixPath
 
 from unpackers.path_safety import safe_member_name
 
@@ -49,10 +49,10 @@ def asar_header(data: bytes) -> tuple[dict, int]:
         raise ValueError("ASAR JSON header exceeds bounds")
     try:
         header = json.loads(data[16:json_end].decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         raise ValueError("invalid ASAR JSON header") from exc
     if not isinstance(header, dict) or not isinstance(header.get("files"), dict):
-        raise ValueError("ASAR header has no files tree")
+        raise ValueError("ASAR header has no files tree")  # noqa: TRY004
     return header, data_offset
 
 

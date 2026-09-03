@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module unpackers.opaque_native_entry</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.opaque_native_entry</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="../../unpackers/opaque_native_entry.py">unpackers/opaque_native_entry.py</a></td></tr></table>
+    <p><span class="code">importless&nbsp;native&nbsp;PEのentryと動的API&nbsp;resolverを有界に静的解析する。<br>
+&nbsp;<br>
+このmoduleはPEをloadまたは実行せず、Capstoneによる逆アセンブルとPE<br>
+header検査だけを行う。API名の照合結果は内蔵した限定corpus内の候補であり、<br>
+未知hashを推測で補完しない。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="capstone.html">capstone</a><br>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
+<a href="struct.html">struct</a><br>
+</td><td class="multicolumn"><a href="capstone.x86_const.html">capstone.x86_const</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-analyze_opaque_native_pe"><strong>analyze_opaque_native_pe</strong></a>(
+    data: 'bytes',
+    *,
+    max_input_bytes: 'int' = 268435456,
+    max_executable_bytes: 'int' = 67108864,
+    max_instructions: 'int' = 500000,
+    max_callsites: 'int' = 16384,
+    max_candidates: 'int' = 256
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">importless&nbsp;native&nbsp;PEを静的解析し、有界collectionの打切りも返す。<br>
+&nbsp;<br>
+candidate、function、callsite、loop、hash、entry&nbsp;CFG、埋込み候補の<br>
+coverageを記録し、範囲走査と意味的な復元完了を別々に判定する。</span></dd></dl>
+ <dl><dt><a name="-hash_ascii_name"><strong>hash_ascii_name</strong></a>(name: 'str', *, seed: 'int', prime: 'int') -&gt; 'int'</dt><dd><span class="code">観測したFNV-1a型更新則でASCII名をhash化する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>KNOWN_WINDOWS_EXPORTS</strong> = {'advapi32.dll': ('OpenProcessToken', 'RegCreateKeyExA', 'RegCreateKeyExW', 'RegSetValueExA', 'RegSetValueExW'), 'kernel32.dll': ('CloseHandle', 'CreateFileA', 'CreateFileW', 'CreateProcessA', 'CreateProcessW', 'ExitProcess', 'GetCommandLineA', 'GetCommandLineW', 'GetCurrentProcess', 'GetCurrentProcessId', 'GetCurrentThreadId', 'GetLastError', 'GetModuleFileNameA', 'GetModuleFileNameW', 'GetModuleHandleA', 'GetModuleHandleW', 'GetProcAddress', 'HeapAlloc', 'HeapFree', 'LoadLibraryA', ...), 'ntdll.dll': ('LdrGetProcedureAddress', 'LdrLoadDll', 'NtAllocateVirtualMemory', 'NtProtectVirtualMemory', 'NtReadFile', 'NtWriteFile', 'RtlAllocateHeap', 'RtlDecompressBuffer', 'RtlFreeHeap'), 'user32.dll': ('GetSystemMetrics', 'MessageBoxA', 'MessageBoxW', 'ShowWindow'), 'winhttp.dll': ('WinHttpConnect', 'WinHttpOpen', 'WinHttpOpenRequest', 'WinHttpReadData', 'WinHttpSendRequest'), 'wininet.dll': ('HttpOpenRequestA', 'HttpSendRequestA', 'InternetConnectA', 'InternetOpenA', 'InternetReadFile'), 'ws2_32.dll': ('WSAStartup', 'closesocket', 'connect', 'recv', 'send', 'socket')}<br>
+<strong>__all__</strong> = ['KNOWN_WINDOWS_EXPORTS', 'analyze_opaque_native_pe', 'hash_ascii_name']<br>
+<strong>__annotations__</strong> = {'KNOWN_WINDOWS_EXPORTS': 'Mapping[str, tuple[str, ...]]'}</td></tr></table>
+</body></html>

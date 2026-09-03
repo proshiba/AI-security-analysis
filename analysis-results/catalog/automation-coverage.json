@@ -1,44 +1,44 @@
 {
   "ai_used": false,
   "counts": {
-    "ast_preflight_eligible_handlers": 98,
-    "automated_analysis_completion_possible": 78,
+    "ast_preflight_eligible_handlers": 99,
+    "automated_analysis_completion_possible": 79,
     "automated_analysis_completion_verified": 0,
-    "automatic_family_selection_possible": 78,
+    "automatic_family_selection_possible": 79,
     "automatic_handler_blocked": 0,
     "blocked_automatic_handlers": 0,
     "by_status": {
       "automatic_handler_blocked": 0,
       "candidate_verification_only": 8,
       "classification_only": 0,
-      "fully_routable": 78,
+      "fully_routable": 79,
       "manual_handler_only": 0,
       "manual_only_without_detector": 2,
       "quality_policy_missing": 0,
       "unsupported": 0
     },
     "candidate_verification_only": 8,
-    "declared_automatic_handlers": 98,
-    "declared_script_only_handler_available": 86,
-    "declared_script_only_handler_percent": 97.73,
-    "detector_registered": 78,
-    "executed_preflight_count": 1055,
-    "executed_runtime_import_count": 98,
-    "families": 88,
-    "fully_routable": 78,
-    "fully_routable_percent": 88.64,
-    "planned_preflight_count": 1055,
-    "planned_runtime_import_count": 98,
+    "declared_automatic_handlers": 99,
+    "declared_script_only_handler_available": 87,
+    "declared_script_only_handler_percent": 97.75,
+    "detector_registered": 79,
+    "executed_preflight_count": 1056,
+    "executed_runtime_import_count": 99,
+    "families": 89,
+    "fully_routable": 79,
+    "fully_routable_percent": 88.76,
+    "planned_preflight_count": 1056,
+    "planned_runtime_import_count": 99,
     "preflight_limit": 2048,
-    "quality_gated_script_only_handler_available": 86,
-    "quality_policy_declared": 86,
+    "quality_gated_script_only_handler_available": 87,
+    "quality_policy_declared": 87,
     "quality_policy_missing": 0,
-    "runtime_import_verified_handlers": 98,
-    "runtime_import_verified_structure": 78,
-    "safe_automatic_handlers": 98,
-    "script_only_handler_available": 86,
-    "script_only_handler_percent": 97.73,
-    "structurally_routable": 78
+    "runtime_import_verified_handlers": 99,
+    "runtime_import_verified_structure": 79,
+    "safe_automatic_handlers": 99,
+    "script_only_handler_available": 87,
+    "script_only_handler_percent": 97.75,
+    "structurally_routable": 79
   },
   "executed_sample": false,
   "families": [
@@ -192,8 +192,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 30,
-          "dependency_fingerprint_sha256": "dde029f82b3db6c9493ea38a94737d523eeb0698ce64f8553e7836ced8f0bad0",
+          "dependency_file_count": 33,
+          "dependency_fingerprint_sha256": "7301d914e9e4c0bfe1cf064fc54907c7abb9d13898cfc5922a49222281c0b216",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -2262,8 +2262,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 30,
-          "dependency_fingerprint_sha256": "957756cad24e0c082cd92dfea9edb13262dd313887c38dc164470fbfdb3b2723",
+          "dependency_file_count": 33,
+          "dependency_fingerprint_sha256": "030d75b8e417f863179ca210d1610bae0fb3a12629cd585f02e3a6ceff0e199f",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -2376,8 +2376,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 28,
-          "dependency_fingerprint_sha256": "8225258408c0cb935bfbb4a1c788dee5efcf49dda101350adfb411ed34dbe3ee",
+          "dependency_file_count": 31,
+          "dependency_fingerprint_sha256": "9c281a4472f6174e752a3393f24737c0ceab53afeccac26b6e0bc299531ade1a",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -2466,7 +2466,7 @@
             "elf"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "dd4c9467fe2bc88ddec2635c6da7bbf4b4375a52cb5710488ec231ed069826ab",
+          "dependency_fingerprint_sha256": "0c2ef55091b43ba2ec07e5d3028693e50a730bdbd5c8b45276b0ebaffb85bdfe",
           "eligible": true,
           "eligible_formats": [
             "elf"
@@ -2709,7 +2709,7 @@
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "d485f169e9b9ab50aba15efd207e7ec8e9bcba73ae0867d10f81a3b8260a9f20",
+          "dependency_fingerprint_sha256": "0e6b8547ca08af60c0956f941191dec52904c60c5a59ebedaccbb45178706b42",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -3157,8 +3157,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 26,
-          "dependency_fingerprint_sha256": "6c35dd3b1b06c131665390565ad212a8c0948bcb0680fbf346a21a968709d1c0",
+          "dependency_file_count": 29,
+          "dependency_fingerprint_sha256": "e4a42e87d8e98ad592798097a0973c82fd34780f44d18b32d78d77f242e69c2a",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -3611,7 +3611,7 @@
             "pe"
           ],
           "dependency_file_count": 1,
-          "dependency_fingerprint_sha256": "680adef871b0c962927928ea3fa09bd898c003b4e553d6f6d38c13c6ac316b00",
+          "dependency_fingerprint_sha256": "83d64db351f59512c9872e87235a0736736a4acd2452abb7bc0656ddddbb3da5",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -4837,7 +4837,7 @@
             "script"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "b1c0cc74b4e4ce8894f91cc535862eb192d22d39ab5f43f419ec22b5facaf02a",
+          "dependency_fingerprint_sha256": "b45cd8b1c633d613d9739ccd82dc9bf0735db0f1d80704800b685b16b8e9ab1f",
           "eligible": true,
           "eligible_formats": [
             "script"
@@ -9087,8 +9087,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 29,
-          "dependency_fingerprint_sha256": "c47abbd8dab199ad876a7718aba9a32a84d361e740c7fc55ce4666dac79ed18d",
+          "dependency_file_count": 32,
+          "dependency_fingerprint_sha256": "b3aed854f10c36be896af324a5a7febadb39806ecace6e4f4f3f394831c0c144",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -9205,7 +9205,7 @@
             "elf"
           ],
           "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "eeccc2d5ce2df7b12a115fb127ef2dd657f375514d37bcd52551b22a8f65c4b0",
+          "dependency_fingerprint_sha256": "4c3bf3403124ada139cad243d8edf1a07b53ee204b02d21bd68fcafbeaa43c58",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -10016,6 +10016,90 @@
     },
     {
       "accepted_formats": [
+        "pe"
+      ],
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
+      "automatic_handler_preflights": [
+        {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
+          "blocked_formats": [],
+          "blockers": [],
+          "declared_formats": [
+            "pe"
+          ],
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "4fb79d0e32a1ebae92dc0bf95ad95088f50c7371b1d6aa7ef1d63c8c0e7e4e9f",
+          "eligible": true,
+          "eligible_formats": [
+            "pe"
+          ],
+          "handler_id": "sliver:analysis.framework.malware.sliver.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "sliver:analysis.framework.malware.sliver.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
+        }
+      ],
+      "automatic_handlers": [
+        "sliver:analysis.framework.malware.sliver.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocked_automatic_handlers": [],
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
+      "declared_accepted_formats": [
+        "pe"
+      ],
+      "declared_automatic_handlers": [
+        "sliver:analysis.framework.malware.sliver.extract.config.py:extract_config"
+      ],
+      "declared_script_only_handler_available": true,
+      "detector_registered": true,
+      "family": "sliver",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "other",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
+      "safe_automatic_handlers": [
+        "sliver:analysis.framework.malware.sliver.extract.config.py:extract_config"
+      ],
+      "script_only_handler_available": true,
+      "status": "fully_routable",
+      "structurally_routable": true
+    },
+    {
+      "accepted_formats": [
         "data",
         "pe",
         "script"
@@ -10037,8 +10121,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 30,
-          "dependency_fingerprint_sha256": "58ba34cbaef070fddcb14169440c0961a8529d1785e331124238ad0afc39644b",
+          "dependency_file_count": 33,
+          "dependency_fingerprint_sha256": "b00d1a3f2e29277d1d62df1b89614d0d6ef6f691d0ee241dea3336b48c58b8de",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -10489,8 +10573,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 28,
-          "dependency_fingerprint_sha256": "2aba46d0f68295d4f9c19eda861c329ebce01b6d606deced470ed85533851345",
+          "dependency_file_count": 31,
+          "dependency_fingerprint_sha256": "bacb4f75fd7521eb14330a1c8c0959ffdfbe8a32b513bc225736b9c1294d099e",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -11317,8 +11401,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 28,
-          "dependency_fingerprint_sha256": "a9db5c822463b11813c97e3b324c081594b6071f158a72b2bbc4097023921bf9",
+          "dependency_file_count": 31,
+          "dependency_fingerprint_sha256": "e809d660de1eca85786908d78ebefe6ee6d9bc6ddbce7e1204a1f92eeba48833",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11381,8 +11465,8 @@
             "data",
             "pe"
           ],
-          "dependency_file_count": 34,
-          "dependency_fingerprint_sha256": "65ed3cf4a2d03eacefd05aa4c382a6eb3b6e41e6863bc6269f2e9cebeafd3617",
+          "dependency_file_count": 37,
+          "dependency_fingerprint_sha256": "67981a5375f135c6275fa053ac1384c216b5e1344532f8340c4338d93071da9b",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -11475,8 +11559,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 31,
-          "dependency_fingerprint_sha256": "110d9016a7fee8020d1f312c3ae02ab399897ac273a0b378fc5e6896c5e09ddd",
+          "dependency_file_count": 34,
+          "dependency_fingerprint_sha256": "65ab04bf374d0d1c2380f9ef14e8bca1d6826806733e59b58bc3e1c197c139e3",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11576,8 +11660,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 30,
-          "dependency_fingerprint_sha256": "db57a627234c19769dd6a81ae1bb8ea64cd3bc1dc2321f880cdc09795ba13027",
+          "dependency_file_count": 33,
+          "dependency_fingerprint_sha256": "ee990368be7d775ff105e3f89968ca686044d3faa2c3758536e7e88e806850f0",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -11852,8 +11936,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 31,
-          "dependency_fingerprint_sha256": "551d3e914ec444e2fe7bee07854c360a2a9a1720f066cb839bc345e527881d14",
+          "dependency_file_count": 34,
+          "dependency_fingerprint_sha256": "f6955f8fef754100b1dd5f755b5623bce5d68034094758230ce068a86ef83a1c",
           "eligible": true,
           "eligible_formats": [
             "7z",

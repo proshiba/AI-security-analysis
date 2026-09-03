@@ -19,6 +19,8 @@
 - [ClickFix／ClearFake 50件の収集・インフラ・Triage照合](../clickfix/README.md)
 - [一括静的解析と解析器適用可否判定](ONE-SHOT-ANALYSIS.md)
 - [静的復元オーケストレーション](STATIC-RECOVERY-ORCHESTRATION.md)
+- [未完了静的解析follow-upの自動化](STATIC-FOLLOWUP-AUTOMATION.md)
+- [collection公開集計の再投影](COLLECTION-PUBLICATION-PROJECTION.md)
 - [MalwareBazaar最新Windows検体の一括静的解析](MALWAREBAZAAR-WINDOWS-BATCH.md)
 - [終端ペイロード・設定・C2解析の完了基準](C2-ANALYSIS-COMPLETION-STANDARD.md)
 - [静的ロジック記録とコード類似性](STATIC-LOGIC-AND-CODE-SIMILARITY.md)
