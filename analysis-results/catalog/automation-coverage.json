@@ -1,44 +1,44 @@
 {
   "ai_used": false,
   "counts": {
-    "ast_preflight_eligible_handlers": 97,
-    "automated_analysis_completion_possible": 77,
+    "ast_preflight_eligible_handlers": 98,
+    "automated_analysis_completion_possible": 78,
     "automated_analysis_completion_verified": 0,
-    "automatic_family_selection_possible": 77,
+    "automatic_family_selection_possible": 78,
     "automatic_handler_blocked": 0,
     "blocked_automatic_handlers": 0,
     "by_status": {
       "automatic_handler_blocked": 0,
       "candidate_verification_only": 8,
       "classification_only": 0,
-      "fully_routable": 77,
+      "fully_routable": 78,
       "manual_handler_only": 0,
       "manual_only_without_detector": 2,
       "quality_policy_missing": 0,
       "unsupported": 0
     },
     "candidate_verification_only": 8,
-    "declared_automatic_handlers": 97,
-    "declared_script_only_handler_available": 85,
-    "declared_script_only_handler_percent": 97.7,
-    "detector_registered": 77,
-    "executed_preflight_count": 1041,
-    "executed_runtime_import_count": 97,
-    "families": 87,
-    "fully_routable": 77,
-    "fully_routable_percent": 88.51,
-    "planned_preflight_count": 1041,
-    "planned_runtime_import_count": 97,
+    "declared_automatic_handlers": 98,
+    "declared_script_only_handler_available": 86,
+    "declared_script_only_handler_percent": 97.73,
+    "detector_registered": 78,
+    "executed_preflight_count": 1055,
+    "executed_runtime_import_count": 98,
+    "families": 88,
+    "fully_routable": 78,
+    "fully_routable_percent": 88.64,
+    "planned_preflight_count": 1055,
+    "planned_runtime_import_count": 98,
     "preflight_limit": 2048,
-    "quality_gated_script_only_handler_available": 85,
-    "quality_policy_declared": 85,
+    "quality_gated_script_only_handler_available": 86,
+    "quality_policy_declared": 86,
     "quality_policy_missing": 0,
-    "runtime_import_verified_handlers": 97,
-    "runtime_import_verified_structure": 77,
-    "safe_automatic_handlers": 97,
-    "script_only_handler_available": 85,
-    "script_only_handler_percent": 97.7,
-    "structurally_routable": 77
+    "runtime_import_verified_handlers": 98,
+    "runtime_import_verified_structure": 78,
+    "safe_automatic_handlers": 98,
+    "script_only_handler_available": 86,
+    "script_only_handler_percent": 97.73,
+    "structurally_routable": 78
   },
   "executed_sample": false,
   "families": [
@@ -193,7 +193,7 @@
             "script"
           ],
           "dependency_file_count": 30,
-          "dependency_fingerprint_sha256": "86cc771ead0de2263fb8086a6c5e605f0058072216eefb972974784457f1cd32",
+          "dependency_fingerprint_sha256": "dde029f82b3db6c9493ea38a94737d523eeb0698ce64f8553e7836ced8f0bad0",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -2263,7 +2263,7 @@
             "zip"
           ],
           "dependency_file_count": 30,
-          "dependency_fingerprint_sha256": "30b9dd9dddc883b8e9153f4b4f0802122fbc11dab4478c3e5c549004dc3dc434",
+          "dependency_fingerprint_sha256": "957756cad24e0c082cd92dfea9edb13262dd313887c38dc164470fbfdb3b2723",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -2377,7 +2377,7 @@
             "pe"
           ],
           "dependency_file_count": 28,
-          "dependency_fingerprint_sha256": "424947e1a32eae2942092ce459bfb05b25fd540166c884cd59087e103fe75321",
+          "dependency_fingerprint_sha256": "8225258408c0cb935bfbb4a1c788dee5efcf49dda101350adfb411ed34dbe3ee",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -2466,7 +2466,7 @@
             "elf"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "c47f952f49427e35364dad65514315fa2ae2fbf32ef95fb05e6726be5037835d",
+          "dependency_fingerprint_sha256": "dd4c9467fe2bc88ddec2635c6da7bbf4b4375a52cb5710488ec231ed069826ab",
           "eligible": true,
           "eligible_formats": [
             "elf"
@@ -2709,7 +2709,7 @@
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "14e5c86afcd864283ec03cae64aaa83f9ce100e720cb3b59a80b6fa3fac476e7",
+          "dependency_fingerprint_sha256": "d485f169e9b9ab50aba15efd207e7ec8e9bcba73ae0867d10f81a3b8260a9f20",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -3158,7 +3158,7 @@
             "zip"
           ],
           "dependency_file_count": 26,
-          "dependency_fingerprint_sha256": "ab2c46ab960eed32bc519c5127e9636245d6b5c68c2160af8804ab63a15355f0",
+          "dependency_fingerprint_sha256": "6c35dd3b1b06c131665390565ad212a8c0948bcb0680fbf346a21a968709d1c0",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -3588,6 +3588,90 @@
       "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "gh0strat:extractors.profiled_family:extractor_for"
+      ],
+      "script_only_handler_available": true,
+      "status": "fully_routable",
+      "structurally_routable": true
+    },
+    {
+      "accepted_formats": [
+        "pe"
+      ],
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
+      "automatic_handler_preflights": [
+        {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
+          "blocked_formats": [],
+          "blockers": [],
+          "declared_formats": [
+            "pe"
+          ],
+          "dependency_file_count": 1,
+          "dependency_fingerprint_sha256": "680adef871b0c962927928ea3fa09bd898c003b4e553d6f6d38c13c6ac316b00",
+          "eligible": true,
+          "eligible_formats": [
+            "pe"
+          ],
+          "handler_id": "ghostdesk:analysis.framework.malware.ghostdesk.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "ghostdesk:analysis.framework.malware.ghostdesk.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
+        }
+      ],
+      "automatic_handlers": [
+        "ghostdesk:analysis.framework.malware.ghostdesk.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocked_automatic_handlers": [],
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
+      "declared_accepted_formats": [
+        "pe"
+      ],
+      "declared_automatic_handlers": [
+        "ghostdesk:analysis.framework.malware.ghostdesk.extract.config.py:extract_config"
+      ],
+      "declared_script_only_handler_available": true,
+      "detector_registered": true,
+      "family": "ghostdesk",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "rat",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
+      "safe_automatic_handlers": [
+        "ghostdesk:analysis.framework.malware.ghostdesk.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
       "status": "fully_routable",
@@ -4753,7 +4837,7 @@
             "script"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "8092f7d0ce35b434fd7daa5392a9660459228d3ff58ac4a925bfe9bba80735c2",
+          "dependency_fingerprint_sha256": "b1c0cc74b4e4ce8894f91cc535862eb192d22d39ab5f43f419ec22b5facaf02a",
           "eligible": true,
           "eligible_formats": [
             "script"
@@ -8943,42 +9027,94 @@
     },
     {
       "accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
         "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
         "pe",
-        "script"
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
       ],
       "automated_analysis_completion_possible": true,
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "ast_eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
             "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
             "pe",
-            "script"
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
           ],
           "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
             "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
             "pe",
-            "script"
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
+          "dependency_file_count": 29,
+          "dependency_fingerprint_sha256": "c47abbd8dab199ad876a7718aba9a32a84d361e740c7fc55ce4666dac79ed18d",
           "eligible": true,
           "eligible_formats": [
+            "7z",
+            "apple-disk-image",
+            "asar",
+            "autoit-a3x",
+            "cab",
             "data",
+            "elf",
+            "java-class",
+            "macho",
+            "ole",
             "pe",
-            "script"
+            "png",
+            "rar",
+            "script",
+            "xz",
+            "zip"
           ],
-          "handler_id": "quasarrat:extractors.profiled_family:extractor_for",
+          "handler_id": "quasarrat:extractors.quasarrat.py:extract",
           "runtime_import": {
             "attempted": true,
             "blockers": [],
             "eligible": true,
             "filesystem_write_allowed": false,
-            "handler_id": "quasarrat:extractors.profiled_family:extractor_for",
+            "handler_id": "quasarrat:extractors.quasarrat.py:extract",
             "handler_imported": true,
             "invocation": "bytes_name",
             "isolated_process": true,
@@ -8989,7 +9125,7 @@
         }
       ],
       "automatic_handlers": [
-        "quasarrat:extractors.profiled_family:extractor_for"
+        "quasarrat:extractors.quasarrat.py:extract"
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
@@ -9008,12 +9144,25 @@
         "status": "not_verified"
       },
       "declared_accepted_formats": [
+        "7z",
+        "apple-disk-image",
+        "asar",
+        "autoit-a3x",
+        "cab",
         "data",
+        "elf",
+        "java-class",
+        "macho",
+        "ole",
         "pe",
-        "script"
+        "png",
+        "rar",
+        "script",
+        "xz",
+        "zip"
       ],
       "declared_automatic_handlers": [
-        "quasarrat:extractors.profiled_family:extractor_for"
+        "quasarrat:extractors.quasarrat.py:extract"
       ],
       "declared_script_only_handler_available": true,
       "detector_registered": true,
@@ -9029,7 +9178,7 @@
       "quality_policy_declared": true,
       "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
-        "quasarrat:extractors.profiled_family:extractor_for"
+        "quasarrat:extractors.quasarrat.py:extract"
       ],
       "script_only_handler_available": true,
       "status": "fully_routable",
@@ -9056,7 +9205,7 @@
             "elf"
           ],
           "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "5c2ae3417d420cc2ff1cd1b6f3f5edde8965de7aacffa31ad8b6719b161bd8c8",
+          "dependency_fingerprint_sha256": "eeccc2d5ce2df7b12a115fb127ef2dd657f375514d37bcd52551b22a8f65c4b0",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -9556,7 +9705,7 @@
             "pe"
           ],
           "dependency_file_count": 1,
-          "dependency_fingerprint_sha256": "c89d2f789a3a956557d340768241341ed2c589d3263900eea716f4e34821318a",
+          "dependency_fingerprint_sha256": "e9cb22cd9428c2af4fa69f0c498d1dfec7756af7d14bb4d53c7d6dcf820f7c60",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -9889,7 +10038,7 @@
             "script"
           ],
           "dependency_file_count": 30,
-          "dependency_fingerprint_sha256": "2f53b8242e6b41f4dcbb9a4552f0be4a543f76532441fc01e8eeff08a5dab1cf",
+          "dependency_fingerprint_sha256": "58ba34cbaef070fddcb14169440c0961a8529d1785e331124238ad0afc39644b",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -10341,7 +10490,7 @@
             "zip"
           ],
           "dependency_file_count": 28,
-          "dependency_fingerprint_sha256": "4d1926db455fa1ee521848bd88b9a82b55d065ad53fc98a4a6977fc54fc2d278",
+          "dependency_fingerprint_sha256": "2aba46d0f68295d4f9c19eda861c329ebce01b6d606deced470ed85533851345",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -11169,7 +11318,7 @@
             "pe"
           ],
           "dependency_file_count": 28,
-          "dependency_fingerprint_sha256": "16c8612a089edd47add6cea092147c8c9a774bdec11a8e792cda74539e3e6a21",
+          "dependency_fingerprint_sha256": "a9db5c822463b11813c97e3b324c081594b6071f158a72b2bbc4097023921bf9",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11233,7 +11382,7 @@
             "pe"
           ],
           "dependency_file_count": 34,
-          "dependency_fingerprint_sha256": "363a06cf5a4b9860d1755080c99751dbd5160a529d29c7dde5121c379227b53a",
+          "dependency_fingerprint_sha256": "65ed3cf4a2d03eacefd05aa4c382a6eb3b6e41e6863bc6269f2e9cebeafd3617",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -11327,7 +11476,7 @@
             "pe"
           ],
           "dependency_file_count": 31,
-          "dependency_fingerprint_sha256": "d1119d1a9d7dc92ed20d580e46559367fcc7614db08ad52e0a2fca2a7d933ef5",
+          "dependency_fingerprint_sha256": "110d9016a7fee8020d1f312c3ae02ab399897ac273a0b378fc5e6896c5e09ddd",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11428,7 +11577,7 @@
             "zip"
           ],
           "dependency_file_count": 30,
-          "dependency_fingerprint_sha256": "9f89f91cfb554b885afd15ad119161c796239d58120719f84d8957784fc38c39",
+          "dependency_fingerprint_sha256": "db57a627234c19769dd6a81ae1bb8ea64cd3bc1dc2321f880cdc09795ba13027",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -11704,7 +11853,7 @@
             "zip"
           ],
           "dependency_file_count": 31,
-          "dependency_fingerprint_sha256": "8ce7b456d87efbb9d36e17ea391139248a5e61839b27f6bdb725c14536879ec7",
+          "dependency_fingerprint_sha256": "551d3e914ec444e2fe7bee07854c360a2a9a1720f066cb839bc345e527881d14",
           "eligible": true,
           "eligible_formats": [
             "7z",

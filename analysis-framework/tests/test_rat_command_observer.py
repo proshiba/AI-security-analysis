@@ -13,14 +13,15 @@ COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import rat_command_observer as observer
-from tls_messagepack_rat_host_emulator import encode_frame
+import rat_command_observer as observer  # noqa: E402
+from tls_messagepack_rat_host_emulator import encode_frame  # noqa: E402
 
 VENOM_SAMPLE = "6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073"
 VENOM_CURRENT_SAMPLE = "2b0af18bdd10782cf72a985b2f49564aa9058c34645205afb4fcc27724794f6a"
 STEALC_SAMPLE = "47854afb3cfeb64a85dda148e00e5ca83168f431a28e5c5fb28733e37f484b13"
 REMUS_SAMPLE = "2b3a23db5ca7464a5c7f0975790af54097ed127a66ab0b551123831e8f40dfc6"
 VIDAR_SAMPLE = "3d2cea3eaa43053ae0efa20de8544387d7cabeb70c89980f4241f3b6efa0e323"
+VIDAR_CURRENT_SAMPLE = "0030c014ec4fae311492a87011f565f9ff3b1881137dda152953c6fe718e33e0"
 
 
 def remcos_frame(command_id: int, *fields: bytes) -> bytes:
@@ -383,6 +384,74 @@ def test_vidar_is_configuration_instruction_not_interactive_command() -> None:
     assert public["candidate_present"] is True
     assert "8.8.8.8" not in json.dumps(public)
     assert result.private_fields["snapshot_result"]["final_c2_candidate"] == "8.8.8.8:443"
+
+
+def test_vidar_current_decoded_correlation_remains_bootstrap_only() -> None:
+    message = vidar_result("correlated.example:443")
+    message.update(
+        {
+            "sample_sha256": VIDAR_CURRENT_SAMPLE,
+            "status": "decoded_correlated_final_c2_candidate",
+            "confidence": 0.95,
+            "endpoint_resolution": {
+                "method": "tag_bound_enc_decoder_two_service_correlation",
+                "shared_service_response_decoded": True,
+                "protocol_recovered": False,
+                "protocol_status": "unresolved_static_protocol",
+            },
+            "safety": {
+                "network_contacted": False,
+                "sample_executed": False,
+                "tool_published_raw_response": False,
+                "tool_managed_output_repository_publication": False,
+                "shared_service_is_c2": False,
+                "active_probe_required": False,
+            },
+        }
+    )
+    result = observer.observe_command(
+        "vidar-dead-drop-snapshot-v1",
+        message,
+        direction="internal",
+        sample_sha256=VIDAR_CURRENT_SAMPLE,
+    )
+    public = result.public_event()
+    assert public["protocol_status"] == "bootstrap_resolver_only_not_interactive_command_c2"
+    assert public["normalized_command"] == "correlated_endpoint_candidate"
+    assert public["interactive_command"] is False
+    assert "correlated.example" not in json.dumps(public)
+
+
+def test_vidar_current_decoded_correlation_requires_two_services() -> None:
+    message = vidar_result("correlated.example:443")
+    message.update(
+        {
+            "sample_sha256": VIDAR_CURRENT_SAMPLE,
+            "status": "decoded_correlated_final_c2_candidate",
+            "corroborating_service_count": 1,
+            "endpoint_resolution": {
+                "method": "tag_bound_enc_decoder_two_service_correlation",
+                "shared_service_response_decoded": True,
+                "protocol_recovered": False,
+                "protocol_status": "unresolved_static_protocol",
+            },
+            "safety": {
+                "network_contacted": False,
+                "sample_executed": False,
+                "tool_published_raw_response": False,
+                "tool_managed_output_repository_publication": False,
+                "shared_service_is_c2": False,
+                "active_probe_required": False,
+            },
+        }
+    )
+    with pytest.raises(observer.RatCommandObserverError, match="status/count"):
+        observer.observe_command(
+            "vidar-dead-drop-snapshot-v1",
+            message,
+            direction="internal",
+            sample_sha256=VIDAR_CURRENT_SAMPLE,
+        )
 
 
 def test_quasar_upstream_taxonomy_never_claims_exact_sample_wire_match() -> None:

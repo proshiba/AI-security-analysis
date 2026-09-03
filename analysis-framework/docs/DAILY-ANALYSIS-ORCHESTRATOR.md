@@ -19,6 +19,8 @@ analysis-framework/common/daily_analysis_orchestrator.py は、最新の完全�
 
 stageは常に直列です。公開case、catalog、IOC索引、UIを複数processから同時更新しません。1件のpartialでは後続を止めず、Ghidra容量停止後も完了済みsourceとjobをS3へ保管できます。
 
+static_analysisの初回復元は6層に限定し、layer_count_limitへ達した検体だけrunner固定hard limitの256層で再試行します。再試行queueはcontainer、PE／ELF／Mach-O／script、設定・payload、opaque data、汎用data、画像・音声・fontの順に解析します。同一tierでは深い復元層を先にし、同じ深さでは発見順を維持するため、末尾で見つかったcontainer内の実行可能fileも浅いterminal siblingより先に確認できます。保留中の同一digestをより高いtierで再発見した場合は、初回の安定順序を保ったまま親とtransformを最良候補へ更新します。最終再試行では保留resourceも含めて検査し、深さ、単体size、合計size、圧縮率、archive member数の上限は緩和しません。
+
 ## 実行request
 
 requestは[日次request例](examples/daily-analysis-request.json)の固定fieldだけを受理します。絶対path、任意command、Python module、環境変数、URL、credential、Nmap引数、Ghidra scriptは指定できません。
@@ -38,12 +40,24 @@ schemaは副作用なしで取得できます。
 py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py schema
 ~~~
 
+### 信頼済み静的toolのoperator固定
+
+CABやinstallerの静的展開にUPXまたは7zzを使う場合、`plan`、`preflight`、`run`、`resume`、`drive`、`verify`へ`--trusted-tools-manifest`と`--trusted-tools-manifest-sha256`を必ず同時指定します。SHA-256はmanifestの正規化後JSONではなくraw bytesに対する小文字64桁です。この設定はoperator CLIだけが保持し、production request schemaへ追加できません。
+
+~~~powershell
+$manifest = 'C:\ProgramData\MalwareAnalysisTools\trusted-static-tools.json'
+$manifestSha256 = (Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash.ToLowerInvariant()
+py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py preflight --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects --trusted-tools-manifest $manifest --trusted-tools-manifest-sha256 $manifestSha256
+~~~
+
+片方だけの指定、raw SHA-256不一致、platform不一致、空profile、manifestまたはbinaryの非通常file・複数hardlink・reparse point、size／binary SHA-256不一致はnetwork接触前に拒否します。PATHや既知install先からtoolを自動探索しません。preflightはoperator manifestとtool source identityをread-onlyで検証し、実行時には標準job runnerがjob-private snapshotを作成します。validate、run、完了result、resume／drive／verifyの再照合には同じoperator pinを渡し、異なるpinは別job IDになります。state、plan、preflight、公開stage結果にはmanifestまたはbinaryの絶対pathを保存しません。
+
 ### 標準requestの自動生成
 
 draft-requestはtech-memoをnetwork接触なしで有界探索し、空でない通常fileのnews本文、IOC CSV、IOC検証logが1件ずつそろった最新日だけをnews_source_dateへ採用します。日付ごとに重複があれば推測せず停止します。analysis_dateを省略した場合はlocal日付、run_idを省略した場合はdaily-YYYYMMDDを使用します。
 
 ~~~powershell
-py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py draft-request --intelligence-root C:\Users\Administrator --tech-memo tech-memo --analysis-date 2026-08-30
+py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py draft-request --intelligence-root C:\analysis-lab\intelligence --tech-memo tech-memo --analysis-date 2026-08-30
 ~~~
 
 出力はstrict request JSONです。自動生成値でも、実行前にnetwork gateとstageを確認します。credential、絶対出力path、任意commandはrequestへ入りません。
@@ -52,21 +66,21 @@ py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py draft-req
 
 pathはrequestではなくoperator CLIで固定します。
 
-    解析repository                 C:\Users\Administrator\w\a26
-    intelligence root              C:\Users\Administrator
-      └─ tech-memo                 C:\Users\Administrator\tech-memo
-    private root                   C:\Users\Administrator\DailyAnalysisPrivate
+    解析repository                 C:\analysis-lab\repository
+    intelligence root              C:\analysis-lab\intelligence
+      └─ tech-memo                 C:\analysis-lab\intelligence\tech-memo
+    private root                   C:\analysis-lab\private
       ├─ 日次ニュース成果物: daily-runs\<run-id>\daily-news-malware\<source-date>\
       ├─ 日次ニュース静的解析ジョブ: daily-runs\<run-id>\daily-news-malware\static-analysis-jobs\
       ├─ MalwareBazaar取得元: daily-runs\<run-id>\malwarebazaar-windows-YYYYMMDD-NNNN\source\
       ├─ Ghidra静的解析結果: daily-runs\<run-id>\malwarebazaar-windows-YYYYMMDD-NNNN\ghidra-static-results\
       └─ maxmind\
-    work root                      C:\Users\Administrator\DailyAnalysisWork
+    work root                      C:\analysis-lab\work
       ├─ jobs\
       ├─ Ghidra復元input cache: gi\<run-id>\
       ├─ completed-job-verification\
       └─ daily-orchestrations\<run-id>\
-    Ghidra project store           C:\Users\Administrator\DailyGhidraProjects
+    Ghidra project store           C:\analysis-lab\ghidra-projects
 
 解析repository、private root、work root、Ghidra project storeは同一path、親子path、逆向きの包含を禁止します。tech-memoの実体もprivate／work／Ghidra project rootと分離します。既存path componentにsymlink、junction、reparse pointがあれば開始しません。MalwareBazaarの`source`は暗号化archiveと取得manifestだけを保持する不変rootです。Ghidra用の復元済みinputはwork rootの短い`gi\<run-id>`へ分離し、SHA-256検証済みcacheとして再開時にだけ再利用します。復元cacheを`source`の配下へ置く構成は開始前に拒否します。
 
@@ -75,7 +89,7 @@ pathはrequestではなくoperator CLIで固定します。
 planはrootとtech-memoの境界に加え、現在の全filesystem容量とC2二重許可を検証しますが、directory、state、公開成果物を作成しません。
 
 ~~~powershell
-py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py plan --request C:\Users\Administrator\daily-request.json --repository C:\Users\Administrator\w\a26 --intelligence-root C:\Users\Administrator --private-root C:\Users\Administrator\DailyAnalysisPrivate --work-root C:\Users\Administrator\DailyAnalysisWork --ghidra-project-store C:\Users\Administrator\DailyGhidraProjects
+py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py plan --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects
 ~~~
 
 planで次を確認します。
@@ -89,10 +103,10 @@ planで次を確認します。
 
 ## 事前検証（preflight）
 
-preflightはrequest、source、root、C2許可、必要credentialの有無、AWS CLI、全出力先の空き容量をread-onlyで検証します。指定日のnews／IOC三点は各64 MiB以下の単一link通常fileに限定し、単一handleでsize、identity、時刻、SHA-256のsource commitmentへ固定します。欠落、空file、重複、hardlink、reparse point、読取中の差替えをnetwork接触前に拒否します。private root、work root、repository、Ghidra project store、OSのarchive stagingが同一filesystemなら必要量を合算し、別filesystemなら個別に判定します。archive stagingには512 MiBの固定reserveと、逐次作成する対象別archiveのうち最大となる既存tree実測／将来増分を加えます。全archiveのsizeを同時に要求しません。reportへcredential値、絶対path、device IDは出さず、準備可否、filesystem-N、用途だけを保存します。
+preflightはrequest、source、root、C2許可、必要credentialの有無、AWS CLI、operator指定のtrusted static tools、全出力先の空き容量をread-onlyで検証します。指定日のnews／IOC三点は各64 MiB以下の単一link通常fileに限定し、単一handleでsize、identity、時刻、SHA-256のsource commitmentへ固定します。欠落、空file、重複、hardlink、reparse point、読取中の差替えをnetwork接触前に拒否します。private root、work root、repository、Ghidra project store、OSのarchive stagingが同一filesystemなら必要量を合算し、別filesystemなら個別に判定します。archive stagingには512 MiBの固定reserveと、逐次作成する対象別archiveのうち最大となる既存tree実測／将来増分を加えます。全archiveのsizeを同時に要求しません。reportへcredential値、絶対path、device IDは出さず、準備可否、filesystem-N、用途、pathを除いたtool identityだけを保存します。
 
 ~~~powershell
-py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py preflight --request C:\Users\Administrator\daily-request.json --repository C:\Users\Administrator\w\a26 --intelligence-root C:\Users\Administrator --private-root C:\Users\Administrator\DailyAnalysisPrivate --work-root C:\Users\Administrator\DailyAnalysisWork --ghidra-project-store C:\Users\Administrator\DailyGhidraProjects --allow-live-c2
+py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py preflight --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects --allow-live-c2
 ~~~
 
 不足時は終了code 20、十分なら0です。runとdriveも同じpreflightを最初に必ず実行します。容量不足ではprovider照合、sample download、C2監視、S3 uploadを開始せず、全stageのattempts=0の再開可能checkpointだけを作成します。
@@ -102,7 +116,7 @@ py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py preflight
 C2ライブ監視はrequestの network.c2_monitoring=true だけでは開始しません。当該実行でも --allow-live-c2 を指定する二重許可です。省略時はnetwork接触前に終了code 2で停止します。
 
 ~~~powershell
-py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py run --request C:\Users\Administrator\daily-request.json --repository C:\Users\Administrator\w\a26 --intelligence-root C:\Users\Administrator --private-root C:\Users\Administrator\DailyAnalysisPrivate --work-root C:\Users\Administrator\DailyAnalysisWork --ghidra-project-store C:\Users\Administrator\DailyGhidraProjects --allow-live-c2
+py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py run --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects --allow-live-c2
 ~~~
 
 中断、Ghidra chunk上限、容量不足、一時的なS3失敗は、同じrequestとrootで resume します。成功済みstageと再試行不能なpartialは再実行しません。再試行可能なGhidra、validation、S3保管だけを再開します。
@@ -110,7 +124,7 @@ py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py run --req
 driveは新規runまたは既存stateのresumeを自動選択し、Ghidra chunkと再試行可能stageを最大cycle数の範囲で反復します。complete、容量不足、再試行不能partial、最大cycleのいずれかで停止します。容量不足を待機loopで再試行しません。
 
 ~~~powershell
-py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py drive --request C:\Users\Administrator\daily-request.json --repository C:\Users\Administrator\w\a26 --intelligence-root C:\Users\Administrator --private-root C:\Users\Administrator\DailyAnalysisPrivate --work-root C:\Users\Administrator\DailyAnalysisWork --ghidra-project-store C:\Users\Administrator\DailyGhidraProjects --allow-live-c2 --max-cycles 64
+py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py drive --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects --allow-live-c2 --max-cycles 64
 ~~~
 
 max-cyclesは1～1,024です。各stage自体の既存上限も維持され、通常stageは5回、Ghidra、追随validation、Ghidra完了待ちのprivate archiveは1,024回を超えません。同じstatus、result、errorが連続し、意味的進捗がない場合はattempt数やtimestampが変化しても停止します。
@@ -128,9 +142,9 @@ news laneが`partial`の場合、8成果物は公開先へ昇格しません。�
 ## statusとverify
 
 ~~~powershell
-py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py status --work-root C:\Users\Administrator\DailyAnalysisWork --run-id daily-20260829
+py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py status --work-root C:\analysis-lab\work --run-id daily-20260829
 
-py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py verify --request C:\Users\Administrator\daily-request.json --repository C:\Users\Administrator\w\a26 --intelligence-root C:\Users\Administrator --private-root C:\Users\Administrator\DailyAnalysisPrivate --work-root C:\Users\Administrator\DailyAnalysisWork --ghidra-project-store C:\Users\Administrator\DailyGhidraProjects --allow-live-c2
+py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py verify --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects --allow-live-c2
 ~~~
 
 終了codeは0=complete／ready、20=partial／preflight不足、1=failed、2=契約違反です。partialは検体自体の完了を意味しません。
@@ -139,8 +153,8 @@ py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py verify --
 
 network接触前のpreflightは、保留stageだけを対象に次の安全側概算をfilesystem単位で合算します。
 
-- newsとMalwareBazaarの暗号化archive: 1検体・laneあたり24 MiB
-- 暗号化ZIP取得: 1件256 MiBの絶対上限、lane合計は件数×24 MiB、取得後保持reserveは256 MiB。大きい1件を許可してもlane合計quotaは拡張しない
+- newsとMalwareBazaarの暗号化archive: 1検体・laneあたり40 MiB
+- 暗号化ZIP取得: 1件256 MiBの絶対上限、lane合計は件数×40 MiB、取得後保持reserveは256 MiB。2026-09-03の実測では35件で約1.26 GiBとなったため、単体上限と後段の2 GiB総入力上限を維持したままbatch budgetを拡張した
 - 標準静的解析とGhidra private成果物: 1検体・出力あたり8 MiB
 - repository、MaxMind、archive stagingの固定reserveと、S3対象treeの実測／将来増分
 - Ghidra project storeのrequest指定reserve。標準requestでは8 GiB

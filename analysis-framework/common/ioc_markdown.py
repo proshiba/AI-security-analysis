@@ -26,6 +26,8 @@ PUBLIC_C2_FIELDS = (
     "role",
     "confidence",
     "evidence",
+    "contacted",
+    "liveness_confirmed",
 )
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 

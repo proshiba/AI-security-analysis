@@ -74,6 +74,7 @@ import classify_sample  # noqa: E402
 import orchestration_outcome  # noqa: E402
 import runtime_contract  # noqa: E402
 import static_layer_pipeline as static_layers  # noqa: E402
+import structural_candidates as structural_candidate_aggregation  # noqa: E402
 import terminal_payload_acquisition  # noqa: E402
 from analysis_contract import (  # noqa: E402
     artifact_hashes,
@@ -130,7 +131,18 @@ from static_logic import (  # noqa: E402
     function_analysis_is_available,
     render_static_logic_markdown,
 )
-from unpackers.static_unpacker import detect_format, unpack_bytes  # noqa: E402
+from unpackers.static_unpacker import (  # noqa: E402
+    CAB_LZX_BLOCK_METADATA_RESERVE_BYTES,
+    CAB_LZX_FOLDER_METADATA_RESERVE_BYTES,
+    CAB_LZX_MAX_WINDOW_BITS,
+    CAB_LZX_MEMBER_METADATA_RESERVE_BYTES,
+    CAB_LZX_MIN_WINDOW_BITS,
+    CAB_LZX_RUNTIME_MEMORY_RESERVE_BYTES,
+    MAX_CAB_BLOCK_UNCOMPRESSED_SIZE,
+    MAX_CAB_LZX_WORKER_MEMORY_BYTES,
+    detect_format,
+    unpack_bytes,
+)
 
 InputUnit = static_layers.InputUnit
 StaticLayer = static_layers.StaticLayer
@@ -605,9 +617,7 @@ def build_artifact_family_hint_manifest(
     inherited = [inherited_by_fingerprint[key] for key in sorted(inherited_by_fingerprint)]
     if not inherited:
         return None
-    return classify_sample.normalize_family_hint_manifest(
-        {"schema_version": 1, "samples": {artifact: inherited}}
-    )
+    return classify_sample.normalize_family_hint_manifest({"schema_version": 1, "samples": {artifact: inherited}})
 
 
 def _family_hint_lineage_records(hints: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
@@ -637,11 +647,7 @@ def _family_hint_conflicts(
     """親hintと子artifact自身の独立検出が異なる場合を上書きせず記録する。"""
 
     inherited = sorted(
-        {
-            str(hint["inherited_family"])
-            for hint in hints
-            if isinstance(hint.get("inherited_family"), str)
-        }
+        {str(hint["inherited_family"]) for hint in hints if isinstance(hint.get("inherited_family"), str)}
     )
     detected = sorted({family for family in selected_families if isinstance(family, str)})
     if not inherited or not detected or set(inherited) == set(detected):
@@ -684,10 +690,7 @@ def _candidate_assessment_inputs(candidates: Sequence[Mapping[str, Any]]) -> lis
         public.append(
             {
                 "family": candidate.get("family"),
-                "sources": [
-                    _sanitize_public_text(value) if isinstance(value, str) else value
-                    for value in sources
-                ],
+                "sources": [_sanitize_public_text(value) if isinstance(value, str) else value for value in sources],
                 "routing_eligible": candidate.get("routing_eligible") is True,
                 "routing_mode": candidate.get("routing_mode"),
                 "routing_eligibility": candidate.get("routing_eligibility"),
@@ -1047,6 +1050,197 @@ def _is_incomplete_static_status(value: Any) -> bool:
     )
 
 
+def _completed_in_memory_lzx_cab(report: dict[str, Any]) -> bool:
+    """全検証契約を満たすpure-Python LZX CAB成功だけを承認する。"""
+
+    if report.get("format") != "cab":
+        return False
+    cab = report.get("cab")
+    if not isinstance(cab, dict):
+        return False
+    contract = cab.get("in_memory_extraction")
+    preflight = cab.get("preflight")
+    inventory = cab.get("inventory")
+    if not all(isinstance(item, dict) for item in (contract, preflight)):
+        return False
+    if not isinstance(inventory, list) or not inventory:
+        return False
+    if not all(isinstance(item, dict) for item in inventory):
+        return False
+    normalized_names = [str(item.get("name", "")).replace("\\", "/") for item in inventory]
+    try:
+        invalid_name = any(
+            not name
+            or len(name.encode("utf-8")) > 4096
+            or name.startswith("/")
+            or re.match(r"^[A-Za-z]:", name)
+            or any(part in {"", ".", ".."} for part in name.split("/"))
+            for name in normalized_names
+        )
+    except UnicodeEncodeError:
+        return False
+    if invalid_name:
+        return False
+    if len({name.casefold() for name in normalized_names}) != len(normalized_names):
+        return False
+    counts = (
+        cab.get("member_count"),
+        contract.get("member_count"),
+        preflight.get("file_count"),
+        contract.get("data_block_count"),
+        contract.get("checksum_blocks_verified"),
+        preflight.get("data_block_count"),
+        preflight.get("checksum_blocks_required"),
+        preflight.get("checksum_blocks_verified"),
+    )
+    if any(isinstance(value, bool) or not isinstance(value, int) for value in counts):
+        return False
+    member_count = counts[0]
+    data_block_count = counts[3]
+    if member_count <= 0 or data_block_count <= 0:
+        return False
+    if counts[:3] != (member_count, member_count, member_count):
+        return False
+    if counts[3:] != (data_block_count,) * 5:
+        return False
+    if len(inventory) != member_count:
+        return False
+    if any(
+        item.get("status") != "extracted"
+        or not isinstance(item.get("name"), str)
+        or isinstance(item.get("size"), bool)
+        or not isinstance(item.get("size"), int)
+        or item.get("size") < 0
+        or re.fullmatch(r"[0-9a-f]{64}", str(item.get("sha256"))) is None
+        for item in inventory
+    ):
+        return False
+    declared_total = preflight.get("declared_file_total_size")
+    if (
+        isinstance(declared_total, bool)
+        or not isinstance(declared_total, int)
+        or declared_total < 0
+        or cab.get("extracted_total_size") != declared_total
+        or sum(item["size"] for item in inventory) != declared_total
+    ):
+        return False
+    peak_memory_budget = preflight.get("lzx_peak_memory_budget")
+    contract_peak_memory_budget = contract.get("peak_memory_budget")
+    if not isinstance(peak_memory_budget, dict) or contract_peak_memory_budget != peak_memory_budget:
+        return False
+    memory_fields = (
+        "worker_limit_bytes",
+        "runtime_reserve_bytes",
+        "input_bytes",
+        "folder_cache_bytes",
+        "member_materialization_bytes",
+        "decoder_window_bytes",
+        "metadata_reserve_bytes",
+        "estimated_peak_bytes",
+        "headroom_bytes",
+    )
+    if any(
+        isinstance(peak_memory_budget.get(field), bool) or not isinstance(peak_memory_budget.get(field), int)
+        for field in memory_fields
+    ):
+        return False
+    folder_count = preflight.get("folder_count")
+    folder_output_total = preflight.get("declared_folder_output_total_size")
+    cabinet_size = preflight.get("cabinet_size")
+    window_bits = preflight.get("lzx_window_bits")
+    if (
+        isinstance(folder_count, bool)
+        or not isinstance(folder_count, int)
+        or folder_count <= 0
+        or isinstance(folder_output_total, bool)
+        or not isinstance(folder_output_total, int)
+        or folder_output_total < declared_total
+        or isinstance(cabinet_size, bool)
+        or not isinstance(cabinet_size, int)
+        or cabinet_size <= 0
+        or not isinstance(window_bits, list)
+        or not window_bits
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or not CAB_LZX_MIN_WINDOW_BITS <= value <= CAB_LZX_MAX_WINDOW_BITS
+            for value in window_bits
+        )
+    ):
+        return False
+    expected_metadata_reserve = (
+        member_count * CAB_LZX_MEMBER_METADATA_RESERVE_BYTES
+        + folder_count * CAB_LZX_FOLDER_METADATA_RESERVE_BYTES
+        + data_block_count * CAB_LZX_BLOCK_METADATA_RESERVE_BYTES
+        + MAX_CAB_BLOCK_UNCOMPRESSED_SIZE
+    )
+    expected_estimated_peak = sum(
+        peak_memory_budget[field]
+        for field in (
+            "runtime_reserve_bytes",
+            "input_bytes",
+            "folder_cache_bytes",
+            "member_materialization_bytes",
+            "decoder_window_bytes",
+            "metadata_reserve_bytes",
+        )
+    )
+    if (
+        peak_memory_budget.get("status") != "passed"
+        or peak_memory_budget["worker_limit_bytes"] != MAX_CAB_LZX_WORKER_MEMORY_BYTES
+        or peak_memory_budget["runtime_reserve_bytes"] != CAB_LZX_RUNTIME_MEMORY_RESERVE_BYTES
+        or peak_memory_budget["input_bytes"] != cabinet_size
+        or peak_memory_budget["folder_cache_bytes"] != folder_output_total
+        or peak_memory_budget["member_materialization_bytes"] != declared_total
+        or peak_memory_budget["decoder_window_bytes"] != 1 << max(window_bits)
+        or peak_memory_budget["metadata_reserve_bytes"] != expected_metadata_reserve
+        or peak_memory_budget["estimated_peak_bytes"] != expected_estimated_peak
+        or peak_memory_budget["headroom_bytes"] != peak_memory_budget["worker_limit_bytes"] - expected_estimated_peak
+        or peak_memory_budget["headroom_bytes"] < 0
+    ):
+        return False
+    required_values = {
+        "cab_status": cab.get("status") in {"artifacts_recovered", "no_artifact_recovered"},
+        "cab_parser": cab.get("parser") == "binary-refinery",
+        "cab_backend": cab.get("backend") == "in_memory_python",
+        "fallback_attempted": cab.get("lzx_fallback_attempted") is True,
+        "fallback_completed": cab.get("lzx_fallback_completed") is True,
+        "fallback_source": cab.get("fallback_from") == "cabarchive_lzx_unsupported",
+        "preflight_status": preflight.get("status") == "passed",
+        "preflight_compression": preflight.get("compression") == "lzx",
+        "preflight_bounds": preflight.get("bounds_validation") == "passed",
+        "preflight_paths": preflight.get("path_validation") == "passed",
+        "preflight_single_volume": preflight.get("multi_volume") is False,
+        "contract_version": contract.get("contract_version") == 2,
+        "contract_status": contract.get("status") == "complete",
+        "contract_parser": contract.get("parser") == "binary-refinery",
+        "contract_backend": contract.get("backend") == "in_memory_python",
+        "contract_compression": contract.get("compression") == "lzx",
+        "contract_preflight": contract.get("preflight_status") == "passed",
+        "contract_checksum": contract.get("checksum_status") == "verified",
+        "contract_inventory": contract.get("complete_member_inventory") is True,
+        "contract_paths": contract.get("path_validation") == "passed",
+        "contract_declared_size": contract.get("declared_size_validation") == "passed",
+        "contract_actual_size": contract.get("actual_size_validation") == "passed",
+        "contract_order": contract.get("deterministic_member_order") is True,
+        "contract_single_volume": contract.get("multi_volume") is False,
+    }
+    if not all(required_values.values()):
+        return False
+    for source in (cab, contract):
+        if any(
+            source.get(field) is not False
+            for field in (
+                "executed",
+                "network_contacted",
+                "external_process_started",
+                "disk_written",
+            )
+        ):
+            return False
+    return True
+
+
 def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
     """静的復元stepの失敗、深度上限、parser上限を決定的に列挙する。"""
 
@@ -1128,7 +1322,10 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
         visit(step.get("report"), f"steps[{index}].report")
         report = step.get("report")
         if isinstance(report, dict) and "sevenzip" not in report:
-            if report.get("format") in {"7z", "apple-disk-image", "cab", "rar"}:
+            in_memory_cab_complete = _completed_in_memory_lzx_cab(report)
+            if report.get("format") in {"7z", "apple-disk-image", "cab", "rar"} and not (
+                report.get("format") == "cab" and in_memory_cab_complete
+            ):
                 issues.append(f"steps[{index}].report:container_extractor_unavailable")
             pe_report = report.get("pe")
             if isinstance(pe_report, dict) and pe_report.get("containerized") is True:
@@ -1656,6 +1853,13 @@ def analyze_unit(
                     len(initial_limit_events) if isinstance(initial_limit_events, list) else None
                 ),
             }
+    structural_candidate_report = structural_candidate_aggregation.build_structural_candidates(
+        layer_report,
+        assessment_only=assessment_only,
+    )
+    # 候補固有のstatusは復元stepとは別のtop-levelへ置き、
+    # _static_layer_issuesの再帰走査へ混入させない。
+    layer_report["structural_candidates"] = structural_candidate_report
     write_json(case_dir / "static-layers.json", layer_report)
 
     layer_selections: list[dict[str, Any]] = []
@@ -2015,11 +2219,9 @@ def analyze_unit(
     if recovered_payload_directory is not None:
         ensure_no_reparse_components(recovered_payload_directory)
         retained_directory_information = recovered_payload_directory.lstat()
-        if (
-            not stat.S_ISDIR(retained_directory_information.st_mode)
-            or int(getattr(retained_directory_information, "st_file_attributes", 0))
-            & int(getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
-        ):
+        if not stat.S_ISDIR(retained_directory_information.st_mode) or int(
+            getattr(retained_directory_information, "st_file_attributes", 0)
+        ) & int(getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)):
             raise ValueError("保持payload directoryが通常directoryではありません")
         with os.scandir(recovered_payload_directory) as retained_entries:
             retained_entry = next(retained_entries, None)
@@ -2027,7 +2229,6 @@ def analyze_unit(
             recovered_payload_directory.rmdir()
             recovered_payload_directory = None
     write_json(case_dir / "candidate-handler-assessment.json", candidate_assessment)
-
 
     report = {
         "schema_version": 1,
@@ -2051,6 +2252,9 @@ def analyze_unit(
             "classification_conflicts": family_hint_conflicts,
         },
         "static_layers": "static-layers.json",
+        "structural_candidates": structural_candidate_aggregation.structural_candidate_summary(
+            structural_candidate_report
+        ),
         "generic_triage": generic_status,
         "analysis_contract": analysis_contract,
         "handler_executions": executions,
@@ -2138,13 +2342,11 @@ def analyze_unit(
     automation_family = family_resolution.get("family")
     if not isinstance(automation_family, str) or not automation_family:
         automation_family = "unclassified"
-    communication_patterns, c2_analysis = (
-        automated_case_analysis.build_case_automation_artifacts(
-            sha256=digest,
-            family=automation_family,
-            layer_report=layer_report,
-            handler_results=handler_results,
-        )
+    communication_patterns, c2_analysis = automated_case_analysis.build_case_automation_artifacts(
+        sha256=digest,
+        family=automation_family,
+        layer_report=layer_report,
+        handler_results=handler_results,
     )
     write_json(case_dir / "communication-patterns.json", communication_patterns)
     write_json(case_dir / "c2-analysis.json", c2_analysis)
@@ -2235,9 +2437,9 @@ def analyze_unit(
     artifact_paths.extend(["family-routing.json", "candidate-handler-assessment.json", "orchestration.json"])
     retained_outputs = (outcome.get("outputs") or {}).get("retained_binary_outputs")
     if isinstance(retained_outputs, list):
-        retained_paths = sorted({
-            item["path"] for item in retained_outputs if isinstance(item, dict) and isinstance(item.get("path"), str)
-        })
+        retained_paths = sorted(
+            {item["path"] for item in retained_outputs if isinstance(item, dict) and isinstance(item.get("path"), str)}
+        )
         if retained_paths:
             report["retained_artifact_paths"] = retained_paths
             artifact_paths.extend(path for path in retained_paths if path not in artifact_paths)
@@ -3444,16 +3646,15 @@ def _case_retained_payloads(
     return result(records, read_count, read_bytes)
 
 
-def _case_strict_complete(
-    output: Path,
+def _case_directory_strict_complete(
+    case_dir: Path,
     digest: str,
     *,
     expected_contract: Mapping[str, Any],
 ) -> bool:
-    """case integrity・resumable state・orchestration gateが全てcompleteか確認する。"""
+    """指定case directoryのintegrityと全gateが厳格completeか確認する。"""
 
     try:
-        case_dir = _follow_on_case_directory(output, digest)
         report = load_json_object_strict(resolve_case_artifact(case_dir, "report.json"))
         if case_integrity_errors(
             case_dir,
@@ -3470,6 +3671,25 @@ def _case_strict_complete(
         (report.get("case_state") or {}).get("status") == "complete"
         and outcome.get("status") == "complete"
         and outcome.get("blockers") == []
+    )
+
+
+def _case_strict_complete(
+    output: Path,
+    digest: str,
+    *,
+    expected_contract: Mapping[str, Any],
+) -> bool:
+    """case integrity・resumable state・orchestration gateが全てcompleteか確認する。"""
+
+    try:
+        case_dir = _follow_on_case_directory(output, digest)
+    except (OSError, TypeError, ValueError):
+        return False
+    return _case_directory_strict_complete(
+        case_dir,
+        digest,
+        expected_contract=expected_contract,
     )
 
 
@@ -3600,18 +3820,17 @@ def _promote_wrapper_follow_on_audit(
     return changed
 
 
-def _promote_parent_case_from_follow_on(
+def _build_parent_case_follow_on_promotion(
     output: Path,
     digest: str,
     *,
+    case_dir: Path,
     parent_contract: Mapping[str, Any],
     child_contract: Mapping[str, Any],
     specs: list[HandlerSpec],
     complete_child_digests: set[str],
 ) -> bool:
-    """子case証明を全て検証してから親成果物を一括commitし、再sealする。"""
-
-    case_dir = _follow_on_case_directory(output, digest)
+    """private shadow case内で親昇格documentを構築し、厳格検証する。"""
     report_path = resolve_case_artifact(case_dir, "report.json")
     report = copy.deepcopy(load_json_object_strict(report_path))
     integrity_errors = case_integrity_errors(
@@ -3771,11 +3990,123 @@ def _promote_parent_case_from_follow_on(
     for path in sorted(planned_documents, key=lambda value: str(value).casefold()):
         _atomic_replace_json(path, planned_documents[path])
     _atomic_replace_json(report_path, report)
+    return _case_directory_strict_complete(
+        case_dir,
+        digest,
+        expected_contract=parent_contract,
+    )
+
+
+def _promote_parent_case_from_follow_on(
+    output: Path,
+    digest: str,
+    *,
+    parent_contract: Mapping[str, Any],
+    child_contract: Mapping[str, Any],
+    specs: list[HandlerSpec],
+    complete_child_digests: set[str],
+) -> bool:
+    """親case全体をWAL付きdirectory swapで同一seal境界へ原子昇格する。"""
+
+    import publish_one_shot_collection as publisher  # noqa: PLC0415
+
+    canonical = _follow_on_case_directory(output, digest)
+    canonical.parent.mkdir(parents=True, exist_ok=True)
+    with publisher._CasePublicationLock(canonical):  # noqa: SLF001
+        publisher._recover_case_publication(canonical)  # noqa: SLF001
+        old_tree_sha256 = publisher._case_tree_sha256(canonical)  # noqa: SLF001
+        token = (
+            f".casepub-{publisher._publication_case_name_key(canonical)}."  # noqa: SLF001
+            f"{os.getpid():x}-{time.time_ns():x}"
+        )
+        staging_container = canonical.parent / f"{token}.staging"
+        staging_container_io = publisher._publication_io_path(  # noqa: SLF001
+            staging_container
+        )
+        staging = staging_container_io / digest
+        backup = canonical.parent / f"{token}.backup"
+        journal = {
+            "schema_version": publisher.CASE_PUBLICATION_TRANSACTION_SCHEMA,
+            "case_sha256": digest,
+            "destination_path_sha256": publisher._publication_case_path_sha256(  # noqa: SLF001
+                canonical
+            ),
+            "existing_destination": True,
+            "old_tree_sha256": old_tree_sha256,
+            "new_tree_sha256": None,
+            "staging_name": staging_container.name,
+            "backup_name": backup.name,
+            "phase": "building",
+        }
+        journal_path = publisher._publication_journal_path(canonical)  # noqa: SLF001
+        journal_sha256 = publisher._atomic_publication_journal(  # noqa: SLF001
+            journal_path,
+            journal,
+            require_absent=True,
+        )
+        try:
+            staging_container_io.mkdir()
+            shutil.copytree(
+                publisher._publication_io_path(canonical),  # noqa: SLF001
+                staging,
+            )
+            promoted = _build_parent_case_follow_on_promotion(
+                output,
+                digest,
+                case_dir=staging,
+                parent_contract=parent_contract,
+                child_contract=child_contract,
+                specs=specs,
+                complete_child_digests=complete_child_digests,
+            )
+            if not promoted:
+                raise ValueError("follow-on shadow parentが厳格completeではありません")
+            new_tree_sha256 = publisher._case_tree_sha256(staging)  # noqa: SLF001
+            journal["new_tree_sha256"] = new_tree_sha256
+            journal["phase"] = "prepared"
+            journal_sha256 = publisher._atomic_publication_journal(  # noqa: SLF001
+                journal_path,
+                journal,
+                expected_sha256=journal_sha256,
+            )
+            publisher._promote_case_publication(  # noqa: SLF001
+                canonical,
+                staging,
+                new_tree_sha256=new_tree_sha256,
+                journal=journal,
+                journal_sha256=journal_sha256,
+            )
+        except BaseException:
+            try:
+                publisher._recover_case_publication(canonical)  # noqa: SLF001
+            except BaseException as recovery_error:
+                raise RuntimeError("follow-on parent transactionを自動回復できませんでした") from recovery_error
+            raise
     return _case_strict_complete(
         output,
         digest,
         expected_contract=parent_contract,
     )
+
+
+def _recover_follow_on_parent_transaction(output: Path, digest: str) -> None:
+    """case読取前に中断した親directory transactionをrollback／roll-forwardする。"""
+
+    import publish_one_shot_collection as publisher  # noqa: PLC0415
+
+    normalized = normalize_sha256_digest(digest)
+    cases_root_lexical = output / "cases"
+    canonical_lexical = cases_root_lexical / normalized
+    journal_path = publisher._publication_journal_path(  # noqa: SLF001
+        canonical_lexical
+    )
+    if not os.path.lexists(journal_path):
+        return
+    cases_root = cases_root_lexical.resolve(strict=True)
+    canonical = cases_root / normalized
+    ensure_no_reparse_components(cases_root)
+    with publisher._CasePublicationLock(canonical):  # noqa: SLF001
+        publisher._recover_case_publication(canonical)  # noqa: SLF001
 
 
 def _parent_complete_child_digests(
@@ -3875,10 +4206,7 @@ def _run_follow_on_fixed_point(
             hints = []
         hint_context_by_digest[root_digest] = hints
         lineages = _family_hint_lineage_records(hints)
-        lineage_contexts = {
-            (item["root_sha256"], item["depth"])
-            for item in lineages
-        }
+        lineage_contexts = {(item["root_sha256"], item["depth"]) for item in lineages}
         if len(lineage_contexts) == 1:
             lineage_root, lineage_depth = next(iter(lineage_contexts))
             lineage_root_by_digest[root_digest] = lineage_root
@@ -3887,9 +4215,7 @@ def _run_follow_on_fixed_point(
             # 異なるroot/depthを現在root/depth=0へ黙って畳むと、次の子artifactが
             # depth=1の新規lineageとして記録され、元のprovenance chainを失う。
             # どのchainを継承すべきか決定できない入力はfail closedにする。
-            raise ValueError(
-                "root family hints contain conflicting artifact lineage contexts"
-            )
+            raise ValueError("root family hints contain conflicting artifact lineage contexts")
         else:
             lineage_root_by_digest[root_digest] = root_digest
             lineage_depth_by_digest[root_digest] = 0
@@ -3927,6 +4253,7 @@ def _run_follow_on_fixed_point(
             errors.add(f"{parent_sha256}:wall_clock_limit_before_discovery")
             return
         try:
+            _recover_follow_on_parent_transaction(output, parent_sha256)
             scan_result = _case_retained_payloads(
                 output,
                 parent_sha256,
@@ -4079,9 +4406,7 @@ def _run_follow_on_fixed_point(
                     depth=inherited_lineage_depth,
                     parent_hints=parent_hints,
                 )
-                if parent_hints
-                and inherited_lineage_depth
-                <= classify_sample.MAX_FAMILY_HINT_LINEAGE_DEPTH
+                if parent_hints and inherited_lineage_depth <= classify_sample.MAX_FAMILY_HINT_LINEAGE_DEPTH
                 else None
             )
             inherited_hints = (
@@ -4097,25 +4422,17 @@ def _run_follow_on_fixed_point(
             ancestors[child_sha256] = frozenset({*ancestors[parent_sha256], child_sha256})
             hint_context_by_digest[child_sha256] = inherited_hints
             lineage_root_by_digest[child_sha256] = (
-                lineage_root_by_digest[parent_sha256]
-                if inherited_hints
-                else child_sha256
+                lineage_root_by_digest[parent_sha256] if inherited_hints else child_sha256
             )
-            lineage_depth_by_digest[child_sha256] = (
-                inherited_lineage_depth if inherited_hints else 0
-            )
+            lineage_depth_by_digest[child_sha256] = inherited_lineage_depth if inherited_hints else 0
             nodes[child_sha256] = {
                 "sha256": child_sha256,
                 "depth": child_depth,
                 "size": payload["size"],
                 "state": "queued",
                 "family_hint_count": len(inherited_hints),
-                "family_hint_root_sha256": (
-                    lineage_root_by_digest[child_sha256] if inherited_hints else None
-                ),
-                "family_hint_lineage_depth": (
-                    lineage_depth_by_digest[child_sha256] if inherited_hints else None
-                ),
+                "family_hint_root_sha256": (lineage_root_by_digest[child_sha256] if inherited_hints else None),
+                "family_hint_lineage_depth": (lineage_depth_by_digest[child_sha256] if inherited_hints else None),
             }
             queue.append(
                 {
@@ -4648,9 +4965,7 @@ def run_batch(
         root_case_states=root_case_states,
     )
     _atomic_replace_json(output / "terminal-payload-acquisition.json", acquisition)
-    acquisition_digest = hashlib.sha256(
-        (output / "terminal-payload-acquisition.json").read_bytes()
-    ).hexdigest()
+    acquisition_digest = hashlib.sha256((output / "terminal-payload-acquisition.json").read_bytes()).hexdigest()
     _atomic_replace_json(output / "follow-on-analysis.json", follow_on)
     follow_on_digest = hashlib.sha256((output / "follow-on-analysis.json").read_bytes()).hexdigest()
     summary = {
@@ -4713,11 +5028,10 @@ def run_batch(
             "max_file_size": max_file_size,
             "string_scan_limit": string_scan_limit,
             "family_hint_manifest": family_hint_identity,
-            "static_tools": {
-                "upx": upx.name if upx else None,
-                "sevenzip": sevenzip.name if sevenzip else None,
-                "diec": diec.name if diec else None,
-            },
+            # root解析契約で封印済みのidentityをそのまま公開する。ここだけ
+            # tool名へ縮退すると、toolを利用した長時間jobが全case生成後の
+            # runner検証で失敗し、同一検体の再解析が必要になる。
+            "static_tools": dict(analysis_contract["settings"]["static_tools"]),
             "force_container_probe": force_container_probe,
             "max_static_layers": max_static_layers,
             "retry_max_static_layers": retry_max_static_layers,

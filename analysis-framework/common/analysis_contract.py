@@ -16,9 +16,7 @@ from typing import Any
 
 PIPELINE_CONTRACT_VERSION = 2
 SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
-RETAINED_ARTIFACT_RE = re.compile(
-    r"p/(?P<sha256>[0-9a-f]{64})\.(?:archive|bin|elf|exe|macho|txt)\Z"
-)
+RETAINED_ARTIFACT_RE = re.compile(r"p/(?P<sha256>[0-9a-f]{64})\.(?:archive|bin|elf|exe|macho|txt)\Z")
 REPORT_SEMANTIC_HASH_FIELD = "report_semantic_sha256"
 MAX_ARTIFACT_COUNT = 4_096
 MAX_ARTIFACT_PATH_LENGTH = 1_024
@@ -51,9 +49,7 @@ BASE_REQUIRED_ARTIFACTS = frozenset(
         *REQUIRED_KNOWLEDGE_ARTIFACTS.values(),
     }
 )
-RESUMABLE_CASE_STATES = frozenset(
-    {"complete", "assessment_only_complete"}
-)
+RESUMABLE_CASE_STATES = frozenset({"complete", "assessment_only_complete"})
 NETWORK_EVIDENCE_KEYS = frozenset(
     {
         "c2",
@@ -150,8 +146,10 @@ def _meaningful_evidence_value(value: Any, *, depth: int = 0) -> bool:
         return False
     if isinstance(value, str):
         normalized = "_".join(value.strip().casefold().replace("-", " ").split())
-        return bool(normalized) and normalized not in NEGATIVE_VALUES and not normalized.startswith(
-            ("not_found", "not_recovered", "unknown", "unresolved")
+        return (
+            bool(normalized)
+            and normalized not in NEGATIVE_VALUES
+            and not normalized.startswith(("not_found", "not_recovered", "unknown", "unresolved"))
         )
     if isinstance(value, (bytes, bytearray)):
         return bool(value)
@@ -159,8 +157,7 @@ def _meaningful_evidence_value(value: Any, *, depth: int = 0) -> bool:
         return value != 0
     if isinstance(value, Mapping):
         return any(
-            str(key).casefold()
-            not in EVIDENCE_METADATA_KEYS | EVIDENCE_CONTROL_KEYS
+            str(key).casefold() not in EVIDENCE_METADATA_KEYS | EVIDENCE_CONTROL_KEYS
             and _meaningful_evidence_value(item, depth=depth + 1)
             for key, item in value.items()
         )
@@ -170,17 +167,18 @@ def _meaningful_evidence_value(value: Any, *, depth: int = 0) -> bool:
 
 
 def _meaningful_collection(value: Any) -> bool:
-    return isinstance(value, (Mapping, Sequence)) and not isinstance(
-        value, (str, bytes, bytearray)
-    ) and _meaningful_evidence_value(value)
+    return (
+        isinstance(value, (Mapping, Sequence))
+        and not isinstance(value, (str, bytes, bytearray))
+        and _meaningful_evidence_value(value)
+    )
 
 
 def _mapping_has_correlated_payload(value: Mapping[str, Any]) -> bool:
     """宣言boolean以外に独立した実値が同じobjectへ存在するか返す。"""
 
     return any(
-        str(key).casefold() not in EVIDENCE_METADATA_KEYS | EVIDENCE_CONTROL_KEYS
-        and _meaningful_evidence_value(item)
+        str(key).casefold() not in EVIDENCE_METADATA_KEYS | EVIDENCE_CONTROL_KEYS and _meaningful_evidence_value(item)
         for key, item in value.items()
     )
 
@@ -191,17 +189,9 @@ def _collect_evidence(value: Any, state: dict[str, Any], *, depth: int = 0) -> N
     if isinstance(value, Mapping):
         for raw_key, item in value.items():
             key = str(raw_key).casefold()
-            if (
-                key == "decoded_config_recovered"
-                and item is True
-                and _mapping_has_correlated_payload(value)
-            ):
+            if key == "decoded_config_recovered" and item is True and _mapping_has_correlated_payload(value):
                 state["decoded_config"] = True
-            elif (
-                key == "static_config_recovered"
-                and item is True
-                and _mapping_has_correlated_payload(value)
-            ):
+            elif key == "static_config_recovered" and item is True and _mapping_has_correlated_payload(value):
                 state["static_config"] = True
             elif key in NETWORK_EVIDENCE_KEYS and _meaningful_collection(item):
                 state["candidate_groups"].add(key)
@@ -327,6 +317,7 @@ def runtime_dependency_versions() -> dict[str, Any]:
 
     dependencies = {}
     for distribution in (
+        "binary-refinery",
         "cabarchive",
         "capstone",
         "cryptography",
@@ -380,10 +371,7 @@ class _SnapshotReadError(ValueError):
 def _stat_has_reparse_attribute(information: os.stat_result) -> bool:
     """stat結果にWindows reparse属性が含まれるか返す。"""
 
-    return bool(
-        int(getattr(information, "st_file_attributes", 0))
-        & FILE_ATTRIBUTE_REPARSE_POINT
-    )
+    return bool(int(getattr(information, "st_file_attributes", 0)) & FILE_ATTRIBUTE_REPARSE_POINT)
 
 
 def _same_file_identity(first: os.stat_result, second: os.stat_result) -> bool:
@@ -810,11 +798,7 @@ def _verify_artifact_hashes_with_snapshots(
     ):
         return ["artifact_capture_paths_invalid"], {}
     per_capture_limit = MAX_JSON_OBJECT_SIZE if capture_max_bytes is None else capture_max_bytes
-    aggregate_limit = (
-        MAX_CAPTURED_JSON_TOTAL_BYTES
-        if capture_total_max_bytes is None
-        else capture_total_max_bytes
-    )
+    aggregate_limit = MAX_CAPTURED_JSON_TOTAL_BYTES if capture_total_max_bytes is None else capture_total_max_bytes
     if (
         isinstance(per_capture_limit, bool)
         or not isinstance(per_capture_limit, int)
@@ -930,10 +914,7 @@ def _required_artifact_paths(report: Mapping[str, Any]) -> tuple[set[str], list[
                 if normalized != relative:
                     errors.append(f"retained_artifact_path_not_normalized:{index}")
                     continue
-                if (
-                    not isinstance(manifest, Mapping)
-                    or manifest.get(relative) != match.group("sha256")
-                ):
+                if not isinstance(manifest, Mapping) or manifest.get(relative) != match.group("sha256"):
                     errors.append(f"retained_artifact_hash_mismatch:{index}")
                     continue
                 required.add(relative)
@@ -961,9 +942,7 @@ def _required_artifact_paths(report: Mapping[str, Any]) -> tuple[set[str], list[
     return required, errors
 
 
-def _documented_handler_no_evidence_families(
-    report: Mapping[str, Any], executions: Any
-) -> tuple[set[str], list[str]]:
+def _documented_handler_no_evidence_families(report: Mapping[str, Any], executions: Any) -> tuple[set[str], list[str]]:
     """抽出器の正常なno-evidence完了記録を厳密に検証する。"""
 
     documented = report.get("documented_handler_no_evidence")
@@ -983,10 +962,7 @@ def _documented_handler_no_evidence_families(
     )
     if documented.get("basis") != "all_routed_handler_attempts_completed_without_family_specific_evidence":
         return set(), ["documented_handler_no_evidence_basis_invalid"]
-    if (
-        documented.get("attribution_effect")
-        != "provider_label_retained_but_not_upgraded_to_static_confirmation"
-    ):
+    if documented.get("attribution_effect") != "provider_label_retained_but_not_upgraded_to_static_confirmation":
         return set(), ["documented_handler_no_evidence_attribution_invalid"]
     if documented.get("resolved_blockers") != expected_blockers:
         return set(), ["documented_handler_no_evidence_blockers_invalid"]
@@ -1003,10 +979,7 @@ def _documented_handler_no_evidence_families(
     if (
         not isinstance(attempted_layers, list)
         or not attempted_layers
-        or any(
-            not isinstance(value, str) or SHA256_RE.fullmatch(value) is None
-            for value in attempted_layers
-        )
+        or any(not isinstance(value, str) or SHA256_RE.fullmatch(value) is None for value in attempted_layers)
         or attempted_layers != sorted(set(attempted_layers))
     ):
         return set(), ["documented_handler_no_evidence_layers_invalid"]
@@ -1038,8 +1011,7 @@ def _documented_handler_no_evidence_families(
         routed = [
             item
             for item in attempts
-            if isinstance(item, Mapping)
-            and item.get("routing_role") in {"selected_family_layer", "ancestor_fallback"}
+            if isinstance(item, Mapping) and item.get("routing_role") in {"selected_family_layer", "ancestor_fallback"}
         ]
         if not routed or not any(item.get("routing_role") == "selected_family_layer" for item in routed):
             return set(), ["documented_handler_no_evidence_routing_invalid"]
@@ -1180,9 +1152,7 @@ def _case_state_errors(report: Mapping[str, Any], *, require_resumable: bool) ->
                     successful_families.add(family)
             elif execution.get("result") is not None:
                 errors.append(f"failed_handler_has_result:{index}")
-    documented_no_evidence_families, documented_errors = _documented_handler_no_evidence_families(
-        report, executions
-    )
+    documented_no_evidence_families, documented_errors = _documented_handler_no_evidence_families(report, executions)
     errors.extend(documented_errors)
     if status_value == "complete":
         for family in selected_families:
@@ -1287,10 +1257,7 @@ def case_integrity_errors(
         )
         errors.extend(artifact_errors)
 
-    if not any(
-        error.startswith(("artifact_", "unsafe_", "missing_or_outside", "reparse_point"))
-        for error in errors
-    ):
+    if not any(error.startswith(("artifact_", "unsafe_", "missing_or_outside", "reparse_point")) for error in errors):
         try:
             classification_document = _decode_json_object_strict(
                 verified_semantic_artifacts["classification.json"],
@@ -1363,7 +1330,6 @@ def case_integrity_errors(
         if any(relative not in verified_semantic_artifacts for relative in capture_paths):
             return ["artifact_capture_missing"]
         captured_artifacts.update(
-            (relative, verified_semantic_artifacts[relative])
-            for relative in sorted(capture_paths)
+            (relative, verified_semantic_artifacts[relative]) for relative in sorted(capture_paths)
         )
     return result

@@ -41,6 +41,77 @@ def _minimal_pe(marker: bytes) -> bytes:
     return bytes(data) + marker
 
 
+def _pe_with_entry(
+    *,
+    entry_rva: int = 0x1000,
+    image_base: int = 0x400000,
+    executable: bool = True,
+) -> bytes:
+    """entry pointと1 sectionを持つ、静的parser専用の最小PEを返す。"""
+
+    data = bytearray(0x400)
+    data[:2] = b"MZ"
+    pe_offset = 0x80
+    data[0x3C:0x40] = pe_offset.to_bytes(4, "little")
+    data[pe_offset : pe_offset + 4] = b"PE\0\0"
+    coff = pe_offset + 4
+    data[coff : coff + 2] = (0x14C).to_bytes(2, "little")
+    data[coff + 2 : coff + 4] = (1).to_bytes(2, "little")
+    data[coff + 16 : coff + 18] = (0xE0).to_bytes(2, "little")
+    optional = pe_offset + 24
+    data[optional : optional + 2] = (0x10B).to_bytes(2, "little")
+    data[optional + 16 : optional + 20] = entry_rva.to_bytes(4, "little")
+    data[optional + 28 : optional + 32] = image_base.to_bytes(4, "little")
+    data[optional + 32 : optional + 36] = (0x1000).to_bytes(4, "little")
+    data[optional + 36 : optional + 40] = (0x200).to_bytes(4, "little")
+    data[optional + 56 : optional + 60] = (0x2000).to_bytes(4, "little")
+    data[optional + 60 : optional + 64] = (0x200).to_bytes(4, "little")
+    data[optional + 92 : optional + 96] = (16).to_bytes(4, "little")
+    section = optional + 0xE0
+    data[section : section + 8] = b".text\0\0\0"
+    data[section + 8 : section + 12] = (0x200).to_bytes(4, "little")
+    data[section + 12 : section + 16] = (0x1000).to_bytes(4, "little")
+    data[section + 16 : section + 20] = (0x200).to_bytes(4, "little")
+    data[section + 20 : section + 24] = (0x200).to_bytes(4, "little")
+    characteristics = 0x60000020 if executable else 0x40000040
+    data[section + 36 : section + 40] = characteristics.to_bytes(4, "little")
+    data[0x200] = 0xC3
+    return bytes(data)
+
+
+def _bind_native_call_graph(
+    result: dict[str, object],
+    edges: list[dict[str, object]] | None = None,
+    *,
+    selector: str = "/Malware/Test/sample",
+) -> dict[str, object]:
+    """test用resultへ有効なnative call graph取得契約を結合する。"""
+
+    values = [] if edges is None else edges
+    graph = {"edges": values, "edge_count": len(values)}
+    result["program_selector"] = selector
+    result["analysis_mode"] = "native_ghidra_with_optional_cil"
+    result["ghidra_call_graph"] = json.loads(json.dumps(graph))
+    result["call_graph"] = json.loads(json.dumps(graph))
+    retrieval = result.setdefault("retrieval_coverage", {})
+    assert isinstance(retrieval, dict)
+    retrieval["call_graph"] = {
+        "endpoint": target.CALL_GRAPH_ENDPOINT,
+        "endpoint_invoked": True,
+        "response_schema_valid": True,
+        "program_selector": selector,
+        "requested_format": target.CALL_GRAPH_REQUEST_FORMAT,
+        "requested_limit": target.CALL_GRAPH_REQUEST_LIMIT,
+        "native_graph_applicable": True,
+        "source": "ghidra_mcp",
+        "acquisition_status": "acquired",
+        "edge_count": len(values),
+        "complete": True,
+        "documented_limit": None,
+    }
+    return result
+
+
 def _write_prepared_inventory(
     private_output: Path,
     *,
@@ -375,6 +446,182 @@ def test_import_timeout_does_not_trigger_duplicate_raw_fallback(
     assert client.import_calls == 1
 
 
+def test_old_native_zero_function_cache_is_not_reused(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """回復証跡のない旧native 0件cacheは再解析へ移行する。"""
+
+    data = _pe_with_entry()
+    digest = hashlib.sha256(data).hexdigest()
+    private_output = tmp_path / "private"
+    snapshot = target._immutable_staging_snapshot(private_output, digest, data)
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=snapshot.path,
+        size=len(data),
+        relationships=[{"case_sha256": digest, "depth": 0, "transform": "root"}],
+        input_snapshot=snapshot,
+    )
+    result_path = private_output / "objects" / digest / "program-result.json"
+    target._persist_program_result(
+        result_path,
+        {
+            "status": "complete",
+            "mcp_responses_valid": True,
+            "analysis_mode": "native_ghidra_with_optional_cil",
+            "ghidra_function_inventory_count": 0,
+            "managed_method_count": 0,
+            "function_inventory_count": 0,
+            "functions": [],
+        },
+    )
+    monkeypatch.setattr(target, "_is_managed_pe", lambda _data: False)
+
+    class StopsAfterCacheCheck:
+        def get(self, endpoint: str, **_query: object) -> object:
+            raise RuntimeError(f"cache was bypassed: {endpoint}")
+
+    with pytest.raises(RuntimeError, match="cache was bypassed"):
+        target.analyze_program(
+            StopsAfterCacheCheck(),
+            item,
+            private_output,
+            "/Malware/Test",
+            analysis_timeout=1,
+        )
+
+
+def test_native_zero_function_cache_with_recovery_evidence_is_reused(
+    tmp_path: Path,
+) -> None:
+    """条件不成立を既に記録した0件cacheは無限再試行しない。"""
+
+    data = _pe_with_entry()
+    digest = hashlib.sha256(data).hexdigest()
+    private_output = tmp_path / "private"
+    snapshot = target._immutable_staging_snapshot(private_output, digest, data)
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=snapshot.path,
+        size=len(data),
+        relationships=[{"case_sha256": digest, "depth": 0, "transform": "root"}],
+        input_snapshot=snapshot,
+    )
+    cached = _bind_native_call_graph(
+        {
+            "status": "complete",
+            "mcp_responses_valid": True,
+            "analysis_mode": "native_ghidra_with_optional_cil",
+            "ghidra_function_inventory_count": 0,
+            "managed_method_count": 0,
+            "function_inventory_count": 0,
+            "characteristic_function_ids": [],
+            "characteristic_function_count": 0,
+            "functions": [],
+            "entry_point_function_recovery": {
+                "schema_version": 1,
+                "status": "not_attempted",
+                "reason": "ghidra_program_entry_not_unique",
+                "attempted": False,
+            },
+            "retrieval_coverage": {
+                "functions": {
+                    "endpoint": "/list_functions_enhanced",
+                    "program_selector": "/Malware/Test/sample",
+                    "item_count": 0,
+                    "terminal_short_page_observed": True,
+                    "complete": True,
+                    "metadata_function_count": None,
+                    "count_matches_metadata": None,
+                    "documented_limit": ("metadata_function_count_unavailable_terminal_page_proof_used"),
+                }
+            },
+        }
+    )
+    target._persist_program_result(
+        private_output / "objects" / digest / "program-result.json",
+        cached,
+    )
+
+    class NoCallsClient:
+        def get(self, *_args: object, **_kwargs: object) -> object:
+            raise AssertionError("証跡済みcacheからMCPを再試行してはならない")
+
+    result = target.analyze_program(
+        NoCallsClient(),
+        item,
+        private_output,
+        "/Malware/Test",
+        analysis_timeout=1,
+    )
+
+    assert result["entry_point_function_recovery"]["status"] == "not_attempted"
+
+
+def test_old_native_zero_function_cache_without_input_is_terminalized(
+    tmp_path: Path,
+) -> None:
+    """認証済みinput欠落時は回復不能を保存し、以後MCPへ再試行しない。"""
+
+    data = _pe_with_entry()
+    digest = hashlib.sha256(data).hexdigest()
+    private_output = tmp_path / "private"
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=private_output / "import-staging" / f"{digest}.quarantine.bin",
+        size=len(data),
+        relationships=[{"case_sha256": digest, "depth": 0, "transform": "root"}],
+    )
+    result_path = private_output / "objects" / digest / "program-result.json"
+    target._persist_program_result(
+        result_path,
+        {
+            "status": "complete",
+            "mcp_responses_valid": True,
+            "analysis_mode": "native_ghidra_with_optional_cil",
+            "program_selector": "/Malware/Test/program.exe",
+            "ghidra_function_inventory_count": 0,
+            "managed_method_count": 0,
+            "function_inventory_count": 0,
+            "functions": [],
+        },
+    )
+
+    class NoCallsClient:
+        def get(self, *_args: object, **_kwargs: object) -> object:
+            raise AssertionError("input欠落時にMCPへ再試行してはならない")
+
+    first = target.analyze_program(
+        NoCallsClient(),
+        item,
+        private_output,
+        "/Malware/Test",
+        analysis_timeout=1,
+    )
+    second = target.analyze_program(
+        NoCallsClient(),
+        item,
+        private_output,
+        "/Malware/Test",
+        analysis_timeout=1,
+    )
+    persisted, _ = target._load_program_result(result_path)
+
+    for result in (first, second, persisted):
+        assert result["status"] == "partial"
+        recovery = result["entry_point_function_recovery"]
+        assert recovery["status"] == "not_attempted"
+        assert recovery["reason"] == "input_cache_unavailable_for_recovery"
+        assert recovery["attempted"] is False
+        call_graph_coverage = result["retrieval_coverage"]["call_graph"]
+        assert call_graph_coverage["complete"] is False
+        assert call_graph_coverage["endpoint_invoked"] is False
+        assert call_graph_coverage["response_schema_valid"] is False
+        assert call_graph_coverage["documented_limit"] == target.CALL_GRAPH_LEGACY_LIMIT
+        assert "ghidra_call_graph" not in result
+
+
 def test_client_accepts_only_numeric_loopback_plain_http() -> None:
     """Ghidra MCP接続先をDNS名ではなくnumeric loopbackの平文HTTPに限定する。"""
 
@@ -403,7 +650,7 @@ def test_client_uses_proxy_free_opener_and_preserves_timeout(
     opened: list[tuple[Request, int]] = []
 
     class Response:
-        def __enter__(self) -> "Response":
+        def __enter__(self) -> Response:
             return self
 
         def __exit__(self, *args: object) -> None:
@@ -442,7 +689,7 @@ def test_client_rejects_mcp_error_object(
     """HTTP 200内のMCP error objectを成功扱いしない。"""
 
     class Response:
-        def __enter__(self) -> "Response":
+        def __enter__(self) -> Response:
             return self
 
         def __exit__(self, *args: object) -> None:
@@ -524,7 +771,7 @@ def test_client_rejects_oversize_response_before_decode(
     monkeypatch.setattr(target, "MAX_MCP_RESPONSE_BYTES", 16)
 
     class Response:
-        def __enter__(self) -> "Response":
+        def __enter__(self) -> Response:
             return self
 
         def __exit__(self, *args: object) -> None:
@@ -817,6 +1064,338 @@ def test_characteristic_selection_covers_roles_and_respects_limit() -> None:
     assert all(item["selection_reasons"] for item in selected)
 
 
+@pytest.mark.parametrize(
+    ("name", "calls", "expected"),
+    [
+        ("MsiFile.GetBytes", [], "general_internal_logic"),
+        ("CabFile.Save", [], "general_internal_logic"),
+        (
+            "System.Runtime.CompilerServices.NullableAttribute..ctor",
+            [],
+            "compiler_or_library_code",
+        ),
+        ("ScreenConnect.Client.Connect", [], "general_internal_logic"),
+        (
+            "ScreenConnect.WindowsExtensions.RunCommandLineProgram",
+            ["System.Diagnostics.Process.Start"],
+            "command_dispatch_or_handler",
+        ),
+        (
+            "ScreenConnect.WindowsExtensions.RunCommandLineCommands",
+            ["ScreenConnect.Extensions.ContainsAnyIgnoreCase"],
+            "command_dispatch_or_handler",
+        ),
+        ("FUN_1000", ["CreateProcessW"], "process_or_memory_operation"),
+        (
+            "FUN_1000",
+            ["CreateFileA", "WriteFile", "CreateProcessA"],
+            "process_or_memory_operation",
+        ),
+        (
+            "FUN_1000",
+            ["System.Diagnostics.Process.Start"],
+            "process_or_memory_operation",
+        ),
+        ("FUN_1000", ["connect"], "network_communication"),
+        ("FUN_1000", ["socket"], "network_communication"),
+        ("FUN_1000", ["CreateServiceW"], "persistence"),
+        ("install_service", [], "persistence"),
+    ],
+)
+def test_classify_role_uses_symbol_and_api_boundaries(
+    name: str,
+    calls: list[str],
+    expected: str,
+) -> None:
+    """namespaceの部分文字列を能力扱いせず、実API／member境界だけを昇格する。"""
+
+    assert target._classify_role(name, calls, "") == expected
+
+
+def test_7cea_behavior_projection_records_exact_drop_and_process_values(
+    tmp_path: Path,
+) -> None:
+    """Ghidraで復元した7ceaの固定path、byte数、起動引数を欠落させない。"""
+
+    digest = "7cea19fbf28115dc8b8cd947d92d7cedcad6b18825f3d52e2340ae558445fce6"
+    child = "482faaf1130d041a77b4a4e8a3e516d9c97aa21a3ad10b6a8b88bae38b6eaae5"
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    target._json_dump(
+        case_dir / "static-logic.json",
+        {
+            "functions": [
+                {
+                    "function_id": "root!FUN_2ac4f1540@2ac4f1540",
+                    "name": "FUN_2ac4f1540",
+                    "api_calls": ["CreateFileA", "WriteFile", "CreateProcessA"],
+                }
+            ]
+        },
+    )
+    target._json_dump(
+        case_dir / "static-layers.json",
+        {
+            "layers": [
+                {
+                    "sha256": child,
+                    "parent_sha256": digest,
+                    "format": "pe",
+                    "size": 344_064,
+                    "transform": "embedded-pe",
+                }
+            ]
+        },
+    )
+    target._json_dump(case_dir / "analysis.json", {"case": {}})
+    target._json_dump(
+        case_dir / "report.json",
+        {"classification": {"selected_families": []}},
+    )
+    (case_dir / "README.md").write_text("# fixture\n", encoding="utf-8")
+
+    target._enrich_shadow_behavior_documents(case_dir)
+
+    evidence = json.loads((case_dir / "analysis.json").read_text(encoding="utf-8"))["ghidra_behavior_evidence"]
+    assert evidence["path_construction"]["application_path"] == (r"C:\Users\Public\agentttttttt_extracted.exe")
+    assert evidence["file_write"]["size_bytes"] == 34_481_675
+    assert evidence["file_write"]["size_hex"] == "0x20e260b"
+    assert "source_address" not in evidence["file_write"]
+    assert evidence["recovered_pe_sha256"] == [child]
+    assert evidence["recovered_pe_relationship"] == {
+        "sha256": child,
+        "size_bytes": 344_064,
+        "transform": "embedded-pe",
+        "write_buffer_byte_identity": "not_established",
+    }
+    assert evidence["process_creation"] == {
+        "api": "CreateProcessA",
+        "lp_application_name": r"C:\Users\Public\agentttttttt_extracted.exe",
+        "lp_command_line": None,
+        "command_line_recovery_status": "confirmed_null",
+        "creation_flags_hex": "0x08000000",
+        "creation_flags": ["CREATE_NO_WINDOW"],
+    }
+    readme = (case_dir / "README.md").read_text(encoding="utf-8")
+    assert "34,481,675 bytes" in readme
+    assert "lpCommandLine`は`NULL" in readme
+    assert "2ac4fa0a0" not in readme
+    assert "CREATE_NO_WINDOW" in readme
+    assert child in readme
+    assert "344,064 bytes" in readme
+    assert "byte-for-byte同一性は未確定" in readme
+    profile = target.build_case_profile(case_dir)
+    behaviors = {item["id"]: item for item in profile["behaviors"]}
+    behavior_ids = set(behaviors)
+    assert "execution:embedded_pe_drop_launch" in behavior_ids
+    assert "execution:process_creation" in behavior_ids
+    assert child in behaviors["execution:embedded_pe_drop_launch"]["evidence"]
+    assert r"C:\Users\Public\agentttttttt_extracted.exe" in behaviors["execution:embedded_pe_drop_launch"]["evidence"]
+    rendered_features = target.render_features_markdown(profile)
+    assert child in rendered_features
+    assert "34,481,675 bytes" in rendered_features
+
+
+def test_screenconnect_projection_records_exact_launcher_templates(
+    tmp_path: Path,
+) -> None:
+    """operator command本文と復元済みlauncher templateの境界を保持する。"""
+
+    case_dir = tmp_path / ("b" * 64)
+    case_dir.mkdir()
+    target._json_dump(
+        case_dir / "static-logic.json",
+        {
+            "functions": [
+                {
+                    "function_id": "managed:cil:0x060000ba",
+                    "name": "ScreenConnect.WindowsExtensions.RunCommandLineProgram",
+                    "role": "command_dispatch_or_handler",
+                    "api_calls": [
+                        "System.Diagnostics.Process.Start",
+                        "System.Diagnostics.ProcessStartInfo.set_FileName",
+                        "System.Diagnostics.ProcessStartInfo.set_Arguments",
+                        "System.Diagnostics.ProcessStartInfo.set_RedirectStandardInput",
+                        "System.Diagnostics.ProcessStartInfo.set_RedirectStandardOutput",
+                        "System.Diagnostics.ProcessStartInfo.set_RedirectStandardError",
+                        "System.Diagnostics.ProcessStartInfo.set_StandardOutputEncoding",
+                        "System.Diagnostics.ProcessStartInfo.set_StandardErrorEncoding",
+                        "System.Diagnostics.Process.get_ExitCode",
+                        "KillProcessTree",
+                    ],
+                },
+                {
+                    "function_id": "managed:cil:0x060000bb",
+                    "name": "ScreenConnect.WindowsExtensions.RunCommandLineCommands",
+                    "role": "command_dispatch_or_handler",
+                    "api_calls": [
+                        "GetLowIntegrityTempPath",
+                        "RunCommandLineProgram",
+                        "ScreenConnect.Extensions.ContainsAnyIgnoreCase",
+                        "ScreenConnect.Extensions.GetUniqueTempPath",
+                        "ScreenConnect.Extensions.QuoteWindowsCommandLine",
+                        "System.IO.File.Create",
+                        "System.IO.File.Delete",
+                        "System.IO.TextWriter.Write",
+                    ],
+                },
+            ]
+        },
+    )
+    target._json_dump(case_dir / "analysis.json", {"case": {}})
+    target._json_dump(
+        case_dir / "report.json",
+        {"classification": {"selected_families": ["screenconnect_rmm"]}},
+    )
+    (case_dir / "README.md").write_text("# fixture\n", encoding="utf-8")
+
+    target._enrich_shadow_behavior_documents(case_dir)
+
+    capability = json.loads((case_dir / "analysis.json").read_text(encoding="utf-8"))["case"][
+        "remote_command_execution_capability"
+    ]
+    assert capability["wrapper_function_id"] == "managed:cil:0x060000bb"
+    assert capability["operator_command_body_source"] == "runtime_management_input"
+    assert capability["launcher_templates"]["cmd"] == {
+        "file_name": "cmd.exe",
+        "arguments_prefix": "/c ",
+        "arguments_tail": "QuoteWindowsCommandLine(unique run.cmd path)",
+    }
+    assert capability["launcher_templates"]["powershell"] == {
+        "file_name": r"WindowsPowershell\v1.0\powershell.exe",
+        "arguments_prefix": ("-NoProfile -NonInteractive -ExecutionPolicy Unrestricted -File "),
+        "arguments_tail": "QuoteWindowsCommandLine(unique run.ps1 path)",
+    }
+    assert capability["stdio"]["output_collection"] == "asynchronous"
+    assert capability["timeout_behavior"] == "kill_process_tree"
+    assert capability["fixed_operator_command_recovered"] is False
+    readme = (case_dir / "README.md").read_text(encoding="utf-8")
+    assert "Arguments=/c <QuoteWindowsCommandLine(run.cmd)>" in readme
+    assert "-NoProfile -NonInteractive -ExecutionPolicy Unrestricted -File" in readme
+    assert "command body自体は実行時" in readme
+    assert "別個のmalware C2" in readme
+    profile = target.build_case_profile(case_dir)
+    behaviors = {item["id"]: item for item in profile["behaviors"]}
+    behavior_ids = set(behaviors)
+    assert "execution:remote_command" in behavior_ids
+    assert "execution:command_script_launcher" in behavior_ids
+    assert "execution:runtime_operator_command_body" in behavior_ids
+    assert "context:screenconnect_separate_c2_boundary" in behavior_ids
+    launcher_evidence = behaviors["execution:command_script_launcher"]["evidence"]
+    assert "Arguments=/c <QuoteWindowsCommandLine(run.cmd)>" in launcher_evidence
+    assert "-NoProfile -NonInteractive -ExecutionPolicy Unrestricted -File" in launcher_evidence
+    assert "command body自体は実行時" in behaviors["execution:runtime_operator_command_body"]["evidence"]
+    assert "別個のmalware C2" in behaviors["context:screenconnect_separate_c2_boundary"]["evidence"]
+    rendered_features = target.render_features_markdown(profile)
+    assert "Arguments=/c <QuoteWindowsCommandLine(run.cmd)>" in rendered_features
+    assert "-NoProfile -NonInteractive -ExecutionPolicy Unrestricted -File" in rendered_features
+    assert "command body自体は実行時" in rendered_features
+    assert "別個のmalware C2" in rendered_features
+
+    terminal = {
+        "status": "recovered",
+        "root_sha256": case_dir.name,
+        "role": "terminal_managed_client",
+        "basis": "validated_static_root_screenconnect_client",
+        "claimed_sha256": [],
+        "candidates": [],
+        "retained": [],
+        "verified": [],
+    }
+    report = target.load_json_object_strict(case_dir / "report.json")
+    report["case_state"] = {
+        "status": "complete",
+        "complete": True,
+        "resumable": True,
+        "blockers": [],
+    }
+    target._json_dump(case_dir / "report.json", report)
+    target._json_dump(
+        case_dir / "orchestration.json",
+        {
+            "status": "complete",
+            "outputs": {"terminal_payload": terminal},
+            "candidate_outputs": {"terminal_payload": terminal},
+        },
+    )
+    target._json_dump(
+        case_dir / "c2-analysis.json",
+        {
+            "c2": {"outcome": "no_c2_capability_verified"},
+            "terminal_payload": {"status": "recovered", "reached": True},
+        },
+    )
+    target._json_dump(
+        case_dir / "communication-patterns.json",
+        {"config": {"terminal_managed_client": True}},
+    )
+    profile["analysis_assessment"] = {"status": "complete", "unresolved": []}
+    target._json_dump(case_dir / "features.json", profile)
+    target._validate_completed_screenconnect_projection(case_dir, report)
+
+    profile["analysis_assessment"] = {
+        "status": "partial",
+        "unresolved": ["declared_case_state_incomplete"],
+    }
+    target._json_dump(case_dir / "features.json", profile)
+    with pytest.raises(ValueError, match="公開成果物が不整合"):
+        target._validate_completed_screenconnect_projection(case_dir, report)
+
+
+def test_characteristic_selection_prioritizes_go_main_over_runtime() -> None:
+    """Go runtimeのsizeに埋もれず、検体固有main packageを選ぶ。"""
+
+    functions = [
+        {
+            "address": f"0x{index + 0x1000:x}",
+            "name": f"runtime.persistentalloc{index}",
+            "isExternal": False,
+            "isThunk": False,
+            "instruction_count": 2_000,
+        }
+        for index in range(80)
+    ]
+    functions.extend(
+        {
+            "address": f"0x{index + 0x9000:x}",
+            "name": name,
+            "isExternal": False,
+            "isThunk": False,
+            "instruction_count": 32,
+        }
+        for index, name in enumerate(
+            (
+                "main.main",
+                "main.(*client).connect",
+                "main.(*client).dispatchCommand",
+            )
+        )
+    )
+
+    selected = target.select_characteristic_functions(
+        functions,
+        {"edges": []},
+        "entry @ 0x1000 [Function]",
+        {"functions": []},
+        max_count=8,
+    )
+
+    selected_names = {item["name"] for item in selected}
+    assert {
+        "main.main",
+        "main.(*client).connect",
+        "main.(*client).dispatchCommand",
+    } <= selected_names
+    assert all(
+        item["preliminary_role"] == "compiler_or_library_code"
+        for item in selected
+        if item["name"].startswith("runtime.")
+    )
+    assert any(
+        "probable_go_main_user_code" in item["selection_reasons"] for item in selected if item["name"] == "main.main"
+    )
+
+
 def test_characteristic_selection_uses_structural_fallback_without_body() -> None:
     """内部関数がないprogramはexternalを構造代表とし、解析成功とは扱わない。"""
 
@@ -913,6 +1492,365 @@ def test_program_evidence_parses_ghidra_entry_point_text() -> None:
         "00401000",
         "00400000",
     ]
+
+
+def test_zero_function_recovery_creates_only_validated_unique_entry() -> None:
+    """PE、Ghidra entry、segmentが一致した1 addressだけを関数化する。"""
+
+    selector = "/Malware/Test/sample"
+
+    class RecoveryClient:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, dict[str, object]]] = []
+
+        def post(
+            self,
+            endpoint: str,
+            body: dict[str, object],
+            **query: object,
+        ) -> object:
+            self.calls.append(("post", endpoint, {**query, "body": body}))
+            assert endpoint == "/create_function"
+            assert query == {"program": selector}
+            assert body == {
+                "address": "401000",
+                "name": "",
+                "disassemble_first": True,
+            }
+            return {"result": "created"}
+
+        def get(self, endpoint: str, **query: object) -> object:
+            self.calls.append(("get", endpoint, query))
+            assert endpoint == "/list_functions_enhanced"
+            assert query["program"] == selector
+            return {
+                "functions": [
+                    {
+                        "address": "00401000",
+                        "name": "entry",
+                        "isExternal": False,
+                    }
+                ],
+                "count": 1,
+            }
+
+    client = RecoveryClient()
+    functions, evidence, private = target._recover_unique_entry_point_function(
+        client,
+        selector,
+        _pe_with_entry(),
+        ("entry @ 00401000 [Label] [external entry]\nIMAGE_DOS_HEADER_00400000 @ 00400000 [Label] [program entry]"),
+        "Headers: 00400000 - 004003ff\n.text: 00401000 - 004011ff",
+    )
+
+    assert [item["name"] for item in functions] == ["entry"]
+    assert evidence["status"] == "recovered"
+    assert evidence["attempted"] is True
+    assert evidence["validation"] == {
+        "pe_entry_point": {
+            "status": "validated",
+            "reason": "pe_entry_point_in_unique_executable_section",
+            "address": 0x401000,
+            "address_hex": "401000",
+            "rva_hex": "1000",
+            "section_name": ".text",
+            "section_executable": True,
+        },
+        "ghidra_program_entry_unique": True,
+        "ghidra_segment_contains_entry": True,
+    }
+    assert private["program_selector"] == selector
+    assert private["response"] == {"result": "created"}
+    assert all(call[2]["program"] == selector for call in client.calls)
+
+
+def test_all_functions_pages_to_short_page_when_count_is_page_count() -> None:
+    """count=当該page件数でも500件で停止せずshort pageまで取得する。"""
+
+    class Client:
+        def __init__(self) -> None:
+            self.offsets: list[int] = []
+
+        def get(self, endpoint: str, **query: object) -> object:
+            assert endpoint == "/list_functions_enhanced"
+            offset = int(query["offset"])
+            self.offsets.append(offset)
+            size = 500 if offset == 0 else 4
+            return {
+                "functions": [{"address": f"{offset + index:08x}"} for index in range(size)],
+                "count": size,
+            }
+
+    client = Client()
+    functions, coverage = target._all_functions_with_coverage(
+        client,
+        "/Malware/Test/sample",
+    )
+
+    assert len(functions) == 504
+    assert client.offsets == [0, 500]
+    assert coverage["page_count"] == 2
+    assert coverage["item_count"] == 504
+    assert coverage["terminal_short_page_observed"] is True
+
+
+def test_all_functions_follows_explicit_cursor_before_short_page() -> None:
+    """short pageでもnext_cursorがある場合はcursor終端を優先する。"""
+
+    calls: list[dict[str, object]] = []
+
+    class Client:
+        def get(self, endpoint: str, **query: object) -> object:
+            assert endpoint == "/list_functions_enhanced"
+            calls.append(query)
+            if "cursor" not in query:
+                return {
+                    "functions": [{"address": "1000"}],
+                    "count": 1,
+                    "next_cursor": "page-2",
+                }
+            assert query["cursor"] == "page-2"
+            return {"functions": [{"address": "2000"}], "count": 1}
+
+    functions, coverage = target._all_functions_with_coverage(
+        Client(),
+        "/Malware/Test/sample",
+    )
+
+    assert [item["address"] for item in functions] == ["1000", "2000"]
+    assert "offset" in calls[0] and "cursor" not in calls[0]
+    assert calls[1]["cursor"] == "page-2" and "offset" not in calls[1]
+    assert coverage["pagination"] == "cursor_or_offset"
+
+
+def test_function_inventory_coverage_requires_metadata_match_or_limit() -> None:
+    """完全claimはmetadata一致または明示したmetadata欠落制約だけを許す。"""
+
+    result = {
+        "program_selector": "/Malware/Test/sample",
+        "analysis_mode": "native_ghidra_with_optional_cil",
+        "ghidra_function_inventory_count": 504,
+        "retrieval_coverage": {
+            "functions": {
+                "endpoint": "/list_functions_enhanced",
+                "program_selector": "/Malware/Test/sample",
+                "item_count": 504,
+                "terminal_short_page_observed": True,
+                "complete": True,
+                "metadata_function_count": 504,
+                "count_matches_metadata": True,
+            }
+        },
+    }
+    assert target._function_inventory_coverage_complete(result) is True
+    result["retrieval_coverage"]["functions"]["metadata_function_count"] = 3134
+    result["retrieval_coverage"]["functions"]["count_matches_metadata"] = False
+    assert target._function_inventory_coverage_complete(result) is False
+    result["retrieval_coverage"]["functions"].update(
+        {
+            "metadata_function_count": None,
+            "count_matches_metadata": None,
+            "documented_limit": ("metadata_function_count_unavailable_terminal_page_proof_used"),
+        }
+    )
+    assert target._function_inventory_coverage_complete(result) is True
+
+
+def test_managed_function_inventory_alternative_is_strict() -> None:
+    """managed CILのnative非適用証跡は全fieldを拘束し、偽装を拒否する。"""
+
+    result = {
+        "program_selector": "/Malware/Test/managed",
+        "analysis_mode": "managed_cil_primary_with_ghidra_structure",
+        "ghidra_function_inventory_count": 0,
+        "retrieval_coverage": {
+            "functions": {
+                "endpoint": "/list_functions_enhanced",
+                "program_selector": "/Malware/Test/managed",
+                "item_count": 0,
+                "terminal_short_page_observed": False,
+                "complete": True,
+                "endpoint_invoked": False,
+                "source": "managed_cil_primary",
+                "documented_limit": "native_function_inventory_not_applicable",
+            }
+        },
+    }
+    assert target._function_inventory_coverage_complete(result) is True
+
+    mutations = (
+        ("analysis_mode", "native_ghidra_with_optional_cil"),
+        ("ghidra_function_inventory_count", 1),
+        ("endpoint_invoked", True),
+        ("source", "forged"),
+        ("item_count", 1),
+        ("documented_limit", "metadata_unavailable"),
+        ("program_selector", "/Malware/Test/other"),
+    )
+    for key, value in mutations:
+        forged = json.loads(json.dumps(result))
+        if key in {"analysis_mode", "ghidra_function_inventory_count"}:
+            forged[key] = value
+        else:
+            forged["retrieval_coverage"]["functions"][key] = value
+        assert target._function_inventory_coverage_complete(forged) is False
+
+
+@pytest.mark.parametrize(
+    ("entry_points", "segments", "data", "reason"),
+    [
+        ([], ".text: 00401000 - 004011ff", _pe_with_entry(), "ghidra_program_entry_not_unique"),
+        (
+            "entry @ 00401000 [external entry]\nentrypoint @ 00401010 [external entry]",
+            ".text: 00401000 - 004011ff",
+            _pe_with_entry(),
+            "ghidra_program_entry_not_unique",
+        ),
+        (
+            "entry @ 00401010 [external entry]",
+            ".text: 00401000 - 004011ff",
+            _pe_with_entry(),
+            "ghidra_and_pe_entry_point_mismatch",
+        ),
+        (
+            "entry @ 00401000 [external entry]",
+            ".data: 00402000 - 004021ff",
+            _pe_with_entry(),
+            "ghidra_entry_segment_not_unique",
+        ),
+        (
+            "entry @ 00401000 [external entry]",
+            ".text: 00401000 - 004011ff",
+            _pe_with_entry(executable=False),
+            "pe_entry_point_section_not_executable",
+        ),
+    ],
+)
+def test_zero_function_recovery_fails_closed_before_mutation(
+    entry_points: object,
+    segments: object,
+    data: bytes,
+    reason: str,
+) -> None:
+    """entryの0件・複数・不一致・非実行領域ではGhidraを変更しない。"""
+
+    class NoMutationClient:
+        def post(self, *_args: object, **_kwargs: object) -> object:
+            raise AssertionError("検証不成立時にcreate_functionを呼んではならない")
+
+    functions, evidence, private = target._recover_unique_entry_point_function(
+        NoMutationClient(),
+        "/Malware/Test/sample",
+        data,
+        entry_points,
+        segments,
+    )
+
+    assert functions == []
+    assert evidence["status"] == "not_attempted"
+    assert evidence["attempted"] is False
+    assert evidence["reason"] == reason
+    assert private["response"] is None
+
+
+def test_zero_function_recovery_records_mcp_failure_without_raw_publication() -> None:
+    """create失敗は構造化し、MCP error本文を公開program証跡へ移さない。"""
+
+    selector = "/Malware/Test/sample"
+
+    class FailedClient:
+        def post(
+            self,
+            endpoint: str,
+            _body: dict[str, object],
+            **query: object,
+        ) -> object:
+            assert endpoint == "/create_function"
+            assert query == {"program": selector}
+            raise target.GhidraMcpError("private diagnostic")
+
+    _, recovery, private = target._recover_unique_entry_point_function(
+        FailedClient(),
+        selector,
+        _pe_with_entry(),
+        "entry @ 00401000 [external entry]",
+        ".text: 00401000 - 004011ff",
+    )
+    result = {
+        "sha256": "a" * 64,
+        "program_selector": selector,
+        "relationships": [{"depth": 0}],
+        "entry_points": "entry @ 00401000 [external entry]",
+        "entry_point_function_recovery": {
+            **recovery,
+            "response": private["response"],
+            "error": private["error"],
+        },
+        "metadata": {},
+        "functions": [],
+        "opcode_hashes": {"functions": []},
+        "imports": [],
+    }
+
+    evidence = target._program_evidence(result)
+    published = evidence["entry_point_function_recovery"]
+    assert recovery["status"] == "failed"
+    assert recovery["reason"] == "ghidra_create_function_or_inventory_failed"
+    assert "private diagnostic" in str(private["error"])
+    assert "response" not in published
+    assert "error" not in published
+    assert "candidate_addresses" not in published
+    assert "validated_address" not in published
+    assert "address" not in json.dumps(published)
+    assert "private diagnostic" not in json.dumps(evidence)
+    overall = target._build_overall_logic({"functions": [], "call_edges": [], "program_evidence": [evidence]})
+    assert any("ghidra_create_function_or_inventory_failed" in limitation for limitation in overall["limitations_ja"])
+    assert "private diagnostic" not in json.dumps(overall, ensure_ascii=False)
+
+
+def test_zero_function_recovery_rejects_unverified_inventory_after_create() -> None:
+    """create応答だけでは成功扱いせず、内部entry関数がなければ0件へ戻す。"""
+
+    selector = "/Malware/Test/sample"
+
+    class UnverifiedClient:
+        def post(
+            self,
+            endpoint: str,
+            _body: dict[str, object],
+            **query: object,
+        ) -> object:
+            assert endpoint == "/create_function"
+            assert query == {"program": selector}
+            return {"result": "created"}
+
+        def get(self, endpoint: str, **query: object) -> object:
+            assert endpoint == "/list_functions_enhanced"
+            assert query["program"] == selector
+            return {
+                "functions": [
+                    {
+                        "address": "00401000",
+                        "name": "entry",
+                        "isExternal": True,
+                    }
+                ],
+                "count": 1,
+            }
+
+    functions, recovery, _private = target._recover_unique_entry_point_function(
+        UnverifiedClient(),
+        selector,
+        _pe_with_entry(),
+        "entry @ 00401000 [external entry]",
+        ".text: 00401000 - 004011ff",
+    )
+
+    assert functions == []
+    assert recovery["status"] == "failed"
+    assert recovery["reason"] == "created_entry_body_not_unique_in_function_inventory"
+    assert recovery["final_function_count"] == 1
+    assert recovery["validated_entry_body_count"] == 0
 
 
 def test_markdown_does_not_publish_raw_pseudocode() -> None:
@@ -1039,6 +1977,20 @@ def test_private_artifact_validation_requires_all_selected_static_results(
             },
         ],
     }
+    function_coverage = {
+        "endpoint": "/list_functions_enhanced",
+        "program_selector": selector,
+        "page_size": 500,
+        "page_count": 1,
+        "item_count": 2,
+        "terminal_short_page_observed": True,
+        "complete": True,
+        "metadata_function_count": None,
+        "count_matches_metadata": None,
+        "documented_limit": ("metadata_function_count_unavailable_terminal_page_proof_used"),
+    }
+    result["retrieval_coverage"]["functions"] = function_coverage
+    _bind_native_call_graph(result, selector=selector)
     target._json_dump(object_dir / "program-result.json", result)
     target._json_dump(
         object_dir / "ghidra-raw-index.json",
@@ -1058,7 +2010,9 @@ def test_private_artifact_validation_requires_all_selected_static_results(
                     "isThunk": False,
                 },
             ],
-            "call_graph": {},
+            "analysis_mode": "native_ghidra_with_optional_cil",
+            "ghidra_call_graph": json.loads(json.dumps(result["ghidra_call_graph"])),
+            "call_graph": json.loads(json.dumps(result["call_graph"])),
             "imports": [],
             "exports": [],
             "strings": [],
@@ -1110,6 +2064,11 @@ def test_private_artifact_validation_requires_all_selected_static_results(
             },
         },
     )
+    raw_path = object_dir / "ghidra-raw-index.json"
+    raw = target.load_json_object_strict(raw_path)
+    raw["retrieval_coverage"]["functions"] = function_coverage
+    raw["retrieval_coverage"]["call_graph"] = json.loads(json.dumps(result["retrieval_coverage"]["call_graph"]))
+    target._json_dump(raw_path, raw)
     target._append_jsonl(
         object_dir / "decompilations.raw.jsonl",
         [
@@ -1136,6 +2095,7 @@ def test_private_artifact_validation_requires_all_selected_static_results(
 
     assert validation["complete"] is True
     assert validation["totals"] == {
+        "functions_items": 2,
         "imports_items": 0,
         "exports_items": 0,
         "strings_items": 0,
@@ -1173,26 +2133,27 @@ def test_call_graph_augmentation_recovers_internal_import_and_unresolved_edges()
     """Ghidra graphが空でも逆コンパイルcall式から3種のedgeを復元する。"""
 
     digest = "a" * 64
-    result = {
-        "call_graph": {"edge_count": 0, "caller_count": 0, "edges": []},
-        "imports": [{"address": "EXTERNAL:1", "name": "CreateFileW"}],
-        "functions": [
-            {
-                "function_id": f"{digest}:ghidra:0x1000",
-                "name": "entry",
-                "address": "0x1000",
-                "pseudocode": ("void entry(void) { helper(); CreateFileW(); indirect_target(); }"),
-                "analysis_kind": "ghidra_native_or_loader_view",
-            },
-            {
-                "function_id": f"{digest}:ghidra:0x2000",
-                "name": "helper",
-                "address": "0x2000",
-                "pseudocode": "void helper(void) { return; }",
-                "analysis_kind": "ghidra_native_or_loader_view",
-            },
-        ],
-    }
+    result = _bind_native_call_graph(
+        {
+            "imports": [{"address": "EXTERNAL:1", "name": "CreateFileW"}],
+            "functions": [
+                {
+                    "function_id": f"{digest}:ghidra:0x1000",
+                    "name": "entry",
+                    "address": "0x1000",
+                    "pseudocode": ("void entry(void) { helper(); CreateFileW(); indirect_target(); }"),
+                    "analysis_kind": "ghidra_native_or_loader_view",
+                },
+                {
+                    "function_id": f"{digest}:ghidra:0x2000",
+                    "name": "helper",
+                    "address": "0x2000",
+                    "pseudocode": "void helper(void) { return; }",
+                    "analysis_kind": "ghidra_native_or_loader_view",
+                },
+            ],
+        }
+    )
 
     counts = target.augment_program_result_call_graph(result)
 
@@ -1208,6 +2169,244 @@ def test_call_graph_augmentation_recovers_internal_import_and_unresolved_edges()
     assert result["call_graph_augmented_from_decompilation"] is True
     assert result["functions"][0]["api_calls"] == ["CreateFileW"]
     assert result["functions"][1]["callers"] == [f"{digest}:ghidra:0x1000"]
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        None,
+        [],
+        {},
+        {"edges": None},
+        {"edges": "[]"},
+        {"edges": ["not-an-object"]},
+        {"edges": [], "edge_count": 1},
+    ],
+)
+def test_full_call_graph_retrieval_rejects_invalid_response_schema(
+    response: object,
+) -> None:
+    """None、旧shape、非list edge、偽造件数を空graph取得済みにしない。"""
+
+    class Client:
+        def get(self, _endpoint: str, **_query: object) -> object:
+            return response
+
+    with pytest.raises(target.GhidraMcpError, match="get_full_call_graph"):
+        target._get_full_call_graph_with_coverage(
+            Client(),
+            "/Malware/Test/sample",
+        )
+
+
+@pytest.mark.parametrize(
+    "edges",
+    [
+        [],
+        [
+            {
+                "caller_addr": "00401000",
+                "callee_addr": "00402000",
+                "callee_name": "helper",
+            }
+        ],
+    ],
+)
+def test_full_call_graph_retrieval_binds_request_schema_and_edge_count(
+    edges: list[dict[str, object]],
+) -> None:
+    """正常な空graphとedgeありgraphを同じ厳格な取得証跡へ結合する。"""
+
+    calls: list[tuple[str, dict[str, object]]] = []
+
+    class Client:
+        def get(self, endpoint: str, **query: object) -> object:
+            calls.append((endpoint, query))
+            return {"edges": edges}
+
+    selector = "/Malware/Test/sample"
+    graph, coverage = target._get_full_call_graph_with_coverage(
+        Client(),
+        selector,
+    )
+    result = {
+        "program_selector": selector,
+        "analysis_mode": "native_ghidra_with_optional_cil",
+        "ghidra_call_graph": graph,
+        "call_graph": graph,
+        "retrieval_coverage": {"call_graph": coverage},
+    }
+
+    assert calls == [
+        (
+            target.CALL_GRAPH_ENDPOINT,
+            {
+                "format": target.CALL_GRAPH_REQUEST_FORMAT,
+                "limit": target.CALL_GRAPH_REQUEST_LIMIT,
+                "program": selector,
+            },
+        )
+    ]
+    assert graph["edge_count"] == len(edges)
+    assert coverage["edge_count"] == len(edges)
+    assert coverage["response_schema_valid"] is True
+    assert coverage["complete"] is True
+    assert coverage["documented_limit"] is None
+    assert target._call_graph_retrieval_state(result) == "complete"
+
+
+def test_call_graph_coverage_rejects_forged_selector_request_and_edge_count() -> None:
+    """保存後にselector、request、件数を改変した取得証跡を拒否する。"""
+
+    original = _bind_native_call_graph({})
+    mutations = {
+        "program_selector": "/Malware/Test/other",
+        "requested_format": "dot",
+        "requested_limit": 1,
+        "edge_count": 1,
+        "endpoint_invoked": False,
+        "response_schema_valid": False,
+        "complete": False,
+    }
+    for key, value in mutations.items():
+        forged = json.loads(json.dumps(original))
+        forged["retrieval_coverage"]["call_graph"][key] = value
+        assert target._call_graph_retrieval_coverage_complete(forged) is False
+
+    forged_limit_type = json.loads(json.dumps(original))
+    forged_limit_type["retrieval_coverage"]["call_graph"]["requested_limit"] = False
+    assert target._call_graph_retrieval_coverage_complete(forged_limit_type) is False
+
+    forged_graph = json.loads(json.dumps(original))
+    forged_graph["ghidra_call_graph"]["edge_count"] = 1
+    assert target._call_graph_retrieval_coverage_complete(forged_graph) is False
+
+
+def test_managed_call_graph_not_applicable_contract_is_strict() -> None:
+    """managed CIL primaryだけendpoint未呼出のnative非適用契約を許す。"""
+
+    selector = "/Malware/Test/managed"
+    mode = "managed_cil_primary_with_ghidra_structure"
+    graph, coverage = target._managed_call_graph_with_coverage(selector, mode)
+    result = {
+        "program_selector": selector,
+        "analysis_mode": mode,
+        "ghidra_call_graph": graph,
+        "call_graph": graph,
+        "retrieval_coverage": {"call_graph": coverage},
+    }
+    assert target._call_graph_retrieval_state(result) == "managed_not_applicable"
+    assert target._call_graph_retrieval_coverage_complete(result) is True
+
+    for key, value in (
+        ("endpoint_invoked", True),
+        ("response_schema_valid", True),
+        ("requested_format", "json_edges"),
+        ("requested_limit", 0),
+        ("native_graph_applicable", True),
+        ("source", "ghidra_mcp"),
+        ("edge_count", 1),
+        ("complete", False),
+        ("documented_limit", "forged"),
+    ):
+        forged = json.loads(json.dumps(result))
+        forged["retrieval_coverage"]["call_graph"][key] = value
+        assert target._call_graph_retrieval_coverage_complete(forged) is False
+
+    forged_mode = json.loads(json.dumps(result))
+    forged_mode["analysis_mode"] = "native_ghidra_with_optional_cil"
+    assert target._call_graph_retrieval_coverage_complete(forged_mode) is False
+
+    forged_edge_count_type = json.loads(json.dumps(result))
+    forged_edge_count_type["retrieval_coverage"]["call_graph"]["edge_count"] = False
+    assert target._call_graph_retrieval_coverage_complete(forged_edge_count_type) is False
+
+
+@pytest.mark.parametrize(
+    "missing",
+    ["ghidra_call_graph", "call_graph", "retrieval_coverage"],
+)
+def test_call_graph_augmentation_never_synthesizes_missing_acquisition(
+    missing: str,
+) -> None:
+    """旧cacheのgraph・coverage欠落を空の取得済みgraphへ合成しない。"""
+
+    result = _bind_native_call_graph({"functions": [], "imports": []})
+    result.pop(missing)
+    with pytest.raises(target.GhidraMcpError, match="call.?graph"):
+        target.augment_program_result_call_graph(result)
+    assert missing not in result
+
+
+def test_private_call_graph_contract_detects_raw_result_mismatch() -> None:
+    """private raw/resultのgraph、selector、coverage差異を検出する。"""
+
+    result = _bind_native_call_graph({"functions": [], "imports": []})
+    raw = json.loads(json.dumps(result))
+    assert target._private_call_graph_contract_errors(result, raw) == []
+
+    raw["program_selector"] = "/Malware/Test/forged"
+    raw["ghidra_call_graph"]["edge_count"] = 1
+    errors = target._private_call_graph_contract_errors(result, raw)
+    assert any("Ghidra call graphが一致" in error for error in errors)
+    assert any("raw indexに有効なcall graph" in error for error in errors)
+
+
+def test_legacy_partial_call_graph_is_not_published_as_acquired_empty() -> None:
+    """再取得不能の旧cacheはpublic上もacquired_without_edgesにならない。"""
+
+    result = _bind_native_call_graph({"sha256": "a" * 64})
+    result["retrieval_coverage"]["call_graph"] = target._legacy_call_graph_partial_coverage(result)
+    assert target._call_graph_retrieval_state(result) == "legacy_partial"
+    report = {"coverage": {"call_edge_count": 0}, "call_edges": []}
+    acquired = target._merge_acquired_call_graph(report, [result])
+    assert acquired == 0
+    assert report["coverage"]["call_graph_acquisition_status"] == "partial_documented_limit"
+    assert report["coverage"]["acquired_call_graph_edges_normalized"] is False
+
+
+def test_acquired_call_graph_is_preserved_as_opaque_public_edges() -> None:
+    """reapply時に取得済みedgeを0件へ落とさずraw address/nameも公開しない。"""
+
+    digest = "a" * 64
+    report = {"coverage": {"call_edge_count": 0}, "call_edges": []}
+    program_result = _bind_native_call_graph(
+        {"sha256": digest},
+        [
+            {
+                "caller_addr": "00401000",
+                "callee_addr": "00402000",
+                "callee_name": "internal_secret_name",
+            },
+            {
+                "caller_addr": "00401000",
+                "callee_addr": "",
+                "callee_name": "InternetOpenW",
+            },
+        ],
+    )
+    program_result["call_graph"] = {
+        **program_result["ghidra_call_graph"],
+        "edges": [
+            {**edge, "source": "ghidra_full_call_graph"} for edge in program_result["ghidra_call_graph"]["edges"]
+        ],
+    }
+    acquired = target._merge_acquired_call_graph(
+        report,
+        [program_result],
+    )
+
+    assert acquired == 2
+    assert len(report["call_edges"]) == 2
+    assert report["coverage"]["call_edge_count"] == 2
+    assert report["coverage"]["call_graph_recorded"] is True
+    assert report["coverage"]["acquired_call_graph_edges_normalized"] is True
+    assert report["coverage"]["call_graph_acquisition_status"] == "acquired_with_edges"
+    rendered = json.dumps(report, ensure_ascii=False)
+    assert "00401000" not in rendered
+    assert "00402000" not in rendered
+    assert "internal_secret_name" not in rendered
+    assert "InternetOpenW" not in rendered
 
 
 def test_validate_prepared_scope_requires_exact_collection(tmp_path: Path) -> None:
@@ -1438,16 +2637,9 @@ def test_load_prepared_inputs_rejects_external_hardlink_cache(
 
     data = b"MZ-external-hardlink"
     digest = hashlib.sha256(data).hexdigest()
-    short_root = tmp_path.parents[2] / (
-        "cache-hardlink-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8]
-    )
+    short_root = tmp_path.parents[2] / ("cache-hardlink-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8])
     sample_root = short_root / "s"
-    input_path = (
-        sample_root
-        / digest
-        / "ghidra-input"
-        / f"{digest}.quarantine.bin"
-    )
+    input_path = sample_root / digest / "ghidra-input" / f"{digest}.quarantine.bin"
     input_path.parent.mkdir(parents=True)
     external = short_root / "external-cache.bin"
     external.parent.mkdir(parents=True, exist_ok=True)
@@ -1757,9 +2949,7 @@ def test_private_jsonl_streaming_positive_and_replace(tmp_path: Path) -> None:
     assert loaded["0x2"]["value"] == "second"
 
     target._replace_jsonl(path, [{"address": "0x3", "value": "replacement"}])
-    assert target._load_jsonl(path) == {
-        "0x3": {"address": "0x3", "value": "replacement"}
-    }
+    assert target._load_jsonl(path) == {"0x3": {"address": "0x3", "value": "replacement"}}
     assert target.MAX_PRIVATE_RAW_BYTES <= 64 * 1024 * 1024
 
 
@@ -1794,11 +2984,7 @@ def test_private_jsonl_line_and_record_limits(
 
     monkeypatch.setattr(target, "MAX_PRIVATE_RAW_LINE_BYTES", 4_096)
     monkeypatch.setattr(target, "MAX_PRIVATE_RAW_RECORDS", 2)
-    path.write_bytes(
-        b'{"address":"0x1"}\n'
-        b'{"address":"0x2"}\n'
-        b'{"address":"0x3"}\n'
-    )
+    path.write_bytes(b'{"address":"0x1"}\n{"address":"0x2"}\n{"address":"0x3"}\n')
     with pytest.raises(ValueError, match="record数上限"):
         target._bounded_jsonl_snapshot(path)
 
@@ -1847,9 +3033,7 @@ def test_private_jsonl_generator_size_over_preserves_existing_bytes(
     target._append_jsonl(path, [{"address": "0x1"}])
     before = path.read_bytes()
     extra = {"address": "0x2"}
-    encoded_extra = (
-        json.dumps(extra, ensure_ascii=False, sort_keys=True, allow_nan=False) + "\n"
-    ).encode("utf-8")
+    encoded_extra = (json.dumps(extra, ensure_ascii=False, sort_keys=True, allow_nan=False) + "\n").encode("utf-8")
     monkeypatch.setattr(
         target,
         "MAX_PRIVATE_RAW_BYTES",
@@ -1885,6 +3069,7 @@ def test_private_jsonl_streaming_does_not_use_whole_snapshot_helper(
     target._append_jsonl(path, [{"address": "0x2"}])
     assert sorted(target._load_jsonl(path)) == ["0x1", "0x2"]
 
+
 def test_private_jsonl_parse_rehash_rejects_mixed_view_with_restored_metadata(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1918,7 +3103,6 @@ def test_private_jsonl_parse_rehash_rejects_mixed_view_with_restored_metadata(
     with pytest.raises(ValueError, match="競合変更"):
         target._bounded_jsonl_snapshot(path)
     assert calls == 1
-
 
 
 def test_private_jsonl_atomic_rewrite_rejects_identity_swap(
@@ -1966,6 +3150,22 @@ def test_staging_lock_blocks_path_swap_during_import_window(tmp_path: Path) -> N
     assert snapshot.path.read_bytes() == data
 
 
+def test_ghidra_case_publication_lock_rejects_parallel_writer(
+    tmp_path: Path,
+) -> None:
+    """同一caseのrecovery・shadow・WAL commitを別writerと重ねない。"""
+
+    case_dir = tmp_path / ("a" * 64)
+    case_dir.mkdir()
+    with target._GhidraCasePublicationLock(case_dir):
+        with pytest.raises(ValueError, match="既に実行中"):
+            with target._GhidraCasePublicationLock(case_dir):
+                pass
+
+    with target._GhidraCasePublicationLock(case_dir):
+        pass
+
+
 def test_finalize_case_report_promotes_only_function_analysis_blocker(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2008,6 +3208,8 @@ def test_finalize_case_report_promotes_only_function_analysis_blocker(
     }
     assert analysis_contract.verify_report_semantics(refreshed) == []
     assert validation_calls == [{"expected_digest": digest, "require_resumable": False}]
+
+
 def test_finalize_case_report_preserves_unresolved_orchestration(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2086,11 +3288,7 @@ def test_finalize_case_report_preserves_unresolved_orchestration(
         "resumable": False,
         "blockers": [],
     }
-    assert refreshed["artifact_sha256"]["orchestration.json"] == hashlib.sha256(
-        orchestration_before
-    ).hexdigest()
-
-
+    assert refreshed["artifact_sha256"]["orchestration.json"] == hashlib.sha256(orchestration_before).hexdigest()
 
 
 def _write_finalize_orchestration_fixture(
@@ -2238,6 +3436,290 @@ def _write_orchestration_finalize_report(
     target._json_dump(case_dir / "report.json", report)
 
 
+def test_reseal_uses_separate_case_wide_manifest_and_detects_extra_file_tamper(
+    tmp_path: Path,
+) -> None:
+    """schema許可manifestを拡張せず、全case fileをreport sealへ別途結合する。"""
+
+    digest = "9" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    _write_finalize_orchestration_fixture(
+        case_dir,
+        family="njrat",
+        terminal_payload_missing=False,
+    )
+    _write_orchestration_finalize_report(
+        case_dir,
+        family="njrat",
+        blockers=[target.ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER],
+    )
+    (case_dir / "README.md").write_text("# original\n", encoding="utf-8")
+
+    report, _snapshot = target._reseal_shadow_case(case_dir)
+
+    assert set(report["artifact_sha256"]) == {
+        "static-logic.json",
+        "orchestration.json",
+    }
+    assert set(report["case_wide_artifact_sha256"]) == {
+        "static-logic.json",
+        "orchestration.json",
+        "README.md",
+    }
+    assert analysis_contract.verify_report_semantics(report) == []
+    (case_dir / "README.md").write_text("# tampered\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="case-wide成果物hash"):
+        target._load_verified_case_report(case_dir)
+
+
+def _write_screenconnect_management_finalize_fixture(case_dir: Path) -> None:
+    """Ghidra後に管理endpoint契約を再評価できるpartial caseを作る。"""
+
+    digest = case_dir.name
+    _write_finalize_orchestration_fixture(
+        case_dir,
+        family="screenconnect_rmm",
+        terminal_payload_missing=False,
+    )
+    _write_orchestration_finalize_report(
+        case_dir,
+        family="screenconnect_rmm",
+        blockers=[target.ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER],
+    )
+    handler_id = "screenconnect_rmm:fixture:extract_config"
+    payload = {
+        "schema_version": 1,
+        "family": "ScreenConnect RMM",
+        "classification": "commercial_rmm_dual_use",
+        "malware_by_itself": False,
+        "abuse_attribution": "not_established",
+        "artifact_role": "access_agent_installer",
+        "logic": ["埋め込み管理先を静的に回収"],
+        "network_contacted": False,
+        "sample_executed": False,
+        "malicious_use_context": {
+            "assessment": "requires_incident_context",
+            "malicious_use_confirmed": False,
+            "unauthorized_installation_observed": False,
+            "embedded_management_endpoint_observed": True,
+            "requires_authorization_and_delivery_context": True,
+        },
+        "relay": {
+            "host": "192.0.2.12",
+            "port": 8041,
+            "transport": "tcp_tls",
+            "role": "remote_management_relay",
+            "c2_classification": "dual_use_not_c2_by_itself",
+            "tenant_key_sha256": "b" * 64,
+            "tenant_key_length": 407,
+            "redacted_query": "?h=192.0.2.12&p=8041&k=<redacted>",
+        },
+    }
+    quality = analysis_contract.handler_result_quality(payload)
+    assert quality["sufficient"] is True
+    execution = {
+        "handler_id": handler_id,
+        "status": "succeeded",
+        "selected_evidence": quality,
+        "selected_layer_sha256": digest,
+        "result": "handlers/screenconnect.json",
+    }
+    artifact = {
+        "handler": {"id": handler_id, "family": "screenconnect_rmm"},
+        "result": payload,
+        "selected_evidence": quality,
+        "executed_sample": False,
+        "network_contacted": False,
+    }
+    target._json_dump(
+        case_dir / "static-layers.json",
+        {
+            "counts": {"recovered_layers": 128, "limit_events": 0},
+            "limit_events": [],
+        },
+    )
+    (case_dir / "handlers").mkdir()
+    target._json_dump(case_dir / execution["result"], artifact)
+    target._json_dump(
+        case_dir / "communication-patterns.json",
+        {"schema_version": 1, "sha256": digest, "status": "pending"},
+    )
+    target._json_dump(
+        case_dir / "c2-analysis.json",
+        {"schema_version": 1, "sha256": digest, "status": "pending"},
+    )
+    report = target.load_json_object_strict(case_dir / "report.json")
+    report["handler_executions"] = [execution]
+    report["knowledge_artifacts"] = {
+        "communication_patterns": "communication-patterns.json",
+        "c2_analysis": "c2-analysis.json",
+    }
+    report["artifact_sha256"].update(
+        {
+            relative: hashlib.sha256((case_dir / relative).read_bytes()).hexdigest()
+            for relative in (
+                "static-layers.json",
+                execution["result"],
+                "communication-patterns.json",
+                "c2-analysis.json",
+            )
+        }
+    )
+    analysis_contract.seal_report(report)
+    target._json_dump(case_dir / "report.json", report)
+
+
+def test_finalize_case_report_atomically_rebuilds_screenconnect_management_contract(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """pre-Ghidra pending C2を完了gateと同じtransactionで再構築する。"""
+
+    digest = "1" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    _write_screenconnect_management_finalize_fixture(case_dir)
+    pending_c2 = (case_dir / "c2-analysis.json").read_bytes()
+    observed_commits: list[tuple[bytes, bytes]] = []
+    monkeypatch.setattr(
+        target,
+        "validate_function_case",
+        lambda *_args: SimpleNamespace(valid=True, findings=[]),
+    )
+
+    def no_integrity_errors(*_args: object, **_kwargs: object) -> list[str]:
+        observed_commits.append(
+            (
+                (case_dir / "communication-patterns.json").read_bytes(),
+                (case_dir / "c2-analysis.json").read_bytes(),
+            )
+        )
+        return []
+
+    monkeypatch.setattr(target, "case_integrity_errors", no_integrity_errors)
+
+    assert target.finalize_case_report(case_dir) == "complete"
+    assert len(observed_commits) == 1
+    assert observed_commits[0][1] != pending_c2
+    patterns = target.load_json_object_strict(case_dir / "communication-patterns.json")
+    contract = target.load_json_object_strict(case_dir / "c2-analysis.json")
+    orchestration = target.load_json_object_strict(case_dir / "orchestration.json")
+    report = target.load_json_object_strict(case_dir / "report.json")
+    assert len(patterns["communication"]["confirmed_static_management_endpoints"]) == 1
+    assert patterns["communication"]["confirmed_static_c2_endpoints"] == []
+    assert contract["c2"]["outcome"] == "no_c2_capability_verified"
+    assert contract["c2"]["endpoints"] == []
+    assert contract["deep_analysis"]["blockers"] == []
+    expected_terminal = {
+        "status": "recovered",
+        "root_sha256": digest,
+        "role": "terminal_managed_client",
+        "basis": "validated_static_root_screenconnect_client",
+        "claimed_sha256": [],
+        "candidates": [],
+        "retained": [],
+        "verified": [],
+    }
+    assert orchestration["outputs"]["terminal_payload"] == expected_terminal
+    assert orchestration["candidate_outputs"]["terminal_payload"] == expected_terminal
+    for relative in ("communication-patterns.json", "c2-analysis.json"):
+        assert report["artifact_sha256"][relative] == hashlib.sha256((case_dir / relative).read_bytes()).hexdigest()
+    assert analysis_contract.verify_report_semantics(report) == []
+
+
+def test_finalize_case_report_rolls_back_screenconnect_contract_transaction(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """後段integrity失敗時はC2/通信を含む全更新成果物を元bytesへ戻す。"""
+
+    digest = "2" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    _write_screenconnect_management_finalize_fixture(case_dir)
+    names = (
+        "orchestration.json",
+        "communication-patterns.json",
+        "c2-analysis.json",
+        "report.json",
+    )
+    before = {name: (case_dir / name).read_bytes() for name in names}
+    monkeypatch.setattr(
+        target,
+        "validate_function_case",
+        lambda *_args: SimpleNamespace(valid=True, findings=[]),
+    )
+    monkeypatch.setattr(
+        target,
+        "case_integrity_errors",
+        lambda *_args, **_kwargs: ["injected_screenconnect_integrity_failure"],
+    )
+
+    with pytest.raises(ValueError, match="injected_screenconnect_integrity_failure"):
+        target.finalize_case_report(case_dir)
+    assert {name: (case_dir / name).read_bytes() for name in names} == before
+    assert list(case_dir.glob(".*.tmp")) == []
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("missing_executions", "handler実行記録"),
+        ("no_success", "成功handler証拠"),
+        ("invalid_config", "config証拠を再検証"),
+    ],
+)
+def test_finalize_case_report_rejects_complete_screenconnect_without_contract_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+    message: str,
+) -> None:
+    """完了へ遷移するScreenConnectはstrict C2再構築不能なら書き込まない。"""
+
+    digest = hashlib.sha256(mutation.encode("ascii")).hexdigest()
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    _write_screenconnect_management_finalize_fixture(case_dir)
+    report_path = case_dir / "report.json"
+    report = target.load_json_object_strict(report_path)
+    if mutation == "missing_executions":
+        del report["handler_executions"]
+    elif mutation == "no_success":
+        report["handler_executions"][0]["status"] = "no_evidence"
+    else:
+        relative = report["handler_executions"][0]["result"]
+        artifact_path = case_dir / relative
+        artifact = target.load_json_object_strict(artifact_path)
+        artifact["result"]["relay"]["tenant_key_length"] = 0
+        target._json_dump(artifact_path, artifact)
+        report["artifact_sha256"][relative] = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+    analysis_contract.seal_report(report)
+    target._json_dump(report_path, report)
+    names = (
+        "orchestration.json",
+        "communication-patterns.json",
+        "c2-analysis.json",
+        "report.json",
+    )
+    before = {name: (case_dir / name).read_bytes() for name in names}
+    monkeypatch.setattr(
+        target,
+        "validate_function_case",
+        lambda *_args: SimpleNamespace(valid=True, findings=[]),
+    )
+    monkeypatch.setattr(
+        target,
+        "case_integrity_errors",
+        lambda *_args, **_kwargs: pytest.fail("strict C2再構築失敗後にcommitしない"),
+    )
+
+    with pytest.raises(ValueError, match=message):
+        target.finalize_case_report(case_dir)
+    assert {name: (case_dir / name).read_bytes() for name in names} == before
+
+
 def test_finalize_case_report_reconciles_njrat_orchestration_to_complete(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2268,11 +3750,7 @@ def test_finalize_case_report_reconciles_njrat_orchestration_to_complete(
             "extension",
         )
     }
-    preserved_gates = {
-        name: gate
-        for name, gate in outcome["quality_gates"].items()
-        if name != "function_analysis"
-    }
+    preserved_gates = {name: gate for name, gate in outcome["quality_gates"].items() if name != "function_analysis"}
     validation_calls: list[tuple[Path, str]] = []
     integrity_calls: list[dict[str, object]] = []
 
@@ -2301,9 +3779,7 @@ def test_finalize_case_report_reconciles_njrat_orchestration_to_complete(
     assert refreshed_outcome["next_actions_ja"] == []
     assert {name: refreshed_outcome[name] for name in preserved} == preserved
     assert {
-        name: gate
-        for name, gate in refreshed_outcome["quality_gates"].items()
-        if name != "function_analysis"
+        name: gate for name, gate in refreshed_outcome["quality_gates"].items() if name != "function_analysis"
     } == preserved_gates
     assert refreshed_report["case_state"] == {
         "status": "complete",
@@ -2317,6 +3793,81 @@ def test_finalize_case_report_reconciles_njrat_orchestration_to_complete(
     assert analysis_contract.verify_report_semantics(refreshed_report) == []
     assert validation_calls == [(case_dir, digest)]
     assert integrity_calls == [{"expected_digest": digest, "require_resumable": True}]
+
+
+def test_finalize_case_report_atomically_reconciles_documented_generic_triage_gate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ghidraで補完済みの汎用triageをreportとorchestrationの両方へ反映する。"""
+
+    digest = "b" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    outcome = _write_finalize_orchestration_fixture(
+        case_dir,
+        family="njrat",
+        terminal_payload_missing=False,
+    )
+    outcome["quality_gates"]["generic_triage"] = {
+        "required": True,
+        "satisfied": False,
+        "observed": None,
+        "status": "required_missing",
+    }
+    outcome["blockers"] = ["function_analysis", "generic_triage"]
+    outcome["next_actions_ja"] = [
+        target.FUNCTION_ANALYSIS_NEXT_ACTION_JA,
+        target.GENERIC_TRIAGE_NEXT_ACTION_JA,
+    ]
+    target._json_dump(case_dir / "orchestration.json", outcome)
+    _write_orchestration_finalize_report(
+        case_dir,
+        family="njrat",
+        blockers=[
+            "generic_triage_partial",
+            target.ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER,
+            target.ORCHESTRATION_GENERIC_TRIAGE_BLOCKER,
+        ],
+    )
+    report = target.load_json_object_strict(case_dir / "report.json")
+    report["generic_triage"] = "partial"
+    analysis_contract.seal_report(report)
+    target._json_dump(case_dir / "report.json", report)
+
+    monkeypatch.setattr(
+        target,
+        "validate_function_case",
+        lambda path, sha256: SimpleNamespace(valid=True, findings=[]),
+    )
+    monkeypatch.setattr(target, "case_integrity_errors", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        target,
+        "_ghidra_documents_known_generic_container_limits",
+        lambda path: ["fixture:ole_inventory_and_executable_children_recovered"],
+    )
+
+    assert target.finalize_case_report(case_dir) == "complete"
+    refreshed_outcome = target.load_json_object_strict(case_dir / "orchestration.json")
+    refreshed_report = target.load_json_object_strict(case_dir / "report.json")
+    assert refreshed_outcome["quality_gates"]["generic_triage"] == {
+        "required": True,
+        "satisfied": True,
+        "observed": None,
+        "status": "satisfied",
+    }
+    assert refreshed_outcome["quality_gates"]["function_analysis"]["satisfied"] is True
+    assert refreshed_outcome["blockers"] == []
+    assert refreshed_outcome["next_actions_ja"] == []
+    assert refreshed_outcome["status"] == "complete"
+    assert refreshed_report["generic_triage"] == "complete"
+    assert refreshed_report["case_state"] == {
+        "status": "complete",
+        "complete": True,
+        "resumable": True,
+        "blockers": [],
+    }
+    assert analysis_contract.verify_report_semantics(refreshed_report) == []
 
 
 def test_finalize_case_report_preserves_dotnet_terminal_payload_blocker(
@@ -2333,11 +3884,7 @@ def test_finalize_case_report_preserves_dotnet_terminal_payload_blocker(
         family="dotnet_resource_loader",
         terminal_payload_missing=True,
     )
-    preserved_gates = {
-        name: gate
-        for name, gate in outcome["quality_gates"].items()
-        if name != "function_analysis"
-    }
+    preserved_gates = {name: gate for name, gate in outcome["quality_gates"].items() if name != "function_analysis"}
     preserved_outputs = outcome["outputs"]
     preserved_resolution = outcome["family_resolution"]
     _write_orchestration_finalize_report(
@@ -2360,13 +3907,9 @@ def test_finalize_case_report_preserves_dotnet_terminal_payload_blocker(
     refreshed_report = target.load_json_object_strict(case_dir / "report.json")
     assert refreshed_outcome["status"] == "partial"
     assert refreshed_outcome["blockers"] == ["terminal_payload"]
-    assert refreshed_outcome["next_actions_ja"] == [
-        "後段payloadの静的復元処理を追加してください。"
-    ]
+    assert refreshed_outcome["next_actions_ja"] == ["後段payloadの静的復元処理を追加してください。"]
     assert {
-        name: gate
-        for name, gate in refreshed_outcome["quality_gates"].items()
-        if name != "function_analysis"
+        name: gate for name, gate in refreshed_outcome["quality_gates"].items() if name != "function_analysis"
     } == preserved_gates
     assert refreshed_outcome["outputs"] == preserved_outputs
     assert refreshed_outcome["family_resolution"] == preserved_resolution
@@ -2376,9 +3919,10 @@ def test_finalize_case_report_preserves_dotnet_terminal_payload_blocker(
         "resumable": False,
         "blockers": ["orchestration:terminal_payload"],
     }
-    assert refreshed_report["artifact_sha256"]["orchestration.json"] == hashlib.sha256(
-        (case_dir / "orchestration.json").read_bytes()
-    ).hexdigest()
+    assert (
+        refreshed_report["artifact_sha256"]["orchestration.json"]
+        == hashlib.sha256((case_dir / "orchestration.json").read_bytes()).hexdigest()
+    )
     assert analysis_contract.verify_report_semantics(refreshed_report) == []
 
 
@@ -2562,9 +4106,7 @@ def test_bounded_json_snapshot_rejects_oversize(
 
     def reject_oversize(candidate: Path, *, max_bytes: int) -> bytes:
         observed.append((candidate, max_bytes))
-        raise ValueError(
-            f"成果物が{max_bytes} bytes上限を超えています: {candidate}"
-        )
+        raise ValueError(f"成果物が{max_bytes} bytes上限を超えています: {candidate}")
 
     monkeypatch.setattr(
         target,
@@ -2575,6 +4117,245 @@ def test_bounded_json_snapshot_rejects_oversize(
     with pytest.raises(ValueError, match="bytes上限を超えています"):
         target._bounded_json_snapshot(path)
     assert observed == [(path, 64 * 1024 * 1024)]
+
+
+@pytest.mark.parametrize("applied_count", range(12))
+def test_case_wide_wal_recovers_every_json_and_markdown_write_boundary(
+    tmp_path: Path,
+    applied_count: int,
+) -> None:
+    """全公開成果物の任意write直後に停止しても旧完全状態へ戻る。"""
+
+    digest = "6" * 64
+    case_dir = tmp_path / "public" / digest
+    case_dir.mkdir(parents=True)
+    names = sorted(target.CASE_WIDE_PUBLICATION_REQUIRED)
+    assert len(names) == 11
+    old = {}
+    new = {}
+    versions = []
+    for index, name in enumerate(names):
+        old[name] = (
+            f'{{"generation":"old","index":{index}}}\n'.encode()
+            if name.endswith(".json")
+            else f"# old {index}\n".encode()
+        )
+        new[name] = (
+            f'{{"generation":"new","index":{index}}}\n'.encode()
+            if name.endswith(".json")
+            else f"# new {index}\n".encode()
+        )
+        path = case_dir / name
+        path.write_bytes(old[name])
+        versions.append((target._bounded_content_snapshot(path), new[name]))
+    transaction_root = tmp_path / "private-transactions"
+    transaction_dir = target._begin_finalize_transaction(
+        case_dir,
+        versions,
+        transaction_root=transaction_root,
+        case_wide=True,
+    )
+    target._set_finalize_transaction_phase(
+        transaction_dir,
+        phase="applying",
+        applied_count=0,
+    )
+    for index, (snapshot, data) in enumerate(
+        versions[:applied_count],
+        start=1,
+    ):
+        target._atomic_replace_bytes(snapshot.path, data, expected_snapshot=snapshot)
+        target._set_finalize_transaction_phase(
+            transaction_dir,
+            phase="applying",
+            applied_count=index,
+        )
+
+    assert (
+        target._recover_finalize_transaction(
+            case_dir,
+            transaction_root=transaction_root,
+        )
+        == "rolled_back"
+    )
+    assert {name: (case_dir / name).read_bytes() for name in names} == old
+    assert not transaction_dir.exists()
+
+
+def test_case_wide_wal_verified_state_rolls_forward_and_rejects_tamper(
+    tmp_path: Path,
+) -> None:
+    """verified WALは新完全状態を保持し、未知bytes混入時はfail-closedに停止する。"""
+
+    digest = "5" * 64
+    case_dir = tmp_path / "public" / digest
+    case_dir.mkdir(parents=True)
+    paths = [case_dir / "report.json", case_dir / "README.md"]
+    for index, path in enumerate(paths):
+        path.write_bytes(f"old-{index}\n".encode())
+    versions = [(target._bounded_content_snapshot(path), f"new-{index}\n".encode()) for index, path in enumerate(paths)]
+    transaction_root = tmp_path / "private-transactions"
+    transaction_dir = target._begin_finalize_transaction(
+        case_dir,
+        versions,
+        transaction_root=transaction_root,
+    )
+    for snapshot, data in versions:
+        target._atomic_replace_bytes(snapshot.path, data, expected_snapshot=snapshot)
+    target._set_finalize_transaction_phase(
+        transaction_dir,
+        phase="verified",
+        applied_count=len(versions),
+    )
+    assert (
+        target._recover_finalize_transaction(
+            case_dir,
+            transaction_root=transaction_root,
+        )
+        == "rolled_forward"
+    )
+    assert [path.read_bytes() for path in paths] == [b"new-0\n", b"new-1\n"]
+
+    snapshots = [target._bounded_content_snapshot(path) for path in paths]
+    transaction_dir = target._begin_finalize_transaction(
+        case_dir,
+        [(snapshot, f"next-{index}\n".encode()) for index, snapshot in enumerate(snapshots)],
+        transaction_root=transaction_root,
+    )
+    paths[0].write_bytes(b"third-party\n")
+    with pytest.raises(ValueError, match="第三者変更"):
+        target._recover_finalize_transaction(
+            case_dir,
+            transaction_root=transaction_root,
+        )
+    assert transaction_dir.is_dir()
+    assert paths[0].read_bytes() == b"third-party\n"
+
+
+@pytest.mark.parametrize("tamper_kind", ["file", "directory"])
+def test_case_wide_wal_rejects_untracked_tree_entry(
+    tmp_path: Path,
+    tamper_kind: str,
+) -> None:
+    """WAL作成後の未追跡file／directory追加を第三者変更として拒否する。"""
+
+    case_dir = tmp_path / "public" / ("4" * 64)
+    case_dir.mkdir(parents=True)
+    paths = [case_dir / "report.json", case_dir / "README.md"]
+    for index, path in enumerate(paths):
+        path.write_bytes(f"old-{index}\n".encode())
+    versions = [(target._bounded_content_snapshot(path), f"new-{index}\n".encode()) for index, path in enumerate(paths)]
+    transaction_root = tmp_path / "private-transactions"
+    transaction_dir = target._begin_finalize_transaction(
+        case_dir,
+        versions,
+        transaction_root=transaction_root,
+        case_wide=True,
+    )
+    if tamper_kind == "file":
+        (case_dir / "untracked.txt").write_text("third-party\n", encoding="utf-8")
+    else:
+        (case_dir / "untracked-directory").mkdir()
+
+    with pytest.raises(ValueError, match="第三者変更"):
+        target._recover_finalize_transaction(
+            case_dir,
+            transaction_root=transaction_root,
+        )
+    assert transaction_dir.is_dir()
+    assert [path.read_bytes() for path in paths] == [b"old-0\n", b"old-1\n"]
+
+
+def test_finalize_wal_cleanup_crash_discards_journal_less_snapshots(
+    tmp_path: Path,
+) -> None:
+    """完了後cleanupでjournalだけ消えた状態は次回安全に破棄できる。"""
+
+    case_dir = tmp_path / "public" / ("3" * 64)
+    case_dir.mkdir(parents=True)
+    path = case_dir / "report.json"
+    path.write_bytes(b"old\n")
+    transaction_root = tmp_path / "private-transactions"
+    transaction_dir = target._begin_finalize_transaction(
+        case_dir,
+        [(target._bounded_content_snapshot(path), b"new\n")],
+        transaction_root=transaction_root,
+        case_wide=True,
+    )
+    (transaction_dir / target.FINALIZE_TRANSACTION_JOURNAL).unlink()
+
+    assert (
+        target._recover_finalize_transaction(
+            case_dir,
+            transaction_root=transaction_root,
+        )
+        == "discarded_uncommitted"
+    )
+    assert path.read_bytes() == b"old\n"
+    assert not transaction_dir.exists()
+
+
+@pytest.mark.parametrize("location", ["live", "journal", "snapshot"])
+def test_finalize_wal_recovers_atomic_temp_write_interruption(
+    tmp_path: Path,
+    location: str,
+) -> None:
+    """live成果物／journal／snapshotのtemp書込み中断を次回安全に掃除する。"""
+
+    case_dir = tmp_path / "public" / ("2" * 64)
+    case_dir.mkdir(parents=True)
+    path = case_dir / "report.json"
+    path.write_bytes(b"old\n")
+    transaction_root = tmp_path / "private-transactions"
+    transaction_dir = target._begin_finalize_transaction(
+        case_dir,
+        [(target._bounded_content_snapshot(path), b"new\n")],
+        transaction_root=transaction_root,
+        case_wide=True,
+    )
+    if location == "live":
+        interrupted = case_dir / ".ghidra-finalize-0000.tmp"
+    elif location == "journal":
+        interrupted = transaction_dir / ".journal.json.tmp"
+    else:
+        interrupted = transaction_dir / ".0000.new.snapshot.tmp"
+    interrupted.write_bytes(b"partial atomic write")
+
+    assert (
+        target._recover_finalize_transaction(
+            case_dir,
+            transaction_root=transaction_root,
+        )
+        == "rolled_back"
+    )
+    assert path.read_bytes() == b"old\n"
+    assert not interrupted.exists()
+    assert not transaction_dir.exists()
+
+
+def test_finalize_wal_discards_prejournal_atomic_temp_interruption(
+    tmp_path: Path,
+) -> None:
+    """journal作成前のsnapshot tempだけが残るhard killも旧状態へ収束する。"""
+
+    case_dir = tmp_path / "public" / ("1" * 64)
+    case_dir.mkdir(parents=True)
+    path = case_dir / "report.json"
+    path.write_bytes(b"old\n")
+    transaction_root = tmp_path / "private-transactions"
+    transaction_dir = transaction_root / case_dir.name
+    transaction_dir.mkdir(parents=True)
+    (transaction_dir / ".0000.old.snapshot.tmp").write_bytes(b"partial")
+
+    assert (
+        target._recover_finalize_transaction(
+            case_dir,
+            transaction_root=transaction_root,
+        )
+        == "discarded_uncommitted"
+    )
+    assert path.read_bytes() == b"old\n"
+    assert not transaction_dir.exists()
 
 
 def test_finalize_case_report_accepts_ghidra_superseded_string_limit(
@@ -2656,75 +4437,394 @@ def _write_complete_generic_container_fixture(
 ) -> tuple[str, str]:
     """container委譲の既知制限fixtureを作成する。"""
 
-    layer_sha = "8" * 64
-    child_sha = "9" * 64
+    root_sha = case_dir.name
+    layer_sha = hashlib.sha256(f"{root_sha}:{layer_format}:container".encode()).hexdigest()
+    child_sha = hashlib.sha256(f"{root_sha}:canonical-child".encode()).hexdigest()
+    cab_sha = hashlib.sha256(f"{root_sha}:ole-cab".encode()).hexdigest()
+    data_sha = hashlib.sha256(f"{root_sha}:ole-data".encode()).hexdigest()
+    cab_data_sha = hashlib.sha256(f"{root_sha}:cab-data".encode()).hexdigest()
+    recovered_only_sha = hashlib.sha256(f"{root_sha}:ole-recovered-only".encode()).hexdigest()
+    root_layer = {
+        "depth": 0,
+        "format": "pe",
+        "name": "root.exe",
+        "parent_sha256": None,
+        "sha256": root_sha,
+        "size": 1000,
+        "transform": "submission",
+    }
+    container_layer = {
+        "depth": 1,
+        "format": layer_format,
+        "name": f"root.exe::{layer_format}",
+        "parent_sha256": root_sha,
+        "sha256": layer_sha,
+        "size": 300,
+        "transform": f"embedded-{layer_format}",
+    }
     result: dict[str, object] = {
         "analysis_coverage": {"status": "partial", "issues": [coverage_issue]},
+        "sha256": layer_sha,
+        "size": 300,
         "type": layer_format,
     }
     if layer_format == "rar":
         result["format_specific_analysis"] = "delegated_to_static_layer_pipeline"
+    elif layer_format == "ole":
+        result["format_specific_analysis"] = "not_implemented"
+
+    layers: list[dict[str, object]] = [root_layer]
+    generic_entries: list[dict[str, object]] = []
+    steps: list[dict[str, object]] = []
+    root_children: list[dict[str, object]] = []
+    container_children: list[dict[str, object]] = []
+    if layer_format == "ole":
+        child_layer = {
+            "depth": 1,
+            "format": child_format,
+            "name": "root.exe::canonical-child",
+            "parent_sha256": root_sha,
+            "sha256": child_sha,
+            "size": 100,
+            "transform": "embedded-pe",
+        }
+        cab_layer = {
+            "depth": 2,
+            "format": "cab",
+            "name": "root.exe::ole::cab",
+            "parent_sha256": layer_sha,
+            "sha256": cab_sha,
+            "size": 200,
+            "transform": "ole-cab-stream",
+        }
+        recovered_only_layer = {
+            "depth": 2,
+            "format": "pe",
+            "name": "root.exe::ole::recovered-only.exe",
+            "parent_sha256": layer_sha,
+            "sha256": recovered_only_sha,
+            "size": 120,
+            "transform": "embedded-pe",
+        }
+        layers.extend((child_layer, container_layer, cab_layer, recovered_only_layer))
+        root_children.extend((child_layer, container_layer))
+        container_children.extend((cab_layer, recovered_only_layer))
+        for complete_layer in (child_layer, cab_layer, recovered_only_layer):
+            generic_entries.append(
+                {
+                    "status": "complete",
+                    "issues": [],
+                    "layer": complete_layer,
+                    "result": {
+                        "analysis_coverage": {"status": "complete", "issues": []},
+                        "sha256": complete_layer["sha256"],
+                        "size": complete_layer["size"],
+                        "type": complete_layer["format"],
+                    },
+                }
+            )
+        ole_report = {
+            "executed": False,
+            "network_contacted": False,
+            "status": "artifacts_recovered",
+            "stream_count": 3,
+            "inspected_total_size": 350,
+            "inventory": [
+                {
+                    "format": "cab",
+                    "name": "payload.cab",
+                    "sha256": cab_sha,
+                    "size": 200,
+                    "status": "inspected",
+                },
+                {
+                    "format": child_format,
+                    "name": "payload.exe",
+                    "sha256": child_sha,
+                    "size": 100,
+                    "status": "inspected",
+                },
+                {
+                    "format": "data",
+                    "name": "metadata.bin",
+                    "sha256": data_sha,
+                    "size": 50,
+                    "status": "inspected",
+                },
+            ],
+        }
+        steps.extend(
+            (
+                {
+                    "status": "succeeded",
+                    "input_layer": child_layer,
+                    "accepted_children": [],
+                    "report": {
+                        "executed": False,
+                        "network_contacted": False,
+                        "recovered": [],
+                    },
+                },
+                {
+                    "status": "succeeded",
+                    "input_layer": container_layer,
+                    "accepted_children": container_children,
+                    "report": {
+                        "executed": False,
+                        "network_contacted": False,
+                        "ole": ole_report,
+                        "recovered": [
+                            {
+                                "kind": "ole-cab-stream",
+                                "sha256": cab_sha,
+                                "size": 200,
+                            },
+                            {
+                                "kind": "ole-pe-stream",
+                                "sha256": child_sha,
+                                "size": 100,
+                            },
+                            {
+                                "kind": "embedded-pe",
+                                "sha256": recovered_only_sha,
+                                "size": 120,
+                            },
+                        ],
+                    },
+                },
+                {
+                    "status": "succeeded",
+                    "input_layer": cab_layer,
+                    "accepted_children": [],
+                    "report": {
+                        "executed": False,
+                        "network_contacted": False,
+                        "cab": {
+                            "error": "NotSupportedError: LZX compression not supported",
+                            "status": "parse_failed",
+                        },
+                        "recovered": [
+                            {
+                                "kind": "7z-pe",
+                                "sha256": child_sha,
+                                "size": 100,
+                            }
+                        ],
+                        "sevenzip": {
+                            "archive_types": ["Cab"],
+                            "declared_total_size": 150,
+                            "exit_code": 0,
+                            "extract_exit_code": 0,
+                            "extracted_total_size": 150,
+                            "inventory": [
+                                {
+                                    "format": "pe",
+                                    "name": "payload.exe",
+                                    "recovery_priority": 1,
+                                    "sha256": child_sha,
+                                    "size": 100,
+                                    "status": "extracted",
+                                },
+                                {
+                                    "format": "data",
+                                    "name": "metadata.bin",
+                                    "sha256": cab_data_sha,
+                                    "size": 50,
+                                    "status": "extracted",
+                                },
+                            ],
+                            "members": ["payload.exe", "metadata.bin"],
+                            "retained_members": 1,
+                            "selective_extraction": {
+                                "enabled": False,
+                                "full_inventory_count": 2,
+                                "reason": "not_required",
+                                "selected_members": [],
+                                "selected_total_size": 0,
+                            },
+                            "status": "extracted",
+                            "total_members": 2,
+                        },
+                    },
+                },
+                {
+                    "status": "succeeded",
+                    "input_layer": recovered_only_layer,
+                    "accepted_children": [],
+                    "report": {
+                        "executed": False,
+                        "network_contacted": False,
+                        "recovered": [],
+                    },
+                },
+            )
+        )
+    else:
+        layers.append(container_layer)
+        root_children.append(container_layer)
+        steps.append(
+            {
+                "status": "succeeded",
+                "input_layer": container_layer,
+                "accepted_children": [],
+                "report": {
+                    "executed": False,
+                    "network_contacted": False,
+                    "recovered": [],
+                    "sevenzip": {
+                        "status": "partially_extracted",
+                        "archive_unlock_attempt_count": 2,
+                        "retained_members": 0,
+                        "inventory": [{"status": "empty_file"}],
+                    },
+                },
+            }
+        )
+    generic_entries.append(
+        {
+            "status": "partial",
+            "issues": ["root:coverage:partial"],
+            "layer": container_layer,
+            "result": result,
+        }
+    )
     target._json_dump(
         case_dir / "generic-triage.json",
         {
+            "sha256": root_sha,
+            "size": 1000,
+            "type": "pe",
             "analysis_coverage": {
                 "status": "partial",
+                "layer_count": len(layers),
+                "complete_layers": len(layers) - 1,
                 "failed_layers": 0,
                 "partial_layers": 1,
             },
-            "recovered_layer_triage": [
-                {
-                    "status": "partial",
-                    "issues": ["root:coverage:partial"],
-                    "layer": {"sha256": layer_sha, "format": layer_format},
-                    "result": result,
-                }
-            ],
+            "recovered_layer_triage": generic_entries,
+            "executed_sample": False,
+            "network_contacted": False,
         },
     )
-    report: dict[str, object] = {}
-    accepted_children: list[dict[str, str]] = []
-    layers = [{"sha256": layer_sha}]
-    if layer_format == "ole":
-        report["ole"] = {
-            "status": "artifacts_recovered",
-            "inventory": [{"status": "inspected"}],
-        }
-        accepted_children = [{"sha256": child_sha, "format": child_format}]
-        layers.append({"sha256": child_sha})
-    elif layer_format == "rar":
-        report["sevenzip"] = {
-            "status": "partially_extracted",
-            "archive_unlock_attempt_count": 2,
-            "retained_members": 0,
-            "inventory": [{"status": "empty_file"}],
-        }
+    steps.insert(
+        0,
+        {
+            "status": "succeeded",
+            "input_layer": root_layer,
+            "accepted_children": root_children,
+            "report": {
+                "executed": False,
+                "network_contacted": False,
+                "recovered": [
+                    {
+                        "kind": child["transform"],
+                        "sha256": child["sha256"],
+                        "size": child["size"],
+                    }
+                    for child in root_children
+                ],
+            },
+        },
+    )
+    for step in steps:
+        input_layer = step["input_layer"]
+        step["report"].update(
+            {
+                "schema_version": 2,
+                "sha256": input_layer["sha256"],
+                "size": input_layer["size"],
+                "format": input_layer["format"],
+                "name": input_layer["name"],
+            }
+        )
     target._json_dump(
         case_dir / "static-layers.json",
         {
+            "schema_version": 1,
+            "limits": {
+                "max_archive_compression_ratio": 100.0,
+                "max_archive_members": 512,
+                "max_depth": 6,
+                "max_layers": 256,
+                "max_recovered_layer_size": 1024 * 1024,
+                "max_recovered_total_size": 2 * 1024 * 1024,
+            },
+            "counts": {
+                "layers": len(layers),
+                "recovered_layers": len(layers) - 1,
+                "recovered_bytes": sum(int(layer["size"]) for layer in layers if layer is not root_layer),
+                "limit_events": 0,
+                "deduplicated_artifacts": 2 if layer_format == "ole" else 0,
+            },
             "layers": layers,
-            "steps": [
-                {
-                    "status": "succeeded",
-                    "input_layer": {"sha256": layer_sha},
-                    "accepted_children": accepted_children,
-                    "report": report,
-                }
-            ],
+            "steps": steps,
+            "limit_events": [],
+            "executed_sample": False,
+            "network_contacted": False,
+            "recovered_content_exported": False,
         },
     )
+
+    def program_evidence(sha256: str, relationship: str) -> dict[str, object]:
+        selector = f"/fixture/{sha256}"
+        return {
+            "name": sha256,
+            "program_id": f"sha256:{sha256}",
+            "program_selector": selector,
+            "analysis_mode": "native_ghidra_with_optional_cil",
+            "relationship": relationship,
+            "mcp_responses_valid": True,
+            "evidence": {
+                "confidence": "confirmed_program_structure",
+                "source": "ghidra-mcp",
+            },
+            "retrieval_coverage": {
+                **{
+                    name: {"complete": True, "program_selector": selector}
+                    for name in ("exports", "imports", "segments", "strings")
+                },
+                "call_graph": {
+                    "endpoint": target.CALL_GRAPH_ENDPOINT,
+                    "endpoint_invoked": True,
+                    "response_schema_valid": True,
+                    "program_selector": selector,
+                    "requested_format": target.CALL_GRAPH_REQUEST_FORMAT,
+                    "requested_limit": target.CALL_GRAPH_REQUEST_LIMIT,
+                    "native_graph_applicable": True,
+                    "source": "ghidra_mcp",
+                    "acquisition_status": "acquired",
+                    "edge_count": 0,
+                    "complete": True,
+                    "documented_limit": None,
+                },
+            },
+        }
+
+    program_entries = [program_evidence(root_sha, "root_program")]
+    if layer_format == "ole":
+        program_entries.append(program_evidence(child_sha, "statically_recovered_program"))
     target._json_dump(
         case_dir / "static-logic.json",
         {
+            "status": "characteristic_function_static_analysis_complete_with_documented_limits",
             "coverage": {
                 "all_characteristic_functions_attempted": True,
                 "all_characteristic_functions_explained": True,
                 "all_discovered_functions_inventoried": True,
                 "all_static_analysis_content_retained": True,
                 "function_bodies_reviewed": True,
-                "ghidra_program_count": 1,
-                "ghidra_programs_with_valid_mcp_responses": 1,
-            }
+                "raw_private_artifacts_retained": True,
+                "ghidra_program_count": len(program_entries),
+                "ghidra_programs_with_valid_mcp_responses": len(program_entries),
+            },
+            "program_evidence": program_entries,
+            "safety": {
+                "arbitrary_ghidra_scripts_enabled": False,
+                "network_contacted": False,
+                "raw_pseudocode_exported": False,
+                "raw_pseudocode_retained_outside_repository": True,
+                "sample_executed": False,
+            },
         },
     )
     return layer_sha, child_sha
@@ -2735,7 +4835,7 @@ def test_known_generic_container_limits_accepts_recovered_ole(tmp_path: Path) ->
 
     case_dir = tmp_path / ("8" * 64)
     case_dir.mkdir()
-    layer_sha, _ = _write_complete_generic_container_fixture(
+    layer_sha, child_sha = _write_complete_generic_container_fixture(
         case_dir,
         layer_format="ole",
         coverage_issue="root:ole_format_analysis_not_implemented",
@@ -2744,6 +4844,13 @@ def test_known_generic_container_limits_accepts_recovered_ole(tmp_path: Path) ->
     assert target._ghidra_documents_known_generic_container_limits(case_dir) == [
         f"{layer_sha}:ole_inventory_and_executable_children_recovered"
     ]
+    static_layers = target.load_json_object_strict(case_dir / "static-layers.json")
+    inventory_steps = [step for step in static_layers["steps"] if "ole" in step["report"] or "cab" in step["report"]]
+    assert all(child_sha not in {child["sha256"] for child in step["accepted_children"]} for step in inventory_steps)
+    ole_step = next(step for step in inventory_steps if "ole" in step["report"])
+    assert {child["sha256"] for child in ole_step["accepted_children"]} - {
+        item["sha256"] for item in ole_step["report"]["ole"]["inventory"]
+    }
 
 
 def test_known_generic_container_limits_rejects_unrouted_ole_child(tmp_path: Path) -> None:
@@ -2758,6 +4865,191 @@ def test_known_generic_container_limits_rejects_unrouted_ole_child(tmp_path: Pat
         child_format="data",
     )
 
+    assert target._ghidra_documents_known_generic_container_limits(case_dir) == []
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "schema_bool",
+        "limit_event_missing",
+        "limit_event_nonempty",
+        "limit_count_bool",
+        "layer_count_mismatch",
+        "recovered_count_mismatch",
+        "recovered_bytes_mismatch",
+        "duplicate_layer_sha",
+        "step_failed",
+        "duplicate_step",
+        "step_report_identity",
+        "step_layer_bool_alias",
+        "child_edge_missing",
+        "dedup_count_mismatch",
+        "generic_entry_missing",
+        "generic_complete_count_mismatch",
+        "generic_non_ole_partial",
+        "ole_stream_not_inspected",
+        "ole_stream_count_mismatch",
+        "ole_total_size_mismatch",
+        "ole_unknown_format",
+        "ole_data_identity_collision",
+        "ole_recovered_missing",
+        "cab_partial_status",
+        "cab_archive_type",
+        "cab_exit_nonzero",
+        "cab_exit_bool",
+        "cab_unknown_format",
+        "cab_inventory_incomplete",
+        "cab_selective",
+        "cab_priority_missing",
+        "cab_recovered_missing",
+        "program_mcp_invalid",
+        "program_retrieval_incomplete",
+        "program_unknown_digest",
+        "program_leaf_anchor_missing",
+        "static_safety",
+        "nested_safety",
+        "nested_recovered_export",
+        "nested_pseudocode_export",
+        "nested_scripts_enabled",
+        "generic_safety",
+        "safety_missing",
+        "logic_safety",
+    ],
+)
+def test_known_generic_container_limits_rejects_incomplete_evidence(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    """既知OLE制限の各根拠が欠ける場合はfail-closedで拒否する。"""
+
+    digest = hashlib.sha256(mutation.encode()).hexdigest()
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    _write_complete_generic_container_fixture(
+        case_dir,
+        layer_format="ole",
+        coverage_issue="root:ole_format_analysis_not_implemented",
+    )
+    generic_path = case_dir / "generic-triage.json"
+    layers_path = case_dir / "static-layers.json"
+    logic_path = case_dir / "static-logic.json"
+    generic = target.load_json_object_strict(generic_path)
+    layers = target.load_json_object_strict(layers_path)
+    logic = target.load_json_object_strict(logic_path)
+    ole_step = next(step for step in layers["steps"] if "ole" in step["report"])
+    cab_step = next(step for step in layers["steps"] if "cab" in step["report"])
+
+    if mutation == "schema_bool":
+        layers["schema_version"] = True
+    elif mutation == "limit_event_missing":
+        del layers["limit_events"]
+    elif mutation == "limit_event_nonempty":
+        layers["limit_events"] = [{"reason": "layer_count_limit"}]
+        layers["counts"]["limit_events"] = 1
+    elif mutation == "limit_count_bool":
+        layers["counts"]["limit_events"] = False
+    elif mutation == "layer_count_mismatch":
+        layers["counts"]["layers"] += 1
+    elif mutation == "recovered_count_mismatch":
+        layers["counts"]["recovered_layers"] -= 1
+    elif mutation == "recovered_bytes_mismatch":
+        layers["counts"]["recovered_bytes"] += 1
+    elif mutation == "duplicate_layer_sha":
+        layers["layers"][-1]["sha256"] = layers["layers"][-2]["sha256"]
+    elif mutation == "step_failed":
+        cab_step["status"] = "failed"
+    elif mutation == "duplicate_step":
+        layers["steps"].append(layers["steps"][0])
+    elif mutation == "step_report_identity":
+        cab_step["report"]["sha256"] = "0" * 64
+    elif mutation == "step_layer_bool_alias":
+        ole_step["input_layer"]["depth"] = True
+    elif mutation == "child_edge_missing":
+        root_step = next(step for step in layers["steps"] if step["input_layer"]["parent_sha256"] is None)
+        root_step["accepted_children"].pop()
+    elif mutation == "dedup_count_mismatch":
+        layers["counts"]["deduplicated_artifacts"] = 0
+    elif mutation == "generic_entry_missing":
+        generic["recovered_layer_triage"].pop(0)
+    elif mutation == "generic_complete_count_mismatch":
+        generic["analysis_coverage"]["complete_layers"] += 1
+    elif mutation == "generic_non_ole_partial":
+        cab_entry = next(entry for entry in generic["recovered_layer_triage"] if entry["layer"]["format"] == "cab")
+        cab_entry["status"] = "partial"
+        cab_entry["issues"] = ["root:coverage:partial"]
+        cab_entry["result"]["analysis_coverage"] = {
+            "status": "partial",
+            "issues": ["root:coverage:partial"],
+        }
+        generic["analysis_coverage"]["complete_layers"] -= 1
+        generic["analysis_coverage"]["partial_layers"] += 1
+    elif mutation == "ole_stream_not_inspected":
+        ole_step["report"]["ole"]["inventory"][0]["status"] = "read_failed"
+    elif mutation == "ole_stream_count_mismatch":
+        ole_step["report"]["ole"]["stream_count"] += 1
+    elif mutation == "ole_total_size_mismatch":
+        ole_step["report"]["ole"]["inspected_total_size"] += 1
+    elif mutation == "ole_unknown_format":
+        data_item = next(item for item in ole_step["report"]["ole"]["inventory"] if item["format"] == "data")
+        data_item["format"] = "zip"
+    elif mutation == "ole_data_identity_collision":
+        data_item = next(item for item in ole_step["report"]["ole"]["inventory"] if item["format"] == "data")
+        data_item["sha256"] = logic["program_evidence"][1]["name"]
+    elif mutation == "ole_recovered_missing":
+        ole_step["report"]["recovered"].pop()
+    elif mutation == "cab_partial_status":
+        cab_step["report"]["sevenzip"]["status"] = "partially_extracted"
+    elif mutation == "cab_archive_type":
+        cab_step["report"]["sevenzip"]["archive_types"] = ["Cab", "7z"]
+    elif mutation == "cab_exit_nonzero":
+        cab_step["report"]["sevenzip"]["extract_exit_code"] = 2
+    elif mutation == "cab_exit_bool":
+        cab_step["report"]["sevenzip"]["exit_code"] = False
+    elif mutation == "cab_unknown_format":
+        data_item = next(item for item in cab_step["report"]["sevenzip"]["inventory"] if item["format"] == "data")
+        data_item["format"] = "zip"
+    elif mutation == "cab_inventory_incomplete":
+        cab_step["report"]["sevenzip"]["inventory"].pop()
+    elif mutation == "cab_selective":
+        cab_step["report"]["sevenzip"]["selective_extraction"]["enabled"] = True
+    elif mutation == "cab_priority_missing":
+        del cab_step["report"]["sevenzip"]["inventory"][0]["recovery_priority"]
+    elif mutation == "cab_recovered_missing":
+        cab_step["report"]["recovered"] = []
+    elif mutation == "program_mcp_invalid":
+        logic["program_evidence"][1]["mcp_responses_valid"] = False
+    elif mutation == "program_retrieval_incomplete":
+        logic["program_evidence"][1]["retrieval_coverage"]["strings"]["complete"] = False
+    elif mutation == "program_unknown_digest":
+        logic["program_evidence"][1]["program_id"] = f"sha256:{'0' * 64}"
+        logic["program_evidence"][1]["name"] = "0" * 64
+    elif mutation == "program_leaf_anchor_missing":
+        logic["program_evidence"].pop()
+        logic["coverage"]["ghidra_program_count"] = 1
+        logic["coverage"]["ghidra_programs_with_valid_mcp_responses"] = 1
+    elif mutation == "static_safety":
+        layers["recovered_content_exported"] = True
+    elif mutation == "nested_safety":
+        cab_step["report"]["embedded_pe_scan"] = {"executed": True}
+    elif mutation == "nested_recovered_export":
+        cab_step["report"]["sevenzip"]["recovered_content_exported"] = True
+    elif mutation == "nested_pseudocode_export":
+        generic["analysis_coverage"]["raw_pseudocode_exported"] = True
+    elif mutation == "nested_scripts_enabled":
+        logic["program_evidence"][0]["arbitrary_ghidra_scripts_enabled"] = True
+    elif mutation == "generic_safety":
+        generic["network_contacted"] = True
+    elif mutation == "safety_missing":
+        del generic["executed_sample"]
+    elif mutation == "logic_safety":
+        logic["safety"]["arbitrary_ghidra_scripts_enabled"] = True
+    else:  # pragma: no cover - parametrizationと分岐の同期を保証する。
+        raise AssertionError(mutation)
+
+    target._json_dump(generic_path, generic)
+    target._json_dump(layers_path, layers)
+    target._json_dump(logic_path, logic)
     assert target._ghidra_documents_known_generic_container_limits(case_dir) == []
 
 
@@ -2776,7 +5068,8 @@ def test_known_generic_container_limits_accepts_bounded_rar_delegation(tmp_path:
     ]
     layers_path = case_dir / "static-layers.json"
     layers = target.load_json_object_strict(layers_path)
-    layers["steps"][0]["report"]["sevenzip"]["archive_unlock_attempt_count"] = 1
+    rar_step = next(step for step in layers["steps"] if "sevenzip" in step["report"])
+    rar_step["report"]["sevenzip"]["archive_unlock_attempt_count"] = 1
     target._json_dump(layers_path, layers)
     assert target._ghidra_documents_known_generic_container_limits(case_dir) == []
 
@@ -3067,9 +5360,7 @@ def test_finalize_collection_registers_partial_case_identity(
 
     # Windowsではpytestのテスト名付き一時パスと64桁digestの組み合わせが
     # MAX_PATHを超えることがある。意味上は同じ一時領域内で短いrootを使う。
-    short_root = tmp_path.parents[2] / (
-        "fc-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8]
-    )
+    short_root = tmp_path.parents[2] / ("fc-" + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:8])
     repository = short_root / "r"
     digest = "a" * 64
     case_dir = repository / "analysis-results" / "malware" / "unclassified" / "versions" / "unknown" / "cases" / digest
@@ -3422,28 +5713,15 @@ def test_prepare_inputs_replays_child_layers_with_same_tools(
         sample_root,
         short_root / "p",
         prepared_input_root=prepared_input_root,
-        storage_guard=lambda phase, role, planned: storage_checks.append(
-            (phase, role, planned)
-        ),
+        storage_guard=lambda phase, role, planned: storage_checks.append((phase, role, planned)),
     )
 
     assert set(objects) == {digest, child_digest}
     assert not non_pe
     assert observed == [identities]
     assert not (sample_root / digest / "ghidra-input").exists()
-    assert (
-        prepared_input_root
-        / digest
-        / "ghidra-input"
-        / f"{digest}.quarantine.bin"
-    ).is_file()
-    assert (
-        prepared_input_root
-        / digest
-        / "ghidra-input"
-        / "layers"
-        / f"{child_digest}.quarantine.bin"
-    ).is_file()
+    assert (prepared_input_root / digest / "ghidra-input" / f"{digest}.quarantine.bin").is_file()
+    assert (prepared_input_root / digest / "ghidra-input" / "layers" / f"{child_digest}.quarantine.bin").is_file()
     assert storage_checks[:8] == [
         ("before_input_copy", "prepared_input_root", len(root_data)),
         ("after_input_copy", "prepared_input_root", 0),
@@ -3673,6 +5951,14 @@ def test_refresh_promotes_short_initial_cache_after_project_rotation(
         "functions": [],
         "opcode_hashes": {"functions": []},
     }
+    _bind_native_call_graph(result, selector=program)
+    raw_path = object_dir / "ghidra-raw-index.json"
+    raw = target.load_json_object_strict(raw_path)
+    raw["analysis_mode"] = result["analysis_mode"]
+    raw["ghidra_call_graph"] = json.loads(json.dumps(result["ghidra_call_graph"]))
+    raw["call_graph"] = json.loads(json.dumps(result["call_graph"]))
+    raw["retrieval_coverage"] = {"call_graph": json.loads(json.dumps(result["retrieval_coverage"]["call_graph"]))}
+    target._json_dump(raw_path, raw)
 
     class RotatedProjectClient:
         def get(self, endpoint: str, **_query: object) -> object:
@@ -3740,6 +6026,67 @@ def test_refresh_rejects_truncated_initial_cache_after_project_rotation(
     with pytest.raises(target.GhidraMcpError, match="退避済み"):
         target.refresh_complete_program_artifacts(
             MissingProgramClient(),
+            {digest: result},
+            tmp_path,
+        )
+
+
+def test_refresh_requires_reanalysis_when_legacy_function_inventory_was_truncated(
+    tmp_path: Path,
+) -> None:
+    """旧500件cacheを全件再取得できても部分recordへ継ぎ足さず再解析を要求する。"""
+
+    digest = "c" * 64
+    program = f"/Malware/Test/{digest}.quarantine.bin"
+    object_dir = tmp_path / "objects" / digest
+    object_dir.mkdir(parents=True)
+    cached = [{"address": f"{index:08x}"} for index in range(500)]
+    target._json_dump(
+        object_dir / "ghidra-raw-index.json",
+        {
+            "program_selector": program,
+            "metadata": "Function Count: 501",
+            "functions": cached,
+            "imports": [],
+            "exports": [],
+            "strings": [],
+            "segments": [],
+            "opcode_hashes": {"functions": []},
+        },
+    )
+    result = {
+        "status": "complete",
+        "mcp_responses_valid": True,
+        "sha256": digest,
+        "program_selector": program,
+        "analysis_mode": "native_ghidra_with_optional_cil",
+        "functions": [],
+        "ghidra_function_inventory_count": 500,
+        "opcode_hashes": {"functions": []},
+    }
+
+    class Client:
+        def get(self, endpoint: str, **query: object) -> object:
+            if endpoint == "/open_program":
+                return {"path": program}
+            if endpoint == target.CALL_GRAPH_ENDPOINT:
+                return {"edges": []}
+            if endpoint != "/list_functions_enhanced":
+                return []
+            offset = int(query["offset"])
+            if offset == 0:
+                return {"functions": cached, "count": 500}
+            return {"functions": [{"address": "000001f4"}], "count": 1}
+
+        def post(self, *_args: object, **_kwargs: object) -> object:
+            return {}
+
+    with pytest.raises(
+        target.GhidraMcpError,
+        match="full_program_reanalysis_required",
+    ):
+        target.refresh_complete_program_artifacts(
+            Client(),
             {digest: result},
             tmp_path,
         )
@@ -4056,10 +6403,7 @@ def test_run_progress_schema_is_stable_across_checkpoint_phases() -> None:
     ]
 
     assert all(set(document) == set(documents[0]) for document in documents)
-    assert all(
-        document["schema_version"] == target.RUN_PROGRESS_SCHEMA_VERSION
-        for document in documents
-    )
+    assert all(document["schema_version"] == target.RUN_PROGRESS_SCHEMA_VERSION for document in documents)
 
 
 def test_resume_checkpoint_rejects_schema_drift(tmp_path: Path) -> None:
@@ -4428,6 +6772,87 @@ def test_low_space_recheck_preserves_existing_prepared_checkpoint(
     assert result["pending_programs"] == [digest]
     assert result["prepared_inputs_reused"] is False
     assert result["resume_mode"] == "prepared_inputs"
+
+
+def test_run_routes_old_native_zero_function_cache_to_recovery(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """run外側の完了判定でも旧native 0件cacheを回復対象へ戻す。"""
+
+    data = _pe_with_entry()
+    digest = hashlib.sha256(data).hexdigest()
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    collection.mkdir(parents=True)
+    sample_root.mkdir()
+    snapshot = target._immutable_staging_snapshot(private_output, digest, data)
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=snapshot.path,
+        size=len(data),
+        relationships=[{"case_sha256": digest, "depth": 0, "transform": "root"}],
+        input_snapshot=snapshot,
+    )
+    _write_prepared_inventory(
+        private_output,
+        collection_id="batch",
+        digests=[digest],
+    )
+    target._persist_program_result(
+        private_output / "objects" / digest / "program-result.json",
+        {
+            "status": "complete",
+            "mcp_responses_valid": True,
+            "analysis_mode": "native_ghidra_with_optional_cil",
+            "ghidra_function_inventory_count": 0,
+            "managed_method_count": 0,
+            "function_inventory_count": 0,
+            "functions": [],
+        },
+    )
+    monkeypatch.setattr(
+        target,
+        "prepare_inputs",
+        lambda *args, **kwargs: ({digest: item}, {}),
+    )
+    monkeypatch.setattr(
+        target,
+        "validate_prepared_scope",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        target,
+        "_storage_budget_observation",
+        lambda *args, **kwargs: {
+            "phase": kwargs["phase"],
+            "minimum_free_bytes": kwargs["minimum_free_bytes"],
+            "sufficient": True,
+            "filesystems": [],
+        },
+    )
+    monkeypatch.setattr(
+        target,
+        "analyze_program",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("outer cache routed to recovery")),
+    )
+    arguments = target.build_parser().parse_args(
+        [
+            "--repository",
+            str(repository),
+            "--collection",
+            str(collection),
+            "--sample-root",
+            str(sample_root),
+            "--private-output",
+            str(private_output),
+        ]
+    )
+
+    with pytest.raises(RuntimeError, match="outer cache routed to recovery"):
+        target.run(arguments)
 
 
 def test_run_stops_between_programs_and_preserves_completed_cache(

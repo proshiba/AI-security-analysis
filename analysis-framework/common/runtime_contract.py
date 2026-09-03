@@ -8,7 +8,6 @@ import json
 from collections.abc import Callable
 from types import ModuleType
 
-
 REQUIRED_RUNTIME_MODULES = (
     "cabarchive",
     "capstone",
@@ -20,6 +19,7 @@ REQUIRED_RUNTIME_MODULES = (
     "pefile",
     "pydantic",
     "pyzipper",
+    "refinery.lib.cab",
     "yaml",
     "yara",
 )
@@ -40,7 +40,4 @@ def isolated_import_probe_source() -> str:
     """`python -I -c`へ渡せる固定依存import probeを返す。"""
 
     module_names = json.dumps(REQUIRED_RUNTIME_MODULES, ensure_ascii=True)
-    return (
-        "import importlib; "
-        f"[importlib.import_module(name) for name in {module_names}]"
-    )
+    return f"import importlib; [importlib.import_module(name) for name in {module_names}]"

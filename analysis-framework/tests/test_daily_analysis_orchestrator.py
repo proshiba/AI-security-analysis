@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import platform
+import shutil
 import sys
 from collections import defaultdict
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -16,6 +20,52 @@ if str(COMMON) not in sys.path:
 
 import daily_analysis_orchestrator as target  # noqa: E402
 import daily_news_malware_intake as news_intake  # noqa: E402
+import archive_analysis_datastore as datastore_archive  # noqa: E402
+
+
+def test_reused_archive_is_reverified_with_remote_head(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """verified_reusedでもS3 size・SSE・hash metadataを再照合する。"""
+
+    archive_sha256 = "a" * 64
+    manifest_sha256 = "b" * 64
+    target_name = "daily-fixture-case"
+    report = {
+        "object_uri": "s3://malware-analysis-datastore-720232834682/analysis-data/case.zip",
+        "archive_size": 123,
+        "archive_sha256": archive_sha256,
+        "manifest_sha256": manifest_sha256,
+    }
+    response = {
+        "ContentLength": 123,
+        "ServerSideEncryption": "AES256",
+        "Metadata": {
+            "archive-sha256": archive_sha256,
+            "manifest-sha256": manifest_sha256,
+            "analysis-target": target_name,
+        },
+    }
+    monkeypatch.setattr(datastore_archive, "find_aws_cli", lambda _value: Path("aws"))
+    monkeypatch.setattr(datastore_archive, "_run_aws", lambda *_args, **_kwargs: response)
+
+    target._reverify_archive_head(report, target=target_name)
+
+    response["ContentLength"] = 122
+    with pytest.raises(
+        target.DailyOrchestrationError,
+        match="HeadObject",
+    ) as caught:
+        target._reverify_archive_head(report, target=target_name)
+    assert caught.value.code == "archive_remote_reverification_failed"
+
+
+def test_daily_static_layer_retry_covers_multi_component_installers() -> None:
+    """通常検体は軽量に保ち、上限到達時だけ十分な件数へ広げる。"""
+
+    assert target.DAILY_INITIAL_STATIC_LAYERS == 6
+    assert target.DAILY_RETRY_STATIC_LAYERS == target.analysis_job_runner.MAX_RETRY_STATIC_LAYERS
+    assert target.DAILY_RETRY_STATIC_LAYERS > 14
 
 
 def request_document(
@@ -48,7 +98,12 @@ def request_document(
     }
 
 
-def context(tmp_path: Path, document: dict | None = None) -> target.DailyContext:
+def context(
+    tmp_path: Path,
+    document: dict | None = None,
+    *,
+    trusted_tool_configuration: target.analysis_job_runner.TrustedToolConfiguration | None = None,
+) -> target.DailyContext:
     repository = tmp_path / "repository"
     repository.mkdir()
     news = repository / "tech-memo" / "daily-news" / "news" / "fixture"
@@ -73,7 +128,352 @@ def context(tmp_path: Path, document: dict | None = None) -> target.DailyContext
         ghidra_project_store=tmp_path / "ghidra-projects",
         allow_live_c2=False,
         create_roots=True,
+        trusted_tool_configuration=trusted_tool_configuration,
     )
+
+
+def trusted_tool_configuration(
+    tmp_path: Path,
+) -> tuple[target.analysis_job_runner.TrustedToolConfiguration, Path, Path]:
+    """repository・input・job root外のoperator固定7zz fixtureを作る。"""
+
+    tool_root = tmp_path / "operator-tools"
+    tool_root.mkdir()
+    sevenzip = tool_root / "7zz.exe"
+    sevenzip.write_bytes(b"synthetic-static-sevenzip-tool")
+    manifest = tool_root / "trusted-tools.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": target.analysis_job_runner.SCHEMA_VERSION,
+                "profile_id": "daily-test-tools",
+                "platform": {
+                    "sys_platform": sys.platform,
+                    "machine": platform.machine().casefold(),
+                },
+                "tools": {
+                    "upx": None,
+                    "sevenzip": {
+                        "path": str(sevenzip.resolve()),
+                        "size": sevenzip.stat().st_size,
+                        "sha256": hashlib.sha256(sevenzip.read_bytes()).hexdigest(),
+                    },
+                },
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    configuration = target.analysis_job_runner.TrustedToolConfiguration(
+        manifest_path=manifest,
+        manifest_sha256=hashlib.sha256(manifest.read_bytes()).hexdigest(),
+    )
+    return configuration, manifest, sevenzip
+
+
+def test_trusted_tool_cli_pair_is_operator_only_and_fail_closed() -> None:
+    manifest = Path("C:/operator/trusted-tools.json")
+    digest = "b" * 64
+    complete = target._trusted_tool_configuration_from_args(
+        SimpleNamespace(
+            trusted_tools_manifest=manifest,
+            trusted_tools_manifest_sha256=digest,
+        )
+    )
+    assert complete == target.analysis_job_runner.TrustedToolConfiguration(
+        manifest_path=manifest,
+        manifest_sha256=digest,
+    )
+    for incomplete in (
+        SimpleNamespace(
+            trusted_tools_manifest=manifest,
+            trusted_tools_manifest_sha256=None,
+        ),
+        SimpleNamespace(
+            trusted_tools_manifest=None,
+            trusted_tools_manifest_sha256=digest,
+        ),
+    ):
+        with pytest.raises(target.DailyOrchestrationError) as captured:
+            target._trusted_tool_configuration_from_args(incomplete)
+        assert captured.value.code == "trusted_tool_configuration_incomplete"
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target._trusted_tool_configuration_from_args(
+            SimpleNamespace(
+                trusted_tools_manifest=manifest,
+                trusted_tools_manifest_sha256=digest.upper(),
+            )
+        )
+    assert captured.value.code == "trusted_tool_manifest_pin_invalid"
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target._trusted_tool_configuration_from_args(
+            SimpleNamespace(
+                trusted_tools_manifest=Path("trusted-tools.json"),
+                trusted_tools_manifest_sha256=digest,
+            )
+        )
+    assert captured.value.code == "trusted_tool_manifest_path_invalid"
+
+    request_with_tool_path = request_document()
+    request_with_tool_path["trusted_tools_manifest"] = str(manifest)
+    with pytest.raises(target.DailyOrchestrationError):
+        target.validate_request_object(request_with_tool_path)
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["plan", "preflight", "run", "resume", "drive", "verify"],
+)
+def test_operator_commands_accept_trusted_tool_pair(command: str) -> None:
+    arguments = [
+        command,
+        "--request",
+        "request.json",
+        "--repository",
+        "repository",
+        "--intelligence-root",
+        "intelligence",
+        "--private-root",
+        "private",
+        "--work-root",
+        "work",
+        "--ghidra-project-store",
+        "ghidra",
+        "--trusted-tools-manifest",
+        "C:/operator/tools.json",
+        "--trusted-tools-manifest-sha256",
+        "c" * 64,
+    ]
+    parsed = target.build_parser().parse_args(arguments)
+    assert parsed.trusted_tools_manifest == Path("C:/operator/tools.json")
+    assert parsed.trusted_tools_manifest_sha256 == "c" * 64
+
+
+def test_trusted_tool_preflight_validates_pin_without_disclosing_paths(
+    tmp_path: Path,
+) -> None:
+    configuration, manifest, sevenzip = trusted_tool_configuration(tmp_path)
+    daily_context = context(
+        tmp_path,
+        trusted_tool_configuration=configuration,
+    )
+
+    report = target.build_preflight_report(daily_context)
+
+    tools = report["trusted_static_tools"]
+    assert tools["configured"] is True
+    assert tools["ready"] is True
+    assert tools["automatic_path_discovery"] is False
+    assert tools["job_private_snapshot_deferred"] is True
+    assert tools["operator_manifest_sha256"] == configuration.manifest_sha256
+    assert tools["tools"]["sevenzip"]["name"] == sevenzip.name
+    serialized = json.dumps(report, ensure_ascii=False)
+    assert str(manifest.resolve()) not in serialized
+    assert str(sevenzip.resolve()) not in serialized
+    assert "trusted_tools_manifest" not in daily_context.request.public()
+
+
+def test_trusted_tool_context_rejects_raw_manifest_pin_mismatch(
+    tmp_path: Path,
+) -> None:
+    _configuration, manifest, _sevenzip = trusted_tool_configuration(tmp_path)
+    mismatch = target.analysis_job_runner.TrustedToolConfiguration(
+        manifest_path=manifest,
+        manifest_sha256="0" * 64,
+    )
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        context(tmp_path, trusted_tool_configuration=mismatch)
+
+    assert captured.value.code == "trusted_tool_manifest_pin_mismatch"
+
+
+def test_trusted_tool_context_rejects_nonregular_manifest(tmp_path: Path) -> None:
+    manifest_directory = tmp_path / "operator-manifest-directory"
+    manifest_directory.mkdir()
+    configuration = target.analysis_job_runner.TrustedToolConfiguration(
+        manifest_path=manifest_directory,
+        manifest_sha256="0" * 64,
+    )
+
+    with pytest.raises(target.DailyOrchestrationError):
+        context(tmp_path, trusted_tool_configuration=configuration)
+
+
+def test_trusted_tool_context_rejects_reparse_manifest(tmp_path: Path) -> None:
+    configuration, manifest, _sevenzip = trusted_tool_configuration(tmp_path)
+    link = tmp_path / "trusted-tools-link.json"
+    try:
+        link.symlink_to(manifest)
+    except OSError:
+        pytest.skip("このhostではsymlink fixtureを作成できません")
+    linked = target.analysis_job_runner.TrustedToolConfiguration(
+        manifest_path=link,
+        manifest_sha256=configuration.manifest_sha256,
+    )
+
+    with pytest.raises(target.DailyOrchestrationError):
+        context(tmp_path, trusted_tool_configuration=linked)
+
+
+def test_static_stage_forwards_trusted_tools_to_validate_run_and_result(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configuration, _manifest, _sevenzip = trusted_tool_configuration(tmp_path)
+    daily_context = context(
+        tmp_path,
+        trusted_tool_configuration=configuration,
+    )
+    request = SimpleNamespace(job_id="daily-trusted-tool-fixture")
+    identity = SimpleNamespace(
+        input_snapshot_manifest_sha256="1" * 64,
+        family_hint_manifest_sha256="2" * 64,
+        cache_key_sha256="3" * 64,
+    )
+    policy = target._load_context_trusted_tool_policy(daily_context)
+    assert policy is not None
+    snapshot_digest = "4" * 64
+    provenance = {
+        "profile_id": policy.profile_id,
+        "operator_manifest_sha256": policy.operator_manifest_sha256,
+        "snapshot_manifest_sha256": snapshot_digest,
+        "tools": target._expected_static_snapshot_tool_identities(policy),
+    }
+    observed: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        target,
+        "_static_request",
+        lambda _context: (request, identity),
+    )
+
+    def validate_job(_request, **kwargs):
+        observed["validate_configuration"] = kwargs["trusted_tool_configuration"]
+        return {
+            "trusted_static_tools": {
+                "profile_id": policy.profile_id,
+                "operator_manifest_sha256": policy.operator_manifest_sha256,
+                "tools": policy.identities(),
+            }
+        }
+
+    def run_job(_request, **kwargs):
+        observed["run_configuration"] = kwargs["trusted_tool_configuration"]
+        job_dir = kwargs["jobs_root"] / request.job_id
+        job_dir.mkdir()
+        (job_dir / "result.json").write_text(
+            json.dumps(
+                {
+                    "analysis_state": "complete",
+                    "trusted_static_tools": provenance,
+                    "artifacts": {
+                        "trusted_static_tools_manifest": ("contract-inputs/trusted-static-tools.json"),
+                        "trusted_static_tools_manifest_sha256": snapshot_digest,
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        return 0
+
+    monkeypatch.setattr(target.analysis_job_runner, "validate_job", validate_job)
+    monkeypatch.setattr(target.analysis_job_runner, "run_job", run_job)
+
+    outcome = target._production_static_analysis(daily_context)
+
+    assert outcome.status == "complete"
+    assert observed == {
+        "validate_configuration": configuration,
+        "run_configuration": configuration,
+    }
+    assert outcome.result["trusted_tool_operator_manifest_sha256"] == configuration.manifest_sha256
+    assert outcome.result["implementation_cache_key_sha256"] == (
+        target._static_execution_cache_key(daily_context, identity.cache_key_sha256)
+    )
+    serialized = json.dumps(outcome.result, ensure_ascii=False)
+    assert str(configuration.manifest_path.resolve()) not in serialized
+
+
+def test_static_result_accepts_job_private_launcher_name(
+    tmp_path: Path,
+) -> None:
+    configuration, _manifest, sevenzip = trusted_tool_configuration(tmp_path)
+    daily_context = context(
+        tmp_path,
+        trusted_tool_configuration=configuration,
+    )
+    policy = target._load_context_trusted_tool_policy(daily_context)
+    assert policy is not None
+    assert sevenzip.name == "7zz.exe"
+    snapshot_digest = "4" * 64
+    job_id = "daily-trusted-tool-renamed-snapshot"
+    job_dir = daily_context.jobs_root / job_id
+    job_dir.mkdir(parents=True)
+    snapshot_identities = target._expected_static_snapshot_tool_identities(policy)
+    expected_launcher_name = "sevenzip.exe" if os.name == "nt" else "sevenzip"
+    assert snapshot_identities["sevenzip"]["name"] == expected_launcher_name
+    (job_dir / "result.json").write_text(
+        json.dumps(
+            {
+                "analysis_state": "complete",
+                "trusted_static_tools": {
+                    "profile_id": policy.profile_id,
+                    "operator_manifest_sha256": policy.operator_manifest_sha256,
+                    "snapshot_manifest_sha256": snapshot_digest,
+                    "tools": snapshot_identities,
+                },
+                "artifacts": {
+                    "trusted_static_tools_manifest": ("contract-inputs/trusted-static-tools.json"),
+                    "trusted_static_tools_manifest_sha256": snapshot_digest,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    observed = target._static_job_result_for_id(daily_context, job_id)
+
+    assert observed["trusted_static_tools"]["tools"] == snapshot_identities
+
+
+def test_static_result_rejects_different_operator_manifest_pin(
+    tmp_path: Path,
+) -> None:
+    configuration, _manifest, _sevenzip = trusted_tool_configuration(tmp_path)
+    daily_context = context(
+        tmp_path,
+        trusted_tool_configuration=configuration,
+    )
+    policy = target._load_context_trusted_tool_policy(daily_context)
+    assert policy is not None
+    job_id = "daily-trusted-tool-mismatch"
+    job_dir = daily_context.jobs_root / job_id
+    job_dir.mkdir(parents=True)
+    (job_dir / "result.json").write_text(
+        json.dumps(
+            {
+                "analysis_state": "complete",
+                "trusted_static_tools": {
+                    "profile_id": policy.profile_id,
+                    "operator_manifest_sha256": "f" * 64,
+                    "snapshot_manifest_sha256": "e" * 64,
+                    "tools": policy.identities(),
+                },
+                "artifacts": {
+                    "trusted_static_tools_manifest": ("contract-inputs/trusted-static-tools.json"),
+                    "trusted_static_tools_manifest_sha256": "e" * 64,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target._static_job_result_for_id(daily_context, job_id)
+
+    assert captured.value.code == "static_trusted_tool_mismatch"
 
 
 def actions(
@@ -161,19 +561,11 @@ def test_sample_download_limits_fit_provider_and_static_analyzer_bounds() -> Non
     import daily_news_malware_intake
 
     assert target.SAMPLE_DOWNLOAD_MAX_BYTES == 256 * target.MIB
-    assert (
-        target.SAMPLE_DOWNLOAD_MAX_BYTES
-        == daily_news_malware_intake.DAILY_SAMPLE_DOWNLOAD_MAX_BYTES
-    )
-    assert (
-        target.SAMPLE_DOWNLOAD_MAX_BYTES
-        <= malwarebazaar_batch.MAX_API_RESPONSE_BYTES
-    )
+    assert target.SAMPLE_DOWNLOAD_MAX_BYTES == daily_news_malware_intake.DAILY_SAMPLE_DOWNLOAD_MAX_BYTES
+    assert target.SAMPLE_DOWNLOAD_MAX_BYTES <= malwarebazaar_batch.MAX_API_RESPONSE_BYTES
     assert target.SAMPLE_DOWNLOAD_MAX_BYTES <= target.analysis_job_runner.MAX_FILE_SIZE
-    assert (
-        50 * target.PREFLIGHT_SAMPLE_ARCHIVE_BYTES
-        <= target.analysis_job_runner.MAX_TOTAL_INPUT_BYTES
-    )
+    assert target.PREFLIGHT_SAMPLE_ARCHIVE_BYTES == 40 * target.MIB
+    assert 50 * target.PREFLIGHT_SAMPLE_ARCHIVE_BYTES <= target.analysis_job_runner.MAX_TOTAL_INPUT_BYTES
 
 
 def test_live_c2_requires_request_and_current_invocation(tmp_path: Path) -> None:
@@ -244,9 +636,7 @@ def test_production_ghidra_separates_prepared_inputs_from_source(
     assert outcome.status == "complete"
     assert arguments.sample_root == daily_context.source_root
     assert arguments.prepared_input_root == daily_context.ghidra_sample_root
-    assert daily_context.ghidra_sample_root == (
-        daily_context.work_root / "gi" / daily_context.request.run_id
-    )
+    assert daily_context.ghidra_sample_root == (daily_context.work_root / "gi" / daily_context.request.run_id)
     assert daily_context.ghidra_sample_root.is_dir()
     assert daily_context.ghidra_sample_root != daily_context.source_root
 
@@ -299,6 +689,36 @@ def test_run_and_resume_retries_only_retryable_partial_stages(tmp_path: Path) ->
     assert calls["private_archive"] == 1
 
 
+def test_resume_marks_daily_state_running_before_stage_reloads_it(tmp_path: Path) -> None:
+    daily_context = context(tmp_path)
+
+    def private_archive(attempt: int) -> target.StageOutcome:
+        if attempt == 1:
+            raise target.DailyOrchestrationError("fixture_failure", "fixture")
+        reloaded = target._load_state(daily_context)
+        assert reloaded["status"] == "running"
+        # load時は中断されたrunning stageを再開可能なpendingへ正規化する。
+        assert reloaded["stages"]["private_archive"]["status"] == "pending"
+        return target.StageOutcome("complete", {"status": "verified"})
+
+    fake_actions, calls = actions({"private_archive": private_archive})
+    first = target.run_daily(
+        daily_context,
+        actions=fake_actions,
+        capacity_probe=ready_capacity,
+    )
+    assert first["status"] == "failed"
+
+    resumed = target.resume_daily(
+        daily_context,
+        actions=fake_actions,
+        capacity_probe=ready_capacity,
+    )
+
+    assert resumed["status"] == "complete"
+    assert calls["private_archive"] == 2
+
+
 def test_non_retryable_partial_is_not_reexecuted(tmp_path: Path) -> None:
     daily_context = context(tmp_path)
     fake_actions, calls = actions(
@@ -310,16 +730,22 @@ def test_non_retryable_partial_is_not_reexecuted(tmp_path: Path) -> None:
             )
         }
     )
-    assert target.run_daily(
-        daily_context,
-        actions=fake_actions,
-        capacity_probe=ready_capacity,
-    )["status"] == "partial"
-    assert target.resume_daily(
-        daily_context,
-        actions=fake_actions,
-        capacity_probe=ready_capacity,
-    )["status"] == "partial"
+    assert (
+        target.run_daily(
+            daily_context,
+            actions=fake_actions,
+            capacity_probe=ready_capacity,
+        )["status"]
+        == "partial"
+    )
+    assert (
+        target.resume_daily(
+            daily_context,
+            actions=fake_actions,
+            capacity_probe=ready_capacity,
+        )["status"]
+        == "partial"
+    )
     assert calls["static_analysis"] == 1
 
 
@@ -617,9 +1043,7 @@ def test_run_capacity_preflight_stops_before_any_stage(tmp_path: Path) -> None:
 
 def test_run_rejects_changed_source_before_checkpoint(tmp_path: Path) -> None:
     daily_context = context(tmp_path)
-    source = next(
-        (daily_context.intelligence_root / "tech-memo").rglob("20260829.csv")
-    )
+    source = next((daily_context.intelligence_root / "tech-memo").rglob("20260829.csv"))
     source.unlink()
     fake_actions, calls = actions()
 
@@ -688,10 +1112,7 @@ def test_drive_stops_when_retryable_partial_has_no_semantic_progress(
 
 
 def test_private_archive_attempt_budget_covers_ghidra_chunks() -> None:
-    assert (
-        target.MAX_STAGE_ATTEMPTS["private_archive"]
-        == target.MAX_STAGE_ATTEMPTS["ghidra"]
-    )
+    assert target.MAX_STAGE_ATTEMPTS["private_archive"] == target.MAX_STAGE_ATTEMPTS["ghidra"]
 
 
 def test_archive_capacity_partial_becomes_resume_remediation() -> None:
@@ -724,9 +1145,7 @@ def test_run_rejects_source_content_replacement_before_checkpoint(
     tmp_path: Path,
 ) -> None:
     daily_context = context(tmp_path)
-    source = next(
-        (daily_context.intelligence_root / "tech-memo").rglob("20260829.csv")
-    )
+    source = next((daily_context.intelligence_root / "tech-memo").rglob("20260829.csv"))
     source.write_text("type,value\nchanged,value\n", encoding="utf-8")
     fake_actions, calls = actions()
 
@@ -886,9 +1305,7 @@ def test_ghidra_capacity_remediation_includes_planned_write() -> None:
                 "disk_space": {
                     "minimum_free_bytes": 1_000,
                     "planned_write_bytes": 500,
-                    "filesystems": [
-                        {"free_bytes": 1_200, "planned_write_bytes": 500}
-                    ],
+                    "filesystems": [{"free_bytes": 1_200, "planned_write_bytes": 500}],
                 },
             },
             retryable=True,
@@ -933,10 +1350,7 @@ def test_private_archive_keeps_news_and_generation_bound_ghidra_checkpoint(
     job = daily_context.jobs_root / "job-fixture"
     job.mkdir(parents=True)
     (job / "result.json").write_text("{}\n", encoding="utf-8")
-    news = (
-        daily_context.daily_news_private_output
-        / daily_context.request.news_source_date
-    )
+    news = daily_context.daily_news_private_output / daily_context.request.news_source_date
     news.mkdir(parents=True)
     (news / "normalized-iocs.json").write_text("{}\n", encoding="utf-8")
     static_job = daily_context.daily_news_private_output / "static-analysis-jobs" / "fixture"
@@ -979,12 +1393,450 @@ def test_private_archive_keeps_news_and_generation_bound_ghidra_checkpoint(
     assert outcome.status == "partial"
     assert outcome.result["ghidra_checkpoint_archived"] is True
     roles = {role for role, _source, _target in observed}
-    assert roles == {"source", "one_shot_job", "daily_news", "ghidra_checkpoint"}
+    assert roles == {"daily_news", "ghidra_checkpoint"}
+    assert "source" not in roles
+    assert "one_shot_job" not in roles
+    assert "ghidra_static_results" not in roles
     targets = [archive_target for _role, _source, archive_target in observed]
     assert len(targets) == len(set(targets))
     assert any("ghidra-checkpoint-" in value for value in targets)
     news_sources = [source for role, source, _target in observed if role == "daily_news"]
     assert news_sources == [daily_context.daily_news_private_output]
+
+
+def test_private_archive_routes_complete_collection_to_case_archives(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    document = request_document()
+    document["network"]["datastore_upload"] = True
+    document["stages"]["news_intake"] = False
+    daily_context = context(tmp_path, document)
+    daily_context.source_root.mkdir(parents=True)
+    one_shot = daily_context.jobs_root / "job-fixture" / "analysis"
+    one_shot.mkdir(parents=True)
+    daily_context.ghidra_private_output.mkdir(parents=True)
+    (daily_context.ghidra_private_output / "run-progress.json").write_text(
+        json.dumps({"status": "complete"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        target,
+        "_static_request",
+        lambda _context: (SimpleNamespace(job_id="job-fixture"), object()),
+    )
+    observed: list[Path] = []
+
+    def archive_cases(
+        _context: target.DailyContext,
+        *,
+        one_shot_root: Path,
+    ) -> list[dict[str, object]]:
+        observed.append(one_shot_root)
+        return [
+            {"source_role": "analysis_case", "target": "case-a"},
+            {"source_role": "analysis_case", "target": "case-b"},
+        ]
+
+    monkeypatch.setattr(target, "_archive_analysis_cases", archive_cases)
+    monkeypatch.setattr(
+        target,
+        "_archive_one",
+        lambda *_args, **_kwargs: pytest.fail("bulk archiveを呼び出しました"),
+    )
+
+    outcome = target._production_private_archive(daily_context)
+
+    assert outcome.status == "complete"
+    assert outcome.result["case_archive_count"] == 2
+    assert outcome.result["ghidra_checkpoint_archived"] is False
+    assert observed == [one_shot]
+    assert {item["source_role"] for item in outcome.result["verified_targets"]} == {"analysis_case"}
+
+
+def test_private_archive_routes_collection_when_ghidra_is_disabled(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    document = request_document()
+    document["network"]["datastore_upload"] = True
+    document["stages"]["news_intake"] = False
+    document["stages"]["ghidra"] = False
+    daily_context = context(tmp_path, document)
+    daily_context.source_root.mkdir(parents=True)
+    one_shot = daily_context.jobs_root / "job-fixture" / "analysis"
+    one_shot.mkdir(parents=True)
+    monkeypatch.setattr(
+        target,
+        "_static_request",
+        lambda _context: (SimpleNamespace(job_id="job-fixture"), object()),
+    )
+    observed: list[Path] = []
+
+    def archive_cases(
+        _context: target.DailyContext,
+        *,
+        one_shot_root: Path,
+    ) -> list[dict[str, object]]:
+        observed.append(one_shot_root)
+        return [{"source_role": "analysis_case", "target": "case-a"}]
+
+    monkeypatch.setattr(target, "_archive_analysis_cases", archive_cases)
+    monkeypatch.setattr(
+        target,
+        "_archive_one",
+        lambda *_args, **_kwargs: pytest.fail("bulk archiveを呼び出しました"),
+    )
+
+    outcome = target._production_private_archive(daily_context)
+
+    assert outcome.status == "complete"
+    assert outcome.result["case_archive_count"] == 1
+    assert outcome.result["ghidra_checkpoint_archived"] is False
+    assert observed == [one_shot]
+
+
+def test_archive_analysis_cases_stages_and_cleans_one_case_at_a_time(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import stage_case_analysis_datastore
+
+    daily_context = context(tmp_path)
+    cases = [f"{index:064x}" for index in range(1, 51)]
+    monkeypatch.setattr(
+        target,
+        "_load_acquisition_manifest",
+        lambda _context: {"selected_hashes": list(reversed(cases))},
+    )
+    staged_calls: list[tuple[str, ...]] = []
+    archived_calls: list[tuple[str, Path, str]] = []
+    cleanup_calls: list[str] = []
+
+    def stage_cases(**kwargs: object) -> dict[str, object]:
+        selected = tuple(kwargs["case_sha256s"])
+        staged_calls.append(selected)
+        digest = selected[0]
+        archive_target = f"{daily_context.collection_id}-{digest}"
+        source = daily_context.state_root / "case-datastore-staging" / archive_target
+        return {
+            "case_count": 1,
+            "cases": [
+                {
+                    "case_sha256": digest,
+                    "target": archive_target,
+                    "source_path": str(source),
+                }
+            ],
+        }
+
+    def archive_one(
+        _context: target.DailyContext,
+        *,
+        role: str,
+        source: Path,
+        target: str,
+        expected_source: object = None,
+    ) -> dict[str, object]:
+        assert expected_source is not None
+        archived_calls.append((role, source, target))
+        return {
+            "source_role": role,
+            "target": target,
+            "status": "verified",
+            "archive_sha256": "a" * 64,
+            "manifest_sha256": "b" * 64,
+        }
+
+    def cleanup(**kwargs: object) -> dict[str, object]:
+        cleanup_calls.append(str(kwargs["case_sha256"]))
+        return {"removed": True}
+
+    monkeypatch.setattr(stage_case_analysis_datastore, "stage_cases", stage_cases)
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "remove_case_staging_after_verified_archive",
+        cleanup,
+    )
+    monkeypatch.setattr(target, "_archive_one", archive_one)
+
+    archived = target._archive_analysis_cases(
+        daily_context,
+        one_shot_root=tmp_path / "one-shot-analysis",
+    )
+
+    assert staged_calls == [(digest,) for digest in sorted(cases)]
+    assert len(archived_calls) == 50
+    assert all(role == "analysis_case" for role, _source, _target in archived_calls)
+    assert cleanup_calls == sorted(cases)
+    assert len(archived) == 50
+    assert all(item["case_separated"] is True for item in archived)
+    assert all(item["owned_staging_removed"] is True for item in archived)
+
+
+def test_archive_analysis_cases_stops_at_failing_case(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import stage_case_analysis_datastore
+
+    daily_context = context(tmp_path)
+    cases = [f"{index:064x}" for index in range(1, 51)]
+    ordered = sorted(cases)
+    monkeypatch.setattr(
+        target,
+        "_load_acquisition_manifest",
+        lambda _context: {"selected_hashes": cases},
+    )
+    staged_calls: list[str] = []
+    archived_calls: list[str] = []
+
+    def stage_cases(**kwargs: object) -> dict[str, object]:
+        digest = list(kwargs["case_sha256s"])[0]
+        staged_calls.append(digest)
+        if digest == ordered[2]:
+            raise stage_case_analysis_datastore.CaseStagingError("fixture failure")
+        archive_target = f"{daily_context.collection_id}-{digest}"
+        return {
+            "case_count": 1,
+            "cases": [
+                {
+                    "case_sha256": digest,
+                    "target": archive_target,
+                    "source_path": str(daily_context.state_root / "case-datastore-staging" / archive_target),
+                }
+            ],
+        }
+
+    def archive_one(
+        _context: target.DailyContext,
+        *,
+        role: str,
+        source: Path,
+        target: str,
+        expected_source: object = None,
+    ) -> dict[str, object]:
+        assert expected_source is not None
+        del role, source
+        archived_calls.append(target)
+        return {
+            "target": target,
+            "status": "verified",
+            "archive_sha256": "a" * 64,
+            "manifest_sha256": "b" * 64,
+        }
+
+    monkeypatch.setattr(stage_case_analysis_datastore, "stage_cases", stage_cases)
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "remove_case_staging_after_verified_archive",
+        lambda **_kwargs: {"removed": True},
+    )
+    monkeypatch.setattr(target, "_archive_one", archive_one)
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target._archive_analysis_cases(
+            daily_context,
+            one_shot_root=tmp_path / "one-shot-analysis",
+        )
+
+    assert captured.value.code == "case_archive_staging_failed"
+    assert staged_calls == ordered[:3]
+    assert len(archived_calls) == 2
+
+
+def test_archive_analysis_cases_reuses_retained_staging_after_upload_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """一時upload失敗後は保持stagingを再検証経路で再利用して完走する。"""
+
+    import stage_case_analysis_datastore
+
+    daily_context = context(tmp_path)
+    short_state = tmp_path.parent / ("s-" + hashlib.sha256(str(tmp_path).encode("utf-8")).hexdigest()[:8])
+    short_state.mkdir()
+    daily_context = replace(daily_context, state_root=short_state)
+    cases = [f"{index:064x}" for index in range(1, 51)]
+    ordered = sorted(cases)
+    first = ordered[0]
+    monkeypatch.setattr(
+        target,
+        "_load_acquisition_manifest",
+        lambda _context: {"selected_hashes": cases},
+    )
+    stage_calls: list[str] = []
+    reuse_calls: list[str] = []
+    fail_first_upload = True
+
+    def handoff(digest: str) -> dict[str, object]:
+        archive_target = f"{daily_context.collection_id}-{digest}"
+        source = daily_context.state_root / "case-datastore-staging" / archive_target
+        return {
+            "case_count": 1,
+            "cases": [
+                {
+                    "case_sha256": digest,
+                    "target": archive_target,
+                    "source_path": str(source),
+                }
+            ],
+        }
+
+    def stage_cases(**kwargs: object) -> dict[str, object]:
+        digest = list(kwargs["case_sha256s"])[0]
+        stage_calls.append(digest)
+        source = Path(handoff(digest)["cases"][0]["source_path"])
+        source.mkdir(parents=True)
+        (source / "inventory.bin").write_bytes(b"trusted")
+        return handoff(digest)
+
+    def reuse_case_staging(**kwargs: object) -> dict[str, object]:
+        digest = str(kwargs["case_sha256"])
+        reuse_calls.append(digest)
+        source = Path(handoff(digest)["cases"][0]["source_path"])
+        assert (source / "inventory.bin").read_bytes() == b"trusted"
+        return handoff(digest)
+
+    def archive_one(
+        _context: target.DailyContext,
+        *,
+        role: str,
+        source: Path,
+        target: str,
+        expected_source: object = None,
+    ) -> dict[str, object]:
+        nonlocal fail_first_upload
+        assert expected_source is not None
+        del role
+        if target.endswith(first) and fail_first_upload:
+            fail_first_upload = False
+            raise target_module_error(
+                "fixture_upload_failed",
+                "一時upload失敗",
+            )
+        return {
+            "target": target,
+            "status": "verified",
+            "archive_sha256": "a" * 64,
+            "manifest_sha256": "b" * 64,
+            "source_path": str(source),
+        }
+
+    def cleanup(**kwargs: object) -> dict[str, object]:
+        shutil.rmtree(Path(kwargs["source_path"]))
+        return {"removed": True}
+
+    target_module_error = target.DailyOrchestrationError
+    monkeypatch.setattr(stage_case_analysis_datastore, "stage_cases", stage_cases)
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "reuse_case_staging",
+        reuse_case_staging,
+    )
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "remove_case_staging_after_verified_archive",
+        cleanup,
+    )
+    monkeypatch.setattr(target, "_archive_one", archive_one)
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target._archive_analysis_cases(
+            daily_context,
+            one_shot_root=tmp_path / "one-shot-analysis",
+        )
+    assert captured.value.code == "fixture_upload_failed"
+    retained = daily_context.state_root / "case-datastore-staging" / f"{daily_context.collection_id}-{first}"
+    assert retained.is_dir()
+
+    archived = target._archive_analysis_cases(
+        daily_context,
+        one_shot_root=tmp_path / "one-shot-analysis",
+    )
+
+    assert reuse_calls == [first]
+    assert stage_calls.count(first) == 1
+    assert sorted(stage_calls) == ordered
+    assert len(archived) == 50
+    assert not retained.exists()
+
+
+def test_archive_analysis_cases_rejects_tampered_retained_staging(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """upload失敗後の保持stagingが変化した場合は再開をfail-closedにする。"""
+
+    import stage_case_analysis_datastore
+
+    daily_context = context(tmp_path)
+    short_state = tmp_path.parent / ("s-" + hashlib.sha256(str(tmp_path).encode("utf-8")).hexdigest()[:8])
+    short_state.mkdir()
+    daily_context = replace(daily_context, state_root=short_state)
+    cases = [f"{index:064x}" for index in range(1, 51)]
+    first = sorted(cases)[0]
+    monkeypatch.setattr(
+        target,
+        "_load_acquisition_manifest",
+        lambda _context: {"selected_hashes": cases},
+    )
+    archive_target = f"{daily_context.collection_id}-{first}"
+    source = daily_context.state_root / "case-datastore-staging" / archive_target
+
+    def stage_cases(**_kwargs: object) -> dict[str, object]:
+        source.mkdir(parents=True)
+        (source / "inventory.bin").write_bytes(b"trusted")
+        return {
+            "case_count": 1,
+            "cases": [
+                {
+                    "case_sha256": first,
+                    "target": archive_target,
+                    "source_path": str(source),
+                }
+            ],
+        }
+
+    def reject_tampered(**_kwargs: object) -> dict[str, object]:
+        if (source / "inventory.bin").read_bytes() != b"trusted":
+            raise stage_case_analysis_datastore.CaseStagingError("既存case staging inventoryのSHA-256が一致しません")
+        pytest.fail("tamperが存在しません")
+
+    upload_attempt = 0
+
+    def archive_one(*_args: object, **_kwargs: object) -> dict[str, object]:
+        nonlocal upload_attempt
+        upload_attempt += 1
+        raise target.DailyOrchestrationError(
+            "fixture_upload_failed",
+            "一時upload失敗",
+        )
+
+    monkeypatch.setattr(stage_case_analysis_datastore, "stage_cases", stage_cases)
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "reuse_case_staging",
+        reject_tampered,
+    )
+    monkeypatch.setattr(target, "_archive_one", archive_one)
+
+    with pytest.raises(target.DailyOrchestrationError):
+        target._archive_analysis_cases(
+            daily_context,
+            one_shot_root=tmp_path / "one-shot-analysis",
+        )
+    (source / "inventory.bin").write_bytes(b"tampered")
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target._archive_analysis_cases(
+            daily_context,
+            one_shot_root=tmp_path / "one-shot-analysis",
+        )
+
+    assert captured.value.code == "case_archive_staging_failed"
+    assert upload_attempt == 1
+    assert source.is_dir()
 
 
 def test_source_commitment_matches_news_consumer_for_nested_layout(tmp_path: Path) -> None:
@@ -1038,9 +1890,7 @@ def test_news_source_change_does_not_promote_staged_public_results(
         staging.mkdir(parents=True)
         for name in target.NEWS_PUBLIC_FILES:
             (staging / name).write_text("staged\n", encoding="utf-8")
-        source = next(
-            (daily_context.intelligence_root / "tech-memo").rglob("20260829.md")
-        )
+        source = next((daily_context.intelligence_root / "tech-memo").rglob("20260829.md"))
         source.write_text("changed\n", encoding="utf-8")
         return 0
 
@@ -1084,11 +1934,7 @@ def test_failed_stage_continues_only_to_authorized_private_checkpoint(
     assert state["status"] == "failed"
     assert calls["news_intake"] == 1
     assert calls["private_archive"] == 1
-    assert all(
-        calls[name] == 0
-        for name in target.STAGES
-        if name not in {"news_intake", "private_archive"}
-    )
+    assert all(calls[name] == 0 for name in target.STAGES if name not in {"news_intake", "private_archive"})
 
 
 def test_datastore_target_is_deterministically_bounded() -> None:
@@ -1160,10 +2006,7 @@ def test_acquisition_stage_reports_full_selection_commitment(
 
     outcome = target._production_malwarebazaar_acquisition(daily_context)
 
-    assert (
-        outcome.result["selection_commitment_sha256"]
-        == manifest["selection_commitment_sha256"]
-    )
+    assert outcome.result["selection_commitment_sha256"] == manifest["selection_commitment_sha256"]
 
 
 def test_fixed_python_uses_bounded_pipe_capture(

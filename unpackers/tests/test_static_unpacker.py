@@ -5,16 +5,16 @@ from __future__ import annotations
 import io
 import json
 import os
-from pathlib import Path
 import struct
 import sys
-from types import SimpleNamespace
 import zipfile
 import zlib
+from pathlib import Path
+from types import SimpleNamespace
 
 import pefile
-import pyzipper
 import pytest
+import pyzipper
 
 from unpackers import static_unpacker as unpacker
 
@@ -128,6 +128,136 @@ def minimal_macho() -> bytes:
     return b"\xcf\xfa\xed\xfe" + struct.pack("<IIIIIII", 0x01000007, 3, 2, 0, 0, 0, 0)
 
 
+def synthetic_lzx_cab(
+    members: tuple[tuple[str, bytes], ...] = (("payload.exe", b"MZfixture"),),
+    *,
+    flags: int = 0,
+    cabinet_index: int = 0,
+    compression_type: int = 3,
+    window_bits: int = 15,
+    checksum: bool = True,
+) -> bytes:
+    """非公開検体byteを使わず、preflight用の最小LZX CAB構造を作る。"""
+
+    folder_payload = b"".join(blob for _name, blob in members)
+    file_table_offset = unpacker.CAB_HEADER.size + unpacker.CAB_FOLDER.size
+    file_entries = bytearray()
+    member_offset = 0
+    for name, blob in members:
+        encoded_name = name.encode("utf-8")
+        file_entries.extend(
+            unpacker.CAB_FILE.pack(
+                len(blob),
+                member_offset,
+                0,
+                0,
+                0,
+                0x0080,
+            )
+        )
+        file_entries.extend(encoded_name + b"\0")
+        member_offset += len(blob)
+    block_data = (
+        folder_payload
+        if compression_type == 0
+        else b"CKsynthetic-mszip-block"
+        if compression_type == 1
+        else b"synthetic-lzx-block"
+    )
+    block_offset = file_table_offset + len(file_entries)
+    seed = len(block_data) | (len(folder_payload) << 16)
+    block_checksum = (
+        unpacker._cab_data_checksum(memoryview(block_data), seed) if checksum else 0
+    )
+    block = (
+        unpacker.CAB_DATA.pack(
+            block_checksum,
+            len(block_data),
+            len(folder_payload),
+        )
+        + block_data
+    )
+    cabinet_size = block_offset + len(block)
+    header = unpacker.CAB_HEADER.pack(
+        b"MSCF",
+        0,
+        cabinet_size,
+        0,
+        file_table_offset,
+        0,
+        3,
+        1,
+        1,
+        len(members),
+        flags,
+        0,
+        cabinet_index,
+    )
+    compression = 3 | (window_bits << 8) if compression_type == 3 else compression_type
+    folder = unpacker.CAB_FOLDER.pack(block_offset, 1, compression)
+    return header + folder + bytes(file_entries) + block
+
+
+def minimal_pe() -> bytes:
+    """1 sectionと明確なoverlay境界を持つ静的parser用PE32を返す。"""
+
+    data = bytearray(0x400)
+    data[:2] = b"MZ"
+    struct.pack_into("<I", data, 0x3C, 0x80)
+    data[0x80:0x84] = b"PE\0\0"
+    struct.pack_into("<HHIIIHH", data, 0x84, 0x14C, 1, 0, 0, 0, 0xE0, 0x0102)
+    optional = 0x98
+    struct.pack_into("<H", data, optional, 0x10B)
+    struct.pack_into("<I", data, optional + 4, 0x200)
+    struct.pack_into("<I", data, optional + 16, 0x1000)
+    struct.pack_into("<I", data, optional + 20, 0x1000)
+    struct.pack_into("<I", data, optional + 24, 0x2000)
+    struct.pack_into("<I", data, optional + 28, 0x400000)
+    struct.pack_into("<II", data, optional + 32, 0x1000, 0x200)
+    struct.pack_into("<I", data, optional + 56, 0x2000)
+    struct.pack_into("<I", data, optional + 60, 0x200)
+    struct.pack_into("<I", data, optional + 92, 16)
+    section = optional + 0xE0
+    data[section : section + 8] = b".text\0\0\0"
+    struct.pack_into("<IIII", data, section + 8, 0x200, 0x1000, 0x200, 0x200)
+    struct.pack_into("<I", data, section + 36, 0x60000020)
+    data[0x200] = 0xC3
+    return bytes(data)
+
+
+def minimal_pyinstaller_pe(payload: bytes = b"print('fixture')") -> bytes:
+    """実行しない合成PEへ最小PyInstaller CArchiveを付加する。"""
+
+    stored = zlib.compress(payload)
+    encoded_name = b"entrypoint\0".ljust(16, b"\0")
+    entry_length = unpacker.MemoryCArchiveReader.TOC_ENTRY_LENGTH + len(encoded_name)
+    toc = (
+        struct.pack(
+            unpacker.MemoryCArchiveReader.TOC_ENTRY_FORMAT,
+            entry_length,
+            0,
+            len(stored),
+            len(payload),
+            1,
+            b"s",
+        )
+        + encoded_name
+    )
+    archive_length = (
+        len(stored) + len(toc) + unpacker.MemoryCArchiveReader.COOKIE_LENGTH
+    )
+    cookie = struct.pack(
+        unpacker.MemoryCArchiveReader.COOKIE_FORMAT,
+        unpacker.MemoryCArchiveReader.COOKIE_MAGIC,
+        archive_length,
+        len(stored),
+        len(toc),
+        313,
+        b"python313.dll".ljust(64, b"\0"),
+    )
+    return minimal_pe() + stored + toc + cookie
+
+
 def test_hash_entropy_format_and_names() -> None:
     """共通プリミティブとパストラバーサル拒否を試験する。"""
     assert len(unpacker.sha256_bytes(b"x")) == 64
@@ -141,10 +271,92 @@ def test_hash_entropy_format_and_names() -> None:
     assert unpacker.detect_format(b"ER\x02\x00" + b"\0" * 28, "x") == "apple-disk-image"
     assert unpacker.detect_format(b"Rar!\x1a\x07\x01\x00", "x") == "rar"
     assert unpacker.detect_format(b"var x = 1", "x.js") == "script"
+    assert unpacker.detect_format(b"%PDF-1.7\n%%EOF", "x") == "pdf"
     assert unpacker.detect_format("// loader".encode("utf-16"), "x") == "script"
     assert unpacker.safe_member_name("a/b") == "a/b"
     with pytest.raises(ValueError):
         unpacker.safe_member_name("../x")
+
+
+def test_pyinstaller_carchive_is_fully_validated_and_routed_as_static_layer() -> None:
+    """PyInstallerのscriptを保存・実行せず、公開contractと子layerへ接続する。"""
+
+    payload = b"print('fixture')"
+    report, artifacts = unpacker.unpack_bytes(
+        minimal_pyinstaller_pe(payload),
+        "fixture.exe",
+    )
+
+    pyinstaller = report["pyinstaller"]
+    assert pyinstaller["status"] == "artifacts_recovered"
+    assert pyinstaller["complete"] is True
+    assert pyinstaller["archive"]["entry_count"] == 1
+    assert pyinstaller["content_validation"]["full_content_validation"] is True
+    assert pyinstaller["selection"]["retained_count"] == 1
+    assert pyinstaller["safety"] == {
+        **pyinstaller["safety"],
+        "sample_executed": False,
+        "external_process_started": False,
+        "network_contacted": False,
+        "file_written": False,
+    }
+    assert artifacts == [("pyinstaller-python_script-000-entrypoint", payload)]
+
+
+def test_installer_overlay_marker_does_not_become_an_image_packer_marker() -> None:
+    """PE image外のNSIS/Inno markerだけをcontainer根拠として分離する。"""
+
+    summary, _artifacts = unpacker.pe_summary(
+        minimal_pe() + b"UPX! Nullsoft Inno Setup Setup Data"
+    )
+
+    assert summary["containerized"] is True
+    assert "Nullsoft" in summary["packer_markers"]
+    assert "Inno Setup" in summary["packer_markers"]
+    assert "UPX!" not in summary["packer_markers"]
+
+
+def test_gdpf_pdf_footer_is_recovered_from_validated_pe_overlay() -> None:
+    """GDPF size/footerとPE境界が一致するPDFだけを正確に復元する。"""
+
+    pdf = b"%PDF-1.7\n" + (b"A" * 160) + b"\n%%EOF\n"
+    sample = minimal_pe() + pdf + struct.pack("<I", len(pdf)) + b"GDPF"
+
+    report, artifacts = unpacker.unpack_bytes(sample, "ghostdesk.exe")
+
+    gdpf = report["pe"]["gdpf_pdf_footer"]
+    assert gdpf["status"] == "pdf_recovered"
+    assert gdpf["declared_size"] == len(pdf)
+    assert gdpf["payload_offset"] == len(minimal_pe())
+    assert gdpf["payload_content_in_report"] is False
+    assert artifacts == [("gdpf-pdf-decoy.pdf", pdf)]
+
+
+@pytest.mark.parametrize(
+    ("payload", "declared_size", "minimum_offset", "expected_status"),
+    [
+        (b"%PDF-1.7\n%%EOF", 15, 0, "declared_size_below_profile_minimum"),
+        (b"X" * 128, 128, 0, "payload_magic_mismatch"),
+        (b"%PDF-1.7\n" + b"X" * 128, 138, 32, "payload_outside_pe_overlay"),
+    ],
+)
+def test_gdpf_footer_rejects_untrusted_bounds_and_magic(
+    payload: bytes,
+    declared_size: int,
+    minimum_offset: int,
+    expected_status: str,
+) -> None:
+    """短すぎる宣言、非PDF、overlay外参照を子レイヤーへ渡さない。"""
+
+    prefix = b"" if expected_status != "payload_outside_pe_overlay" else b"P" * 16
+    data = prefix + payload + struct.pack("<I", declared_size) + b"GDPF"
+    report, artifacts = unpacker.recover_gdpf_pdf_overlay(
+        data,
+        minimum_offset=minimum_offset,
+    )
+
+    assert report["status"] == expected_status
+    assert artifacts == []
 
 
 def _png_chunk(kind: bytes, payload: bytes) -> bytes:
@@ -712,6 +924,83 @@ def test_sevenzip_over_member_limit_uses_bounded_selective_extraction(
     assert {kind for kind, _blob in artifacts} == {"7z-script", "7z-data"}
 
 
+def test_sevenzip_over_total_size_selects_high_value_members(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """member数が少なくても総量超過ならapp本体だけを有界に復元する。"""
+
+    records = [
+        {"name": "resources/app.asar", "size": 64, "attributes": "A"},
+        {"name": "runtime.bin", "size": 4096, "attributes": "A"},
+    ]
+
+    def fake_inventory(_data: bytes, _executable: Path, _password: str = ""):
+        return {
+            "status": "listed",
+            "archive_types": ["7z"],
+            "members": [item["name"] for item in records],
+            "total_members": 2,
+            "declared_total_size": 4160,
+            "archive_unlock_attempted": False,
+            "_member_records": records,
+        }
+
+    commands: list[list[str]] = []
+
+    def fake_run(command, **_kwargs):
+        commands.append(command)
+        output_arg = next(item for item in command if item.startswith("-o"))
+        output = Path(output_arg[2:]) / "resources"
+        output.mkdir(parents=True)
+        (output / "app.asar").write_bytes(b"asar-fixture")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
+
+    report, artifacts = unpacker.sevenzip_extract(
+        b"7zfixture",
+        tmp_path / "7z.exe",
+        max_members=8,
+        max_member_size=1024,
+        max_total_size=128,
+    )
+
+    assert report["status"] == "selectively_extracted"
+    assert report["selective_extraction"]["reason"] == "archive_total_size_limit"
+    assert report["selective_extraction"]["selected_members"] == [
+        {"name": "resources/app.asar", "size": 64, "priority": 0}
+    ]
+    assert "resources/app.asar" in commands[0]
+    assert "runtime.bin" not in commands[0]
+    assert artifacts == [("7z-data", b"asar-fixture")]
+
+
+def test_detected_installer_marker_triggers_archive_probe_without_manual_hint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """既知installer markerは手動forceなしで境界付き7-Zip検査へ送る。"""
+
+    observed: list[bytes] = []
+
+    def fake_extract(data: bytes, *_args, **_kwargs):
+        observed.append(data)
+        return {"status": "not_archive_container"}, []
+
+    monkeypatch.setattr(unpacker, "sevenzip_extract", fake_extract)
+    sample = minimal_pe() + b"Nullsoft"
+    report, _artifacts = unpacker.unpack_bytes(
+        sample,
+        "installer.exe",
+        sevenzip=tmp_path / "7z.exe",
+    )
+
+    assert observed == [sample]
+    assert report["pe"]["containerized"] is True
+    assert report["sevenzip"]["forced_by_reviewed_hint"] is False
+    assert report["unpack_status"] == "container_parser_unavailable"
+
+
 def test_reviewed_container_hint_forces_bounded_archive_probe(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1018,26 +1307,21 @@ def test_recover_ole_streams_fails_closed_on_member_limit(
     assert artifacts == []
 
 
-def test_recover_cab_members_filters_paths_and_respects_size(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_cab_inventory_filters_paths_and_respects_size() -> None:
     """CAB memberのpath・sizeを検証し、許可した静的層だけを返す。"""
 
-    fake_archive = {
-        "payload.exe": SimpleNamespace(buf=b"MZ" + b"P" * 62),
-        "../escape.dll": SimpleNamespace(buf=b"MZ" + b"E" * 62),
-        "large.bin": SimpleNamespace(buf=b"L" * 129),
-        "note.txt": SimpleNamespace(buf=b"analysis note"),
-    }
-    monkeypatch.setattr(
-        unpacker.cabarchive,
-        "CabArchive",
-        lambda _data: fake_archive,
-    )
-    report, artifacts = unpacker.recover_cab_members(
-        b"MSCFfixture",
+    members = [
+        ("payload.exe", b"MZ" + b"P" * 62),
+        ("../escape.dll", b"MZ" + b"E" * 62),
+        ("large.bin", b"L" * 129),
+        ("note.txt", b"analysis note"),
+    ]
+    report, artifacts = unpacker._cab_inventory_report(
+        members,
+        max_members=unpacker.MAX_ARCHIVE_MEMBERS,
         max_member_size=128,
         max_total_size=512,
+        parser="fixture",
     )
 
     assert report["member_count"] == 4
@@ -1047,6 +1331,331 @@ def test_recover_cab_members_filters_paths_and_respects_size(
     assert statuses["../escape.dll"] == "path_blocked"
     assert statuses["large.bin"] == "size_blocked"
     assert report["executed"] is False and report["network_contacted"] is False
+
+
+def test_uncompressed_cab_is_preflighted_before_cabarchive() -> None:
+    """正常なNone圧縮CABを壊さず、constructor前後のtableを照合する。"""
+
+    payload = b"plain fixture"
+    cab = synthetic_lzx_cab(
+        (("payload.bin", payload),),
+        compression_type=0,
+    )
+
+    report, artifacts = unpacker.recover_cab_members(cab)
+
+    assert report["status"] == "artifacts_recovered"
+    assert report["parser"] == "cabarchive"
+    assert report["preflight"]["status"] == "passed"
+    assert report["preflight"]["compression"] == "none"
+    assert report["preflight"]["declared_file_total_size"] == len(payload)
+    assert artifacts == [("cab-data", payload)]
+
+
+def test_non_lzx_budget_failure_happens_before_cabarchive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """None圧縮CABも宣言size超過ならdecompressor起動前に拒否する。"""
+
+    cab = synthetic_lzx_cab(
+        (("payload.bin", b"plain fixture"),),
+        compression_type=0,
+    )
+    monkeypatch.setattr(
+        unpacker.cabarchive,
+        "CabArchive",
+        lambda _data: pytest.fail("preflight失敗後にcabarchiveを呼ばない"),
+    )
+
+    report, artifacts = unpacker.recover_cab_members(cab, max_member_size=1)
+
+    assert report["status"] == "parse_failed"
+    assert report["parser"] == "cab-preflight"
+    assert report["failure_reason"] == "member_size_limit_exceeded"
+    assert artifacts == []
+
+
+def test_lzx_cab_fallback_is_in_memory_bounded_and_deterministic(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """LZX未対応時だけ検証済みmemberを決定的順序でmemory展開する。"""
+
+    members = (
+        ("z-payload.exe", b"MZ" + b"P" * 62),
+        ("a-note.txt", b"analysis note"),
+    )
+    cab = synthetic_lzx_cab(members)
+    folder_payload = b"".join(blob for _name, blob in members)
+
+    class FakeFolder:
+        method = (3, 15)
+
+        @staticmethod
+        def decompress() -> memoryview:
+            return memoryview(folder_payload)
+
+    folder = FakeFolder()
+
+    class FakeMember:
+        def __init__(self, name: str, blob: bytes, offset: int) -> None:
+            self.name = name
+            self.size = len(blob)
+            self.offset = offset
+            self._index = 0
+            self.folder = folder
+            self._blob = blob
+
+        def decompress(self) -> memoryview:
+            return memoryview(self._blob)
+
+    parsed_members = []
+    offset = 0
+    for name, blob in members:
+        parsed_members.append(FakeMember(name, blob, offset))
+        offset += len(blob)
+
+    class FakeCabinet:
+        def __init__(self, source: memoryview, *, compute_checksums: bool) -> None:
+            assert bytes(source) == cab
+            assert compute_checksums is True
+            self.disks = {0: [SimpleNamespace(folders=[folder])]}
+
+        @staticmethod
+        def check(*, checksums: bool) -> None:
+            assert checksums is True
+
+        def process(self):
+            return self
+
+        @staticmethod
+        def get_files():
+            return list(reversed(parsed_members))
+
+    def unsupported_lzx(_data: bytes):
+        raise unpacker.cabarchive.NotSupportedError(unpacker.CAB_LZX_UNSUPPORTED_ERROR)
+
+    monkeypatch.setattr(unpacker.cabarchive, "CabArchive", unsupported_lzx)
+    monkeypatch.setattr(unpacker, "RefineryCabinet", FakeCabinet)
+    monkeypatch.setattr(
+        unpacker,
+        "sevenzip_extract",
+        lambda *_args, **_kwargs: pytest.fail("LZX CABは外部processへ渡さない"),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(
+        cab,
+        "synthetic.cab",
+        sevenzip=Path("unused-7z.exe"),
+    )
+
+    cab_report = report["cab"]
+    assert cab_report["parser"] == "binary-refinery"
+    assert cab_report["backend"] == "in_memory_python"
+    assert cab_report["lzx_fallback_completed"] is True
+    assert cab_report["preflight"]["checksum_blocks_verified"] == 1
+    assert cab_report["in_memory_extraction"]["status"] == "complete"
+    memory_budget = cab_report["preflight"]["lzx_peak_memory_budget"]
+    assert memory_budget["status"] == "passed"
+    assert memory_budget["input_bytes"] == len(cab)
+    assert memory_budget["folder_cache_bytes"] == len(folder_payload)
+    assert memory_budget["member_materialization_bytes"] == len(folder_payload)
+    assert memory_budget["estimated_peak_bytes"] <= memory_budget["worker_limit_bytes"]
+    assert cab_report["in_memory_extraction"]["peak_memory_budget"] == memory_budget
+    assert [item["name"] for item in cab_report["inventory"]] == [
+        "a-note.txt",
+        "z-payload.exe",
+    ]
+    assert cab_report["external_process_started"] is False
+    assert cab_report["disk_written"] is False
+    assert "sevenzip" not in report
+    assert artifacts == [("cab-pe", members[0][1])]
+
+
+def test_lzx_cab_peak_memory_budget_exact_boundary_and_one_byte_over(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """全cache・bytes化込みの1 byte境界をdecode前にfail-closed判定する。"""
+
+    cab = synthetic_lzx_cab(
+        (
+            ("payload.exe", b"MZ" + b"P" * 62),
+            ("note.txt", b"analysis note"),
+        )
+    )
+    initial = unpacker._cab_preflight(
+        cab,
+        max_members=unpacker.MAX_ARCHIVE_MEMBERS,
+        max_member_size=unpacker.MAX_ARTIFACT,
+        max_total_size=unpacker.MAX_EXTRACTED_TOTAL,
+    )
+    assert initial.memory_budget is not None
+    estimated_peak = initial.memory_budget.estimated_peak_bytes
+    component_total = (
+        initial.memory_budget.runtime_reserve_bytes
+        + initial.memory_budget.input_bytes
+        + initial.memory_budget.folder_cache_bytes
+        + initial.memory_budget.member_materialization_bytes
+        + initial.memory_budget.decoder_window_bytes
+        + initial.memory_budget.metadata_reserve_bytes
+    )
+    assert estimated_peak == component_total
+
+    monkeypatch.setattr(
+        unpacker,
+        "MAX_CAB_LZX_WORKER_MEMORY_BYTES",
+        estimated_peak,
+    )
+    exact = unpacker._cab_preflight(
+        cab,
+        max_members=unpacker.MAX_ARCHIVE_MEMBERS,
+        max_member_size=unpacker.MAX_ARTIFACT,
+        max_total_size=unpacker.MAX_EXTRACTED_TOTAL,
+    )
+    assert exact.memory_budget is not None
+    assert exact.memory_budget.public()["headroom_bytes"] == 0
+
+    monkeypatch.setattr(
+        unpacker,
+        "MAX_CAB_LZX_WORKER_MEMORY_BYTES",
+        estimated_peak - 1,
+    )
+    monkeypatch.setattr(
+        unpacker.cabarchive,
+        "CabArchive",
+        lambda _data: pytest.fail("memory予算超過後にdecoderを呼ばない"),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "RefineryCabinet",
+        lambda *_args, **_kwargs: pytest.fail("memory予算超過後にfallbackしない"),
+    )
+
+    report, artifacts = unpacker.recover_cab_members(cab)
+
+    assert report["status"] == "parse_failed"
+    assert report["parser"] == "cab-preflight"
+    assert report["failure_reason"] == "lzx_peak_memory_budget_exceeded"
+    assert report["lzx_fallback_attempted"] is False
+    assert artifacts == []
+
+
+def test_cab_fallback_does_not_accept_other_unsupported_compression(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """cabarchiveのLZX固有例外以外ではrefineryを呼び出さない。"""
+
+    def unsupported_quantum(_data: bytes):
+        raise unpacker.cabarchive.NotSupportedError("Quantum compression not supported")
+
+    monkeypatch.setattr(unpacker.cabarchive, "CabArchive", unsupported_quantum)
+    monkeypatch.setattr(
+        unpacker,
+        "RefineryCabinet",
+        lambda *_args, **_kwargs: pytest.fail("LZX以外へfallbackしてはならない"),
+    )
+
+    report, artifacts = unpacker.recover_cab_members(b"MSCFfixture")
+
+    assert report["status"] == "parse_failed"
+    assert report["lzx_fallback_attempted"] is False
+    assert artifacts == []
+
+
+@pytest.mark.parametrize(
+    ("cab", "kwargs", "reason"),
+    [
+        (synthetic_lzx_cab(checksum=False), {}, "missing_data_block_checksum"),
+        (
+            synthetic_lzx_cab((("large.exe", b"MZfixture"),)),
+            {"max_archive_member_size": 1},
+            "member_size_limit_exceeded",
+        ),
+        (
+            synthetic_lzx_cab(flags=1),
+            {},
+            "multi_volume_not_supported",
+        ),
+        (
+            synthetic_lzx_cab((("../escape.exe", b"MZfixture"),)),
+            {},
+            "unsafe_member_path",
+        ),
+        (
+            synthetic_lzx_cab(window_bits=14),
+            {},
+            "lzx_window_out_of_range",
+        ),
+    ],
+)
+def test_lzx_cab_preflight_fails_closed_before_decoder(
+    monkeypatch: pytest.MonkeyPatch,
+    cab: bytes,
+    kwargs: dict[str, int],
+    reason: str,
+) -> None:
+    """checksum、size、volume、path、window違反をdecode前に拒否する。"""
+
+    def unsupported_lzx(_data: bytes):
+        raise unpacker.cabarchive.NotSupportedError(unpacker.CAB_LZX_UNSUPPORTED_ERROR)
+
+    monkeypatch.setattr(unpacker.cabarchive, "CabArchive", unsupported_lzx)
+    monkeypatch.setattr(
+        unpacker,
+        "RefineryCabinet",
+        lambda *_args, **_kwargs: pytest.fail("preflight失敗後にdecoderを呼ばない"),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "sevenzip_extract",
+        lambda *_args, **_kwargs: pytest.fail("拒否したLZX CABを外部processへ渡さない"),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(
+        cab,
+        "synthetic.cab",
+        sevenzip=Path("unused-7z.exe"),
+        **kwargs,
+    )
+
+    assert report["cab"]["status"] == "parse_failed"
+    assert report["cab"]["failure_reason"] == reason
+    assert report["cab"]["lzx_fallback_completed"] is False
+    assert report["cab"]["external_process_started"] is False
+    assert report["cab"]["disk_written"] is False
+    assert "sevenzip" not in report
+    assert artifacts == []
+
+
+def test_lzx_cab_refinery_checksum_failure_discards_all_members(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """decoder側のchecksum不一致も部分成果を返さずfail-closedにする。"""
+
+    cab = synthetic_lzx_cab()
+
+    class ChecksumFailureCabinet:
+        disks: dict[int, list[object]] = {}
+
+        def __init__(self, _source: memoryview, *, compute_checksums: bool) -> None:
+            assert compute_checksums is True
+
+        @staticmethod
+        def check(*, checksums: bool) -> None:
+            assert checksums is True
+            raise ValueError("synthetic checksum rejection")
+
+    def unsupported_lzx(_data: bytes):
+        raise unpacker.cabarchive.NotSupportedError(unpacker.CAB_LZX_UNSUPPORTED_ERROR)
+
+    monkeypatch.setattr(unpacker.cabarchive, "CabArchive", unsupported_lzx)
+    monkeypatch.setattr(unpacker, "RefineryCabinet", ChecksumFailureCabinet)
+
+    report, artifacts = unpacker.recover_cab_members(cab)
+
+    assert report["status"] == "parse_failed"
+    assert report["failure_reason"] == "refinery_checksum_validation_failed"
+    assert report["lzx_fallback_completed"] is False
+    assert artifacts == []
 
 
 def test_whole_file_base64_unknown_carrier_recovery() -> None:

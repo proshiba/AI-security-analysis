@@ -78,3 +78,34 @@ def test_static_tool_path_rejects_oversized_binary(
 
     with pytest.raises(ValueError, match="通常file"):
         analyzer._normalize_tool_path(tool, "UPX")
+
+
+def test_batch_summary_preserves_sealed_static_tool_identity(tmp_path: Path) -> None:
+    """長時間jobのsummaryがtool名だけへ縮退せずroot契約と一致する。"""
+
+    sample = tmp_path / "sample.bin"
+    sample.write_bytes(b"static assessment fixture")
+    tool = tmp_path / "sevenzip.exe"
+    payload = b"synthetic pinned sevenzip"
+    tool.write_bytes(payload)
+
+    summary = analyzer.run_batch(
+        [sample],
+        tmp_path / "output",
+        registry=analyzer.DEFAULT_REGISTRY,
+        archive_mode="raw",
+        assessment_only=True,
+        sevenzip=tool,
+    )
+
+    expected = {
+        "upx": None,
+        "sevenzip": {
+            "name": tool.name,
+            "size": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        },
+        "diec": None,
+    }
+    assert summary["analysis_contract"]["settings"]["static_tools"] == expected
+    assert summary["settings"]["static_tools"] == expected

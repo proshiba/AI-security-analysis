@@ -36,7 +36,7 @@ py -3.13 -B analysis-framework/common/audit_external_communication_requirements.
 | RedLine | 引数なしSOAP `CheckConnect` | boolean result | 不要 | 固定1 request。登録・task pollなし |
 | DarkComet | application dataを送らず受信 | RC4で`IDTYPE`となるserver-first challenge | 後続登録は未解決 | receive-only |
 | FormBook／XLoader | 未実装 | passive responseだけ | variant依存、未確定 | passive-only |
-| Vidar | dead-drop resolver取得は未実装 | resolver候補 | 最終C2では未確定 | offline snapshotだけ |
+| Vidar | 静的configへ束縛した共有serviceを明示opt-inで1回GET | 2サービスで一致したresolver候補 | 最終C2 wireでは未確定 | DNS pin付き限定取得とoffline相関。復元endpointへは接続しない |
 | Remcos | 未実装 | 復号済みframe taxonomy | registration全体が未確定 | offline decodeだけ |
 | Quasar | 未実装 | upstream message taxonomy | current sampleでは未確定 | offline classificationだけ |
 | ValleyRAT Onyx | loopback sinkへ固定長POST | 空HTTP 204／400 | bodyの意味を保持しない | passive loopbackだけ |

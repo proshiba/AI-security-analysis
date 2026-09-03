@@ -184,6 +184,7 @@ PROFILES = {
             {
                 "0c307efa752ca4d412aee733c3d4c3453942b44a22ec2b0d405156003beddc36",
                 "0cad181b2a0c10c287173b15efa7bf92d387987a41a49ad9be3c486e43e3ddc2",
+                "0030c014ec4fae311492a87011f565f9ff3b1881137dda152953c6fe718e33e0",
                 "3d2cea3eaa43053ae0efa20de8544387d7cabeb70c89980f4241f3b6efa0e323",
             }
         ),
@@ -452,17 +453,25 @@ def _observe_vidar(
     direction: str,
 ) -> CommandObservation:
     size, digest, projected = _mapping_fingerprint(message)
-    expected_safety = {
+    legacy_safety = {
         "network_contacted": False,
         "sample_executed": False,
         "raw_snapshot_published": False,
         "shared_service_is_c2": False,
         "active_probe_required": False,
     }
+    current_safety = {
+        "network_contacted": False,
+        "sample_executed": False,
+        "tool_published_raw_response": False,
+        "tool_managed_output_repository_publication": False,
+        "shared_service_is_c2": False,
+        "active_probe_required": False,
+    }
     if (
         message.get("schema_version") != 1
         or message.get("profile") != "vidar_dead_drop_snapshot_correlation_v1"
-        or message.get("safety") != expected_safety
+        or message.get("safety") not in (legacy_safety, current_safety)
         or message.get("c2_confirmed") is not False
     ):
         raise RatCommandObserverError("Vidar snapshot resultの安全契約が不一致です")
@@ -477,14 +486,21 @@ def _observe_vidar(
     count = message.get("corroborating_service_count")
     confidence = message.get("confidence")
     observations = message.get("observations")
-    expected_status = "correlated_final_c2_candidate" if correlated else "inconclusive_snapshot_set"
+    status = message.get("status")
+    current_decoded = status == "decoded_correlated_final_c2_candidate"
+    expected_statuses = (
+        {"correlated_final_c2_candidate", "decoded_correlated_final_c2_candidate"}
+        if correlated
+        else {"inconclusive_snapshot_set"}
+    )
+    resolution = message.get("endpoint_resolution")
     if (
-        message.get("status") != expected_status
+        status not in expected_statuses
         or message.get("final_c2_candidate_recovered") is not correlated
         or message.get("probable_c2") is not correlated
         or type(count) is not int
         or not 0 <= count <= MAXIMUM_COLLECTION_ITEMS
-        or (correlated and count < 1)
+        or (correlated and count < (2 if current_decoded else 1))
         or isinstance(confidence, bool)
         or not isinstance(confidence, (int, float))
         or not math.isfinite(float(confidence))
@@ -493,6 +509,14 @@ def _observe_vidar(
         or len(observations) > MAXIMUM_COLLECTION_ITEMS
     ):
         raise RatCommandObserverError("Vidar snapshot resultのstatus/count整合が不一致です")
+    if current_decoded and (
+        not isinstance(resolution, Mapping)
+        or resolution.get("method") != "tag_bound_enc_decoder_two_service_correlation"
+        or resolution.get("shared_service_response_decoded") is not True
+        or resolution.get("protocol_recovered") is not False
+        or resolution.get("protocol_status") != "unresolved_static_protocol"
+    ):
+        raise RatCommandObserverError("Vidar decoded相関のprotocol安全契約が不一致です")
     return _new_observation(
         profile=profile,
         direction=direction,

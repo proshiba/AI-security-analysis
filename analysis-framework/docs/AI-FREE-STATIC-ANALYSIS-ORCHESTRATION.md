@@ -267,4 +267,4 @@ python .\analysis-framework\common\automation_coverage.py `
 
 数値は「family名が登録されているか」ではなく、detector、自動handler、安全preflight、入力形式、候補検証の各状態を確認して解釈します。これは実装構造と無害なprobeによるpreflightのカバレッジであり、実検体を使った解析完了率、config／C2抽出成功率、終端payload到達率、誤検知率を測定した値ではありません。
 
-2026-08-29時点の生成結果では、登録87 familyのうち77 family（88.51%）がdetector・AST監査・検体なしruntime import確認済みhandler・品質policyを備えた自動routing構造を持ちます。handlerは宣言97件、AST監査通過97件、runtime import確認済み97件で、自動handlerの停止は0件です。候補検証専用は8 family、detectorと自動handlerのないfamilyは2件です。代表fixtureまたは実検体で自動解析完了を実証済みとして集計したfamilyは0件であり、この構造値は各検体のconfig／C2抽出、終端payload到達、品質gate通過を保証しません。正本は[自動解析カバレッジ](../../analysis-results/catalog/AUTOMATION-COVERAGE.md)です。
+2026-09-03時点の生成結果では、登録88 familyのうち78 family（88.64%）がdetector・AST監査・検体なしruntime import確認済みhandler・品質policyを備えた自動routing構造を持ちます。handlerは宣言98件、AST監査通過98件、runtime import確認済み98件で、自動handlerの停止は0件です。候補検証専用は8 family、detectorと自動handlerのないfamilyは2件です。代表fixtureまたは実検体で自動解析完了を実証済みとして集計したfamilyは0件であり、この構造値は各検体のconfig／C2抽出、終端payload到達、品質gate通過を保証しません。正本は[自動解析カバレッジ](../../analysis-results/catalog/AUTOMATION-COVERAGE.md)です。

@@ -5393,11 +5393,15 @@ def _validated_summary(
             or expected_options is None
             or not isinstance(summary_settings, dict)
             or set(summary_settings) != SUMMARY_SETTINGS_KEYS
-            or summary_settings != _expected_summary_settings(expected_options, root_contract)
         ):
             raise JobContractError(
                 "summary_invalid",
-                "assessment_only設定がroot解析契約と一致しません",
+                "summary settings schemaがroot解析契約と一致しません",
+            )
+        if summary_settings != _expected_summary_settings(expected_options, root_contract):
+            raise JobContractError(
+                "summary_invalid",
+                "summary settingsがroot解析契約と一致しません",
             )
         expected_assessment_only = contract_settings["assessment_only"]
         if (expected_assessment_only and follow_on["status"] != "disabled_assessment_only") or (

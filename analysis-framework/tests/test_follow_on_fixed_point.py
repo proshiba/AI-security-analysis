@@ -98,6 +98,34 @@ def _wrapper(data: bytes, path: str = 'p/payload.bin') -> dict[str, object]:
     }
 
 
+def test_zero_output_negative_proof_is_strict_and_legacy_rebuildable() -> None:
+    """完全zero-outputだけを受理し、旧caseもhandler再実行なしで再評価できる。"""
+
+    audit = _audit(
+        0,
+        retained_for_follow_on_analysis=False,
+        observation_scope='wrapper_hash_metadata_only',
+    )
+    wrapper = {
+        'verified_binary_outputs': [],
+        'verified_binary_output_audit': audit,
+    }
+    assert one_shot._retained_outputs_from_wrapper(wrapper) == []
+
+    for updates in (
+        {'binary_values_seen': 1},
+        {'truncated': True},
+        {'reasons': ['maximum_items']},
+        {'observed_output_count': 1},
+    ):
+        invalid = {
+            **wrapper,
+            'verified_binary_output_audit': {**audit, **updates},
+        }
+        with pytest.raises(ValueError, match='auditのschema'):
+            one_shot._retained_outputs_from_wrapper(invalid)
+
+
 @pytest.mark.parametrize(
     ('change',),
     [
@@ -302,6 +330,60 @@ def test_parent_promotion_validation_failure_does_not_write(
     assert json.dumps(outcome, sort_keys=True) == snapshots['outcome']
     assert json.dumps(first_wrapper, sort_keys=True) == snapshots['first']
     assert json.dumps(second_wrapper, sort_keys=True) == snapshots['second']
+
+
+def test_parent_promotion_rolls_back_failure_between_directory_renames(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """canonical退避直後の失敗をWALからbyte-identicalにrollbackする。"""
+
+    import publish_one_shot_collection as publisher
+
+    digest = 'a' * 64
+    output = tmp_path / 'analysis'
+    canonical = output / 'cases' / digest
+    canonical.mkdir(parents=True)
+    (canonical / 'sentinel.json').write_text('{"version":"old"}\n', encoding='utf-8')
+    before = publisher.analysis_job_runner.analysis_output_content_manifest(canonical)
+
+    def build_shadow(*_args, case_dir: Path, **_kwargs) -> bool:
+        (case_dir / 'sentinel.json').write_text(
+            '{"version":"new"}\n',
+            encoding='utf-8',
+        )
+        return True
+
+    monkeypatch.setattr(
+        one_shot,
+        '_build_parent_case_follow_on_promotion',
+        build_shadow,
+    )
+    real_replace = publisher.os.replace
+    injected = False
+
+    def fail_after_canonical_backup(source: Path, destination: Path) -> None:
+        nonlocal injected
+        real_replace(source, destination)
+        if publisher._same_publication_path(Path(source), canonical) and not injected:
+            injected = True
+            raise OSError('injected rename-boundary failure')
+
+    monkeypatch.setattr(publisher.os, 'replace', fail_after_canonical_backup)
+
+    with pytest.raises(OSError, match='rename-boundary failure'):
+        one_shot._promote_parent_case_from_follow_on(
+            output,
+            digest,
+            parent_contract={'sha256': 'b' * 64},
+            child_contract={'sha256': 'c' * 64},
+            specs=[],
+            complete_child_digests=set(),
+        )
+
+    assert injected is True
+    assert publisher.analysis_job_runner.analysis_output_content_manifest(canonical) == before
+    assert not publisher._publication_journal_path(canonical).exists()
 
 
 def test_worker_command_does_not_expose_archive_password(tmp_path: Path, monkeypatch) -> None:
@@ -1327,7 +1409,17 @@ def test_run_batch_never_publishes_timeout_child_case(tmp_path: Path, monkeypatc
     monkeypatch.setattr(
         one_shot,
         '_build_analysis_contract',
-        lambda **_kwargs: {'schema_version': 1, 'sha256': 'c' * 64},
+        lambda **_kwargs: {
+            'schema_version': 1,
+            'sha256': 'c' * 64,
+            'settings': {
+                'static_tools': {
+                    'upx': None,
+                    'sevenzip': None,
+                    'diec': None,
+                }
+            },
+        },
     )
     monkeypatch.setattr(
         one_shot,

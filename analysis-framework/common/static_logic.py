@@ -11,7 +11,6 @@ from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-
 SCHEMA_VERSION = 1
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$", re.IGNORECASE)
 URL_RE = re.compile(r"(?i)\b(?:https?|ftp)://[^\s<>`\"']+")
@@ -485,8 +484,50 @@ def build_static_logic_report(
         ):
             if alias and alias != "unknown":
                 aliases.setdefault(alias.casefold(), item["function_id"])
+    # callee/callerの公開正規化ではSHA-256を伏せるため、関数IDを含むedgeは
+    # redaction前のreview recordで先に解決する。公開edge自体は既に公開している
+    # function_id同士だけを保持し、生の未解決symbolは出力しない。
+    raw_aliases: dict[str, str] = {}
+    normalized_by_index: list[tuple[Mapping[str, Any], dict[str, Any]]] = list(
+        zip(
+            [item for item in source_records if isinstance(item, Mapping)],
+            functions,
+            strict=True,
+        )
+    )
+    for raw, normalized in normalized_by_index:
+        for alias in (
+            raw.get("function_id"),
+            raw.get("name") or raw.get("function_name"),
+            raw.get("address") or raw.get("offset") or raw.get("token"),
+        ):
+            if alias is not None and str(alias).strip():
+                raw_aliases.setdefault(
+                    str(alias).casefold(),
+                    normalized["function_id"],
+                )
+    raw_edges = {
+        (normalized["function_id"], raw_aliases[str(callee).casefold()])
+        for raw, normalized in normalized_by_index
+        for callee in (
+            raw.get("callees", []) if isinstance(raw.get("callees"), list) else []
+        )
+        if isinstance(callee, (str, int, float))
+        and str(callee).casefold() in raw_aliases
+        and raw_aliases[str(callee).casefold()] != normalized["function_id"]
+    } | {
+        (raw_aliases[str(caller).casefold()], normalized["function_id"])
+        for raw, normalized in normalized_by_index
+        for caller in (
+            raw.get("callers", []) if isinstance(raw.get("callers"), list) else []
+        )
+        if isinstance(caller, (str, int, float))
+        and str(caller).casefold() in raw_aliases
+        and raw_aliases[str(caller).casefold()] != normalized["function_id"]
+    }
     call_edges = sorted(
-        {
+        raw_edges
+        | {
             (item["function_id"], aliases[callee.casefold()])
             for item in functions
             for callee in item["callees"]

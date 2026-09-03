@@ -289,9 +289,7 @@ def test_case_handler_attempt_budget_is_partial_and_bounded(
     monkeypatch.setattr(
         one_shot.classify_sample,
         "classify_bytes",
-        lambda data, *_args, **_kwargs: (
-            _classification("family_a") if data in children else _classification(None)
-        ),
+        lambda data, *_args, **_kwargs: _classification("family_a") if data in children else _classification(None),
     )
     monkeypatch.setattr(
         one_shot,
@@ -355,9 +353,7 @@ def test_case_handler_attempt_budget_is_partial_and_bounded(
         analysis_contract={"schema_version": 1, "sha256": "fixture-contract"},
     )
 
-    report = json.loads(
-        (tmp_path / "out" / "cases" / root_hash / "report.json").read_text(encoding="utf-8")
-    )
+    report = json.loads((tmp_path / "out" / "cases" / root_hash / "report.json").read_text(encoding="utf-8"))
     execution = report["handler_executions"][0]
     assert len(calls) == 1
     assert execution["status"] == "ambiguous_evidence"
@@ -407,9 +403,7 @@ def test_equivalent_pe_padding_parent_child_results_are_not_ambiguous() -> None:
         ({"score": 100, "sufficient": True}, 0, root, execution(root)),
         ({"score": 100, "sufficient": True}, -1, child, execution(child)),
     ]
-    assert one_shot._equivalent_pe_padding_handler_layers(strongest) == sorted(
-        [root.sha256, child.sha256]
-    )
+    assert one_shot._equivalent_pe_padding_handler_layers(strongest) == sorted([root.sha256, child.sha256])
 
     child_different = copy.deepcopy(execution(child))
     child_different["result"]["config"]["endpoints"] = ["other.invalid:443"]
@@ -513,6 +507,8 @@ def test_profile_validation_miss_is_not_a_static_layer_failure() -> None:
     assert completion["complete"] is False
     assert completion["resumable"] is False
     assert completion["blockers"] == ["representative_function_analysis_required"]
+
+
 def test_successful_sevenzip_cab_fallback_is_complete() -> None:
     """LZX非対応の内蔵CAB parser失敗を、完全な代替抽出成功後に残さない。"""
 
@@ -539,6 +535,182 @@ def test_successful_sevenzip_cab_fallback_is_complete() -> None:
         }
     )
     assert issues == []
+
+
+def _complete_in_memory_lzx_cab_report() -> dict:
+    """pure-Python LZX CAB完了契約を満たす公開report fixtureを返す。"""
+
+    worker_limit = 1024 * 1024 * 1024
+    runtime_reserve = 256 * 1024 * 1024
+    cabinet_size = 128
+    folder_output_size = 4
+    member_materialization_size = 4
+    decoder_window_size = 1 << 15
+    metadata_reserve = 8 * 1024 + 64 * 1024 + 1024 + 32 * 1024
+    estimated_peak = (
+        runtime_reserve
+        + cabinet_size
+        + folder_output_size
+        + member_materialization_size
+        + decoder_window_size
+        + metadata_reserve
+    )
+    peak_memory_budget = {
+        "status": "passed",
+        "worker_limit_bytes": worker_limit,
+        "runtime_reserve_bytes": runtime_reserve,
+        "input_bytes": cabinet_size,
+        "folder_cache_bytes": folder_output_size,
+        "member_materialization_bytes": member_materialization_size,
+        "decoder_window_bytes": decoder_window_size,
+        "metadata_reserve_bytes": metadata_reserve,
+        "estimated_peak_bytes": estimated_peak,
+        "headroom_bytes": worker_limit - estimated_peak,
+    }
+    safety = {
+        "executed": False,
+        "network_contacted": False,
+        "external_process_started": False,
+        "disk_written": False,
+    }
+    return {
+        "format": "cab",
+        "unpack_status": "artifacts_recovered",
+        "cab": {
+            "status": "artifacts_recovered",
+            "parser": "binary-refinery",
+            "backend": "in_memory_python",
+            "fallback_from": "cabarchive_lzx_unsupported",
+            "lzx_fallback_attempted": True,
+            "lzx_fallback_completed": True,
+            "member_count": 1,
+            "extracted_total_size": 4,
+            "inventory": [
+                {
+                    "name": "payload.bin",
+                    "size": 4,
+                    "status": "extracted",
+                    "format": "data",
+                    "sha256": "0" * 64,
+                }
+            ],
+            "preflight": {
+                "status": "passed",
+                "cabinet_size": cabinet_size,
+                "folder_count": 1,
+                "file_count": 1,
+                "data_block_count": 1,
+                "declared_file_total_size": 4,
+                "declared_folder_output_total_size": folder_output_size,
+                "compression": "lzx",
+                "lzx_window_bits": [15],
+                "multi_volume": False,
+                "checksum_blocks_required": 1,
+                "checksum_blocks_verified": 1,
+                "path_validation": "passed",
+                "bounds_validation": "passed",
+                "lzx_peak_memory_budget": dict(peak_memory_budget),
+            },
+            "in_memory_extraction": {
+                "contract_version": 2,
+                "status": "complete",
+                "parser": "binary-refinery",
+                "backend": "in_memory_python",
+                "compression": "lzx",
+                "preflight_status": "passed",
+                "checksum_status": "verified",
+                "checksum_blocks_verified": 1,
+                "data_block_count": 1,
+                "member_count": 1,
+                "complete_member_inventory": True,
+                "path_validation": "passed",
+                "declared_size_validation": "passed",
+                "actual_size_validation": "passed",
+                "deterministic_member_order": True,
+                "multi_volume": False,
+                "peak_memory_budget": dict(peak_memory_budget),
+                **safety,
+            },
+            **safety,
+        },
+    }
+
+
+def test_successful_in_memory_lzx_cab_contract_is_complete() -> None:
+    """全検証契約が相互一致するLZX CABは外部extractor不要と判定する。"""
+
+    issues = one_shot._static_layer_issues(
+        {"steps": [{"status": "succeeded", "report": _complete_in_memory_lzx_cab_report()}]}
+    )
+
+    assert issues == []
+
+
+@pytest.mark.parametrize(
+    "failure_kind",
+    [
+        "unsupported",
+        "checksum",
+        "limit",
+        "invalid_inventory",
+        "memory_missing",
+        "memory_over",
+        "memory_mismatch",
+        "memory_arithmetic",
+        "contract_v1",
+    ],
+)
+def test_in_memory_lzx_cab_contract_fails_closed(failure_kind: str) -> None:
+    """未対応、checksum不一致、上限拒否をstatus偽装だけで完了扱いしない。"""
+
+    report = _complete_in_memory_lzx_cab_report()
+    cab = report["cab"]
+    if failure_kind == "unsupported":
+        cab.update(
+            status="parse_failed",
+            lzx_fallback_attempted=False,
+            lzx_fallback_completed=False,
+            failure_reason="unsupported_compression",
+        )
+        cab.pop("in_memory_extraction")
+        cab.pop("preflight")
+    elif failure_kind == "checksum":
+        cab["in_memory_extraction"]["checksum_status"] = "rejected"
+    elif failure_kind == "limit":
+        cab.update(
+            status="parse_failed",
+            lzx_fallback_completed=False,
+            failure_reason="member_size_limit_exceeded",
+        )
+        cab.pop("in_memory_extraction")
+    elif failure_kind == "invalid_inventory":
+        cab["inventory"] = [None]
+    elif failure_kind == "memory_missing":
+        cab["preflight"].pop("lzx_peak_memory_budget")
+        cab["in_memory_extraction"].pop("peak_memory_budget")
+    elif failure_kind == "memory_over":
+        for memory_budget in (
+            cab["preflight"]["lzx_peak_memory_budget"],
+            cab["in_memory_extraction"]["peak_memory_budget"],
+        ):
+            memory_budget["estimated_peak_bytes"] = memory_budget["worker_limit_bytes"] + 1
+            memory_budget["headroom_bytes"] = -1
+    elif failure_kind == "memory_mismatch":
+        cab["in_memory_extraction"]["peak_memory_budget"]["headroom_bytes"] -= 1
+    elif failure_kind == "memory_arithmetic":
+        for memory_budget in (
+            cab["preflight"]["lzx_peak_memory_budget"],
+            cab["in_memory_extraction"]["peak_memory_budget"],
+        ):
+            memory_budget["input_bytes"] += 1
+    else:
+        cab["in_memory_extraction"]["contract_version"] = 1
+
+    issues = one_shot._static_layer_issues({"steps": [{"status": "succeeded", "report": report}]})
+
+    assert "steps[0].report:container_extractor_unavailable" in issues
+    if failure_kind in {"unsupported", "limit"}:
+        assert "steps[0].report.cab.status:parse_failed" in issues
 
 
 def test_successful_sevenzip_dotnet_bundle_fallback_is_complete() -> None:
@@ -578,9 +750,7 @@ def test_embedded_pe_dotnet_bundle_recovery_supersedes_outer_parse_failure() -> 
                     "input_layer": {"sha256": "b" * 64},
                     "report": {
                         "dotnet_bundle": {"status": "parse_failed", "error": "invalid offset"},
-                        "recovered": [
-                            {"kind": "embedded-pe", "sha256": child_sha256, "size": 100}
-                        ],
+                        "recovered": [{"kind": "embedded-pe", "sha256": child_sha256, "size": 100}],
                     },
                 },
                 {
@@ -593,6 +763,7 @@ def test_embedded_pe_dotnet_bundle_recovery_supersedes_outer_parse_failure() -> 
     )
 
     assert issues == []
+
 
 def test_recover_static_layers_honors_explicit_layer_limit(
     monkeypatch: pytest.MonkeyPatch,
@@ -619,15 +790,12 @@ def test_recover_static_layers_honors_explicit_layer_limit(
 
     assert observed == {"max_layers": 256}
 
+
 def test_layer_count_limit_detection_is_reason_specific() -> None:
     """段階再試行は層数上限だけで発火し、他の制限では発火しない。"""
 
-    assert one_shot._layer_count_limit_reached(
-        {"limit_events": [{"reason": "layer_count_limit"}]}
-    )
-    assert not one_shot._layer_count_limit_reached(
-        {"limit_events": [{"reason": "recovered_total_limit"}]}
-    )
+    assert one_shot._layer_count_limit_reached({"limit_events": [{"reason": "layer_count_limit"}]})
+    assert not one_shot._layer_count_limit_reached({"limit_events": [{"reason": "recovered_total_limit"}]})
     assert not one_shot._layer_count_limit_reached({"limit_events": "invalid"})
 
 
@@ -648,6 +816,7 @@ def test_parser_accepts_adaptive_static_layer_limits() -> None:
     )
     assert args.max_static_layers == 64
     assert args.retry_max_static_layers == 256
+
 
 def test_embedded_installer_recovery_supersedes_partial_sevenzip() -> None:
     """専用parserが全recordを復元した場合、補助7-Zip失敗をblockerにしない。"""
@@ -1695,6 +1864,7 @@ def test_runtime_versions_are_stable_contract_material() -> None:
     assert runtime["python_implementation"]
     assert runtime["python_version"]
     assert set(runtime["dependencies"]) == {
+        "binary-refinery",
         "cabarchive",
         "capstone",
         "cryptography",

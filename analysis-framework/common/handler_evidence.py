@@ -13,9 +13,17 @@ from ioc_markdown import (
     PUBLIC_C2_FIELDS,
     normalize_confirmed_network_iocs,
 )
+from screenconnect_evidence import (
+    legacy_screenconnect_config,
+    screenconnect_management_role,
+    validated_screenconnect_config,
+)
 
 
 MAX_CANDIDATE_PATTERNS = 256
+DUAL_USE_MANAGEMENT_ROLES = frozenset(
+    {"remote_management_relay", "screenconnect_clickonce_bootstrap"}
+)
 NETWORK_CONTAINER_FIELDS = (
     "c2",
     "config_endpoints",
@@ -27,6 +35,129 @@ CONFIG_NETWORK_FIELDS = (
     "c2_urls",
     "config_record_urls",
 )
+
+
+def _validated_ghostdesk_endpoints(result: object) -> list[dict[str, Any]]:
+    """旧GhostDesk wrapperの厳格XOR設定契約だけを標準IOCへ昇格する。"""
+
+    if not isinstance(result, Mapping) or result.get("family") != "ghostdesk":
+        return []
+    config = result.get("config")
+    configuration = result.get("configuration")
+    candidates = result.get("c2")
+    records = configuration.get("records") if isinstance(configuration, Mapping) else None
+    token_record = records.get("token_record") if isinstance(records, Mapping) else None
+    if (
+        result.get("decoded_config_recovered") is not True
+        or not isinstance(config, Mapping)
+        or config.get("decoded_config_recovered") is not True
+        or config.get("static_config_recovered") is not True
+        or config.get("status") != "confirmed_static_xor_config"
+        or config.get("endpoints") != candidates
+        or not isinstance(configuration, Mapping)
+        or configuration.get("decoded_config_recovered") is not True
+        or configuration.get("algorithm") != "single-byte XOR"
+        or configuration.get("unique_pair_required") is not True
+        or not isinstance(token_record, Mapping)
+        or token_record.get("raw_value_exported") is not False
+        or not isinstance(candidates, list)
+        or len(candidates) != 1
+    ):
+        return []
+    endpoint = candidates[0]
+    if (
+        not isinstance(endpoint, Mapping)
+        or not isinstance(endpoint.get("host"), str)
+        or not endpoint.get("host")
+        or type(endpoint.get("port")) is not int
+        or not 1 <= int(endpoint["port"]) <= 65535
+        or endpoint.get("transport") != "websocket_over_raw_tcp"
+        or endpoint.get("role") != "configured_external_c2"
+        or endpoint.get("websocket_path_redacted") != "/bot?token=<redacted>"
+        or endpoint.get("configured_tls") is not False
+        or endpoint.get("confidence")
+        not in {"confirmed_static_xor_config", CONFIRMED_STATIC_CONFIGURATION}
+    ):
+        return []
+    return [
+        {
+            **dict(endpoint),
+            "confidence": CONFIRMED_STATIC_CONFIGURATION,
+            "contacted": False,
+            "liveness_confirmed": False,
+            "evidence": {
+                "kind": "decoded_xor_config",
+                "all_expected_fields_validated": True,
+                "raw_token_exported": False,
+            },
+        }
+    ]
+
+
+def _validated_ghostdesk_protocol(result: object) -> dict[str, Any] | None:
+    """review済みGhostDeskの既存詳細schemaをlive未確認protocol要約へ変換する。"""
+
+    if not _validated_ghostdesk_endpoints(result) or not isinstance(result, Mapping):
+        return None
+    sample = result.get("sample")
+    reviewed = result.get("reviewed_ghidra_evidence")
+    protocol = result.get("protocol")
+    dispatch = result.get("command_dispatch")
+    safety = result.get("safety")
+    digest = sample.get("sha256") if isinstance(sample, Mapping) else None
+    websocket = protocol.get("websocket") if isinstance(protocol, Mapping) else None
+    crypto = protocol.get("session_crypto") if isinstance(protocol, Mapping) else None
+    registration = protocol.get("registration") if isinstance(protocol, Mapping) else None
+    heartbeat = protocol.get("heartbeat") if isinstance(protocol, Mapping) else None
+    if (
+        result.get("projection_scope") != "confirmed_reviewed_sample"
+        or not isinstance(digest, str)
+        or len(digest) != 64
+        or not isinstance(reviewed, Mapping)
+        or reviewed.get("applies_to_sha256") != digest
+        or not isinstance(websocket, Mapping)
+        or websocket.get("request_path_redacted") != "/bot?token=<redacted>"
+        or not isinstance(crypto, Mapping)
+        or crypto.get("key_agreement") != "ECDH P-256"
+        or crypto.get("cipher") != "AES-GCM"
+        or not isinstance(registration, Mapping)
+        or registration.get("type") != "register"
+        or not isinstance(registration.get("fields"), list)
+        or not registration.get("fields")
+        or not isinstance(heartbeat, Mapping)
+        or heartbeat.get("type") != "heartbeat"
+        or not isinstance(dispatch, Mapping)
+        or not isinstance(dispatch.get("operator_commands_present"), list)
+        or not dispatch.get("operator_commands_present")
+        or not isinstance(dispatch.get("acknowledgement_types"), list)
+        or not isinstance(safety, Mapping)
+        or safety.get("sample_executed") is not False
+        or safety.get("network_contacted") is not False
+        or safety.get("operator_content_executed") is not False
+    ):
+        return None
+    return {
+        "family": "ghostdesk",
+        "sample_sha256": digest,
+        "method": "websocket_ecdh_aes_gcm_json",
+        "transport": "websocket_over_raw_tcp",
+        "framing": "rfc6455_websocket_frames",
+        "serialization": "json_control_and_binary_stream_frames",
+        "confidence": "high",
+        "registration_method": "json_register_message",
+        "dispatcher_method": "json_type_dispatch",
+        "heartbeat_required": True,
+        "heartbeat_method": "json_heartbeat_message",
+        "command_markers": sorted(set(dispatch["operator_commands_present"])),
+        "transfer_markers": sorted(
+            value
+            for value in set(dispatch["acknowledgement_types"])
+            if value in {"file_data", "file_chunk", "upload_ok", "plugin_ack"}
+        ),
+        "heartbeat_response_markers": ["heartbeat"],
+        "live_operation_fake_result_allowed": False,
+        "live_verified": False,
+    }
 
 
 def trusted_handler_result(
@@ -48,12 +179,29 @@ def trusted_handler_result(
         or execution_evidence.get("sufficient") is not True
         or not isinstance(artifact_evidence, Mapping)
         or artifact_evidence.get("sufficient") is not True
+        or any(
+            artifact_evidence.get(key) != value
+            for key, value in execution_evidence.items()
+        )
     ):
         return False
     execution_id = str(execution.get("handler_id") or "")
     handler = artifact.get("handler")
     artifact_id = str(handler.get("id") or "") if isinstance(handler, Mapping) else ""
-    return bool(execution_id and artifact_id and execution_id == artifact_id)
+    if not (execution_id and artifact_id and execution_id == artifact_id):
+        return False
+    selected_layer = execution.get("selected_layer_sha256")
+    result = artifact.get("result")
+    artifact_sample = (
+        result.get("sample_sha256") if isinstance(result, Mapping) else None
+    )
+    if (
+        selected_layer is not None
+        and artifact_sample is not None
+        and selected_layer != artifact_sample
+    ):
+        return False
+    return True
 
 
 def _trusted_results(
@@ -73,13 +221,29 @@ def confirmed_static_handler_iocs(
     for _execution, artifact in _trusted_results(handler_results):
         result = artifact.get("result")
         candidates = result.get("c2") if isinstance(result, Mapping) else None
+        ghostdesk_candidates = _validated_ghostdesk_endpoints(result)
+        if ghostdesk_candidates:
+            candidates = ghostdesk_candidates
         config_endpoint_mode = False
+        static_evidence: Any = None
         if isinstance(result, Mapping) and not isinstance(candidates, list):
             candidates = result.get("config_endpoints")
             config_endpoint_mode = isinstance(candidates, list)
+            static_evidence = result.get("static_evidence")
+        if isinstance(result, Mapping) and not isinstance(candidates, list):
+            config = result.get("config")
+            if isinstance(config, Mapping):
+                candidates = config.get("config_endpoints")
+                config_endpoint_mode = isinstance(candidates, list)
+                static_evidence = config.get("static_evidence")
+        if isinstance(result, Mapping) and not isinstance(candidates, list):
+            legacy_config = legacy_screenconnect_config(result)
+            if legacy_config is not None:
+                candidates = legacy_config["config_endpoints"]
+                static_evidence = legacy_config["static_evidence"]
+                config_endpoint_mode = True
         if not isinstance(candidates, list):
             continue
-        static_evidence = result.get("static_evidence") if isinstance(result, Mapping) else None
         if config_endpoint_mode and (
             not isinstance(static_evidence, Mapping) or static_evidence.get("all_expected_fields_validated") is not True
         ):
@@ -121,6 +285,47 @@ def static_config_recovered(
     return False
 
 
+def is_dual_use_management_endpoint(
+    record: object,
+    *,
+    family: str,
+    handler_results: Iterable[tuple[Mapping[str, Any], Mapping[str, Any]]],
+) -> bool:
+    """strict ScreenConnect configと完全相関する管理endpointだけを識別する。"""
+
+    if family != "screenconnect_rmm" or not isinstance(record, Mapping):
+        return False
+    role = record.get("role")
+    evidence = record.get("evidence")
+    expected_classification = {
+        "remote_management_relay": "dual_use_not_c2_by_itself",
+        "screenconnect_clickonce_bootstrap": (
+            "dual_use_management_endpoint_not_c2_by_itself"
+        ),
+    }.get(role)
+    if (
+        expected_classification is None
+        or not isinstance(evidence, Mapping)
+        or evidence.get("kind") != "screenconnect_embedded_management_endpoint"
+        or evidence.get("malicious_use_confirmed") is not False
+        or evidence.get("c2_classification") != expected_classification
+    ):
+        return False
+    source = record.get("source")
+    for execution, artifact in _trusted_results(handler_results):
+        handler = artifact.get("handler")
+        if (
+            not isinstance(handler, Mapping)
+            or handler.get("family") != "screenconnect_rmm"
+            or handler.get("id") != execution.get("handler_id")
+            or source != f"handler:{handler.get('id')}"
+        ):
+            continue
+        if screenconnect_management_role(artifact.get("result"), record) == role:
+            return True
+    return False
+
+
 def confirmed_static_protocol_evidence(
     handler_results: Iterable[tuple[Mapping[str, Any], Mapping[str, Any]]],
 ) -> list[dict[str, Any]]:
@@ -130,6 +335,16 @@ def confirmed_static_protocol_evidence(
     for _execution, artifact in _trusted_results(handler_results):
         result = artifact.get("result")
         if not isinstance(result, Mapping):
+            continue
+        ghostdesk = _validated_ghostdesk_protocol(result)
+        if ghostdesk is not None:
+            identity = json.dumps(
+                ghostdesk,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            summaries[identity] = ghostdesk
             continue
         protocol = result.get("protocol_evidence")
         profile = result.get("static_protocol")
@@ -213,11 +428,33 @@ def confirmed_static_protocol_evidence(
 
 def terminal_managed_client_confirmed(
     handler_results: Iterable[tuple[Mapping[str, Any], Mapping[str, Any]]],
+    *,
+    family: str,
 ) -> bool:
     """信頼済みhandlerがrootを終端managed clientと検証した場合だけtrueを返す。"""
 
-    for _execution, artifact in _trusted_results(handler_results):
+    for execution, artifact in _trusted_results(handler_results):
         result = artifact.get("result")
+        handler = artifact.get("handler")
+        handler_family = handler.get("family") if isinstance(handler, Mapping) else None
+        result_family = result.get("family") if isinstance(result, Mapping) else None
+        screenconnect_context = (
+            family == "screenconnect_rmm"
+            or handler_family == "screenconnect_rmm"
+            or result_family == "ScreenConnect RMM"
+        )
+        if screenconnect_context:
+            if (
+                family == "screenconnect_rmm"
+                and handler_family == "screenconnect_rmm"
+                and isinstance(result, Mapping)
+                and result.get("artifact_role") == "access_agent_installer"
+                and validated_screenconnect_config(result) is not None
+                and handler.get("id") == execution.get("handler_id")
+            ):
+                return True
+            # ScreenConnect形の不正・不一致成果物を汎用booleanへfail-openしない。
+            continue
         config = result.get("config") if isinstance(result, Mapping) else None
         if isinstance(config, Mapping) and config.get("terminal_managed_client") is True:
             return True
@@ -303,7 +540,10 @@ def build_communication_pattern_document(
     candidates = candidate_communication_patterns(trusted)
     recovered = static_config_recovered(trusted, confirmed)
     protocols = confirmed_static_protocol_evidence(trusted)
-    terminal_managed_client = terminal_managed_client_confirmed(trusted)
+    terminal_managed_client = terminal_managed_client_confirmed(
+        trusted,
+        family=family,
+    )
     handler_ids = sorted(
         {
             str(execution.get("handler_id"))
@@ -325,6 +565,25 @@ def build_communication_pattern_document(
             if isinstance(record.get(key), str) and str(record[key]).strip()
         }
     )
+    management_endpoints = [
+        record
+        for record in confirmed
+        if is_dual_use_management_endpoint(
+            record,
+            family=family,
+            handler_results=trusted,
+        )
+    ]
+    management_identities = {
+        json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        for record in management_endpoints
+    }
+    c2_endpoints = [
+        record
+        for record in confirmed
+        if json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        not in management_identities
+    ]
     return {
         "schema_version": 1,
         "sha256": sha256,
@@ -337,6 +596,8 @@ def build_communication_pattern_document(
         },
         "communication": {
             "confirmed_static_endpoints": confirmed,
+            "confirmed_static_c2_endpoints": c2_endpoints,
+            "confirmed_static_management_endpoints": management_endpoints,
             "candidate_patterns": candidates,
             "protocol_hints": protocol_hints,
             "protocol_confirmed": bool(protocols),
@@ -348,6 +609,7 @@ def build_communication_pattern_document(
             "static_endpoint_is_liveness_confirmation": False,
             "static_protocol_is_liveness_confirmation": False,
             "protocol_confirmation_requires_family_specific_evidence": True,
+            "dual_use_management_endpoint_is_c2_confirmation": False,
         },
         "safety": {
             "sample_executed": False,

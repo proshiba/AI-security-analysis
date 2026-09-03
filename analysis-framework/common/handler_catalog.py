@@ -2495,6 +2495,19 @@ def _retain_worker_outputs(
     )
     execution["observed_binary_outputs"] = observed
     execution["verified_binary_outputs"] = retained
+    zero_output_negative_proof = (
+        not observed
+        and not retained
+        and not truncated
+        and not reasons
+        and isinstance(worker_audit, dict)
+        and worker_audit.get("binary_values_seen") == 0
+        and worker_audit.get("binary_bytes_seen") == 0
+        and worker_audit.get("observed_output_count") == 0
+        and worker_audit.get("retained_output_count") == 0
+        and worker_audit.get("truncated") is False
+        and worker_audit.get("reasons") == []
+    )
     execution["verified_binary_output_audit"] = {
         "schema_version": 1,
         "maximum_outputs": MAX_VERIFIED_BINARY_OUTPUTS,
@@ -2506,7 +2519,13 @@ def _retain_worker_outputs(
         "retained_output_count": len(retained),
         "retained_for_follow_on_analysis": bool(retained),
         "follow_on_analysis_complete": False,
-        "observation_scope": ("parent_rehashed_case_artifact" if retained else "wrapper_hash_metadata_only"),
+        "observation_scope": (
+            "parent_rehashed_case_artifact"
+            if retained
+            else "parent_verified_zero_output"
+            if zero_output_negative_proof
+            else "wrapper_hash_metadata_only"
+        ),
         "truncated": truncated,
         "reasons": sorted(reasons),
     }

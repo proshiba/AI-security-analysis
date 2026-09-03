@@ -36,6 +36,38 @@ py -3.13 .\analysis-framework\common\archive_analysis_datastore.py `
   --report .\.work\datastore-reports\guloader-xloader-8d96249aa92bee27.json
 ```
 
+### daily解析を検体単位へ分離する
+
+50検体daily runのsource、one-shot private結果、Ghidra raw結果を保管する場合は、collection全体をそのままarchiveへ渡しません。最初に次のhelperでcase別の物理copyを作成します。出力先はrepository外を指定し、`--case-sha256` は1回につき1件だけ指定します。helperは省略や複数指定をfail-closedで拒否するため、容量を制御しながらcaseごとに逐次実行してください。
+
+```powershell
+py -3.13 .\analysis-framework\common\stage_case_analysis_datastore.py `
+  --repository C:\work\AI-security-analysis `
+  --collection-id malwarebazaar-windows-20260902-0050 `
+  --source-root C:\private\daily-runs\daily-20260902\malwarebazaar-windows-20260902-0050\source `
+  --one-shot-root C:\work-private\jobs\daily-job\analysis `
+  --ghidra-root C:\private\daily-runs\daily-20260902\malwarebazaar-windows-20260902-0050\ghidra-static-results `
+  --output-root C:\work-private\daily-orchestrations\daily-20260902\case-datastore-staging `
+  --case-sha256 <case SHA-256>
+```
+
+helperは、取得済み暗号化source ZIP、当該caseのone-shot directory、当該caseのrelationshipから到達するGhidra objectとimport-staging PEだけをrole別prefixへ物理copyします。collection共通の `input-relationships.json` と `private-artifact-validation.json` はそのままcopyせず、当該caseだけへ絞り、絶対pathをstaging相対pathへ置換した派生manifestを作ります。複数caseで共有されるPEの `program-result.json` も対象caseのrelationshipだけを残して派生させ、他caseの識別子を持ち込みません。hardlink、symlink、junction、秘密値らしいfile名／内容、現在hostのhome path、不完全なGhidra run、case集合やSHA-256の不一致はfail-closedで拒否します。検体の展開・実行やnetwork接触は行いません。
+
+標準出力の各 `cases[].archive_arguments` を、同じcaseの `--target` と `--source` として本archive helperへ渡します。`--report` はrepository外のcase別pathを指定します。異なるcaseのstaging directoryを複数の `--source` で同じ呼出しへ渡してはいけません。
+
+```powershell
+py -3.13 .\analysis-framework\common\archive_analysis_datastore.py `
+  --target malwarebazaar-windows-20260902-0050-<case SHA-256> `
+  --source C:\work-private\daily-orchestrations\daily-20260902\case-datastore-staging\<target> `
+  --report C:\work-private\daily-orchestrations\daily-20260902\archive-reports\<target>.json
+```
+
+各caseを `stage → archive → upload → remote検証 → receipt保存` の順で完了させてから次のcaseへ進みます。remote検証receiptを照合するまでは、そのcase stagingを削除しません。検証後に削除してよいのは、archive時のsource-tree SHA-256、file数、総sizeと再照合できた、helper作成の当該case owned stagingだけです。元のsource、one-shot結果、Ghidra結果は自動削除しません。
+
+`daily_analysis_orchestrator.py` の `private_archive` も、source取得、one-shot private解析、Ghidra解析が完了したsample collectionには同じ逐次処理を使用します。source全体、one-shot job全体、完了済みGhidra出力全体を別々のbulk archiveへ入れる経路は使用しません。解析途中またはupstream失敗時のGhidra checkpointと、caseへ帰属しないdaily newsは、再開情報を失わないため独立targetとして保管できます。case別archiveが失敗した場合はそのcaseで停止し、remote検証前のowned stagingを保持します。
+
+日次requestでGhidra stageを明示的に無効化した場合も、sourceとone-shot private結果はcase別に分離して保管します。この経路では存在しないGhidra rootを要求せず、staging manifestへ `ghidra.status: not_requested` を記録します。Ghidra成果物が存在するかのような補完は行いません。
+
 `--report`が出力するupload検証receiptには、保管先objectや実行基盤の照合情報が含まれます。これはローカル検証専用とし、リポジトリ外またはGit管理外の`.work`配下へ保存してください。`analysis-results`や`ui`へ配置せず、`datastore-upload.json`を公開成果物としてcommitしたり、READMEからリンクしたりしません。CLIはリポジトリ内の`.work`以外を保存先に指定した場合、upload開始前に処理を拒否します。
 
 処理は次の順序でfail-closedに実行します。
