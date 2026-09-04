@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module unpackers.inno_sideload_bundle</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.inno_sideload_bundle</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="../../unpackers/inno_sideload_bundle.py">unpackers/inno_sideload_bundle.py</a></td></tr></table>
+    <p><span class="code">Innoで配布されたside-loading&nbsp;bundleを非実行で有界解析する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="struct.html">struct</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-recover_inno_sideload_bundle"><strong>recover_inno_sideload_bundle</strong></a>(members: 'Mapping[str, bytes]') -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">Inno抽出memberを関連付け、PDB/volume層を有界復元する。</span></dd></dl>
+ <dl><dt><a name="-recover_scene_record"><strong>recover_scene_record</strong></a>(
+    data: 'bytes',
+    *,
+    max_record_size: 'int' = 4194304,
+    max_code_size: 'int' = 2097152
+) -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]], dict[str, bytes | int] | None]'</dt><dd><span class="code">PDB末尾の&nbsp;``&lt;length,&nbsp;add-key,&nbsp;encoded&nbsp;DWORDs&gt;``&nbsp;を復元する。<br>
+&nbsp;<br>
+offsetを固定せず、file末尾へ厳密一致するheaderだけを候補にする。復号後は<br>
+NUL終端module名、descriptor、entry/copy範囲、x86&nbsp;function&nbsp;prologueを全て<br>
+検証する。key本体はreportへ出さずhashだけを返す。</span></dd></dl>
+ <dl><dt><a name="-recover_scene_record_artifacts"><strong>recover_scene_record_artifacts</strong></a>(data: 'bytes', name: 'str') -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">single-file&nbsp;fixed-pointからPDB&nbsp;record復元を呼ぶ互換entry。</span></dd></dl>
+ <dl><dt><a name="-recover_segmented_volume"><strong>recover_segmented_volume</strong></a>(
+    data: 'bytes',
+    profile: 'Mapping[str, bytes | int]',
+    *,
+    max_output_size: 'int' = 134217728,
+    max_segments: 'int' = 8192
+) -&gt; 'tuple[dict[str, object], list[tuple[str, bytes]]]'</dt><dd><span class="code">wildcard&nbsp;chunk&nbsp;markerで分割されたvolumeをloader通りに再構築する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>MAX_BUNDLE_MEMBERS</strong> = 64<br>
+<strong>MAX_BUNDLE_SIZE</strong> = 134217728<br>
+<strong>MAX_DECODED_RECORD</strong> = 4194304<br>
+<strong>MAX_IMPORT_DESCRIPTORS</strong> = 64<br>
+<strong>MAX_IMPORT_SYMBOLS_PER_DESCRIPTOR</strong> = 128<br>
+<strong>MAX_MEMBER_SIZE</strong> = 67108864<br>
+<strong>MAX_NAME_BYTES</strong> = 96<br>
+<strong>MAX_PDB_SIZE</strong> = 16777216<br>
+<strong>MAX_SCENE_HEADER_CANDIDATES</strong> = 8<br>
+<strong>MAX_SEGMENTS</strong> = 8192<br>
+<strong>MAX_SEGMENT_OUTPUT</strong> = 134217728<br>
+<strong>MAX_STOMP_CODE</strong> = 2097152<br>
+<strong>MAX_VOLUME_SIZE</strong> = 67108864</td></tr></table>
+</body></html>

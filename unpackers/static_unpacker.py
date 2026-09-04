@@ -53,6 +53,10 @@ from unpackers.donut_unpacker import recover_donut_payloads
 from unpackers.donut_wrapper_unpacker import recover_xor32_donut_wrapper
 from unpackers.dotnet_bundle_unpacker import recover_dotnet_bundle
 from unpackers.embedded_installer_archive import recover_embedded_installer_archive
+from unpackers.inno_sideload_bundle import (
+    recover_inno_sideload_bundle,
+    recover_scene_record_artifacts,
+)
 from unpackers.javascript_dropper_unpacker import recover_javascript_dropper
 from unpackers.javascript_obfuscator import (
     decode_script_text,
@@ -69,6 +73,7 @@ from unpackers.onyx_qt_loader import (
     matches_onyx_qt_profile,
     recover_onyx_qt_payload,
 )
+from unpackers.opaque_native_entry import analyze_opaque_native_pe
 from unpackers.profiled_transform import recover_profiled_transforms
 from unpackers.rotated_xor_donut import legacy_report_from_attempt
 from unpackers.rzk_lece_unpacker import (
@@ -1144,6 +1149,18 @@ def should_analyze_pe_control_flow(
         packing_suspected
         or classification == "managed_loader_or_obfuscated"
         or executable_extent > 32 * 1024 * 1024
+    )
+
+
+def should_analyze_opaque_native_entry(pe: dict) -> bool:
+    """import tableを持たないnative PEだけを後段resolver解析へ送る。"""
+
+    imports = pe.get("imports")
+    return (
+        pe.get("analysis_coverage", {}).get("imports_known") is True
+        and imports == 0
+        and pe.get("is_dotnet") is False
+        and pe.get("is_go") is False
     )
 
 
@@ -3022,6 +3039,7 @@ def sevenzip_extract(
         candidates.sort(key=lambda item: (item[0], item[1].lower()))
         selected = candidates[: min(MAX_RETAINED_MEMBERS, max_members)]
         file_map = {name: blob for _, name, blob, _ in selected}
+        inno_report, inno_artifacts = recover_inno_sideload_bundle(file_map)
         split_reports, split_artifacts = reassemble_split_parts(
             file_map,
             max_parts=max_members,
@@ -3031,6 +3049,7 @@ def sevenzip_extract(
         if "nsis" in archive_types:
             nsis_report, nsis_artifacts = recover_nsis_scripted_layers(file_map)
         artifacts = [(f"7z-{kind}", blob) for _, _, blob, kind in selected]
+        artifacts.extend(inno_artifacts)
         artifacts.extend(split_artifacts)
         artifacts.extend(nsis_artifacts)
         if selective_members and completed.returncode == 0:
@@ -3067,6 +3086,7 @@ def sevenzip_extract(
                     "full_inventory_count": int(listing.get("total_members", 0)),
                 },
                 "split_reassembly": split_reports,
+                "inno_sideload_bundle": inno_report,
                 "nsis_script_recovery": nsis_report,
             },
             artifacts,
@@ -3862,6 +3882,10 @@ def unpack_bytes(
     artifacts: list[tuple[str, bytes]] = (
         [] if iso9660_candidate else recover_whole_file_base64(data)
     )
+    report["inno_scene_record"], inno_scene_artifacts = recover_scene_record_artifacts(
+        data, name
+    )
+    artifacts.extend(inno_scene_artifacts)
     static_data = data
     if MemoryCArchiveReader.COOKIE_MAGIC in data:
         report["pyinstaller"], recovered = recover_pyinstaller_carchive(
@@ -3890,6 +3914,8 @@ def unpack_bytes(
             report["unpack_status"] = "corrupt_or_truncated"
             return report, []
         artifacts.extend(recovered)
+        if should_analyze_opaque_native_entry(report["pe"]):
+            report["opaque_native_entry"] = analyze_opaque_native_pe(static_data)
         report["dotnet_bundle"], recovered = recover_dotnet_bundle(
             static_data,
             max_entries=max_archive_members,
@@ -4042,7 +4068,24 @@ def unpack_bytes(
         report["autoit"], recovered = recover_autoit_script(data)
         artifacts.extend(recovered)
     elif kind == "asar":
+        from unpackers.electron_nsis_unpacker import (
+            electron_asar_preflight,
+            recover_payload_from_asar,
+        )
+
+        electron_preflight = electron_asar_preflight(data)
         report["asar"], recovered = recover_asar(data)
+        artifacts.extend(recovered)
+        # ASAR memberを個別queueへ流すだけでは、暗号recipe・key設定・ciphertextの
+        # sibling相関を失う。Electron専用処理は副作用なし・非実行でASAR全体を
+        # 一度だけ照合し、検証済み終端PEだけをfixed-point queueへ返す。
+        if electron_preflight["status"] == "accepted":
+            report["electron_payload"], recovered = recover_payload_from_asar(
+                data,
+                parsed_asar=(report["asar"], recovered),
+            )
+        else:
+            report["electron_payload"], recovered = electron_preflight, []
         artifacts.extend(recovered)
     elif kind == "script":
         artifacts.extend(recover_encoded_blobs(data))

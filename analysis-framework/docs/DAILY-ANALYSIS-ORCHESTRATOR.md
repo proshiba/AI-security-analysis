@@ -12,7 +12,7 @@ analysis-framework/common/daily_analysis_orchestrator.py は、最新の完全�
 | 2 | malwarebazaar_acquisition | malwarebazaar_batch.py | 最新Windows集合の初回固定、暗号化ZIP取得、再利用検証、family hint |
 | 3 | static_analysis | analysis_job_runner.py | 分離job root、入力snapshot、決定的job ID、終端payloadとC2契約 |
 | 4 | publication | publish_one_shot_collection.py | 解析契約SHA-256を固定したpartial staging、case/catalog更新 |
-| 5 | ghidra | ghidra_function_batch.py | 明示的program selector、program単位checkpoint、容量reserve、再開 |
+| 5 | ghidra | ghidra_function_batch.py | 明示的program selector、program単位checkpoint、容量reserve、再開、公開集計再投影 |
 | 6 | c2_monitoring | build_all_c2_monitoring_targets.py／run_c2_monitoring_pipeline.py | 全履歴target生成、MaxMind鮮度確認、許可済みNmap NSE限定観測 |
 | 7 | validation | validate_daily_analysis.py | 3 lane、C2解析、深掘り繰越、文字品質の完了判定 |
 | 8 | private_archive | archive_analysis_datastore.py | 対象別WinZip AES-256、S3 size／SSE／SHA-256検証、source保持 |
@@ -33,6 +33,7 @@ requestは[日次request例](examples/daily-analysis-request.json)の固定field
 - static_analysisはmalwarebazaar_acquisition、publicationはstatic_analysis、ghidraはpublicationを前提とし、依存stageを無効化したrequestは開始前に拒否します。news_intakeとprivate_archiveだけの保管runは許可します。
 - networkはprovider照合、検体取得、C2監視、S3保管を別々に許可します。
 - limits.ghidra_max_new_programsを小さくすると、1回のGhidra処理量を固定して同じrequestで反復できます。
+- 各Ghidra chunk後は、公開caseの契約を再検証して`manifest.json`と`publication-summary.json`を原子的に再投影してから、未完了静的解析のfollow-up計画を更新します。集計同期に失敗した場合はstaleな計画を生成せず停止します。
 
 schemaは副作用なしで取得できます。
 
@@ -169,6 +170,8 @@ Ghidraは既定8 GiBのreserveを各program前後でも確認します。下限�
 - pathを含まないfilesystem別空き容量
 - 回復に必要な最小byte数
 - automatic_source_deletion=false
+
+各Ghidra chunkの後には、公開collectionから`STATIC-FOLLOWUP-PLAN.json`／`STATIC-FOLLOWUP-PLAN.md`を自動再生成します。終端payload、family、config、C2 endpoint、protocol、代表関数、再公開の未完了状態を閉じたblocker policyへ変換し、次の最小静的actionを残します。chunk途中は全archiveの反復hash化を避け、Ghidra完了chunkで検証済み取得archiveのsizeと取得時SHA-256を1回だけ照合します。archiveの展開・実行・CPU emulation・外部接続は行いません。詳細は[未完了静的解析follow-upの自動化](STATIC-FOLLOWUP-AUTOMATION.md)を参照してください。
 
 1回のrun／resumeでは各stageを1回だけ実行します。driveだけがcheckpoint境界で有界反復し、同じ容量停止は内部loopで再試行しません。容量整理候補がS3検証済みでも、このCLIは削除しません。削除が必要な場合はS3 report、対象path、source種別を確認し、ユーザーの明示指示を別途得ます。
 
