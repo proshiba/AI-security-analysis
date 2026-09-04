@@ -110,6 +110,8 @@ CALL_GRAPH_LEGACY_LIMIT = "legacy_call_graph_retrieval_evidence_unavailable"
 STRUCTURE_PAGE_SIZE = 1_000
 DECOMPILE_BATCH_SIZE = 20
 DECOMPILE_WORKERS = 3
+BATCH_DECOMPILE_FUNCTION_TIMEOUT_SECONDS = 30
+DECOMPILE_TRANSPORT_MARGIN_SECONDS = 60
 MAX_CHARACTERISTIC_FUNCTIONS_PER_PROGRAM = 32
 MAX_MANAGED_CIL_RAW_INSTRUCTIONS_PER_METHOD = 8
 FUNCTION_ANALYSIS_BLOCKER = "representative_function_analysis_required"
@@ -2023,7 +2025,7 @@ def _parse_metadata(value: Any) -> dict[str, str]:
 
 
 def _metadata_function_count(value: Any) -> int | None:
-    """Ghidra metadataの関数総数を曖昧な部分一致なしで正規化する。"""
+    """Ghidra metadataの全関数総数を曖昧な部分一致なしで正規化する。"""
 
     metadata = _parse_metadata(value)
     rendered = metadata.get("function_count") or metadata.get("functions")
@@ -2036,6 +2038,47 @@ def _metadata_function_count(value: Any) -> int | None:
     if count > MAX_FUNCTION_INVENTORY_ITEMS:
         raise GhidraMcpError("metadataのfunction_countが安全なinventory上限を超えました")
     return count
+
+
+def _bind_function_metadata_coverage(
+    evidence: dict[str, Any],
+    metadata_value: Any,
+    inventory_count: int,
+) -> None:
+    """異なるGhidra API母集団を明示し、非外部関数inventoryを全関数総数へ拘束する。
+
+    Ghidra 12.1の ``FunctionManager.getFunctionCount()`` は外部関数を含む一方、
+    ``getFunctions(boolean)`` は非外部関数だけを列挙する。GhidraMCP 5.14.2の
+    metadataと ``list_functions_enhanced`` もそれぞれこのAPIを使うため、外部関数が
+    存在すれば両件数は一致しない。終端取得した非外部関数数が全関数総数を超えない
+    ことを検証し、差分を外部関数数として明示的に記録する。
+    """
+
+    if type(inventory_count) is not int or inventory_count < 0:
+        raise GhidraMcpError("非外部関数inventory件数が非負整数ではありません")
+    metadata_count = _metadata_function_count(metadata_value)
+    evidence["inventory_scope"] = "non_external_functions"
+    evidence["metadata_function_count"] = metadata_count
+    evidence["metadata_function_count_scope"] = "all_functions_including_external"
+    evidence["count_matches_metadata"] = (
+        None if metadata_count is None else metadata_count == inventory_count
+    )
+    if metadata_count is None:
+        evidence["derived_external_function_count"] = None
+        evidence["documented_limit"] = (
+            "metadata_function_count_unavailable_terminal_page_proof_used"
+        )
+        return
+    if metadata_count < inventory_count:
+        raise GhidraMcpError(
+            "metadata全関数数が非外部関数inventoryを下回っています: "
+            f"{metadata_count} < {inventory_count}"
+        )
+    evidence["derived_external_function_count"] = metadata_count - inventory_count
+    if metadata_count > inventory_count:
+        evidence["documented_limit"] = (
+            "metadata_includes_external_functions_inventory_non_external_only"
+        )
 
 
 def _function_inventory_coverage_complete(result: Mapping[str, Any]) -> bool:
@@ -2072,10 +2115,21 @@ def _function_inventory_coverage_complete(result: Mapping[str, Any]) -> bool:
             evidence.get("count_matches_metadata") is None
             and evidence.get("documented_limit") == "metadata_function_count_unavailable_terminal_page_proof_used"
         )
-    return (
+    if (
         type(metadata_count) is int
         and metadata_count == inventory_count
         and evidence.get("count_matches_metadata") is True
+    ):
+        return True
+    return bool(
+        type(metadata_count) is int
+        and metadata_count > inventory_count
+        and evidence.get("count_matches_metadata") is False
+        and evidence.get("inventory_scope") == "non_external_functions"
+        and evidence.get("metadata_function_count_scope") == "all_functions_including_external"
+        and evidence.get("derived_external_function_count") == metadata_count - inventory_count
+        and evidence.get("documented_limit")
+        == "metadata_includes_external_functions_inventory_non_external_only"
     )
 
 
@@ -3895,13 +3949,15 @@ def _decompile_chunk(
     """MCP上限内の関数群を逆コンパイルし、失敗状態を含む全recordを返す。"""
 
     addresses = ",".join(str(item["address"]) for item in chunk)
+    batch_timed_out = False
     try:
         response = client.get(
             "/batch_decompile",
             functions=addresses,
             program=program,
         )
-    except GhidraMcpError:
+    except GhidraMcpError as error:
+        batch_timed_out = _request_timed_out(error)
         response = {}
     if not isinstance(response, Mapping):
         response = {}
@@ -3909,7 +3965,9 @@ def _decompile_chunk(
     for item in chunk:
         address = str(item["address"])
         pseudocode = str(response.get(address) or "")
-        if not pseudocode:
+        if not pseudocode and batch_timed_out:
+            error_text = "GhidraMcpBatchTimeout"
+        elif not pseudocode:
             try:
                 pseudocode = str(
                     client.get(
@@ -3942,6 +4000,28 @@ def _decompile_chunk(
     return rows
 
 
+def _decompile_execution_plan(client: GhidraMcpClient, target_count: int) -> tuple[int, int]:
+    """MCP transport timeout内へ収まるbatch sizeと並列数を保守的に選ぶ。
+
+    GhidraMCP 5.14.2の ``batch_decompile`` は1関数ごとに最大30秒待ち、HTTP
+    応答を返すまで最大20関数を直列処理する。短いtransport timeoutで20件を要求
+    するとclient切断後もserver処理が継続し、その直後のfallback要求まで滞留する。
+    server側の最悪時間と60秒の余裕をtransport budgetへ収める。
+    """
+
+    transport_timeout = int(getattr(client, "timeout", 3600))
+    function_budget = max(
+        1,
+        (transport_timeout - DECOMPILE_TRANSPORT_MARGIN_SECONDS)
+        // BATCH_DECOMPILE_FUNCTION_TIMEOUT_SECONDS,
+    )
+    batch_size = min(DECOMPILE_BATCH_SIZE, function_budget)
+    chunk_count = max(1, math.ceil(max(0, target_count) / batch_size))
+    worker_budget = max(1, function_budget // batch_size)
+    workers = min(DECOMPILE_WORKERS, chunk_count, worker_budget)
+    return batch_size, workers
+
+
 def _decompile_all(
     client: GhidraMcpClient,
     program: str,
@@ -3956,13 +4036,14 @@ def _decompile_all(
         and not bool(item.get("isThunk"))
         and str(item.get("address")) not in existing
     ]
-    chunks = [targets[start : start + DECOMPILE_BATCH_SIZE] for start in range(0, len(targets), DECOMPILE_BATCH_SIZE)]
+    batch_size, workers = _decompile_execution_plan(client, len(targets))
+    chunks = [targets[start : start + batch_size] for start in range(0, len(targets), batch_size)]
     initial_saved = len(existing)
     processed = 0
     if not chunks:
         return existing
     with ThreadPoolExecutor(
-        max_workers=min(DECOMPILE_WORKERS, len(chunks)),
+        max_workers=workers,
         thread_name_prefix="ghidra-decompile",
     ) as executor:
         futures = [executor.submit(_decompile_chunk, client, program, chunk) for chunk in chunks]
@@ -3982,8 +4063,8 @@ def _decompile_all(
                         "previously_saved": initial_saved,
                         "overall_completed": initial_saved + processed,
                         "overall_total": initial_saved + len(targets),
-                        "workers": min(DECOMPILE_WORKERS, len(chunks)),
-                        "batch_size": DECOMPILE_BATCH_SIZE,
+                        "workers": workers,
+                        "batch_size": batch_size,
                         "executed": False,
                     },
                     ensure_ascii=False,
@@ -4933,18 +5014,11 @@ def analyze_program(
         )
     metadata_raw = _program_get("/get_metadata")
     if not managed_cil_primary:
-        metadata_function_count = _metadata_function_count(metadata_raw)
-        function_coverage["metadata_function_count"] = metadata_function_count
-        function_coverage["count_matches_metadata"] = (
-            None if metadata_function_count is None else metadata_function_count == len(functions)
+        _bind_function_metadata_coverage(
+            function_coverage,
+            metadata_raw,
+            len(functions),
         )
-        if metadata_function_count is None:
-            function_coverage["documented_limit"] = "metadata_function_count_unavailable_terminal_page_proof_used"
-        elif metadata_function_count != len(functions):
-            raise GhidraMcpError(
-                "metadata function_countとlist_functions完全inventoryが一致しません: "
-                f"{metadata_function_count} != {len(functions)}"
-            )
     imports = _program_get("/list_imports", offset=0, limit=10000)
     exports = _program_get("/list_exports", offset=0, limit=10000)
     strings = [] if managed_cil_primary else client.get("/list_strings", offset=0, limit=100000, program=program)
@@ -5271,19 +5345,11 @@ def refresh_complete_program_artifacts(
                     page_size=initial_limits[name],
                 )
             if name == "functions" and not managed_alternative:
-                metadata_count = _metadata_function_count(raw_index.get("metadata"))
-                endpoint_coverage["metadata_function_count"] = metadata_count
-                endpoint_coverage["count_matches_metadata"] = (
-                    None if metadata_count is None else metadata_count == len(items)
+                _bind_function_metadata_coverage(
+                    endpoint_coverage,
+                    raw_index.get("metadata"),
+                    len(items),
                 )
-                if metadata_count is None:
-                    endpoint_coverage["documented_limit"] = (
-                        "metadata_function_count_unavailable_terminal_page_proof_used"
-                    )
-                elif metadata_count != len(items):
-                    raise GhidraMcpError(
-                        f"metadata function_countと再取得inventoryが一致しません: {metadata_count} != {len(items)}"
-                    )
             retrieved[name] = items
             coverage[name] = endpoint_coverage
             totals[name] += len(items)
@@ -5723,8 +5789,8 @@ def validate_private_artifacts(
         except GhidraMcpError as error:
             metadata_function_count = None
             errors.append(str(error))
-        if metadata_function_count is not None and metadata_function_count != len(raw_functions):
-            errors.append("metadata function_countと保存済みGhidra関数inventoryが一致しません")
+        if metadata_function_count is not None and metadata_function_count < len(raw_functions):
+            errors.append("metadata全関数数が保存済み非外部関数inventoryを下回っています")
         native_records = [
             item
             for item in result.get("functions", [])
@@ -8787,17 +8853,15 @@ def _publication_shadow_directory(
     case_dir: Path,
     transaction_root: Path | None,
 ) -> Path:
-    """公開case外に決定的なshadow directoryを割り当てる。"""
+    """公開case外の短い決定的pathへshadow directoryを割り当てる。"""
 
     case_absolute = Path(os.path.abspath(case_dir))
-    if transaction_root is None:
-        root = (
-            Path(tempfile.gettempdir())
-            / "ai-security-analysis-ghidra-publication-shadow"
-            / _case_path_commitment(case_absolute)[:32]
-        )
-    else:
-        root = Path(os.path.abspath(transaction_root)).parent / "publication-shadows"
+    del transaction_root
+    root = (
+        Path(tempfile.gettempdir())
+        / "ai-security-analysis-ghidra-publication-shadow"
+        / _case_path_commitment(case_absolute)[:32]
+    )
     if root == case_absolute or case_absolute in root.parents:
         raise ValueError("公開shadowをcase directory内へ配置できません")
     ensure_no_reparse_components(root)
@@ -8827,6 +8891,21 @@ def _safe_remove_publication_shadow(shadow: Path) -> None:
     shutil.rmtree(shadow)
 
 
+def _publication_shadow_transaction_root(
+    shadow: Path,
+    transaction_root: Path | None,
+) -> Path:
+    """Windowsのpath長上限を避けたshadow専用WAL rootを返す。"""
+
+    if transaction_root is None:
+        return (
+            Path(tempfile.gettempdir())
+            / "ai-security-analysis-ghidra-shadow-wal"
+            / _case_path_commitment(shadow)[:32]
+        )
+    return Path(os.path.abspath(transaction_root)).parent / "shadow-wal"
+
+
 def _prepare_publication_shadow(
     case_dir: Path,
     snapshots: Mapping[str, _ContentFileSnapshot],
@@ -8836,7 +8915,10 @@ def _prepare_publication_shadow(
     """認証済み旧caseをprivate shadowへ複製する。"""
 
     shadow = _publication_shadow_directory(case_dir, transaction_root)
-    shadow_transaction_root = shadow.parent / "shadow-finalize-transactions"
+    shadow_transaction_root = _publication_shadow_transaction_root(
+        shadow,
+        transaction_root,
+    )
     if os.path.lexists(shadow):
         _recover_finalize_transaction(
             shadow,
@@ -9220,6 +9302,7 @@ class _GhidraCasePublicationLock:
 def _publish_shadow_case_transaction_locked(
     case_dir: Path,
     base_report: Mapping[str, Any],
+    base_report_snapshot: _JsonFileSnapshot,
     planned_updates: Mapping[str, bytes],
     *,
     repository: Path,
@@ -9227,9 +9310,21 @@ def _publish_shadow_case_transaction_locked(
 ) -> tuple[str, dict[str, Any]]:
     """shadowで全成果物を完成後、case-wide durable WALで一括反映する。"""
 
+    if dict(base_report) != base_report_snapshot.document:
+        raise ValueError(f"case-wide shadow生成前のreport snapshotが一致しません: {case_dir.name}")
     _recover_finalize_transaction(case_dir, transaction_root=transaction_root)
     original_files = _snapshot_publication_case(case_dir, base_report)
-    if original_files["report.json"].data != _json_bytes(dict(base_report)):
+    original_report = original_files["report.json"]
+    if (
+        original_report.path != base_report_snapshot.path
+        or original_report.data != base_report_snapshot.data
+        or original_report.sha256 != base_report_snapshot.sha256
+        or original_report.size != base_report_snapshot.binding.size
+        or not _same_regular_file_binding(
+            original_report.metadata,
+            base_report_snapshot.binding.metadata,
+        )
+    ):
         raise ValueError(f"case-wide shadow生成前にreportが変更されました: {case_dir.name}")
     missing = CASE_WIDE_PUBLICATION_REQUIRED - set(original_files)
     if missing:
@@ -9242,7 +9337,10 @@ def _publish_shadow_case_transaction_locked(
         original_files,
         transaction_root=transaction_root,
     )
-    shadow_transaction_root = shadow.parent / "shadow-finalize-transactions"
+    shadow_transaction_root = _publication_shadow_transaction_root(
+        shadow,
+        transaction_root,
+    )
     try:
         for relative, data in planned_updates.items():
             snapshot = _bounded_content_snapshot(shadow / Path(relative))
@@ -9354,6 +9452,7 @@ def _publish_shadow_case_transaction_locked(
 def _publish_shadow_case_transaction(
     case_dir: Path,
     base_report: Mapping[str, Any],
+    base_report_snapshot: _JsonFileSnapshot,
     planned_updates: Mapping[str, bytes],
     *,
     repository: Path,
@@ -9365,6 +9464,7 @@ def _publish_shadow_case_transaction(
         return _publish_shadow_case_transaction_locked(
             case_dir,
             base_report,
+            base_report_snapshot,
             planned_updates,
             repository=repository,
             transaction_root=transaction_root,
@@ -9645,6 +9745,7 @@ def publish_cases(
         finalized_case_state, finalized_c2_validation = _publish_shadow_case_transaction(
             case_dir,
             preverified_case_report,
+            preverified_report_snapshot,
             planned_updates,
             repository=repository,
             transaction_root=transaction_root,

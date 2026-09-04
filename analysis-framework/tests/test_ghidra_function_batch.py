@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import sys
+import tempfile
 from email.message import Message
 from pathlib import Path
 from types import SimpleNamespace
@@ -939,6 +940,50 @@ def test_decompile_all_respects_server_batch_limit_and_records_every_function(
     assert all(record["status"] == "succeeded" for record in records.values())
 
 
+def test_decompile_execution_plan_fits_short_transport_timeout() -> None:
+    """180秒transportでは30秒/関数のserver最悪時間へ余裕を残し直列化する。"""
+
+    class Client:
+        timeout = 180
+
+    assert target._decompile_execution_plan(Client(), 9) == (4, 1)
+
+
+def test_decompile_chunk_does_not_queue_fallback_after_batch_timeout() -> None:
+    """batch timeout後に単体要求を積まず、全関数を失敗状態付きで保持する。"""
+
+    class Client:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def get(self, endpoint: str, **_query: object) -> object:
+            self.calls += 1
+            assert endpoint == "/batch_decompile"
+            try:
+                raise TimeoutError("fixture timeout")
+            except TimeoutError as error:
+                raise target.GhidraMcpError(
+                    "GET /batch_decompile failed: TimeoutError"
+                ) from error
+
+    client = Client()
+    rows = target._decompile_chunk(
+        client,
+        "/Malware/Test/sample.quarantine.bin",
+        [
+            {"address": "0x1000", "name": "entry"},
+            {"address": "0x2000", "name": "helper"},
+        ],
+    )
+
+    assert client.calls == 1
+    assert [row["error"] for row in rows] == [
+        "GhidraMcpBatchTimeout",
+        "GhidraMcpBatchTimeout",
+    ]
+    assert all(row["pseudocode"] == "" for row in rows)
+
+
 def test_program_records_keep_every_function_and_call_edge(tmp_path: Path) -> None:
     """内部関数とexternal関数を全件保持し、call edgeと制約を記録する。"""
 
@@ -1624,7 +1669,7 @@ def test_all_functions_follows_explicit_cursor_before_short_page() -> None:
 
 
 def test_function_inventory_coverage_requires_metadata_match_or_limit() -> None:
-    """完全claimはmetadata一致または明示したmetadata欠落制約だけを許す。"""
+    """完全claimはAPI母集団差を明示して全関数総数へ拘束する。"""
 
     result = {
         "program_selector": "/Malware/Test/sample",
@@ -1648,12 +1693,59 @@ def test_function_inventory_coverage_requires_metadata_match_or_limit() -> None:
     assert target._function_inventory_coverage_complete(result) is False
     result["retrieval_coverage"]["functions"].update(
         {
+            "inventory_scope": "non_external_functions",
+            "metadata_function_count_scope": "all_functions_including_external",
+            "derived_external_function_count": 2630,
+            "documented_limit": (
+                "metadata_includes_external_functions_inventory_non_external_only"
+            ),
+        }
+    )
+    assert target._function_inventory_coverage_complete(result) is True
+    result["retrieval_coverage"]["functions"]["derived_external_function_count"] = 2629
+    assert target._function_inventory_coverage_complete(result) is False
+    result["retrieval_coverage"]["functions"].update(
+        {
             "metadata_function_count": None,
             "count_matches_metadata": None,
+            "derived_external_function_count": None,
             "documented_limit": ("metadata_function_count_unavailable_terminal_page_proof_used"),
         }
     )
     assert target._function_inventory_coverage_complete(result) is True
+
+
+def test_bind_function_metadata_coverage_accounts_for_external_functions() -> None:
+    """metadata 38件と非外部inventory 1件を37外部関数として安全に拘束する。"""
+
+    evidence: dict[str, object] = {}
+    target._bind_function_metadata_coverage(
+        evidence,
+        "Function Count: 38\n",
+        1,
+    )
+
+    assert evidence == {
+        "inventory_scope": "non_external_functions",
+        "metadata_function_count": 38,
+        "metadata_function_count_scope": "all_functions_including_external",
+        "count_matches_metadata": False,
+        "derived_external_function_count": 37,
+        "documented_limit": (
+            "metadata_includes_external_functions_inventory_non_external_only"
+        ),
+    }
+
+
+def test_bind_function_metadata_coverage_rejects_impossible_total() -> None:
+    """全関数総数が非外部inventoryより小さい破損応答は拒否する。"""
+
+    with pytest.raises(target.GhidraMcpError, match="下回っています"):
+        target._bind_function_metadata_coverage(
+            {},
+            "Function Count: 1\n",
+            2,
+        )
 
 
 def test_managed_function_inventory_alternative_is_strict() -> None:
@@ -3164,6 +3256,132 @@ def test_ghidra_case_publication_lock_rejects_parallel_writer(
 
     with target._GhidraCasePublicationLock(case_dir):
         pass
+
+
+def _write_case_wide_publication_snapshot_fixture(
+    case_dir: Path,
+) -> tuple[dict[str, object], target._JsonFileSnapshot]:
+    """非canonical JSONを含むcase-wide公開snapshot fixtureを作る。"""
+
+    case_dir.mkdir(parents=True)
+    for name in sorted(target.CASE_WIDE_PUBLICATION_REQUIRED - {"report.json"}):
+        path = case_dir / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(f"fixture:{name}\n".encode())
+    analysis_sha256 = hashlib.sha256((case_dir / "analysis.json").read_bytes()).hexdigest()
+    report: dict[str, object] = {
+        "artifact_sha256": {"analysis.json": analysis_sha256},
+        "fixture": "publication-snapshot",
+    }
+    (case_dir / "report.json").write_text(
+        json.dumps(report, ensure_ascii=False, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+    snapshot = target._bounded_json_snapshot(case_dir / "report.json")
+    assert snapshot.data != target._json_bytes(report)
+    return report, snapshot
+
+
+def test_shadow_publication_accepts_exact_noncanonical_report_snapshot(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """整形差ではなく検証済み元bytes／identityをcase-wide公開へ束縛する。"""
+
+    case_dir = tmp_path / ("b" * 64)
+    report, report_snapshot = _write_case_wide_publication_snapshot_fixture(case_dir)
+    monkeypatch.setattr(target, "_recover_finalize_transaction", lambda *_args, **_kwargs: None)
+
+    def reached_shadow(*_args: object, **_kwargs: object) -> Path:
+        raise RuntimeError("shadow preparation reached")
+
+    monkeypatch.setattr(target, "_prepare_publication_shadow", reached_shadow)
+    with pytest.raises(RuntimeError, match="shadow preparation reached"):
+        target._publish_shadow_case_transaction_locked(
+            case_dir,
+            report,
+            report_snapshot,
+            {},
+            repository=tmp_path,
+            transaction_root=tmp_path / "transactions",
+        )
+
+
+def test_shadow_publication_rejects_equivalent_report_rewrite_after_snapshot(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """JSON内容が同じでもsnapshot後の第三者rewriteは競合として拒否する。"""
+
+    case_dir = tmp_path / ("c" * 64)
+    report, report_snapshot = _write_case_wide_publication_snapshot_fixture(case_dir)
+    target._json_dump(case_dir / "report.json", report)
+    monkeypatch.setattr(target, "_recover_finalize_transaction", lambda *_args, **_kwargs: None)
+
+    with pytest.raises(ValueError, match="reportが変更されました"):
+        target._publish_shadow_case_transaction_locked(
+            case_dir,
+            report,
+            report_snapshot,
+            {},
+            repository=tmp_path,
+            transaction_root=tmp_path / "transactions",
+        )
+
+
+def test_shadow_finalize_wal_uses_short_sibling_root(
+    tmp_path: Path,
+) -> None:
+    """shadow WALを長いpublication treeへ重ねず、実際にjournalを作成できる。"""
+
+    case_dir = tmp_path / "public" / ("d" * 64)
+    case_dir.mkdir(parents=True)
+    transaction_root = tmp_path / "private-output" / "finalize-transactions"
+    shadow = target._publication_shadow_directory(case_dir, transaction_root)
+    shadow.mkdir()
+    report_path = shadow / "report.json"
+    report_path.write_bytes(b"old\n")
+    wal_root = target._publication_shadow_transaction_root(shadow, transaction_root)
+
+    assert wal_root == transaction_root.parent / "shadow-wal"
+    assert shadow.parent not in wal_root.parents
+    transaction_dir = target._begin_finalize_transaction(
+        shadow,
+        [(target._bounded_content_snapshot(report_path), b"new\n")],
+        transaction_root=wal_root,
+    )
+    assert (transaction_dir / target.FINALIZE_TRANSACTION_JOURNAL).is_file()
+    target._safe_remove_finalize_transaction(transaction_dir)
+
+
+def test_publication_shadow_uses_short_temp_root_for_deep_artifacts(
+    tmp_path: Path,
+) -> None:
+    """長いprivate outputをshadow pathへ継承せず、深いhandler名にも余裕を確保する。"""
+
+    digest = "e" * 64
+    case_dir = tmp_path / "public" / digest
+    transaction_root = (
+        tmp_path
+        / ("long-private-output-segment-" * 4)
+        / "ghidra-static-results"
+        / "finalize-transactions"
+    )
+    shadow = target._publication_shadow_directory(case_dir, transaction_root)
+    shadow.mkdir()
+    artifact = shadow / "handlers" / "dotnet_resource_loader-33b70bf99c8d635a.json"
+    legacy_artifact = (
+        transaction_root.parent
+        / "publication-shadows"
+        / digest
+        / "handlers"
+        / artifact.name
+    )
+
+    assert Path(tempfile.gettempdir()) in shadow.parents
+    assert transaction_root.parent not in shadow.parents
+    assert len(os.fspath(artifact)) + 32 < len(os.fspath(legacy_artifact))
+    target._safe_remove_publication_shadow(shadow)
 
 
 def test_finalize_case_report_promotes_only_function_analysis_blocker(

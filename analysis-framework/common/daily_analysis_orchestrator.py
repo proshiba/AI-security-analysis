@@ -886,11 +886,6 @@ def _validate_context(
             "tech_memo_overlap",
             "tech-memo入力をprivate／work／Ghidra project rootと分離してください",
         )
-    if request.network["c2_monitoring"] and not allow_live_c2 and create_roots:
-        raise DailyOrchestrationError(
-            "live_c2_not_authorized",
-            "C2ライブ監視には現在の実行で--allow-live-c2も必要です",
-        )
     if create_roots:
         for root in (private_root, work_root, ghidra_project_store):
             root.mkdir(parents=True, exist_ok=True)
@@ -3082,6 +3077,36 @@ def _production_ghidra(context: DailyContext) -> StageOutcome:
         "--disk-guard-path",
         os.fspath(context.ghidra_project_store),
     ]
+    if context.trusted_tool_configuration is not None:
+        request, _identity = _static_request(context)
+        static_result = _static_job_result(context, request)
+        artifacts = static_result.get("artifacts")
+        if not isinstance(artifacts, Mapping):
+            raise DailyOrchestrationError(
+                "static_result_invalid",
+                "Ghidraへ引き継ぐ静的解析artifact manifestが不正です",
+            )
+        job_dir = context.jobs_root / request.job_id
+        try:
+            trusted_tools = analysis_job_runner.rehydrate_trusted_tool_bundle(
+                job_dir,
+                static_result,
+                artifacts,
+            )
+        except analysis_job_runner.JobContractError as exc:
+            raise DailyOrchestrationError(
+                "static_trusted_tool_snapshot_invalid",
+                "Ghidraへ引き継ぐtrusted tool snapshotを安全に再検証できません",
+            ) from exc
+        if trusted_tools is None:
+            raise DailyOrchestrationError(
+                "static_trusted_tool_snapshot_invalid",
+                "Ghidraへ引き継ぐtrusted tool snapshotがありません",
+            )
+        for tool_id, flag in (("upx", "--upx"), ("sevenzip", "--sevenzip")):
+            snapshot = trusted_tools.tools[tool_id]
+            if snapshot is not None:
+                arguments.extend((flag, os.fspath(snapshot.path)))
     maximum = context.request.limits["ghidra_max_new_programs"]
     if maximum is not None:
         arguments.extend(("--max-new-programs", str(maximum)))
@@ -3226,7 +3251,23 @@ def _production_c2_monitoring(context: DailyContext) -> StageOutcome:
     output.mkdir(parents=True, exist_ok=True)
     analysis_job_runner.atomic_json(targets_path, plan)
     analysis_job_runner.atomic_json(inventory_path, inventory)
-    target_count = plan.get("inventory_summary", {}).get("effective_target_count")
+    inventory_summary = plan.get("inventory_summary")
+    planned_targets = plan.get("targets")
+    target_count = (
+        inventory_summary.get("planned_endpoint_count")
+        if isinstance(inventory_summary, Mapping)
+        else None
+    )
+    if (
+        type(target_count) is not int
+        or target_count < 0
+        or not isinstance(planned_targets, list)
+        or target_count != len(planned_targets)
+    ):
+        raise DailyOrchestrationError(
+            "c2_target_plan_invalid",
+            "C2 target planの件数をtargets実数へ束縛できません",
+        )
     if not context.request.network["c2_monitoring"]:
         return StageOutcome(
             status="partial",
@@ -3239,9 +3280,16 @@ def _production_c2_monitoring(context: DailyContext) -> StageOutcome:
             },
         )
     if not context.allow_live_c2:
-        raise DailyOrchestrationError(
-            "live_c2_not_authorized",
-            "C2ライブ監視には現在の実行で明示許可が必要です",
+        return StageOutcome(
+            status="partial",
+            retryable=True,
+            result={
+                "status": "targets_built_live_monitoring_deferred",
+                "target_count": target_count,
+                "daily_source_date": context.request.news_source_date,
+                "network_contacted": False,
+                "sample_executed": False,
+            },
         )
     context.maxmind_cache.mkdir(parents=True, exist_ok=True)
     _run_fixed_python(
@@ -3605,7 +3653,27 @@ def _archive_analysis_cases(
             "case_archive_selection_invalid",
             "case別archiveの検体集合を取得manifestへ束縛できません",
         )
-    staging_root = context.state_root / "case-datastore-staging"
+    # case target名にはcollection IDと64桁SHA-256が入り、さらにGhidraの
+    # object treeを格納する。Windowsの通常path上限へ近づけないよう、
+    # run IDに束縛した短い専用rootを再開時にも一貫して使う。
+    staging_root = context.work_root / "cs" / context.request.run_id.replace("daily-", "run-", 1)
+    ghidra_session = None
+    if context.request.stages["ghidra"]:
+        try:
+            ghidra_session = stage_case_analysis_datastore.prepare_case_staging_session(
+                repository=context.repository,
+                collection_id=context.collection_id,
+                source_root=context.source_root,
+                one_shot_root=one_shot_root,
+                ghidra_root=context.ghidra_private_output,
+                output_root=staging_root,
+                case_sha256s=sorted(selected),
+            )
+        except stage_case_analysis_datastore.CaseStagingError as exc:
+            raise DailyOrchestrationError(
+                "case_archive_staging_failed",
+                "case別archiveの全体preflightに失敗しました",
+            ) from exc
     archived: list[dict[str, Any]] = []
     for digest in sorted(selected):
         try:
@@ -3620,22 +3688,24 @@ def _archive_analysis_cases(
                     case_sha256=digest,
                 )
             else:
-                common_arguments = {
-                    "repository": context.repository,
-                    "collection_id": context.collection_id,
-                    "source_root": context.source_root,
-                    "one_shot_root": one_shot_root,
-                    "output_root": staging_root,
-                    "case_sha256s": [digest],
-                }
                 if context.request.stages["ghidra"]:
-                    staged = stage_case_analysis_datastore.stage_cases(
-                        **common_arguments,
-                        ghidra_root=context.ghidra_private_output,
+                    if ghidra_session is None:
+                        raise DailyOrchestrationError(
+                            "case_archive_staging_failed",
+                            "case別archiveの全体preflight sessionがありません",
+                        )
+                    staged = stage_case_analysis_datastore.stage_case_from_session(
+                        ghidra_session,
+                        case_sha256=digest,
                     )
                 else:
                     staged = stage_case_analysis_datastore.stage_cases_without_ghidra(
-                        **common_arguments,
+                        repository=context.repository,
+                        collection_id=context.collection_id,
+                        source_root=context.source_root,
+                        one_shot_root=one_shot_root,
+                        output_root=staging_root,
+                        case_sha256s=[digest],
                     )
         except stage_case_analysis_datastore.CaseStagingError as exc:
             raise DailyOrchestrationError(
@@ -3717,6 +3787,7 @@ def _production_private_archive(context: DailyContext) -> StageOutcome:
             },
         )
     upstream_failed = False
+    state: dict[str, Any] | None = None
     if context.state_root.exists():
         state = _load_state(context)
         upstream_failed = any(
@@ -3734,14 +3805,26 @@ def _production_private_archive(context: DailyContext) -> StageOutcome:
     )
     one_shot_case_root: Path | None = None
     if context.request.stages["static_analysis"] or context.request.stages["publication"]:
-        try:
-            request, _identity = _static_request(context)
-        except DailyOrchestrationError:
-            if not upstream_failed:
-                raise
+        static_record = state["stages"]["static_analysis"] if state is not None else None
+        recorded_job_id = (
+            static_record["result"].get("job_id")
+            if isinstance(static_record, Mapping)
+            and static_record.get("status") in {"complete", "partial"}
+            and isinstance(static_record.get("result"), Mapping)
+            else None
+        )
+        if isinstance(recorded_job_id, str):
+            _static_job_result_for_id(context, recorded_job_id)
+            one_shot_case_root = context.jobs_root / recorded_job_id / "analysis"
         else:
-            job_path = context.jobs_root / request.job_id
-            one_shot_case_root = job_path / "analysis"
+            try:
+                request, _identity = _static_request(context)
+            except DailyOrchestrationError:
+                if not upstream_failed:
+                    raise
+            else:
+                job_path = context.jobs_root / request.job_id
+                one_shot_case_root = job_path / "analysis"
     if context.request.stages["news_intake"] and (context.daily_news_private_output.exists() or not upstream_failed):
         candidates.append(
             (
