@@ -151,6 +151,16 @@ class ValidatedInputs:
     cases: Mapping[str, CaseInputs]
 
 
+@dataclass(frozen=True)
+class CaseStagingSession:
+    """全体検証を1回だけ行い、case copyを逐次再照合するsession。"""
+
+    inputs: ValidatedInputs
+    commitments: Mapping[str, SourceCommitment]
+    projected_case_bytes: Mapping[str, int]
+    observed_free_bytes_before_staging: int
+
+
 def _absolute(path: Path) -> Path:
     return Path(os.path.abspath(os.fspath(path)))
 
@@ -270,14 +280,34 @@ def _reject_sensitive_name(relative: PurePosixPath) -> None:
 
 @cache
 def _host_path_patterns() -> tuple[tuple[str, re.Pattern[bytes]], ...]:
-    home = os.fspath(Path.home())
-    candidates = {
-        home.encode("utf-8", errors="strict"),
-        home.replace("\\", "\\\\").encode("utf-8", errors="strict"),
-        home.encode("utf-16le", errors="strict"),
+    # bare home（Windows既定の C:\Users\Administrator など）は、検体の
+    # build path、標的path、実コマンドラインにも現れるため、それだけで
+    # 解析host由来と判定しない。現在のrepositoryと資格情報／daily private
+    # rootを指す具体的なpathだけを漏えい候補として拒否する。
+    home = Path.home()
+    roots = {
+        Path.cwd().resolve(),
+        home / ".aws",
+        home / ".codex",
+        home / ".ssh",
+        home / "DailyAnalysisPrivate",
+        home / "DailyAnalysisWork",
+        home / "DailyGhidraProjects",
     }
+    candidates: set[bytes] = set()
+    for root in roots:
+        value = os.fspath(root)
+        candidates.update(
+            {
+                value.encode("utf-8", errors="strict"),
+                value.replace("\\", "\\\\").encode("utf-8", errors="strict"),
+                value.encode("utf-16le", errors="strict"),
+            }
+        )
     return tuple(
-        ("current_host_home_path", re.compile(re.escape(value), re.IGNORECASE)) for value in candidates if value
+        ("current_host_analysis_path", re.compile(re.escape(value), re.IGNORECASE))
+        for value in candidates
+        if value
     )
 
 
@@ -498,8 +528,18 @@ def _copy_tree(
     role: str,
     commitments: Mapping[str, SourceCommitment],
 ) -> list[CopiedFile]:
+    files = list(_walk_files(source, role=role))
+    source_absolute = _absolute(archive_analysis_datastore._extended_length_path(source))
+    observed_keys = {_source_commitment_key(path) for path, _relative in files}
+    expected_keys = {
+        key
+        for key, commitment in commitments.items()
+        if _is_within(commitment.path, source_absolute)
+    }
+    if observed_keys != expected_keys:
+        raise CaseStagingError(f"{role}のfile集合がpreflight commitmentから変更されました")
     copied: list[CopiedFile] = []
-    for path, relative in _walk_files(source, role=role):
+    for path, relative in files:
         copied.append(
             _copy_file(
                 path,
@@ -1013,6 +1053,7 @@ def _program_totals(
     totals = {
         "characteristic_native_decompilations": 0,
         "exports_items": 0,
+        "functions_items": 0,
         "imports_items": 0,
         "managed_method_bodies": 0,
         "managed_methods": 0,
@@ -1034,6 +1075,12 @@ def _program_totals(
             if type(value) is not int or value < 0:
                 raise CaseStagingError("private validationのprogram countが不正です")
             totals[destination] += value
+            if destination == "native_functions":
+                # private-artifact-validation.json の生成側は、Ghidraの
+                # raw function inventoryを functions_items と
+                # native_functions の両方へ記録する。case archive昇格時も
+                # 同じprogram単位の拘束値から両fieldを再現する。
+                totals["functions_items"] += value
         for destination, source in (
             ("exports_items", "exports"),
             ("imports_items", "imports"),
@@ -1132,10 +1179,15 @@ def _validate_inputs(
     ghidra_root: Path,
     output_root: Path,
     case_sha256s: Sequence[str],
+    require_single_case: bool = True,
 ) -> ValidatedInputs:
-    if len(case_sha256s) != 1:
+    if not case_sha256s or (require_single_case and len(case_sha256s) != 1):
         raise CaseStagingError("容量制御とcase分離のため、--case-sha256は1回につき1件だけ指定してください")
     requested = [_validate_sha256(case_sha256s[0], label="--case-sha256")]
+    if not require_single_case:
+        requested = [_validate_sha256(value, label="case SHA-256") for value in case_sha256s]
+    if len(set(requested)) != len(requested):
+        raise CaseStagingError("case SHA-256に重複があります")
     if not COLLECTION_RE.fullmatch(collection_id):
         raise CaseStagingError("collection IDは小文字英数字で開始し、小文字英数字・._-だけを許可します")
     repository = _validate_existing_directory(repository, label="repository")
@@ -1341,9 +1393,19 @@ def _copy_case_ghidra_object(
 ) -> list[CopiedFile]:
     source_root = inputs.ghidra_root / "objects" / program_sha256
     destination_root = staging_root / "ghidra" / "objects" / program_sha256
+    files = list(_walk_files(source_root, role="ghidra_object"))
+    source_absolute = _absolute(archive_analysis_datastore._extended_length_path(source_root))
+    observed_keys = {_source_commitment_key(path) for path, _relative in files}
+    expected_keys = {
+        key
+        for key, commitment in commitments.items()
+        if _is_within(commitment.path, source_absolute)
+    }
+    if observed_keys != expected_keys:
+        raise CaseStagingError("ghidra_objectのfile集合がpreflight commitmentから変更されました")
     copied: list[CopiedFile] = []
     program_result_seen = False
-    for source, relative in _walk_files(source_root, role="ghidra_object"):
+    for source, relative in files:
         destination = destination_root.joinpath(*relative.parts)
         if relative.as_posix() == "program-result.json":
             program_result_seen = True
@@ -1676,27 +1738,30 @@ def _stage_one(
         raise
 
 
-def _projected_staging_bytes(inputs: ValidatedInputs) -> int:
+def _projected_case_staging_bytes(inputs: ValidatedInputs, case: CaseInputs) -> int:
     total = 0
-    for case in inputs.cases.values():
-        total += sum(path.lstat().st_size for path, _relative in _walk_files(case.source_directory, role="source"))
+    total += sum(path.lstat().st_size for path, _relative in _walk_files(case.source_directory, role="source"))
+    total += sum(
+        path.lstat().st_size
+        for path, _relative in _walk_files(
+            case.one_shot_directory,
+            role="one_shot_private",
+        )
+    )
+    for digest in case.pe_sha256s:
         total += sum(
             path.lstat().st_size
             for path, _relative in _walk_files(
-                case.one_shot_directory,
-                role="one_shot_private",
+                inputs.ghidra_root / "objects" / digest,
+                role="ghidra_object",
             )
         )
-        for digest in case.pe_sha256s:
-            total += sum(
-                path.lstat().st_size
-                for path, _relative in _walk_files(
-                    inputs.ghidra_root / "objects" / digest,
-                    role="ghidra_object",
-                )
-            )
-            total += (inputs.ghidra_root / "import-staging" / f"{digest}.quarantine.bin").lstat().st_size
-    return total + len(inputs.cases) * 1024 * 1024
+        total += (inputs.ghidra_root / "import-staging" / f"{digest}.quarantine.bin").lstat().st_size
+    return total + 1024 * 1024
+
+
+def _projected_staging_bytes(inputs: ValidatedInputs) -> int:
+    return sum(_projected_case_staging_bytes(inputs, case) for case in inputs.cases.values())
 
 
 def _preflight_sensitive_content(
@@ -1735,6 +1800,100 @@ def _preflight_sensitive_content(
     return commitments
 
 
+def prepare_case_staging_session(
+    *,
+    repository: Path,
+    collection_id: str,
+    source_root: Path,
+    one_shot_root: Path,
+    ghidra_root: Path,
+    output_root: Path,
+    case_sha256s: Sequence[str],
+) -> CaseStagingSession:
+    """全体manifestを1回検証し、逐次case copy用commitmentを固定する。"""
+
+    inputs = _validate_inputs(
+        repository=repository,
+        collection_id=collection_id,
+        source_root=source_root,
+        one_shot_root=one_shot_root,
+        ghidra_root=ghidra_root,
+        output_root=output_root,
+        case_sha256s=case_sha256s,
+        require_single_case=False,
+    )
+    projected = {
+        digest: _projected_case_staging_bytes(inputs, case)
+        for digest, case in inputs.cases.items()
+    }
+    maximum_required = max(projected.values())
+    try:
+        free = shutil.disk_usage(inputs.output_root).free
+    except OSError as exc:
+        raise CaseStagingError("case staging filesystemの空き容量を確認できません") from exc
+    if free < maximum_required + MINIMUM_FREE_RESERVE_BYTES:
+        raise CaseStagingError("case stagingに必要な空き容量と安全余白がありません")
+    commitments = _preflight_sensitive_content(inputs)
+    for case in inputs.cases.values():
+        _validate_one_shot_report_identity(
+            case.one_shot_directory,
+            digest=case.case_sha256,
+        )
+    return CaseStagingSession(
+        inputs=inputs,
+        commitments=commitments,
+        projected_case_bytes=projected,
+        observed_free_bytes_before_staging=free,
+    )
+
+
+def stage_case_from_session(
+    session: CaseStagingSession,
+    *,
+    case_sha256: str,
+) -> dict[str, Any]:
+    """固定sessionから1 caseだけをcopy時再照合してstagingする。"""
+
+    digest = _validate_sha256(case_sha256, label="case SHA-256")
+    case = session.inputs.cases.get(digest)
+    if case is None:
+        raise CaseStagingError("case staging sessionに指定caseがありません")
+    target = _datastore_target(session.inputs.collection_id, digest)
+    if os.path.lexists(session.inputs.output_root / target):
+        raise CaseStagingError(f"既存case stagingを上書きしません: {target}")
+    required = session.projected_case_bytes[digest]
+    try:
+        free = shutil.disk_usage(session.inputs.output_root).free
+    except OSError as exc:
+        raise CaseStagingError("case staging filesystemの空き容量を確認できません") from exc
+    if free < required + MINIMUM_FREE_RESERVE_BYTES:
+        raise CaseStagingError("case stagingに必要な空き容量と安全余白がありません")
+    staged = _stage_one(
+        session.inputs,
+        case,
+        commitments=session.commitments,
+    )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "collection_id": session.inputs.collection_id,
+        "case_count": 1,
+        "projected_staging_bytes": required,
+        "observed_free_bytes_before_staging": free,
+        "preflight_secret_content_scanned_files": len(session.commitments),
+        "cases": [staged],
+        "safety": {
+            "case_separated": True,
+            "physical_copy_only": True,
+            "preflight_secret_name_and_content_scan_complete": True,
+            "sample_executed": False,
+            "network_contacted": False,
+            "s3_upload_performed": False,
+            "receipt_created": False,
+            "source_deleted": False,
+        },
+    }
+
+
 def stage_cases(
     *,
     repository: Path,
@@ -1747,7 +1906,9 @@ def stage_cases(
 ) -> dict[str, Any]:
     """検証済みの単一caseを物理copyし、archive引数を返す。"""
 
-    inputs = _validate_inputs(
+    if len(case_sha256s) != 1:
+        raise CaseStagingError("容量制御とcase分離のため、--case-sha256は1回につき1件だけ指定してください")
+    session = prepare_case_staging_session(
         repository=repository,
         collection_id=collection_id,
         source_root=source_root,
@@ -1756,45 +1917,7 @@ def stage_cases(
         output_root=output_root,
         case_sha256s=case_sha256s,
     )
-    targets = [_datastore_target(collection_id, digest) for digest in inputs.cases]
-    if any(os.path.lexists(inputs.output_root / target) for target in targets):
-        raise CaseStagingError("既存case stagingを含むbatchは開始しません")
-    required = _projected_staging_bytes(inputs)
-    try:
-        free = shutil.disk_usage(inputs.output_root).free
-    except OSError as exc:
-        raise CaseStagingError("case staging filesystemの空き容量を確認できません") from exc
-    if free < required + MINIMUM_FREE_RESERVE_BYTES:
-        raise CaseStagingError("case stagingに必要な空き容量と安全余白がありません")
-    commitments = _preflight_sensitive_content(inputs)
-    for case in inputs.cases.values():
-        _validate_one_shot_report_identity(
-            case.one_shot_directory,
-            digest=case.case_sha256,
-        )
-    staged = [
-        _stage_one(inputs, case, commitments=commitments)
-        for case in inputs.cases.values()
-    ]
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "collection_id": collection_id,
-        "case_count": len(staged),
-        "projected_staging_bytes": required,
-        "observed_free_bytes_before_staging": free,
-        "preflight_secret_content_scanned_files": len(commitments),
-        "cases": staged,
-        "safety": {
-            "case_separated": True,
-            "physical_copy_only": True,
-            "preflight_secret_name_and_content_scan_complete": True,
-            "sample_executed": False,
-            "network_contacted": False,
-            "s3_upload_performed": False,
-            "receipt_created": False,
-            "source_deleted": False,
-        },
-    }
+    return stage_case_from_session(session, case_sha256=case_sha256s[0])
 
 
 def stage_cases_without_ghidra(

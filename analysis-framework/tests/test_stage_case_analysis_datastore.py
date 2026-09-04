@@ -51,6 +51,7 @@ def _fixture(tmp_path: Path) -> dict[str, object]:
     totals = {
         "characteristic_native_decompilations": 0,
         "exports_items": 0,
+        "functions_items": 0,
         "imports_items": 0,
         "managed_method_bodies": 0,
         "managed_methods": 0,
@@ -359,6 +360,77 @@ def test_single_case_is_physically_separated_and_archive_compatible(
     files = archive.collect_source_files([staged])
     assert len(files) == result["cases"][0]["file_count"]
     assert all(path.lstat().st_nlink == 1 for path in staged.rglob("*") if path.is_file())
+
+
+def test_collection_session_validates_once_and_stages_one_case(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = _fixture(tmp_path)
+    calls = 0
+    original = target._validate_private_validation
+
+    def count_validation(*args: object, **kwargs: object) -> object:
+        nonlocal calls
+        calls += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(target, "_validate_private_validation", count_validation)
+    session = target.prepare_case_staging_session(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        source_root=fixture["source"],
+        one_shot_root=fixture["one_shot"],
+        ghidra_root=fixture["ghidra"],
+        output_root=fixture["output"],
+        case_sha256s=fixture["cases"],
+    )
+    result = target.stage_case_from_session(
+        session,
+        case_sha256=fixture["cases"][0],
+    )
+
+    assert calls == 1
+    assert len(session.inputs.cases) == 2
+    assert result["case_count"] == 1
+    assert result["cases"][0]["case_sha256"] == fixture["cases"][0]
+    assert result["safety"]["case_separated"] is True
+
+
+def test_collection_session_rejects_case_tree_changed_after_preflight(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    selected = fixture["cases"][1]
+    session = target.prepare_case_staging_session(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        source_root=fixture["source"],
+        one_shot_root=fixture["one_shot"],
+        ghidra_root=fixture["ghidra"],
+        output_root=fixture["output"],
+        case_sha256s=fixture["cases"],
+    )
+    (fixture["source"] / selected / "late-added.bin").write_bytes(b"not committed")
+
+    with pytest.raises(target.CaseStagingError, match="preflight commitment"):
+        target.stage_case_from_session(session, case_sha256=selected)
+
+    assert not (fixture["output"] / f"daily-fixture-{selected}").exists()
+
+
+def test_host_path_scan_keeps_malware_build_path_but_rejects_analysis_root() -> None:
+    home = os.fspath(Path.home()).encode("utf-8")
+    target._scan_sensitive_content(
+        home + rb"\Desktop\builder\go\src\runtime",
+        relative="ghidra/import-staging/sample.quarantine.bin",
+    )
+
+    with pytest.raises(target.CaseStagingError, match="current_host_analysis_path"):
+        target._scan_sensitive_content(
+            os.fspath(Path.cwd().resolve()).encode("utf-8"),
+            relative="derived/provenance.json",
+        )
 
 
 def test_exactly_one_case_is_required_per_invocation(tmp_path: Path) -> None:

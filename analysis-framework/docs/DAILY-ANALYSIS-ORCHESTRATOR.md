@@ -87,7 +87,7 @@ pathはrequestではなくoperator CLIで固定します。
 
 ## 実行計画
 
-planはrootとtech-memoの境界に加え、現在の全filesystem容量とC2二重許可を検証しますが、directory、state、公開成果物を作成しません。
+planはrootとtech-memoの境界に加え、現在の全filesystem容量とC2二重許可の状態を表示しますが、directory、state、公開成果物を作成しません。
 
 ~~~powershell
 py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py plan --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects
@@ -104,7 +104,7 @@ planで次を確認します。
 
 ## 事前検証（preflight）
 
-preflightはrequest、source、root、C2許可、必要credentialの有無、AWS CLI、operator指定のtrusted static tools、全出力先の空き容量をread-onlyで検証します。指定日のnews／IOC三点は各64 MiB以下の単一link通常fileに限定し、単一handleでsize、identity、時刻、SHA-256のsource commitmentへ固定します。欠落、空file、重複、hardlink、reparse point、読取中の差替えをnetwork接触前に拒否します。private root、work root、repository、Ghidra project store、OSのarchive stagingが同一filesystemなら必要量を合算し、別filesystemなら個別に判定します。archive stagingには512 MiBの固定reserveと、逐次作成する対象別archiveのうち最大となる既存tree実測／将来増分を加えます。全archiveのsizeを同時に要求しません。reportへcredential値、絶対path、device IDは出さず、準備可否、filesystem-N、用途、pathを除いたtool identityだけを保存します。
+preflightはrequest、source、root、C2許可状態、必要credentialの有無、AWS CLI、operator指定のtrusted static tools、全出力先の空き容量をread-onlyで検証します。指定日のnews／IOC三点は各64 MiB以下の単一link通常fileに限定し、単一handleでsize、identity、時刻、SHA-256のsource commitmentへ固定します。欠落、空file、重複、hardlink、reparse point、読取中の差替えをnetwork接触前に拒否します。private root、work root、repository、Ghidra project store、OSのarchive stagingが同一filesystemなら必要量を合算し、別filesystemなら個別に判定します。archive stagingには512 MiBの固定reserveと、逐次作成する対象別archiveのうち最大となる既存tree実測／将来増分を加えます。全archiveのsizeを同時に要求しません。reportへcredential値、絶対path、device IDは出さず、準備可否、filesystem-N、用途、pathを除いたtool identityだけを保存します。
 
 ~~~powershell
 py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py preflight --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects --allow-live-c2
@@ -114,7 +114,7 @@ py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py preflight
 
 ## 実行・再開・継続（run、resume、drive）
 
-C2ライブ監視はrequestの network.c2_monitoring=true だけでは開始しません。当該実行でも --allow-live-c2 を指定する二重許可です。省略時はnetwork接触前に終了code 2で停止します。
+C2ライブ監視はrequestの network.c2_monitoring=true だけでは開始しません。当該実行でも --allow-live-c2 を指定する二重許可です。省略時はC2候補inventoryとtargetをofflineで生成し、外部C2へ接続せず、stageを再開可能なpartialとして保持します。後続の静的validationとS3保管は継続でき、明示許可を付けた同じrequestのresumeでライブ監視だけを再試行できます。
 
 ~~~powershell
 py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py run --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects --allow-live-c2
@@ -187,6 +187,8 @@ private_archiveは次を別々の解析対象として保管します。
 全保管対象はsource tree commitmentの先頭16桁を含む世代別targetとして保管します。Ghidraの次chunk、newsの追加取得、jobの進行でtreeが変化した場合は新しいtargetとなるため、前世代の検証済みcheckpointを失いません。targetが128文字を超える場合はtarget全体のSHA-256を保持した決定的短縮名を使います。各target名にはrun IDを含め、同じ日付・件数の別runを混在させません。
 
 各source treeは全fileの相対path、size、SHA-256へ固定します。upload後はS3側のsize、SSE AES256、archive SHA-256、manifest SHA-256、targetを検証し、local report SHA-256とsource tree commitmentを結び付けます。再開時にsourceが変化していれば既存reportを再利用しません。
+
+50検体のcase別保管では、取得manifest、one-shot case集合、Ghidra relationship、完了状態、全program検証manifestをcollection単位で1回検証し、その時点の全入力fileをSHA-256・size・file identityへ固定します。その後もcaseごとにfile集合の追加・削除を確認し、物理copy時に各fileのcommitmentを再照合します。全体検証をcase数だけ繰り返さず、case分離、秘密値scan、差替え拒否、1件ずつの容量判定、remote検証後cleanupは維持します。Windowsではcollection IDと64桁SHA-256を含む深いtreeが通常path上限へ近づかないよう、work root直下のrun専用短縮stagingを使います。
 
 archive stagingの空き容量は、逐次処理する対象の最大圧縮前sizeと512 MiB reserveで事前確認します。不足時はZIP作成を開始しません。解析stageがfailedでもdatastore uploadが明示許可されていれば、後続解析を開始せずprivate_archiveだけへ進み、その時点で存在する対象をcheckpointとして検証保管します。成功後もsource本体は自動削除しません。Ghidra MCP project本体はtarget単位のexport APIがない状態で共有project store全体を混在archiveせず、現時点ではtarget単位に分離済みのGhidra private成果物を保管対象とします。
 

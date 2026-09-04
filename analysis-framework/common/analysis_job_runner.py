@@ -6560,7 +6560,7 @@ def _rehydrate_input_snapshot_bundle(
     return bundle
 
 
-def _rehydrate_trusted_tool_bundle(
+def rehydrate_trusted_tool_bundle(
     job_dir: Path,
     result: Mapping[str, Any],
     artifacts: Mapping[str, Any],
@@ -6717,7 +6717,7 @@ def _revalidate_completed_job_snapshot(
         raise JobContractError("existing_job_contract_invalid", "既存jobのartifact manifestが不正です")
 
     input_bundle = _rehydrate_input_snapshot_bundle(job_dir, request, artifacts)
-    trusted_tools = _rehydrate_trusted_tool_bundle(job_dir, result, artifacts)
+    trusted_tools = rehydrate_trusted_tool_bundle(job_dir, result, artifacts)
     family_hint_manifest: Path | None = None
     family_hint_relative = artifacts.get("family_hint_manifest")
     family_hint_digest = artifacts.get("family_hint_manifest_sha256")

@@ -567,7 +567,14 @@ def test_sample_download_limits_fit_provider_and_static_analyzer_bounds() -> Non
     assert 50 * target.PREFLIGHT_SAMPLE_ARCHIVE_BYTES <= target.analysis_job_runner.MAX_TOTAL_INPUT_BYTES
 
 
-def test_live_c2_requires_request_and_current_invocation(tmp_path: Path) -> None:
+def test_live_c2_without_current_permission_builds_targets_but_defers_network(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """実行時許可がなければtargetだけを保存し、外部通信せず再開可能にする。"""
+
+    import build_all_c2_monitoring_targets
+
     document = request_document()
     document["network"]["c2_monitoring"] = True
     repository = tmp_path / "repository"
@@ -575,17 +582,83 @@ def test_live_c2_requires_request_and_current_invocation(tmp_path: Path) -> None
     (repository / "tech-memo").write_text("fixture\n", encoding="utf-8")
     request = target.validate_request_object(document)
 
-    with pytest.raises(target.DailyOrchestrationError, match="--allow-live-c2"):
-        target._validate_context(
-            request,
-            repository=repository,
-            intelligence_root=repository,
-            private_root=tmp_path / "private",
-            work_root=tmp_path / "work",
-            ghidra_project_store=tmp_path / "ghidra",
-            allow_live_c2=False,
-            create_roots=True,
-        )
+    daily_context = target._validate_context(
+        request,
+        repository=repository,
+        intelligence_root=repository,
+        private_root=tmp_path / "private",
+        work_root=tmp_path / "work",
+        ghidra_project_store=tmp_path / "ghidra",
+        allow_live_c2=False,
+        create_roots=True,
+    )
+    monkeypatch.setattr(
+        build_all_c2_monitoring_targets,
+        "build_inventory",
+        lambda *_args, **_kwargs: (
+            {
+                "inventory_summary": {"planned_endpoint_count": 3},
+                "targets": [{"id": index} for index in range(3)],
+            },
+            {"schema_version": 1, "targets": []},
+        ),
+    )
+    monkeypatch.setattr(
+        target,
+        "_run_fixed_python",
+        lambda *_args, **_kwargs: pytest.fail("未許可時にC2監視processを起動してはいけません"),
+    )
+
+    outcome = target._production_c2_monitoring(daily_context)
+
+    assert outcome.status == "partial"
+    assert outcome.retryable is True
+    assert outcome.result == {
+        "status": "targets_built_live_monitoring_deferred",
+        "target_count": 3,
+        "daily_source_date": request.news_source_date,
+        "network_contacted": False,
+        "sample_executed": False,
+    }
+
+
+def test_c2_target_count_must_match_planned_targets(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import build_all_c2_monitoring_targets
+
+    document = request_document()
+    document["network"]["c2_monitoring"] = True
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    (repository / "tech-memo").write_text("fixture\n", encoding="utf-8")
+    daily_context = target._validate_context(
+        target.validate_request_object(document),
+        repository=repository,
+        intelligence_root=repository,
+        private_root=tmp_path / "private",
+        work_root=tmp_path / "work",
+        ghidra_project_store=tmp_path / "ghidra",
+        allow_live_c2=False,
+        create_roots=True,
+    )
+    monkeypatch.setattr(
+        build_all_c2_monitoring_targets,
+        "build_inventory",
+        lambda *_args, **_kwargs: (
+            {
+                "inventory_summary": {"planned_endpoint_count": 2},
+                "targets": [{"id": 1}],
+            },
+            {"schema_version": 1, "targets": []},
+        ),
+    )
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target._production_c2_monitoring(daily_context)
+
+    assert captured.value.code == "c2_target_plan_invalid"
 
 
 def test_ghidra_project_store_must_be_separate(tmp_path: Path) -> None:
@@ -638,6 +711,58 @@ def test_production_ghidra_separates_prepared_inputs_from_source(
     assert daily_context.ghidra_sample_root == (daily_context.work_root / "gi" / daily_context.request.run_id)
     assert daily_context.ghidra_sample_root.is_dir()
     assert daily_context.ghidra_sample_root != daily_context.source_root
+
+
+def test_production_ghidra_reuses_verified_job_private_static_tools(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ghidra再現解析へ公開契約と同じjob-private tool snapshotを渡す。"""
+
+    import ghidra_function_batch
+
+    configuration, _upx, _sevenzip = trusted_tool_configuration(tmp_path)
+    daily_context = context(tmp_path, trusted_tool_configuration=configuration)
+    policy = target._load_context_trusted_tool_policy(daily_context)
+    assert policy is not None
+    job_id = "daily-ghidra-tool-fixture"
+    job_dir = daily_context.jobs_root / job_id
+    job_dir.mkdir(parents=True)
+    bundle = target.analysis_job_runner.stage_trusted_tool_bundle(policy, job_dir=job_dir)
+    assert bundle is not None
+    result = {
+        "trusted_static_tools": bundle.provenance(),
+        "artifacts": {
+            "trusted_static_tools_manifest": bundle.manifest_relative_path,
+            "trusted_static_tools_manifest_sha256": bundle.manifest_sha256,
+        },
+    }
+    monkeypatch.setattr(
+        target,
+        "_static_request",
+        lambda _context: (SimpleNamespace(job_id=job_id), SimpleNamespace()),
+    )
+    monkeypatch.setattr(target, "_static_job_result", lambda _context, _request: result)
+    captured = {}
+
+    def fake_run(arguments):
+        captured["arguments"] = arguments
+        return {
+            "status": "complete",
+            "unique_pe_programs": 1,
+            "complete_programs": 1,
+            "pending_programs": [],
+        }
+
+    monkeypatch.setattr(ghidra_function_batch, "run", fake_run)
+
+    outcome = target._production_ghidra(daily_context)
+
+    arguments = captured["arguments"]
+    assert outcome.status == "complete"
+    assert arguments.upx is None
+    assert arguments.sevenzip == bundle.tools["sevenzip"].path
+    assert arguments.sevenzip.name == "sevenzip.exe"
 
 
 def test_production_ghidra_generates_static_followup_plan(
@@ -1586,6 +1711,75 @@ def test_private_archive_routes_complete_collection_to_case_archives(
     assert {item["source_role"] for item in outcome.result["verified_targets"]} == {"analysis_case"}
 
 
+def test_private_archive_reuses_state_bound_static_job_after_implementation_change(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """実装cache keyが変わってもstateで検証済みの完了jobをcase保管へ使う。"""
+
+    document = request_document()
+    document["network"]["datastore_upload"] = True
+    document["stages"]["news_intake"] = False
+    daily_context = context(tmp_path, document)
+    daily_context.source_root.mkdir(parents=True)
+    recorded_job_id = "recorded-job"
+    one_shot = daily_context.jobs_root / recorded_job_id / "analysis"
+    one_shot.mkdir(parents=True)
+    daily_context.ghidra_private_output.mkdir(parents=True)
+    (daily_context.ghidra_private_output / "run-progress.json").write_text(
+        json.dumps({"status": "complete"}),
+        encoding="utf-8",
+    )
+    state = target._new_state(daily_context)
+    state["stages"]["static_analysis"] = {
+        "status": "partial",
+        "attempts": 1,
+        "retryable": False,
+        "result": {"job_id": recorded_job_id},
+        "error": None,
+    }
+    state["status"] = "partial"
+    daily_context.state_root.mkdir(parents=True)
+    target._atomic_json(
+        daily_context.state_root / "request.json",
+        daily_context.request.public(),
+    )
+    target._write_state(daily_context, state)
+    verified_job_ids: list[str] = []
+    monkeypatch.setattr(
+        target,
+        "_static_job_result_for_id",
+        lambda _context, job_id: verified_job_ids.append(job_id) or {},
+    )
+    monkeypatch.setattr(
+        target,
+        "_static_request",
+        lambda _context: pytest.fail("現在の実装cache keyからjob IDを再計算してはいけません"),
+    )
+    observed: list[Path] = []
+
+    def archive_cases(
+        _context: target.DailyContext,
+        *,
+        one_shot_root: Path,
+    ) -> list[dict[str, object]]:
+        observed.append(one_shot_root)
+        return [{"source_role": "analysis_case", "target": "case-a"}]
+
+    monkeypatch.setattr(target, "_archive_analysis_cases", archive_cases)
+    monkeypatch.setattr(
+        target,
+        "_archive_one",
+        lambda *_args, **_kwargs: pytest.fail("bulk archiveを呼び出しました"),
+    )
+
+    outcome = target._production_private_archive(daily_context)
+
+    assert outcome.status == "complete"
+    assert verified_job_ids == [recorded_job_id]
+    assert observed == [one_shot]
+
+
 def test_private_archive_routes_collection_when_ghidra_is_disabled(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1650,7 +1844,7 @@ def test_archive_analysis_cases_stages_and_cleans_one_case_at_a_time(
         staged_calls.append(selected)
         digest = selected[0]
         archive_target = f"{daily_context.collection_id}-{digest}"
-        source = daily_context.state_root / "case-datastore-staging" / archive_target
+        source = daily_context.work_root / "cs" / daily_context.request.run_id.replace("daily-", "run-", 1) / archive_target
         return {
             "case_count": 1,
             "cases": [
@@ -1685,6 +1879,27 @@ def test_archive_analysis_cases_stages_and_cleans_one_case_at_a_time(
         return {"removed": True}
 
     monkeypatch.setattr(stage_case_analysis_datastore, "stage_cases", stage_cases)
+    session = object()
+    prepare_calls: list[list[str]] = []
+
+    def prepare_session(**kwargs: object) -> object:
+        prepare_calls.append(list(kwargs["case_sha256s"]))
+        return session
+
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "prepare_case_staging_session",
+        prepare_session,
+    )
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "stage_case_from_session",
+        lambda observed, *, case_sha256: (
+            stage_cases(case_sha256s=[case_sha256])
+            if observed is session
+            else pytest.fail("unexpected staging session")
+        ),
+    )
     monkeypatch.setattr(
         stage_case_analysis_datastore,
         "remove_case_staging_after_verified_archive",
@@ -1698,6 +1913,7 @@ def test_archive_analysis_cases_stages_and_cleans_one_case_at_a_time(
     )
 
     assert staged_calls == [(digest,) for digest in sorted(cases)]
+    assert prepare_calls == [sorted(cases)]
     assert len(archived_calls) == 50
     assert all(role == "analysis_case" for role, _source, _target in archived_calls)
     assert cleanup_calls == sorted(cases)
@@ -1735,7 +1951,12 @@ def test_archive_analysis_cases_stops_at_failing_case(
                 {
                     "case_sha256": digest,
                     "target": archive_target,
-                    "source_path": str(daily_context.state_root / "case-datastore-staging" / archive_target),
+                    "source_path": str(
+                        daily_context.work_root
+                        / "cs"
+                        / daily_context.request.run_id.replace("daily-", "run-", 1)
+                        / archive_target
+                    ),
                 }
             ],
         }
@@ -1759,6 +1980,21 @@ def test_archive_analysis_cases_stops_at_failing_case(
         }
 
     monkeypatch.setattr(stage_case_analysis_datastore, "stage_cases", stage_cases)
+    session = object()
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "prepare_case_staging_session",
+        lambda **_kwargs: session,
+    )
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "stage_case_from_session",
+        lambda observed, *, case_sha256: (
+            stage_cases(case_sha256s=[case_sha256])
+            if observed is session
+            else pytest.fail("unexpected staging session")
+        ),
+    )
     monkeypatch.setattr(
         stage_case_analysis_datastore,
         "remove_case_staging_after_verified_archive",
@@ -1803,7 +2039,12 @@ def test_archive_analysis_cases_reuses_retained_staging_after_upload_failure(
 
     def handoff(digest: str) -> dict[str, object]:
         archive_target = f"{daily_context.collection_id}-{digest}"
-        source = daily_context.state_root / "case-datastore-staging" / archive_target
+        source = (
+            daily_context.work_root
+            / "cs"
+            / daily_context.request.run_id.replace("daily-", "run-", 1)
+            / archive_target
+        )
         return {
             "case_count": 1,
             "cases": [
@@ -1861,6 +2102,21 @@ def test_archive_analysis_cases_reuses_retained_staging_after_upload_failure(
 
     target_module_error = target.DailyOrchestrationError
     monkeypatch.setattr(stage_case_analysis_datastore, "stage_cases", stage_cases)
+    session = object()
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "prepare_case_staging_session",
+        lambda **_kwargs: session,
+    )
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "stage_case_from_session",
+        lambda observed, *, case_sha256: (
+            stage_cases(case_sha256s=[case_sha256])
+            if observed is session
+            else pytest.fail("unexpected staging session")
+        ),
+    )
     monkeypatch.setattr(
         stage_case_analysis_datastore,
         "reuse_case_staging",
@@ -1879,7 +2135,12 @@ def test_archive_analysis_cases_reuses_retained_staging_after_upload_failure(
             one_shot_root=tmp_path / "one-shot-analysis",
         )
     assert captured.value.code == "fixture_upload_failed"
-    retained = daily_context.state_root / "case-datastore-staging" / f"{daily_context.collection_id}-{first}"
+    retained = (
+        daily_context.work_root
+        / "cs"
+        / daily_context.request.run_id.replace("daily-", "run-", 1)
+        / f"{daily_context.collection_id}-{first}"
+    )
     assert retained.is_dir()
 
     archived = target._archive_analysis_cases(
@@ -1914,7 +2175,12 @@ def test_archive_analysis_cases_rejects_tampered_retained_staging(
         lambda _context: {"selected_hashes": cases},
     )
     archive_target = f"{daily_context.collection_id}-{first}"
-    source = daily_context.state_root / "case-datastore-staging" / archive_target
+    source = (
+        daily_context.work_root
+        / "cs"
+        / daily_context.request.run_id.replace("daily-", "run-", 1)
+        / archive_target
+    )
 
     def stage_cases(**_kwargs: object) -> dict[str, object]:
         source.mkdir(parents=True)
@@ -1946,6 +2212,21 @@ def test_archive_analysis_cases_rejects_tampered_retained_staging(
         )
 
     monkeypatch.setattr(stage_case_analysis_datastore, "stage_cases", stage_cases)
+    session = object()
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "prepare_case_staging_session",
+        lambda **_kwargs: session,
+    )
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "stage_case_from_session",
+        lambda observed, *, case_sha256: (
+            stage_cases(case_sha256s=[case_sha256])
+            if observed is session
+            else pytest.fail("unexpected staging session")
+        ),
+    )
     monkeypatch.setattr(
         stage_case_analysis_datastore,
         "reuse_case_staging",
