@@ -1,0 +1,159 @@
+{
+  "acquisition_complete": true,
+  "acquisition_items": [
+    {
+      "metadata": {
+        "file_arch": null,
+        "file_format": null,
+        "file_name": null,
+        "file_size": 4307968,
+        "file_type": "exe",
+        "first_seen": "2026-09-04 15:20:13",
+        "imphash": null,
+        "last_seen": null,
+        "md5_hash": null,
+        "sha1_hash": null,
+        "sha256_hash": "966b1fea9cdc54843a728b1a870bfb7d2f8109085b6114455d6e2635ab1ad40f",
+        "signature": "ValleyRAT",
+        "ssdeep": null,
+        "tags": null,
+        "tlsh": null
+      },
+      "sha256": "966b1fea9cdc54843a728b1a870bfb7d2f8109085b6114455d6e2635ab1ad40f",
+      "zip_sha256": "66c7a2b453f2519e147658a6e8b3d7c3c324dd36a6c837e70dfd071837d0d956",
+      "zip_size": 1966235
+    },
+    {
+      "metadata": {
+        "file_arch": null,
+        "file_format": null,
+        "file_name": null,
+        "file_size": 972800,
+        "file_type": "exe",
+        "first_seen": "2026-09-04 15:19:13",
+        "imphash": null,
+        "last_seen": null,
+        "md5_hash": null,
+        "sha1_hash": null,
+        "sha256_hash": "f650d42dc1d33f8e776b9eadbc7f8789868b20d97b48d1d2338532ba81d36337",
+        "signature": "ValleyRAT",
+        "ssdeep": null,
+        "tags": null,
+        "tlsh": null
+      },
+      "sha256": "f650d42dc1d33f8e776b9eadbc7f8789868b20d97b48d1d2338532ba81d36337",
+      "zip_sha256": "b06cb7f2baf6cd7c9f496636bc2a87ccf3d990b7fceb4802bf34cf9ae3825544",
+      "zip_size": 242838
+    },
+    {
+      "metadata": {
+        "file_arch": null,
+        "file_format": null,
+        "file_name": null,
+        "file_size": 30720,
+        "file_type": "exe",
+        "first_seen": "2026-09-04 15:18:30",
+        "imphash": null,
+        "last_seen": null,
+        "md5_hash": null,
+        "sha1_hash": null,
+        "sha256_hash": "13b5ce5838356cffbb328312b4509eef0662d2d3434b683f177bb0aaf8281b9c",
+        "signature": "ValleyRAT",
+        "ssdeep": null,
+        "tags": null,
+        "tlsh": null
+      },
+      "sha256": "13b5ce5838356cffbb328312b4509eef0662d2d3434b683f177bb0aaf8281b9c",
+      "zip_sha256": "fb89ed9eb152d77232c8d0f34b2e62ec5e599849cece04e4f0fa569a4862900d",
+      "zip_size": 21302
+    },
+    {
+      "metadata": {
+        "file_arch": null,
+        "file_format": null,
+        "file_name": null,
+        "file_size": 308225,
+        "file_type": "exe",
+        "first_seen": "2026-09-04 15:17:37",
+        "imphash": null,
+        "last_seen": null,
+        "md5_hash": null,
+        "sha1_hash": null,
+        "sha256_hash": "50f8064aa9924f674b5b7d24d1562f35f11007cc8ef57a7a3ce07e0f713efba1",
+        "signature": "ValleyRAT",
+        "ssdeep": null,
+        "tags": null,
+        "tlsh": null
+      },
+      "sha256": "50f8064aa9924f674b5b7d24d1562f35f11007cc8ef57a7a3ce07e0f713efba1",
+      "zip_sha256": "12090ee38d8ff86b8150606fb517b6c4c000f730fc7d7e6aaba5047ffb507ce7",
+      "zip_size": 120360
+    },
+    {
+      "metadata": {
+        "file_arch": null,
+        "file_format": null,
+        "file_name": null,
+        "file_size": 251904,
+        "file_type": "exe",
+        "first_seen": "2026-09-04 15:16:51",
+        "imphash": null,
+        "last_seen": null,
+        "md5_hash": null,
+        "sha1_hash": null,
+        "sha256_hash": "1055656b4243a6f96db475f0fd2f8506a944f65eaea22789c409220b2b82040b",
+        "signature": "ValleyRAT",
+        "ssdeep": null,
+        "tags": null,
+        "tlsh": null
+      },
+      "sha256": "1055656b4243a6f96db475f0fd2f8506a944f65eaea22789c409220b2b82040b",
+      "zip_sha256": "005208fdf4a302309868c8d9670e93a6c72cf5191d19e05444d0fba51b0518a8",
+      "zip_size": 112148
+    }
+  ],
+  "analysis_complete": false,
+  "analysis_contract_sha256": "0d6908e47d72b0f1b84e161710a2a203ece407d8568fee81d659f1a451c06992",
+  "archives_stored_in_repository": false,
+  "cases": [
+    {
+      "case_id": "sha256:1055656b4243a6f96db475f0fd2f8506a944f65eaea22789c409220b2b82040b"
+    },
+    {
+      "case_id": "sha256:13b5ce5838356cffbb328312b4509eef0662d2d3434b683f177bb0aaf8281b9c"
+    },
+    {
+      "case_id": "sha256:50f8064aa9924f674b5b7d24d1562f35f11007cc8ef57a7a3ce07e0f713efba1"
+    },
+    {
+      "case_id": "sha256:966b1fea9cdc54843a728b1a870bfb7d2f8109085b6114455d6e2635ab1ad40f"
+    },
+    {
+      "case_id": "sha256:f650d42dc1d33f8e776b9eadbc7f8789868b20d97b48d1d2338532ba81d36337"
+    }
+  ],
+  "collection_id": "valleyrat-flow-20260905-five",
+  "complete": false,
+  "downloaded": 5,
+  "family_sources": [
+    {
+      "family": "valleyrat",
+      "path": "sources/valleyrat"
+    }
+  ],
+  "file_types": [
+    "exe"
+  ],
+  "first_seen_newest": "2026-09-04 15:20:13",
+  "first_seen_oldest": "2026-09-04 15:16:51",
+  "network_contacted": false,
+  "pending": 0,
+  "publication_stage": "analysis_followup_pending",
+  "query_limit": 100,
+  "requested": 5,
+  "samples_executed": false,
+  "schema_version": 1,
+  "selected_at": "2026-09-05T03:01:17.383259+00:00",
+  "selection_mode": "explicit_valleyrat_label_unprocessed_flow_research",
+  "source": "MalwareBazaar Community API"
+}

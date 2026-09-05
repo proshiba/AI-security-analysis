@@ -1,0 +1,59 @@
+{
+  "acquisition_complete": true,
+  "acquisition_items": [
+    {
+      "metadata": {
+        "file_arch": null,
+        "file_format": null,
+        "file_name": null,
+        "file_size": 2609152,
+        "file_type": "img",
+        "first_seen": "2026-08-31 14:01:24",
+        "imphash": null,
+        "last_seen": null,
+        "md5_hash": null,
+        "sha1_hash": null,
+        "sha256_hash": "284f42eea6c7ef572626ab93490a0f1e4d96ced9efc1383622b6fbefe9e9b32c",
+        "signature": "ValleyRAT",
+        "ssdeep": null,
+        "tags": null,
+        "tlsh": null
+      },
+      "sha256": "284f42eea6c7ef572626ab93490a0f1e4d96ced9efc1383622b6fbefe9e9b32c",
+      "zip_sha256": "36a414846cd0809780f4a729a3bce0907b98a538f187662988570ee978617123",
+      "zip_size": 714617
+    }
+  ],
+  "analysis_complete": false,
+  "analysis_contract_sha256": "1f3dcdcf00130087c7e79392ad82deb1ae082bee04e1104d078d9ff5ff6bc9ec",
+  "archives_stored_in_repository": false,
+  "cases": [
+    {
+      "case_id": "sha256:284f42eea6c7ef572626ab93490a0f1e4d96ced9efc1383622b6fbefe9e9b32c"
+    }
+  ],
+  "collection_id": "valleyrat-flow-20260905-img",
+  "complete": false,
+  "downloaded": 1,
+  "family_sources": [
+    {
+      "family": "valleyrat",
+      "path": "sources/valleyrat"
+    }
+  ],
+  "file_types": [
+    "img"
+  ],
+  "first_seen_newest": "2026-08-31 14:01:24",
+  "first_seen_oldest": "2026-08-31 14:01:24",
+  "network_contacted": false,
+  "pending": 0,
+  "publication_stage": "analysis_followup_pending",
+  "query_limit": 100,
+  "requested": 1,
+  "samples_executed": false,
+  "schema_version": 1,
+  "selected_at": null,
+  "selection_mode": "explicit_valleyrat_label_unprocessed_flow_research",
+  "source": "MalwareBazaar Community API"
+}

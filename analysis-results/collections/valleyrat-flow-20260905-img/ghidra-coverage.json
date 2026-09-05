@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "analyzed_on": "Kali",
+  "tool": "Ghidra headless",
+  "ghidra_mcp_used": false,
+  "programs": [
+    {
+      "sample_sha256": "da169efdf43f4f2e87937efaaaf328dd659e28740411d1904a5bd0908ea5e061",
+      "program_selector": "/da169efdf43f4f2e87937efaaaf328dd659e28740411d1904a5bd0908ea5e061.bin",
+      "ghidra_version": "12.1.1",
+      "inventory_sha256": "9062d18acfe59d75ab55a28f28b8b7c30749783ed39ca6521a5a0bb350dee747",
+      "function_inventory_count": 279,
+      "internal_function_count": 109,
+      "decompile_attempted": 109,
+      "decompile_succeeded": 109,
+      "unselected_count": 0,
+      "complete_semantic_review": false
+    },
+    {
+      "sample_sha256": "ed68ce95780ba9a50d148405267944b4beda451ae4e54b53c4435330d30ff921",
+      "program_selector": "/ed68ce95780ba9a50d148405267944b4beda451ae4e54b53c4435330d30ff921.bin",
+      "ghidra_version": "12.1.1",
+      "inventory_sha256": "83882803bfd75976405cc2a9724063c6a6dc304b002c72eff673bef5d21d733e",
+      "function_inventory_count": 574,
+      "internal_function_count": 288,
+      "decompile_attempted": 96,
+      "decompile_succeeded": 96,
+      "unselected_count": 192,
+      "complete_semantic_review": false
+    }
+  ],
+  "analysis_complete": false,
+  "sample_executed": false,
+  "network_contacted": false,
+  "parent_sha256": "284f42eea6c7ef572626ab93490a0f1e4d96ced9efc1383622b6fbefe9e9b32c"
+}

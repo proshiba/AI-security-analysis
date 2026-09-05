@@ -1536,6 +1536,13 @@
       "family": "prometei",
       "version_key": "unknown"
     },
+    "1055656b4243a6f96db475f0fd2f8506a944f65eaea22789c409220b2b82040b": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/1055656b4243a6f96db475f0fd2f8506a944f65eaea22789c409220b2b82040b",
+      "case_id": "sha256:1055656b4243a6f96db475f0fd2f8506a944f65eaea22789c409220b2b82040b",
+      "case_kind": "malware",
+      "family": "valleyrat",
+      "version_key": "unknown"
+    },
     "105cf4a05bcce8dcd10a1288b6e2310ad27860153676d7dae3839f03ca388493": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/105cf4a05bcce8dcd10a1288b6e2310ad27860153676d7dae3839f03ca388493",
@@ -1890,6 +1897,13 @@
       "case_id": "sha256:1385e8516443797d38586cb48d813895944a42fac9fd11354fc68d7704008823",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "13b5ce5838356cffbb328312b4509eef0662d2d3434b683f177bb0aaf8281b9c": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/13b5ce5838356cffbb328312b4509eef0662d2d3434b683f177bb0aaf8281b9c",
+      "case_id": "sha256:13b5ce5838356cffbb328312b4509eef0662d2d3434b683f177bb0aaf8281b9c",
+      "case_kind": "malware",
+      "family": "valleyrat",
       "version_key": "unknown"
     },
     "13f6c8dcecb6677e77680f2b75d82b17fcee135cc00b474bcff5d9c64a06e9bb": {
@@ -3880,6 +3894,13 @@
       "case_id": "sha256:284cdb6ed51b1fe3a17a1f62b4f36ce83f28935f3fced506a8c0e6fc3a2cebc8",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "284f42eea6c7ef572626ab93490a0f1e4d96ced9efc1383622b6fbefe9e9b32c": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/284f42eea6c7ef572626ab93490a0f1e4d96ced9efc1383622b6fbefe9e9b32c",
+      "case_id": "sha256:284f42eea6c7ef572626ab93490a0f1e4d96ced9efc1383622b6fbefe9e9b32c",
+      "case_kind": "malware",
+      "family": "valleyrat",
       "version_key": "unknown"
     },
     "285030eeb9fa60d670b1144833cdecec0ba7203659476ac944846a994766bf94": {
@@ -7528,6 +7549,13 @@
       "case_id": "sha256:50d45ea5f67cd018b72fbcced629ce9159a7b914750adc78f6e4f29c866db426",
       "case_kind": "malware",
       "family": "dotnet-resource-loader",
+      "version_key": "unknown"
+    },
+    "50f8064aa9924f674b5b7d24d1562f35f11007cc8ef57a7a3ce07e0f713efba1": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/50f8064aa9924f674b5b7d24d1562f35f11007cc8ef57a7a3ce07e0f713efba1",
+      "case_id": "sha256:50f8064aa9924f674b5b7d24d1562f35f11007cc8ef57a7a3ce07e0f713efba1",
+      "case_kind": "malware",
+      "family": "valleyrat",
       "version_key": "unknown"
     },
     "510b4341c6763d5bf045973f4f9832cb8b66a414abda634d4fafed05cba03058": {
@@ -14116,6 +14144,13 @@
       "case_id": "sha256:96508589d281460eab4eb1819c80e89bdffdb5fe86b8fe1400bb9268deb09e74",
       "case_kind": "unclassified",
       "family": "unclassified",
+      "version_key": "unknown"
+    },
+    "966b1fea9cdc54843a728b1a870bfb7d2f8109085b6114455d6e2635ab1ad40f": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/966b1fea9cdc54843a728b1a870bfb7d2f8109085b6114455d6e2635ab1ad40f",
+      "case_id": "sha256:966b1fea9cdc54843a728b1a870bfb7d2f8109085b6114455d6e2635ab1ad40f",
+      "case_kind": "malware",
+      "family": "valleyrat",
       "version_key": "unknown"
     },
     "9682335b3bcca4f720c3716859a80087d289996b620a6a2ff0beaf7a64036877": {
@@ -22908,6 +22943,13 @@
       "case_id": "sha256:f61da9f4b26d57e5659ff399913313cfa85cd4161a124da2fd7caedb8246b954",
       "case_kind": "malware",
       "family": "mirai",
+      "version_key": "unknown"
+    },
+    "f650d42dc1d33f8e776b9eadbc7f8789868b20d97b48d1d2338532ba81d36337": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/f650d42dc1d33f8e776b9eadbc7f8789868b20d97b48d1d2338532ba81d36337",
+      "case_id": "sha256:f650d42dc1d33f8e776b9eadbc7f8789868b20d97b48d1d2338532ba81d36337",
+      "case_kind": "malware",
+      "family": "valleyrat",
       "version_key": "unknown"
     },
     "f678afbaa4b0fe4537c05f4f811b9d852e40f3739f1e1a16f46b66e93c7c6f8c": {

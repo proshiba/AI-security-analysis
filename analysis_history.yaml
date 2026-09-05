@@ -1,6 +1,66 @@
 # 過去に解析したマルウェア検体の履歴。
 # 検体本体・復号バイナリ・PCAPは保存せず、公開可能な結果メタデータのみを記録する。
 analyses:
+  - malware_type: "ValleyRAT（提供元報告・未確認）"
+    analyzed_at: 2026-09-05
+    sample_sha256: 966b1fea9cdc54843a728b1a870bfb7d2f8109085b6114455d6e2635ab1ad40f
+    analysis_level: partial_static_flow_research
+    campaign_type: unresolved
+    matched_patterns: ["Qt関連構造、Ghidra代表関数96件を試行、終端通信未解決"]
+    c2: []
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/966b1fea9cdc54843a728b1a870bfb7d2f8109085b6114455d6e2635ab1ad40f/
+    notes: "Kaliで静的解析。提供元ラベルのみ、検体実行・C2接続なし。登録・timer解析は未完了。"
+
+  - malware_type: "ValleyRAT（提供元報告・未確認）"
+    analyzed_at: 2026-09-05
+    sample_sha256: f650d42dc1d33f8e776b9eadbc7f8789868b20d97b48d1d2338532ba81d36337
+    analysis_level: partial_static_flow_research
+    campaign_type: unresolved
+    matched_patterns: ["x64、D3D11関連import、Ghidra代表関数96件を試行"]
+    c2: []
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/f650d42dc1d33f8e776b9eadbc7f8789868b20d97b48d1d2338532ba81d36337/
+    notes: "保護された動的処理と後段の由来が未解決。検体実行・C2接続なし。"
+
+  - malware_type: "ValleyRAT（提供元報告・未確認）"
+    analyzed_at: 2026-09-05
+    sample_sha256: 13b5ce5838356cffbb328312b4509eef0662d2d3434b683f177bb0aaf8281b9c
+    analysis_level: partial_static_flow_research
+    campaign_type: unresolved_http_downloader
+    matched_patterns: ["XOR API名復元、WinINet HTTP取得、例外contextによる後段実行経路の静的所見"]
+    c2: []
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/13b5ce5838356cffbb328312b4509eef0662d2d3434b683f177bb0aaf8281b9c/
+    notes: "内部30関数を逆コンパイル。後段は未取得。削除再試行300 msをheartbeatへ流用しない。実行・外部接続なし。"
+
+  - malware_type: "ValleyRAT（提供元報告・未確認）"
+    analyzed_at: 2026-09-05
+    sample_sha256: 50f8064aa9924f674b5b7d24d1562f35f11007cc8ef57a7a3ce07e0f713efba1
+    analysis_level: partial_static_flow_research
+    campaign_type: unresolved
+    matched_patterns: ["x64、D3D11関連import、Ghidra代表関数96件を試行"]
+    c2: []
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/50f8064aa9924f674b5b7d24d1562f35f11007cc8ef57a7a3ce07e0f713efba1/
+    notes: "未解決の間接callと後段復元を継続対象とする。実行・外部接続なし。"
+
+  - malware_type: "ValleyRAT（提供元報告・未確認）"
+    analyzed_at: 2026-09-05
+    sample_sha256: 1055656b4243a6f96db475f0fd2f8506a944f65eaea22789c409220b2b82040b
+    analysis_level: partial_static_flow_research
+    campaign_type: unresolved
+    matched_patterns: ["D3D11 device作成、動的API解決、Ghidra代表関数96件を試行"]
+    c2: []
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/1055656b4243a6f96db475f0fd2f8506a944f65eaea22789c409220b2b82040b/
+    notes: "終端moduleとの対応未解決。防御回避処理をemulatorへ移植しない。実行・外部接続なし。"
+
+  - malware_type: "ValleyRAT（提供元報告・未確認）"
+    analyzed_at: 2026-09-05
+    sample_sha256: 284f42eea6c7ef572626ab93490a0f1e4d96ced9efc1383622b6fbefe9e9b32c
+    analysis_level: partial_static_flow_research
+    campaign_type: unresolved_iso_dll_bundle
+    matched_patterns: ["ISO9660の6 memberをmountせず復元、隣接DLLの設定builderとデータ変換を静的確認"]
+    c2: []
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/284f42eea6c7ef572626ab93490a0f1e4d96ced9efc1383622b6fbefe9e9b32c/
+    notes: "起動EXEと隣接DLLをGhidraで確認。終端通信、登録、timerは未完了。実行・C2接続なし。"
+
   - malware_type: "Unclassified"
     analyzed_at: 2026-07-12
     sample_sha256: 8bf54a76924ad62e3b5562826f0e491c4c498f166276b071c177b694762199f6
