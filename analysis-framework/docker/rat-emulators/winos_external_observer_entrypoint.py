@@ -66,7 +66,7 @@ def _new_output_paths() -> tuple[Path, Path]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("preflight", "live", "observe"))
+    parser.add_argument("mode", choices=("preflight", "live", "observe", "supervise"))
     parser.add_argument("--profile-id", required=True, choices=(PROFILE_ID,))
     parser.add_argument("--acknowledge-profile")
     parser.add_argument(
@@ -212,7 +212,11 @@ def main(argv: list[str] | None = None) -> int:
         raise WinosExternalEntrypointError(
             "--acknowledge-profileは完全一致profile IDで指定してください"
         )
-    _load_maxmind_secret()
+    if args.mode == "supervise":
+        from purerat_long_running_observer import WINOS_SETTINGS, observe_forever
+
+        return observe_forever(runner, settings=WINOS_SETTINGS)
+    # 公式取得済みread-only cacheを使うobserverにはlicense keyを渡さない。
     if args.mode == "observe":
         return _observe(
             runner,

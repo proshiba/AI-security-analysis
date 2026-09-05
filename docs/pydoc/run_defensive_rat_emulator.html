@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module run_defensive_rat_emulator</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">run_defensive_rat_emulator</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:/opt/rat-external-observer/analysis-framework/common/run_defensive_rat_emulator.py">/opt/rat-external-observer/analysis-framework/common/run_defensive_rat_emulator.py</a></td></tr></table>
+    <p><span class="code">レビュー済みprofileだけで防御用RAT&nbsp;host&nbsp;sessionを有界実行する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="hashlib.html">hashlib</a><br>
+<a href="importlib.html">importlib</a><br>
+<a href="ipaddress.html">ipaddress</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="os.html">os</a><br>
+<a href="socket.html">socket</a><br>
+<a href="ssl.html">ssl</a><br>
+</td><td class="multicolumn"><a href="stat.html">stat</a><br>
+<a href="struct.html">struct</a><br>
+<a href="sys.html">sys</a><br>
+<a href="time.html">time</a><br>
+</td><td class="multicolumn"><a href="uuid.html">uuid</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#RuntimeError">builtins.RuntimeError</a>(<a href="builtins.html#Exception">builtins.Exception</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="run_defensive_rat_emulator.html#RatEmulatorRunError">RatEmulatorRunError</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="run_defensive_rat_emulator.html#ObserverStopRequested">ObserverStopRequested</a>
+</dt><dt class="heading-text"><a href="run_defensive_rat_emulator.html#TlsCertificatePinMismatch">TlsCertificatePinMismatch</a>
+</dt></dl>
+</dd>
+</dl>
+</dd>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="run_defensive_rat_emulator.html#GuardedStream">GuardedStream</a>
+</dt><dt class="heading-text"><a href="run_defensive_rat_emulator.html#KillSwitch">KillSwitch</a>
+</dt></dl>
+</dd>
+<dt class="heading-text"><a href="typing.html#Protocol">typing.Protocol</a>(<a href="typing.html#Generic">typing.Generic</a>)
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="run_defensive_rat_emulator.html#RatHostAdapter">RatHostAdapter</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="GuardedStream">class <strong>GuardedStream</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#GuardedStream">GuardedStream</a>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;stream:&nbsp;'Any',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;*,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;limits:&nbsp;'Mapping[str,&nbsp;int&nbsp;|&nbsp;float]',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;kill_switch:&nbsp;'<a href="#KillSwitch">KillSwitch</a>',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;transcript:&nbsp;'SessionTranscriptWriter',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;retain_private_inbound_frames:&nbsp;'bool'&nbsp;=&nbsp;False,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;monotonic:&nbsp;'Callable[[],&nbsp;float]'&nbsp;=&nbsp;&amp;lt;built-in&nbsp;function&nbsp;monotonic&amp;gt;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;lease_deadline_monotonic:&nbsp;'float&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;stop_requested:&nbsp;'Callable[[],&nbsp;bool]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;progress_callback:&nbsp;'Callable[[dict[str,&nbsp;Any]],&nbsp;None]&nbsp;|&nbsp;None'&nbsp;=&nbsp;None<br>
+)&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+adapterの全send/recvへduration、kill-switch、byte/frame上限を強制する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="GuardedStream-__init__"><strong>__init__</strong></a>(
+    self,
+    stream: 'Any',
+    *,
+    limits: 'Mapping[str, int | float]',
+    kill_switch: 'KillSwitch',
+    transcript: 'SessionTranscriptWriter',
+    retain_private_inbound_frames: 'bool' = False,
+    monotonic: 'Callable[[], float]' = &lt;built-in function monotonic&gt;,
+    lease_deadline_monotonic: 'float | None' = None,
+    stop_requested: 'Callable[[], bool] | None' = None,
+    progress_callback: 'Callable[[dict[str, Any]], None] | None' = None
+) -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="GuardedStream-close"><strong>close</strong></a>(self) -&gt; 'None'</dt></dl>
+
+<dl><dt><a name="GuardedStream-recv"><strong>recv</strong></a>(self, maximum_bytes: 'int') -&gt; 'bytes'</dt></dl>
+
+<dl><dt><a name="GuardedStream-recv_application_frame"><strong>recv_application_frame</strong></a>(self, maximum_frame_bytes: 'int') -&gt; 'bytes'</dt><dd><span class="code">Read&nbsp;one&nbsp;length-prefixed&nbsp;frame&nbsp;with&nbsp;separately&nbsp;bounded&nbsp;transport&nbsp;reads.</span></dd></dl>
+
+<dl><dt><a name="GuardedStream-recv_total_length_application_frame"><strong>recv_total_length_application_frame</strong></a>(
+    self,
+    maximum_frame_bytes: 'int',
+    *,
+    minimum_total_bytes: 'int' = 14
+) -&gt; 'bytes'</dt><dd><span class="code">LE32&nbsp;total-length&nbsp;frameをread&nbsp;callとframe&nbsp;countを分離して1件読む。</span></dd></dl>
+
+<dl><dt><a name="GuardedStream-remaining_seconds"><strong>remaining_seconds</strong></a>(self) -&gt; 'float'</dt><dd><span class="code">kill-switchを再確認し、session期限までの残秒を返す。</span></dd></dl>
+
+<dl><dt><a name="GuardedStream-sendall"><strong>sendall</strong></a>(self, data: 'bytes') -&gt; 'None'</dt></dl>
+
+<dl><dt><a name="GuardedStream-set_first_outbound_event_type"><strong>set_first_outbound_event_type</strong></a>(self, event_type: 'str') -&gt; 'None'</dt><dd><span class="code">初回送信frameのreview済み意味をadapter&nbsp;dispatch時に固定する。</span></dd></dl>
+
+<dl><dt><a name="GuardedStream-settimeout"><strong>settimeout</strong></a>(self, timeout_seconds: 'float') -&gt; 'None'</dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="KillSwitch">class <strong>KillSwitch</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#KillSwitch">KillSwitch</a>(path:&nbsp;'Path')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+存在とidentityを維持している間だけsessionを許可する停止用file。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="KillSwitch-__init__"><strong>__init__</strong></a>(self, path: 'Path') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="KillSwitch-require_armed"><strong>require_armed</strong></a>(self) -&gt; 'None'</dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ObserverStopRequested">class <strong>ObserverStopRequested</strong></a>(<a href="run_defensive_rat_emulator.html#RatEmulatorRunError">RatEmulatorRunError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">supervisorの停止要求を次のI/Oより前に反映する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="run_defensive_rat_emulator.html#ObserverStopRequested">ObserverStopRequested</a></dd>
+<dd><a href="run_defensive_rat_emulator.html#RatEmulatorRunError">RatEmulatorRunError</a></dd>
+<dd><a href="builtins.html#RuntimeError">builtins.RuntimeError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors inherited from <a href="run_defensive_rat_emulator.html#RatEmulatorRunError">RatEmulatorRunError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="ObserverStopRequested-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="ObserverStopRequested-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#RuntimeError">builtins.RuntimeError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="ObserverStopRequested-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="ObserverStopRequested-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="ObserverStopRequested-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="ObserverStopRequested-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+
+<dl><dt><a name="ObserverStopRequested-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="ObserverStopRequested-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#ObserverStopRequested-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="ObserverStopRequested-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#ObserverStopRequested-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RatEmulatorRunError">class <strong>RatEmulatorRunError</strong></a>(<a href="builtins.html#RuntimeError">builtins.RuntimeError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code">live&nbsp;sessionの明示承認、安全上限、証拠pinの不一致を表す。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="run_defensive_rat_emulator.html#RatEmulatorRunError">RatEmulatorRunError</a></dd>
+<dd><a href="builtins.html#RuntimeError">builtins.RuntimeError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="RatEmulatorRunError-__init__"><strong>__init__</strong></a>(self, /, *args, **kwargs)</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Static methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="RatEmulatorRunError-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#RuntimeError">builtins.RuntimeError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="RatEmulatorRunError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="RatEmulatorRunError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="RatEmulatorRunError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="RatEmulatorRunError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+
+<dl><dt><a name="RatEmulatorRunError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="RatEmulatorRunError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#RatEmulatorRunError-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="RatEmulatorRunError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#RatEmulatorRunError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RatHostAdapter">class <strong>RatHostAdapter</strong></a>(<a href="typing.html#Protocol">typing.Protocol</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RatHostAdapter">RatHostAdapter</a>(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+将来のClientInfo登録adapterも従う共通callable契約。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="run_defensive_rat_emulator.html#RatHostAdapter">RatHostAdapter</a></dd>
+<dd><a href="typing.html#Protocol">typing.Protocol</a></dd>
+<dd><a href="typing.html#Generic">typing.Generic</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="RatHostAdapter-__init__"><strong>__init__</strong></a> = _no_init_or_replace_init(self, *args, **kwargs)<span class="grey"><span class="heading-text"> from <a href="typing.html">typing</a></span></span></dt></dl>
+
+<dl><dt><a name="RatHostAdapter-run_host_session"><strong>run_host_session</strong></a>(
+    self,
+    stream: 'Any',
+    profile: 'Mapping[str, Any] | None' = None,
+    *,
+    session_limits: 'Mapping[str, int | float]',
+    allow_registration: 'bool',
+    allow_heartbeat_request: 'bool' = False,
+    transcript_callback: 'Callable[[dict[str, Any]], None] | None' = None
+) -&gt; 'dict[str, Any]'</dt></dl>
+
+<hr>
+Class methods defined here:<br>
+<dl><dt><a name="RatHostAdapter-__subclasshook__"><strong>__subclasshook__</strong></a> = _proto_hook(other)<span class="grey"><span class="heading-text"> from typing</span></span></dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>__abstractmethods__</strong> = frozenset()</dl>
+
+<dl><dt><strong>__annotations__</strong> = {}</dl>
+
+<dl><dt><strong>__parameters__</strong> = ()</dl>
+
+<dl><dt><strong>__protocol_attrs__</strong> = {'run_host_session'}</dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Protocol">typing.Protocol</a>:<br>
+<dl><dt><a name="RatHostAdapter-__init_subclass__"><strong>__init_subclass__</strong></a>(*args, **kwargs)</dt><dd><span class="code">Function&nbsp;to&nbsp;initialize&nbsp;subclasses.</span></dd></dl>
+
+<hr>
+Class methods inherited from <a href="typing.html#Generic">typing.Generic</a>:<br>
+<dl><dt><a name="RatHostAdapter-__class_getitem__"><strong>__class_getitem__</strong></a>(...)</dt><dd><span class="code">Parameterizes&nbsp;a&nbsp;generic&nbsp;class.<br>
+&nbsp;<br>
+At&nbsp;least,&nbsp;parameterizing&nbsp;a&nbsp;generic&nbsp;class&nbsp;is&nbsp;the&nbsp;*main*&nbsp;thing&nbsp;this<br>
+method&nbsp;does.&nbsp;&nbsp;For&nbsp;example,&nbsp;for&nbsp;some&nbsp;generic&nbsp;class&nbsp;`Foo`,&nbsp;this&nbsp;is<br>
+called&nbsp;when&nbsp;we&nbsp;do&nbsp;`Foo[int]`&nbsp;-&nbsp;there,&nbsp;with&nbsp;`cls=Foo`&nbsp;and<br>
+`params=int`.<br>
+&nbsp;<br>
+However,&nbsp;note&nbsp;that&nbsp;this&nbsp;method&nbsp;is&nbsp;also&nbsp;called&nbsp;when&nbsp;defining&nbsp;generic<br>
+classes&nbsp;in&nbsp;the&nbsp;first&nbsp;place&nbsp;with&nbsp;`class&nbsp;Foo[T]:&nbsp;...`.</span></dd></dl>
+
+</td></tr></table> <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="TlsCertificatePinMismatch">class <strong>TlsCertificatePinMismatch</strong></a>(<a href="run_defensive_rat_emulator.html#RatEmulatorRunError">RatEmulatorRunError</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#TlsCertificatePinMismatch">TlsCertificatePinMismatch</a>(expected_sha256:&nbsp;'str',&nbsp;observed_sha256:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+TLS&nbsp;stopped&nbsp;before&nbsp;registration&nbsp;because&nbsp;the&nbsp;reviewed&nbsp;leaf&nbsp;pin&nbsp;changed.<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt>Method resolution order:</dt>
+<dd><a href="run_defensive_rat_emulator.html#TlsCertificatePinMismatch">TlsCertificatePinMismatch</a></dd>
+<dd><a href="run_defensive_rat_emulator.html#RatEmulatorRunError">RatEmulatorRunError</a></dd>
+<dd><a href="builtins.html#RuntimeError">builtins.RuntimeError</a></dd>
+<dd><a href="builtins.html#Exception">builtins.Exception</a></dd>
+<dd><a href="builtins.html#BaseException">builtins.BaseException</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="TlsCertificatePinMismatch-__init__"><strong>__init__</strong></a>(self, expected_sha256: 'str', observed_sha256: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="run_defensive_rat_emulator.html#RatEmulatorRunError">RatEmulatorRunError</a>:<br>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+<hr>
+Static methods inherited from <a href="builtins.html#RuntimeError">builtins.RuntimeError</a>:<br>
+<dl><dt><a name="TlsCertificatePinMismatch-__new__"><strong>__new__</strong></a>(*args, **kwargs)<span class="grey"><span class="heading-text"> class method of <a href="builtins.html#RuntimeError">builtins.RuntimeError</a></span></span></dt><dd><span class="code">Create&nbsp;and&nbsp;return&nbsp;a&nbsp;new&nbsp;<a href="builtins.html#object">object</a>.&nbsp;&nbsp;See&nbsp;help(type)&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<hr>
+Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><a name="TlsCertificatePinMismatch-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
+
+<dl><dt><a name="TlsCertificatePinMismatch-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+
+<dl><dt><a name="TlsCertificatePinMismatch-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
+
+<dl><dt><a name="TlsCertificatePinMismatch-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+
+<dl><dt><a name="TlsCertificatePinMismatch-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
+
+<dl><dt><a name="TlsCertificatePinMismatch-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#TlsCertificatePinMismatch-add_note">add_note</a>(note)&nbsp;--<br>
+add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
+
+<dl><dt><a name="TlsCertificatePinMismatch-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#TlsCertificatePinMismatch-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
+<dl><dt><strong>__cause__</strong></dt>
+<dd><span class="code">exception&nbsp;cause</span></dd>
+</dl>
+<dl><dt><strong>__context__</strong></dt>
+<dd><span class="code">exception&nbsp;context</span></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+</dl>
+<dl><dt><strong>__suppress_context__</strong></dt>
+</dl>
+<dl><dt><strong>__traceback__</strong></dt>
+</dl>
+<dl><dt><strong>args</strong></dt>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt></dl>
+ <dl><dt><a name="-open_pinned_tls_stream"><strong>open_pinned_tls_stream</strong></a>(
+    profile: 'Mapping[str, Any]',
+    pinned_ip: 'str',
+    *,
+    connector: 'Callable[..., socket.socket]' = &lt;function create_connection at 0x7f0e53c7bba0&gt;,
+    event_callback: 'Callable[[str, dict[str, Any]], None] | None' = None
+) -&gt; 'tuple[Any, str]'</dt><dd><span class="code">単一pinへprofile固定TLSで1回だけ接続し、leaf&nbsp;certificate&nbsp;hashを固定する。</span></dd></dl>
+ <dl><dt><a name="-open_reviewed_stream"><strong>open_reviewed_stream</strong></a>(
+    profile: 'Mapping[str, Any]',
+    pinned_ip: 'str',
+    *,
+    connector: 'Callable[..., socket.socket]' = &lt;function create_connection at 0x7f0e53c7bba0&gt;,
+    event_callback: 'Callable[[str, dict[str, Any]], None] | None' = None
+) -&gt; 'tuple[Any, str | None]'</dt><dd><span class="code">TLSまたは唯一のreview済みWinos&nbsp;raw&nbsp;TCPへ単1接続する。</span></dd></dl>
+ <dl><dt><a name="-preflight"><strong>preflight</strong></a>(profile_id: 'str', *, lease_now_utc: 'datetime | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">networkを使わずprofile証拠とlive適格性を検証する。</span></dd></dl>
+ <dl><dt><a name="-prepare_maxmind"><strong>prepare_maxmind</strong></a>(cache_directory: 'Path', pinned_ip: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">直前に公式更新したCity／ASN&nbsp;cacheをread-only検証して対象IPを照合する。</span></dd></dl>
+ <dl><dt><a name="-replay_transcript"><strong>replay_transcript</strong></a>(
+    private_transcript_directory: 'Path',
+    *,
+    public_output: 'Path | None' = None
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">通信せず、既存の非公開記録を検証して公開要約だけを再生成する。</span></dd></dl>
+ <dl><dt><a name="-repository_root"><strong>repository_root</strong></a>() -&gt; 'Path'</dt></dl>
+ <dl><dt><a name="-require_live_gates"><strong>require_live_gates</strong></a>(
+    profile: 'Mapping[str, Any]',
+    *,
+    allow_network: 'bool',
+    allow_live_c2_emulation: 'bool',
+    acknowledged_profile: 'str | None',
+    kill_switch_path: 'Path | None'
+) -&gt; 'KillSwitch'</dt><dd><span class="code">live接続前に三段階承認と継続監視可能なkill-switchを検証する。</span></dd></dl>
+ <dl><dt><a name="-resolve_single_pinned_ip"><strong>resolve_single_pinned_ip</strong></a>(
+    profile: 'Mapping[str, Any]',
+    *,
+    resolver: 'Callable[..., list[tuple[Any, ...]]]' = &lt;function getaddrinfo at 0x7f0e53c7bd80&gt;
+) -&gt; 'tuple[str, list[str]]'</dt><dd><span class="code">DNS結果を記録するが、接続先はprofileの単一pinだけに固定する。</span></dd></dl>
+ <dl><dt><a name="-run_live_session"><strong>run_live_session</strong></a>(
+    profile_id: 'str',
+    *,
+    allow_network: 'bool',
+    allow_live_c2_emulation: 'bool',
+    acknowledged_profile: 'str | None',
+    kill_switch_path: 'Path | None',
+    private_output_directory: 'Path',
+    maxmind_cache_directory: 'Path',
+    public_output: 'Path | None' = None,
+    resolver: 'Callable[..., list[tuple[Any, ...]]]' = &lt;function getaddrinfo at 0x7f0e53c7bd80&gt;,
+    maxmind_preparer: 'Callable[[Path, str], dict[str, Any]]' = &lt;function prepare_maxmind at 0x7f0e532db420&gt;,
+    stream_opener: 'Callable[[Mapping[str, Any], str], tuple[Any, str | None]]' = &lt;function open_reviewed_stream at 0x7f0e532db600&gt;,
+    adapter_runner: 'Callable[[Mapping[str, Any], GuardedStream, Callable[[dict[str, Any]], None]], dict[str, Any]]' = &lt;function _run_adapter at 0x7f0e532dbec0&gt;,
+    lease_now_utc: 'datetime | None' = None,
+    monotonic: 'Callable[[], float]' = &lt;built-in function monotonic&gt;,
+    session_duration_seconds: 'float | None' = None,
+    stop_requested: 'Callable[[], bool] | None' = None,
+    progress_callback: 'Callable[[dict[str, Any]], None] | None' = None
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">全gate通過後だけ単一のreview済みsessionを実行する。</span></dd></dl>
+ <dl><dt><a name="-validate_private_locations"><strong>validate_private_locations</strong></a>(
+    private_output_directory: 'Path',
+    maxmind_cache_directory: 'Path'
+) -&gt; 'None'</dt><dd><span class="code">network前にprivate出力とMaxMind&nbsp;cacheがrepository外かを検証する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>ADAPTER_PATHS</strong> = {'purerat_direct_tls_v1': ('analysis-framework', 'malware', 'purehvnc', 'purerat_host_emulator.py'), 'tls_messagepack_rat_host': ('analysis-framework', 'common', 'tls_messagepack_rat_host_emulator.py'), 'valleyrat_n520_v1': ('analysis-framework', 'malware', 'valleyrat', 'n520_host_emulator.py'), 'valleyrat_winos_external_v1': ('analysis-framework', 'malware', 'valleyrat', 'winos_host_emulator.py'), 'valleyrat_winos_v1': ('analysis-framework', 'malware', 'valleyrat', 'winos_host_emulator.py')}<br>
+<strong>FILE_ATTRIBUTE_REPARSE_POINT</strong> = 1024<br>
+<strong>HOST_ADAPTER_CONTRACT_VERSION</strong> = 1<br>
+<strong>KILL_SWITCH_MAXIMUM_BYTES</strong> = 256<br>
+<strong>MAXMIND_MAXIMUM_ACQUISITION_JSON_BYTES</strong> = 65536<br>
+<strong>MAXMIND_MAXIMUM_BUILD_AGE_HOURS</strong> = 24.0<br>
+<strong>MAXMIND_MAXIMUM_DATABASE_BYTES</strong> = 268435456<br>
+<strong>OFFLINE_ONLY_LIVE_SCOPE</strong> = 'offline_or_loopback_only'<br>
+<strong>UTC</strong> = datetime.timezone.utc</td></tr></table>
+</body></html>

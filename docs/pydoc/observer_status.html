@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module observer_status</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">observer_status</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:/opt/rat-external-observer/observer_status.py">/opt/rat-external-observer/observer_status.py</a></td></tr></table>
+    <p><span class="code">観測の実状態をatomic&nbsp;JSONへ保存し、通信なしでhealthを判定する。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="os.html">os</a><br>
+<a href="stat.html">stat</a><br>
+</td><td class="multicolumn"><a href="time.html">time</a><br>
+<a href="uuid.html">uuid</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="observer_status.html#ObserverStatus">ObserverStatus</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="ObserverStatus">class <strong>ObserverStatus</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#ObserverStatus">ObserverStatus</a>(path:&nbsp;'Path',&nbsp;profile_id:&nbsp;'str')&nbsp;-&amp;gt;&nbsp;'None'<br>
+&nbsp;<br>
+10秒ごと、または状態遷移時に現在状態を更新する。<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="ObserverStatus-__init__"><strong>__init__</strong></a>(self, path: 'Path', profile_id: 'str') -&gt; 'None'</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
+
+<dl><dt><a name="ObserverStatus-progress"><strong>progress</strong></a>(self, fields: 'dict[str, Any]') -&gt; 'None'</dt><dd><span class="code">共通runnerから接続段階と送受信件数を受け取る。</span></dd></dl>
+
+<dl><dt><a name="ObserverStatus-update"><strong>update</strong></a>(self, state: 'str | None' = None, **fields: 'Any') -&gt; 'None'</dt><dd><span class="code">本文・資格情報を受け取らず、allowlistの運用metadataだけ保存する。</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">Docker&nbsp;HEALTHCHECK用の固定保存先を読み取る。</span></dd></dl>
+ <dl><dt><a name="-read_health"><strong>read_health</strong></a>(path: 'Path') -&gt; 'tuple[dict[str, Any], bool]'</dt><dd><span class="code">同じLinux&nbsp;bootのmonotonic&nbsp;clockで鮮度を確認する。外部通信はしない。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>FIELDS</strong> = {'attempt_count', 'connected', 'consecutive_failures', 'error_type', 'inbound_bytes', 'inbound_frames', ...}<br>
+<strong>HEALTHY_STATES</strong> = {'connecting', 'cooldown', 'observing', 'resolving', 'starting', 'validating'}<br>
+<strong>MAXIMUM_STATUS_BYTES</strong> = 8192<br>
+<strong>STATES</strong> = {'connecting', 'cooldown', 'local_error', 'observing', 'policy_stopped', 'resolving', ...}<br>
+<strong>STATUS_PATHS</strong> = {'purerat': PosixPath('/var/lib/rat-emulator/observations/observer-status.json'), 'winos': PosixPath('/var/lib/rat-emulator/transcripts/observer-status.json')}<br>
+<strong>UTC</strong> = datetime.timezone.utc</td></tr></table>
+</body></html>

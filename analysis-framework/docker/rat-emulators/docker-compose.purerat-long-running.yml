@@ -68,7 +68,13 @@ services:
     mem_limit: 512m
     cpus: 0.50
     restart: unless-stopped
-    stop_grace_period: 15s
+    stop_grace_period: 45s
+    healthcheck:
+      test: ["CMD", "python", "-B", "/opt/rat-external-observer/observer_status.py", "purerat"]
+      interval: 30s
+      timeout: 5s
+      retries: 2
+      start_period: 15s
     logging:
       driver: local
       options:

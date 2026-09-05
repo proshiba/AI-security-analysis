@@ -1,0 +1,32 @@
+# 8時間構成へ重ねる長期supervisor。各sessionとleaseの期限は維持する。
+services:
+  valleyrat-winos-external-observer:
+    build:
+      context: ../../..
+      dockerfile: analysis-framework/docker/rat-emulators/winos-external-observer.Dockerfile
+    command:
+      - python
+      - -B
+      - /opt/winos-external-observer/winos_external_observer_entrypoint.py
+      - supervise
+      - --profile-id
+      - valleyrat-winos-heartbeat-20260810-64-81-30-192-6666
+      - --acknowledge-profile
+      - valleyrat-winos-heartbeat-20260810-64-81-30-192-6666
+    restart: unless-stopped
+    stop_grace_period: 45s
+    healthcheck:
+      test: ["CMD", "python", "-B", "/opt/winos-external-observer/observer_status.py", "winos"]
+      interval: 30s
+      timeout: 5s
+      retries: 2
+      start_period: 15s
+    volumes:
+      - ./winos-external-rat-emulator-live-leases.json:/opt/winos-external-observer/analysis-framework/common/rat_emulator_live_leases.json:ro
+
+  valleyrat-winos-wire-capture:
+    build:
+      context: ../../..
+      dockerfile: analysis-framework/docker/rat-emulators/winos-wire-capture.Dockerfile
+    restart: unless-stopped
+    command: ["--continuous"]
