@@ -279,6 +279,9 @@ def test_purerat_tls10_has_no_sni_and_uses_legacy_security_level(
             return None
 
     class TlsStream:
+        def version(self) -> str:
+            return "TLSv1"
+
         def getpeercert(self, *, binary_form: bool) -> bytes:
             assert binary_form is True
             return certificate

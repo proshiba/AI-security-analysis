@@ -24,8 +24,6 @@ services:
       - /home/kali/valleyrat-winos-external-20260829-8h/transcripts:/var/lib/rat-emulator/transcripts:rw
       - /home/kali/rat-emulator-external-20260824/maxmind:/var/cache/rat-emulator/maxmind:ro
       - /home/kali/valleyrat-winos-external-20260829-8h/arm/observer.arm:/run/rat-emulator/armed:ro
-    secrets:
-      - maxmind_license_key
     cap_drop:
       - ALL
     security_opt:
@@ -80,7 +78,3 @@ networks:
     ipam:
       config:
         - subnet: 172.30.54.0/28
-
-secrets:
-  maxmind_license_key:
-    file: /run/rat-emulator-secrets/maxmind-license-key

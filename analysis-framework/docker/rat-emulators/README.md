@@ -1,5 +1,7 @@
 # 防御的RATエミュレーターのDocker実行
 
+継続管理の改善、現在状態のhealthcheck、停止原因と未解決の検体通信要件は[継続観測の設計と解析残件](../../docs/RAT-OBSERVATION-CONTINUITY.md)を参照してください。プロセス稼働とC2接続／登録受理は別の状態です。
+
 ## 対象
 
 この構成はKali Linux上に設置した次のloopback限定エミュレーターを、互いに独立したDocker imageとして実行します。
@@ -127,7 +129,7 @@ sudo docker compose -p winos8h -f docker-compose.winos-external.yml up -d \
   valleyrat-winos-external-observer valleyrat-winos-wire-capture
 ```
 
-MaxMind keyは起動時だけCompose secretからprocess環境へ渡します。コンテナが読み取った後はKali側の一時secretを削除できます。完了後は`docker compose -p winos8h ... down`と`kali-winos-egress-policy.sh remove`でcontainer、network、専用chainを削除します。transcriptとPCAPは自動削除しません。
+Winos observerは公式取得済みのMaxMind cacheをread-onlyで参照し、license keyを受け取りません。cache取得・更新はsetup処理で行います。完了後は`docker compose -p winos8h ... down`と`kali-winos-egress-policy.sh remove`でcontainer、network、専用chainを削除します。transcriptとPCAPは自動削除しません。
 
 ## PureRAT長期観測profile
 
@@ -181,7 +183,7 @@ sudo docker compose -f docker-compose.purerat-long-running.yml up -d \
   purerat-observer purerat-wire-capture
 ```
 
-24時間以内のlive leaseとMaxMind公式取得記録を各接続前に再検証します。期限切れ、peer reset、timeout、接続拒否等でsessionを完了できない場合は、初回失敗後に最大3回だけ再試行します。4回連続失敗すると`retry_limit_reached`を記録し、`/home/kali/purerat-observer/observations/retry-circuit.json`へcircuit-open状態を永続化して、以後の接続を停止します。Docker／host再起動でも同じlease registry identityでは再試行しません。再レビュー済みlease registryのraw SHA-256が変化した場合だけcounterを0へ戻し、接続前の全gateを改めて検証します。lease更新でendpoint、証明書pin、protocol／evidence hashを緩和してはいけません。
+24時間以内のlive leaseとMaxMind公式取得記録を各接続前に再検証します。期限切れは接続retryを消費せず待機します。peer reset、timeout、接続拒否等では初回失敗後に最大3回だけ再試行します。4回連続失敗すると`retry_limit_reached`を記録し、`/home/kali/purerat-observer/observations/retry-circuit.json`へcircuit-open状態を永続化して、以後の接続を停止します。Docker／host再起動でも同じlease registry identityでは再試行しません。再レビュー済みlease registryのpreflight成功とraw SHA-256の変化を確認した場合だけcounterを0へ戻します。lease更新でendpoint、証明書pin、protocol／evidence hashを緩和してはいけません。
 
 稼働確認と緊急停止は次のとおりです。
 

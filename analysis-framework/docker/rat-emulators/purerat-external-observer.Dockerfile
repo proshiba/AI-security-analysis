@@ -15,6 +15,7 @@ COPY --chown=10001:10001 analysis-framework/ ./analysis-framework/
 COPY --chown=10001:10001 analysis-results/ ./analysis-results/
 COPY --chown=10001:10001 analysis-framework/docker/rat-emulators/purerat_external_observer_entrypoint.py ./purerat_external_observer_entrypoint.py
 COPY --chown=10001:10001 analysis-framework/docker/rat-emulators/purerat_long_running_observer.py ./purerat_long_running_observer.py
+COPY --chown=10001:10001 analysis-framework/docker/rat-emulators/observer_status.py ./observer_status.py
 COPY --chown=10001:10001 analysis-framework/docker/rat-emulators/purerat-external-c2-protocol-profiles.json ./analysis-framework/common/c2_protocol_probe_profiles.json
 COPY --chown=10001:10001 analysis-framework/docker/rat-emulators/purerat-external-rat-emulator-profiles.json ./analysis-framework/common/rat_emulator_profiles.json
 COPY --chown=10001:10001 analysis-framework/docker/rat-emulators/purerat-external-rat-emulator-live-leases.json ./analysis-framework/common/rat_emulator_live_leases.json

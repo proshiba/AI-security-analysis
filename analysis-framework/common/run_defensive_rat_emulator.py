@@ -109,6 +109,10 @@ class RatEmulatorRunError(RuntimeError):
     """live sessionの明示承認、安全上限、証拠pinの不一致を表す。"""
 
 
+class ObserverStopRequested(RatEmulatorRunError):
+    """supervisorの停止要求を次のI/Oより前に反映する。"""
+
+
 class TlsCertificatePinMismatch(RatEmulatorRunError):
     """TLS stopped before registration because the reviewed leaf pin changed."""
 
@@ -371,11 +375,28 @@ def prepare_maxmind(cache_directory: Path, pinned_ip: str) -> dict[str, Any]:
     }
 
 
+def _enable_tcp_keepalive(stream: Any) -> dict[str, Any]:
+    """Linuxではidle 60秒からTCP keepaliveを使い、設定結果を返す。"""
+
+    setter = getattr(stream, "setsockopt", None)
+    if not callable(setter):
+        return {"tcp_keepalive_enabled": False}
+    setter(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    configured: dict[str, Any] = {"tcp_keepalive_enabled": True}
+    for name, value in (("TCP_KEEPIDLE", 60), ("TCP_KEEPINTVL", 20), ("TCP_KEEPCNT", 3)):
+        option = getattr(socket, name, None)
+        if option is not None:
+            setter(socket.IPPROTO_TCP, option, value)
+            configured[name.lower()] = value
+    return configured
+
+
 def open_pinned_tls_stream(
     profile: Mapping[str, Any],
     pinned_ip: str,
     *,
     connector: Callable[..., socket.socket] = socket.create_connection,
+    event_callback: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> tuple[Any, str]:
     """単一pinへprofile固定TLSで1回だけ接続し、leaf certificate hashを固定する。"""
 
@@ -393,11 +414,22 @@ def open_pinned_tls_stream(
         context.maximum_version = ssl.TLSVersion.TLSv1_2
     else:
         raise RatEmulatorRunError("未レビューのTLS versionです")
+    emit = event_callback or (lambda _name, _fields: None)
+    emit("tcp_connect_started", {"application_frame_sent": False})
     raw = connector((pinned_ip, int(profile["port"])), timeout=timeout)
     sni = profile.get("sni")
     server_hostname = str(sni) if isinstance(sni, str) and sni else None
+    stream: Any | None = None
     try:
+        emit("tcp_connected", _enable_tcp_keepalive(raw))
+        emit("tls_handshake_started", {"requested_tls_version": tls_version})
         stream = context.wrap_socket(raw, server_hostname=server_hostname)
+        negotiated = stream.version()
+        expected_version = {"TLSv1.0": "TLSv1", "TLSv1.2": "TLSv1.2"}[tls_version]
+        if negotiated != expected_version:
+            stream.close()
+            raise RatEmulatorRunError("negotiated TLS versionがreview済み値と一致しません")
+        emit("tls_handshake_completed", {"negotiated_tls_version": negotiated})
         certificate = stream.getpeercert(binary_form=True)
         digest = hashlib.sha256(certificate or b"").hexdigest()
         if digest != profile["expected_certificate_sha256"]:
@@ -407,6 +439,11 @@ def open_pinned_tls_stream(
             )
         return stream, digest
     except BaseException:
+        if stream is not None:
+            try:
+                stream.close()
+            except OSError:
+                pass
         try:
             raw.close()
         except OSError:
@@ -419,11 +456,14 @@ def open_reviewed_stream(
     pinned_ip: str,
     *,
     connector: Callable[..., socket.socket] = socket.create_connection,
+    event_callback: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> tuple[Any, str | None]:
     """TLSまたは唯一のreview済みWinos raw TCPへ単1接続する。"""
 
     if profile.get("transport") == "tls":
-        return open_pinned_tls_stream(profile, pinned_ip, connector=connector)
+        return open_pinned_tls_stream(
+            profile, pinned_ip, connector=connector, event_callback=event_callback
+        )
     if (
         profile.get("transport") != "raw_tcp"
         or profile.get("adapter_id") != "valleyrat_winos_external_v1"
@@ -440,7 +480,15 @@ def open_reviewed_stream(
     ):
         raise RatEmulatorRunError("未reviewのraw TCP transportです")
     timeout = min(float(profile["limits"]["duration_seconds"]), 3.0)
-    return connector((pinned_ip, int(profile["port"])), timeout=timeout), None
+    emit = event_callback or (lambda _name, _fields: None)
+    emit("tcp_connect_started", {"application_frame_sent": False})
+    raw = connector((pinned_ip, int(profile["port"])), timeout=timeout)
+    try:
+        emit("tcp_connected", _enable_tcp_keepalive(raw))
+    except BaseException:
+        raw.close()
+        raise
+    return raw, None
 
 
 class GuardedStream:
@@ -456,6 +504,8 @@ class GuardedStream:
         retain_private_inbound_frames: bool = False,
         monotonic: Callable[[], float] = time.monotonic,
         lease_deadline_monotonic: float | None = None,
+        stop_requested: Callable[[], bool] | None = None,
+        progress_callback: Callable[[dict[str, Any]], None] | None = None,
     ) -> None:
         self.stream = stream
         self.limits = dict(limits)
@@ -478,6 +528,8 @@ class GuardedStream:
         self.last_send: float | None = None
         self.requested_timeout_seconds: float | None = None
         self.first_outbound_event_type = "reviewed_registration_frame"
+        self.stop_requested = stop_requested or (lambda: False)
+        self.progress_callback = progress_callback
 
     def set_first_outbound_event_type(self, event_type: str) -> None:
         """初回送信frameのreview済み意味をadapter dispatch時に固定する。"""
@@ -491,9 +543,20 @@ class GuardedStream:
         self.first_outbound_event_type = event_type
 
     def _check(self) -> None:
+        if self.stop_requested():
+            raise ObserverStopRequested("supervisorから停止要求を受信しました")
         self.kill_switch.require_armed()
         if self.monotonic() >= self.deadline:
             raise RatEmulatorRunError("sessionまたは短期live leaseの期限へ到達しました")
+        if self.progress_callback is not None:
+            self.progress_callback({
+                "state": "observing",
+                "connected": True,
+                "inbound_frames": self.inbound_frames,
+                "inbound_bytes": self.inbound_bytes,
+                "outbound_frames": self.outbound_frames,
+                "outbound_bytes": self.outbound_bytes,
+            })
 
     def _refresh_timeout(self) -> None:
         """次のI/O直前に残時間以下へtransport timeoutを再設定する。"""
@@ -517,6 +580,8 @@ class GuardedStream:
     def remaining_seconds(self) -> float:
         """kill-switchを再確認し、session期限までの残秒を返す。"""
 
+        if self.stop_requested():
+            raise ObserverStopRequested("supervisorから停止要求を受信しました")
         self.kill_switch.require_armed()
         return max(0.0, self.deadline - self.monotonic())
 
@@ -1325,8 +1390,11 @@ def _open_stream_with_certificate_record(
     resolved_ip: str,
     transcript: SessionTranscriptWriter,
     stream_opener: Callable[[Mapping[str, Any], str], tuple[Any, str | None]],
+    event_callback: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> tuple[Any, str | None]:
     try:
+        if stream_opener is open_reviewed_stream:
+            return stream_opener(profile, resolved_ip, event_callback=event_callback)
         return stream_opener(profile, resolved_ip)
     except TlsCertificatePinMismatch as exc:
         transcript.append_event(
@@ -1367,9 +1435,20 @@ def run_live_session(
     lease_now_utc: datetime | None = None,
     monotonic: Callable[[], float] = time.monotonic,
     session_duration_seconds: float | None = None,
+    stop_requested: Callable[[], bool] | None = None,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """全gate通過後だけ単一のreview済みsessionを実行する。"""
 
+    stop_requested = stop_requested or (lambda: False)
+
+    def progress(state: str, **fields: Any) -> None:
+        if stop_requested():
+            raise ObserverStopRequested("supervisorから停止要求を受信しました")
+        if progress_callback is not None:
+            progress_callback({"state": state, "connected": False, **fields})
+
+    progress("validating")
     registry: RegistrySnapshot = load_registry()
     try:
         profile = resolve_profile(
@@ -1421,9 +1500,11 @@ def run_live_session(
     if public_output is not None:
         ensure_new_output(public_output, ())
     pinned_ip = str(profile["pinned_ips"][0])
+    progress("waiting_maxmind")
     maxmind = maxmind_preparer(maxmind_cache_directory, pinned_ip)
     kill_switch.require_armed()
     _require_live_lease_deadline(lease_deadline_monotonic, monotonic)
+    progress("resolving")
     resolved_ip, dns_answers = resolve_single_pinned_ip(profile, resolver=resolver)
     kill_switch.require_armed()
     _require_live_lease_deadline(lease_deadline_monotonic, monotonic)
@@ -1455,6 +1536,14 @@ def run_live_session(
     )
     stream: Any | None = None
     finalized = False
+    transport_phase = "tcp_connect_started"
+
+    def transport_event(name: str, fields: dict[str, Any]) -> None:
+        nonlocal transport_phase
+        transport_phase = name
+        transcript.append_event("internal", name, public_fields=fields)
+        progress("connecting", transport_phase=name)
+
     try:
         transcript.append_event(
             "internal",
@@ -1481,8 +1570,9 @@ def run_live_session(
         }
         connection_profile["limits"] = active_limits
         stream, certificate_sha256 = _open_stream_with_certificate_record(
-            connection_profile, resolved_ip, transcript, stream_opener
+            connection_profile, resolved_ip, transcript, stream_opener, transport_event
         )
+        transport_phase = "application_session"
         _require_live_lease_deadline(lease_deadline_monotonic, monotonic)
         if profile["transport"] == "tls":
             if certificate_sha256 != profile["expected_certificate_sha256"]:
@@ -1541,6 +1631,8 @@ def run_live_session(
             ),
             monotonic=monotonic,
             lease_deadline_monotonic=lease_deadline_monotonic,
+            stop_requested=stop_requested,
+            progress_callback=progress_callback,
         )
         active_profile = dict(profile)
         active_profile["limits"] = active_limits
@@ -1579,7 +1671,11 @@ def run_live_session(
             transcript.append_event(
                 "internal",
                 "session_failed",
-                public_fields={"error_type": type(exc).__name__, "task_executed": False},
+                public_fields={
+                    "error_type": type(exc).__name__,
+                    "task_executed": False,
+                    "transport_phase": transport_phase,
+                },
             )
             transcript.finalize(status="failed", stop_reason=type(exc).__name__)
         if public_output is not None and not public_output.exists():
