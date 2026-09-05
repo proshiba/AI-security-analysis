@@ -447,6 +447,48 @@ def test_import_timeout_does_not_trigger_duplicate_raw_fallback(
     assert client.import_calls == 1
 
 
+def test_analysis_wait_bounds_transport_and_sleep_to_remaining_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """長いrequest既定値でも残りのauto-analysis待機時間を超えて待たない。"""
+
+    clock = [0.0]
+    calls = []
+    sleeps = []
+
+    class BusyClient:
+        timeout = 3600
+
+        def get(self, endpoint: str, **query: object) -> object:
+            calls.append((endpoint, query))
+            clock[0] += 0.5
+            return {"analyzing": True}
+
+    def sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+        clock[0] += seconds
+
+    monkeypatch.setattr(target.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(target.time, "sleep", sleep)
+    with pytest.raises(TimeoutError, match="auto-analysis timeout"):
+        target._wait_for_analysis(BusyClient(), "/Batch/explicit", timeout_seconds=1)
+    assert clock[0] == 1
+    assert calls == [("/analysis_status", {"program": "/Batch/explicit", "transport_timeout": 1.0})]
+    assert sleeps == [0.5]
+
+
+def test_mcp_get_transport_timeout_is_not_forwarded_as_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = target.GhidraMcpClient("http://127.0.0.1:8089")
+    calls = []
+    monkeypatch.setattr(client, "_request", lambda *args, **kwargs: calls.append((args, kwargs)))
+    client.get("/analysis_status", program="/Batch/explicit", transport_timeout=0.25)
+    assert calls == [(("GET", "/analysis_status"), {
+        "query": {"program": "/Batch/explicit"}, "body": None, "timeout": 0.25,
+    })]
+
+
 def test_old_native_zero_function_cache_is_not_reused(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -6310,6 +6352,124 @@ def test_refresh_requires_reanalysis_when_legacy_function_inventory_was_truncate
         )
 
 
+def test_refresh_updates_stale_metadata_after_validated_entry_recovery(
+    tmp_path: Path,
+) -> None:
+    """入口関数復元前の0件metadataを再取得し、復元後inventoryへ拘束する。"""
+
+    digest = "d" * 64
+    program = f"/Malware/Test/{digest}.quarantine.bin"
+    object_dir = tmp_path / "objects" / digest
+    object_dir.mkdir(parents=True)
+    functions = [
+        {
+            "address": "00401000",
+            "name": "entry",
+            "isExternal": False,
+            "isThunk": False,
+        }
+    ]
+    recovery = {
+        "schema_version": 1,
+        "trigger": "native_function_inventory_empty_after_auto_analysis",
+        "status": "recovered",
+        "reason": "entry_function_created_and_inventory_verified",
+        "attempted": True,
+        "initial_function_count": 0,
+        "final_function_count": 1,
+        "program_selector": program,
+    }
+    target._json_dump(
+        object_dir / "ghidra-raw-index.json",
+        {
+            "program_selector": program,
+            "metadata": "Function Count: 4",
+            "functions": functions,
+            "imports": [],
+            "exports": [],
+            "strings": [],
+            "segments": [],
+            "opcode_hashes": {"functions": []},
+            "entry_point_function_recovery": recovery,
+            "retrieval_coverage": {
+                "functions": {
+                    "endpoint": "/list_functions_enhanced",
+                    "program_selector": program,
+                    "item_count": 0,
+                    "terminal_short_page_observed": True,
+                    "complete": True,
+                    "metadata_function_count": 0,
+                    "count_matches_metadata": True,
+                    "derived_external_function_count": 0,
+                }
+            },
+        },
+    )
+    result = {
+        "status": "complete",
+        "mcp_responses_valid": True,
+        "sha256": digest,
+        "program_selector": program,
+        "analysis_mode": "native_ghidra_with_optional_cil",
+        "functions": [],
+        "ghidra_function_inventory_count": 1,
+        "opcode_hashes": {"functions": []},
+        "entry_point_function_recovery": recovery,
+        "retrieval_coverage": {
+            "functions": {
+                "endpoint": "/list_functions_enhanced",
+                "program_selector": program,
+                "item_count": 0,
+                "terminal_short_page_observed": True,
+                "complete": True,
+                "metadata_function_count": 0,
+                "count_matches_metadata": True,
+                "derived_external_function_count": 0,
+            }
+        },
+    }
+    _bind_native_call_graph(result, selector=program)
+    raw = target.load_json_object_strict(object_dir / "ghidra-raw-index.json")
+    raw["ghidra_call_graph"] = json.loads(json.dumps(result["ghidra_call_graph"]))
+    raw["call_graph"] = json.loads(json.dumps(result["call_graph"]))
+    raw["retrieval_coverage"]["call_graph"] = json.loads(
+        json.dumps(result["retrieval_coverage"]["call_graph"])
+    )
+    target._json_dump(object_dir / "ghidra-raw-index.json", raw)
+
+    class Client:
+        def get(self, endpoint: str, **query: object) -> object:
+            if endpoint == "/open_program":
+                assert query == {"path": program, "auto_analyze": False}
+                return {"path": program}
+            assert query.get("program") == program
+            if endpoint == "/get_metadata":
+                return "Function Count: 4"
+            if endpoint == "/list_functions_enhanced":
+                return {"functions": functions, "count": 1}
+            if endpoint == target.CALL_GRAPH_ENDPOINT:
+                return {"edges": []}
+            return []
+
+        def post(self, *_args: object, **_kwargs: object) -> object:
+            return {}
+
+    totals = target.refresh_complete_program_artifacts(
+        Client(),
+        {digest: result},
+        tmp_path,
+    )
+
+    assert totals["programs"] == 1
+    saved = target.load_json_object_strict(object_dir / "program-result.json")
+    coverage = saved["retrieval_coverage"]["functions"]
+    assert saved["metadata"]["function_count"] == "4"
+    assert coverage["metadata_function_count"] == 4
+    assert coverage["item_count"] == 1
+    assert coverage["derived_external_function_count"] == 3
+    assert target._function_inventory_coverage_complete(saved) is True
+
+
 def test_storage_budget_observation_is_path_private_and_fail_closed(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -6622,6 +6782,13 @@ def test_run_progress_schema_is_stable_across_checkpoint_phases() -> None:
 
     assert all(set(document) == set(documents[0]) for document in documents)
     assert all(document["schema_version"] == target.RUN_PROGRESS_SCHEMA_VERSION for document in documents)
+    for document in (documents[0], documents[2]):
+        invalid_timeout = {
+            key: value for key, value in document.items() if key not in {"schema_version", "safety"}
+        }
+        invalid_timeout["stop_reason"] = "program_timeout"
+        with pytest.raises(ValueError, match="未完了program"):
+            target._run_progress_document(**invalid_timeout)
 
 
 def test_resume_checkpoint_rejects_schema_drift(tmp_path: Path) -> None:
@@ -7162,6 +7329,111 @@ def test_run_stops_between_programs_and_preserves_completed_cache(
     assert result["newly_analyzed_programs"] == 1
     assert result["pending_programs"] == [digests[1]]
     assert (private_output / "objects" / digests[0] / "program-result.json").is_file()
+
+
+@pytest.mark.parametrize("transport_timeout", [False, True])
+def test_run_continues_after_timeout_and_rotates_unattempted_programs_on_resume(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    transport_timeout: bool,
+) -> None:
+    """timeoutもchunk枠を消費し、次回は未試行programを先に解析する。"""
+
+    digests = [str(index) * 64 for index in range(1, 5)]
+    objects = {
+        digest: target.ProgramObject(sha256=digest, input_path=tmp_path / digest, size=index)
+        for index, digest in enumerate(digests, 1)
+    }
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    collection.mkdir(parents=True)
+    sample_root.mkdir()
+    _write_prepared_inventory(private_output, collection_id="batch", digests=digests)
+    monkeypatch.setattr(target, "prepare_inputs", lambda *args, **kwargs: (objects, {}))
+    monkeypatch.setattr(target, "load_prepared_inputs", lambda *args, **kwargs: (objects, {}))
+    monkeypatch.setattr(target, "validate_prepared_scope", lambda *args, **kwargs: None)
+    monkeypatch.setattr(target, "GhidraMcpClient", lambda *args, **kwargs: object())
+    monkeypatch.setattr(target, "refresh_complete_program_artifacts", lambda *args, **kwargs: pytest.fail("pendingを公開してはいけません"))
+    monkeypatch.setattr(target, "_storage_budget_observation", lambda *args, **kwargs: {
+        "phase": kwargs["phase"], "minimum_free_bytes": kwargs["minimum_free_bytes"],
+        "sufficient": True, "filesystems": [],
+    })
+    attempted = []
+
+    def analyze(_client: object, item: target.ProgramObject, *_args: object, **_kwargs: object):
+        attempted.append(item.sha256)
+        if item.sha256 == digests[0]:
+            try:
+                raise TimeoutError("fixture timeout")
+            except TimeoutError as exc:
+                if transport_timeout:
+                    raise target.GhidraMcpError("fixture transport timeout") from exc
+                raise
+        # 2つ目の開始前にtimeout checkpointがすでに書かれている。
+        checkpoint = target._load_resume_checkpoint(private_output, collection_id="batch")
+        assert checkpoint is not None
+        result = {"status": "complete", "mcp_responses_valid": True, "sha256": item.sha256, "functions": []}
+        target._persist_program_result(private_output / "objects" / item.sha256 / "program-result.json", result)
+        return result
+
+    monkeypatch.setattr(target, "analyze_program", analyze)
+    args = target.build_parser().parse_args([
+        "--repository", str(repository), "--collection", str(collection),
+        "--sample-root", str(sample_root), "--private-output", str(private_output),
+        "--max-new-programs", "2",
+    ])
+    first = target.run(args)
+    assert attempted == digests[:2]
+    assert first["stop_reason"] == "program_timeout"
+    assert first["complete_programs"] == first["newly_analyzed_programs"] == 1
+    assert first["pending_programs"] == [digests[2], digests[3], digests[0]]
+    assert not (private_output / "objects" / digests[0] / "program-result.json").exists()
+    rows, _ = target._bounded_jsonl_snapshot(private_output / "program-timeouts.raw.jsonl")
+    assert len(rows) == 1
+    assert rows[0]["sha256"] == digests[0]
+    assert rows[0]["reason"] == ("mcp_transport_timeout" if transport_timeout else "analysis_wait_timeout")
+    assert rows[0]["sample_executed"] is False
+    second = target.run(args)
+    assert attempted == digests
+    assert second["complete_programs"] == 3
+    assert second["cached_programs"] == 1
+    assert second["newly_analyzed_programs"] == 2
+    assert second["pending_programs"] == [digests[0]]
+    assert second["prepared_inputs_reused"] is True
+
+
+def test_run_does_not_suppress_non_timeout_mcp_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """不正応答や整合性違反をtimeout扱いで続行しない。"""
+
+    digest = "a" * 64
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    collection.mkdir(parents=True)
+    sample_root.mkdir()
+    _write_prepared_inventory(private_output, collection_id="batch", digests=[digest])
+    objects = {digest: target.ProgramObject(sha256=digest, input_path=tmp_path / digest, size=1)}
+    monkeypatch.setattr(target, "prepare_inputs", lambda *args, **kwargs: (objects, {}))
+    monkeypatch.setattr(target, "validate_prepared_scope", lambda *args, **kwargs: None)
+    monkeypatch.setattr(target, "GhidraMcpClient", lambda *args, **kwargs: object())
+    monkeypatch.setattr(target, "_storage_budget_observation", lambda *args, **kwargs: {
+        "phase": kwargs["phase"], "minimum_free_bytes": kwargs["minimum_free_bytes"],
+        "sufficient": True, "filesystems": [],
+    })
+    monkeypatch.setattr(target, "analyze_program", lambda *args, **kwargs: (_ for _ in ()).throw(target.GhidraMcpError("selector mismatch")))
+    args = target.build_parser().parse_args([
+        "--repository", str(repository), "--collection", str(collection),
+        "--sample-root", str(sample_root), "--private-output", str(private_output),
+    ])
+    with pytest.raises(target.GhidraMcpError, match="selector mismatch"):
+        target.run(args)
+    assert not (private_output / "program-timeouts.raw.jsonl").exists()
 
 
 def test_run_defers_postprocessing_without_rewriting_complete_cache(

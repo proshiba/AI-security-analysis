@@ -849,6 +849,14 @@ def test_legacy_vidar_refresh_removes_only_exact_structural_network_label() -> N
         "example.test",
         "t.me",
     ]
+    assert (
+        publisher._refresh_legacy_vidar_structural_network_labels(
+            report_document,
+            outcome,
+            [(execution, artifact)],
+        )
+        is False
+    )
 
 
 def test_confirmed_static_handler_iocs_are_sanitized_deduplicated_and_traceable() -> None:
@@ -2162,6 +2170,30 @@ def test_publish_case_helper_failure_preserves_existing_case_byte_identical(
     assert not publisher._publication_journal_path(destination).exists()
     prefix = f".casepub-{publisher._publication_case_name_key(destination)}."
     assert not any(path.name.startswith(prefix) for path in destination.parent.iterdir())
+
+
+def test_collection_publication_cleanup_removes_only_current_process_staging(
+    tmp_path: Path,
+) -> None:
+    """未journal化のcollection stagingは現在process所有分だけ回収する。"""
+
+    repository = tmp_path / "r"
+    parent = repository / "analysis-results" / "collections"
+    parent.mkdir(parents=True)
+    collection_id = "cleanup-fixture"
+    destination = parent / collection_id
+    key = publisher._publication_case_name_key(destination)
+    owned = parent / f".casepub-{key}.{os.getpid():x}-fixture.staging"
+    foreign = parent / f".casepub-{key}.different-process.staging"
+    for container in (owned, foreign):
+        staged = publisher._publication_io_path(container) / collection_id
+        staged.mkdir(parents=True)
+        (staged / "manifest.json").write_text("{}", encoding="utf-8")
+
+    publisher._cleanup_current_process_collection_staging(repository, collection_id)
+
+    assert not owned.exists()
+    assert foreign.is_dir()
 
 
 def test_publish_case_recovers_build_kill_and_removes_partial_staging(

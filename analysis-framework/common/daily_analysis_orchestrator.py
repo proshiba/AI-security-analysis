@@ -62,6 +62,15 @@ STAGES = (
     "validation",
     "private_archive",
 )
+# 再試行可能なpartialはまだ成果物が変化するため、依存先を先走らせない。
+# private_archiveは中断checkpointを保管するので、この待機対象に含めない。
+STAGE_DEPENDENCIES = {
+    "static_analysis": ("malwarebazaar_acquisition",),
+    "publication": ("static_analysis",),
+    "ghidra": ("publication",),
+    "c2_monitoring": STAGES[:5],
+    "validation": STAGES[:6],
+}
 NETWORK_KEYS = frozenset(
     {
         "provider_lookups",
@@ -564,6 +573,7 @@ def _implementation_sha256() -> str:
         "build_all_c2_monitoring_targets.py",
         "run_c2_monitoring_pipeline.py",
         "validate_daily_analysis.py",
+        "stage_case_analysis_datastore.py",
         "archive_analysis_datastore.py",
     )
     records = []
@@ -1335,12 +1345,11 @@ def build_preflight_report(
             archive_analysis_datastore.find_aws_cli()
         except (ImportError, RuntimeError):
             datastore_tool_ready = False
-    authorization_ready = (
-        (not live_required or context.allow_live_c2)
-        and provider_ready
-        and sample_credential_ready
-        and datastore_tool_ready
-    )
+    # ライブC2は現在のinvocationでのみ承認できる任意の追加laneである。
+    # 未承認でもtarget planを固定してretryable partialへ遷移できるため、
+    # provider取得や静的解析までpreflightで停止させない。
+    live_deferred = live_required and not context.allow_live_c2
+    authorization_ready = provider_ready and sample_credential_ready and datastore_tool_ready
     return {
         "schema_version": 1,
         "run_id": context.request.run_id,
@@ -1351,6 +1360,7 @@ def build_preflight_report(
         "authorization": {
             "live_c2_required": live_required,
             "live_c2_authorized_for_invocation": context.allow_live_c2,
+            "live_c2_deferred_for_invocation": live_deferred,
             "provider_credential_required": provider_required,
             "provider_credential_ready": provider_ready,
             "sample_download_credential_required": sample_credential_required,
@@ -1498,8 +1508,21 @@ def _write_state(context: DailyContext, state: dict[str, Any]) -> None:
     _atomic_json(context.state_root / "state.json", state)
 
 
-def _load_state(context: DailyContext) -> dict[str, Any]:
+def _load_state(
+    context: DailyContext,
+    *,
+    expected_implementation_sha256: str | None = None,
+    recover_running: bool = True,
+) -> dict[str, Any]:
     path = context.state_root / "state.json"
+    expected_implementation = (
+        _implementation_sha256()
+        if expected_implementation_sha256 is None
+        else _sha256_string(
+            expected_implementation_sha256,
+            label="expected implementation SHA-256",
+        )
+    )
     try:
         state = analysis_job_runner.load_json_object_strict(path, max_bytes=MAX_STATE_BYTES)
     except (analysis_job_runner.JobContractError, OSError) as exc:
@@ -1509,7 +1532,7 @@ def _load_state(context: DailyContext) -> dict[str, Any]:
         or state.get("schema_version") != STATE_SCHEMA_VERSION
         or state.get("run_id") != context.request.run_id
         or state.get("request_sha256") != _sha256_value(context.request.public())
-        or state.get("implementation_sha256") != _implementation_sha256()
+        or state.get("implementation_sha256") != expected_implementation
         or not isinstance(state.get("stages"), Mapping)
         or set(state["stages"]) != set(STAGES)
     ):
@@ -1594,7 +1617,7 @@ def _load_state(context: DailyContext) -> dict[str, Any]:
                 "state_stage_mismatch",
                 "失敗以外のstageにerrorが残っています",
             )
-        if record["status"] == "running":
+        if recover_running and record["status"] == "running":
             record["status"] = "pending"
             record["retryable"] = True
     statuses = [state["stages"][name]["status"] for name in STAGES]
@@ -1848,6 +1871,283 @@ def _ensure_collection_binding(
     _validate_context_derived_paths(context)
 
 
+def _migration_receipt_base(
+    context: DailyContext,
+    *,
+    old_implementation_sha256: str,
+    new_implementation_sha256: str,
+) -> dict[str, Any]:
+    """実装移行receiptの改変不能な識別fieldを返す。"""
+
+    return {
+        "schema_version": 1,
+        "operation": "daily_run_implementation_migration",
+        "run_id": context.request.run_id,
+        "collection_id": context.collection_id,
+        "request_sha256": _sha256_value(context.request.public()),
+        "source_manifest_sha256": context.request.source_manifest_sha256,
+        "from_implementation_sha256": old_implementation_sha256,
+        "to_implementation_sha256": new_implementation_sha256,
+        "safety": {
+            "sample_executed": False,
+            "network_contacted": False,
+            "automatic_source_deletion": False,
+            "source_retained": True,
+        },
+    }
+
+
+def _load_migration_receipt(
+    path: Path,
+    expected: Mapping[str, Any],
+    *,
+    status: str,
+) -> dict[str, Any]:
+    try:
+        receipt = analysis_job_runner.load_json_object_strict(
+            path,
+            max_bytes=analysis_job_runner.MAX_REQUEST_BYTES,
+        )
+    except (analysis_job_runner.JobContractError, OSError) as exc:
+        raise DailyOrchestrationError(
+            "implementation_migration_receipt_invalid",
+            "実装移行receiptを安全に読み取れません",
+        ) from exc
+    variable_keys = (
+        {"status", "recorded_at_utc", "state_sha256_before", "binding_sha256_before"}
+        if status == "authorized"
+        else {
+            "status",
+            "recorded_at_utc",
+            "authorization_receipt_sha256",
+            "state_sha256_after",
+            "binding_sha256_after",
+        }
+    )
+    if (
+        set(receipt) != set(expected) | variable_keys
+        or any(receipt.get(key) != value for key, value in expected.items())
+        or receipt.get("status") != status
+        or not isinstance(receipt.get("recorded_at_utc"), str)
+        or any(
+            not isinstance(receipt.get(key), str) or SHA256_RE.fullmatch(receipt[key]) is None
+            for key in variable_keys - {"status", "recorded_at_utc"}
+        )
+    ):
+        raise DailyOrchestrationError(
+            "implementation_migration_receipt_invalid",
+            "実装移行receiptの契約が一致しません",
+        )
+    return receipt
+
+
+def migrate_run_implementation(
+    context: DailyContext,
+    *,
+    expected_old_implementation_sha256: str,
+) -> dict[str, Any]:
+    """同一runの中断checkpointを監査receipt付きで新実装へ限定移行する。"""
+
+    old_implementation = _sha256_string(
+        expected_old_implementation_sha256,
+        label="移行元implementation SHA-256",
+    )
+    new_implementation = _implementation_sha256()
+    if old_implementation == new_implementation:
+        raise DailyOrchestrationError(
+            "implementation_migration_not_required",
+            "移行元と現在のimplementation SHA-256が同一です",
+        )
+    with _run_lock(context):
+        _validate_context_derived_paths(context)
+        if not context.state_root.is_dir():
+            raise DailyOrchestrationError(
+                "implementation_migration_state_missing",
+                "移行対象の日次checkpointがありません",
+            )
+        state_path = context.state_root / "state.json"
+        try:
+            observed_state = analysis_job_runner.load_json_object_strict(
+                state_path,
+                max_bytes=MAX_STATE_BYTES,
+            )
+        except (analysis_job_runner.JobContractError, OSError) as exc:
+            raise DailyOrchestrationError(
+                "implementation_migration_state_invalid",
+                "移行対象の日次checkpointを安全に読み取れません",
+            ) from exc
+        observed_state_implementation = observed_state.get("implementation_sha256")
+        if observed_state_implementation not in {old_implementation, new_implementation}:
+            raise DailyOrchestrationError(
+                "implementation_migration_source_mismatch",
+                "日次checkpointのimplementation SHA-256が移行元pinと一致しません",
+            )
+        state = _load_state(
+            context,
+            expected_implementation_sha256=observed_state_implementation,
+            recover_running=False,
+        )
+        state_normalizations: list[str] = []
+        deferred_c2 = state["stages"]["c2_monitoring"]
+        deferred_without_contact = (
+            deferred_c2["result"].get("status") == "targets_built_live_monitoring_deferred"
+            and deferred_c2["result"].get("network_contacted") is False
+            and deferred_c2["result"].get("sample_executed") is False
+        )
+        legacy_failure = deferred_without_contact and (
+            deferred_c2["status"] == "failed"
+            and deferred_c2["attempts"] == MAX_ATTEMPTS
+            and deferred_c2["retryable"] is True
+            and deferred_c2["error"]
+            == {
+                "code": "maximum_attempts_exceeded",
+                "message": "stageの最大試行回数を超えました",
+            }
+        )
+        already_normalized = deferred_without_contact and (
+            deferred_c2["status"] == "partial"
+            and deferred_c2["attempts"] == 0
+            and deferred_c2["retryable"] is True
+            and deferred_c2["error"] is None
+        )
+        if legacy_failure or already_normalized:
+            state_normalizations.append(
+                "legacy_deferred_c2_attempt_exhaustion_to_retryable_partial"
+            )
+        if legacy_failure:
+            deferred_c2["status"] = "partial"
+            deferred_c2["attempts"] = 0
+            deferred_c2["error"] = None
+            if state["status"] != "running":
+                statuses = [state["stages"][name]["status"] for name in STAGES]
+                state["status"] = (
+                    "failed"
+                    if "failed" in statuses
+                    else "partial"
+                    if any(value in {"pending", "running", "partial"} for value in statuses)
+                    else "complete"
+                )
+        if state["status"] == "complete":
+            raise DailyOrchestrationError(
+                "implementation_migration_not_required",
+                "完了済みcheckpointは実装移行できません",
+            )
+
+        binding_path = context.collection_root / "collection-binding.json"
+        try:
+            binding = analysis_job_runner.load_json_object_strict(
+                binding_path,
+                max_bytes=analysis_job_runner.MAX_REQUEST_BYTES,
+            )
+        except (analysis_job_runner.JobContractError, OSError) as exc:
+            raise DailyOrchestrationError(
+                "implementation_migration_binding_invalid",
+                "移行対象のcollection bindingを安全に読み取れません",
+            ) from exc
+        current_binding = _collection_binding(context)
+        old_binding = dict(current_binding)
+        old_binding["implementation_sha256"] = old_implementation
+        if binding != old_binding and binding != current_binding:
+            raise DailyOrchestrationError(
+                "implementation_migration_binding_mismatch",
+                "collection bindingのrun・request・source・安全境界が一致しません",
+            )
+
+        receipt_base = {
+            **_migration_receipt_base(
+                context,
+                old_implementation_sha256=old_implementation,
+                new_implementation_sha256=new_implementation,
+            ),
+            "state_normalizations": state_normalizations,
+        }
+        migration_root = context.collection_root / "im"
+        operation_id = _sha256_value(
+            {"from": old_implementation, "to": new_implementation}
+        )[:16]
+        authorization_path = migration_root / f"{operation_id}-a.json"
+        completion_path = migration_root / f"{operation_id}-c.json"
+        _reject_reparse_components(migration_root, label="implementation migration receipt root")
+        migration_root.mkdir(parents=True, exist_ok=True)
+        _reject_reparse_components(migration_root, label="implementation migration receipt root")
+
+        if authorization_path.is_file():
+            authorization = _load_migration_receipt(
+                authorization_path,
+                receipt_base,
+                status="authorized",
+            )
+        else:
+            if os.path.lexists(authorization_path):
+                raise DailyOrchestrationError(
+                    "implementation_migration_receipt_invalid",
+                    "実装移行authorization receiptが通常fileではありません",
+                )
+            if binding == current_binding or observed_state_implementation == new_implementation:
+                raise DailyOrchestrationError(
+                    "implementation_migration_audit_missing",
+                    "移行済みfieldに対応する事前監査receiptがありません",
+                )
+            authorization = {
+                **receipt_base,
+                "status": "authorized",
+                "recorded_at_utc": _utc_now(),
+                "state_sha256_before": _sha256_file(state_path),
+                "binding_sha256_before": _sha256_file(binding_path),
+            }
+            _atomic_json(authorization_path, authorization)
+        authorization_sha256 = _sha256_file(authorization_path)
+
+        if binding == old_binding:
+            _atomic_json(binding_path, current_binding)
+        if observed_state_implementation == old_implementation or legacy_failure:
+            state["implementation_sha256"] = new_implementation
+            _write_state(context, state)
+
+        verified_state = _load_state(context, recover_running=False)
+        _ensure_collection_binding(context, create=False)
+        completion_expected = {
+            **receipt_base,
+            "status": "completed",
+            "authorization_receipt_sha256": authorization_sha256,
+            "state_sha256_after": _sha256_file(state_path),
+            "binding_sha256_after": _sha256_file(binding_path),
+        }
+        if completion_path.is_file():
+            completion = _load_migration_receipt(
+                completion_path,
+                receipt_base,
+                status="completed",
+            )
+            if any(completion.get(key) != value for key, value in completion_expected.items()):
+                raise DailyOrchestrationError(
+                    "implementation_migration_receipt_invalid",
+                    "完了receiptと移行後checkpointが一致しません",
+                )
+        else:
+            if os.path.lexists(completion_path):
+                raise DailyOrchestrationError(
+                    "implementation_migration_receipt_invalid",
+                    "実装移行completion receiptが通常fileではありません",
+                )
+            completion = {**completion_expected, "recorded_at_utc": _utc_now()}
+            _atomic_json(completion_path, completion)
+        return {
+            "status": "complete",
+            "run_id": context.request.run_id,
+            "collection_id": context.collection_id,
+            "from_implementation_sha256": old_implementation,
+            "to_implementation_sha256": new_implementation,
+            "checkpoint_status": verified_state["status"],
+            "authorization_receipt_sha256": authorization_sha256,
+            "completion_receipt_sha256": _sha256_file(completion_path),
+            "state_normalizations": state_normalizations,
+            "sample_executed": False,
+            "network_contacted": False,
+            "automatic_source_deletion": False,
+        }
+
+
 @contextmanager
 def _run_lock(context: DailyContext) -> Iterator[None]:
     """全daily runのrepository／private更新をOS lockで直列化する。"""
@@ -1914,6 +2214,49 @@ def _run_lock(context: DailyContext) -> Iterator[None]:
         os.close(descriptor)
 
 
+def _live_c2_authorization_wait(record: Mapping[str, Any]) -> bool:
+    """通信していない既知の許可待ちだけを、実行失敗と区別する。"""
+
+    result = record.get("result")
+    return (
+        record.get("status") == "partial"
+        and record.get("retryable") is True
+        and record.get("error") is None
+        and isinstance(result, Mapping)
+        and result.get("status") == "targets_built_live_monitoring_deferred"
+        and result.get("network_contacted") is False
+        and result.get("sample_executed") is False
+        and type(result.get("target_count")) is int
+        and result["target_count"] >= 0
+    )
+
+
+def _upstream_in_progress(state: Mapping[str, Any], stage: str) -> bool:
+    """依存成果物が未確定の間は、consumerの試行回数を消費しない。"""
+
+    for name in STAGE_DEPENDENCIES.get(stage, ()):
+        record = state["stages"][name]
+        # 許可待ち中でもオフライン成果物の品質検証は実施する。
+        if stage == "validation" and name == "c2_monitoring" and _live_c2_authorization_wait(record):
+            continue
+        if record["status"] in {"pending", "running", "failed"} or (
+            record["status"] == "partial" and record["retryable"]
+        ):
+            return True
+    return False
+
+
+def _invalidate_derived_stages(state: dict[str, Any], producer: str) -> None:
+    """入力更新前に集約結果を未確定へ戻し、古い完了判定を再利用しない。"""
+
+    for name in ("c2_monitoring", "validation"):
+        if producer not in STAGE_DEPENDENCIES[name]:
+            continue
+        record = state["stages"][name]
+        if record["status"] in {"complete", "partial"}:
+            record.update(status="pending", retryable=True, result={}, error=None)
+
+
 def _execute(context: DailyContext, state: dict[str, Any], actions: DailyActions) -> dict[str, Any]:
     checkpoint_after_failure = False
     for name in STAGES:
@@ -1924,6 +2267,10 @@ def _execute(context: DailyContext, state: dict[str, Any], actions: DailyActions
         if record["status"] in {"complete", "skipped"}:
             continue
         if record["status"] == "partial" and record["retryable"] is False:
+            continue
+        if _upstream_in_progress(state, name):
+            continue
+        if name == "c2_monitoring" and not context.allow_live_c2 and _live_c2_authorization_wait(record):
             continue
         if record["attempts"] >= MAX_STAGE_ATTEMPTS.get(name, MAX_ATTEMPTS):
             record["status"] = "failed"
@@ -1940,6 +2287,7 @@ def _execute(context: DailyContext, state: dict[str, Any], actions: DailyActions
                 checkpoint_after_failure = True
                 continue
             break
+        _invalidate_derived_stages(state, name)
         record["status"] = "running"
         record["attempts"] += 1
         record["error"] = None
@@ -2128,6 +2476,9 @@ def drive_daily(
             )
         )
         cycles = 1
+        visited_progress = {_drive_progress_fingerprint(state)}
+        initial_timeout_queue = _drive_timeout_queue_fingerprint(state)
+        visited_timeout_queues = {initial_timeout_queue} if initial_timeout_queue is not None else set()
         while cycles < max_cycles and state["status"] != "complete":
             remediation = state.get("capacity_remediation")
             if (
@@ -2144,16 +2495,50 @@ def drive_daily(
             )
             if not retryable:
                 break
-            before = _drive_progress_fingerprint(state)
             state = _resume_daily_unlocked(
                 context,
                 actions=actions,
                 capacity_probe=capacity_probe,
             )
             cycles += 1
-            if _drive_progress_fingerprint(state) == before:
+            progress = _drive_progress_fingerprint(state)
+            timeout_queue = _drive_timeout_queue_fingerprint(state)
+            if progress in visited_progress or (
+                timeout_queue is not None and timeout_queue in visited_timeout_queues
+            ):
                 break
+            visited_progress.add(progress)
+            if timeout_queue is not None:
+                visited_timeout_queues.add(timeout_queue)
         return state
+
+
+def _drive_timeout_queue_fingerprint(state: Mapping[str, Any]) -> str | None:
+    """容量・保管時刻の変動と分離して、未進展のtimeout queue一巡を検知する。"""
+
+    record = state.get("stages", {}).get("ghidra", {})
+    result = record.get("result")
+    if not isinstance(result, Mapping) or result.get("stop_reason") != "program_timeout":
+        return None
+    queue_sha256 = result.get("pending_program_order_sha256")
+    inventory_sha256 = result.get("prepared_inventory_sha256")
+    complete = result.get("complete_programs")
+    if (
+        record.get("status") != "partial"
+        or record.get("retryable") is not True
+        or not isinstance(queue_sha256, str)
+        or SHA256_RE.fullmatch(queue_sha256) is None
+        or not isinstance(inventory_sha256, str)
+        or SHA256_RE.fullmatch(inventory_sha256) is None
+        or type(complete) is not int
+        or complete < 0
+    ):
+        return None
+    return _sha256_value({
+        "pending_program_order_sha256": queue_sha256,
+        "complete_programs": complete,
+        "prepared_inventory_sha256": inventory_sha256,
+    })
 
 
 def _drive_progress_fingerprint(state: Mapping[str, Any]) -> str:
@@ -2925,6 +3310,27 @@ def _static_job_result(context: DailyContext, request: Any) -> dict[str, Any]:
     return _static_job_result_for_id(context, request.job_id)
 
 
+def _downstream_static_job(context: DailyContext) -> tuple[str, dict[str, Any]]:
+    """再開時は実装cache keyを再計算せずstate固定jobを後段へ渡す。"""
+
+    if context.state_root.is_dir():
+        state = _load_state(context)
+        static_record = state["stages"]["static_analysis"]
+        recorded_job_id = static_record["result"].get("job_id")
+        if (
+            static_record["status"] not in {"complete", "partial"}
+            or not isinstance(recorded_job_id, str)
+            or analysis_job_runner.JOB_ID_RE.fullmatch(recorded_job_id) is None
+        ):
+            raise DailyOrchestrationError(
+                "static_result_invalid",
+                "後段解析へ引き継ぐstate固定の静的解析job IDが不正です",
+            )
+        return recorded_job_id, _static_job_result_for_id(context, recorded_job_id)
+    request, _identity = _static_request(context)
+    return request.job_id, _static_job_result(context, request)
+
+
 def _production_static_analysis(context: DailyContext) -> StageOutcome:
     request, identity = _static_request(context)
     context.jobs_root.mkdir(parents=True, exist_ok=True)
@@ -3078,15 +3484,14 @@ def _production_ghidra(context: DailyContext) -> StageOutcome:
         os.fspath(context.ghidra_project_store),
     ]
     if context.trusted_tool_configuration is not None:
-        request, _identity = _static_request(context)
-        static_result = _static_job_result(context, request)
+        static_job_id, static_result = _downstream_static_job(context)
         artifacts = static_result.get("artifacts")
         if not isinstance(artifacts, Mapping):
             raise DailyOrchestrationError(
                 "static_result_invalid",
                 "Ghidraへ引き継ぐ静的解析artifact manifestが不正です",
             )
-        job_dir = context.jobs_root / request.job_id
+        job_dir = context.jobs_root / static_job_id
         try:
             trusted_tools = analysis_job_runner.rehydrate_trusted_tool_bundle(
                 job_dir,
@@ -3114,6 +3519,20 @@ def _production_ghidra(context: DailyContext) -> StageOutcome:
     status = result.get("status")
     if status not in {"complete", "ghidra_chunk_pending"}:
         raise DailyOrchestrationError("ghidra_result_invalid", "Ghidra一括解析の状態が不正です")
+    pending_programs = result.get("pending_programs", [])
+    if (
+        not isinstance(pending_programs, list)
+        or any(not isinstance(value, str) or SHA256_RE.fullmatch(value) is None for value in pending_programs)
+        or len(set(pending_programs)) != len(pending_programs)
+        or (status == "complete" and pending_programs)
+    ):
+        raise DailyOrchestrationError("ghidra_result_invalid", "Ghidra未完了programの順序付き一覧が不正です")
+    prepared_inventory_sha256 = result.get("prepared_inventory_sha256")
+    if prepared_inventory_sha256 is not None and (
+        not isinstance(prepared_inventory_sha256, str)
+        or SHA256_RE.fullmatch(prepared_inventory_sha256) is None
+    ):
+        raise DailyOrchestrationError("ghidra_result_invalid", "Ghidra準備済みinventoryのbindingが不正です")
     collection = context.repository / "analysis-results" / "collections" / context.collection_id
     publication_projection: dict[str, Any] = {"status": "collection_not_available"}
     followup: dict[str, Any] = {"status": "collection_not_available"}
@@ -3155,7 +3574,9 @@ def _production_ghidra(context: DailyContext) -> StageOutcome:
             "stop_reason": result.get("stop_reason"),
             "unique_pe_programs": result.get("unique_pe_programs"),
             "complete_programs": result.get("complete_programs"),
-            "pending_program_count": len(result.get("pending_programs", [])),
+            "pending_program_count": len(pending_programs),
+            "pending_program_order_sha256": _sha256_value(pending_programs),
+            "prepared_inventory_sha256": prepared_inventory_sha256,
             "postprocessing_pending": result.get("postprocessing_pending", False),
             "resume_mode": result.get("resume_mode"),
             "disk_space": result.get("disk_space", {}),
@@ -4101,6 +4522,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_context_arguments(drive, request_required=True)
     drive.add_argument("--max-cycles", type=int, default=64)
+    migrate = commands.add_parser(
+        "migrate-run-implementation",
+        help="同一requestの中断checkpointを監査receipt付きで現在の実装へ移行します",
+    )
+    _add_context_arguments(migrate, request_required=True)
+    migrate.add_argument(
+        "--expected-old-implementation-sha256",
+        required=True,
+        help="移行元checkpointへ記録されたimplementation SHA-256 pin",
+    )
     verify = commands.add_parser("verify", help="保存済みstateと実装契約をread-only検証します")
     _add_context_arguments(verify, request_required=True)
     status = commands.add_parser("status", help="保存済み日次stateを表示します")
@@ -4189,7 +4620,12 @@ def main(argv: list[str] | None = None) -> int:
             work_root=args.work_root,
             ghidra_project_store=args.ghidra_project_store,
             allow_live_c2=args.allow_live_c2,
-            create_roots=args.command in {"run", "resume", "drive"},
+            create_roots=args.command in {
+                "run",
+                "resume",
+                "drive",
+                "migrate-run-implementation",
+            },
             trusted_tool_configuration=trusted_tool_configuration,
         )
         if args.command == "plan":
@@ -4220,6 +4656,13 @@ def main(argv: list[str] | None = None) -> int:
             )
             _print_json(state)
             return _exit_code(state["status"])
+        if args.command == "migrate-run-implementation":
+            result = migrate_run_implementation(
+                context,
+                expected_old_implementation_sha256=args.expected_old_implementation_sha256,
+            )
+            _print_json(result)
+            return 0
         result = verify_daily(context)
         _print_json(result)
         return _exit_code(result["status"])

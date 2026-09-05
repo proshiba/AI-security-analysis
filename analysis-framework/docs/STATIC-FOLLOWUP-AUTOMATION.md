@@ -11,7 +11,7 @@
 1. collection、取得manifest、公開summaryのSHA-256集合を一致させます。
 2. canonical case pathをrepository内へ限定し、`artifact_sha256` sealを含むcase整合性と正式C2契約のidentity・安全flagを確認します。sealがないcaseは自動計画へ通しません。
 3. 終端payload未取得、終端family未解決、config未回収、endpoint未回収、protocol未確認、関数解析待ち、再公開待ちを機械可読blockerへ正規化します。
-4. `remediation_registry.py`の閉じたpolicyだけを使い、上限付き静的復元、family判定、handler、config、protocol、関数確認、再公開の順にactionを並べます。
+4. `remediation_registry.py`の閉じたpolicyだけを使い、上限付き静的復元、family判定、handler、config、protocol、関数確認、再公開の順にactionを並べます。同じaction名でも対象phaseまたは再試行条件が異なる場合は別actionへ分離し、各失敗の根拠を保持します。
 5. `--input-root`がある場合は、linkを辿らない深さ8・10,000 entry上限の単一走査で対象全件を索引化し、一意な`<sha256>.zip`だけを選びます。各archiveのsizeと取得時SHA-256を照合し、archiveを展開も実行もしません。入力rootの絶対pathは公開計画へ記録しません。
 6. `STATIC-FOLLOWUP-PLAN.json`を機械可読正本、`STATIC-FOLLOWUP-PLAN.md`を人間向け要約として出力します。
 
@@ -35,15 +35,18 @@ py -3.13 -B .\analysis-framework\common\collection_followup_planner.py --reposit
 
 ## 出力の読み方
 
-- `decision=followup_required`: 登録済み静的actionだけで次へ進められ、取得archiveも検証済みです。
+- `decision=retry_state_verification_required`: 一時的失敗に対応する登録済みactionがあり、取得archiveも検証済みですが、実行stateの再検証が必要です。
 - `decision=source_verification_required`: actionは保持していますが、取得archiveが未確認、不在、不一致、重複または不安全なため自動dispatchを止めています。
 - `decision=changed_evidence_required`: 取得archiveは検証済みですが、残るactionがすべて新しい証拠を要求します。元archiveの再確認だけを証拠変更とみなさず、同じworkflowを自動再実行しません。
 - `decision=manual_review_required`: 未登録blocker、または正式C2契約の非妥当／日次繰越不可findingがあり、自動処理を止めています。
-- `automatic_dispatch_allowed=true`: `decision=followup_required`、取得archiveのsize・SHA-256照合済み、かつ少なくとも1つの登録済みactionが同一workflowで再試行可能な場合だけ設定します。
+- `automatic_dispatch_allowed`: この公開成果物だけのplannerでは常に`false`です。失敗ラベルやarchiveの再確認だけでは、実際の失敗stage、実装の一致、残試行回数を証明できません。
+- `retry_state_verification`: 再試行候補では`analysis_resume_planner.py`で実行stateを照合するために必要な証拠を出力します。正式plannerが検証した失敗envelope、現在のstage fingerprint、workflowとstageの残試行回数に基づいて再開します。
 - `source.status=verified`: 取得時archiveのsizeとSHA-256が一致しています。
 - `source.status=absent`／`*_mismatch`／`unsafe_or_invalid`: 入力を解析器へ渡しません。
 - `minimum_next_action`: 現在の証拠から最初に行う最小の静的手順です。
 - `changed_evidence`: 同じ未完了結果の無限再試行を避けるため、次の試行前に更新が必要な証拠です。
+
+実行stateからの計画には、`analysis_resume_planner.py plan-resume --repository <repository> --input-root <private-input-root> --work-root <private-work-root> --orchestration-id <orchestration-id>`を使います。このread-only検証で`decision.eligible=true`になったworkflowだけを既存runnerへ戻します。`partial`または実装fingerprintが変化したworkflowは、新しいIDを持つsuccessorが必要です。未知blockerや失敗根拠の欠落は、実装が変わっても`manual_review_required`のままとし、新しいIDだけで解除しません。
 
 ## 完了条件
 

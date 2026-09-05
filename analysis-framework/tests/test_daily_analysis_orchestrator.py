@@ -249,6 +249,28 @@ def test_operator_commands_accept_trusted_tool_pair(command: str) -> None:
     assert parsed.trusted_tools_manifest_sha256 == "c" * 64
 
 
+def test_migration_command_requires_explicit_old_implementation_pin() -> None:
+    arguments = [
+        "migrate-run-implementation",
+        "--request",
+        "request.json",
+        "--repository",
+        "repository",
+        "--intelligence-root",
+        "intelligence",
+        "--private-root",
+        "private",
+        "--work-root",
+        "work",
+        "--ghidra-project-store",
+        "ghidra",
+        "--expected-old-implementation-sha256",
+        "d" * 64,
+    ]
+    parsed = target.build_parser().parse_args(arguments)
+    assert parsed.expected_old_implementation_sha256 == "d" * 64
+
+
 def test_trusted_tool_preflight_validates_pin_without_disclosing_paths(
     tmp_path: Path,
 ) -> None:
@@ -713,6 +735,23 @@ def test_production_ghidra_separates_prepared_inputs_from_source(
     assert daily_context.ghidra_sample_root != daily_context.source_root
 
 
+@pytest.mark.parametrize("pending", [None, "a" * 64, [1], ["bad"], ["a" * 64, "a" * 64]])
+def test_production_ghidra_rejects_invalid_pending_queue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, pending: object,
+) -> None:
+    """重複・不正hash・不正型のqueueを進捗証拠へ昇格しない。"""
+
+    import ghidra_function_batch
+
+    daily_context = context(tmp_path)
+    monkeypatch.setattr(ghidra_function_batch, "run", lambda _args: {
+        "status": "ghidra_chunk_pending", "pending_programs": pending,
+    })
+    with pytest.raises(target.DailyOrchestrationError) as observed:
+        target._production_ghidra(daily_context)
+    assert observed.value.code == "ghidra_result_invalid"
+
+
 def test_production_ghidra_reuses_verified_job_private_static_tools(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -763,6 +802,74 @@ def test_production_ghidra_reuses_verified_job_private_static_tools(
     assert arguments.upx is None
     assert arguments.sevenzip == bundle.tools["sevenzip"].path
     assert arguments.sevenzip.name == "sevenzip.exe"
+
+
+def test_production_ghidra_reuses_state_bound_job_after_implementation_change(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ghidra再開もstate固定jobを使い、現在のcache keyへ逸れない。"""
+
+    import ghidra_function_batch
+
+    configuration, _upx, _sevenzip = trusted_tool_configuration(tmp_path)
+    daily_context = context(tmp_path, trusted_tool_configuration=configuration)
+    policy = target._load_context_trusted_tool_policy(daily_context)
+    assert policy is not None
+    recorded_job_id = "recorded-ghidra-job"
+    job_dir = daily_context.jobs_root / recorded_job_id
+    job_dir.mkdir(parents=True)
+    bundle = target.analysis_job_runner.stage_trusted_tool_bundle(policy, job_dir=job_dir)
+    assert bundle is not None
+    result = {
+        "trusted_static_tools": bundle.provenance(),
+        "artifacts": {
+            "trusted_static_tools_manifest": bundle.manifest_relative_path,
+            "trusted_static_tools_manifest_sha256": bundle.manifest_sha256,
+        },
+    }
+    state = target._new_state(daily_context)
+    state["status"] = "partial"
+    state["stages"]["static_analysis"] = {
+        "status": "partial",
+        "attempts": 1,
+        "retryable": False,
+        "result": {"job_id": recorded_job_id},
+        "error": None,
+    }
+    daily_context.state_root.mkdir(parents=True)
+    target._atomic_json(
+        daily_context.state_root / "request.json",
+        daily_context.request.public(),
+    )
+    target._write_state(daily_context, state)
+    verified_job_ids: list[str] = []
+    monkeypatch.setattr(
+        target,
+        "_static_job_result_for_id",
+        lambda _context, job_id: verified_job_ids.append(job_id) or result,
+    )
+    monkeypatch.setattr(
+        target,
+        "_static_request",
+        lambda _context: pytest.fail("現在の実装cache keyからjob IDを再計算してはいけません"),
+    )
+    monkeypatch.setattr(
+        ghidra_function_batch,
+        "run",
+        lambda _arguments: {
+            "status": "complete",
+            "unique_pe_programs": 1,
+            "complete_programs": 1,
+            "pending_programs": [],
+        },
+    )
+
+    outcome = target._production_ghidra(daily_context)
+
+    assert outcome.status == "complete"
+    assert verified_job_ids
+    assert set(verified_job_ids) == {recorded_job_id}
 
 
 def test_production_ghidra_generates_static_followup_plan(
@@ -934,12 +1041,16 @@ def test_run_and_resume_retries_only_retryable_partial_stages(tmp_path: Path) ->
     assert first["capacity_remediation"]["required_recovery_bytes"] == 768
     assert first["capacity_remediation"]["automatic_source_deletion"] is False
     assert first["safety"]["automatic_source_deletion"] is False
+    assert first["stages"]["c2_monitoring"]["attempts"] == 0
+    assert first["stages"]["validation"]["attempts"] == 0
 
     resumed = target.resume_daily(
         daily_context,
         actions=fake_actions,
         capacity_probe=ready_capacity,
     )
+    assert resumed["status"] == "partial"
+    resumed = target.resume_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
     assert resumed["status"] == "complete"
     assert calls["ghidra"] == 2
     assert calls["validation"] == 2
@@ -1369,8 +1480,178 @@ def test_drive_stops_when_retryable_partial_has_no_semantic_progress(
     assert calls["ghidra"] == 2
 
 
+def test_drive_follows_timeout_queue_order_to_unattempted_program(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """完了数ゼロのchunkが続いてもqueue前進を保持して正常programへ到達する。"""
+
+    import ghidra_function_batch
+
+    daily_context = context(tmp_path)
+    a, b, c = (letter * 64 for letter in "abc")
+    responses = iter([
+        {"status": "ghidra_chunk_pending", "stop_reason": "program_timeout",
+         "complete_programs": 0, "pending_programs": [b, c, a]},
+        {"status": "ghidra_chunk_pending", "stop_reason": "program_timeout",
+         "complete_programs": 0, "pending_programs": [c, a, b]},
+        {"status": "ghidra_chunk_pending", "stop_reason": "program_timeout",
+         "complete_programs": 1, "pending_programs": [a, b]},
+        {"status": "complete", "complete_programs": 3, "pending_programs": []},
+    ])
+    observed_digests = []
+    monkeypatch.setattr(ghidra_function_batch, "run", lambda _args: {
+        "unique_pe_programs": 3, "prepared_inventory_sha256": "d" * 64, **next(responses),
+    })
+
+    def ghidra(_attempt: int) -> target.StageOutcome:
+        outcome = target._production_ghidra(daily_context)
+        observed_digests.append(outcome.result["pending_program_order_sha256"])
+        return outcome
+
+    fake_actions, calls = actions({"ghidra": ghidra})
+    state = target.drive_daily(daily_context, actions=fake_actions, max_cycles=10, capacity_probe=ready_capacity)
+    assert state["status"] == "complete"
+    assert calls["ghidra"] == 4
+    assert calls["c2_monitoring"] == 1
+    assert observed_digests[:2] == [target._sha256_value([b, c, a]), target._sha256_value([c, a, b])]
+
+
+def test_drive_stops_timeout_queue_cycle_despite_changing_disk_and_archive(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """queue A→B→Aの一巡は周辺metadataが変わっても同じ完了数なら停止する。"""
+
+    import ghidra_function_batch
+
+    daily_context = context(tmp_path)
+    a, b = "a" * 64, "b" * 64
+    orders = [[a, b], [b, a], [a, b]]
+    observed = []
+
+    def run_ghidra(_args: object) -> dict:
+        index = len(observed)
+        queue = orders[index]
+        observed.append(queue)
+        return {
+            "status": "ghidra_chunk_pending", "stop_reason": "program_timeout",
+            "unique_pe_programs": 2, "complete_programs": 0, "pending_programs": queue,
+            "prepared_inventory_sha256": "d" * 64, "disk_space": {"free_bytes": 1000 - index},
+        }
+
+    monkeypatch.setattr(ghidra_function_batch, "run", run_ghidra)
+    fake_actions, calls = actions({
+        "ghidra": lambda _attempt: target._production_ghidra(daily_context),
+        "private_archive": lambda attempt: target.StageOutcome("partial", {"checkpoint": attempt}, retryable=True),
+    })
+    state = target.drive_daily(daily_context, actions=fake_actions, max_cycles=10, capacity_probe=ready_capacity)
+    assert state["status"] == "partial"
+    assert calls["ghidra"] == 3
+    assert calls["private_archive"] == 3
+    assert calls["c2_monitoring"] == 0
+    assert state["stages"]["ghidra"]["retryable"] is True
+    assert observed == orders
+
+
+def test_drive_stops_nonadjacent_semantic_cycle(tmp_path: Path) -> None:
+    """隣接状態が違っても既訪問の解析状態へ戻る循環は停止する。"""
+
+    daily_context = context(tmp_path)
+    fake_actions, calls = actions({
+        "ghidra": lambda attempt: target.StageOutcome(
+            "partial", {"status": "ghidra_chunk_pending", "phase": attempt % 2}, retryable=True,
+        ),
+    })
+    state = target.drive_daily(daily_context, actions=fake_actions, max_cycles=10, capacity_probe=ready_capacity)
+    assert state["status"] == "partial"
+    assert calls["ghidra"] == 3
+
+
 def test_private_archive_attempt_budget_covers_ghidra_chunks() -> None:
     assert target.MAX_STAGE_ATTEMPTS["private_archive"] == target.MAX_STAGE_ATTEMPTS["ghidra"]
+
+
+def test_many_ghidra_chunks_do_not_exhaust_c2_authorization_wait(tmp_path: Path) -> None:
+    daily_context = context(tmp_path)
+
+    def ghidra(attempt: int) -> target.StageOutcome:
+        if attempt <= target.MAX_ATTEMPTS + 2:
+            return target.StageOutcome(
+                "partial", {"status": "ghidra_chunk_pending", "complete_programs": attempt}, retryable=True
+            )
+        return target.StageOutcome("complete", {"status": "complete"})
+
+    deferred = target.StageOutcome(
+        "partial",
+        {"status": "targets_built_live_monitoring_deferred", "target_count": 3,
+         "network_contacted": False, "sample_executed": False},
+        retryable=True,
+    )
+    fake_actions, calls = actions({"ghidra": ghidra, "c2_monitoring": deferred})
+    state = target.drive_daily(daily_context, actions=fake_actions, max_cycles=20, capacity_probe=ready_capacity)
+    assert state["status"] == "partial"
+    assert calls["ghidra"] == target.MAX_ATTEMPTS + 3
+    assert calls["c2_monitoring"] == 1
+    assert calls["validation"] == 1
+    for _ in range(target.MAX_ATTEMPTS + 2):
+        state = target.resume_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
+    assert state["stages"]["c2_monitoring"]["attempts"] == 1
+    assert state["stages"]["c2_monitoring"]["error"] is None
+
+
+def test_authorized_c2_resume_revalidates_previously_partial_quality(tmp_path: Path) -> None:
+    daily_context = context(tmp_path)
+
+    def c2(attempt: int) -> target.StageOutcome:
+        if attempt == 1:
+            return target.StageOutcome(
+                "partial",
+                {"status": "targets_built_live_monitoring_deferred", "target_count": 1,
+                 "network_contacted": False, "sample_executed": False},
+                retryable=True,
+            )
+        return target.StageOutcome("complete", {"status": "completed"})
+
+    def validation(attempt: int) -> target.StageOutcome:
+        return target.StageOutcome("partial", {"complete": False}) if attempt == 1 else target.StageOutcome(
+            "complete", {"complete": True}
+        )
+
+    fake_actions, calls = actions({"c2_monitoring": c2, "validation": validation})
+    initial = target.run_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
+    assert initial["stages"]["validation"]["retryable"] is False
+    resumed = target.resume_daily(
+        replace(daily_context, allow_live_c2=True), actions=fake_actions, capacity_probe=ready_capacity
+    )
+    assert resumed["status"] == "complete"
+    assert calls["c2_monitoring"] == 2
+    assert calls["validation"] == 2
+
+
+def test_pending_acquisition_does_not_start_static_consumers(tmp_path: Path) -> None:
+    daily_context = context(tmp_path)
+    fake_actions, calls = actions({
+        "malwarebazaar_acquisition": target.StageOutcome("partial", {"pending": 1}, retryable=True)
+    })
+    state = target.run_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
+    for name in ("static_analysis", "publication", "ghidra", "c2_monitoring", "validation"):
+        assert calls[name] == 0
+        assert state["stages"][name]["attempts"] == 0
+    assert calls["news_intake"] == 1
+    assert calls["private_archive"] == 1
+
+
+def test_unrecognized_c2_partial_keeps_normal_retry_budget(tmp_path: Path) -> None:
+    daily_context = context(tmp_path)
+    fake_actions, calls = actions({
+        "c2_monitoring": target.StageOutcome(
+            "partial", {"status": "targets_built_live_monitoring_deferred", "network_contacted": True},
+            retryable=True,
+        )
+    })
+    target.run_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
+    target.resume_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
+    assert calls["c2_monitoring"] == 2
+    assert calls["validation"] == 0
 
 
 def test_archive_capacity_partial_becomes_resume_remediation() -> None:
@@ -1471,6 +1752,198 @@ def test_collection_binding_tamper_cannot_be_adopted(tmp_path: Path) -> None:
     with pytest.raises(target.DailyOrchestrationError) as captured:
         target._ensure_collection_binding(daily_context, create=False)
     assert captured.value.code == "collection_owned_by_other_run"
+
+
+def test_interrupted_run_implementation_migration_is_audited_and_idempotent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    daily_context = context(tmp_path)
+    old_implementation = "1" * 64
+    new_implementation = "2" * 64
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: old_implementation)
+    fake_actions, _calls = actions(
+        {
+            "ghidra": target.StageOutcome(
+                "partial",
+                {"stop_reason": "max_new_programs_reached"},
+                retryable=True,
+            )
+        }
+    )
+    target.run_daily(
+        daily_context,
+        actions=fake_actions,
+        capacity_probe=ready_capacity,
+    )
+
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: new_implementation)
+    migrated = target.migrate_run_implementation(
+        daily_context,
+        expected_old_implementation_sha256=old_implementation,
+    )
+    repeated = target.migrate_run_implementation(
+        daily_context,
+        expected_old_implementation_sha256=old_implementation,
+    )
+
+    state = json.loads((daily_context.state_root / "state.json").read_text(encoding="utf-8"))
+    binding = json.loads(
+        (daily_context.collection_root / "collection-binding.json").read_text(encoding="utf-8")
+    )
+    receipt_root = daily_context.collection_root / "im"
+    receipts = sorted(receipt_root.glob("*.json"))
+    assert migrated["status"] == "complete"
+    assert migrated["network_contacted"] is False
+    assert repeated == migrated
+    assert state["implementation_sha256"] == new_implementation
+    assert binding["implementation_sha256"] == new_implementation
+    assert len(receipts) == 2
+    assert {json.loads(path.read_text(encoding="utf-8"))["status"] for path in receipts} == {
+        "authorized",
+        "completed",
+    }
+
+
+def test_run_implementation_migration_rejects_wrong_old_pin(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    daily_context = context(tmp_path)
+    old_implementation = "3" * 64
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: old_implementation)
+    fake_actions, _calls = actions(
+        {"ghidra": target.StageOutcome("partial", {}, retryable=True)}
+    )
+    target.run_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: "4" * 64)
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.migrate_run_implementation(
+            daily_context,
+            expected_old_implementation_sha256="5" * 64,
+        )
+    assert captured.value.code == "implementation_migration_source_mismatch"
+    assert not (daily_context.collection_root / "im").exists()
+
+
+def test_run_implementation_migration_normalizes_only_legacy_deferred_c2_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    daily_context = context(tmp_path)
+    old_implementation = "b" * 64
+    new_implementation = "c" * 64
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: old_implementation)
+    fake_actions, _calls = actions(
+        {
+            "c2_monitoring": target.StageOutcome(
+                "partial",
+                {
+                    "status": "targets_built_live_monitoring_deferred",
+                    "target_count": 7,
+                    "network_contacted": False,
+                    "sample_executed": False,
+                },
+                retryable=True,
+            )
+        }
+    )
+    target.run_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
+    state_path = daily_context.state_root / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["status"] = "failed"
+    state["stages"]["c2_monitoring"].update(
+        {
+            "status": "failed",
+            "attempts": target.MAX_ATTEMPTS,
+            "retryable": True,
+            "error": {
+                "code": "maximum_attempts_exceeded",
+                "message": "stageの最大試行回数を超えました",
+            },
+        }
+    )
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: new_implementation)
+
+    migrated = target.migrate_run_implementation(
+        daily_context,
+        expected_old_implementation_sha256=old_implementation,
+    )
+    repeated = target.migrate_run_implementation(
+        daily_context,
+        expected_old_implementation_sha256=old_implementation,
+    )
+
+    normalized = json.loads(state_path.read_text(encoding="utf-8"))
+    c2_record = normalized["stages"]["c2_monitoring"]
+    assert repeated == migrated
+    assert migrated["state_normalizations"] == [
+        "legacy_deferred_c2_attempt_exhaustion_to_retryable_partial"
+    ]
+    assert normalized["status"] == "partial"
+    assert c2_record["status"] == "partial"
+    assert c2_record["attempts"] == 0
+    assert c2_record["retryable"] is True
+    assert c2_record["error"] is None
+    assert c2_record["result"]["network_contacted"] is False
+
+
+def test_run_implementation_migration_rejects_nonimplementation_binding_change(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    daily_context = context(tmp_path)
+    old_implementation = "6" * 64
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: old_implementation)
+    fake_actions, _calls = actions(
+        {"ghidra": target.StageOutcome("partial", {}, retryable=True)}
+    )
+    target.run_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
+    binding_path = daily_context.collection_root / "collection-binding.json"
+    binding = json.loads(binding_path.read_text(encoding="utf-8"))
+    binding["source_manifest_sha256"] = "7" * 64
+    binding_path.write_text(json.dumps(binding), encoding="utf-8")
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: "8" * 64)
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.migrate_run_implementation(
+            daily_context,
+            expected_old_implementation_sha256=old_implementation,
+        )
+    assert captured.value.code == "implementation_migration_binding_mismatch"
+    assert not (daily_context.collection_root / "im").exists()
+
+
+def test_run_implementation_migration_rejects_current_fields_without_audit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    daily_context = context(tmp_path)
+    old_implementation = "9" * 64
+    new_implementation = "a" * 64
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: old_implementation)
+    fake_actions, _calls = actions(
+        {"ghidra": target.StageOutcome("partial", {}, retryable=True)}
+    )
+    target.run_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
+    state_path = daily_context.state_root / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["implementation_sha256"] = new_implementation
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    binding_path = daily_context.collection_root / "collection-binding.json"
+    binding = json.loads(binding_path.read_text(encoding="utf-8"))
+    binding["implementation_sha256"] = new_implementation
+    binding_path.write_text(json.dumps(binding), encoding="utf-8")
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: new_implementation)
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.migrate_run_implementation(
+            daily_context,
+            expected_old_implementation_sha256=old_implementation,
+        )
+    assert captured.value.code == "implementation_migration_audit_missing"
 
 
 def test_acquisition_tree_rejects_unbound_entry_and_child_reparse(
@@ -2525,3 +2998,30 @@ def test_preflight_rejects_missing_download_credential_before_network(
     monkeypatch.setenv("MALWAREBAZAAR_AUTH_KEY", "fixture-key")
     ready = target.build_preflight_report(daily_context)
     assert ready["ready"] is True
+
+
+def test_preflight_allows_live_c2_to_be_deferred_without_blocking_static_lanes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    document = request_document()
+    document["network"]["c2_monitoring"] = True
+    daily_context = context(tmp_path, document)
+    monkeypatch.setattr(
+        target,
+        "build_capacity_preflight",
+        lambda _context, _state=None: {
+            "ready": True,
+            "network_contacted": False,
+            "filesystems": [],
+            "required_recovery_bytes": 0,
+        },
+    )
+
+    report = target.build_preflight_report(daily_context)
+
+    assert report["ready"] is True
+    assert report["authorization"]["ready"] is True
+    assert report["authorization"]["live_c2_required"] is True
+    assert report["authorization"]["live_c2_authorized_for_invocation"] is False
+    assert report["authorization"]["live_c2_deferred_for_invocation"] is True

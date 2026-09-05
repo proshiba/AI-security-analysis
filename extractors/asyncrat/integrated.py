@@ -95,25 +95,45 @@ def _managed_structure(data: bytes) -> dict[str, object]:
     if not data.startswith(b"MZ") or b"BSJB" not in data or len(data) > MAX_INPUT_BYTES:
         raise ValueError("上限内のmanaged PEではありません")
     pe = dnfile.dnPE(data=data)
-    if pe.net is None or pe.net.mdtables is None:
-        raise ValueError("CLR metadataがありません")
+    return _structure_from_metadata(pe)
+
+
+def _structure_from_metadata(pe: object) -> dict[str, object]:
+    try:
+        tables = pe.net.mdtables
+        required_tables = (("TypeDef", tables.TypeDef), ("MethodDef", tables.MethodDef), ("Field", tables.Field))
+    except AttributeError as error:
+        raise ValueError("CLRの必須tableが欠落しています") from error
+    table_rows = {}
+    for name, table in required_tables:
+        rows = None if table is None else table.rows
+        if rows is None or not 1 <= len(rows) <= MAX_METHODS:
+            raise ValueError("CLRの必須tableが欠落または上限外です")
+        table_rows[name] = rows
+
+    def names_for(references: object, table: str) -> frozenset[str]:
+        rows = table_rows[table]
+        if not isinstance(references, (list, tuple)) or len(references) > len(rows):
+            raise ValueError("CLR tableの参照一覧が不正です")
+        names = set()
+        for reference in references:
+            index = reference.row_index
+            if not isinstance(index, int) or isinstance(index, bool) or not 1 <= index <= len(rows):
+                raise ValueError("CLR tableの参照indexが範囲外です")
+            names.add(str(rows[index - 1].Name))
+        return frozenset(names)
+
     observed_methods: dict[str, frozenset[str]] = {}
     settings_fields: frozenset[str] = frozenset()
-    for row in pe.net.mdtables.TypeDef.rows:
+    for row in table_rows["TypeDef"]:
         owner = ".".join(
             value for value in (str(row.TypeNamespace), str(row.TypeName)) if value
         )
         if owner not in _REQUIRED_METHODS:
             continue
-        observed_methods[owner] = frozenset(
-            str(pe.net.mdtables.MethodDef.rows[item.row_index - 1].Name)
-            for item in row.MethodList
-        )
+        observed_methods[owner] = names_for(row.MethodList, "MethodDef")
         if owner == "Client.Settings":
-            settings_fields = frozenset(
-                str(pe.net.mdtables.Field.rows[item.row_index - 1].Name)
-                for item in row.FieldList
-            )
+            settings_fields = names_for(row.FieldList, "Field")
     missing_types = sorted(_REQUIRED_METHODS.keys() - observed_methods.keys())
     missing_methods = {
         owner: sorted(required - observed_methods.get(owner, frozenset()))
@@ -138,7 +158,11 @@ def structural_evidence(data: bytes) -> dict[str, object]:
     protocol_complete = _PROTOCOL.issubset(strings)
     try:
         structure = _managed_structure(data)
-    except (OSError, TypeError, ValueError):
+        metadata_status = "parsed"
+        metadata_error_type = None
+    except (OSError, TypeError, ValueError, AttributeError, IndexError) as error:
+        metadata_status = "unavailable_or_invalid"
+        metadata_error_type = type(error).__name__
         structure = {
             "settings_fields": [],
             "settings_fields_complete": False,
@@ -152,6 +176,8 @@ def structural_evidence(data: bytes) -> dict[str, object]:
         and structure["methods_complete"] is True
         and protocol_complete,
         "managed_pe": managed_pe,
+        "metadata_status": metadata_status,
+        "metadata_error_type": metadata_error_type,
         **structure,
         "protocol_fields": protocol,
         "protocol_fields_complete": protocol_complete,

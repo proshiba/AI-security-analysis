@@ -644,6 +644,50 @@ def test_validation_artifact_cannot_escape_its_object(tmp_path: Path) -> None:
         _stage(fixture, cases=[selected])
 
 
+def test_missing_decompilation_file_is_allowed_when_no_characteristic_function_was_selected(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    selected = fixture["cases"][0]
+    validation_path = fixture["ghidra"] / "private-artifact-validation.json"
+    validation = json.loads(validation_path.read_text(encoding="utf-8"))
+    program = next(item for item in validation["programs"] if item["sha256"] == selected)
+    program["native_function_count"] = 5
+    validation["totals"]["native_functions"] = 5
+    validation["totals"]["functions_items"] = 5
+    _json(validation_path, validation)
+    decompilations = fixture["ghidra"] / "objects" / selected / "decompilations.raw.jsonl"
+    decompilations.unlink()
+
+    staged = _stage(fixture, cases=[selected])
+
+    source = Path(staged["cases"][0]["source_path"])
+    derived = json.loads(
+        (source / "derived" / "private-artifact-validation.case.json").read_text(encoding="utf-8")
+    )
+    assert derived["programs"][0]["artifacts"]["decompilations"] is None
+
+
+def test_missing_decompilation_file_is_rejected_when_characteristic_function_was_selected(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    selected = fixture["cases"][0]
+    validation_path = fixture["ghidra"] / "private-artifact-validation.json"
+    validation = json.loads(validation_path.read_text(encoding="utf-8"))
+    program = next(item for item in validation["programs"] if item["sha256"] == selected)
+    program["native_function_count"] = 5
+    program["characteristic_native_decompilation_count"] = 1
+    validation["totals"]["native_functions"] = 5
+    validation["totals"]["functions_items"] = 5
+    validation["totals"]["characteristic_native_decompilations"] = 1
+    _json(validation_path, validation)
+    (fixture["ghidra"] / "objects" / selected / "decompilations.raw.jsonl").unlink()
+
+    with pytest.raises(target.CaseStagingError, match="必須artifact"):
+        _stage(fixture, cases=[selected])
+
+
 def test_output_inside_repository_is_rejected(tmp_path: Path) -> None:
     fixture = _fixture(tmp_path)
 

@@ -147,6 +147,8 @@ completionが`partial`のworkflowは`same_workflow_resume_allowed=false`で保�
 
 容量不足時は完了済み成果物を保持し、`ghidra_chunk_pending`としてatomicな`run-progress.json`を保存して停止します。checkpointはcollection ID、準備済みinventory、program件数、`pending_programs`、`postprocessing_pending`、固定安全値を検証し、実local pathは記録しません。準備済みcheckpointは`prepared_inventory_sha256`で`input-relationships.json`の正確なbytesへ束縛します。inventoryとPE cacheは上限付き単一handle snapshotで読み、reparse point、hardlink、identity／size／時刻／SHA-256の不一致を拒否します。同じcommandを再実行すると検証済みの準備済みinputを自動利用し、program解析後のcheckpointからは`postprocessing_only`としてprogramを再実行せず後処理を再開します。checkpointがない既存cacheを利用するときだけ`--reuse-prepared-inputs`を明示します。symlink、junction、reparse point、directory identityの途中変更、schema不一致は再開へ使用せずfail-closedにします。CLIは全工程完了時だけ終了code`0`を返し、`ghidra_chunk_pending`では再実行可能な未完了を示す`20`を返します。詳細なcommandと成果物契約は[静的関数ロジックとコード類似性](STATIC-LOGIC-AND-CODE-SIMILARITY.md)を参照してください。
 
+auto-analysis待機またはMCP通信のtimeoutは、`program_timeout`としてpending checkpointを直ちに保存し、他programを継続します。timeoutもchunkの試行上限へ算入し、次回は前回未試行のprogramを先に処理します。privateの`program-timeouts.raw.jsonl`には固定理由・時刻・検体とinventoryのSHA-256を残し、例外本文は含めません。待機pollの通信timeoutとsleepは残時間以下へ縮めますが、HTTP応答全体の厳密な実時間遮断とは区別します。整合性違反などtimeout以外の失敗は停止し、保留programは完了へ昇格しません。日次入口の依存待ちと再検証は[日次解析オーケストレータ](DAILY-ANALYSIS-ORCHESTRATOR.md)を参照してください。
+
 ## Ghidra関数解析後の品質ゲート再整合
 
 `ghidra_function_batch.py`がcaseの関数解析をfinalizeするときは、代表関数解析成果物を独立validatorで検証した後、既存`orchestration.json`の`function_analysis` gateだけを自動再整合します。gateが`required_missing`で検証済み関数解析が揃った場合は`required_missing`から`satisfied`へ変更し、対応する`function_analysis` blockerと同じ位置のnext actionだけを除去して、残余blockerからorchestration状態を再計算します。
@@ -228,6 +230,12 @@ runner経由のfull analyzerだけでなく、`analyze_sample.py`のdirect CLI�
 
 これらはprocess／memory／子孫寿命の防御層であって、敵対的コードに対するkernel sandboxではありません。Windowsではprocess生成後にJob Objectへ割り当てるまでの短いraceがあり、POSIXでは子processが`setsid`等で別sessionへ移るとprocess group終了から逃れる余地があります。runnerの出力100,000 entry・合計1 GiB・空き256 MiB監視もjob単位かつ0.5秒間隔であり、同時jobを含む`jobs-root`全体のglobal quotaではありません。Windowsの`chmod`だけではPOSIX modeと同じACL保証にならないため、job-private一時領域とtool snapshotのservice account分離はdeployment側ACLでも強制します。本番配備では、専用低権限service account、検体snapshotとjob root以外を拒否するACL、OSのoutbound deny、同時実行数とglobal filesystem quota、Windowsのより強い起動brokerまたはcontainer／VM、POSIXのcontainer／cgroupを別境界として併用します。
 
+## 欠落・破損metadataの取り扱い
+
+PureHVNC／PureRATのmanaged設定抽出は、CLRの`#US` heapが存在することと、heapおよび各文字列が入力範囲内であることを確認します。欠落・範囲不正・設定不適合は`config_recovery_status`へ固定理由を残し、設定回収やfamily確定の成功とは区別します。AsyncRATの構造検出も、必須metadata tableの存在、件数、参照indexを検証し、不正な場合は`metadata_status`と例外の型だけを残します。例外本文やraw検体断片は公開しません。
+
+credential phishing HTML検出器はHTML外形を持つ入力だけをHTML parserへ渡し、不正構文の解析失敗は`parse_error`へ記録して未一致とします。これによりPE内部の偶然のHTML風byte列で検出処理が停止することを防ぎます。これらは他の検出器が解析を続けられるようにする改善であり、欠落metadataの復元や終端payload解析完了を意味しません。変更後もhandler依存監査と無害なruntime probeを再実行し、安全監査を緩めず自動routing可能であることを確認します。
+
 ## handler追加の完了条件
 
 既知familyの自動対応を追加するときは、次を同じ変更で行います。
@@ -267,4 +275,4 @@ python .\analysis-framework\common\automation_coverage.py `
 
 数値は「family名が登録されているか」ではなく、detector、自動handler、安全preflight、入力形式、候補検証の各状態を確認して解釈します。これは実装構造と無害なprobeによるpreflightのカバレッジであり、実検体を使った解析完了率、config／C2抽出成功率、終端payload到達率、誤検知率を測定した値ではありません。
 
-2026-09-03時点の生成結果では、登録88 familyのうち78 family（88.64%）がdetector・AST監査・検体なしruntime import確認済みhandler・品質policyを備えた自動routing構造を持ちます。handlerは宣言98件、AST監査通過98件、runtime import確認済み98件で、自動handlerの停止は0件です。候補検証専用は8 family、detectorと自動handlerのないfamilyは2件です。代表fixtureまたは実検体で自動解析完了を実証済みとして集計したfamilyは0件であり、この構造値は各検体のconfig／C2抽出、終端payload到達、品質gate通過を保証しません。正本は[自動解析カバレッジ](../../analysis-results/catalog/AUTOMATION-COVERAGE.md)です。
+2026-09-05時点の生成結果では、登録89 familyのうち79 family（88.76%）がdetector・AST監査・検体なしruntime import確認済みhandler・品質policyを備えた自動routing構造を持ちます。handlerは宣言99件、AST監査通過99件、runtime import確認済み99件で、自動handlerの停止は0件です。候補検証専用は8 family、detectorと自動handlerのないfamilyは2件です。代表fixtureまたは実検体で自動解析完了を実証済みとして集計したfamilyは0件であり、この構造値は各検体のconfig／C2抽出、終端payload到達、品質gate通過を保証しません。正本は[自動解析カバレッジ](../../analysis-results/catalog/AUTOMATION-COVERAGE.md)です。

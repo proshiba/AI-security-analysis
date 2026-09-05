@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 import sys
 from pathlib import Path
@@ -13,7 +14,7 @@ COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import collection_followup_planner as planner
+planner = importlib.import_module("collection_followup_planner")
 
 
 def _sha(character: str) -> str:
@@ -256,10 +257,10 @@ def test_build_plan_excludes_complete_and_orders_static_followup(tmp_path: Path)
     assert first["execution_policy"]["network_contact_allowed"] is False
 
 
-def test_verified_source_allows_dispatch_only_for_retryable_workflow_failure(
+def test_verified_source_still_requires_runtime_state_for_retryable_label(
     tmp_path: Path,
 ) -> None:
-    """同一workflowで再試行可能な失敗がある場合だけ自動dispatchを許可する。"""
+    """検証済みarchiveと失敗ラベルだけでは残試行回数を証明できない。"""
 
     repository, collection, input_root, digests = _fixture(tmp_path)
     report_path = repository / "analysis-results" / "cases" / digests["pending"] / "report.json"
@@ -269,11 +270,54 @@ def test_verified_source_allows_dispatch_only_for_retryable_workflow_failure(
 
     case = planner.build_plan(repository, collection, input_root=input_root)["cases"][0]
 
-    assert case["decision"] == "followup_required"
-    assert case["automatic_dispatch_allowed"] is True
+    assert case["decision"] == "retry_state_verification_required"
+    assert case["automatic_dispatch_allowed"] is False
     assert case["minimum_next_action"] == "resume_workflow"
+    assert case["retry_state_verification"] == {
+        "required": True,
+        "status": "not_verified",
+        "validator": "analysis_resume_planner.py",
+        "required_evidence": [
+            "bound_failed_stage_envelope",
+            "current_stage_fingerprint",
+            "remaining_workflow_and_stage_attempts",
+        ],
+    }
     retryable = [action for action in case["actions"] if action["same_workflow_retryable"]]
     assert [action["action_id"] for action in retryable] == ["resume_workflow"]
+
+
+def test_retry_actions_keep_distinct_phase_and_failure_reason() -> None:
+    """同じresume actionでも異なる失敗phaseを取り違えない。"""
+
+    blockers = ["publication_failed", "static_analysis_failed", "workflow_execution_failed"]
+    actions, unknown = planner._actions(blockers)
+    reverse, _ = planner._actions(reversed(blockers))
+
+    assert unknown == []
+    assert actions == reverse
+    assert len(actions) == 3
+    assert {action["target_phase"]: action["reason_codes"] for action in actions} == {
+        None: ["workflow_execution_failed"],
+        "publication": ["publication_failed"],
+        "static_analysis": ["static_analysis_failed"],
+    }
+    assert all(action["same_workflow_retryable"] is True for action in actions)
+
+
+def test_same_action_and_phase_still_coalesces_reasons() -> None:
+    """同じphaseの終端復元は重複実行せず、根拠だけを全件保持する。"""
+
+    blockers = ["root_to_terminal_byte_derivation_incomplete", "terminal_payload_not_recovered"]
+    actions, unknown = planner._actions(blockers)
+
+    assert unknown == []
+    assert len(actions) == 1
+    assert actions[0]["reason_codes"] == sorted(blockers)
+    assert actions[0]["changed_evidence"] == [
+        "root_to_terminal_lineage_sha256",
+        "terminal_payload_evidence_sha256",
+    ]
 
 
 def test_explicit_selection_and_sync_do_not_publish_private_path(tmp_path: Path) -> None:

@@ -137,7 +137,7 @@ def _validate_infrastructure_handoff(
             findings,
             "daily_infrastructure_handoff_binding",
             path,
-            "infrastructure handoffの日付、mode、C2監視参照が一致しません。",
+            "infrastructure handoffの日付、mode、C2監視handoff参照が一致しません。",
         )
     if any(
         document.get(key) is not False

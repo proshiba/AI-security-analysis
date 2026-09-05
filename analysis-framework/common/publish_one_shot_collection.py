@@ -1229,7 +1229,7 @@ def _refresh_legacy_vidar_structural_network_labels(
         verified_only=False,
     )
 
-    def without_legacy_label(value: Any, label: str) -> dict[str, Any]:
+    def without_legacy_label(value: Any, label: str) -> tuple[dict[str, Any], bool]:
         if not isinstance(value, dict):
             raise ValueError(f"Vidar旧成果物の{label}がobjectではありません")
         endpoints = value.get("network_endpoints")
@@ -1243,17 +1243,21 @@ def _refresh_legacy_vidar_structural_network_labels(
                 handler_id=handler_ids[0],
             )
         ]
-        if len(kept) == len(endpoints):
-            raise ValueError(f"Vidar旧成果物の{label}にexact structural labelがありません")
-        return {**value, "network_endpoints": kept}
+        return {**value, "network_endpoints": kept}, len(kept) != len(endpoints)
 
-    old_outputs = without_legacy_label(outcome.get("outputs"), "outputs")
-    old_candidates = without_legacy_label(
+    old_outputs, outputs_refreshed = without_legacy_label(outcome.get("outputs"), "outputs")
+    old_candidates, candidates_refreshed = without_legacy_label(
         outcome.get("candidate_outputs"),
         "candidate_outputs",
     )
     if old_outputs != refreshed or old_candidates != refreshed_candidates:
         raise ValueError("Vidar旧成果物はstructural label以外にも差分があります")
+    if not outputs_refreshed and not candidates_refreshed:
+        # 現行集計器が既に生成した成果も同じpublication経路を通る。
+        # 期待値と完全一致する場合は、互換変換済みとして冪等に扱う。
+        return False
+    if not outputs_refreshed or not candidates_refreshed:
+        raise ValueError("Vidar旧成果物のstructural labelがoutputs間で一致しません")
     outcome["outputs"] = refreshed
     outcome["candidate_outputs"] = refreshed_candidates
     return True
@@ -1453,6 +1457,25 @@ def _remove_owned_partial_staging(container: Path, *, destination: Path) -> None
         if not (stat.S_ISREG(metadata.st_mode) or stat.S_ISDIR(metadata.st_mode)):
             raise ValueError("partial case stagingに未許可entryがあります")
     shutil.rmtree(container)
+
+
+def _cleanup_current_process_collection_staging(repository: Path, collection_id: str) -> None:
+    """現在processが作成した未journal化collection stagingだけを回収する。"""
+
+    destination = repository / "analysis-results" / "collections" / collection_id
+    parent = destination.parent
+    if not parent.is_dir():
+        return
+    prefix = (
+        f".casepub-{_publication_case_name_key(destination)}."
+        f"{os.getpid():x}-"
+    )
+    for container in tuple(parent.iterdir()):
+        if container.name.startswith(prefix) and container.name.endswith(".staging"):
+            _remove_owned_partial_staging(
+                _publication_io_path(container),
+                destination=destination,
+            )
 
 
 def _recover_case_publication(destination: Path) -> str | None:
@@ -2506,6 +2529,7 @@ def publish(
             for snapshot in snapshots:
                 if snapshot.exists():
                     _set_snapshot_tree_read_only(snapshot, read_only=False)
+            _cleanup_current_process_collection_staging(repository, collection_id)
 
 
 class JapaneseArgumentParser(argparse.ArgumentParser):

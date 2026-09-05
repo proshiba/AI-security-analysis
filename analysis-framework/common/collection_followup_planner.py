@@ -402,7 +402,7 @@ def _source_status(
 
 
 def _actions(blockers: Iterable[str]) -> tuple[list[dict[str, Any]], list[str]]:
-    by_action: dict[str, dict[str, Any]] = {}
+    by_action: dict[tuple[str, str | None, bool], dict[str, Any]] = {}
     unknown: list[str] = []
     for blocker in sorted(set(blockers)):
         policy = remediation_registry.planner_policy_for_blocker(blocker)
@@ -410,7 +410,7 @@ def _actions(blockers: Iterable[str]) -> tuple[list[dict[str, Any]], list[str]]:
             unknown.append(blocker)
             continue
         record = by_action.setdefault(
-            policy.action_id,
+            (policy.action_id, policy.target_phase, policy.retryable),
             {
                 "action_id": policy.action_id,
                 "target_phase": policy.target_phase,
@@ -436,6 +436,8 @@ def _actions(blockers: Iterable[str]) -> tuple[list[dict[str, Any]], list[str]]:
             FOLLOWUP_ACTION_ORDER.get(item["action_id"], 65),
             item["policy_priority"],
             item["action_id"],
+            item["target_phase"] or "",
+            item["same_workflow_retryable"],
         ),
     )
     for index, item in enumerate(values, start=1):
@@ -603,14 +605,10 @@ def build_plan(
             # 自動再実行せず、successorへ渡す証拠fingerprintの更新を待つ。
             decision = "changed_evidence_required"
         else:
-            decision = "followup_required"
-        automatic_dispatch_allowed = (
-            decision == "followup_required"
-            and source_verified
-            and same_workflow_retryable
-            and not unknown_blockers
-            and not c2_contract_invalid
-        )
+            # caseのblocker文字列はlifecycleのfailed envelopeや残attemptの証明
+            # ではない。正式resume plannerがstateを再検証するまではdispatchしない。
+            decision = "retry_state_verification_required"
+        automatic_dispatch_allowed = False
         planned_cases.append(
             {
                 "sha256": digest,
@@ -629,6 +627,20 @@ def build_plan(
                 "source": source,
                 "decision": decision,
                 "automatic_dispatch_allowed": automatic_dispatch_allowed,
+                "retry_state_verification": {
+                    "required": same_workflow_retryable,
+                    "status": "not_verified" if same_workflow_retryable else "not_applicable",
+                    "validator": "analysis_resume_planner.py",
+                    "required_evidence": (
+                        [
+                            "bound_failed_stage_envelope",
+                            "current_stage_fingerprint",
+                            "remaining_workflow_and_stage_attempts",
+                        ]
+                        if same_workflow_retryable
+                        else []
+                    ),
+                },
                 "c2_contract": {
                     "complete": c2_validation.get("complete") is True and c2_daily_ready,
                     "daily_ready": c2_daily_ready,
@@ -714,6 +726,7 @@ def render_markdown(plan: Mapping[str, Any]) -> str:
             ),
             "未登録blockerが1つでもあるケースは自動実行せず`manual_review_required`で停止します。",
             "登録済みactionがすべて新しい証拠を要求する場合も、同じworkflowを再実行せず`changed_evidence_required`で停止します。",
+            "一時的失敗の再試行候補は`retry_state_verification_required`とし、正式resume plannerで失敗根拠・実装・残試行回数を確認してから再開します。",
             "",
         ]
     )

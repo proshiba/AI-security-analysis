@@ -15,6 +15,12 @@ import pefile
 from extractors.common import build_result, extract_strings, sha256_bytes
 
 
+class _ManagedMetadataError(ValueError):
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(reason)
+
+
 def read_varint(data: bytes, offset: int) -> tuple[int, int]:
     """Read one protobuf varint and return its value and next offset."""
     value = 0
@@ -60,20 +66,28 @@ def parse_protobuf(data: bytes) -> dict[int, list[Any]]:
 
 
 def iter_dotnet_user_strings(data: bytes) -> Iterator[str]:
-    """Yield managed #US values when *data* is a valid .NET PE image."""
+    """有効な#US heapがある.NET PEだけから範囲内の文字列を返す。"""
     try:
         pe = dnfile.dnPE(data=data)
     except Exception:
         return
-    if not pe.net:
+    try:
+        heap = pe.net.user_strings
+    except AttributeError:
         return
-    heap = pe.net.user_strings
+    if heap is None:
+        return
+    heap_size = heap.sizeof()
+    if not isinstance(heap_size, int) or not 0 <= heap_size <= len(data):
+        raise _ManagedMetadataError("user_string_heap_size_invalid")
     offset = 1
-    while offset < heap.sizeof():
+    while offset < heap_size:
         item = heap.get(offset, errors="replace")
         if item is None or item.raw_size <= 0:
             offset += 1
             continue
+        if item.raw_size > heap_size - offset:
+            raise _ManagedMetadataError("user_string_item_out_of_bounds")
         if isinstance(item.value, str):
             yield item.value
         offset += item.raw_size
@@ -135,6 +149,8 @@ def certificate_metadata(value: str) -> dict[str, Any]:
 def extract_managed_config(data: bytes) -> dict[str, Any]:
     """Extract the managed PureRAT protobuf config and certificate fingerprints."""
     strings = list(iter_dotnet_user_strings(data))
+    if not strings:
+        raise _ManagedMetadataError("managed_user_strings_unavailable")
     _blob, fields = decode_config_blob(strings)
     host = _text(fields[1][0]).lower().rstrip(".")
     ports = [int(item) for item in fields[2] if isinstance(item, int)]
