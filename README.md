@@ -1,6 +1,6 @@
 # AIセキュリティ解析
 
-AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む3,206件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
+AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む3,212件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
 
 > **安全上の前提**: このリポジトリには検体本体、抽出した実行可能ファイル、復号バイナリ、PCAP、Ghidra project、資格情報を保存しません。保存対象はレポート、メタデータ、IOC、テキスト化した逆アセンブル、検知ルール候補など公開可能な成果物に限定します。
 
@@ -211,6 +211,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 | マルウェア種 | 解析回数 | 最後の解析日 | 主な解析パターン |
 |---|---:|---|---|
 | ValleyRAT | 13 | 2026-07-27 | 従来パターン、`cefclient_libcef_sideload_malspam`、`iso_pdfcore8_winos_proxy_sideload` |
+| ValleyRAT（提供元報告・未確認） | 6 | 2026-09-05 | EXE 5件・IMG 1件の追加静的解析。終端通信・登録・timerは未解決 |
 | AgentTesla | 11 | 2026-07-29 | `unicode_marker_powershell_png_stage`, `javascript_aes_inmemory_dotnet`, `fromcharcode_eval_loader`, `rar_wrapped_javascript`, `japanese_invoice_malspam_js_luajit_donut_ftp` |
 | RemcosRAT | 10 | 2026-07-13 | VBS/JS/HTAローダー、直接PE、ISO二重拡張子による配布 |
 | MX-Go（未分類） | 1 | 2026-07-15 | Go製一括メール送信エンジン、遠隔コンテンツ／設定、HTTPキャンペーン制御、日本環境ゲート |
@@ -245,6 +246,8 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 | Mirai派生ENS/DoH Bot | 3 | 2026-07-19 | PowerPC/MIPS/ARM、ChaCha20設定、TCP C2、DoH/ENS補助解決、Telnet走査 |
 
 ### ValleyRAT 解析履歴
+
+2026-09-05の[追加検体と通信フロー試験](analysis-framework/malware/valleyrat/docs/FLOW-TIMING-LAB.md)では、Kali上でMalwareBazaarの6件を静的解析し、loopback専用の時間制御・分割受信・再接続試験を追加しました。6件の提供元ラベルは内部帰属未確認で、実検体の通信タイミングの完全模倣は未完了です。
 
 | 解析日 | SHA-256 prefix | Campaign / chain | 解析レベル | 主なC2 |
 |---|---|---|---|---|

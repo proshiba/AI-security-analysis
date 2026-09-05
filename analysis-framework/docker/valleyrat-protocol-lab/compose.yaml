@@ -1,0 +1,38 @@
+services:
+  flow-tests:
+    image: local/valleyrat-static-flow-lab:20260905
+    build:
+      context: ../../..
+      dockerfile: analysis-framework/docker/valleyrat-protocol-lab/Dockerfile
+    network_mode: none
+    read_only: true
+    user: "${VALLEY_LAB_UID:-10001}:${VALLEY_LAB_GID:-10001}"
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 96
+    mem_limit: 1800m
+    cpus: 1
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=256m
+    volumes:
+      - ../../..:/analysis:ro
+    command:
+      - python
+      - -B
+      - -m
+      - pytest
+      - -q
+      - -p
+      - no:cacheprovider
+      - analysis-framework/tests/test_winos_flow_lab.py
+      - analysis-framework/tests/test_winos_pcap_timing.py
+      - analysis-framework/tests/test_winos_pcap.py
+      - analysis-framework/tests/test_winos_pcap_profiles.py
+      - analysis-framework/tests/test_winos_pcap_boundary_regressions.py
+      - analysis-framework/tests/test_winos_offline_orchestrator.py
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

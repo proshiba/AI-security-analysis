@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "analyzed_on": "Kali",
+  "tool": "Ghidra headless",
+  "ghidra_mcp_used": false,
+  "programs": [
+    {
+      "sample_sha256": "1055656b4243a6f96db475f0fd2f8506a944f65eaea22789c409220b2b82040b",
+      "program_selector": "/1055656b4243a6f96db475f0fd2f8506a944f65eaea22789c409220b2b82040b.bin",
+      "ghidra_version": "12.1.1",
+      "inventory_sha256": "fc55f096f199ce2f8264d422c32ff5fa66aa7d1f1bea495c2c618d39a4ca4c89",
+      "function_inventory_count": 543,
+      "internal_function_count": 446,
+      "decompile_attempted": 96,
+      "decompile_succeeded": 96,
+      "unselected_count": 350,
+      "complete_semantic_review": false
+    },
+    {
+      "sample_sha256": "13b5ce5838356cffbb328312b4509eef0662d2d3434b683f177bb0aaf8281b9c",
+      "program_selector": "/13b5ce5838356cffbb328312b4509eef0662d2d3434b683f177bb0aaf8281b9c.bin",
+      "ghidra_version": "12.1.1",
+      "inventory_sha256": "5b15b09f5c0fc28e4e601e93e823d070ff4ac552949e03786a642ee15bd7058a",
+      "function_inventory_count": 86,
+      "internal_function_count": 30,
+      "decompile_attempted": 30,
+      "decompile_succeeded": 30,
+      "unselected_count": 0,
+      "complete_semantic_review": false
+    },
+    {
+      "sample_sha256": "50f8064aa9924f674b5b7d24d1562f35f11007cc8ef57a7a3ce07e0f713efba1",
+      "program_selector": "/50f8064aa9924f674b5b7d24d1562f35f11007cc8ef57a7a3ce07e0f713efba1.bin",
+      "ghidra_version": "12.1.1",
+      "inventory_sha256": "f1ee0fed7f6dbbf9463580d74927ea1550c72db8b7c686d6ec16945042f73327",
+      "function_inventory_count": 988,
+      "internal_function_count": 806,
+      "decompile_attempted": 96,
+      "decompile_succeeded": 96,
+      "unselected_count": 710,
+      "complete_semantic_review": false
+    },
+    {
+      "sample_sha256": "966b1fea9cdc54843a728b1a870bfb7d2f8109085b6114455d6e2635ab1ad40f",
+      "program_selector": "/966b1fea9cdc54843a728b1a870bfb7d2f8109085b6114455d6e2635ab1ad40f.bin",
+      "ghidra_version": "12.1.1",
+      "inventory_sha256": "abb98cb00c7834e2d74598d457fa176a53ded7ed7849d7d7523893f3f7c1054b",
+      "function_inventory_count": 5505,
+      "internal_function_count": 5210,
+      "decompile_attempted": 96,
+      "decompile_succeeded": 95,
+      "unselected_count": 5114,
+      "complete_semantic_review": false
+    },
+    {
+      "sample_sha256": "f650d42dc1d33f8e776b9eadbc7f8789868b20d97b48d1d2338532ba81d36337",
+      "program_selector": "/f650d42dc1d33f8e776b9eadbc7f8789868b20d97b48d1d2338532ba81d36337.bin",
+      "ghidra_version": "12.1.1",
+      "inventory_sha256": "1da850879943893deaf6a3e5be3ec689ea0a89a98e12dc7ea3bb13b03097f855",
+      "function_inventory_count": 2956,
+      "internal_function_count": 2130,
+      "decompile_attempted": 96,
+      "decompile_succeeded": 96,
+      "unselected_count": 2034,
+      "complete_semantic_review": false
+    }
+  ],
+  "analysis_complete": false,
+  "sample_executed": false,
+  "network_contacted": false
+}
