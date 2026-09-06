@@ -123,12 +123,25 @@ def test_ca01_has_no_command_14_and_reserved_64_65_are_not_registry_actions() ->
 
 
 def test_ca01_c9_treats_zero_and_any_nonzero_as_two_dispatcher_branches() -> None:
-    for raw, normalized in ((0, 0), (1, 1), (2, 1), (255, 1)):
+    for raw in range(256):
         result = WINOS.classify_ca01_payload(bytes([0xC9, raw]))
         assert result.contract_valid is True
-        assert ("challenge_value_raw", raw) in result.metadata
-        assert ("challenge_value_normalized", normalized) in result.metadata
+        assert result.role == "status_or_screen_snapshot_request"
+        assert ("screenshot_selector_raw", raw) in result.metadata
+        assert ("screenshot_selector_normalized", int(raw != 0)) in result.metadata
+        assert result.should_respond is False
+        assert result.send_allowed is False
+        assert result.wire_bytes is None
     assert WINOS.classify_ca01_payload(b"\xc9").contract_valid is False
+
+
+def test_ca01_c9_unexplained_trailing_bytes_are_not_a_complete_contract() -> None:
+    result = WINOS.classify_ca01_payload(b"\xc9\xff\x00")
+    assert result.contract_valid is False
+    assert result.structure_valid is False
+    assert "status_selector_trailing_bytes" in result.validation_errors
+    assert ("unexplained_trailing_bytes", 1) in result.metadata
+    assert result.wire_bytes is None
 
 
 @pytest.mark.parametrize(

@@ -731,8 +731,15 @@ class GuardedStream:
                 ):
                     raise RatEmulatorRunError("inbound read-call limit reached")
                 request = total_size - len(frame)
-                chunk = self.stream.recv(request)
                 self.inbound_read_calls += 1
+                try:
+                    chunk = self.stream.recv(request)
+                except TimeoutError as exc:
+                    if frame:
+                        raise RatEmulatorRunError(
+                            "partial_frame_timeout: 途中のtotal-length frameは再同期せず終了します"
+                        ) from exc
+                    raise
                 if not isinstance(chunk, bytes):
                     raise RatEmulatorRunError("stream.recv must return bytes")
                 if len(chunk) > request:
@@ -850,7 +857,11 @@ def _adapter_event_callback(
     transcript: SessionTranscriptWriter,
     *,
     adapter_id: str | None = None,
+    maximum_elapsed_ms: int = 28_800_000,
 ) -> Callable[[dict[str, Any]], None]:
+    if type(maximum_elapsed_ms) is not int or not 1 <= maximum_elapsed_ms <= 28_800_000:
+        raise RatEmulatorRunError("event時刻の上限は1 ms〜8時間の整数が必要です")
+    last_winos_elapsed_ms = 0
     public_keys = {
         "command",
         "sequence",
@@ -893,6 +904,8 @@ def _adapter_event_callback(
     }
 
     def callback(event: dict[str, Any]) -> None:
+        nonlocal last_winos_elapsed_ms
+        accepted_winos_elapsed_ms: int | None = None
         name = str(event.get("event") or "adapter_event")
         active_public_keys = public_keys
         if adapter_id == "purerat_direct_tls_v1":
@@ -915,6 +928,20 @@ def _adapter_event_callback(
         public = {
             key: value for key, value in event.items() if key in active_public_keys
         }
+        if adapter_id in {"valleyrat_winos_v1", "valleyrat_winos_external_v1"} and (
+            "elapsed_ms" in event or "timing_basis" in event
+        ):
+            elapsed_ms = event.get("elapsed_ms")
+            timing_basis = event.get("timing_basis")
+            if (
+                type(elapsed_ms) is not int
+                or not last_winos_elapsed_ms <= elapsed_ms <= maximum_elapsed_ms
+                or type(timing_basis) is not str
+                or timing_basis != "session_monotonic"
+            ):
+                raise RatEmulatorRunError("Winos eventの単調経過時刻または固定basisが不正です")
+            public.update(elapsed_ms=elapsed_ms, timing_basis=timing_basis)
+            accepted_winos_elapsed_ms = elapsed_ms
         fingerprint = event.get("fingerprint")
         if isinstance(fingerprint, dict):
             for key in ("frame_size", "frame_sha256", "decoded_size", "decoded_sha256"):
@@ -933,6 +960,8 @@ def _adapter_event_callback(
             public_fields=public,
             private_fields=private,
         )
+        if accepted_winos_elapsed_ms is not None:
+            last_winos_elapsed_ms = accepted_winos_elapsed_ms
 
     return callback
 
@@ -1642,6 +1671,7 @@ def run_live_session(
             _adapter_event_callback(
                 transcript,
                 adapter_id=str(profile["adapter_id"]),
+                maximum_elapsed_ms=int(float(active_limits["duration_seconds"]) * 1000),
             ),
         )
         public_adapter = _public_adapter_result(result, active_profile)

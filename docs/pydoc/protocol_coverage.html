@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Python: protocol_coverage</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">protocol_coverage</strong></td>
+<td class="extra"><a href=".">索引</a><br><a href="../../analysis-framework/malware/valleyrat/protocol_coverage.py">../../analysis-framework/malware/valleyrat/protocol_coverage.py</a></td></tr></table>
+    <p><span class="code">公開済み根拠の整合性を監査する。通信互換性の実証や外部接続は行わない。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">モジュール</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="os.html">os</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+<a href="stat.html">stat</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+<a href="unicodedata.html">unicodedata</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">関数</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-audit_repository"><strong>audit_repository</strong></a>(repository: 'Path | str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">固定設定と公開根拠を検証し、根拠本文を含まない監査結果を返す。</span></dd></dl>
+ <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">固定設定を読み取り、標準出力だけへ監査結果を表示する。</span></dd></dl>
+ <dl><dt><a name="-render_markdown"><strong>render_markdown</strong></a>(result: 'dict[str, Any]') -&gt; 'str'</dt><dd><span class="code">監査結果を日本語文書へ変換する。根拠の引用本文は出力しない。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">データ</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>CONFIG_PATH</strong> = 'analysis-framework/malware/valleyrat/config/protocol-coverage.json'<br>
+<strong>DIMENSIONS</strong> = ('transport', 'framing', 'registration', 'server_commands', 'client_responses', 'timing', 'reconnect', 'termination')<br>
+<strong>MAX_FILE_BYTES</strong> = 2097152<br>
+<strong>MAX_TOTAL_BYTES</strong> = 16777216<br>
+<strong>STATUSES</strong> = frozenset({'confirmed', 'not_applicable', 'partial', 'unresolved'})</td></tr></table>
+</body></html>

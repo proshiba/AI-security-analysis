@@ -1,0 +1,39 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>winos_observation_session — API仕様</title></head><body>
+<h1>winos_observation_session</h1>
+<p><a href="../../analysis-framework/malware/valleyrat/winos_observation_session.py">実装</a> · <a href="../../analysis-framework/malware/valleyrat/docs/DEFENSIVE-OBSERVATION-DEVELOPMENT.md">観測機能の利用と制約</a></p>
+<pre>検体別Winos通信を非実行で観測する、transport非依存の有界制御器。
+
+受信本文は返さず、送信候補はCA01の固定C9／CBだけを生成する。
+生成は送信ではなく、外部接続・登録・返信の許可を付与しない。</pre>
+<h2>ObservationPolicy</h2>
+<pre>検体の上限と区別して適用する防御側の資源上限。</pre>
+<pre>ObservationPolicy(duration_ms: &#x27;int&#x27; = 28800000, maximum_frame_bytes: &#x27;int&#x27; = 65536, maximum_received_bytes: &#x27;int&#x27; = 4194304, maximum_frames: &#x27;int&#x27; = 4096, maximum_receive_calls: &#x27;int&#x27; = 8192, partial_frame_timeout_ms: &#x27;int&#x27; = 3000, maximum_prepared_frames: &#x27;int&#x27; = 2881) -&gt; None</pre>
+<h2>PreparedControlFrame</h2>
+<pre>固定protocol制御frameの候補。生成だけでは送信済みにならない。</pre>
+<pre>PreparedControlFrame(kind: &#x27;str&#x27;, wire_bytes: &#x27;bytes&#x27;, elapsed_ms: &#x27;int&#x27;) -&gt; None</pre>
+<dl><dt><a name="-metadata"><strong>metadata</strong></a>(self) -&gt; 'dict[str, object]'</dt><dd><span class="code">wire本文を含まない、生成済みという事実だけを返す。</span></dd></dl>
+
+<h2>WinosObservationSession</h2>
+<pre>exact profileと合成session headerへ固定した単一接続の制御器。
+
+``receive``は復号・分類だけを行う。``tick``の時刻は呼出側の単調時計から
+与える。socket、DNS、実時計、再接続、端末情報収集、受信内容の実行は持たない。
+CA01以外のtimer／返信を推測しない。外部runnerの既存profileは変更しない。</pre>
+<pre>WinosObservationSession(profile_id: &#x27;str&#x27;, *, started_at_utc: &#x27;str&#x27;, policy: &#x27;ObservationPolicy | None&#x27; = None, prepare_ca01_control_frames: &#x27;bool&#x27; = False) -&gt; &#x27;None&#x27;</pre>
+<dl><dt><a name="-receive"><strong>receive</strong></a>(self, data: 'bytes', elapsed_ms: 'int') -&gt; 'tuple[dict[str, object], ...]'</dt><dd><span class="code">分割・結合されたframeを有界に分類し、固定返信候補だけを別欄へ返す。</span></dd></dl>
+
+<dl><dt><a name="-snapshot"><strong>snapshot</strong></a>(self) -&gt; 'dict[str, object]'</dt><dd><span class="code">秘密本文を含まない現在状態と観測集計を返す。生成と送信を分離する。</span></dd></dl>
+
+<dl><dt><a name="-tick"><strong>tick</strong></a>(self, elapsed_ms: 'int') -&gt; 'tuple[PreparedControlFrame, ...]'</dt><dd><span class="code">期限・断片timeoutを検査し、CA01の固定heartbeat候補を最大1件返す。<br>
+&nbsp;<br>
+名目10秒の静的待機を再現するが、遅延時に過去分をburst送信しない。<br>
+60秒超の受信沈黙時は送信候補を作らず停止する（検体より保守的）。</span></dd></dl>
+
+<h2>main</h2>
+<dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">実C2や入力fileを受け付けず、合成デモだけを標準出力へ表示する。</span></dd></dl>
+
+<h2>run_synthetic_demo</h2>
+<dl><dt><a name="-run_synthetic_demo"><strong>run_synthetic_demo</strong></a>() -&gt; 'dict[str, object]'</dt><dd><span class="code">固定合成入力だけでCA01制御器を試験し、wireを含まない要約を返す。</span></dd></dl>
+
+</body></html>

@@ -23,7 +23,7 @@ EXPECTED_ROLES = {
     0x00: "module_descriptor_request",
     0x01: "module_transfer",
     0x02: "disconnect",
-    0x03: "registration_or_screen_snapshot_request",
+    0x03: "status_and_screen_snapshot_request",
     0x04: "screen_capture_request",
     0x05: "file_drop_and_execute",
     0x06: "utf16_process_command_line",
@@ -43,7 +43,7 @@ EXPECTED_ROLES = {
     0x14: "network_tunnel_or_proxy_job",
     0x64: "registry_special_flag",
     0x65: "registry_special_flag",
-    0xC9: "heartbeat_or_registration_challenge",
+    0xC9: "status_or_screen_snapshot_request",
     0xCA: "registration_complete",
 }
 
@@ -185,22 +185,27 @@ def test_sized_screen_capture_requires_two_little_endian_int32_values() -> None:
     assert signed.metadata == (("width", -1), ("height", 0))
 
 
-@pytest.mark.parametrize("challenge", [0, 1])
-def test_c9_accepts_only_confirmed_challenge_values(challenge: int) -> None:
-    result = WINOS.classify_ca00_payload(bytes([0xC9, challenge]))
+@pytest.mark.parametrize("selector", [0, 1, 2, 127, 128, 255])
+def test_c9_classifies_zero_and_nonzero_status_snapshot_selectors(selector: int) -> None:
+    result = WINOS.classify_ca00_payload(bytes([0xC9, selector]))
     assert result.contract_valid is True
-    assert ("challenge_value", challenge) in result.metadata
+    assert ("screenshot_selector_raw", selector) in result.metadata
+    assert ("screenshot_selector_normalized", int(selector != 0)) in result.metadata
+    assert result.should_respond is False
+    assert result.wire_bytes is None
 
 
-def test_c9_truncation_and_unknown_challenge_fail_closed() -> None:
+def test_c9_truncation_and_unexplained_trailing_bytes_fail_closed() -> None:
     truncated = WINOS.classify_ca00_payload(b"\xc9")
-    unknown = WINOS.classify_ca00_payload(b"\xc9\x02")
+    trailing = WINOS.classify_ca00_payload(b"\xc9\x02\x00")
     assert truncated.length_valid is False
     assert truncated.structure_valid is False
-    assert "challenge_second_byte_missing" in truncated.validation_errors
-    assert unknown.length_valid is True
-    assert unknown.structure_valid is False
-    assert "challenge_second_byte_not_0_or_1" in unknown.validation_errors
+    assert "status_snapshot_selector_missing" in truncated.validation_errors
+    assert trailing.length_valid is True
+    assert trailing.structure_valid is False
+    assert trailing.contract_valid is False
+    assert "status_selector_trailing_bytes" in trailing.validation_errors
+    assert ("unexplained_trailing_bytes", 1) in trailing.metadata
 
 
 @pytest.mark.parametrize(

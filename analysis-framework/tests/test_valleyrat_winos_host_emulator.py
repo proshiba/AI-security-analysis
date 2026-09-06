@@ -244,7 +244,7 @@ def test_only_first_of_two_frames_is_consumed() -> None:
 
 def test_passive_observer_keeps_connection_and_discards_multiple_frames() -> None:
     first = _frame(0xC9)
-    second = _frame(0x99, b"operator-arguments")
+    second = _frame(0xCA)
     stream = LoopbackStream(first + second, finish="closed")
     result = WINOS.run_passive_observation_session(
         stream,
@@ -259,7 +259,7 @@ def test_passive_observer_keeps_connection_and_discards_multiple_frames() -> Non
     assert result["status"] == "peer_closed"
     assert len(stream.sent) == 1
     assert result["collection"]["frame_count"] == 2
-    assert [item["command"] for item in result["decisions"]] == [0xC9, 0x99]
+    assert [item["command"] for item in result["decisions"]] == [0xC9, 0xCA]
     assert all(item["action"] == "record_and_discard" for item in result["decisions"])
     assert all(item["should_respond"] is False for item in result["decisions"])
     assert all(item["terminate_session"] is False for item in result["decisions"])
@@ -267,6 +267,146 @@ def test_passive_observer_keeps_connection_and_discards_multiple_frames() -> Non
     assert result["safety"]["received_frame_reply_sent"] is False
     assert result["safety"]["received_frame_discarded_count"] == 2
     assert "operator-arguments" not in repr(result)
+
+
+def test_passive_unknown_command_stops_without_reply_or_reading_next_frame() -> None:
+    unknown = _frame(0x99, b"operator-arguments")
+    later = _frame(0xC9)
+    stream = LoopbackStream(unknown + later, finish="closed")
+    result = WINOS.run_passive_observation_session(
+        stream,
+        policy=WINOS.PassiveObservationPolicy(duration_seconds=30.0),
+        allow_c9_heartbeat=True,
+    ).to_dict()
+    assert result["status"] == "unknown_command_rejected"
+    assert result["collection"]["frame_count"] == 1
+    assert result["decisions"][0]["terminate_session"] is True
+    assert result["decisions"][0]["should_respond"] is False
+    assert result["decisions"][0]["action"] == "no_response_and_terminate"
+    assert bytes(stream.incoming) == later
+    assert len(stream.sent) == 1
+    assert "operator-arguments" not in repr(result)
+
+
+def test_passive_standalone_monotonic_deadline_bounds_each_fragment() -> None:
+    clock = [0.0]
+
+    class SlowStream(LoopbackStream):
+        def recv(self, maximum_bytes: int) -> bytes:
+            assert self.timeout_seconds is not None
+            clock[0] += min(self.timeout_seconds, 0.4)
+            if clock[0] >= 1.0:
+                raise TimeoutError("fixture deadline")
+            return super().recv(maximum_bytes)
+
+    stream = SlowStream(_frame(0xC9), fragment_size=1)
+    with pytest.raises(WINOS.MalformedFrameError, match="truncate"):
+        WINOS.run_passive_observation_session(
+            stream,
+            policy=WINOS.PassiveObservationPolicy(duration_seconds=1.0),
+            allow_c9_heartbeat=True,
+            monotonic=lambda: clock[0],
+        )
+    assert clock[0] == pytest.approx(1.0)
+    assert stream.recv_calls == 2
+    assert len(stream.sent) == 1
+
+
+def test_passive_immediate_timeouts_do_not_claim_elapsed_observation_window() -> None:
+    stream = LoopbackStream()
+    result = WINOS.run_passive_observation_session(
+        stream,
+        policy=WINOS.PassiveObservationPolicy(duration_seconds=1.0),
+        allow_c9_heartbeat=True,
+        monotonic=lambda: 0.0,
+    ).to_dict()
+    assert result["status"] == "idle_read_limit_reached"
+    assert result["collection"]["frame_count"] == 0
+    assert stream.recv_calls == 2
+    assert len(stream.sent) == 1
+
+
+def test_passive_standalone_idle_completion_requires_elapsed_deadline() -> None:
+    clock = [0.0]
+
+    class IdleStream(LoopbackStream):
+        def recv(self, maximum_bytes: int) -> bytes:
+            assert self.timeout_seconds is not None
+            clock[0] += self.timeout_seconds
+            return super().recv(maximum_bytes)
+
+    stream = IdleStream()
+    result = WINOS.run_passive_observation_session(
+        stream,
+        policy=WINOS.PassiveObservationPolicy(duration_seconds=1.0),
+        allow_c9_heartbeat=True,
+        monotonic=lambda: clock[0],
+    ).to_dict()
+    assert result["status"] == "observation_window_complete"
+    assert clock[0] == pytest.approx(1.0)
+    assert stream.recv_calls == 1
+
+
+def test_passive_events_have_bounded_monotonic_millisecond_timestamps() -> None:
+    clock = [100.0]
+    events: list[dict] = []
+
+    class TimedStream(LoopbackStream):
+        def recv(self, maximum_bytes: int) -> bytes:
+            clock[0] += 0.125
+            return super().recv(maximum_bytes)
+
+    stream = TimedStream(_frame(0xC9), finish="closed")
+    WINOS.run_passive_observation_session(
+        stream,
+        policy=WINOS.PassiveObservationPolicy(duration_seconds=1.0),
+        allow_c9_heartbeat=True,
+        transcript_callback=events.append,
+        monotonic=lambda: clock[0],
+    )
+    assert [event["event"] for event in events] == [
+        "winos_c9_heartbeat_sent", "winos_frame_recorded_and_discarded",
+        "winos_observation_stopped",
+    ]
+    assert [event["elapsed_ms"] for event in events] == [0, 250, 375]
+    assert all(event["timing_basis"] == "session_monotonic" for event in events)
+    assert all(type(event["elapsed_ms"]) is int for event in events)
+    assert all(0 <= event["elapsed_ms"] <= 1000 for event in events)
+    assert len(stream.sent) == 1
+    assert "payload_hex" not in repr(events)
+
+
+def test_passive_stopped_event_time_is_clamped_to_duration() -> None:
+    clock = [0.0]
+    events: list[dict] = []
+
+    class DelayedIdleStream(LoopbackStream):
+        def recv(self, maximum_bytes: int) -> bytes:
+            clock[0] = 1.25
+            return super().recv(maximum_bytes)
+
+    WINOS.run_passive_observation_session(
+        DelayedIdleStream(),
+        policy=WINOS.PassiveObservationPolicy(duration_seconds=1.0),
+        allow_c9_heartbeat=True,
+        transcript_callback=events.append,
+        monotonic=lambda: clock[0],
+    )
+    assert events[-1]["elapsed_ms"] == 1000
+    assert events[-1]["timing_basis"] == "session_monotonic"
+
+
+@pytest.mark.parametrize("bad", [True, float("nan"), float("inf"), "0"])
+def test_passive_invalid_initial_clock_prevents_send(bad) -> None:
+    stream = LoopbackStream()
+    with pytest.raises(WINOS.WinosHostEmulatorError, match="単調時計"):
+        WINOS.run_passive_observation_session(
+            stream,
+            policy=WINOS.PassiveObservationPolicy(duration_seconds=1.0),
+            allow_c9_heartbeat=True,
+            monotonic=lambda: bad,
+        )
+    assert stream.sent == []
 
 
 def test_idle_timeout_is_not_a_stopped_c2_conclusion() -> None:

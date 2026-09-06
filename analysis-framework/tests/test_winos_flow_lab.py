@@ -7,6 +7,8 @@ import struct
 import sys
 import threading
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import MagicMock, Mock, call
 
 import pytest
 
@@ -180,13 +182,71 @@ def test_loopback_keeps_one_connection_and_never_executes_or_replies(monkeypatch
     assert kinds.index("connected") < kinds.index("heartbeat_due") < kinds.index("heartbeat_sent")
 
 
-def test_connection_refused_is_limited_to_initial_plus_three_retries():
-    # bindしたままlistenしないportは、別processが再利用できず接続拒否になる。
-    with socket.socket() as reserved:
-        reserved.bind(("127.0.0.1", 0))
-        result = LAB.run_loopback(PROFILE, reserved.getsockname()[1], LAB.LabPolicy(
-            duration_ms=500, heartbeat_offsets_ms=(0,), reconnect_delays_ms=(1, 2, 3)))
+@pytest.fixture
+def mock_loopback_transport(monkeypatch):
+    # OSの接続拒否速度や実時計に依存せず、socket境界と待機だけを模擬する。
+    clock = SimpleNamespace(elapsed_ns=0, sleep_calls=[])
+
+    def sleep(seconds):
+        assert seconds >= 0
+        clock.sleep_calls.append(seconds)
+        clock.elapsed_ns += round(seconds * 1_000_000_000)
+
+    connection = MagicMock()
+    connection.__enter__.return_value = connection
+    connection.sendall.side_effect = AssertionError("接続失敗後の送信は禁止")
+    connection.recv.side_effect = AssertionError("接続失敗後の受信は禁止")
+    factory = Mock(return_value=connection)
+    monkeypatch.setattr(LAB, "socket", SimpleNamespace(
+        socket=factory, AF_INET=socket.AF_INET, SOCK_STREAM=socket.SOCK_STREAM))
+    monkeypatch.setattr(LAB, "time", SimpleNamespace(
+        monotonic_ns=lambda: clock.elapsed_ns, sleep=sleep))
+    return SimpleNamespace(clock=clock, connection=connection, factory=factory)
+
+
+def test_connection_refused_is_limited_to_initial_plus_three_retries(mock_loopback_transport):
+    transport = mock_loopback_transport
+    transport.connection.connect.side_effect = ConnectionRefusedError
+    result = LAB.run_loopback(PROFILE, 45678, LAB.LabPolicy(
+        duration_ms=500, heartbeat_offsets_ms=(0,), reconnect_delays_ms=(1, 2, 3)))
     attempts = [e["attempt"] for e in result["events"] if e["event"] == "connect_attempt"]
     assert attempts == [0, 1, 2, 3]
     assert result["stop_reason"] == "retry_limit"
+    assert transport.factory.call_args_list == [call(socket.AF_INET, socket.SOCK_STREAM)] * 4
+    assert transport.connection.connect.call_args_list == [call(("127.0.0.1", 45678))] * 4
+    assert transport.connection.__exit__.call_count == 4
+    assert transport.clock.sleep_calls == [0.001, 0.002, 0.003]
+    assert [e["elapsed_ms"] for e in result["events"] if e["event"] == "connect_attempt"] == [0, 1, 3, 6]
+    assert all(e["error_type"] == "ConnectionRefusedError"
+               for e in result["events"] if e["event"] == "connection_failed")
+    transport.connection.sendall.assert_not_called()
+    transport.connection.recv.assert_not_called()
+    assert not any(e["event"] == "heartbeat_sent" for e in result["events"])
+
+
+@pytest.mark.parametrize("error_type", [TimeoutError, ConnectionRefusedError])
+@pytest.mark.parametrize("elapsed_ms", [500, 515])
+def test_connect_consuming_global_deadline_cannot_retry_or_send(
+        mock_loopback_transport, error_type, elapsed_ms):
+    transport = mock_loopback_transport
+
+    def connect(address):
+        assert address == ("127.0.0.1", 45678)
+        transport.clock.elapsed_ns = elapsed_ms * 1_000_000
+        raise error_type
+
+    transport.connection.connect.side_effect = connect
+    result = LAB.run_loopback(PROFILE, 45678, LAB.LabPolicy(
+        duration_ms=500, heartbeat_offsets_ms=(0,), reconnect_delays_ms=(1, 2, 3)))
+    attempts = [e["attempt"] for e in result["events"] if e["event"] == "connect_attempt"]
+    assert attempts == [0]
+    assert result["stop_reason"] == "deadline"
+    transport.factory.assert_called_once_with(socket.AF_INET, socket.SOCK_STREAM)
+    transport.connection.settimeout.assert_called_once_with(0.5)
+    assert transport.connection.__exit__.call_count == 1
+    assert all(delay == 0 for delay in transport.clock.sleep_calls)
+    assert result["events"][-1] == {
+        "event": "observer_stopped", "reason": "deadline", "elapsed_ms": elapsed_ms}
+    transport.connection.sendall.assert_not_called()
+    transport.connection.recv.assert_not_called()
     assert not any(e["event"] == "heartbeat_sent" for e in result["events"])
