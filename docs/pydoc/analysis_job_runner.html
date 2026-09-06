@@ -8,7 +8,7 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title">analysis_job_runner</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cw%5Ca26%5Canalysis-framework%5Ccommon%5Canalysis_job_runner.py">c:\users\administrator\w\a26\analysis-framework\common\analysis_job_runner.py</a></td></tr></table>
+<td class="extra"><a href=".">index</a><br><a href="../../analysis-framework/common/analysis_job_runner.py">analysis-framework/common/analysis_job_runner.py</a></td></tr></table>
     <p><span class="code">WebUI／ローカルAPIから安全に呼び出せる静的解析ジョブrunner。</span></p>
 <p>
 <table class="section">
@@ -1077,6 +1077,11 @@ Data and other attributes defined here:<br>
 ) -&gt; 'tuple[str, str]'</dt><dd><span class="code">実行前に固定した入力とroot／child契約を監査用に保存する。</span></dd></dl>
  <dl><dt><a name="-prepare_job_private_temp"><strong>prepare_job_private_temp</strong></a>(analysis_output: 'Path') -&gt; 'JobPrivateTempBinding'</dt><dd><span class="code">解析output内に所有者限定の一時directoryを排他的に作成する。</span></dd></dl>
  <dl><dt><a name="-read_job_snapshot"><strong>read_job_snapshot</strong></a>(jobs_root: 'Path', job_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">atomic&nbsp;JSONだけを読み、WebUI／API向けsnapshotを返す。</span></dd></dl>
+ <dl><dt><a name="-rehydrate_trusted_tool_bundle"><strong>rehydrate_trusted_tool_bundle</strong></a>(
+    job_dir: 'Path',
+    result: 'Mapping[str, Any]',
+    artifacts: 'Mapping[str, Any]'
+) -&gt; 'TrustedToolBundle | None'</dt><dd><span class="code">保存済みoperator&nbsp;tool&nbsp;snapshotをprovenanceと実byteから再構成する。</span></dd></dl>
  <dl><dt><a name="-revalidate_completed_job"><strong>revalidate_completed_job</strong></a>(
     jobs_root: 'Path',
     request: 'JobRequest',
@@ -1155,8 +1160,8 @@ Data and other attributes defined here:<br>
 <td class="singlecolumn"><strong>ACTIVE_FOLLOW_ON_EDGE_STATUSES</strong> = frozenset({'child_complete', 'child_incomplete'})<br>
 <strong>ALLOWED_OPTION_KEYS</strong> = frozenset({'archive_mode', 'assessment_only', 'family', 'force_container_probe', 'max_file_size', 'max_files', ...})<br>
 <strong>ALLOWED_TOP_LEVEL_KEYS</strong> = frozenset({'family_hint_manifest', 'inputs', 'job_id', 'options', 'schema_version'})<br>
-<strong>ANALYZER</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework/common/analyze_sample.py')<br>
-<strong>COMMON_ROOT</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework/common')<br>
+<strong>ANALYZER</strong> = WindowsPath('./analysis-framework/common/analyze_sample.py')<br>
+<strong>COMMON_ROOT</strong> = WindowsPath('./analysis-framework/common')<br>
 <strong>DEFAULT_OPTIONS</strong> = {'archive_mode': 'auto', 'assessment_only': False, 'family': None, 'force_container_probe': False, 'max_file_size': 536870912, 'max_files': 1000, 'max_static_layers': 64, 'minimum_confidence': 'medium', 'retry_max_static_layers': None, 'string_scan_limit': 1000000}<br>
 <strong>DEFAULT_TIMEOUT_SECONDS</strong> = 21600<br>
 <strong>DERIVED_COUNT_KEYS</strong> = ('analyzed', 'identified', 'unknown_or_ambiguous', 'complete', 'triaged_unknown', 'partial', 'failed', 'resumed')<br>
@@ -1172,7 +1177,7 @@ Data and other attributes defined here:<br>
 <strong>FOLLOW_ON_SEALED_DOCUMENT_KEYS</strong> = frozenset({'ai_used', 'analysis_contract_sha256', 'edges', 'errors', 'executed_sample', 'limits', ...})<br>
 <strong>FOLLOW_ON_STATUSES</strong> = frozenset({'complete', 'disabled_assessment_only', 'disabled_repository_output', 'failed', 'no_retained_payloads', 'partial'})<br>
 <strong>FORBIDDEN_OPTION_KEYS</strong> = frozenset({'allow_authentication', 'allow_live_c2_check', 'allow_live_c2_emulation', 'allow_malware_registration_tasking', 'allow_network', 'allow_reviewed_application_probes', ...})<br>
-<strong>FRAMEWORK_ROOT</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework')<br>
+<strong>FRAMEWORK_ROOT</strong> = WindowsPath('./analysis-framework')<br>
 <strong>INPUT_MANIFEST_TIMEOUT_SECONDS</strong> = 300<br>
 <strong>INPUT_MANIFEST_WORKER</strong> = "<span class="repr">\n</span>import hashlib<span class="repr">\n</span>import json<span class="repr">\n</span>import sys<span class="repr">\n</span>from path...   separators=(',', ':'),<span class="repr">\n</span>    allow_nan=False,<span class="repr">\n</span>)<span class="repr">\n</span>"<br>
 <strong>INPUT_SNAPSHOT_CHUNK_BYTES</strong> = 1048576<br>
@@ -1226,12 +1231,12 @@ Data and other attributes defined here:<br>
 <strong>OUTPUT_MONITOR_INTERVAL_SECONDS</strong> = 0.5<br>
 <strong>PIPE_DRAIN_CHUNK_BYTES</strong> = 65536<br>
 <strong>PRIVATE_TEMP_DIRECTORY_NAME</strong> = '.private-temp'<br>
-<strong>REGISTRY</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework/registry/malware_types.json')<br>
-<strong>REPOSITORY_ROOT</strong> = WindowsPath('C:/Users/Administrator/w/a26')<br>
+<strong>REGISTRY</strong> = WindowsPath('./analysis-framework/registry/malware_types.json')<br>
+<strong>REPOSITORY_ROOT</strong> = WindowsPath('.')<br>
 <strong>REQUIRED_TOP_LEVEL_KEYS</strong> = frozenset({'inputs', 'job_id', 'schema_version'})<br>
 <strong>RESERVED_WINDOWS_NAMES</strong> = {'aux', 'clock$', 'com1', 'com2', 'com3', 'com4', ...}<br>
 <strong>ROOT_CASE_KEYS</strong> = frozenset({'ai_used', 'analysis_stage_failed', 'analysis_stage_partial', 'automation_family', 'automation_state', 'campaign', ...})<br>
-<strong>RUNTIME_IMPORT_PROBE</strong> = 'import importlib; [importlib.import_module(name)...pefile", "pydantic", "pyzipper", "yaml", "yara"]]'<br>
+<strong>RUNTIME_IMPORT_PROBE</strong> = 'import importlib; [importlib.import_module(name)... "pyzipper", "refinery.lib.cab", "yaml", "yara"]]'<br>
 <strong>RUNTIME_PREFLIGHT_TIMEOUT_SECONDS</strong> = 30<br>
 <strong>SCHEMA_VERSION</strong> = 1<br>
 <strong>SHA256_RE</strong> = re.compile('^[0-9a-f]{64}$')<br>

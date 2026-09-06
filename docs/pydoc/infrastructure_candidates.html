@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>infrastructure_candidates — API仕様</title></head><body>
+<h1>infrastructure_candidates</h1>
+<p><a href="../../analysis-framework/malware/valleyrat/infrastructure_candidates.py">実装</a> · <a href="../../analysis-framework/malware/valleyrat/docs/DEFENSIVE-OBSERVATION-DEVELOPMENT.md">観測機能の利用と制約</a></p>
+<pre>設定変更commandから接続しないインフラ候補を有界に抽出する。
+
+CA00／CA01 fixedの既知dispatcherへ束縛された復号済みpayloadだけを扱う。
+設定全体のfield配置・slot順・backup役割は未解明なので、既存command契約の
+長さ検証と、NUL区切りASCII／ASCII範囲UTF-16LE文字列の候補抽出を区別する。
+通常の文字列scanであり設定decoderではない。文字列が見つからなくても、設定や
+C2が存在しないことを意味しない。受信元の認証や復号の正しさも本moduleでは証明しない。
+
+DNS、外部通信、file I/O、command実行、接続先変更、返信生成は行わない。
+結果には無害化host、明示port、hash、復号済みpayload内の位置だけを残し、
+URLのuserinfo、path、query、fragmentや原文payloadを保持しない。</pre>
+<h2>InfrastructureCandidateError</h2>
+<pre>入力が限定されたインフラ候補抽出の契約を満たさない。</pre>
+<h2>extract_infrastructure_candidates</h2>
+<dl><dt><a name="-extract_infrastructure_candidates"><strong>extract_infrastructure_candidates</strong></a>(profile_id: 'str', decoded_payload: 'bytes', *, source_frame_sha256: 'str', direction: 'str' = 'server_to_client', maximum_decoded_payload_bytes: 'int' = 65536, maximum_strings: 'int' = 64, maximum_string_characters: 'int' = 1024, maximum_candidates: 'int' = 16) -&gt; 'dict[str, object]'</dt><dd><span class="code">既知設定変更commandの無害化候補と未検証事項を返す。<br>
+&nbsp;<br>
+``decoded_payload``はcommand&nbsp;byteを含むimmutable&nbsp;bytesである。呼出側が<br>
+frame境界・復号方式・exact&nbsp;sampleの対応を先に検証する必要がある。<br>
+``source_frame_sha256``は呼出側がhashした元wire&nbsp;frameの値であり、本関数で<br>
+wire&nbsp;bytesとの一致を独立確認しない。結果のoffsetはcommandを含む復号済み<br>
+payload相対で、wire&nbsp;offsetではない。bytesのsliceはoffsetとbyte_lengthで表す。<br>
+&nbsp;<br>
+未対応profile、方向不一致、空／過大入力、設定変更以外のcommandは例外で拒否する。<br>
+文字列・候補上限は小さくできるがhard&nbsp;limitを引き上げられない。長すぎる文字列は<br>
+prefixからhostを推定せず全体を除外する。候補にはslot、backup、本物C2の確定を<br>
+付けず、自動接続、監視target更新、返信または設定変更を許可しない。</span></dd></dl>
+
+</body></html>

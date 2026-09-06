@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Python: winos_replay_lab</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">winos_replay_lab</strong></td>
+<td class="extra"><a href=".">索引</a><br><a href="../../analysis-framework/malware/valleyrat/winos_replay_lab.py">../../analysis-framework/malware/valleyrat/winos_replay_lab.py</a></td></tr></table>
+    <p><span class="code">Winosの既存状態機械を、組込合成入力と仮想時計だけで一括検証する。<br>
+&nbsp;<br>
+検体や受信ファイルを読み込まず、socket、外部接続、実時計の待機を使わない。<br>
+登録本文・処理結果は生成せず、仮想送信候補は合成C9だけに限定する。<br>
+これは実検体の通信周期や、実C2との互換性を証明する試験ではない。</span></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">モジュール</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
+<a href="winos_flow_lab.html">winos_flow_lab</a><br>
+</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+<a href="json.html">json</a><br>
+</td><td class="multicolumn"><a href="winos_variant_registry.html">winos_variant_registry</a><br>
+<a href="struct.html">struct</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">関数</strong></td></tr>
+
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">全固定シナリオの判定を標準出力へ出し、失敗があれば終了値1を返す。</span></dd></dl>
+ <dl><dt><a name="-render_markdown"><strong>render_markdown</strong></a>(report: 'dict') -&gt; 'str'</dt><dd><span class="code">仮想試験結果を、本文byteを含まない日本語Markdownへ整形する。</span></dd></dl>
+ <dl><dt><a name="-run_replay"><strong>run_replay</strong></a>(profile_id: 'str | None' = None) -&gt; 'dict'</dt><dd><span class="code">完全一致profileまたは全5登録profileで、固定8シナリオを仮想実行する。<br>
+&nbsp;<br>
+受理する外部入力は登録profile&nbsp;IDだけ。入力ファイル、通信先、任意frame、<br>
+実時計の待機時間は受け付けない。出力の時刻は実検体由来ではない。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">データ</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>SCENARIOS</strong> = (('heartbeat_schedule', '通常のheartbeat時刻'), ('late_tick_no_burst', '遅延tickの連射抑止'), ('fragmented_c9_challenge', '分割C9候補の分類と無応答'), ('unknown_command_no_reply', '未知commandの無応答・非実行'), ('partial_frame_deadline', '部分frameの期限'), ('invalid_declared_length', '不正な宣言長の拒否'), ('received_frame_limit', '受信frame数の上限'), ('eight_hour_boundary', '8時間境界の仮想検証'))<br>
+<strong>TIMING_BASIS</strong> = 'synthetic_virtual_clock_not_sample_derived'</td></tr></table>
+</body></html>

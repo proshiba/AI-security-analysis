@@ -1021,7 +1021,6 @@ def _rewrite_artifact_paths(
         if not os.path.lexists(supplied_io):
             if (
                 key == "decompilations"
-                and program.get("native_function_count") == 0
                 and program.get("characteristic_native_decompilation_count") == 0
             ):
                 rewritten[key] = None

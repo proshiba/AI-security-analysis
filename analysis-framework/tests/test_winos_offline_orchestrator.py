@@ -69,6 +69,38 @@ def test_fixed_ca01_is_selected_by_profile_not_ca01_suffix() -> None:
     assert result.state_transition_admitted is True
 
 
+@pytest.mark.parametrize("profile_id", ["winos-ca00-x86-4df8bda2", "winos-ca01-x64-fixed-807361fe"])
+@pytest.mark.parametrize("payload", [b"\x03", b"\xc9\x00", b"\xc9\x01", b"\xc9\x02", b"\xc9\xff"])
+def test_exact_status_requests_are_control_only_without_wire_or_operations(profile_id: str, payload: bytes) -> None:
+    result = ORCH.classify_and_observe_frame(
+        ORCH.open_command_session(profile_id),
+        _frame(payload, profile_id),
+        profile_id=profile_id,
+        direction=STATE.Direction.SERVER_TO_CLIENT,
+    )
+    assert result.state_transition_admitted is True
+    assert result.classification.all_payload_bytes_accounted_for is True
+    assert result.snapshot.phase is STATE.ProtocolPhase.CONTROL
+    assert result.classification.role in {"status_and_screen_snapshot_request", "status_or_screen_snapshot_request"}
+    assert result.wire_bytes is None
+    assert result.operation_executed is False
+
+
+@pytest.mark.parametrize("profile_id", ["winos-ca00-x86-4df8bda2", "winos-ca01-x64-fixed-807361fe"])
+@pytest.mark.parametrize("payload", [b"\xc9", b"\xc9\x01\x00", b"\x03\x00"])
+def test_status_request_unexplained_bytes_never_advance_phase(profile_id: str, payload: bytes) -> None:
+    snapshot = ORCH.open_command_session(profile_id)
+    result = ORCH.classify_and_observe_frame(
+        snapshot, _frame(payload, profile_id), profile_id=profile_id,
+        direction=STATE.Direction.SERVER_TO_CLIENT,
+    )
+    assert result.state_transition_admitted is False
+    assert result.classification.all_payload_bytes_accounted_for is False
+    assert result.snapshot is snapshot
+    assert result.wire_bytes is None
+    assert result.operation_executed is False
+
+
 def test_opaque_and_unknown_are_refused_without_phase_progress() -> None:
     profile_id = "winos-ca00-x86-4df8bda2"
     snapshot = ORCH.open_command_session(profile_id)

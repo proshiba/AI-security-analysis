@@ -699,6 +699,21 @@ def _decision_for_record(
             "requires_changed_evidence": ["predecessor_workflow_completion"],
             "reason_codes": blockers,
         }
+    elif status not in {"complete", "deferred"} and (
+        unknown or (selected_policy is not None and not retry_evidence_bound)
+    ):
+        # partialや実装変更も、未登録blockerや失敗根拠の欠落を解決しない。
+        # successor分岐より先に閉じ、ID変更だけでレビュー要件を消さない。
+        decision = {
+            "action_id": "manual_review_required",
+            "target_phase": None,
+            "eligible": False,
+            "retryable": False,
+            "successor_required": False,
+            "blocked_action_id": None,
+            "requires_changed_evidence": ["operator_review"],
+            "reason_codes": blockers,
+        }
     elif status == "partial":
         underlying_action = selected_policy.action_id if selected_policy is not None else "manual_review_required"
         if contract_drift:
@@ -726,19 +741,6 @@ def _decision_for_record(
             "successor_required": True,
             "blocked_action_id": underlying_action,
             "requires_changed_evidence": list(dict.fromkeys(changed_evidence)),
-            "reason_codes": blockers,
-        }
-    elif status not in {"complete", "deferred"} and (
-        unknown or (selected_policy is not None and not retry_evidence_bound)
-    ):
-        decision = {
-            "action_id": "manual_review_required",
-            "target_phase": None,
-            "eligible": False,
-            "retryable": False,
-            "successor_required": False,
-            "blocked_action_id": None,
-            "requires_changed_evidence": ["operator_review"],
             "reason_codes": blockers,
         }
     elif contract_drift:

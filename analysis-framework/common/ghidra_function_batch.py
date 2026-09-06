@@ -979,9 +979,12 @@ def _run_progress_document(
             "minimum_free_space_not_met",
             "max_new_programs_reached",
             "postprocessing_in_progress",
+            "program_timeout",
         }
     ):
         raise ValueError("pending run-progressの停止理由が不正です")
+    if stop_reason == "program_timeout" and (not inventory_prepared or not pending or postprocessing_pending):
+        raise ValueError("program timeoutには未完了programのcheckpointが必要です")
     return {
         "schema_version": RUN_PROGRESS_SCHEMA_VERSION,
         "collection_id": collection_id,
@@ -1528,7 +1531,7 @@ class GhidraMcpClient:
         *,
         query: Mapping[str, Any] | None = None,
         body: Mapping[str, Any] | None = None,
-        timeout: int | None = None,
+        timeout: float | None = None,
     ) -> Any:
         url = self.base_url + path
         clean_query = {key: value for key, value in (query or {}).items() if value is not None}
@@ -1564,8 +1567,8 @@ class GhidraMcpClient:
             raise GhidraMcpError(f"{method} {path} returned an MCP error object")
         return value
 
-    def get(self, endpoint: str, **query: Any) -> Any:
-        return self._request("GET", endpoint, query=query, body=None)
+    def get(self, endpoint: str, *, transport_timeout: float | None = None, **query: Any) -> Any:
+        return self._request("GET", endpoint, query=query, body=None, timeout=transport_timeout)
 
     def post(
         self,
@@ -4687,15 +4690,23 @@ def _wait_for_analysis(
     *,
     timeout_seconds: int,
 ) -> dict[str, Any]:
+    if type(timeout_seconds) is not int or timeout_seconds <= 0:
+        raise ValueError("auto-analysisの待機上限は正の整数秒で指定してください")
     deadline = time.monotonic() + timeout_seconds
     last: dict[str, Any] = {}
-    while time.monotonic() < deadline:
-        value = client.get("/analysis_status", program=program)
+    while (remaining := deadline - time.monotonic()) > 0:
+        value = client.get(
+            "/analysis_status",
+            program=program,
+            transport_timeout=min(float(getattr(client, "timeout", timeout_seconds)), remaining),
+        )
         if isinstance(value, Mapping):
             last = dict(value)
             if not bool(value.get("analyzing")):
                 return last
-        time.sleep(2)
+        remaining = deadline - time.monotonic()
+        if remaining > 0:
+            time.sleep(min(2, remaining))
     raise TimeoutError(f"Ghidra auto-analysis timeout: {program}")
 
 
@@ -5013,6 +5024,7 @@ def analyze_program(
             program,
         )
     metadata_raw = _program_get("/get_metadata")
+    metadata_before_entry_point_function_recovery: Any = None
     if not managed_cil_primary:
         _bind_function_metadata_coverage(
             function_coverage,
@@ -5069,6 +5081,24 @@ def analyze_program(
             entry_points,
             segments,
         )
+        if entry_function_recovery.get("status") == "recovered":
+            recovered_functions, recovered_coverage = _all_functions_with_coverage(
+                client,
+                program,
+            )
+            if recovered_functions != functions:
+                raise GhidraMcpError(
+                    "entry point関数復元後の再取得inventoryが一致しません"
+                )
+            metadata_before_entry_point_function_recovery = metadata_raw
+            metadata_raw = _program_get("/get_metadata")
+            _bind_function_metadata_coverage(
+                recovered_coverage,
+                metadata_raw,
+                len(recovered_functions),
+            )
+            functions = recovered_functions
+            function_coverage = recovered_coverage
     if managed_cil_primary:
         ghidra_call_graph, call_graph_coverage = _managed_call_graph_with_coverage(program, analysis_mode)
         call_graph = dict(ghidra_call_graph)
@@ -5169,6 +5199,10 @@ def analyze_program(
         "sample_executed": False,
         "network_contacted": False,
     }
+    if metadata_before_entry_point_function_recovery is not None:
+        raw_index["metadata_before_entry_point_function_recovery"] = (
+            metadata_before_entry_point_function_recovery
+        )
     _atomic_private_json(output_dir / "ghidra-raw-index.json", raw_index)
     result = {
         "schema_version": SCHEMA_VERSION,
@@ -5248,6 +5282,21 @@ def refresh_complete_program_artifacts(
         raw_index = _bounded_json_snapshot(raw_index_path).document
         opened_program: str | None = None
         open_error: GhidraMcpError | None = None
+        cached_functions = _page_values(
+            raw_index.get("functions"),
+            "/list_functions_enhanced",
+        )
+        cached_metadata_count = _metadata_function_count(raw_index.get("metadata"))
+        metadata_refresh_required = bool(
+            cached_metadata_count is not None
+            and cached_metadata_count < len(cached_functions)
+        )
+        recovery = result.get("entry_point_function_recovery")
+        recovered_function_coverage_refresh_required = bool(
+            isinstance(recovery, Mapping)
+            and recovery.get("status") == "recovered"
+            and not _function_inventory_coverage_complete(result)
+        )
         paging_cache_terminal = all(
             (
                 (
@@ -5268,7 +5317,12 @@ def refresh_complete_program_artifacts(
             _call_graph_retrieval_coverage_complete(result)
             or result.get("analysis_mode") == "managed_cil_primary_with_ghidra_structure"
         )
-        initial_cache_terminal = paging_cache_terminal and call_graph_cache_terminal
+        initial_cache_terminal = (
+            paging_cache_terminal
+            and call_graph_cache_terminal
+            and not metadata_refresh_required
+            and not recovered_function_coverage_refresh_required
+        )
         if initial_cache_terminal:
             open_error = GhidraMcpError("初回MCP応答で全ページング対象の終端到達を確認済みです")
         else:
@@ -5279,6 +5333,9 @@ def refresh_complete_program_artifacts(
                     raise GhidraMcpError(f"完全取得時のprogram selectorが一致しません: {opened_program} != {program}")
             except GhidraMcpError as error:
                 open_error = error
+        metadata_for_coverage = raw_index.get("metadata")
+        if opened_program is not None:
+            metadata_for_coverage = client.get("/get_metadata", program=program)
         retrieved: dict[str, list[Any]] = {}
         coverage: dict[str, dict[str, Any]] = {}
         for name, endpoint in endpoints.items():
@@ -5347,7 +5404,7 @@ def refresh_complete_program_artifacts(
             if name == "functions" and not managed_alternative:
                 _bind_function_metadata_coverage(
                     endpoint_coverage,
-                    raw_index.get("metadata"),
+                    metadata_for_coverage,
                     len(items),
                 )
             retrieved[name] = items
@@ -5410,6 +5467,8 @@ def refresh_complete_program_artifacts(
         )
         raw_index["opcode_hashes"] = opcode_hashes
         result["opcode_hashes"] = opcode_hashes
+        raw_index["metadata"] = metadata_for_coverage
+        result["metadata"] = _parse_metadata(metadata_for_coverage)
         for name, items in retrieved.items():
             raw_index[name] = items
         raw_index["ghidra_call_graph"] = ghidra_call_graph
@@ -10018,10 +10077,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     client: GhidraMcpClient | None = None
     results: dict[str, dict[str, Any]] = {}
     ordered = sorted(objects.values(), key=lambda item: (item.size, item.sha256))
+    if checkpoint_prepared and checkpoint is not None:
+        pending_order = {digest: index for index, digest in enumerate(checkpoint["pending_programs"])}
+        # 前回未試行のprogramをtimeout済みprogramより先へ回し、chunk上限による飢餓を防ぐ。
+        ordered.sort(key=lambda item: (item.sha256 in pending_order, pending_order.get(item.sha256, 0)))
     max_new_programs = args.max_new_programs
     newly_analyzed = 0
+    attempted_programs = 0
     cached_programs = 0
     pending_programs: list[str] = []
+    timed_out_programs: list[str] = []
     storage_blocked = False
     storage_observation = _storage_budget_observation(
         storage_paths,
@@ -10063,7 +10128,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if storage_blocked:
             pending_programs.append(item.sha256)
             continue
-        if max_new_programs is not None and newly_analyzed >= max_new_programs:
+        if max_new_programs is not None and attempted_programs >= max_new_programs:
             pending_programs.append(item.sha256)
             continue
         storage_observation = _storage_budget_observation(
@@ -10095,15 +10160,66 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             )
         if client is None:
             client = GhidraMcpClient(args.mcp_url, timeout=args.request_timeout)
-        results[item.sha256] = analyze_program(
-            client,
-            item,
-            private_output,
-            args.project_root,
-            analysis_timeout=args.analysis_timeout,
-            skip_auto_analysis=item.sha256 in args.skip_auto_analysis_sha256,
-        )
-        newly_analyzed += 1
+        attempted_programs += 1
+        try:
+            results[item.sha256] = analyze_program(
+                client,
+                item,
+                private_output,
+                args.project_root,
+                analysis_timeout=args.analysis_timeout,
+                skip_auto_analysis=item.sha256 in args.skip_auto_analysis_sha256,
+            )
+        except (TimeoutError, GhidraMcpError) as exc:
+            if not _request_timed_out(exc):
+                raise
+            timed_out_programs.append(item.sha256)
+            _append_jsonl(
+                private_output / "program-timeouts.raw.jsonl",
+                [{
+                    "schema_version": 1,
+                    "sha256": item.sha256,
+                    "prepared_inventory_sha256": prepared_inventory_sha256,
+                    "observed_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "reason": (
+                        "analysis_wait_timeout" if isinstance(exc, TimeoutError) else "mcp_transport_timeout"
+                    ),
+                    "analysis_timeout_seconds": args.analysis_timeout,
+                    "request_timeout_seconds": args.request_timeout,
+                    "retryable": True,
+                    "sample_executed": False,
+                    "network_contacted": False,
+                }],
+            )
+            # 次programやOSの中断前にも、完了cacheと全pendingのbindingを永続化する。
+            _write_run_progress(
+                private_output,
+                _run_progress_document(
+                    collection_id=collection_dir.name,
+                    status="ghidra_chunk_pending",
+                    stop_reason="program_timeout",
+                    retryable=True,
+                    inventory_prepared=True,
+                    prepared_inventory_sha256=prepared_inventory_sha256,
+                    unique_pe_programs=len(ordered),
+                    complete_programs=len(results),
+                    cached_programs=cached_programs,
+                    newly_analyzed_programs=newly_analyzed,
+                    pending_programs=(
+                        pending_programs + [future.sha256 for future in ordered[index:]] + timed_out_programs
+                    ),
+                    postprocessing_pending=False,
+                    prepared_inputs_reused=effective_reuse,
+                    resume_mode=resume_mode,
+                    disk_space=storage_observation,
+                ),
+            )
+            print(
+                json.dumps({"phase": "ghidra", "state": "program_timeout", "sha256": item.sha256, "retryable": True}),
+                flush=True,
+            )
+        else:
+            newly_analyzed += 1
         storage_observation = _storage_budget_observation(
             storage_paths,
             minimum_free_bytes=args.minimum_free_bytes,
@@ -10111,11 +10227,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
         if storage_observation["sufficient"] is not True:
             storage_blocked = True
+    pending_programs.extend(timed_out_programs)
     if pending_programs:
         progress = _run_progress_document(
             collection_id=collection_dir.name,
             status="ghidra_chunk_pending",
-            stop_reason=("minimum_free_space_not_met" if storage_blocked else "max_new_programs_reached"),
+            stop_reason=(
+                "minimum_free_space_not_met" if storage_blocked
+                else "program_timeout" if timed_out_programs
+                else "max_new_programs_reached"
+            ),
             retryable=True,
             inventory_prepared=True,
             prepared_inventory_sha256=prepared_inventory_sha256,

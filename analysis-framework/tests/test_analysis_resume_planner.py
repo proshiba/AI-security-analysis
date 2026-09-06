@@ -390,17 +390,12 @@ def test_unknown_or_malformed_prefix_blocker_fails_closed(tmp_path: Path) -> Non
     )
     decision = result["workflows"][0]["decision"]
 
-    assert decision["action_id"] == "start_successor_workflow"
-    assert decision["blocked_action_id"] == "manual_review_required"
+    assert decision["action_id"] == "manual_review_required"
+    assert decision["blocked_action_id"] is None
     assert decision["eligible"] is False
     assert decision["retryable"] is False
-    assert decision["successor_required"] is True
-    assert decision["requires_changed_evidence"] == [
-        "new_orchestration_id",
-        "new_workflow_id",
-        "updated_request_sha256",
-        "operator_review",
-    ]
+    assert decision["successor_required"] is False
+    assert decision["requires_changed_evidence"] == ["operator_review"]
 
 
 def test_transient_failure_is_resumable_once_with_explicit_budget(tmp_path: Path) -> None:
@@ -981,9 +976,57 @@ def test_unknown_blocker_stays_manual_when_budget_is_exhausted(tmp_path: Path) -
     )
     decision = result["workflows"][0]["decision"]
 
-    assert decision["action_id"] == "start_successor_workflow"
-    assert decision["blocked_action_id"] == "manual_review_required"
-    assert decision["successor_required"] is True
+    assert decision["action_id"] == "manual_review_required"
+    assert decision["blocked_action_id"] is None
+    assert decision["successor_required"] is False
+    assert decision["eligible"] is False
+
+
+@pytest.mark.parametrize("implementation_matches", [False, True])
+@pytest.mark.parametrize("known_blocker", [None, "terminal_payload_not_recovered"])
+def test_partial_unknown_blocker_cannot_be_cleared_by_contract_drift(
+    implementation_matches: bool,
+    known_blocker: str | None,
+) -> None:
+    """既知actionや新実装があっても、未知blockerのレビュー要件を残す。"""
+
+    blockers = ["future_unreviewed_blocker"]
+    if known_blocker:
+        blockers.append(known_blocker)
+    record = _synthetic_failed_record(sorted(blockers))
+    record["status"] = "partial"
+    decision, _, _ = planner._decision_for_record(
+        record,
+        phases=[],
+        orchestrator_implementation_matches_current=implementation_matches,
+    )
+
+    assert decision["action_id"] == "manual_review_required"
+    assert decision["requires_changed_evidence"] == ["operator_review"]
+    assert decision["eligible"] is False
+    assert decision["successor_required"] is False
+    assert decision["reason_codes"] == sorted(blockers)
+
+
+def test_partial_retryable_label_requires_bound_failure_envelope() -> None:
+    """partial caseに付いた失敗ラベルだけでは新workflowへ進めない。"""
+
+    record = _synthetic_failed_record(["static_analysis_failed"])
+    record["status"] = "partial"
+    phase = _synthetic_phase(
+        "static_analysis",
+        status="blocked",
+        blocker="static_analysis_failed",
+        failure_code=None,
+    )
+    decision, _, _ = planner._decision_for_record(
+        record,
+        phases=[phase],
+        orchestrator_implementation_matches_current=False,
+    )
+
+    assert decision["action_id"] == "manual_review_required"
+    assert decision["requires_changed_evidence"] == ["operator_review"]
     assert decision["eligible"] is False
 
 

@@ -8,7 +8,7 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.purehvnc.html" class="white">purehvnc</a>.extractor</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cextractors%5Cpurehvnc%5Cextractor.py">c:\users\administrator\ai-security-analysis\extractors\purehvnc\extractor.py</a></td></tr></table>
+<td class="extra"><a href=".">index</a><br><a href="../../extractors/purehvnc/extractor.py">extractors/purehvnc/extractor.py</a></td></tr></table>
     <p><span class="code">Extract&nbsp;native&nbsp;PureHVNC&nbsp;and&nbsp;managed&nbsp;PureRAT&nbsp;configuration&nbsp;without&nbsp;execution.</span></p>
 <p>
 <table class="section">
@@ -35,7 +35,7 @@
  <dl><dt><a name="-extract_direct_config"><strong>extract_direct_config</strong></a>(data: 'bytes') -&gt; 'tuple[dict[str, Any], str]'</dt><dd><span class="code">Extract&nbsp;config&nbsp;from&nbsp;an&nbsp;already&nbsp;recovered&nbsp;terminal&nbsp;payload.</span></dd></dl>
  <dl><dt><a name="-extract_managed_config"><strong>extract_managed_config</strong></a>(data: 'bytes') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Extract&nbsp;the&nbsp;managed&nbsp;PureRAT&nbsp;protobuf&nbsp;config&nbsp;and&nbsp;certificate&nbsp;fingerprints.</span></dd></dl>
  <dl><dt><a name="-extract_native_config"><strong>extract_native_config</strong></a>(data: 'bytes') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Extract&nbsp;a&nbsp;conservative&nbsp;native&nbsp;10FX-framed&nbsp;PureHVNC&nbsp;endpoint&nbsp;profile.</span></dd></dl>
- <dl><dt><a name="-iter_dotnet_user_strings"><strong>iter_dotnet_user_strings</strong></a>(data: 'bytes') -&gt; 'Iterator[str]'</dt><dd><span class="code">Yield&nbsp;managed&nbsp;#US&nbsp;values&nbsp;when&nbsp;*data*&nbsp;is&nbsp;a&nbsp;valid&nbsp;.NET&nbsp;PE&nbsp;image.</span></dd></dl>
+ <dl><dt><a name="-iter_dotnet_user_strings"><strong>iter_dotnet_user_strings</strong></a>(data: 'bytes') -&gt; 'Iterator[str]'</dt><dd><span class="code">有効な#US&nbsp;heapがある.NET&nbsp;PEだけから範囲内の文字列を返す。</span></dd></dl>
  <dl><dt><a name="-native_endpoint_candidates"><strong>native_endpoint_candidates</strong></a>(strings: 'list[str]', adjacency: 'int' = 2) -&gt; 'list[str]'</dt><dd><span class="code">Associate&nbsp;native&nbsp;IP&nbsp;and&nbsp;port&nbsp;strings&nbsp;while&nbsp;rejecting&nbsp;unrelated&nbsp;port-like&nbsp;text.</span></dd></dl>
  <dl><dt><a name="-parse_protobuf"><strong>parse_protobuf</strong></a>(data: 'bytes') -&gt; 'dict[int, list[Any]]'</dt><dd><span class="code">Parse&nbsp;protobuf&nbsp;wire&nbsp;types&nbsp;used&nbsp;by&nbsp;the&nbsp;reviewed&nbsp;PureRAT&nbsp;configuration.</span></dd></dl>
  <dl><dt><a name="-read_varint"><strong>read_varint</strong></a>(data: 'bytes', offset: 'int') -&gt; 'tuple[int, int]'</dt><dd><span class="code">Read&nbsp;one&nbsp;protobuf&nbsp;varint&nbsp;and&nbsp;return&nbsp;its&nbsp;value&nbsp;and&nbsp;next&nbsp;offset.</span></dd></dl>

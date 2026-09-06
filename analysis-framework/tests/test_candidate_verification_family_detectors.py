@@ -223,6 +223,26 @@ def test_invalid_phishing_action_port_is_rejected_without_exception() -> None:
     assert result["matched"] is False
 
 
+def test_binary_declaration_noise_does_not_enter_html_parser(monkeypatch) -> None:
+    module = MODULES["credential_phishing_html"]
+    def unexpected_parse(*_args):
+        raise AssertionError("HTML envelopeのない入力をparseしました")
+    monkeypatch.setattr(module._CredentialFormEvidenceParser, "feed", unexpected_parse)
+    result = module.detect(_pe(b"<![\xff\x1b random bytes"), Path("fixture.exe"))
+    assert result["matched"] is False
+    assert result["observations"]["parsed_tag_count"] == 0
+    assert result["observations"]["parse_error"] is None
+
+
+@pytest.mark.parametrize("malformed", [b"<![\xff\x1b", b"<![bad declaration]>"])
+def test_html_declaration_errors_fail_closed_without_raw_content(malformed) -> None:
+    sample = POSITIVE_FIXTURES["credential_phishing_html"] + malformed
+    result = MODULES["credential_phishing_html"].detect(sample, Path("broken.html"))
+    assert result["matched"] is False
+    assert result["observations"]["parse_error"] == "AssertionError"
+    assert "declaration" not in json.dumps(result)
+
+
 def test_phishing_tag_limit_fails_closed() -> None:
     """小容量でも過剰tagを持つHTMLは上限到達時点でfail closedにする。"""
 

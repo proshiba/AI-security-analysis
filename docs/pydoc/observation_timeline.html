@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>observation_timeline — API仕様</title></head><body>
+<h1>observation_timeline</h1>
+<p><a href="../../analysis-framework/malware/valleyrat/observation_timeline.py">実装</a> · <a href="../../analysis-framework/malware/valleyrat/docs/DEFENSIVE-OBSERVATION-DEVELOPMENT.md">観測機能の利用と制約</a></p>
+<pre>本文を受け取らず、注入された観測時刻と通信メタデータだけを有界に集約する。
+
+この集約器は送受信、時計読取り、ファイル操作、端末情報収集を行わない。role は
+既存の exact Winos 契約と照合するが、フレーム復号や本文の妥当性検証は呼出側の責任で
+ある。操作要求候補の受信は、自動配信や自動処理でも発生し、人間の活動を証明しない。</pre>
+<h2>ObservationTimeline</h2>
+<pre>単調時刻を注入して観測を記録する、入出力のない有界な集約器。
+
+開始時刻はUTCの ``YYYY-MM-DDTHH:MM:SS[.mmm]Z``、接続IDは合成値の
+``c1``〜``c999999`` に限定する。profileはregistryのexact Winos 5種類で、
+再接続には新しい接続IDを使う。上限到達や不正入力では状態を変更せず例外を返す。
+フレーム記録は実際の送受信だけを指し、生成しただけの送信予定を記録しない。</pre>
+<pre>ObservationTimeline(started_at_utc: &#x27;str&#x27;, *, max_duration_ms: &#x27;int&#x27; = 28800000, max_events: &#x27;int&#x27; = 10000, max_connections: &#x27;int&#x27; = 64, max_frame_bytes: &#x27;int&#x27; = 1048576, gap_threshold_ms: &#x27;int&#x27; = 60000) -&gt; &#x27;None&#x27;</pre>
+<dl><dt><a name="-connect"><strong>connect</strong></a>(self, connection_id: 'str', profile_id: 'str', elapsed_ms: 'int') -&gt; 'None'</dt><dd><span class="code">接続成立を記録する。試行だけの場合や同じIDの再利用は受理しない。</span></dd></dl>
+
+<dl><dt><a name="-disconnect"><strong>disconnect</strong></a>(self, connection_id: 'str', elapsed_ms: 'int', *, reason: 'str' = 'peer_closed') -&gt; 'None'</dt><dd><span class="code">接続終了を固定理由のenumで記録し、自由文の例外やホスト情報を保持しない。</span></dd></dl>
+
+<dl><dt><a name="-frame"><strong>frame</strong></a>(self, connection_id: 'str', elapsed_ms: 'int', *, direction: 'str', role: 'str', opcode: 'int | None', frame_length: 'int', frame_sha256: 'str') -&gt; 'None'</dt><dd><span class="code">本文なしのフレーム観測を記録し、exact契約に基づく役割を分類する。<br>
+&nbsp;<br>
+``frame_length``&nbsp;と&nbsp;``frame_sha256``&nbsp;は同じ実フレームに対する値を呼出側で<br>
+計算する。本文を受理しないため、hash一致、復号、構造妥当性は検証できない。<br>
+解析不能または未検証のフレームには&nbsp;``role='unknown'``&nbsp;を渡す。</span></dd></dl>
+
+<dl><dt><a name="-snapshot"><strong>snapshot</strong></a>(self, elapsed_ms: 'int | None' = None) -&gt; 'dict[str, object]'</dt><dd><span class="code">UTC時間別件数、接続、受信空白、非接続時間をJSON可能な独立copyで返す。<br>
+&nbsp;<br>
+指定時刻は最終イベント以降の仮想的な集計終端であり、状態やイベント時刻を<br>
+更新しない。受信空白は開始・直前受信から次の受信・切断・集計終端までの<br>
+間隔で、閾値以上を記録する。非接続中は観測不能であり、攻撃者の非活動と<br>
+解釈しない。heartbeatや設定更新の送信主体が人間か自動処理かは未確認である。</span></dd></dl>
+
+<h2>ObservationTimelineError</h2>
+<pre>時刻、入力形式、状態遷移または資源上限が観測契約に適合しない。</pre>
+</body></html>

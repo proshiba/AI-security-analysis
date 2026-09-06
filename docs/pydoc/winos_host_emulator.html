@@ -1,0 +1,70 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>winos_host_emulator — API仕様</title></head><body>
+<h1>winos_host_emulator</h1>
+<p><a href="../../analysis-framework/malware/valleyrat/winos_host_emulator.py">実装</a> · <a href="../../analysis-framework/malware/valleyrat/docs/DEFENSIVE-OBSERVATION-DEVELOPMENT.md">観測機能の利用と制約</a></p>
+<pre>ValleyRAT/Winos control C2向けの有界・非実行host観測adapter。
+
+review済みcontrol endpointへ固定C9 heartbeatを1回だけ送信し、返された
+完全な1 frameをサイズ、SHA-256、command roleだけへ正規化する。C9の既知flag
+``01``はregistration要求として区別するが、registration、未知commandへの応答、
+stage取得、実端末情報の収集・送信は行わない。</pre>
+<h2>FrameDecision</h2>
+<pre>受信frameに対する無応答・終了判断。</pre>
+<pre>FrameDecision(command: &#x27;int | None&#x27;, role: &#x27;str&#x27;, classification: &#x27;str&#x27;, action: &#x27;str&#x27;, should_respond: &#x27;bool&#x27;, terminate_session: &#x27;bool&#x27;, registration_requested: &#x27;bool&#x27;, fingerprint: &#x27;dict[str, Any]&#x27;) -&gt; None</pre>
+<dl><dt><a name="-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt></dl>
+
+<h2>HeartbeatNotAllowedError</h2>
+<pre>明示許可なしのC9 heartbeat送信を拒否した。</pre>
+<h2>HostPolicy</h2>
+<pre>単一heartbeat sessionへ適用する固定上限。</pre>
+<pre>HostPolicy(timeout_seconds: &#x27;float&#x27; = 3.0, maximum_response_bytes: &#x27;int&#x27; = 64, maximum_frames: &#x27;int&#x27; = 1, maximum_read_calls: &#x27;int&#x27; = 16, read_chunk_bytes: &#x27;int&#x27; = 64) -&gt; None</pre>
+<dl><dt><a name="-from_mapping"><strong>from_mapping</strong></a>(values: 'Mapping[str, int | float] | None') -&gt; 'HostPolicy'<span class="grey"><span class="heading-text"> class method of <a href="winos_host_emulator.html#HostPolicy">winos_host_emulator.HostPolicy</a></span></span></dt><dd><span class="code">共通runnerのgeneric&nbsp;limitsを厳密なWinos&nbsp;policyへ変換する。</span></dd></dl>
+
+<h2>HostSessionResult</h2>
+<pre>raw frameや復号payloadを含まないsession結果。</pre>
+<pre>HostSessionResult(status: &#x27;str&#x27;, heartbeat_size: &#x27;int&#x27;, heartbeat_sha256: &#x27;str&#x27;, response_size: &#x27;int&#x27;, response_sha256: &#x27;str | None&#x27;, timed_out: &#x27;bool&#x27;, peer_closed: &#x27;bool&#x27;, decision: &#x27;FrameDecision | None&#x27;) -&gt; None</pre>
+<dl><dt><a name="-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt></dl>
+
+<h2>MalformedFrameError</h2>
+<pre>不正長、truncate、stream契約違反の受信frameを拒否した。</pre>
+<h2>PassiveObservationPolicy</h2>
+<pre>外部C2を有界時間だけ受信し続ける非応答policy。</pre>
+<pre>PassiveObservationPolicy(duration_seconds: &#x27;float&#x27; = 28800.0, timeout_seconds: &#x27;float&#x27; = 3.0, maximum_response_bytes: &#x27;int&#x27; = 64, maximum_frames: &#x27;int&#x27; = 256, maximum_read_calls: &#x27;int&#x27; = 16, read_chunk_bytes: &#x27;int&#x27; = 64) -&gt; None</pre>
+<dl><dt><a name="-frame_policy"><strong>frame_policy</strong></a>(self) -&gt; 'HostPolicy'</dt></dl>
+
+<dl><dt><a name="-from_mapping"><strong>from_mapping</strong></a>(values: 'Mapping[str, int | float] | None') -&gt; 'PassiveObservationPolicy'<span class="grey"><span class="heading-text"> class method of <a href="winos_host_emulator.html#PassiveObservationPolicy">winos_host_emulator.PassiveObservationPolicy</a></span></span></dt></dl>
+
+<h2>PassiveObservationResult</h2>
+<pre>raw payloadを公開せず複数frameの破棄結果だけを返す。</pre>
+<pre>PassiveObservationResult(status: &#x27;str&#x27;, heartbeat_size: &#x27;int&#x27;, heartbeat_sha256: &#x27;str&#x27;, decisions: &#x27;tuple[FrameDecision, ...]&#x27;, total_inbound_bytes: &#x27;int&#x27;, idle_timeouts: &#x27;int&#x27;, peer_closed: &#x27;bool&#x27;) -&gt; None</pre>
+<dl><dt><a name="-to_dict"><strong>to_dict</strong></a>(self) -&gt; 'dict[str, Any]'</dt></dl>
+
+<h2>ResponseLimitExceededError</h2>
+<pre>frame長またはread回数が上限を超えた。</pre>
+<h2>WinosHostEmulatorError</h2>
+<pre>Winos host adapterの安全な停止を表す基底例外。</pre>
+<h2>WinosStream</h2>
+<pre>共通transportから注入する最小stream interface。</pre>
+<pre>WinosStream(*args, **kwargs)</pre>
+<dl><dt><a name="-recv"><strong>recv</strong></a>(self, maximum_bytes: 'int') -&gt; 'bytes'</dt></dl>
+
+<dl><dt><a name="-sendall"><strong>sendall</strong></a>(self, data: 'bytes') -&gt; 'None'</dt></dl>
+
+<dl><dt><a name="-settimeout"><strong>settimeout</strong></a>(self, timeout_seconds: 'float') -&gt; 'None'</dt></dl>
+
+<h2>build_c9_heartbeat</h2>
+<dl><dt><a name="-build_c9_heartbeat"><strong>build_c9_heartbeat</strong></a>(*, header: 'bytes' = b'xV4\x12\x00\x00\x00\x00\xca\x00') -&gt; 'bytes'</dt><dd><span class="code">実端末情報を含まない固定headerでC9&nbsp;heartbeatを1&nbsp;frame生成する。</span></dd></dl>
+
+<h2>classify_received_frame</h2>
+<dl><dt><a name="-classify_received_frame"><strong>classify_received_frame</strong></a>(raw_frame: 'bytes') -&gt; 'FrameDecision'</dt><dd><span class="code">完全な単一frameをサイズ/hash/command&nbsp;roleだけへ正規化する。</span></dd></dl>
+
+<h2>run_bounded_host_session</h2>
+<dl><dt><a name="-run_bounded_host_session"><strong>run_bounded_host_session</strong></a>(stream: 'WinosStream', *, policy: 'HostPolicy | None' = None, allow_c9_heartbeat: 'bool' = False, heartbeat_header: 'bytes' = b'xV4\x12\x00\x00\x00\x00\xca\x00', transcript_callback: 'Callable[[dict[str, Any]], None] | None' = None) -&gt; 'HostSessionResult'</dt><dd><span class="code">C9&nbsp;heartbeatを1回送り、完全な受信frame&nbsp;1個だけを分類する。</span></dd></dl>
+
+<h2>run_host_session</h2>
+<dl><dt><a name="-run_host_session"><strong>run_host_session</strong></a>(stream: 'WinosStream', *, session_limits: 'Mapping[str, int | float] | None' = None, allow_c9_heartbeat: 'bool' = False, allow_registration: 'bool | None' = None, transcript_callback: 'Callable[[dict[str, Any]], None] | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">共通orchestrator契約で固定C9&nbsp;heartbeat許可を明示的に受ける。</span></dd></dl>
+
+<h2>run_passive_observation_session</h2>
+<dl><dt><a name="-run_passive_observation_session"><strong>run_passive_observation_session</strong></a>(stream: 'WinosStream', *, policy: 'PassiveObservationPolicy', allow_c9_heartbeat: 'bool' = False, heartbeat_header: 'bytes' = b'xV4\x12\x00\x00\x00\x00\xca\x00', transcript_callback: 'Callable[[dict[str, Any]], None] | None' = None, monotonic: 'Callable[[], float]' = &lt;built-in function monotonic&gt;) -&gt; 'PassiveObservationResult'</dt><dd><span class="code">heartbeatを1回送り、単調時刻期限または未知commandで無応答終了する。</span></dd></dl>
+
+</body></html>

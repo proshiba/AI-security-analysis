@@ -1,0 +1,14 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>vvaS静的契約 API</title></head><body><h1>vvaS静的契約のPython API</h1><p>保存済みvvaS逆アセンブルの同一性と受信境界を静的に監査する。
+
+機械語byte欄はハッシュ照合だけに使用し、実行・CPUエミュレーション・通信・
+復号payload生成を行わない。命令の表示名やoperandの説明は根拠として信頼しない。
+CLIだけが指定された通常の保存テキストを読み、結果を標準出力へ返す。</p><p><a href="../../analysis-framework/malware/valleyrat/vvas_static_contract.py">解析コード</a></p><h2>公開関数</h2><dl><dt><a name="-audit_receive_returns"><strong>audit_receive_returns</strong></a>(values: 'list[int] | tuple[int, ...]') -&gt; 'dict'</dt><dd><span class="code">recv戻り値の数列だけを受動監査し、未完・終了・過剰を区別する。<br>
+&nbsp;<br>
+実通信もpayload生成も行わない。過剰受信を見た監査器はfail-closedとし、<br>
+境界を越えて進み続ける実検体の不安全な動作を再現しない。</span></dd></dl>
+<dl><dt><a name="-audit_saved_assembly"><strong>audit_saved_assembly</strong></a>(text: 'str') -&gt; 'dict'</dt><dd><span class="code">有界の保存asmを完全SHA-256へ束縛し、根拠offset付き監査結果を返す。<br>
+&nbsp;<br>
+連続offset、命令byte欄、重要アンカー、全体サイズを検査する。<br>
+機械語を実行せず、再構成byteや検体由来文字列を結果へ含めない。</span></dd></dl>
+<dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">通常ファイルの保存asmを上限付きで読み、監査JSONを標準出力へ返す。</span></dd></dl>
+<h2>例外</h2><p><code>StaticContractError</code>: 入力が既知検体の静的契約または監査上限に適合しない。</p></body></html>

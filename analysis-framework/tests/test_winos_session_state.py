@@ -66,6 +66,15 @@ def test_bootstrap_client_heartbeat_and_raw_profile_are_separate() -> None:
     assert WINOS.PROFILE_DEFINITIONS[WINOS.WinosVariant.NVML_BOOTSTRAP].permits_raw_stage_handshake is False
 
 
+def test_exact_ca00_ca01_status_roles_do_not_change_nvml_evidence() -> None:
+    direction = WINOS.Direction.SERVER_TO_CLIENT
+    for variant in (WINOS.WinosVariant.CA00_X86, WINOS.WinosVariant.CA01_X64_FIXED):
+        assert WINOS.command_role(variant, direction, 0x03) == "status_and_screen_snapshot_request"
+        assert WINOS.command_role(variant, direction, 0xC9) == "status_or_screen_snapshot_request"
+    assert WINOS.command_role(WINOS.WinosVariant.NVML_MAIN, direction, 0x03) == "registration_or_screen_snapshot_request"
+    assert WINOS.command_role(WINOS.WinosVariant.NVML_MAIN, direction, 0xC9) == "heartbeat_or_registration_challenge"
+
+
 def test_public_scalar_frame_and_raw_fabrication_are_rejected() -> None:
     binding = WINOS.binding_for_variant(WINOS.WinosVariant.CA00_X86)
     with pytest.raises(PermissionError):
