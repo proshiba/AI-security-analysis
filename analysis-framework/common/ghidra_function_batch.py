@@ -115,6 +115,7 @@ DECOMPILE_TRANSPORT_MARGIN_SECONDS = 60
 MAX_CHARACTERISTIC_FUNCTIONS_PER_PROGRAM = 32
 MAX_MANAGED_CIL_RAW_INSTRUCTIONS_PER_METHOD = 8
 FUNCTION_ANALYSIS_BLOCKER = "representative_function_analysis_required"
+C2_ANALYSIS_UNRESOLVED_BLOCKER = "c2_analysis_unresolved"
 ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER = "orchestration:function_analysis"
 ORCHESTRATION_GENERIC_TRIAGE_BLOCKER = "orchestration:generic_triage"
 FUNCTION_ANALYSIS_NEXT_ACTION_JA = "特徴関数と全体ロジックの静的解析を追加してください。"
@@ -7804,8 +7805,12 @@ def finalize_case_report(
     case_dir: Path,
     *,
     transaction_root: Path | None = None,
+    c2_analysis_complete: bool | None = None,
 ) -> str:
-    """代表関数解析後も未解決blockerを保持し、reportを再封印する。"""
+    """代表関数解析後もC2を含む未解決blockerを保持し、reportを再封印する。"""
+
+    if c2_analysis_complete is not None and type(c2_analysis_complete) is not bool:
+        raise TypeError("c2_analysis_completeはboolまたはNoneで指定してください")
 
     _recover_finalize_transaction(
         case_dir,
@@ -7825,6 +7830,23 @@ def finalize_case_report(
     status = state.get("status")
     if status not in {"partial", "complete", "triaged_unknown"}:
         raise ValueError(f"Ghidra反映対象外のcase stateです: {case_dir.name}: {status}")
+    if c2_analysis_complete is not None and status != "triaged_unknown":
+        if c2_analysis_complete:
+            if C2_ANALYSIS_UNRESOLVED_BLOCKER in blockers:
+                blockers.remove(C2_ANALYSIS_UNRESOLVED_BLOCKER)
+        elif C2_ANALYSIS_UNRESOLVED_BLOCKER not in blockers:
+            blockers.append(C2_ANALYSIS_UNRESOLVED_BLOCKER)
+            blockers.sort()
+        if not c2_analysis_complete and status == "complete":
+            status = "partial"
+            state.update(
+                {
+                    "status": "partial",
+                    "complete": False,
+                    "resumable": False,
+                    "blockers": blockers,
+                }
+            )
     generic_limit_superseded = _ghidra_supersedes_generic_string_limit(case_dir)
     documented_generic_limits = _ghidra_documents_known_generic_container_limits(case_dir)
     generic_triage_complete = generic_limit_superseded or bool(documented_generic_limits)
@@ -9405,10 +9427,33 @@ def _publish_shadow_case_transaction_locked(
             snapshot = _bounded_content_snapshot(shadow / Path(relative))
             _atomic_replace_bytes(snapshot.path, data, expected_snapshot=snapshot)
         _reseal_shadow_case(shadow)
+        pre_finalize_c2 = load_json_object_strict(shadow / "c2-analysis.json")
+        pre_finalize_c2_validation = validate_c2_contract(
+            pre_finalize_c2,
+            case_dir.name,
+            repository=repository,
+        )
+        selected_families = base_report.get("classification", {}).get("selected_families")
+        defer_c2_reconciliation = selected_families == ["screenconnect_rmm"]
         finalized_state = finalize_case_report(
             shadow,
             transaction_root=shadow_transaction_root,
+            c2_analysis_complete=(
+                None if defer_c2_reconciliation else pre_finalize_c2_validation.get("complete") is True
+            ),
         )
+        c2 = load_json_object_strict(shadow / "c2-analysis.json")
+        c2_validation = validate_c2_contract(
+            c2,
+            case_dir.name,
+            repository=repository,
+        )
+        if finalized_state == "complete" and c2_validation.get("complete") is not True:
+            finalized_state = finalize_case_report(
+                shadow,
+                transaction_root=shadow_transaction_root,
+                c2_analysis_complete=False,
+            )
         _enrich_shadow_behavior_documents(shadow)
         profile = build_case_profile(shadow)
         feature_snapshot = _bounded_content_snapshot(shadow / "features.json")
@@ -9434,12 +9479,6 @@ def _publish_shadow_case_transaction_locked(
         if errors:
             raise ValueError(f"shadow case整合性検証に失敗しました: {case_dir.name}: {errors}")
         _validate_completed_screenconnect_projection(shadow, finalized_report)
-        c2 = load_json_object_strict(shadow / "c2-analysis.json")
-        c2_validation = validate_c2_contract(
-            c2,
-            case_dir.name,
-            repository=repository,
-        )
         final_files = _snapshot_publication_case(shadow, finalized_report)
         if set(final_files) != set(original_files):
             raise ValueError("shadowの公開file集合が旧caseと一致しません")

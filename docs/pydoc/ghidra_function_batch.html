@@ -348,8 +348,9 @@ Data and other attributes defined here:<br>
  <dl><dt><a name="-finalize_case_report"><strong>finalize_case_report</strong></a>(
     case_dir: 'Path',
     *,
-    transaction_root: 'Path | None' = None
-) -&gt; 'str'</dt><dd><span class="code">代表関数解析後も未解決blockerを保持し、reportを再封印する。</span></dd></dl>
+    transaction_root: 'Path | None' = None,
+    c2_analysis_complete: 'bool | None' = None
+) -&gt; 'str'</dt><dd><span class="code">代表関数解析後もC2を含む未解決blockerを保持し、reportを再封印する。</span></dd></dl>
  <dl><dt><a name="-finalize_collection_publication"><strong>finalize_collection_publication</strong></a>(repository: 'Path', collection_dir: 'Path') -&gt; 'dict[str, Any]'</dt><dd><span class="code">全case完了時だけ索引登録し、残余blockerがあればpartialを明示する。</span></dd></dl>
  <dl><dt><a name="-load_prepared_inputs"><strong>load_prepared_inputs</strong></a>(
     sample_root: 'Path',
@@ -413,6 +414,7 @@ Data and other attributes defined here:<br>
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>BATCH_DECOMPILE_FUNCTION_TIMEOUT_SECONDS</strong> = 30<br>
+<strong>C2_ANALYSIS_UNRESOLVED_BLOCKER</strong> = 'c2_analysis_unresolved'<br>
 <strong>CALL_EXPRESSION_RE</strong> = re.compile('(?&lt;![\\w])([A-Za-z_?$][A-Za-z0-9_.$@?&lt;&gt;:-]*)\\s*\\(')<br>
 <strong>CALL_GRAPH_ENDPOINT</strong> = '/get_full_call_graph'<br>
 <strong>CALL_GRAPH_LEGACY_LIMIT</strong> = 'legacy_call_graph_retrieval_evidence_unavailable'<br>
