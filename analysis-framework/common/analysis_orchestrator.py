@@ -40,6 +40,15 @@ RECORD_KEYS = frozenset(
 )
 RECORD_STATUSES = frozenset({"pending", "running", "complete", "partial", "failed", "deferred"})
 ORCHESTRATION_STATUSES = frozenset({"pending", "running", "complete", "partial", "failed"})
+COMMON_SOURCE_ROOT = Path(__file__).resolve().parent
+ORCHESTRATION_GATE_CODE_FILES = (
+    "analysis_orchestrator.py",
+    "analysis_resume_planner.py",
+    "analysis_lifecycle.py",
+    "analysis_job_runner.py",
+    "remediation_registry.py",
+    "static_implementation_commitment.py",
+)
 
 
 class OrchestrationError(RuntimeError):
@@ -282,8 +291,56 @@ def _validate_context(
     )
 
 
+def _implementation_source_paths() -> tuple[Path, ...]:
+    """親run／resume判定を構成する固定source pathを返す。"""
+
+    return (
+        Path(__file__).resolve(),
+        COMMON_SOURCE_ROOT / "analysis_resume_planner.py",
+        Path(analysis_lifecycle.__file__).resolve(),
+        Path(analysis_job_runner.__file__).resolve(),
+        COMMON_SOURCE_ROOT / "remediation_registry.py",
+        COMMON_SOURCE_ROOT / "static_implementation_commitment.py",
+    )
+
+
+def _implementation_commitment(source_sha256: Mapping[str, str]) -> str:
+    """再開ゲートsource集合をcanonical digestへ固定する。"""
+
+    if set(source_sha256) != set(ORCHESTRATION_GATE_CODE_FILES) or any(
+        not isinstance(digest, str) or analysis_lifecycle.SHA256_RE.fullmatch(digest) is None
+        for digest in source_sha256.values()
+    ):
+        raise OrchestrationError("orchestrator_contract_invalid", "再開ゲート実装commitmentが不正です")
+    return analysis_lifecycle._sha256_value(
+        {
+            "schema_version": SCHEMA_VERSION,
+            "source_sha256": dict(sorted(source_sha256.items())),
+        }
+    )
+
+
 def _implementation_sha256() -> str:
-    return analysis_lifecycle._sha256_file(Path(__file__).resolve())
+    """再開ゲート全sourceを通常単一link読込でcommitする。"""
+
+    source_sha256: dict[str, str] = {}
+    for name, path in zip(
+        ORCHESTRATION_GATE_CODE_FILES,
+        _implementation_source_paths(),
+        strict=True,
+    ):
+        try:
+            raw = analysis_job_runner._read_regular_file_once(
+                path,
+                max_bytes=MAX_REQUEST_BYTES,
+            )
+        except (analysis_job_runner.JobContractError, OSError) as exc:
+            raise OrchestrationError(
+                "orchestrator_contract_invalid",
+                f"再開ゲート実装を安全に読み取れません: {name}",
+            ) from exc
+        source_sha256[name] = hashlib.sha256(raw).hexdigest()
+    return _implementation_commitment(source_sha256)
 
 
 def _new_state(context: OrchestrationContext) -> dict[str, Any]:
@@ -647,27 +704,6 @@ def _remediation_summary(lifecycle_state: Mapping[str, Any]) -> tuple[list[str],
     return expected_next, expected_sha256
 
 
-def _lifecycle_attempts(lifecycle_state: Mapping[str, Any]) -> int:
-    """enabled child stageの最大attemptを親workflow attemptとして再導出する。"""
-
-    stages = lifecycle_state.get("stages")
-    if not isinstance(stages, Mapping) or set(stages) != set(analysis_lifecycle.STAGE_ORDER):
-        raise OrchestrationError("lifecycle_state_invalid", "child lifecycle stageが不正です")
-    attempts: list[int] = []
-    for stage in analysis_lifecycle.STAGE_ORDER:
-        record = stages.get(stage)
-        if not isinstance(record, Mapping) or not isinstance(record.get("enabled"), bool):
-            raise OrchestrationError("lifecycle_state_invalid", "child lifecycle stageが不正です")
-        value = record.get("attempts")
-        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= analysis_lifecycle.MAX_ATTEMPTS:
-            raise OrchestrationError("lifecycle_state_invalid", "child lifecycle attemptが不正です")
-        if record["enabled"]:
-            attempts.append(value)
-    if not attempts or max(attempts) < 1:
-        raise OrchestrationError("lifecycle_state_invalid", "terminal child lifecycleにattemptがありません")
-    return max(attempts)
-
-
 def _lifecycle_implementation_sha256(lifecycle_state: Mapping[str, Any]) -> str:
     """保存child stage fingerprint集合をcanonical digestへ固定する。"""
 
@@ -855,7 +891,6 @@ def _terminal_record_values(
         raise OrchestrationError("lifecycle_snapshot_invalid", "child lifecycle request digestが一致しません")
     return {
         "status": child_state["status"],
-        "attempts": _lifecycle_attempts(child_state),
         "blockers": _record_blockers(child_state),
         "lifecycle_report_sha256": report_sha256,
         "result": _record_result(child_state),
@@ -926,7 +961,7 @@ def _terminal_record_mismatch(
         return "lifecycle_invalid"
     if any(
         record.get(key) != values[key]
-        for key in ("status", "attempts", "blockers", "result")
+        for key in ("status", "blockers", "result")
     ):
         return "lifecycle_parent_mismatch"
     return None
@@ -1086,7 +1121,6 @@ def _execute(
                 returned_state_sha256 = analysis_lifecycle._sha256_value(child_state)
                 if (
                     values["status"] != status
-                    or values["attempts"] != record["attempts"]
                     or values["result"]["lifecycle_state_sha256"] != returned_state_sha256
                 ):
                     raise OrchestrationError(
@@ -1159,16 +1193,40 @@ def _initialize_context(
         timeout_seconds=timeout_seconds,
         create=True,
     )
-    collisions = [
-        item.workflow_id
-        for item in request.workflows
-        if (context.work_root / "lifecycles" / item.workflow_id).exists()
-    ]
-    if collisions:
-        raise OrchestrationError(
-            "workflow_already_exists",
-            f"新規runと衝突するworkflowがあります: {collisions[0]}",
-        )
+    for item in request.workflows:
+        lifecycle_root = context.work_root / "lifecycles" / item.workflow_id
+        try:
+            analysis_lifecycle._reject_existing_reparse_components(
+                lifecycle_root,
+                label="new orchestration lifecycle",
+            )
+        except (analysis_lifecycle.LifecycleError, OSError) as exc:
+            raise OrchestrationError(
+                "workflow_path_invalid",
+                f"新規runのworkflow pathが不正です: {item.workflow_id}",
+            ) from exc
+        if os.path.lexists(lifecycle_root):
+            raise OrchestrationError(
+                "workflow_already_exists",
+                f"新規runと衝突するworkflowがあります: {item.workflow_id}",
+            )
+    for item in request.workflows:
+        job_root = context.work_root / "jobs" / item.job.job_id
+        try:
+            analysis_lifecycle._reject_existing_reparse_components(
+                job_root,
+                label="new orchestration job",
+            )
+        except (analysis_lifecycle.LifecycleError, OSError) as exc:
+            raise OrchestrationError(
+                "job_path_invalid",
+                f"新規runのjob pathが不正です: {item.job.job_id}",
+            ) from exc
+        if os.path.lexists(job_root):
+            raise OrchestrationError(
+                "job_already_exists",
+                f"新規runと衝突するjobがあります: {item.job.job_id}",
+            )
     try:
         context.orchestration_root.mkdir(parents=True, exist_ok=False)
     except FileExistsError as exc:
@@ -1250,6 +1308,139 @@ def _existing_context(
     return context, _load_state(context.orchestration_root, request)
 
 
+def _require_resume_eligibility(
+    context: OrchestrationContext,
+    state: Mapping[str, Any],
+) -> None:
+    """plannerが許可した一時失敗だけを再試行し、未確定中断は変更せず停止する。"""
+
+    if state.get("status") == "running" or any(
+        record["status"] == "running" for record in state["workflows"]
+    ):
+        # runningは、child作成前、child実行中、child完了後の親反映前を区別する
+        # terminal evidenceを持たない。blind retryやattempt消費を避け、将来の
+        # read-only reconciliationで親子を確定できるまで保存stateを変更しない。
+        raise OrchestrationError(
+            "resume_not_eligible",
+            "実行中に中断されたorchestrationはread-only整合確認が必要です",
+        )
+
+    failed = [record for record in state["workflows"] if record["status"] == "failed"]
+    partial = [record for record in state["workflows"] if record["status"] == "partial"]
+    if not failed and not partial:
+        return
+    try:
+        import analysis_resume_planner
+
+        plan = analysis_resume_planner.build_resume_plan(
+            repository=context.repository,
+            input_root=context.input_root,
+            work_root=context.work_root,
+            orchestration_id=context.request.orchestration_id,
+        )
+    except Exception as exc:  # noqa: BLE001 - read-only planner境界を固定codeへ閉じる
+        raise OrchestrationError(
+            "resume_plan_invalid",
+            "保存stateの再開可否を安全に検証できません",
+        ) from exc
+    workflows = plan.get("workflows") if isinstance(plan, Mapping) else None
+    if not isinstance(workflows, list) or len(workflows) != len(state["workflows"]):
+        raise OrchestrationError("resume_plan_invalid", "再開計画のworkflow集合が不正です")
+    by_id: dict[str, Mapping[str, Any]] = {}
+    for item in workflows:
+        workflow_id = item.get("workflow_id") if isinstance(item, Mapping) else None
+        if not isinstance(workflow_id, str) or workflow_id in by_id:
+            raise OrchestrationError("resume_plan_invalid", "再開計画のworkflow IDが不正です")
+        by_id[workflow_id] = item
+    expected_ids = {record["workflow_id"] for record in state["workflows"]}
+    if set(by_id) != expected_ids:
+        raise OrchestrationError("resume_plan_invalid", "再開計画が保存workflowへ一致しません")
+    for record in failed:
+        decision = by_id[record["workflow_id"]].get("decision")
+        if not (
+            isinstance(decision, Mapping)
+            and decision.get("action_id") == "resume_workflow"
+            and decision.get("eligible") is True
+            and decision.get("retryable") is True
+            and decision.get("successor_required") is False
+        ):
+            raise OrchestrationError(
+                "resume_not_eligible",
+                f"同一IDで再試行できないworkflowがあります: {record['workflow_id']}",
+            )
+    for record in partial:
+        decision = by_id[record["workflow_id"]].get("decision")
+        if not isinstance(decision, Mapping) or decision.get("eligible") is not False:
+            raise OrchestrationError("resume_plan_invalid", "partial workflowの再開判定が不正です")
+        raise OrchestrationError(
+            "resume_not_eligible",
+            f"partial workflowにはsuccessorが必要です: {record['workflow_id']}",
+        )
+    for record in failed:
+        _verify_retryable_child_before_parent_mutation(context, record, PRODUCTION_ACTIONS)
+
+
+def _verify_retryable_child_before_parent_mutation(
+    context: OrchestrationContext,
+    record: Mapping[str, Any],
+    actions: _LifecycleActions,
+) -> None:
+    """planner許可後のchildをread-only再検証し、親更新前のTOCTOUを閉じる。"""
+
+    lifecycle_root = context.work_root / "lifecycles" / record["workflow_id"]
+    if not os.path.lexists(lifecycle_root):
+        # child作成前に親側で失敗したretryだけは検証対象のchildがない。
+        return
+    try:
+        snapshot = actions.snapshot(record["workflow_id"], **_lifecycle_kwargs(context))
+        verification = actions.verify(record["workflow_id"], **_lifecycle_kwargs(context))
+    except Exception as exc:  # noqa: BLE001 - read-only child境界を固定codeへ閉じる
+        raise OrchestrationError(
+            "resume_child_changed",
+            f"再開対象childを安全に再検証できません: {record['workflow_id']}",
+        ) from exc
+    child_state = snapshot.get("state") if isinstance(snapshot, Mapping) else None
+    report_sha256 = snapshot.get("report_sha256") if isinstance(snapshot, Mapping) else None
+    if (
+        not isinstance(snapshot, dict)
+        or set(snapshot) != {"state", "report_sha256"}
+        or not isinstance(child_state, dict)
+        or child_state.get("workflow_id") != record["workflow_id"]
+        or child_state.get("request_sha256") != record["request_sha256"]
+        or child_state.get("status") != "failed"
+        or not isinstance(report_sha256, str)
+        or analysis_lifecycle.SHA256_RE.fullmatch(report_sha256) is None
+        or report_sha256 != record.get("lifecycle_report_sha256")
+    ):
+        raise OrchestrationError(
+            "resume_child_changed",
+            f"再開対象childのstate/reportが親commitmentと一致しません: {record['workflow_id']}",
+        )
+    try:
+        expected_blockers = _record_blockers(child_state)
+        expected_result = _record_result(child_state)
+    except OrchestrationError as exc:
+        raise OrchestrationError(
+            "resume_child_changed",
+            f"再開対象childの保存stateが不正です: {record['workflow_id']}",
+        ) from exc
+    stage_status = expected_result["stage_status"]
+    if (
+        record.get("blockers") != expected_blockers
+        or record.get("result") != expected_result
+        or not _verification_envelope_matches(
+            verification,
+            workflow_id=record["workflow_id"],
+            request_sha256=record["request_sha256"],
+            stage_status=stage_status,
+        )
+    ):
+        raise OrchestrationError(
+            "resume_child_changed",
+            f"再開対象childの成果物整合性が失われました: {record['workflow_id']}",
+        )
+
+
 def resume_orchestration(
     orchestration_id: str,
     *,
@@ -1258,7 +1449,7 @@ def resume_orchestration(
     work_root: Path,
     timeout_seconds: int = analysis_job_runner.DEFAULT_TIMEOUT_SECONDS,
 ) -> dict[str, Any]:
-    """保存requestを再検証し、complete以外のworkflowだけを再開する。"""
+    """保存requestを再検証し、plannerが許可したterminal failureだけを再開する。"""
 
     existing, _ = _existing_context(
         orchestration_id,
@@ -1275,6 +1466,7 @@ def resume_orchestration(
             work_root=work_root,
             timeout_seconds=timeout_seconds,
         )
+        _require_resume_eligibility(context, state)
         return _execute(context, state, PRODUCTION_ACTIONS)
 
 

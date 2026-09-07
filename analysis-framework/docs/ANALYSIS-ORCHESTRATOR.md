@@ -183,7 +183,7 @@ py -3.13 -B .\analysis-framework\common\analysis_orchestrator.py verify `
   --work-root C:\analysis-work\jobs
 ```
 
-中断または一時的な失敗を続ける場合は`resume`を使います。
+terminalな一時失敗を続ける場合は`resume`を使います。
 
 ```powershell
 py -3.13 -B .\analysis-framework\common\analysis_orchestrator.py resume `
@@ -197,11 +197,15 @@ py -3.13 -B .\analysis-framework\common\analysis_orchestrator.py resume `
 再開時の規則は次のとおりです。
 
 - `complete` childは再実行せず、read-only `verify`とreport SHA-256照合を行います。
-- `partial`、`failed`、中断中のchildだけを既存lifecycleの`resume`へ渡します。
+- `failed` childのうち、read-only plannerが`eligible=true`、`action_id=resume_workflow`、`retryable=true`と完全判定した一時失敗だけを既存lifecycleの`resume`へ渡します。
+- 親またはchild recordが`running`のままprocess中断した状態は、child未作成、実行中、child完了後の親反映前を保存証拠だけで区別できないため、親stateとattemptを変更せず`resume_not_eligible`で停止します。blind retryは行わず、read-only親子整合確認の追加実装またはoperator確認を必要とします。
+- `partial` childは同じIDで再開せず、新しい`orchestration_id`、`workflow_id`、`job_id`を持つsuccessorを要求します。この停止では親attemptを消費しません。
 - `deferred` childは先行policy stopが解消した後に初回`run`します。
+- planner許可後も親stateを`running`へ変更する前に、failed childのstate、report SHA-256、親から導出できるresult、全job成果物をread-onlyで再検証します。差替え時は親attemptを消費せず`resume_child_changed`で停止します。
 - 成功済みchildのreport、静的解析summary、解析tree全file、入力snapshot、解析契約bundleが変化していれば停止します。
-- 保存後にorchestrator、解析器、publisher、validator、generator、archiverが変わった場合、古い成功状態を新しい実装へ流用しません。
-- 1 workflowの最大試行回数は5回です。超過後は`maximum_workflow_attempts_exceeded`になります。
+- 親の再開ゲートはorchestrator、planner、lifecycle、job runner、remediation registry、静的実装manifest helperの6 sourceをcommitします。child作成前の失敗でも、この集合が変われば古い状態を流用しません。
+- 新規runは既存のworkflow IDまたはjob IDを親state作成前に拒否します。successorが旧job成果物を再利用することはできません。
+- 1 workflowの最大呼出回数は5回です。child stageの試行回数とは別のbudgetであり、超過後は`maximum_workflow_attempts_exceeded`になります。
 
 ## コードレビューで強化した境界
 
@@ -214,8 +218,9 @@ py -3.13 -B .\analysis-framework\common\analysis_orchestrator.py resume `
 5. stateのkey、型、status、依存関係、attempt、時刻、blocker、成果物hash、全体とchildの状態遷移、安全flagを厳格検証する。
 6. 同じworkflowを複数processが同時更新する操作をOS lockで拒否する。
 7. S3 archive直前にも静的成果物と入力snapshotを再検証し、保存targetの一致を必須にする。
+8. 静的解析実装treeを列挙時のfile identity、size、時刻、内容SHA-256へ固定し、隔離workerの実行前後にmembershipも再検証する。
 
-これにより、partial workflowの再開前にjob成果物が差し替わり、そのままpublicationやS3保管へ渡る経路をfail-closedにしました。
+これにより、failed workflowの再開前にjob成果物が差し替わって親attemptだけを消費する経路と、partial workflowを同じIDでpublicationやS3保管へ進める経路をfail-closedにしました。
 
 ## 追加解析へ戻す条件
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import struct
 import sys
@@ -77,6 +78,205 @@ def minimal_pe() -> bytes:
     struct.pack_into("<H", payload, 0x86, 1)
     struct.pack_into("<H", payload, 0x94, 0xE0)
     return bytes(payload)
+
+
+def anonymous_script_fixture(*, marker: bytes = b"OPAQUE!") -> tuple[bytes, bytes]:
+    """先頭NULと不透明name領域を持つ無害なscript recordを合成する。"""
+
+    sample = bytearray(build_carchive([("entrypoint", b"fixture-script", True, "s")]))
+    start = toc_start(sample)
+    entry_length = struct.unpack_from("!I", sample, start)[0]
+    field_size = entry_length - target.MemoryCArchiveReader.TOC_ENTRY_LENGTH
+    field = (b"\0" + marker).ljust(field_size, b"\0")
+    assert len(field) == field_size
+    sample[start + target.MemoryCArchiveReader.TOC_ENTRY_LENGTH : start + entry_length] = field
+    return bytes(sample), field
+
+
+def mixed_anonymous_script_fixture() -> tuple[bytes, tuple[bytes, bytes]]:
+    """通常recordに続く2件の匿名scriptを合成する。"""
+
+    sample = bytearray(
+        build_carchive(
+            [
+                ("normal_module", b"normal-module", False, "m"),
+                ("first_script", b"script-one", False, "s"),
+                ("second_script", b"script-two", False, "s"),
+            ]
+        )
+    )
+    cursor = toc_start(sample)
+    anonymous_fields: list[bytes] = []
+    for index in range(3):
+        entry_length = struct.unpack_from("!I", sample, cursor)[0]
+        if index:
+            field_size = entry_length - target.MemoryCArchiveReader.TOC_ENTRY_LENGTH
+            field = (b"\0" + f"OPAQUE-{index}".encode("ascii")).ljust(field_size, b"\0")
+            sample[
+                cursor + target.MemoryCArchiveReader.TOC_ENTRY_LENGTH : cursor + entry_length
+            ] = field
+            anonymous_fields.append(field)
+        cursor += entry_length
+    return bytes(sample), (anonymous_fields[0], anonymous_fields[1])
+
+
+def inventory_commitment(records: list[dict[str, object]]) -> str:
+    """公開仕様どおりのlength-prefix付きinventory hashを独立計算する。"""
+
+    digest = hashlib.sha256()
+    for record in records:
+        canonical = json.dumps(
+            record,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        digest.update(struct.pack("!I", len(canonical)))
+        digest.update(canonical)
+    return digest.hexdigest()
+
+
+def test_anonymous_script_retains_payload_and_commits_opaque_name_without_public_bytes() -> None:
+    """匿名scriptのpayloadを有界復元し、不透明名は公開せずhashへ束縛する。"""
+
+    sample, field = anonymous_script_fixture()
+    result = target.analyze_carchive_bytes(sample)
+
+    assert result.report["complete"] is True
+    assert result.report["archive"]["anonymous_script_entry_count"] == 1
+    assert result.report["content_validation"]["full_content_validation"] is True
+    entry, = result.recovered_entries
+    assert entry.name == "__pyi_anonymous_script_00000"
+    assert entry.payload == b"fixture-script"
+    metadata = entry.public_metadata()
+    assert metadata["name_source"] == "synthetic_anonymous_script"
+    assert metadata["name_field_sha256"] == hashlib.sha256(field).hexdigest()
+    assert metadata["name_field_size"] == len(field)
+    assert "OPAQUE!" not in json.dumps(result.report)
+    assert result.report["safety"]["sample_executed"] is False
+    assert result.report["safety"]["file_written"] is False
+    assert result.report["safety"]["network_contacted"] is False
+
+    altered, _ = anonymous_script_fixture(marker=b"CHANGED")
+    second = target.analyze_carchive_bytes(altered)
+    assert second.recovered_entries[0].payload == entry.payload
+    assert (
+        result.report["archive"]["inventory_commitment"]["sha256"]
+        != second.report["archive"]["inventory_commitment"]["sha256"]
+    )
+
+
+def test_multiple_anonymous_scripts_use_full_toc_indexes_and_ordered_commitment() -> None:
+    """通常record後もTOC全体indexを合成名に使い、順序込みでcommitする。"""
+
+    sample, fields = mixed_anonymous_script_fixture()
+    result = target.analyze_carchive_bytes(sample)
+
+    assert [entry.name for entry in target.MemoryCArchiveReader(sample).entries] == [
+        "normal_module",
+        "__pyi_anonymous_script_00001",
+        "__pyi_anonymous_script_00002",
+    ]
+    expected_records = [
+        {
+            "compressed": False,
+            "compressed_size": len(b"normal-module"),
+            "index": 0,
+            "is_option": False,
+            "name": "normal_module",
+            "normalized_path": "normal_module",
+            "offset": 0,
+            "typecode": "m",
+            "uncompressed_size": len(b"normal-module"),
+        },
+        {
+            "compressed": False,
+            "compressed_size": len(b"script-one"),
+            "index": 1,
+            "is_option": False,
+            "name": "__pyi_anonymous_script_00001",
+            "name_field_sha256": hashlib.sha256(fields[0]).hexdigest(),
+            "name_field_size": len(fields[0]),
+            "name_source": "synthetic_anonymous_script",
+            "normalized_path": "__pyi_anonymous_script_00001",
+            "offset": len(b"normal-module"),
+            "typecode": "s",
+            "uncompressed_size": len(b"script-one"),
+        },
+        {
+            "compressed": False,
+            "compressed_size": len(b"script-two"),
+            "index": 2,
+            "is_option": False,
+            "name": "__pyi_anonymous_script_00002",
+            "name_field_sha256": hashlib.sha256(fields[1]).hexdigest(),
+            "name_field_size": len(fields[1]),
+            "name_source": "synthetic_anonymous_script",
+            "normalized_path": "__pyi_anonymous_script_00002",
+            "offset": len(b"normal-module") + len(b"script-one"),
+            "typecode": "s",
+            "uncompressed_size": len(b"script-two"),
+        },
+    ]
+    commitment = result.report["archive"]["inventory_commitment"]
+    assert commitment["record_count"] == 3
+    assert commitment["sha256"] == inventory_commitment(expected_records)
+    assert [entry.name for entry in result.recovered_entries] == [
+        "__pyi_anonymous_script_00001",
+        "__pyi_anonymous_script_00002",
+        "normal_module",
+    ]
+
+
+@pytest.mark.parametrize("typecode", [b"b", b"m", b"M", b"z", b"x", b"o"])
+def test_anonymous_name_exception_is_script_only(typecode: bytes) -> None:
+    """script以外の不正paddingを合成名で迂回させない。"""
+
+    sample, _ = anonymous_script_fixture()
+    malformed = bytearray(sample)
+    malformed[toc_start(sample) + 17] = typecode[0]
+    with pytest.raises(target.MemoryCArchiveError, match="padding"):
+        target.analyze_carchive_bytes(bytes(malformed))
+
+
+def test_named_script_with_nonzero_padding_remains_invalid() -> None:
+    """通常名のNUL後データは匿名script例外に含めない。"""
+
+    sample, _ = anonymous_script_fixture()
+    malformed = bytearray(sample)
+    start = toc_start(sample) + target.MemoryCArchiveReader.TOC_ENTRY_LENGTH
+    malformed[start : start + 3] = b"a\0x"
+    with pytest.raises(target.MemoryCArchiveError, match="padding"):
+        target.analyze_carchive_bytes(bytes(malformed))
+
+
+def test_anonymous_script_preserves_payload_bounds_and_zlib_validation() -> None:
+    """合成名でもTOC範囲と圧縮streamの検証を省略しない。"""
+
+    sample, _ = anonymous_script_fixture()
+    outside = bytearray(sample)
+    struct.pack_into("!I", outside, toc_start(sample) + 4, len(sample))
+    with pytest.raises(target.MemoryCArchiveError, match="境界"):
+        target.analyze_carchive_bytes(bytes(outside))
+
+    corrupt = bytearray(sample)
+    corrupt[128] ^= 0xFF
+    with pytest.raises(target.MemoryCArchiveError, match="zlib"):
+        target.analyze_carchive_bytes(bytes(corrupt))
+
+
+def test_anonymous_script_name_collision_fails_closed() -> None:
+    """合成名と実名が衝突した場合もTOC全体を拒否する。"""
+
+    sample = bytearray(build_carchive([
+        ("entrypoint", b"fixture-a", False, "s"),
+        ("__pyi_anonymous_script_00000", b"fixture-b", False, "s"),
+    ]))
+    start = toc_start(sample)
+    entry_length = struct.unpack_from("!I", sample, start)[0]
+    sample[start + 18 : start + entry_length] = b"\0" * (entry_length - 18)
+    with pytest.raises(target.MemoryCArchiveError, match="正規化後に衝突"):
+        target.analyze_carchive_bytes(bytes(sample))
 
 
 def test_priority_recovery_is_deterministic_and_bytes_only() -> None:
@@ -309,3 +509,31 @@ def test_full_content_validation_reports_budget_and_time_partial_states(
     assert time_limited.report["content_validation"]["format_classification_complete"] is False
     assert time_limited.report["content_validation"]["time_limit_reached"] is True
     assert "full_content_validation_time_limit_reached" in time_limited.report["selection"]["blockers"]
+
+
+def test_retained_entries_do_not_bypass_explicit_validation_limits() -> None:
+    """全entryがselection済みでもvalidation上限超過をcompleteにしない。"""
+
+    sample = build_carchive([("entrypoint", b"0123456789", False, "s")])
+    result = target.analyze_carchive_bytes(
+        sample,
+        max_validation_entry_compressed_size=5,
+        max_validation_entry_uncompressed_size=5,
+        max_validation_total_compressed_size=5,
+        max_validation_total_uncompressed_size=5,
+    )
+
+    assert len(result.recovered_entries) == 1
+    assert result.report["complete"] is False
+    assert result.report["analysis_status"] == "partial_content_validation"
+    assert result.report["content_validation"]["status"] == "partial_budget_limit"
+    assert result.report["content_validation"]["full_content_validation"] is False
+    assert result.report["content_validation"]["validated_entry_count"] == 0
+    assert result.report["content_validation"]["content_commitment"] is None
+    assert result.report["content_validation"]["exclusion_counts"] == {
+        "declared_total_compressed_size_limit": 1,
+        "declared_total_uncompressed_size_limit": 1,
+        "entry_compressed_size_limit": 1,
+        "entry_uncompressed_size_limit": 1,
+    }
+    assert "full_content_validation_exceeds_budget" in result.report["blockers"]

@@ -36,6 +36,10 @@ CABはparserを呼ぶ前に`MSCF` headerとversion、予約field、cabinet実siz
 
 PyInstaller CArchiveは最大16,384件（hard limit 65,536件）のTOCを先に全検証します。既定budget内では全entryを1件ずつ展開してzlib EOF、宣言size、実size、SHA-256、形式を検証し、非候補bytesは直ちに破棄します。後段へ保持するのは最大128件で、caller指定、Python script、module、PYZ、PE名候補、入れ子archiveの順です。1 entryは64 MiB、保持総量は128 MiB、全内容検証は256 MiB／120秒を上限とし、超過や高価値候補の未保持は`partial`とblockerへ残します。公開reportは全entry列ではなく件数・形式集計とinventory/content commitmentを持ち、PyInstallerという包装形式だけからmalware familyや悪性意図を推定しません。
 
+TOCの`typecode=s`かつname領域が先頭NULの匿名scriptは、TOC順序に束縛した合成名で保持します。元name領域はsizeとSHA-256をinventory commitmentと保持metadataに残し、不透明bytesはpathとして解釈しません。通常名の不正padding、script以外の匿名entry、path衝突、payload境界違反、不正zlib streamは引き続き拒否します。
+
+CABなどの展開後に保持対象memberがない場合、Inno side-loadingの関連付けは`not_candidate`として記録します。空集合を`member_limit_blocked`へ誤分類せず、実際のmember上限超過は別に保持します。
+
 PE imageの直後1 MiB以内にある`Nullsoft`または`Inno Setup` markerは、image内のUPX等のpacker markerと分離してinstaller候補にします。信頼済み7-Zipが設定されていれば手動`--force-container-probe`なしで境界付きinventoryへ送り、parserが対応しないinstallerは空の成功へせず`container_parser_unavailable`として残します。member件数だけでなく宣言総量が上限を超えるarchiveも、app本体、script、設定、PE等を上限内で選択復元します。
 
 ## 使用 tool

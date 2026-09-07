@@ -13,14 +13,21 @@
 - family固有の `extractors.*.extractor.html`
 - `external_api_helpers.html`：検体取得とIOC補強用の外部API client
 
-再生成は次のように行います。
+今回の静的解析自動化で変更する主要6 moduleは、日本語見出しだけを出す許可リスト方式の生成器で同期します。通常の生成と書込みを伴わない照合は次のとおりです。
+
+```powershell
+python analysis-framework/docs/generate_common_api_docs.py
+python analysis-framework/docs/generate_common_api_docs.py --check
+```
+
+それ以外の標準pydocを再生成する場合は次のように行います。
 
 ```powershell
 $env:PYTHONPATH = '<repo-root>\analysis-framework\src;<repo-root>\analysis-framework\common;<repo-root>'
 cd <repo-root>\docs\pydoc
 python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.compiler asa.cli `
   asa.discovery asa.runner asa.runtime_cli `
-  malwarebazaar_batch analyze_sample analysis_contract analysis_job_runner analysis_lifecycle analysis_resume_planner collection_followup_planner sync_collection_publication bounded_process `
+  malwarebazaar_batch analysis_contract analysis_job_runner collection_followup_planner sync_collection_publication bounded_process `
   c2_detector nmap nmap.nmap_c2_detector nmap.verify_nse `
   follow_on_commitment handler_catalog job_artifact_schemas runtime_contract classifiers.classify_sample `
   analyze_stealer_set c2_candidate_detector generate_stealer_reports `
@@ -46,7 +53,10 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
 - `analysis_contract.html`：入力契約、証拠品質、成果物hash、report封印の共通検証
 - `analysis_job_runner.html`：WebUI／ローカルAPI向けの要求検証、入力snapshot、job状態、成果物再検証
 - `analysis_lifecycle.html`：識別、静的解析、公開、完了判定、派生更新、S3保管を接続する固定stage runner
+- `analysis_orchestrator.html`：複数lifecycleの直列実行、再開判定、親子成果物の整合性検証
 - `analysis_resume_planner.html`：保存済みstateを検証し、同一証拠の無益な再試行を止めるread-only再開計画
+- `extract_pyinstaller_archive.html`：PyInstaller CArchiveの有界一覧化、匿名scriptの静的復元、content validation
+- `static_implementation_commitment.html`：静的解析実装treeの有界列挙と再開用commitment
 - `collection_followup_planner.html`：collection内の未完了caseを契約済みblockerと新規証拠の有無から分類し、上限付きの再解析計画を生成
 - `sync_collection_publication.html`：公開case成果物を検証し、collectionのmanifest／publication summary集計を原子的に再投影
 - `bounded_process.html`：timeout、process／memory上限、子孫cleanupを担うOS別の共通process境界

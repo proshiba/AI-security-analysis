@@ -1,0 +1,73 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>analysis_orchestrator — API仕様</title></head><body>
+<h1>analysis_orchestrator</h1>
+<p><a href="../../analysis-framework/common/analysis_orchestrator.py">実装</a></p>
+<pre>複数の解析lifecycleを直列・再開可能・fail-closedに統括する。</pre>
+<h2>JapaneseArgumentParser</h2>
+<pre>argparseの固定見出しを日本語へ置換する。</pre>
+<pre>JapaneseArgumentParser(prog=None, usage=None, description=None, epilog=None, parents=[], formatter_class=&lt;class &#x27;argparse.HelpFormatter&#x27;&gt;, prefix_chars=&#x27;-&#x27;, fromfile_prefix_chars=None, argument_default=None, conflict_handler=&#x27;error&#x27;, add_help=True, allow_abbrev=True, exit_on_error=True)</pre>
+<dl><dt><a name="-format_help"><strong>format_help</strong></a>(self) -&gt; 'str'</dt></dl>
+
+<h2>OrchestrationContext</h2>
+<pre>固定rootと保存先を持つ実行context。</pre>
+<pre>OrchestrationContext(repository: &#x27;Path&#x27;, input_root: &#x27;Path&#x27;, work_root: &#x27;Path&#x27;, orchestration_root: &#x27;Path&#x27;, request: &#x27;OrchestrationRequest&#x27;, timeout_seconds: &#x27;int&#x27;) -&gt; None</pre>
+<h2>OrchestrationError</h2>
+<pre>全体オーケストレーションの公開可能なerror codeを保持する。</pre>
+<pre>OrchestrationError(code: &#x27;str&#x27;, message: &#x27;str&#x27;) -&gt; &#x27;None&#x27;</pre>
+<h2>OrchestrationRequest</h2>
+<pre>検証・正規化済みの複数workflow要求。</pre>
+<pre>OrchestrationRequest(orchestration_id: &#x27;str&#x27;, workflows: &#x27;tuple[analysis_lifecycle.LifecycleRequest, ...]&#x27;, policy: &#x27;Mapping[str, bool]&#x27;) -&gt; None</pre>
+<dl><dt><a name="-public"><strong>public</strong></a>(self) -&gt; 'dict[str, Any]'</dt></dl>
+
+<h2>build_parser</h2>
+<dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">固定subcommandだけを持つCLI&nbsp;parserを構築する。</span></dd></dl>
+
+<h2>build_plan</h2>
+<dl><dt><a name="-build_plan"><strong>build_plan</strong></a>(request: 'OrchestrationRequest') -&gt; 'dict[str, Any]'</dt><dd><span class="code">副作用なしで直列workflow&nbsp;planと安全境界を返す。</span></dd></dl>
+
+<h2>load_request</h2>
+<dl><dt><a name="-load_request"><strong>load_request</strong></a>(path: 'Path') -&gt; 'OrchestrationRequest'</dt><dd><span class="code">strict&nbsp;UTF-8&nbsp;JSONから一括requestを読む。</span></dd></dl>
+
+<h2>main</h2>
+<dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLIを実行し、JSON結果と状態別終了codeを返す。</span></dd></dl>
+
+<h2>read_status</h2>
+<dl><dt><a name="-read_status"><strong>read_status</strong></a>(work_root: 'Path', orchestration_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">保存済みstateと一致する公開reportだけを返す。</span></dd></dl>
+
+<h2>request_json_schema</h2>
+<dl><dt><a name="-request_json_schema"><strong>request_json_schema</strong></a>() -&gt; 'dict[str, Any]'</dt><dd><span class="code">operator&nbsp;tool用の厳格JSON&nbsp;Schemaを返す。</span></dd></dl>
+
+<h2>resume_orchestration</h2>
+<dl><dt><a name="-resume_orchestration"><strong>resume_orchestration</strong></a>(
+    orchestration_id: 'str',
+    *,
+    repository: 'Path',
+    input_root: 'Path',
+    work_root: 'Path',
+    timeout_seconds: 'int' = 21600
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">保存requestを再検証し、plannerが許可したterminal&nbsp;failureだけを再開する。</span></dd></dl>
+
+<h2>run_orchestration</h2>
+<dl><dt><a name="-run_orchestration"><strong>run_orchestration</strong></a>(
+    request: 'OrchestrationRequest',
+    *,
+    repository: 'Path',
+    input_root: 'Path',
+    work_root: 'Path',
+    timeout_seconds: 'int' = 21600
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">production&nbsp;lifecycleだけで新規一括解析を直列実行する。</span></dd></dl>
+
+<h2>validate_request_object</h2>
+<dl><dt><a name="-validate_request_object"><strong>validate_request_object</strong></a>(value: 'Mapping[str, Any]') -&gt; 'OrchestrationRequest'</dt><dd><span class="code">任意処理fieldを持たない固定一括requestを検証する。</span></dd></dl>
+
+<h2>verify_orchestration</h2>
+<dl><dt><a name="-verify_orchestration"><strong>verify_orchestration</strong></a>(
+    orchestration_id: 'str',
+    *,
+    repository: 'Path',
+    input_root: 'Path',
+    work_root: 'Path',
+    timeout_seconds: 'int' = 21600
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">一括state、child&nbsp;lifecycle、report&nbsp;hashをread-onlyで再検証する。</span></dd></dl>
+
+</body></html>
