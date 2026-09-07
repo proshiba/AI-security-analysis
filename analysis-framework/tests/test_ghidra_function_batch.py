@@ -4055,6 +4055,53 @@ def test_finalize_case_report_reconciles_njrat_orchestration_to_complete(
     assert integrity_calls == [{"expected_digest": digest, "require_resumable": True}]
 
 
+def test_finalize_case_report_keeps_c2_incomplete_case_partial(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """関数gateだけが閉じてもC2契約未完了ならcompleteへ昇格させない。"""
+
+    digest = "2" * 64
+    case_dir = tmp_path / digest
+    case_dir.mkdir()
+    _write_finalize_orchestration_fixture(
+        case_dir,
+        family="njrat",
+        terminal_payload_missing=False,
+    )
+    _write_orchestration_finalize_report(
+        case_dir,
+        family="njrat",
+        blockers=[target.ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER],
+    )
+    monkeypatch.setattr(
+        target,
+        "validate_function_case",
+        lambda *_args: SimpleNamespace(valid=True, findings=[]),
+    )
+    monkeypatch.setattr(target, "case_integrity_errors", lambda *_args, **_kwargs: [])
+
+    assert target.finalize_case_report(case_dir, c2_analysis_complete=False) == "partial"
+    report = target.load_json_object_strict(case_dir / "report.json")
+    assert report["case_state"] == {
+        "status": "partial",
+        "complete": False,
+        "resumable": False,
+        "blockers": [target.C2_ANALYSIS_UNRESOLVED_BLOCKER],
+    }
+    assert analysis_contract.verify_report_semantics(report) == []
+
+    assert target.finalize_case_report(case_dir, c2_analysis_complete=True) == "complete"
+    report = target.load_json_object_strict(case_dir / "report.json")
+    assert report["case_state"] == {
+        "status": "complete",
+        "complete": True,
+        "resumable": True,
+        "blockers": [],
+    }
+    assert analysis_contract.verify_report_semantics(report) == []
+
+
 def test_finalize_case_report_atomically_reconciles_documented_generic_triage_gate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

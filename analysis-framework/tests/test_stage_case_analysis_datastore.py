@@ -27,7 +27,11 @@ def _json(path: Path, value: object) -> None:
     )
 
 
-def _fixture(tmp_path: Path) -> dict[str, object]:
+def _fixture(
+    tmp_path: Path,
+    *,
+    pe_payloads: tuple[bytes, bytes] = (b"MZ-case-one", b"MZ-case-two"),
+) -> dict[str, object]:
     repository = tmp_path / "repository"
     source = tmp_path / "private" / "source"
     one_shot = tmp_path / "work" / "analysis"
@@ -42,7 +46,6 @@ def _fixture(tmp_path: Path) -> dict[str, object]:
     ):
         directory.mkdir(parents=True)
 
-    pe_payloads = (b"MZ-case-one", b"MZ-case-two")
     cases = [hashlib.sha256(value).hexdigest() for value in pe_payloads]
     items = []
     selected_metadata = []
@@ -531,6 +534,33 @@ def test_secret_content_split_across_scan_chunks_is_rejected(tmp_path: Path) -> 
     assert list(fixture["output"].iterdir()) == []
 
 
+def test_verified_malware_binary_is_hash_bound_without_text_secret_scan(
+    tmp_path: Path,
+) -> None:
+    """検体内の攻撃者制御文字列をhost秘密値と誤認せず、SHA-256で拘束する。"""
+
+    marker = b"-----BEGIN PRIVATE KEY-----"
+    fixture = _fixture(
+        tmp_path,
+        pe_payloads=(b"MZ-malware" + marker, b"MZ-case-two"),
+    )
+    selected = fixture["cases"][0]
+
+    result = _stage(fixture, cases=[selected])
+
+    staged = Path(result["cases"][0]["source_path"])
+    imported = staged / "ghidra" / "import-staging" / f"{selected}.quarantine.bin"
+    assert archive._extended_length_path(imported).read_bytes() == b"MZ-malware" + marker
+    assert result["preflight_verified_malware_binaries_excluded"] == 1
+    manifest = json.loads(
+        (staged / target.STAGING_MANIFEST_NAME).read_text(encoding="utf-8")
+    )
+    assert manifest["safety"]["host_secret_content_scan_scope"] == (
+        "non_sample_content_only"
+    )
+    assert manifest["safety"]["verified_malware_binary_count"] == 1
+
+
 def test_sensitive_filename_is_rejected_before_copy(tmp_path: Path) -> None:
     fixture = _fixture(tmp_path)
     selected = fixture["cases"][0]
@@ -767,6 +797,44 @@ def test_existing_case_staging_tamper_is_rejected_on_resume(
     report.write_bytes(report.read_bytes() + b" ")
 
     with pytest.raises(target.CaseStagingError, match="SHA-256"):
+        target.reuse_case_staging(
+            output_root=fixture["output"],
+            collection_id="daily-fixture",
+            case_sha256=selected,
+        )
+
+    assert source.is_dir()
+
+
+def test_existing_ghidra_import_requires_filename_sha256_on_resume(
+    tmp_path: Path,
+) -> None:
+    """inventoryを再作成されても検体名と実データのSHA-256不一致を拒否する。"""
+
+    fixture = _fixture(tmp_path)
+    selected = fixture["cases"][0]
+    staged = _stage(fixture, cases=[selected])
+    source = Path(staged["cases"][0]["source_path"])
+    imported = source / "ghidra" / "import-staging" / f"{selected}.quarantine.bin"
+    imported_io = archive._extended_length_path(imported)
+    imported_io.write_bytes(b"NZ" + imported_io.read_bytes()[2:])
+
+    manifest_path = source / target.STAGING_MANIFEST_NAME
+    manifest_io = archive._extended_length_path(manifest_path)
+    manifest = json.loads(manifest_io.read_text(encoding="utf-8"))
+    record = next(
+        item
+        for item in manifest["files"]
+        if item["path"] == f"ghidra/import-staging/{selected}.quarantine.bin"
+    )
+    record["sha256"] = hashlib.sha256(imported_io.read_bytes()).hexdigest()
+    manifest["file_inventory_sha256"] = target._inventory_sha256(manifest["files"])
+    manifest_io.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(target.CaseStagingError, match="ファイル名SHA-256"):
         target.reuse_case_staging(
             output_root=fixture["output"],
             collection_id="daily-fixture",

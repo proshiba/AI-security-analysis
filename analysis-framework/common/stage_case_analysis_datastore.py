@@ -117,6 +117,7 @@ class SourceCommitment:
     size: int
     sha256: str
     identity: os.stat_result
+    sensitive_content_scanned: bool
 
 
 @dataclass(frozen=True)
@@ -317,6 +318,25 @@ def _scan_sensitive_content(data: bytes, *, relative: str) -> None:
             raise CaseStagingError(f"staging対象に秘密値または不要なhost pathを検出しました: {relative} ({rule})")
 
 
+def _is_verified_ghidra_import(relative: str) -> bool:
+    """SHA-256拘束済みの解析対象PEだけを識別する。"""
+
+    path = PurePosixPath(relative)
+    if len(path.parts) != 3 or path.parts[:2] != ("ghidra", "import-staging"):
+        return False
+    name = path.name
+    suffix = ".quarantine.bin"
+    return name.endswith(suffix) and SHA256_RE.fullmatch(name[: -len(suffix)]) is not None
+
+
+def _sensitive_content_scan_required(relative: str) -> bool:
+    # 検体バイナリ自体には攻撃者が任意の秘密値形式やhost pathを埋め込める。
+    # これをoperator情報の漏えいとして拒否すると誤検知になる。この除外は
+    # _validate_inputsで内容SHA-256とrelationship集合を照合済みのGhidra
+    # import-stagingだけに限定する。ファイル名スキャンは常に実施する。
+    return not _is_verified_ghidra_import(relative)
+
+
 def _walk_files(root: Path, *, role: str) -> list[tuple[Path, PurePosixPath]]:
     root = _validate_existing_directory(root, label=f"{role} root")
     io_root = archive_analysis_datastore._extended_length_path(root)
@@ -370,6 +390,10 @@ def _copy_file(
     size = 0
     carry = b""
     commitment = _required_source_commitment(source, commitments=commitments)
+    if commitment.sensitive_content_scanned != _sensitive_content_scan_required(relative):
+        raise CaseStagingError(
+            f"{role}の秘密値scan契約が出力先と一致しません"
+        )
     try:
         with archive_analysis_datastore._open_verified_source(
             source,
@@ -377,8 +401,9 @@ def _copy_file(
         ) as (stream, identity):
             with destination_io.open("xb") as output:
                 while chunk := stream.read(COPY_CHUNK_BYTES):
-                    _scan_sensitive_content(carry + chunk, relative=relative)
-                    carry = (carry + chunk)[-SCAN_OVERLAP_BYTES:]
+                    if commitment.sensitive_content_scanned:
+                        _scan_sensitive_content(carry + chunk, relative=relative)
+                        carry = (carry + chunk)[-SCAN_OVERLAP_BYTES:]
                     output.write(chunk)
                     digest.update(chunk)
                     size += len(chunk)
@@ -415,6 +440,8 @@ def _copy_file(
 
 
 def _scan_file_for_sensitive_content(source: Path, *, relative: str) -> None:
+    if not _sensitive_content_scan_required(relative):
+        return
     carry = b""
     try:
         with archive_analysis_datastore._open_verified_source(source) as (
@@ -440,14 +467,16 @@ def _snapshot_source_commitment(source: Path, *, relative: str) -> SourceCommitm
     digest = hashlib.sha256()
     size = 0
     carry = b""
+    sensitive_content_scanned = _sensitive_content_scan_required(relative)
     try:
         with archive_analysis_datastore._open_verified_source(source) as (
             stream,
             identity,
         ):
             while chunk := stream.read(COPY_CHUNK_BYTES):
-                _scan_sensitive_content(carry + chunk, relative=relative)
-                carry = (carry + chunk)[-SCAN_OVERLAP_BYTES:]
+                if sensitive_content_scanned:
+                    _scan_sensitive_content(carry + chunk, relative=relative)
+                    carry = (carry + chunk)[-SCAN_OVERLAP_BYTES:]
                 digest.update(chunk)
                 size += len(chunk)
     except archive_analysis_datastore.DatastoreError as exc:
@@ -459,6 +488,7 @@ def _snapshot_source_commitment(source: Path, *, relative: str) -> SourceCommitm
         size=size,
         sha256=digest.hexdigest(),
         identity=identity,
+        sensitive_content_scanned=sensitive_content_scanned,
     )
 
 
@@ -501,6 +531,8 @@ def _scan_staged_case_references(root: Path, *, case_sha256: str) -> None:
     """派生後成果物の明示的なcase参照が対象caseだけであることを確認する。"""
 
     for path, relative in _walk_files(root, role="case reference scan"):
+        if _is_verified_ghidra_import(relative.as_posix()):
+            continue
         carry = b""
         try:
             with archive_analysis_datastore._open_verified_source(path) as (
@@ -1685,6 +1717,9 @@ def _stage_one(
                 "symlinks_or_junctions_allowed": False,
                 "host_secret_name_scan_complete": True,
                 "host_secret_content_scan_complete": True,
+                "host_secret_content_scan_scope": "non_sample_content_only",
+                "verified_malware_binary_content_scan_excluded": True,
+                "verified_malware_binary_count": len(case.pe_sha256s),
                 "different_cases_included": False,
                 "sample_executed": False,
                 "network_contacted": False,
@@ -1878,12 +1913,18 @@ def stage_case_from_session(
         "case_count": 1,
         "projected_staging_bytes": required,
         "observed_free_bytes_before_staging": free,
-        "preflight_secret_content_scanned_files": len(session.commitments),
+        "preflight_secret_content_scanned_files": sum(
+            item.sensitive_content_scanned for item in session.commitments.values()
+        ),
+        "preflight_verified_malware_binaries_excluded": sum(
+            not item.sensitive_content_scanned for item in session.commitments.values()
+        ),
         "cases": [staged],
         "safety": {
             "case_separated": True,
             "physical_copy_only": True,
             "preflight_secret_name_and_content_scan_complete": True,
+            "preflight_secret_content_scan_scope": "non_sample_content_only",
             "sample_executed": False,
             "network_contacted": False,
             "s3_upload_performed": False,
@@ -2233,6 +2274,13 @@ def reuse_case_staging(
             raise CaseStagingError("既存case staging fileを安全に照合できません") from exc
         if observed_size != record["size"] or observed_sha256 != record["sha256"]:
             raise CaseStagingError("既存case staging inventoryのSHA-256が一致しません")
+        if _is_verified_ghidra_import(relative.as_posix()):
+            suffix = ".quarantine.bin"
+            expected_sha256 = relative.name[: -len(suffix)]
+            if observed_sha256 != expected_sha256:
+                raise CaseStagingError(
+                    "既存case stagingのGhidra importがファイル名SHA-256と一致しません"
+                )
     _scan_staged_case_references(source, case_sha256=digest)
     try:
         archive_files = archive_analysis_datastore.collect_source_files([source])
