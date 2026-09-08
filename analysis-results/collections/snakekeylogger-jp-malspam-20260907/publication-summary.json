@@ -1,0 +1,39 @@
+{
+  "case_count": 1,
+  "cases": [
+    {
+      "attribution_basis": "statically_recovered_terminal",
+      "case_path": "analysis-results/malware/snakekeylogger/versions/unknown/cases/d97dae8f8aafa75dd7c13e3b3018cbb3667bb8d990bd4fac1aee54ad492a51e6",
+      "case_state": "partial",
+      "family": "snakekeylogger",
+      "family_attribution_status": "statically_confirmed_terminal_payload",
+      "family_role": "statically_confirmed_terminal_family",
+      "sha256": "d97dae8f8aafa75dd7c13e3b3018cbb3667bb8d990bd4fac1aee54ad492a51e6",
+      "statically_confirmed_family": "snakekeylogger",
+      "terminal_sha256": "895b27dfc33644c7d8e7d9e3c216f7d278a892f45cd083a996720613a35b574d",
+      "variant": "vipkeylogger"
+    }
+  ],
+  "collection_id": "snakekeylogger-jp-malspam-20260907",
+  "function_analysis": {
+    "all_static_analysis_content_retained": false,
+    "characteristic_function_attempted_count": 20,
+    "characteristic_function_selected_count": 20,
+    "decompilation_excluded_count": 0,
+    "decompilation_limited_or_failed_count": 0,
+    "decompilation_succeeded_count": 20,
+    "discovered_function_inventory_count": 815,
+    "ghidra_function_inventory_count": 0,
+    "ghidra_programs_with_valid_mcp_responses": 0,
+    "managed_method_inventory_count": 815,
+    "root_cases": 1,
+    "unselected_function_count": 795
+  },
+  "safety": {
+    "c2_contacted": false,
+    "credentials_published": false,
+    "raw_payload_published": false,
+    "samples_executed": false
+  },
+  "schema_version": 1
+}
