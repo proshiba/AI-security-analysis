@@ -46,7 +46,7 @@ py -3.13 -B .\analysis-framework\common\collection_followup_planner.py --reposit
 - `minimum_next_action`: 現在の証拠から最初に行う最小の静的手順です。
 - `changed_evidence`: 同じ未完了結果の無限再試行を避けるため、次の試行前に更新が必要な証拠です。
 
-実行stateからの計画には、`analysis_resume_planner.py plan-resume --repository <repository> --input-root <private-input-root> --work-root <private-work-root> --orchestration-id <orchestration-id>`を使います。このread-only検証で`decision.eligible=true`になったworkflowだけを既存runnerへ戻します。`partial`または実装fingerprintが変化したworkflowは、新しいIDを持つsuccessorが必要です。未知blockerや失敗根拠の欠落は、実装が変わっても`manual_review_required`のままとし、新しいIDだけで解除しません。
+実行stateからの計画には、`analysis_resume_planner.py plan-resume --repository <repository> --input-root <private-input-root> --work-root <private-work-root> --orchestration-id <orchestration-id>`を使います。productionのorchestratorもstate更新前にこの判定を強制し、planner許可後にchild成果物をもう一度read-only検証してから、`decision.eligible=true`かつ完全一致した一時失敗だけを既存runnerへ戻します。`partial`または実装fingerprintが変化したworkflowは、新しい`orchestration_id`、`workflow_id`、`job_id`を持つsuccessorが必要で、既存job IDは親state作成前に拒否されます。未知blockerや失敗根拠の欠落は、実装が変わっても`manual_review_required`のままとし、新しいIDだけで解除しません。semantic evidence履歴がないworkflowの自動再試行は1回に限定し、それ以降は履歴付きsuccessorまたはoperator reviewを要求します。
 
 ## 完了条件
 

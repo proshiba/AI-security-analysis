@@ -28,6 +28,7 @@ import c2_analysis_contract
 import publish_one_shot_collection
 import refresh_case_inventory
 import remediation_registry
+import static_implementation_commitment
 import terminal_payload_acquisition
 import validate_function_analysis
 
@@ -101,7 +102,12 @@ STAGE_DEPENDENCIES: Mapping[str, tuple[str, ...]] = {
 }
 STAGE_CODE_FILES: Mapping[str, tuple[str, ...]] = {
     "preflight": ("analysis_lifecycle.py", "analysis_job_runner.py"),
-    "static_analysis": ("analysis_lifecycle.py", "analysis_job_runner.py", "analyze_sample.py"),
+    "static_analysis": (
+        "analysis_lifecycle.py",
+        "analysis_job_runner.py",
+        "analyze_sample.py",
+        "static_implementation_commitment.py",
+    ),
     "publication": ("analysis_lifecycle.py", "publish_one_shot_collection.py"),
     "function_validation": ("analysis_lifecycle.py", "validate_function_analysis.py"),
     "completion_gate": (
@@ -643,6 +649,9 @@ def _stage_fingerprint(context: LifecycleContext, stage: str) -> str:
             context.request.publication["manifest"],
         )
         anchored_inputs[context.request.publication["manifest"]] = _sha256_file(manifest)
+    static_implementation: dict[str, object] = {}
+    if stage == "static_analysis":
+        static_implementation = _static_analysis_implementation_commitment(common)
     return _sha256_value(
         {
             "schema_version": SCHEMA_VERSION,
@@ -650,8 +659,47 @@ def _stage_fingerprint(context: LifecycleContext, stage: str) -> str:
             "request_sha256": _sha256_value(context.request.public()),
             "source_sha256": source_hashes,
             "anchored_input_sha256": anchored_inputs,
+            "static_implementation": static_implementation,
         }
     )
+
+
+def _static_analysis_implementation_commitment(common: Path) -> dict[str, object]:
+    """processが使用する解析source treeを列挙時identityへ毎回固定する。"""
+
+    repository = common.parent.parent
+    source_sha256: dict[str, str] = {}
+
+    def hash_source(source: static_implementation_commitment.ImplementationSource) -> str:
+        try:
+            raw = static_implementation_commitment.read_implementation_source(
+                repository,
+                source,
+            )
+        except static_implementation_commitment.StaticImplementationError as exc:
+            raise static_implementation_commitment.StaticImplementationError(
+                "静的解析実装fileを安全に読み取れません"
+            ) from exc
+        digest = hashlib.sha256(raw).hexdigest()
+        source_sha256[source.relative_path] = digest
+        return digest
+
+    try:
+        commitment, sources = static_implementation_commitment.build_implementation_commitment(
+            repository,
+            hash_file=hash_source,
+        )
+        static_implementation_commitment.verify_implementation_snapshot(
+            repository,
+            sources,
+            source_sha256,
+        )
+    except static_implementation_commitment.StaticImplementationError as exc:
+        raise LifecycleError(
+            "stage_code_invalid",
+            "静的解析実装treeを安全に固定できません",
+        ) from exc
+    return commitment
 
 
 def _new_state(context: LifecycleContext) -> dict[str, Any]:

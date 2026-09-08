@@ -490,7 +490,14 @@ def recover_inno_sideload_bundle(
         "cpu_emulated": False,
         "network_contacted": False,
     }
-    if not 1 <= len(members) <= MAX_BUNDLE_MEMBERS:
+    if not members:
+        return {
+            **base_report,
+            "status": "not_candidate",
+            "reason": "no_retained_members",
+            "member_count": 0,
+        }, []
+    if len(members) > MAX_BUNDLE_MEMBERS:
         return {**base_report, "status": "member_limit_blocked"}, []
     normalized: dict[str, bytes] = {}
     total = 0

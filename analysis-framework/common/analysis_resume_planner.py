@@ -18,10 +18,18 @@ import analysis_job_runner
 import analysis_lifecycle
 import analysis_orchestrator
 import remediation_registry
+import static_implementation_commitment
 
 SCHEMA_VERSION = 1
-MAX_SNAPSHOT_FILES = analysis_orchestrator.MAX_WORKFLOWS * 4 + 32
-MAX_TOTAL_SNAPSHOT_BYTES = 64 * 1024 * 1024
+MAX_SNAPSHOT_FILES = (
+    analysis_orchestrator.MAX_WORKFLOWS * 4
+    + static_implementation_commitment.MAX_IMPLEMENTATION_FILES
+    + 32
+)
+MAX_TOTAL_SNAPSHOT_BYTES = (
+    64 * 1024 * 1024
+    + static_implementation_commitment.MAX_IMPLEMENTATION_TOTAL_BYTES
+)
 SNAPSHOT_HASH_CHUNK_BYTES = 64 * 1024
 MAX_CODE_SOURCE_BYTES = 8 * 1024 * 1024
 MAX_ANCHORED_INPUT_BYTES = analysis_job_runner.MAX_SUMMARY_BYTES
@@ -75,6 +83,11 @@ class _SnapshotReader:
         self._maximum_total_bytes = maximum_total_bytes
         self._total_bytes = 0
         self._snapshots: dict[Path, _FileSnapshot] = {}
+        self._implementation_inventories: dict[
+            Path,
+            tuple[static_implementation_commitment.ImplementationSource, ...],
+        ] = {}
+        self._implementation_commitments: dict[Path, dict[str, object]] = {}
 
     @staticmethod
     def _read_committed_file(path: Path, *, maximum_bytes: int) -> tuple[bytes, os.stat_result]:
@@ -190,6 +203,43 @@ class _SnapshotReader:
         self._commit(snapshot)
         return snapshot
 
+    def static_implementation_commitment(self, repository: Path) -> dict[str, object]:
+        """解析source treeをsnapshot群へ固定し、同一planner内では再利用する。"""
+
+        root = Path(os.path.abspath(os.fspath(repository)))
+        existing = self._implementation_commitments.get(root)
+        if existing is not None:
+            return dict(existing)
+        try:
+            commitment, sources = static_implementation_commitment.build_implementation_commitment(
+                root,
+                hash_file=self._hash_implementation_source,
+            )
+        except static_implementation_commitment.StaticImplementationError as exc:
+            raise ResumePlannerError(
+                "stage_source_invalid",
+                "静的解析実装treeを安全に固定できません",
+            ) from exc
+        self._implementation_inventories[root] = sources
+        self._implementation_commitments[root] = commitment
+        return dict(commitment)
+
+    def _hash_implementation_source(
+        self,
+        source: static_implementation_commitment.ImplementationSource,
+    ) -> str:
+        snapshot = self.read_file(
+            source.path,
+            maximum_bytes=static_implementation_commitment.MAX_IMPLEMENTATION_FILE_BYTES,
+            label="stage_source",
+        )
+        if snapshot.size != source.size:
+            raise ResumePlannerError(
+                "snapshot_changed_during_plan",
+                "計画構築中に静的解析実装fileが変更されました",
+            )
+        return snapshot.sha256
+
     @staticmethod
     def _hash_committed_file(snapshot: _FileSnapshot) -> tuple[str, os.stat_result, int]:
         """再検証時はraw全体を保持せず、固定chunkでhashとidentityを再照合する。"""
@@ -275,6 +325,19 @@ class _SnapshotReader:
                     "snapshot_changed_during_plan",
                     "計画構築中にsource fileが変更されました",
                 )
+        for repository, expected in self._implementation_inventories.items():
+            try:
+                current = static_implementation_commitment.discover_implementation_sources(repository)
+            except static_implementation_commitment.StaticImplementationError as exc:
+                raise ResumePlannerError(
+                    "snapshot_changed_during_plan",
+                    "計画構築中に静的解析実装inventoryを再確認できません",
+                ) from exc
+            if current != expected:
+                raise ResumePlannerError(
+                    "snapshot_changed_during_plan",
+                    "計画構築中に静的解析実装inventoryが変更されました",
+                )
 
 
 _BlockerPolicy = remediation_registry.PlannerPolicySpec
@@ -288,6 +351,12 @@ _BUDGET_BLOCKERS = frozenset(
 
 # downstream stageのskip理由であり、再開根拠として単独利用できない。
 _DERIVED_BLOCKERS = frozenset({"dependency_not_succeeded"})
+_SUCCESSOR_ID_REQUIREMENTS = (
+    "new_orchestration_id",
+    "new_workflow_id",
+    "new_job_id",
+    "updated_request_sha256",
+)
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -436,6 +505,9 @@ def _current_stage_fingerprint(
             maximum_bytes=MAX_ANCHORED_INPUT_BYTES,
             label="stage_anchored_input",
         ).sha256
+    static_implementation: dict[str, object] = {}
+    if stage == "static_analysis":
+        static_implementation = reader.static_implementation_commitment(common.parent.parent)
     return _canonical_sha256(
         {
             "schema_version": analysis_lifecycle.SCHEMA_VERSION,
@@ -443,6 +515,7 @@ def _current_stage_fingerprint(
             "request_sha256": _canonical_sha256(context.request.public()),
             "source_sha256": source_hashes,
             "anchored_input_sha256": anchored_inputs,
+            "static_implementation": static_implementation,
         }
     )
 
@@ -516,8 +589,16 @@ def _validate_lifecycle_state(
                 "stored_fingerprint_sha256": fingerprint,
                 "current_fingerprint_sha256": current_fingerprint,
                 "fingerprint_matches_current": current_fingerprint == fingerprint,
-                "fingerprint_scope": "declared_stage_sources_and_anchored_inputs",
-                "transitive_implementation_status": "not_committed_by_saved_stage_state",
+                "fingerprint_scope": (
+                    "current_declared_stage_sources_static_analysis_tree_and_anchored_inputs"
+                    if stage == "static_analysis"
+                    else "current_declared_stage_sources_and_anchored_inputs"
+                ),
+                "transitive_implementation_status": (
+                    "static_analysis_tree_included_in_current_fingerprint_recomputation"
+                    if stage == "static_analysis"
+                    else "declared_stage_sources_included_in_current_fingerprint_recomputation"
+                ),
                 "result_sha256": _canonical_sha256(record["result"]),
                 "blocker_snapshot_sha256": _canonical_sha256(blockers),
                 "blockers": list(blockers),
@@ -558,6 +639,12 @@ def _budget(used: int, limit: int, *, history_complete: bool) -> dict[str, Any]:
         "remaining": max(0, limit - used),
         "history_complete": history_complete,
     }
+
+
+def _successor_changed_evidence(*additional: str) -> list[str]:
+    """既存jobの再利用を防ぐ完全なsuccessor identity要件を返す。"""
+
+    return list(dict.fromkeys((*_SUCCESSOR_ID_REQUIREMENTS, *additional)))
 
 
 def _select_root_policy(blockers: list[str]) -> tuple[str | None, _BlockerPolicy | None]:
@@ -655,7 +742,7 @@ def _decision_for_record(
         _budget(
             int(phase["attempts"]),
             analysis_lifecycle.MAX_ATTEMPTS,
-            history_complete=int(record["attempts"]) <= 1,
+            history_complete=int(phase["attempts"]) <= 1,
         )
         if phase is not None
         else None
@@ -718,20 +805,11 @@ def _decision_for_record(
         underlying_action = selected_policy.action_id if selected_policy is not None else "manual_review_required"
         if contract_drift:
             partial_target = changed_phase
-            changed_evidence = [
-                "new_orchestration_id",
-                "new_workflow_id",
-                "updated_request_sha256",
-            ]
+            changed_evidence = _successor_changed_evidence()
         else:
             partial_target = phase["phase"] if phase is not None else target_phase
-            changed_evidence = [
-                "new_orchestration_id",
-                "new_workflow_id",
-                "updated_request_sha256",
-            ]
-            changed_evidence.extend(
-                selected_policy.changed_evidence if selected_policy is not None else ("operator_review",)
+            changed_evidence = _successor_changed_evidence(
+                *(selected_policy.changed_evidence if selected_policy is not None else ("operator_review",))
             )
         decision = {
             "action_id": "start_successor_workflow",
@@ -740,7 +818,7 @@ def _decision_for_record(
             "retryable": False,
             "successor_required": True,
             "blocked_action_id": underlying_action,
-            "requires_changed_evidence": list(dict.fromkeys(changed_evidence)),
+            "requires_changed_evidence": changed_evidence,
             "reason_codes": blockers,
         }
     elif contract_drift:
@@ -751,11 +829,7 @@ def _decision_for_record(
             "retryable": False,
             "successor_required": True,
             "blocked_action_id": (selected_policy.action_id if selected_policy is not None else None),
-            "requires_changed_evidence": [
-                "new_orchestration_id",
-                "new_workflow_id",
-                "updated_request_sha256",
-            ],
+            "requires_changed_evidence": _successor_changed_evidence(),
             "reason_codes": blockers,
         }
     elif budget_exhausted:
@@ -781,22 +855,39 @@ def _decision_for_record(
             "reason_codes": blockers,
         }
     else:
+        successor = selected_policy.action_id == "start_successor_workflow"
         decision = {
             "action_id": selected_policy.action_id,
             "target_phase": phase["phase"] if phase is not None else target_phase,
             "eligible": selected_policy.retryable,
             "retryable": selected_policy.retryable,
-            "successor_required": selected_policy.action_id == "start_successor_workflow",
+            "successor_required": successor,
             "blocked_action_id": None,
-            "requires_changed_evidence": list(selected_policy.changed_evidence),
+            "requires_changed_evidence": (
+                _successor_changed_evidence(*selected_policy.changed_evidence)
+                if successor
+                else list(selected_policy.changed_evidence)
+            ),
             "reason_codes": blockers,
         }
 
-    # 保存stateは累積attemptsだけを持ち、各attemptのevidence snapshotを保持しない。
-    # 現在値が同じだけでは「進展なし」を立証できないため、履歴がない旧stateでは
-    # no-progressを断定せず、明示的なattempt budgetだけでretryを制限する。
     no_progress = False
     history_unavailable = decision["retryable"] and int(record["attempts"]) > 1 and bool(blockers)
+    if history_unavailable:
+        # semantic evidence履歴のないstateでは進展なしを断定できない。同時に、
+        # 同じ失敗を最大budgetまでblind retryもしない。1回の自動再試行後は
+        # 履歴付きsuccessorまたはoperator reviewへ閉じる。
+        blocked_action = decision["action_id"]
+        decision = {
+            "action_id": "manual_review_required",
+            "target_phase": decision["target_phase"],
+            "eligible": False,
+            "retryable": False,
+            "successor_required": False,
+            "blocked_action_id": blocked_action,
+            "requires_changed_evidence": ["retry_history_or_operator_review"],
+            "reason_codes": blockers,
+        }
     return (
         decision,
         {"workflow": workflow_budget, "phase": phase_budget},
@@ -973,11 +1064,26 @@ def build_resume_plan(
     if report_snapshot.document != expected_report:
         raise ResumePlannerError("orchestration_report_mismatch", "orchestration reportとstateが一致しません")
 
-    current_implementation = reader.read_file(
-        Path(analysis_orchestrator.__file__).resolve(),
-        maximum_bytes=MAX_CODE_SOURCE_BYTES,
-        label="orchestrator_source",
-    ).sha256
+    current_source_sha256: dict[str, str] = {}
+    for name, path in zip(
+        analysis_orchestrator.ORCHESTRATION_GATE_CODE_FILES,
+        analysis_orchestrator._implementation_source_paths(),
+        strict=True,
+    ):
+        current_source_sha256[name] = reader.read_file(
+            path,
+            maximum_bytes=MAX_CODE_SOURCE_BYTES,
+            label=f"orchestration_gate_source:{name}",
+        ).sha256
+    try:
+        current_implementation = analysis_orchestrator._implementation_commitment(
+            current_source_sha256
+        )
+    except analysis_orchestrator.OrchestrationError as exc:
+        raise ResumePlannerError(
+            "orchestration_implementation_invalid",
+            "再開ゲート実装commitmentを構築できません",
+        ) from exc
     implementation_matches = state_snapshot.document["implementation_sha256"] == current_implementation
     workflows: list[dict[str, Any]] = []
     for record, child_request in zip(
@@ -1040,8 +1146,12 @@ def build_resume_plan(
             "stored_implementation_sha256": state_snapshot.document["implementation_sha256"],
             "current_implementation_sha256": current_implementation,
             "implementation_matches_current": implementation_matches,
-            "implementation_fingerprint_scope": "orchestrator_source_only",
-            "transitive_implementation_status": "not_committed_by_saved_orchestration_state",
+            "implementation_fingerprint_scope": (
+                "current_orchestration_gate_sources_with_child_stage_scope_reported_per_workflow"
+            ),
+            "transitive_implementation_status": (
+                "static_analysis_tree_recomputation_reported_per_workflow_phase_provenance"
+            ),
         },
         "workflows": workflows,
         "safety": {

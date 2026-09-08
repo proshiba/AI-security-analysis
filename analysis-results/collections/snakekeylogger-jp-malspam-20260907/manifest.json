@@ -1,0 +1,22 @@
+{
+  "archives_stored_in_repository": false,
+  "c2_contacted": false,
+  "cases": [
+    {
+      "case_id": "sha256:d97dae8f8aafa75dd7c13e3b3018cbb3667bb8d990bd4fac1aee54ad492a51e6"
+    }
+  ],
+  "collection_id": "snakekeylogger-jp-malspam-20260907",
+  "downloaded": 1,
+  "family_sources": [
+    {
+      "family": "snakekeylogger",
+      "path": "sources/snakekeylogger"
+    }
+  ],
+  "requested": 1,
+  "samples_executed": false,
+  "schema_version": 1,
+  "selection_mode": "exact_sha256",
+  "source": "user-submitted password-protected archive"
+}

@@ -28,7 +28,10 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
         "analysis_contract",
         "analysis_job_runner",
         "analysis_lifecycle",
+        "analysis_orchestrator",
         "analysis_resume_planner",
+        "extract_pyinstaller_archive",
+        "static_implementation_commitment",
         "collection_followup_planner",
         "sync_collection_publication",
         "bounded_process",
@@ -143,7 +146,8 @@ def test_all_public_functions_have_docstrings_and_pydoc() -> None:
     repository = Path(__file__).parents[2]
     framework = repository / "analysis-framework"
     common = framework / "common"
-    for import_root in (common, framework):
+    source = framework / "src"
+    for import_root in (source, common, framework):
         if str(import_root) not in __import__("sys").path:
             __import__("sys").path.insert(0, str(import_root))
     root = repository / "docs" / "pydoc"

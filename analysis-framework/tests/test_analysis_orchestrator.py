@@ -453,6 +453,462 @@ def test_completed_child_is_verified_not_repeated_on_resume(tmp_path: Path) -> N
     assert finished["workflows"][1]["result"]["same_workflow_resume_allowed"] is False
 
 
+def test_production_resume_rejects_noneligible_failure_without_state_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """未知blocker相当のfailed recordをplanner許可なしで再試行しない。"""
+
+    workflow_ids = ("sample-001",)
+    repository, input_root, work_root = make_roots(tmp_path, workflow_ids)
+    request = orchestrator.validate_request_object(orchestration_value(workflow_ids))
+    calls: list[tuple[str, str]] = []
+    actions = fake_actions(work_root, {"sample-001": ["failed", "complete"]}, calls)
+    orchestrator._run_orchestration_for_test(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        actions=actions,
+    )
+    state_path = work_root / "orchestrations" / request.orchestration_id / "state.json"
+    report_path = state_path.with_name("report.json")
+    before_state = state_path.read_bytes()
+    before_report = report_path.read_bytes()
+    planner = importlib.import_module("analysis_resume_planner")
+    monkeypatch.setattr(orchestrator, "PRODUCTION_ACTIONS", actions)
+    monkeypatch.setattr(
+        planner,
+        "build_resume_plan",
+        lambda **_kwargs: {
+            "workflows": [
+                {
+                    "workflow_id": "sample-001",
+                    "decision": {
+                        "action_id": "manual_review_required",
+                        "eligible": False,
+                        "retryable": False,
+                        "successor_required": False,
+                    },
+                }
+            ]
+        },
+    )
+
+    with pytest.raises(orchestrator.OrchestrationError) as caught:
+        orchestrator.resume_orchestration(
+            request.orchestration_id,
+            repository=repository,
+            input_root=input_root,
+            work_root=work_root,
+            timeout_seconds=60,
+        )
+
+    assert caught.value.code == "resume_not_eligible"
+    assert state_path.read_bytes() == before_state
+    assert report_path.read_bytes() == before_report
+    assert calls == [("run", "sample-001")]
+
+
+def test_production_resume_rejects_interrupted_running_state_without_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """親がrunningの中断状態をplanner迂回で再実行せず、attemptも変更しない。"""
+
+    workflow_ids = ("sample-001",)
+    repository, input_root, work_root = make_roots(tmp_path, workflow_ids)
+    request = orchestrator.validate_request_object(orchestration_value(workflow_ids))
+    context, state = orchestrator._initialize_context(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+    )
+    started = orchestrator.analysis_lifecycle.utc_now()
+    state["status"] = "running"
+    state["workflows"][0].update(
+        {
+            "status": "running",
+            "attempts": 1,
+            "started_at_utc": started,
+            "finished_at_utc": None,
+            "blockers": [],
+            "lifecycle_report_sha256": None,
+            "result": {},
+        }
+    )
+    orchestrator._write_state(context, state)
+    state_path = context.orchestration_root / "state.json"
+    before_state = state_path.read_bytes()
+    report_path = context.orchestration_root / "report.json"
+    lifecycle_root = work_root / "lifecycles" / "sample-001"
+    calls: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        orchestrator,
+        "PRODUCTION_ACTIONS",
+        fake_actions(work_root, {"sample-001": ["complete"]}, calls),
+    )
+
+    with pytest.raises(orchestrator.OrchestrationError) as caught:
+        orchestrator.resume_orchestration(
+            request.orchestration_id,
+            repository=repository,
+            input_root=input_root,
+            work_root=work_root,
+            timeout_seconds=60,
+        )
+
+    assert caught.value.code == "resume_not_eligible"
+    assert state_path.read_bytes() == before_state
+    assert not report_path.exists()
+    assert not lifecycle_root.exists()
+    assert calls == []
+
+
+def test_production_resume_sends_partial_to_successor_without_state_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """partial workflowを同一IDでno-op更新せずsuccessor要求として停止する。"""
+
+    workflow_ids = ("sample-001",)
+    repository, input_root, work_root = make_roots(tmp_path, workflow_ids)
+    request = orchestrator.validate_request_object(orchestration_value(workflow_ids))
+    calls: list[tuple[str, str]] = []
+    actions = fake_actions(work_root, {"sample-001": ["partial"]}, calls)
+    orchestrator._run_orchestration_for_test(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        actions=actions,
+    )
+    state_path = work_root / "orchestrations" / request.orchestration_id / "state.json"
+    report_path = state_path.with_name("report.json")
+    before_state = state_path.read_bytes()
+    before_report = report_path.read_bytes()
+    planner = importlib.import_module("analysis_resume_planner")
+    monkeypatch.setattr(orchestrator, "PRODUCTION_ACTIONS", actions)
+    monkeypatch.setattr(
+        planner,
+        "build_resume_plan",
+        lambda **_kwargs: {
+            "workflows": [
+                {
+                    "workflow_id": "sample-001",
+                    "decision": {
+                        "action_id": "start_successor_workflow",
+                        "eligible": False,
+                        "retryable": False,
+                        "successor_required": True,
+                    },
+                }
+            ]
+        },
+    )
+
+    with pytest.raises(orchestrator.OrchestrationError) as caught:
+        orchestrator.resume_orchestration(
+            request.orchestration_id,
+            repository=repository,
+            input_root=input_root,
+            work_root=work_root,
+            timeout_seconds=60,
+        )
+
+    assert caught.value.code == "resume_not_eligible"
+    assert state_path.read_bytes() == before_state
+    assert report_path.read_bytes() == before_report
+    assert calls == [("run", "sample-001")]
+
+
+def test_production_resume_allows_exact_planner_bound_transient_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """完全一致でretryableと確認した一時失敗は既存resume経路へ戻す。"""
+
+    workflow_ids = ("sample-001",)
+    repository, input_root, work_root = make_roots(tmp_path, workflow_ids)
+    request = orchestrator.validate_request_object(orchestration_value(workflow_ids))
+    calls: list[tuple[str, str]] = []
+    actions = fake_actions(work_root, {"sample-001": ["failed", "complete"]}, calls)
+    orchestrator._run_orchestration_for_test(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        actions=actions,
+    )
+    planner = importlib.import_module("analysis_resume_planner")
+    monkeypatch.setattr(orchestrator, "PRODUCTION_ACTIONS", actions)
+    monkeypatch.setattr(
+        planner,
+        "build_resume_plan",
+        lambda **_kwargs: {
+            "workflows": [
+                {
+                    "workflow_id": "sample-001",
+                    "decision": {
+                        "action_id": "resume_workflow",
+                        "eligible": True,
+                        "retryable": True,
+                        "successor_required": False,
+                    },
+                }
+            ]
+        },
+    )
+
+    finished = orchestrator.resume_orchestration(
+        request.orchestration_id,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+    )
+
+    assert finished["status"] == "complete"
+    assert ("resume", "sample-001") in calls
+
+
+@pytest.mark.parametrize("tamper_kind", ["child_report", "verified_artifact"])
+def test_planner_allowed_resume_revalidates_child_before_parent_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tamper_kind: str,
+) -> None:
+    """planner後のchild report／成果物不整合では親attemptを増やさず停止する。"""
+
+    workflow_ids = ("sample-001",)
+    repository, input_root, work_root = make_roots(tmp_path, workflow_ids)
+    request = orchestrator.validate_request_object(orchestration_value(workflow_ids))
+    calls: list[tuple[str, str]] = []
+    actions = fake_actions(
+        work_root,
+        {"sample-001": ["failed", "complete"]},
+        calls,
+        verification_valid=tamper_kind != "verified_artifact",
+    )
+    orchestrator._run_orchestration_for_test(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        actions=actions,
+    )
+    state_path = work_root / "orchestrations" / request.orchestration_id / "state.json"
+    report_path = state_path.with_name("report.json")
+    child_report = work_root / "lifecycles" / "sample-001" / "report.json"
+    before_state = state_path.read_bytes()
+    before_report = report_path.read_bytes()
+    planner = importlib.import_module("analysis_resume_planner")
+    monkeypatch.setattr(orchestrator, "PRODUCTION_ACTIONS", actions)
+
+    def allow_then_tamper(**_kwargs: Any) -> dict[str, Any]:
+        if tamper_kind == "child_report":
+            child_report.write_text('{"tampered":true}\n', encoding="utf-8")
+        return {
+            "workflows": [
+                {
+                    "workflow_id": "sample-001",
+                    "decision": {
+                        "action_id": "resume_workflow",
+                        "eligible": True,
+                        "retryable": True,
+                        "successor_required": False,
+                    },
+                }
+            ]
+        }
+
+    monkeypatch.setattr(planner, "build_resume_plan", allow_then_tamper)
+
+    with pytest.raises(orchestrator.OrchestrationError) as caught:
+        orchestrator.resume_orchestration(
+            request.orchestration_id,
+            repository=repository,
+            input_root=input_root,
+            work_root=work_root,
+            timeout_seconds=60,
+        )
+
+    assert caught.value.code == "resume_child_changed"
+    assert state_path.read_bytes() == before_state
+    assert report_path.read_bytes() == before_report
+    assert ("resume", "sample-001") not in calls
+
+
+def test_outer_failure_before_child_creation_recovers_with_independent_attempt_budget(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """child作成前の失敗後も親attemptとchild stage attemptを混同しない。"""
+
+    workflow_ids = ("sample-001",)
+    repository, input_root, work_root = make_roots(tmp_path, workflow_ids)
+    request = orchestrator.validate_request_object(orchestration_value(workflow_ids))
+    calls: list[tuple[str, str]] = []
+    succeeding = fake_actions(work_root, {"sample-001": ["complete"]}, calls)
+
+    def fail_before_child(request_value: Any, **_kwargs: Any) -> dict[str, Any]:
+        calls.append(("run", request_value.workflow_id))
+        raise RuntimeError("fixture outer failure")
+
+    failing = orchestrator._LifecycleActions(
+        run=fail_before_child,
+        resume=succeeding.resume,
+        verify=succeeding.verify,
+        snapshot=succeeding.snapshot,
+    )
+    first = orchestrator._run_orchestration_for_test(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        actions=failing,
+    )
+    assert first["workflows"][0]["blockers"] == ["workflow_execution_failed"]
+    assert not (work_root / "lifecycles" / "sample-001").exists()
+    planner = importlib.import_module("analysis_resume_planner")
+    monkeypatch.setattr(orchestrator, "PRODUCTION_ACTIONS", succeeding)
+    monkeypatch.setattr(
+        planner,
+        "build_resume_plan",
+        lambda **_kwargs: {
+            "workflows": [
+                {
+                    "workflow_id": "sample-001",
+                    "decision": {
+                        "action_id": "resume_workflow",
+                        "eligible": True,
+                        "retryable": True,
+                        "successor_required": False,
+                    },
+                }
+            ]
+        },
+    )
+
+    finished = orchestrator.resume_orchestration(
+        request.orchestration_id,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+    )
+    child = json.loads(
+        (work_root / "lifecycles" / "sample-001" / "state.json").read_text(encoding="utf-8")
+    )
+
+    assert finished["status"] == "complete"
+    assert finished["workflows"][0]["attempts"] == 2
+    assert max(item["attempts"] for item in child["stages"].values()) == 1
+
+
+def test_child_precreation_failure_detects_resume_gate_source_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """childがない失敗でも再開ゲート依存sourceの変更を親commitmentで拒否する。"""
+
+    workflow_ids = ("sample-001",)
+    repository, input_root, work_root = make_roots(tmp_path, workflow_ids)
+    request = orchestrator.validate_request_object(orchestration_value(workflow_ids))
+    gate_root = tmp_path / "gate-sources"
+    gate_root.mkdir()
+    sources: list[Path] = []
+    for name in orchestrator.ORCHESTRATION_GATE_CODE_FILES:
+        source = gate_root / name
+        source.write_text(f"# {name}\nversion = 1\n", encoding="utf-8")
+        sources.append(source)
+    monkeypatch.setattr(orchestrator, "_implementation_source_paths", lambda: tuple(sources))
+    calls: list[tuple[str, str]] = []
+    succeeding = fake_actions(work_root, {"sample-001": ["complete"]}, calls)
+
+    def fail_before_child(request_value: Any, **_kwargs: Any) -> dict[str, Any]:
+        calls.append(("run", request_value.workflow_id))
+        raise RuntimeError("fixture outer failure")
+
+    failing = orchestrator._LifecycleActions(
+        run=fail_before_child,
+        resume=succeeding.resume,
+        verify=succeeding.verify,
+        snapshot=succeeding.snapshot,
+    )
+    first = orchestrator._run_orchestration_for_test(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        actions=failing,
+    )
+    assert first["workflows"][0]["blockers"] == ["workflow_execution_failed"]
+    assert not (work_root / "lifecycles" / "sample-001").exists()
+    state_path = work_root / "orchestrations" / request.orchestration_id / "state.json"
+    report_path = state_path.with_name("report.json")
+    before_state = state_path.read_bytes()
+    before_report = report_path.read_bytes()
+    sources[2].write_text("# lifecycle drift\nversion = 2\n", encoding="utf-8")
+
+    with pytest.raises(orchestrator.OrchestrationError) as caught:
+        orchestrator.resume_orchestration(
+            request.orchestration_id,
+            repository=repository,
+            input_root=input_root,
+            work_root=work_root,
+            timeout_seconds=60,
+        )
+
+    assert caught.value.code == "orchestrator_contract_changed"
+    assert state_path.read_bytes() == before_state
+    assert report_path.read_bytes() == before_report
+    assert not (work_root / "lifecycles" / "sample-001").exists()
+
+
+def test_new_orchestration_rejects_existing_job_before_parent_state_creation(
+    tmp_path: Path,
+) -> None:
+    """successor IDだけを変えて旧jobを再利用する迂回をstate作成前に拒否する。"""
+
+    workflow_ids = ("sample-001",)
+    repository, input_root, work_root = make_roots(tmp_path, workflow_ids)
+    request_value = orchestration_value(workflow_ids)
+    request_value["orchestration_id"] = "successor-orchestration-001"
+    request_value["workflows"][0]["workflow_id"] = "successor-sample-001"
+    request_value["workflows"][0]["job"]["inputs"] = ["set/sample-001.bin"]
+    request = orchestrator.validate_request_object(request_value)
+    old_job = work_root / "jobs" / "job-sample-001"
+    old_job.mkdir(parents=True)
+    marker = old_job / "old-result.json"
+    marker.write_text('{"accepted":true}\n', encoding="utf-8")
+    calls: list[tuple[str, str]] = []
+    actions = fake_actions(work_root, {"successor-sample-001": ["complete"]}, calls)
+
+    with pytest.raises(orchestrator.OrchestrationError) as caught:
+        orchestrator._run_orchestration_for_test(
+            request,
+            repository=repository,
+            input_root=input_root,
+            work_root=work_root,
+            timeout_seconds=60,
+            actions=actions,
+        )
+
+    assert caught.value.code == "job_already_exists"
+    assert not (work_root / "orchestrations" / request.orchestration_id).exists()
+    assert marker.is_file()
+    assert calls == []
+
+
 def test_malformed_child_remediation_plan_fails_closed(tmp_path: Path) -> None:
     state = child_state("partial")
     state["stages"]["completion_gate"]["result"] = {
@@ -879,10 +1335,9 @@ def test_terminal_record_is_exactly_bound_to_child_snapshot(
 
 @pytest.mark.parametrize(
     ("mutation", "expected_error"),
-    [
-        ("status", "lifecycle_parent_mismatch:sample-001"),
-        ("attempts", "lifecycle_parent_mismatch:sample-001"),
-        ("blockers", "lifecycle_parent_mismatch:sample-001"),
+        [
+            ("status", "lifecycle_parent_mismatch:sample-001"),
+            ("blockers", "lifecycle_parent_mismatch:sample-001"),
         ("next_action", "lifecycle_parent_mismatch:sample-001"),
         ("remediation_digest", "lifecycle_parent_mismatch:sample-001"),
         ("lifecycle_digest", "lifecycle_parent_mismatch:sample-001"),
@@ -919,8 +1374,6 @@ def test_terminal_parent_and_matching_parent_report_cannot_forge_child(
         record["status"] = "partial"
         record["result"]["lifecycle_status"] = "partial"
         state["status"] = "partial"
-    elif mutation == "attempts":
-        record["attempts"] += 1
     elif mutation == "blockers":
         record["blockers"] = ["forged_blocker"]
     elif mutation == "next_action":

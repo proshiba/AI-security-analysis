@@ -67,6 +67,9 @@ class MemoryCArchiveEntry:
     compressed: bool
     typecode: str
     is_option: bool
+    name_source: str = "archive_name"
+    name_field_sha256: str | None = None
+    name_field_size: int | None = None
 
 
 @dataclass(frozen=True)
@@ -84,11 +87,14 @@ class RecoveredCArchiveEntry:
     uncompressed_size: int
     sha256: str
     payload: bytes
+    name_source: str = "archive_name"
+    name_field_sha256: str | None = None
+    name_field_size: int | None = None
 
     def public_metadata(self) -> dict[str, object]:
         """payloadを除いた、公開可能な小さいmetadataを返す。"""
 
-        return {
+        metadata: dict[str, object] = {
             "name": self.name,
             "normalized_path": self.normalized_path,
             "typecode": self.typecode,
@@ -100,6 +106,13 @@ class RecoveredCArchiveEntry:
             "uncompressed_size": self.uncompressed_size,
             "sha256": self.sha256,
         }
+        if self.name_source != "archive_name":
+            metadata.update(
+                name_source=self.name_source,
+                name_field_sha256=self.name_field_sha256,
+                name_field_size=self.name_field_size,
+            )
+        return metadata
 
 
 @dataclass(frozen=True)
@@ -111,7 +124,12 @@ class SelectiveCArchiveAnalysis:
 
 
 class MemoryCArchiveReader:
-    """境界を検証しながらbytes上のPyInstaller CArchiveを読む。"""
+    """境界を検証しながらbytes上のPyInstaller CArchiveを読む。
+
+    先頭NULの匿名script recordだけはTOC順序に束縛した合成名で保持し、元の
+    name領域はsizeとSHA-256で記録する。通常のpath検証を緩和せず、NUL後の
+    不透明bytesをpathやコードとして解釈しない。
+    """
 
     COOKIE_MAGIC = b"MEI\014\013\012\013\016"
     COOKIE_FORMAT = "!8sIIII64s"
@@ -214,7 +232,10 @@ class MemoryCArchiveReader:
             if len(name_field) > MAX_ENTRY_NAME_BYTES + 16:
                 raise MemoryCArchiveError("PyInstaller CArchive TOC entry名領域が上限を超えました")
             terminator = name_field.find(b"\0")
-            if terminator < 0:
+            anonymous_script = terminator == 0 and typecode_raw == b"s"
+            if anonymous_script:
+                name_raw = f"__pyi_anonymous_script_{entry_count:05d}".encode("ascii")
+            elif terminator < 0:
                 name_raw = name_field
             else:
                 name_raw = name_field[:terminator]
@@ -271,6 +292,9 @@ class MemoryCArchiveReader:
                     compressed=bool(compressed),
                     typecode=typecode,
                     is_option=typecode == "o",
+                    name_source="synthetic_anonymous_script" if anonymous_script else "archive_name",
+                    name_field_sha256=sha256_bytes(name_field) if anonymous_script else None,
+                    name_field_size=len(name_field) if anonymous_script else None,
                 )
             )
             cursor += entry_length
@@ -484,6 +508,12 @@ def _inventory_commitment(reader: MemoryCArchiveReader) -> dict[str, object]:
             "typecode": entry.typecode,
             "uncompressed_size": entry.uncompressed_size,
         }
+        if entry.name_source != "archive_name":
+            record.update(
+                name_source=entry.name_source,
+                name_field_sha256=entry.name_field_sha256,
+                name_field_size=entry.name_field_size,
+            )
         canonical = json.dumps(
             record,
             ensure_ascii=False,
@@ -520,6 +550,9 @@ def carchive_inventory_summary(reader: MemoryCArchiveReader) -> dict[str, object
         "entry_count": len(payload_entries),
         "option_count": len(reader.options),
         "toc_record_count": len(reader.entries),
+        "anonymous_script_entry_count": sum(
+            entry.name_source == "synthetic_anonymous_script" for entry in reader.entries
+        ),
         "type_counts": dict(sorted(type_counts.items())),
         "total_compressed_size": sum(entry.compressed_size for entry in payload_entries),
         "total_uncompressed_size": sum(entry.uncompressed_size for entry in payload_entries),
@@ -761,6 +794,9 @@ def analyze_carchive_bytes(
                 uncompressed_size=entry.uncompressed_size,
                 sha256=sha256_bytes(payload),
                 payload=payload,
+                name_source=entry.name_source,
+                name_field_sha256=entry.name_field_sha256,
+                name_field_size=entry.name_field_size,
             )
         )
 
@@ -788,15 +824,17 @@ def analyze_carchive_bytes(
     if oversized_uncompressed_entries:
         validation_exclusions["entry_uncompressed_size_limit"] = oversized_uncompressed_entries
 
-    validated_names = set(retained_by_name)
-    validated_compressed_total = sum(entry.compressed_size for entry in recovered)
-    validated_uncompressed_total = sum(entry.uncompressed_size for entry in recovered)
-    validated_format_counts = Counter(entry.payload_format for entry in recovered)
+    validated_names: set[str] = set()
+    validated_compressed_total = 0
+    validated_uncompressed_total = 0
+    validated_format_counts: Counter[str] = Counter()
     discarded_after_validation = 0
     reused_retained_count = 0
     validation_timed_out = False
     content_digest = hashlib.sha256()
-    can_attempt_full_validation = not validation_exclusions or retained_count == payload_entry_count
+    # selection時に全entryを保持済みでも、呼出側が明示したcontent validation
+    # 上限を迂回しない。上限内の場合だけ保持済みpayloadを再利用してcommitする。
+    can_attempt_full_validation = not validation_exclusions
     if can_attempt_full_validation:
         deadline = time.monotonic() + validation_seconds
         for entry in payload_entries:
@@ -823,6 +861,11 @@ def analyze_carchive_bytes(
                 payload_sha256 = retained.sha256
                 payload_format = retained.payload_format
                 reused_retained_count += 1
+                if entry.name not in validated_names:
+                    validated_names.add(entry.name)
+                    validated_compressed_total += entry.compressed_size
+                    validated_uncompressed_total += entry.uncompressed_size
+                    validated_format_counts[payload_format] += 1
             content_record = {
                 "index": entry.index,
                 "name": entry.name,
@@ -978,6 +1021,8 @@ recover_prioritized_entries_from_bytes = analyze_carchive_bytes
 
 
 def sha256_bytes(data: bytes) -> str:
+    """入力bytesの小文字SHA-256を返す。"""
+
     return hashlib.sha256(data).hexdigest()
 
 
@@ -1158,6 +1203,8 @@ def analyze(
     max_toc_size: int = DEFAULT_MAX_TOC_SIZE,
     max_toc_entries: int = DEFAULT_MAX_TOC_ENTRIES,
 ) -> dict[str, object]:
+    """SHA-256一致を確認し、CArchiveを実行せず選択的に一覧化・展開する。"""
+
     expected = expected_sha256.lower()
     if not SHA256_RE.fullmatch(expected):
         raise ValueError("expected_sha256は64桁の小文字16進数で指定してください")
@@ -1271,6 +1318,8 @@ def analyze(
 
 
 def main() -> int:
+    """固定CLI引数を解析し、静的CArchive解析結果をJSONで出力する。"""
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("sample", type=Path)
     parser.add_argument("--expected-sha256", required=True)

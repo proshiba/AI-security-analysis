@@ -141,3 +141,19 @@ def test_analysis_contract_contains_all_malware_python_helpers(tmp_path: Path) -
         settings={"mode": "test"},
     )
     assert first["sha256"] != second["sha256"]
+
+
+def test_safe_component_snapshot_preserves_pipeline_fingerprint_contract() -> None:
+    """安全読取りrecordでも既存pipeline fingerprint形式とdigestを維持する。"""
+
+    specs = discover_handlers()
+    snapshot = analyze_sample._AnalysisComponentSnapshot.capture(REGISTRY, specs)
+    settings = {"mode": "safe-snapshot-fixture"}
+    hardened = snapshot.pipeline_fingerprint(settings)
+    legacy = build_pipeline_fingerprint(
+        repository_root=analyze_sample.REPOSITORY_ROOT,
+        components=analyze_sample._analysis_components(REGISTRY, specs),
+        settings=settings,
+    )
+
+    assert hardened == legacy

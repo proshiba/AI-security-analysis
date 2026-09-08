@@ -1,0 +1,13 @@
+{
+  "case_count": 1,
+  "cases": [
+    {
+      "sha256": "d97dae8f8aafa75dd7c13e3b3018cbb3667bb8d990bd4fac1aee54ad492a51e6",
+      "status": "partial_live_verification_only",
+      "terminal_sha256": "895b27dfc33644c7d8e7d9e3c216f7d278a892f45cd083a996720613a35b574d"
+    }
+  ],
+  "family": "snakekeylogger",
+  "schema_version": 1,
+  "variant": "vipkeylogger"
+}

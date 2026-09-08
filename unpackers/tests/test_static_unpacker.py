@@ -303,6 +303,35 @@ def test_pyinstaller_carchive_is_fully_validated_and_routed_as_static_layer() ->
     assert artifacts == [("pyinstaller-python_script-000-entrypoint", payload)]
 
 
+def test_anonymous_pyinstaller_script_reaches_static_layer_with_source_commitment() -> None:
+    """匿名TOC名でも静的unpackerがpayloadを保持し、元名はhashだけを公開する。"""
+
+    payload = b"print('anonymous fixture')"
+    sample = bytearray(minimal_pyinstaller_pe(payload))
+    cookie_offset = sample.rfind(unpacker.MemoryCArchiveReader.COOKIE_MAGIC)
+    _, archive_length, toc_offset, _, _, _ = struct.unpack_from(
+        unpacker.MemoryCArchiveReader.COOKIE_FORMAT, sample, cookie_offset
+    )
+    name_start = (
+        cookie_offset + unpacker.MemoryCArchiveReader.COOKIE_LENGTH
+        - archive_length + toc_offset + unpacker.MemoryCArchiveReader.TOC_ENTRY_LENGTH
+    )
+    sample[name_start] = 0
+
+    report, artifacts = unpacker.unpack_bytes(bytes(sample), "fixture.exe")
+
+    pyinstaller = report["pyinstaller"]
+    assert pyinstaller["status"] == "artifacts_recovered"
+    assert pyinstaller["complete"] is True
+    assert pyinstaller["archive"]["anonymous_script_entry_count"] == 1
+    selected, = pyinstaller["selection"]["selected_entries"]
+    assert selected["name_source"] == "synthetic_anonymous_script"
+    assert len(selected["name_field_sha256"]) == 64
+    assert [blob for _, blob in artifacts] == [payload]
+    assert report["executed"] is False
+    assert report["network_contacted"] is False
+
+
 def test_installer_overlay_marker_does_not_become_an_image_packer_marker() -> None:
     """PE image外のNSIS/Inno markerだけをcontainer根拠として分離する。"""
 

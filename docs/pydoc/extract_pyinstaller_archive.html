@@ -1,0 +1,138 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>extract_pyinstaller_archive — API仕様</title></head><body>
+<h1>extract_pyinstaller_archive</h1>
+<p><a href="../../analysis-framework/common/extract_pyinstaller_archive.py">実装</a></p>
+<pre>PyInstaller CArchiveを実行せず、安全な範囲で一覧化・静的展開する。</pre>
+<h2>MemoryCArchiveEntry</h2>
+<pre>全TOC検証後に保持する、展開前entryの不変metadata。</pre>
+<pre>MemoryCArchiveEntry(index: &#x27;int&#x27;, name: &#x27;str&#x27;, normalized_path: &#x27;str | None&#x27;, offset: &#x27;int&#x27;, compressed_size: &#x27;int&#x27;, uncompressed_size: &#x27;int&#x27;, compressed: &#x27;bool&#x27;, typecode: &#x27;str&#x27;, is_option: &#x27;bool&#x27;, name_source: &#x27;str&#x27; = &#x27;archive_name&#x27;, name_field_sha256: &#x27;str | None&#x27; = None, name_field_size: &#x27;int | None&#x27; = None) -&gt; None</pre>
+<h2>MemoryCArchiveError</h2>
+<pre>メモリ上のPyInstaller CArchiveが不正または上限超過であることを示す。</pre>
+<h2>MemoryCArchiveReader</h2>
+<pre>境界を検証しながらbytes上のPyInstaller CArchiveを読む。
+
+先頭NULの匿名script recordだけはTOC順序に束縛した合成名で保持し、元の
+name領域はsizeとSHA-256で記録する。通常のpath検証を緩和せず、NUL後の
+不透明bytesをpathやコードとして解釈しない。</pre>
+<pre>MemoryCArchiveReader(data: &#x27;bytes&#x27;, *, max_toc_size: &#x27;int&#x27; = 16777216, max_entries: &#x27;int&#x27; = 16384) -&gt; &#x27;None&#x27;</pre>
+<dl><dt><a name="-extract"><strong>extract</strong></a>(
+    self,
+    name: 'str',
+    *,
+    max_size: 'int' = 67108864,
+    max_compressed_size: 'int | None' = None
+) -&gt; 'bytes'</dt><dd><span class="code">指定entryだけを上限付きでメモリへ展開する。</span></dd></dl>
+
+<h2>RecoveredCArchiveEntry</h2>
+<pre>優先選択してメモリ内だけで復元したentry。``payload``は公開reportへ含めない。</pre>
+<pre>RecoveredCArchiveEntry(name: &#x27;str&#x27;, normalized_path: &#x27;str&#x27;, typecode: &#x27;str&#x27;, category: &#x27;str&#x27;, payload_format: &#x27;str&#x27;, priority: &#x27;int&#x27;, compressed: &#x27;bool&#x27;, compressed_size: &#x27;int&#x27;, uncompressed_size: &#x27;int&#x27;, sha256: &#x27;str&#x27;, payload: &#x27;bytes&#x27;, name_source: &#x27;str&#x27; = &#x27;archive_name&#x27;, name_field_sha256: &#x27;str | None&#x27; = None, name_field_size: &#x27;int | None&#x27; = None) -&gt; None</pre>
+<dl><dt><a name="-public_metadata"><strong>public_metadata</strong></a>(self) -&gt; 'dict[str, object]'</dt><dd><span class="code">payloadを除いた、公開可能な小さいmetadataを返す。</span></dd></dl>
+
+<h2>SelectiveCArchiveAnalysis</h2>
+<pre>公開用集約reportと、非公開の復元bytesを分離した解析結果。</pre>
+<pre>SelectiveCArchiveAnalysis(report: &#x27;dict[str, object]&#x27;, recovered_entries: &#x27;tuple[RecoveredCArchiveEntry, ...]&#x27;) -&gt; None</pre>
+<h2>analyze</h2>
+<dl><dt><a name="-analyze"><strong>analyze</strong></a>(
+    sample: 'Path',
+    expected_sha256: 'str',
+    output_dir: 'Path | None' = None,
+    exact_names: 'set[str] | None' = None,
+    prefixes: 'tuple[str, ...]' = (),
+    max_files: 'int' = 128,
+    max_total_size: 'int' = 268435456,
+    max_compressed_total_size: 'int' = 268435456,
+    max_entry_size: 'int' = 67108864,
+    max_toc_size: 'int' = 16777216,
+    max_toc_entries: 'int' = 16384
+) -&gt; 'dict[str, object]'</dt><dd><span class="code">SHA-256一致を確認し、CArchiveを実行せず選択的に一覧化・展開する。</span></dd></dl>
+
+<h2>analyze_carchive_bytes</h2>
+<dl><dt><a name="-analyze_carchive_bytes"><strong>analyze_carchive_bytes</strong></a>(
+    data: 'bytes',
+    *,
+    preferred_names: 'Iterable[str]' = (),
+    max_retained_entries: 'int' = 128,
+    max_entry_compressed_size: 'int' = 67108864,
+    max_entry_uncompressed_size: 'int' = 67108864,
+    max_total_compressed_size: 'int' = 134217728,
+    max_total_uncompressed_size: 'int' = 134217728,
+    max_validation_entry_compressed_size: 'int' = 67108864,
+    max_validation_entry_uncompressed_size: 'int' = 67108864,
+    max_validation_total_compressed_size: 'int' = 268435456,
+    max_validation_total_uncompressed_size: 'int' = 268435456,
+    max_validation_seconds: 'float' = 120.0,
+    max_toc_size: 'int' = 16777216,
+    max_toc_entries: 'int' = 16384
+) -&gt; 'SelectiveCArchiveAnalysis'</dt><dd><span class="code">PyInstaller&nbsp;CArchiveを実行・保存せず、優先entryだけをbytesへ復元する。<br>
+&nbsp;<br>
+TOC全体の境界、path衝突、payload&nbsp;range重畳は選択前に検証する。全entryが<br>
+内容検証budget内なら1件ずつ展開してEOF・実サイズ・hashを検証し、非候補bytes<br>
+は即時破棄する。script、module、PYZ、PE名候補、入れ子archiveだけを優先順で<br>
+128件以下保持する。budget超過時は選択entryだけを検証し、部分状態を明示する。<br>
+PyInstallerという包装形式だけからmalware&nbsp;familyや悪性意図は推定しない。</span></dd></dl>
+
+<h2>carchive_inventory_summary</h2>
+<dl><dt><a name="-carchive_inventory_summary"><strong>carchive_inventory_summary</strong></a>(reader: 'MemoryCArchiveReader') -&gt; 'dict[str, object]'</dt><dd><span class="code">巨大なentry配列を出力せず、全inventoryの集約値とcommitmentを返す。</span></dd></dl>
+
+<h2>extract_selected_entries_from_bytes</h2>
+<dl><dt><a name="-extract_selected_entries_from_bytes"><strong>extract_selected_entries_from_bytes</strong></a>(
+    data: 'bytes',
+    *,
+    exact_names: 'set[str] | None' = None,
+    prefixes: 'tuple[str, ...]' = (),
+    max_files: 'int' = 128,
+    max_total_size: 'int' = 268435456,
+    max_compressed_total_size: 'int' = 268435456,
+    max_entry_size: 'int' = 67108864,
+    max_toc_size: 'int' = 16777216,
+    max_toc_entries: 'int' = 16384
+) -&gt; 'tuple[MemoryCArchiveReader, dict[str, bytes]]'</dt><dd><span class="code">選択したCArchive&nbsp;entryだけを保存せずメモリへ展開する。</span></dd></dl>
+
+<h2>inventory</h2>
+<dl><dt><a name="-inventory"><strong>inventory</strong></a>(reader: 'MemoryCArchiveReader') -&gt; 'list[dict[str, object]]'</dt><dd><span class="code">内部診断向け全一覧。公開reportにはcarchive_inventory_summaryを使う。</span></dd></dl>
+
+<h2>main</h2>
+<dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">固定CLI引数を解析し、静的CArchive解析結果をJSONで出力する。</span></dd></dl>
+
+<h2>recover_prioritized_entries_from_bytes</h2>
+<dl><dt><a name="-recover_prioritized_entries_from_bytes"><strong>recover_prioritized_entries_from_bytes</strong></a>(
+    data: 'bytes',
+    *,
+    preferred_names: 'Iterable[str]' = (),
+    max_retained_entries: 'int' = 128,
+    max_entry_compressed_size: 'int' = 67108864,
+    max_entry_uncompressed_size: 'int' = 67108864,
+    max_total_compressed_size: 'int' = 134217728,
+    max_total_uncompressed_size: 'int' = 134217728,
+    max_validation_entry_compressed_size: 'int' = 67108864,
+    max_validation_entry_uncompressed_size: 'int' = 67108864,
+    max_validation_total_compressed_size: 'int' = 268435456,
+    max_validation_total_uncompressed_size: 'int' = 268435456,
+    max_validation_seconds: 'float' = 120.0,
+    max_toc_size: 'int' = 16777216,
+    max_toc_entries: 'int' = 16384
+) -&gt; 'SelectiveCArchiveAnalysis'</dt><dd><span class="code">PyInstaller&nbsp;CArchiveを実行・保存せず、優先entryだけをbytesへ復元する。<br>
+&nbsp;<br>
+TOC全体の境界、path衝突、payload&nbsp;range重畳は選択前に検証する。全entryが<br>
+内容検証budget内なら1件ずつ展開してEOF・実サイズ・hashを検証し、非候補bytes<br>
+は即時破棄する。script、module、PYZ、PE名候補、入れ子archiveだけを優先順で<br>
+128件以下保持する。budget超過時は選択entryだけを検証し、部分状態を明示する。<br>
+PyInstallerという包装形式だけからmalware&nbsp;familyや悪性意図は推定しない。</span></dd></dl>
+
+<h2>reject_existing_reparse_components</h2>
+<dl><dt><a name="-reject_existing_reparse_components"><strong>reject_existing_reparse_components</strong></a>(path: 'Path') -&gt; 'None'</dt><dd><span class="code">既存の出力先componentにsymlink/junction等があれば拒否する。</span></dd></dl>
+
+<h2>safe_relative_path</h2>
+<dl><dt><a name="-safe_relative_path"><strong>safe_relative_path</strong></a>(name: 'str') -&gt; 'Path'</dt><dd><span class="code">Windowsでも安全なCArchive内の相対パスだけを許可する。</span></dd></dl>
+
+<h2>selected_names</h2>
+<dl><dt><a name="-selected_names"><strong>selected_names</strong></a>(
+    names: 'Iterable[str]',
+    exact_names: 'set[str]',
+    prefixes: 'tuple[str, ...]'
+) -&gt; 'list[str]'</dt><dd><span class="code">明示名または接頭辞に一致するエントリだけを返す。</span></dd></dl>
+
+<h2>sha256_bytes</h2>
+<dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">入力bytesの小文字SHA-256を返す。</span></dd></dl>
+
+</body></html>

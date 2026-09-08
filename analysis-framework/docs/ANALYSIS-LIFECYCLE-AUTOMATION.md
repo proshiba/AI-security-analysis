@@ -214,7 +214,7 @@ py -3.13 -B .\analysis-framework\common\analysis_lifecycle.py resume `
   --timeout-seconds 3600
 ```
 
-再開時はrequest SHA-256と各stage実装fileのSHA-256を再計算します。解析器、publisher、完了validator、generator、archiver、lifecycle runnerのいずれかが変更された場合、古い成功状態を新しい契約へ流用せず`stage_contract_changed`で停止します。その場合は新しい`workflow_id`で再解析してください。解析tree、入力snapshot、公開reportの内容が変わった場合も、成功済みstageを信頼せず停止します。
+再開時はrequest SHA-256と各stage実装fileのSHA-256を再計算します。`static_analysis`では入口fileに加え、productionのcommon、classifier、registry、family実装、root extractor／unpacker、規則、requirementsをrepository相対path・size・SHA-256へ固定した有界manifestも毎回再計算します。列挙時identityへ束縛した単一handle読取りの後、tree membership、identity、内容SHA-256を再照合するため、同じprocess内の追加、削除、差替え、内容変更も検出します。古い成功状態を新しい契約へ流用せず`stage_contract_changed`で停止し、その場合は新しい`workflow_id`と`job_id`で再解析してください。解析tree、入力snapshot、公開reportの内容が変わった場合も、成功済みstageを信頼せず停止します。
 
 `run`、`test-run`、`resume`はworkflow単位のOS file lockを取得します。同じ`workflow_id`へ複数processが同時に書き込むことはできません。
 

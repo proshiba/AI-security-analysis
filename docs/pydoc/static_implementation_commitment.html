@@ -1,0 +1,31 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>static_implementation_commitment — API仕様</title></head><body>
+<h1>static_implementation_commitment</h1>
+<p><a href="../../analysis-framework/common/static_implementation_commitment.py">実装</a></p>
+<pre>静的解析実装treeを有界列挙し、再開判断用commitmentへ固定する。</pre>
+<h2>ImplementationSource</h2>
+<pre>commitment対象となる通常単一link file。</pre>
+<pre>ImplementationSource(relative_path: &#x27;str&#x27;, path: &#x27;Path&#x27;, size: &#x27;int&#x27;, device: &#x27;int&#x27;, inode: &#x27;int&#x27;, modified_ns: &#x27;int&#x27;, changed_ns: &#x27;int&#x27;) -&gt; None</pre>
+<h2>StaticImplementationError</h2>
+<pre>静的解析実装treeの安全な固定に失敗したことを表す。</pre>
+<h2>build_implementation_commitment</h2>
+<dl><dt><a name="-build_implementation_commitment"><strong>build_implementation_commitment</strong></a>(
+    repository: 'Path',
+    *,
+    hash_file: 'Callable[[ImplementationSource], str]'
+) -&gt; 'tuple[dict[str, object], tuple[ImplementationSource, ...]]'</dt><dd><span class="code">callerが安全に読んだhashからpath込みのcanonical&nbsp;commitmentを返す。</span></dd></dl>
+
+<h2>discover_implementation_sources</h2>
+<dl><dt><a name="-discover_implementation_sources"><strong>discover_implementation_sources</strong></a>(repository: 'Path') -&gt; 'tuple[ImplementationSource, ...]'</dt><dd><span class="code">対象suffixだけをreparse非追跡・件数／深さ上限付きで列挙する。</span></dd></dl>
+
+<h2>read_implementation_source</h2>
+<dl><dt><a name="-read_implementation_source"><strong>read_implementation_source</strong></a>(repository: 'Path', source: 'ImplementationSource') -&gt; 'bytes'</dt><dd><span class="code">列挙時identityと同じ通常単一link&nbsp;fileを1つのhandleから有界に読む。</span></dd></dl>
+
+<h2>verify_implementation_snapshot</h2>
+<dl><dt><a name="-verify_implementation_snapshot"><strong>verify_implementation_snapshot</strong></a>(
+    repository: 'Path',
+    sources: 'tuple[ImplementationSource, ...]',
+    expected_sha256: 'dict[str, str]'
+) -&gt; 'None'</dt><dd><span class="code">tree&nbsp;membership、identity、size、内容hashがsnapshotから不変か確認する。</span></dd></dl>
+
+</body></html>

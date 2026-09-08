@@ -188,6 +188,56 @@ def test_bundle_rejects_non_bytes_member_without_coercion() -> None:
     assert artifacts == []
 
 
+def test_empty_retained_member_set_is_not_a_limit_failure() -> None:
+    """dataのみのCABから保持候補がなくても、復元上限超過へ誤分類しない。"""
+
+    report, artifacts = recover_inno_sideload_bundle({})
+
+    assert report["status"] == "not_candidate"
+    assert report["reason"] == "no_retained_members"
+    assert report["member_count"] == 0
+    assert artifacts == []
+    assert report["executed"] is False
+    assert report["network_contacted"] is False
+
+
+def test_bundle_member_limit_still_blocks_excess_members() -> None:
+    """空候補の扱いを変更しても、実際のmember上限は維持する。"""
+
+    members = {
+        f"fixture-{index}.dat": b"fixture"
+        for index in range(inno.MAX_BUNDLE_MEMBERS + 1)
+    }
+    report, artifacts = recover_inno_sideload_bundle(members)
+
+    assert report["status"] == "member_limit_blocked"
+    assert artifacts == []
+
+
+def test_bundle_member_size_limit_still_blocks(monkeypatch) -> None:
+    """小さい試験上限で個別memberサイズ超過分岐を固定する。"""
+
+    monkeypatch.setattr(inno, "MAX_MEMBER_SIZE", 3)
+    report, artifacts = recover_inno_sideload_bundle({"fixture.dat": b"1234"})
+
+    assert report["status"] == "member_size_blocked"
+    assert report["member"] == "fixture.dat"
+    assert artifacts == []
+
+
+def test_bundle_total_size_limit_still_blocks(monkeypatch) -> None:
+    """巨大bytesを作らず、複数memberの総量超過分岐を固定する。"""
+
+    monkeypatch.setattr(inno, "MAX_MEMBER_SIZE", 4)
+    monkeypatch.setattr(inno, "MAX_BUNDLE_SIZE", 5)
+    report, artifacts = recover_inno_sideload_bundle(
+        {"first.dat": b"123", "second.dat": b"456"}
+    )
+
+    assert report["status"] == "bundle_size_blocked"
+    assert artifacts == []
+
+
 def test_scene_record_large_false_candidate_only_decodes_preview(monkeypatch) -> None:
     data = bytearray(1024 * 1024)
     declared = len(data) - 8

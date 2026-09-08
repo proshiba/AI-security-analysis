@@ -432,6 +432,43 @@ def test_stage_fingerprint_tamper_is_rejected(tmp_path: Path) -> None:
     assert caught.value.code == "stage_contract_changed"
 
 
+def test_static_stage_fingerprint_tracks_transitive_unpacker_change(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """入口3 file以外の静的解析実装変更もsuccessor契約へ反映する。"""
+
+    repository, input_root, work_root = make_roots(tmp_path / "workflow")
+    request = lifecycle.validate_request_object(request_value("transitive-fingerprint-001"))
+    context = lifecycle._validate_context_roots(
+        request,
+        repository=repository,
+        input_root=input_root,
+        work_root=work_root,
+        timeout_seconds=60,
+        create=True,
+    )
+    source_repository = tmp_path / "implementation"
+    implementation = lifecycle.static_implementation_commitment
+    for relative, _suffixes in implementation.SOURCE_ROOTS:
+        (source_repository / relative).mkdir(parents=True, exist_ok=True)
+    for relative in implementation.SOURCE_FILES:
+        source = source_repository / relative
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text("fixture dependency\n", encoding="utf-8")
+    common = source_repository / "analysis-framework" / "common"
+    for name in lifecycle.STAGE_CODE_FILES["static_analysis"]:
+        (common / name).write_text(f"# {name}\n", encoding="utf-8")
+    unpacker = source_repository / "unpackers" / "layer.py"
+    unpacker.write_text("VALUE = 1\n", encoding="utf-8")
+    monkeypatch.setattr(lifecycle, "__file__", str(common / "analysis_lifecycle.py"))
+    first = lifecycle._stage_fingerprint(context, "static_analysis")
+    unpacker.write_text("VALUE = 2\n", encoding="utf-8")
+    second = lifecycle._stage_fingerprint(context, "static_analysis")
+
+    assert first != second
+
+
 def test_state_record_schema_tamper_is_rejected(tmp_path: Path) -> None:
     repository, input_root, work_root = make_roots(tmp_path)
     request = lifecycle.validate_request_object(request_value("state-schema-001"))

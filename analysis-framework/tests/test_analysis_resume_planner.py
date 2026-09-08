@@ -258,14 +258,34 @@ def test_complete_workflow_is_verified_no_op(tmp_path: Path) -> None:
     }
     assert len(workflow["phase_provenance"]) == len(lifecycle.STAGE_ORDER)
     assert all(len(item["result_sha256"]) == 64 for item in workflow["phase_provenance"])
-    assert all(
-        item["fingerprint_scope"] == "declared_stage_sources_and_anchored_inputs"
-        and item["transitive_implementation_status"] == "not_committed_by_saved_stage_state"
-        for item in workflow["phase_provenance"]
-    )
-    assert result["source_provenance"]["implementation_fingerprint_scope"] == "orchestrator_source_only"
+    by_phase = {item["phase"]: item for item in workflow["phase_provenance"]}
     assert (
-        result["source_provenance"]["transitive_implementation_status"] == "not_committed_by_saved_orchestration_state"
+        by_phase["static_analysis"]["fingerprint_scope"]
+        == "current_declared_stage_sources_static_analysis_tree_and_anchored_inputs"
+    )
+    assert all(
+        item["fingerprint_scope"]
+        == "current_declared_stage_sources_and_anchored_inputs"
+        for phase, item in by_phase.items()
+        if phase != "static_analysis"
+    )
+    assert (
+        by_phase["static_analysis"]["transitive_implementation_status"]
+        == "static_analysis_tree_included_in_current_fingerprint_recomputation"
+    )
+    assert all(
+        item["transitive_implementation_status"]
+        == "declared_stage_sources_included_in_current_fingerprint_recomputation"
+        for phase, item in by_phase.items()
+        if phase != "static_analysis"
+    )
+    assert (
+        result["source_provenance"]["implementation_fingerprint_scope"]
+        == "current_orchestration_gate_sources_with_child_stage_scope_reported_per_workflow"
+    )
+    assert (
+        result["source_provenance"]["transitive_implementation_status"]
+        == "static_analysis_tree_recomputation_reported_per_workflow_phase_provenance"
     )
 
 
@@ -322,9 +342,10 @@ def test_exact_and_prefix_blockers_have_deterministic_root_action(
     assert decision["eligible"] is False
     assert decision["retryable"] is False
     assert decision["successor_required"] is True
-    assert decision["requires_changed_evidence"][:3] == [
+    assert decision["requires_changed_evidence"][:4] == [
         "new_orchestration_id",
         "new_workflow_id",
+        "new_job_id",
         "updated_request_sha256",
     ]
 
@@ -415,7 +436,7 @@ def test_transient_failure_is_resumable_once_with_explicit_budget(tmp_path: Path
     }
 
 
-def test_attempt_count_without_evidence_history_does_not_assert_no_progress(tmp_path: Path) -> None:
+def test_attempt_count_without_evidence_history_stops_after_one_automatic_retry(tmp_path: Path) -> None:
     result = _plan(
         _fixture(
             tmp_path,
@@ -430,9 +451,12 @@ def test_attempt_count_without_evidence_history_does_not_assert_no_progress(tmp_
     assert workflow["no_progress"]["basis"] == ["retry_history_not_preserved"]
     assert lifecycle.SHA256_RE.fullmatch(workflow["no_progress"]["evidence_sha256"])
     assert workflow["retry_budget"]["workflow"]["history_complete"] is False
-    assert workflow["decision"]["action_id"] == "resume_workflow"
-    assert workflow["decision"]["blocked_action_id"] is None
-    assert workflow["decision"]["eligible"] is True
+    assert workflow["decision"]["action_id"] == "manual_review_required"
+    assert workflow["decision"]["blocked_action_id"] == "resume_workflow"
+    assert workflow["decision"]["eligible"] is False
+    assert workflow["decision"]["requires_changed_evidence"] == [
+        "retry_history_or_operator_review"
+    ]
 
 
 def test_exhausted_workflow_budget_stops_without_retry(tmp_path: Path) -> None:
@@ -471,8 +495,42 @@ def test_stale_implementation_requires_successor_workflow(tmp_path: Path) -> Non
     assert decision["requires_changed_evidence"] == [
         "new_orchestration_id",
         "new_workflow_id",
+        "new_job_id",
         "updated_request_sha256",
     ]
+
+
+def test_transitive_static_implementation_change_targets_static_successor(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """root extractor／unpacker相当の変更をstatic stage driftとして扱う。"""
+
+    roots = _fixture(tmp_path)
+    original = planner._SnapshotReader.static_implementation_commitment
+
+    def changed_commitment(
+        reader: planner._SnapshotReader,
+        repository: Path,
+    ) -> dict[str, object]:
+        commitment = dict(original(reader, repository))
+        commitment["manifest_sha256"] = "0" * 64
+        return commitment
+
+    monkeypatch.setattr(
+        planner._SnapshotReader,
+        "static_implementation_commitment",
+        changed_commitment,
+    )
+    result = _plan(roots)
+    workflow = result["workflows"][0]
+    by_phase = {item["phase"]: item for item in workflow["phase_provenance"]}
+
+    assert by_phase["preflight"]["fingerprint_matches_current"] is True
+    assert by_phase["static_analysis"]["fingerprint_matches_current"] is False
+    assert workflow["decision"]["action_id"] == "start_successor_workflow"
+    assert workflow["decision"]["target_phase"] == "static_analysis"
+    assert "new_job_id" in workflow["decision"]["requires_changed_evidence"]
 
 
 def test_stale_phase_fingerprint_requires_successor_workflow(tmp_path: Path) -> None:
@@ -530,6 +588,7 @@ def test_stale_phase_fingerprint_requires_successor_workflow(tmp_path: Path) -> 
     assert decision["requires_changed_evidence"] == [
         "new_orchestration_id",
         "new_workflow_id",
+        "new_job_id",
         "updated_request_sha256",
     ]
 
@@ -579,8 +638,14 @@ def test_current_source_change_after_stage_fingerprint_fails_closed(
 ) -> None:
     roots = _fixture(tmp_path)
     if source_kind == "stage":
-        source_root = tmp_path / "current-common"
-        source_root.mkdir()
+        source_repository = tmp_path / "current-repository"
+        for relative, _suffixes in planner.static_implementation_commitment.SOURCE_ROOTS:
+            (source_repository / relative).mkdir(parents=True, exist_ok=True)
+        for relative in planner.static_implementation_commitment.SOURCE_FILES:
+            source = source_repository / relative
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text("fixture dependency\n", encoding="utf-8")
+        source_root = source_repository / "analysis-framework" / "common"
         source_names = {name for stage_names in lifecycle.STAGE_CODE_FILES.values() for name in stage_names}
         for name in source_names:
             (source_root / name).write_text(f"# {name}\n", encoding="utf-8")
@@ -723,6 +788,29 @@ def test_snapshot_reader_enforces_configurable_file_count_without_path_leak(tmp_
     assert str(tmp_path) not in str(caught.value)
 
 
+def test_snapshot_reader_detects_static_implementation_membership_change(tmp_path: Path) -> None:
+    """hash済みfileだけでなくsource path集合の追加も計画中変更として拒否する。"""
+
+    repository = tmp_path / "implementation"
+    implementation = planner.static_implementation_commitment
+    for relative, _suffixes in implementation.SOURCE_ROOTS:
+        (repository / relative).mkdir(parents=True, exist_ok=True)
+    for relative in implementation.SOURCE_FILES:
+        source = repository / relative
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text("fixture dependency\n", encoding="utf-8")
+    entry = repository / "analysis-framework" / "common" / "entry.py"
+    entry.write_text("VALUE = 1\n", encoding="utf-8")
+    reader = planner._SnapshotReader()
+    reader.static_implementation_commitment(repository)
+    (repository / "unpackers" / "added.py").write_text("VALUE = 2\n", encoding="utf-8")
+
+    with pytest.raises(planner.ResumePlannerError) as caught:
+        reader.verify_unchanged()
+
+    assert caught.value.code == "snapshot_changed_during_plan"
+
+
 def test_plan_is_stable_read_only_and_does_not_expose_local_paths(tmp_path: Path) -> None:
     roots = _fixture(tmp_path)
     before = {path.relative_to(roots[2]).as_posix(): path.read_bytes() for path in roots[2].rglob("*.json")}
@@ -735,7 +823,7 @@ def test_plan_is_stable_read_only_and_does_not_expose_local_paths(tmp_path: Path
     assert first["plan_id"] == second["plan_id"]
     assert first["snapshot_limits"] == {
         "maximum_files": planner.MAX_SNAPSHOT_FILES,
-        "maximum_total_bytes": 64 * 1024 * 1024,
+        "maximum_total_bytes": planner.MAX_TOTAL_SNAPSHOT_BYTES,
         "verification_chunk_bytes": planner.SNAPSHOT_HASH_CHUNK_BYTES,
     }
     assert before == after
@@ -924,6 +1012,26 @@ def test_workflow_execution_failure_requires_exact_parent_envelope() -> None:
     )
     assert decision["action_id"] == "manual_review_required"
     assert decision["eligible"] is False
+
+
+def test_stage_contract_successor_requires_new_orchestration_workflow_and_job_ids() -> None:
+    """ID変更だけで旧job成果物を再利用できないsuccessor要件を返す。"""
+
+    record = _synthetic_failed_record(["stage_contract_changed"])
+    decision, _, _ = planner._decision_for_record(
+        record,
+        phases=[],
+        orchestrator_implementation_matches_current=True,
+    )
+
+    assert decision["action_id"] == "start_successor_workflow"
+    assert decision["successor_required"] is True
+    assert decision["requires_changed_evidence"] == [
+        "new_orchestration_id",
+        "new_workflow_id",
+        "new_job_id",
+        "updated_request_sha256",
+    ]
 
 
 def test_non_retryable_root_blocker_precedes_dependency_marker() -> None:

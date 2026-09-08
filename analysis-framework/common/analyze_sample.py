@@ -20,6 +20,7 @@ import time
 import zipfile
 from collections import Counter, deque
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -73,12 +74,13 @@ import batch_error_contract  # noqa: E402
 import classify_sample  # noqa: E402
 import orchestration_outcome  # noqa: E402
 import runtime_contract  # noqa: E402
+import static_implementation_commitment  # noqa: E402
 import static_layer_pipeline as static_layers  # noqa: E402
 import structural_candidates as structural_candidate_aggregation  # noqa: E402
 import terminal_payload_acquisition  # noqa: E402
 from analysis_contract import (  # noqa: E402
+    PIPELINE_CONTRACT_VERSION,
     artifact_hashes,
-    build_pipeline_fingerprint,
     case_integrity_errors,
     ensure_no_reparse_components,
     ensure_tree_without_reparse,
@@ -2470,43 +2472,29 @@ def analyze_unit(
     }
 
 
-def _analysis_components(registry: Path, specs: list[HandlerSpec]) -> list[Path]:
+def _analysis_components(
+    registry: Path,
+    specs: list[HandlerSpec],
+    *,
+    implementation_sources: tuple[static_implementation_commitment.ImplementationSource, ...] | None = None,
+) -> list[Path]:
     """case結果へ影響する解析コード、検出器、抽出器、規則を列挙する。"""
 
-    components = {
-        Path(__file__).resolve(),
-        (COMMON_ROOT / "analysis_contract.py").resolve(),
-        (COMMON_ROOT / "analyze_family_sample.py").resolve(),
-        (COMMON_ROOT / "campaign_correlation.py").resolve(),
-        (COMMON_ROOT / "case_features.py").resolve(),
-        (COMMON_ROOT / "handler_catalog.py").resolve(),
-        (COMMON_ROOT / "static_logic.py").resolve(),
-        (FRAMEWORK_ROOT / "requirements.txt").resolve(),
-        (CLASSIFIERS_ROOT / "classify_sample.py").resolve(),
-        registry.resolve(),
-        CAMPAIGN_CORRELATION_RULES.resolve(),
-        CAMPAIGN_FINGERPRINTS.resolve(),
-    }
-    for root in (COMMON_ROOT, CLASSIFIERS_ROOT, FRAMEWORK_ROOT / "malware"):
-        if root.is_dir():
-            components.update(
-                path.resolve()
-                for path in root.rglob("*.py")
-                if "tests" not in path.parts and not path.name.startswith("test_")
+    if implementation_sources is None:
+        try:
+            implementation_sources = static_implementation_commitment.discover_implementation_sources(
+                REPOSITORY_ROOT
             )
-    for root in (
-        FRAMEWORK_ROOT / "registry",
-        FRAMEWORK_ROOT / "malware",
-        REPOSITORY_ROOT / "extractors" / "profiles",
-        REPOSITORY_ROOT / "unpackers" / "profiles",
-    ):
-        if not root.is_dir():
-            continue
-        components.update(
-            path.resolve()
-            for path in root.rglob("*")
-            if path.is_file() and path.suffix.casefold() in {".json", ".yaml", ".yml"}
-        )
+        except static_implementation_commitment.StaticImplementationError as exc:
+            raise ValueError("静的解析実装treeを安全に固定できません") from exc
+    components = {source.path for source in implementation_sources}
+    components.update(
+        {
+            registry.resolve(),
+            CAMPAIGN_CORRELATION_RULES.resolve(),
+            CAMPAIGN_FINGERPRINTS.resolve(),
+        }
+    )
     for spec in specs:
         path = (REPOSITORY_ROOT / spec.relative_path).resolve()
         if path.is_file():
@@ -2518,15 +2506,171 @@ def _analysis_components(registry: Path, specs: list[HandlerSpec]) -> list[Path]
         path = (FRAMEWORK_ROOT / metadata["detector"]).resolve()
         if path.is_file():
             components.add(path)
-    for root in (REPOSITORY_ROOT / "extractors", REPOSITORY_ROOT / "unpackers"):
-        if not root.is_dir():
-            continue
-        components.update(
-            path.resolve()
-            for path in root.rglob("*.py")
-            if "tests" not in path.parts and not path.name.startswith("test_")
-        )
     return sorted(components, key=lambda path: str(path).casefold())
+
+
+@dataclass(frozen=True)
+class _ExternalAnalysisComponent:
+    """実装tree外に明示された解析componentの固定済みidentity。"""
+
+    path: Path
+    label: str
+    size: int
+    sha256: str
+    device: int
+    inode: int
+    modified_ns: int
+    changed_ns: int
+
+
+def _capture_external_analysis_component(path: Path) -> _ExternalAnalysisComponent:
+    """実装tree外componentを単一handleで読み、identityと内容を固定する。"""
+
+    try:
+        ensure_no_reparse_components(path)
+        before = path.lstat()
+    except (OSError, RuntimeError) as exc:
+        raise ValueError("解析componentを安全に確認できません") from exc
+    payload = _read_static_tool_binary_once(path)
+    try:
+        after = path.lstat()
+    except OSError as exc:
+        raise ValueError("解析componentを読取り後に確認できません") from exc
+    if (
+        not _same_file_identity(before, after)
+        or before.st_size != after.st_size
+        or before.st_mtime_ns != after.st_mtime_ns
+        or before.st_ctime_ns != after.st_ctime_ns
+    ):
+        raise ValueError("解析componentが読取り中に変更されました")
+    try:
+        label = path.relative_to(REPOSITORY_ROOT).as_posix()
+    except ValueError:
+        label = f"external:{path.name}"
+    return _ExternalAnalysisComponent(
+        path=path,
+        label=label,
+        size=len(payload),
+        sha256=hashlib.sha256(payload).hexdigest(),
+        device=after.st_dev,
+        inode=after.st_ino,
+        modified_ns=after.st_mtime_ns,
+        changed_ns=after.st_ctime_ns,
+    )
+
+
+def _verify_external_analysis_component(component: _ExternalAnalysisComponent) -> None:
+    """実装tree外componentのidentity、size、内容hashを再検証する。"""
+
+    try:
+        before = component.path.lstat()
+    except OSError as exc:
+        raise ValueError("解析componentを再確認できません") from exc
+    if (
+        before.st_dev != component.device
+        or before.st_ino != component.inode
+        or before.st_size != component.size
+        or before.st_mtime_ns != component.modified_ns
+        or before.st_ctime_ns != component.changed_ns
+    ):
+        raise ValueError("解析componentのidentityまたはsizeが変更されました")
+    payload = _read_static_tool_binary_once(component.path)
+    if len(payload) != component.size or hashlib.sha256(payload).hexdigest() != component.sha256:
+        raise ValueError("解析componentの内容が変更されました")
+
+
+@dataclass(frozen=True)
+class _AnalysisComponentSnapshot:
+    """pipeline fingerprintと実行前後検証で共有する実装snapshot。"""
+
+    implementation_sources: tuple[static_implementation_commitment.ImplementationSource, ...]
+    implementation_hashes: tuple[tuple[str, str], ...]
+    records: tuple[tuple[str, str, int, str], ...]
+    external_components: tuple[_ExternalAnalysisComponent, ...]
+
+    @classmethod
+    def capture(cls, registry: Path, specs: list[HandlerSpec]) -> _AnalysisComponentSnapshot:
+        """安全列挙したidentityを内容hashとcomponent集合へ束縛する。"""
+
+        hashes: dict[str, str] = {}
+
+        def hash_source(source: static_implementation_commitment.ImplementationSource) -> str:
+            payload = static_implementation_commitment.read_implementation_source(
+                REPOSITORY_ROOT,
+                source,
+            )
+            digest = hashlib.sha256(payload).hexdigest()
+            hashes[source.relative_path] = digest
+            return digest
+
+        try:
+            _commitment, sources = static_implementation_commitment.build_implementation_commitment(
+                REPOSITORY_ROOT,
+                hash_file=hash_source,
+            )
+        except static_implementation_commitment.StaticImplementationError as exc:
+            raise ValueError("静的解析実装treeを安全に固定できません") from exc
+        source_by_path = {str(source.path).casefold(): source for source in sources}
+        records: list[tuple[str, str, int, str]] = [
+            (str(source.path).casefold(), source.relative_path, source.size, hashes[source.relative_path])
+            for source in sources
+        ]
+        external: list[_ExternalAnalysisComponent] = []
+        for path in _analysis_components(registry, specs, implementation_sources=sources):
+            key = str(path).casefold()
+            if key in source_by_path:
+                continue
+            captured = _capture_external_analysis_component(path)
+            external.append(captured)
+            records.append((key, captured.label, captured.size, captured.sha256))
+        snapshot = cls(
+            implementation_sources=sources,
+            implementation_hashes=tuple(sorted(hashes.items())),
+            records=tuple(sorted(records, key=lambda item: item[0])),
+            external_components=tuple(sorted(external, key=lambda item: str(item.path).casefold())),
+        )
+        return snapshot
+
+    def verify(self) -> None:
+        """membershipを再列挙し、全componentのidentity、size、hashを再確認する。"""
+
+        try:
+            static_implementation_commitment.verify_implementation_snapshot(
+                REPOSITORY_ROOT,
+                self.implementation_sources,
+                dict(self.implementation_hashes),
+            )
+        except static_implementation_commitment.StaticImplementationError as exc:
+            raise ValueError("静的解析実装treeがsnapshotから変更されました") from exc
+        for component in self.external_components:
+            _verify_external_analysis_component(component)
+
+    def pipeline_fingerprint(self, settings: Mapping[str, Any]) -> dict[str, Any]:
+        """安全に読んだrecordだけから既存形式のpipeline fingerprintを返す。"""
+
+        component_records = [
+            {"path": label, "size": size, "sha256": digest}
+            for _sort_key, label, size, digest in self.records
+        ]
+        payload = {
+            "pipeline_contract_version": PIPELINE_CONTRACT_VERSION,
+            "settings": dict(sorted(settings.items())),
+            "components": component_records,
+        }
+        encoded = json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+        return {
+            "schema_version": 1,
+            "pipeline_contract_version": PIPELINE_CONTRACT_VERSION,
+            "sha256": hashlib.sha256(encoded).hexdigest(),
+            "component_count": len(component_records),
+            "settings": payload["settings"],
+        }
 
 
 def _static_tool_has_single_link(information: os.stat_result) -> bool:
@@ -2646,6 +2790,7 @@ def _build_analysis_contract(
     max_file_size: int,
     string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT,
     family_hint_manifest_identity: dict[str, Any] | None = None,
+    component_snapshot: _AnalysisComponentSnapshot | None = None,
 ) -> dict[str, Any]:
     """再開判定に必要なコード・レジストリ・設定指紋を構築する。"""
 
@@ -2682,11 +2827,12 @@ def _build_analysis_contract(
         "handler_catalog_sha256": hashlib.sha256(catalog).hexdigest(),
         "runtime": runtime_dependency_versions(),
     }
-    return build_pipeline_fingerprint(
-        repository_root=REPOSITORY_ROOT,
-        components=_analysis_components(registry, specs),
-        settings=settings,
-    )
+    owns_snapshot = component_snapshot is None
+    snapshot = component_snapshot or _AnalysisComponentSnapshot.capture(registry, specs)
+    fingerprint = snapshot.pipeline_fingerprint(settings)
+    if owns_snapshot:
+        snapshot.verify()
+    return fingerprint
 
 
 def _build_follow_on_analysis_contract(
@@ -2703,6 +2849,7 @@ def _build_follow_on_analysis_contract(
     archive_password: str,
     string_scan_limit: int,
     family_hint_manifest_identity: dict[str, Any] | None = None,
+    component_snapshot: _AnalysisComponentSnapshot | None = None,
 ) -> dict[str, Any]:
     """保持済みraw payloadへ実際に適用する設定だけで契約を構築する。"""
 
@@ -2723,6 +2870,7 @@ def _build_follow_on_analysis_contract(
         max_file_size=MAX_FOLLOW_ON_PAYLOAD_SIZE,
         string_scan_limit=string_scan_limit,
         family_hint_manifest_identity=family_hint_manifest_identity,
+        component_snapshot=component_snapshot,
     )
 
 
@@ -3120,6 +3268,7 @@ def _follow_on_worker_main(
         clear_profile_cache()
         clear_known_hash_cache()
         specs = discover_handlers()
+        component_snapshot = _AnalysisComponentSnapshot.capture(registry, specs)
         registered = _registered_families(registry)
         upx = _normalize_tool_path(
             Path(request["upx"]) if isinstance(request["upx"], str) else None,
@@ -3150,6 +3299,7 @@ def _follow_on_worker_main(
                 if isinstance(analysis_contract.get("settings"), dict)
                 else None
             ),
+            component_snapshot=component_snapshot,
         )
         if analysis_contract != child_contract:
             raise ValueError("follow-on analysis_contractが実行時設定と一致しません")
@@ -3161,33 +3311,37 @@ def _follow_on_worker_main(
             outer_size=len(data),
             member_name=None,
         )
-        result = analyze_unit(
-            unit,
-            output=output,
-            registry=registry,
-            specs=specs,
-            registered=registered,
-            forced_family=None,
-            minimum_confidence=minimum_confidence,
-            assessment_only=False,
-            analysis_contract=child_contract,
-            family_hint_manifest=child_family_hint_manifest,
-            family_requirements_policy=_load_family_analysis_requirements(),
-            upx=upx,
-            sevenzip=sevenzip,
-            diec=diec,
-            force_container_probe=request["force_container_probe"] is True,
-            max_static_layers=int(request["max_static_layers"]),
-            retry_max_static_layers=request["retry_max_static_layers"],
-            archive_password=str(request["archive_password"]),
-            string_scan_limit=int(request["string_scan_limit"]),
-            follow_on_lineage={
-                "schema_version": 1,
-                "depth": depth,
-                "parent_sha256": parent_sha256,
-                "root_kind": "retained_terminal_or_final_payload",
-            },
-        )
+        component_snapshot.verify()
+        try:
+            result = analyze_unit(
+                unit,
+                output=output,
+                registry=registry,
+                specs=specs,
+                registered=registered,
+                forced_family=None,
+                minimum_confidence=minimum_confidence,
+                assessment_only=False,
+                analysis_contract=child_contract,
+                family_hint_manifest=child_family_hint_manifest,
+                family_requirements_policy=_load_family_analysis_requirements(),
+                upx=upx,
+                sevenzip=sevenzip,
+                diec=diec,
+                force_container_probe=request["force_container_probe"] is True,
+                max_static_layers=int(request["max_static_layers"]),
+                retry_max_static_layers=request["retry_max_static_layers"],
+                archive_password=str(request["archive_password"]),
+                string_scan_limit=int(request["string_scan_limit"]),
+                follow_on_lineage={
+                    "schema_version": 1,
+                    "depth": depth,
+                    "parent_sha256": parent_sha256,
+                    "root_kind": "retained_terminal_or_final_payload",
+                },
+            )
+        finally:
+            component_snapshot.verify()
         response: dict[str, Any] = {"ok": True, "result": result}
     except Exception as exc:  # noqa: BLE001 - worker境界では例外内容を型だけへ正規化する
         response = {
@@ -4712,6 +4866,7 @@ def run_batch(
     clear_profile_cache()
     clear_known_hash_cache()
     specs = discover_handlers()
+    component_snapshot = _AnalysisComponentSnapshot.capture(registry, specs)
     registered = _registered_families(registry)
     forced_family = normalize_family(forced_family) if forced_family else None
     if forced_family and forced_family not in registered:
@@ -4733,6 +4888,7 @@ def run_batch(
         max_file_size=max_file_size,
         string_scan_limit=string_scan_limit,
         family_hint_manifest_identity=family_hint_identity,
+        component_snapshot=component_snapshot,
     )
     follow_on_analysis_contract = _build_follow_on_analysis_contract(
         registry=registry,
@@ -4747,7 +4903,9 @@ def run_batch(
         archive_password=password,
         string_scan_limit=string_scan_limit,
         family_hint_manifest_identity=family_hint_identity,
+        component_snapshot=component_snapshot,
     )
+    component_snapshot.verify()
     cases = []
     errors = []
     duplicates = []
@@ -4902,6 +5060,7 @@ def run_batch(
                 "network_contacted": False,
                 "ai_used": False,
             }
+    component_snapshot.verify()
     root_digests = {item["sha256"] for item in cases}
     derived_parents: dict[str, set[str]] = {}
     for edge in follow_on.get("edges") or []:
