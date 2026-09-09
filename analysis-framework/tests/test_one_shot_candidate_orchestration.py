@@ -8,6 +8,7 @@ import os
 import shutil
 import sys
 import uuid
+from dataclasses import replace
 from pathlib import Path
 
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
@@ -306,6 +307,141 @@ def test_candidate_assessment_preserves_late_proof_and_sanitizes_public_text(mon
     ]
     assert all(secret not in value for value in public_values)
     assert all("[REDACTED" in value for value in public_values)
+
+
+def test_candidate_layer_selection_does_not_preconsume_pair_execution_quota(
+    monkeypatch,
+) -> None:
+    """handler総数からlayer数を切らず、pair plannerへ深い互換層を渡す。"""
+
+    shared = _fixture_handler_spec("guloader")
+    campaign_specs = [
+        replace(
+            shared,
+            id=f"guloader:campaign:{index:02d}",
+            campaign=f"fixture-{index:02d}",
+            input_formats=("pe",),
+        )
+        for index in range(32)
+    ]
+    shallow_layers = []
+    for index in range(2):
+        data = f"MZ-shallow-{index}".encode()
+        shallow_layers.append(
+            one_shot.StaticLayer(
+                name=f"shallow-{index}.exe",
+                data=data,
+                sha256=hashlib.sha256(data).hexdigest(),
+                parent_sha256=None,
+                depth=0,
+                transform="submission",
+            )
+        )
+    deep_data = b"terminal config data"
+    deep = one_shot.StaticLayer(
+        name="deep-config.bin",
+        data=deep_data,
+        sha256=hashlib.sha256(deep_data).hexdigest(),
+        parent_sha256=shallow_layers[-1].sha256,
+        depth=32,
+        transform="deep_static_recovery",
+    )
+    captured: dict[str, object] = {}
+
+    def fake_assess(_candidates, layers, **_kwargs):
+        captured["layers"] = layers
+        return {
+            "schema_version": 1,
+            "status": "no_confirmed_family",
+            "families": [],
+            "executed_sample": False,
+            "network_contacted": False,
+            "filesystem_written_by_handlers": False,
+        }
+
+    monkeypatch.setattr(one_shot, "assess_candidate_handlers", fake_assess)
+    result = one_shot._candidate_handler_assessment(
+        routing={
+            "candidates": [
+                {
+                    "family": "guloader",
+                    "routing_eligible": True,
+                    "routing_mode": "candidate_verification",
+                    "routing_eligibility": {"candidate_verification": True},
+                }
+            ]
+        },
+        layers=[*shallow_layers, deep],
+        layer_classifications=[],
+        specs=[*campaign_specs, shared],
+        assessment_only=False,
+        artifact_directory=None,
+    )
+
+    selected = captured["layers"]
+    assert isinstance(selected, list)
+    assert [item["sha256"] for item in selected] == [
+        shallow_layers[0].sha256,
+        shallow_layers[1].sha256,
+        deep.sha256,
+    ]
+    assert result["selected_layer_count"] == 3
+    assert result["selected_compatible_pair_count"] == 65
+    assert result["excluded_layers"] == []
+
+
+def test_candidate_assessment_preserves_global_router_rank_above_64(
+    monkeypatch,
+) -> None:
+    """router全体でrank 100の唯一の実行可能候補をassessorへ渡す。"""
+
+    data = b"ranked ValleyRAT candidate"
+    layer = one_shot.StaticLayer(
+        name="candidate.bin",
+        data=data,
+        sha256=hashlib.sha256(data).hexdigest(),
+        parent_sha256=None,
+        depth=0,
+        transform="submission",
+    )
+    captured: dict[str, object] = {}
+
+    def fake_assess(candidates, _layers, **_kwargs):
+        captured["candidates"] = candidates
+        return {
+            "schema_version": 1,
+            "status": "no_confirmed_family",
+            "families": [],
+            "executed_sample": False,
+            "network_contacted": False,
+            "filesystem_written_by_handlers": False,
+        }
+
+    monkeypatch.setattr(one_shot, "assess_candidate_handlers", fake_assess)
+    one_shot._candidate_handler_assessment(
+        routing={
+            "candidates": [
+                {
+                    "family": "valleyrat",
+                    "routing_eligible": True,
+                    "routing_mode": "candidate_verification",
+                    "routing_eligibility": {"candidate_verification": True},
+                    "rank": 100,
+                    "rank_score": 9,
+                }
+            ]
+        },
+        layers=[layer],
+        layer_classifications=[],
+        specs=[_fixture_handler_spec("valleyrat")],
+        assessment_only=False,
+        artifact_directory=None,
+    )
+
+    candidates = captured["candidates"]
+    assert isinstance(candidates, list)
+    assert candidates[0]["rank"] == 100
+    assert candidates[0]["rank_score"] == 9
 
 
 def test_candidate_status_and_binary_requirement_are_preserved() -> None:

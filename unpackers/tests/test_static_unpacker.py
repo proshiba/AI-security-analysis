@@ -480,6 +480,143 @@ def test_plain_png_resource_is_inspected_without_becoming_a_layer() -> None:
     assert report["status"] == "valid_png_no_concealed_data"
 
 
+def _resource_type_fixture(
+    marker: str,
+    *,
+    type_id: int,
+    type_name: object | None = None,
+    languages: int = 1,
+) -> SimpleNamespace:
+    """pefile resource treeの最小metadata fixtureを返す。"""
+
+    entries = [
+        SimpleNamespace(
+            data=SimpleNamespace(
+                struct=SimpleNamespace(Size=1024, marker=f"{marker}-{index}")
+            )
+        )
+        for index in range(languages)
+    ]
+    return SimpleNamespace(
+        id=type_id,
+        name=type_name,
+        directory=SimpleNamespace(
+            entries=[SimpleNamespace(directory=SimpleNamespace(entries=entries))]
+        ),
+    )
+
+
+def test_pe_resource_metadata_prioritizes_custom_and_rcdata_after_ui_entries() -> None:
+    """tree後方の独自type/RCDATAを画像resourceより先に内容走査へ送る。"""
+
+    image = SimpleNamespace(
+        DIRECTORY_ENTRY_RESOURCE=SimpleNamespace(
+            entries=[
+                _resource_type_fixture("icon", type_id=3),
+                _resource_type_fixture("png", type_id=241, type_name="PNG"),
+                _resource_type_fixture("version", type_id=16),
+                _resource_type_fixture("rcdata", type_id=10),
+                _resource_type_fixture(
+                    "custom",
+                    type_id=313,
+                    type_name="NVAPO32V",
+                ),
+            ]
+        )
+    )
+
+    candidates, discovered, truncated, invalid = (
+        unpacker._prioritize_pe_resource_entries(image)
+    )
+
+    assert [item.data_struct.marker for item in candidates] == [
+        "custom-0",
+        "rcdata-0",
+        "icon-0",
+        "png-0",
+        "version-0",
+    ]
+    assert candidates[0].custom_named_type is True
+    assert candidates[0].named_ui_type is False
+    assert candidates[-2].named_ui_type is True
+    assert discovered == 5
+    assert truncated is False
+    assert invalid == 0
+
+
+def test_pe_resource_metadata_inventory_limit_is_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """metadata棚卸し上限より後方の候補を見ていない場合はtruncatedを返す。"""
+
+    monkeypatch.setattr(unpacker, "MAX_PE_RESOURCE_METADATA_ENTRIES", 2)
+    image = SimpleNamespace(
+        DIRECTORY_ENTRY_RESOURCE=SimpleNamespace(
+            entries=[_resource_type_fixture("many", type_id=10, languages=3)]
+        )
+    )
+
+    candidates, discovered, truncated, invalid = (
+        unpacker._prioritize_pe_resource_entries(image)
+    )
+
+    assert len(candidates) == 2
+    assert discovered == 2
+    assert truncated is True
+    assert invalid == 0
+
+
+def test_custom_resource_after_png_flood_remains_inside_content_budget() -> None:
+    """512件超のPNGが先行しても後方の独自typeを内容走査枠へ残す。"""
+
+    image = SimpleNamespace(
+        DIRECTORY_ENTRY_RESOURCE=SimpleNamespace(
+            entries=[
+                _resource_type_fixture(
+                    "png",
+                    type_id=241,
+                    type_name="PNG",
+                    languages=unpacker.MAX_PE_RESOURCE_ENTRIES + 41,
+                ),
+                _resource_type_fixture(
+                    "custom",
+                    type_id=313,
+                    type_name="NVAPO32V",
+                ),
+            ]
+        )
+    )
+
+    candidates, discovered, truncated, invalid = (
+        unpacker._prioritize_pe_resource_entries(image)
+    )
+
+    inspected = candidates[: unpacker.MAX_PE_RESOURCE_ENTRIES]
+    assert inspected[0].data_struct.marker == "custom-0"
+    assert sum(item.named_ui_type for item in inspected) == len(inspected) - 1
+    assert discovered == unpacker.MAX_PE_RESOURCE_ENTRIES + 42
+    assert truncated is False
+    assert invalid == 0
+
+
+def test_small_opaque_resource_is_retained_only_for_named_custom_type() -> None:
+    """小型高entropy blobを一般icon等から大量回収せず独自typeだけ保持する。"""
+
+    high_entropy = bytes(range(256)) * 4
+    assert unpacker._retain_opaque_pe_resource(
+        high_entropy,
+        custom_named_type=True,
+    )
+    assert not unpacker._retain_opaque_pe_resource(
+        high_entropy,
+        custom_named_type=False,
+    )
+    assert not unpacker._retain_opaque_pe_resource(
+        b"A" * 1024,
+        custom_named_type=True,
+    )
+
+
 def test_repetitive_padding_detection() -> None:
     """反復PEオーバーレイと埋め込みペイロードを区別する。"""
     report = unpacker.repetitive_padding(b"pqrs" * 4096)
@@ -795,6 +932,90 @@ def test_dotnet_bitmap_payload_recovery(monkeypatch: pytest.MonkeyPatch) -> None
     report, artifacts = unpacker.recover_dotnet_bitmap_payloads(resource_set)
     assert report["status"] == "pe_recovered"
     assert artifacts == [("dotnet-bitmap-rgb-pe", b"MZA")]
+
+
+def _gzip_member(payload: bytes) -> bytes:
+    compressor = zlib.compressobj(level=9, wbits=16 + zlib.MAX_WBITS)
+    return compressor.compress(payload) + compressor.flush()
+
+
+def test_dotnet_length_prefixed_gzip_requires_exact_single_member() -> None:
+    """宣言長、単一member終端、trailing不在をすべて検証する。"""
+
+    payload = b"MZ" + bytes(range(64))
+    frame = struct.pack("<I", len(payload)) + _gzip_member(payload)
+
+    assert unpacker.inflate_dotnet_length_prefixed_gzip(frame) == payload
+    with pytest.raises(ValueError, match="長・終端・trailing"):
+        unpacker.inflate_dotnet_length_prefixed_gzip(frame + b"junk")
+    with pytest.raises(ValueError, match="長・終端・trailing"):
+        unpacker.inflate_dotnet_length_prefixed_gzip(
+            struct.pack("<I", len(payload) + 1) + frame[4:]
+        )
+    assert unpacker.inflate_dotnet_length_prefixed_gzip(b"ordinary data") is None
+
+
+def test_dotnet_resource_entry_gzip_pe_becomes_recursive_layer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ResourceSet byte[]内の検証済みGZip PEだけを子layerとして保持する。"""
+
+    payload = b"MZ" + b"validated-managed-child" * 8
+    frame = struct.pack("<I", len(payload)) + _gzip_member(payload)
+    entry = SimpleNamespace(name="payload", type_name="System.Byte[]", value=frame)
+    resource_set = SimpleNamespace(entries=[entry])
+    resource = SimpleNamespace(
+        name="resources",
+        size=32,
+        rva=1,
+        data=resource_set,
+    )
+    image = SimpleNamespace(
+        net=SimpleNamespace(resources=[resource]),
+        get_data=lambda _rva, _size: b"resource-container",
+    )
+    monkeypatch.setattr(unpacker.dnfile, "dnPE", lambda **_kwargs: image)
+    monkeypatch.setattr(
+        unpacker,
+        "valid_pe_extent",
+        lambda data, offset: len(data) if offset == 0 and data.startswith(b"MZ") else None,
+    )
+
+    report, artifacts = unpacker.recover_dotnet_resources(b"MZ fixture")
+
+    assert report["resource_entry_scan"]["status"] == "complete"
+    assert report["resource_entry_scan"]["length_prefixed_gzip_candidates"] == 1
+    assert report["resource_entry_scan"]["length_prefixed_gzip_pe_recovered"] == 1
+    assert ("dotnet-resource-le32-gzip-pe", payload) in artifacts
+
+
+def test_dotnet_resource_entry_limits_and_malformed_gzip_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """entry上限は全成果物を拒否し、壊れたGZipを子PEへ昇格しない。"""
+
+    malformed = struct.pack("<I", 100) + b"\x1f\x8bnot-a-member"
+    entry = SimpleNamespace(name="payload", type_name="System.Byte[]", value=malformed)
+    resource_set = SimpleNamespace(entries=[entry])
+    resource = SimpleNamespace(name="resources", size=16, rva=1, data=resource_set)
+    image = SimpleNamespace(
+        net=SimpleNamespace(resources=[resource]),
+        get_data=lambda _rva, _size: b"resource-data",
+    )
+    monkeypatch.setattr(unpacker.dnfile, "dnPE", lambda **_kwargs: image)
+
+    report, artifacts = unpacker.recover_dotnet_resources(b"MZ fixture")
+    assert report["resource_entry_scan"]["length_prefixed_gzip_rejections"] == 1
+    assert not any(kind == "dotnet-resource-le32-gzip-pe" for kind, _ in artifacts)
+
+    resource_set.entries.append(
+        SimpleNamespace(name="second", type_name="System.Byte[]", value=b"value")
+    )
+    monkeypatch.setattr(unpacker, "MAX_DOTNET_RESOURCE_ENTRIES", 1)
+    limited, limited_artifacts = unpacker.recover_dotnet_resources(b"MZ fixture")
+    assert limited["status"] == "resource_budget_exhausted"
+    assert limited["reason"] == "resource_entry_count_limit"
+    assert limited_artifacts == []
 
 
 def test_pe_summary_and_external_preflight(tmp_path: Path) -> None:

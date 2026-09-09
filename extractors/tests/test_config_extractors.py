@@ -10,6 +10,8 @@ import pytest
 from extractors import common
 from extractors.agenttesla.extractor import (
     extract as agent_extract,
+)
+from extractors.agenttesla.extractor import (
     protocol_for,
     sanitize_url,
 )
@@ -20,20 +22,27 @@ from extractors.config_extractor import (
     main,
     normalize_family,
 )
-from extractors.remcosrat.extractor import extract as remcos_extract, marker_score
+from extractors.remcosrat.extractor import extract as remcos_extract
+from extractors.remcosrat.extractor import marker_score
 from extractors.unclassified.mx_go.extractor import (
     embedded_config,
-    extract as mx_extract,
     public_config,
+)
+from extractors.unclassified.mx_go.extractor import (
+    extract as mx_extract,
 )
 from extractors.valleyrat.extractor import (
     decode_vvas_reversed_config,
-    extract as valley_extract,
     identify_variant,
+)
+from extractors.valleyrat.extractor import (
+    extract as valley_extract,
 )
 from extractors.venomrat import integrated as venom_integrated
 from extractors.venomrat.extractor import (
     extract as venom_extract,
+)
+from extractors.venomrat.extractor import (
     family_markers,
     structural_evidence,
 )
@@ -69,13 +78,20 @@ def test_valleyrat_functions() -> None:
     result = valley_extract(b"LoggerCollector.dll vvaS.bin 1.2.3.4:6666", "x")
     assert result["config"]["endpoints"] == ["1.2.3.4:6666"]
     duplicate = valley_extract(
-        b"|3441:3o|04.11.34.301:3p|3441:2o|04.11.34.301:2p|3441:1o|04.11.34.301:1p|",
+        b"odaktomk "
+        b"|3441:3o|04.11.34.301:3p|3441:2o|04.11.34.301:2p|"
+        b"3441:1o|04.11.34.301:1p|",
         "x",
     )
     assert duplicate["config"]["endpoints"] == ["103.43.11.40:1443"]
-    assert duplicate["config"]["static_config_recovered"] is True
+    assert duplicate["config"]["static_config_recovered"] is False
+    assert duplicate["config"]["decoded_config_recovered"] is False
+    assert duplicate["config"]["candidate_config_recovered"] is True
+    assert duplicate["config"]["terminal_family_confirmed"] is False
+    assert duplicate["config"]["attribution_scope"] == "component_handler_route"
     assert duplicate["config"]["c2_liveness_confirmed"] is False
-    assert duplicate["findings"][0]["confidence"] == "confirmed_static_config"
+    assert duplicate["findings"][0]["confidence"] == "inferred"
+    assert duplicate["findings"][0]["role"] == "candidate_c2"
     invalid = valley_extract(
         b"|99999:1o|999.43.11.40:1p|",
         "x",

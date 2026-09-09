@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import re
+from array import array
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -13,15 +15,81 @@ from extractors.common import valid_host
 TRAILER_SIZE = 26
 MIN_PAYLOAD_SIZE = 1_000
 MAX_PAYLOAD_SIZE = 64 * 1024 * 1024
+MAX_PERMUTED_PAYLOAD_SIZE = 16 * 1024 * 1024
 CODEMARK = b"codemark"
 CODEMARK_HEADER_SIZE = 0x38
 MAX_CODEMARK_OCCURRENCES = 16
 MAX_HOST_BYTES = 256
+MAX_TRAILING_WIDE_CANDIDATES = 32
+MIN_TRAILING_CONFIG_CHARACTERS = 24
+MAX_TRAILING_CONFIG_CHARACTERS = 4_096
+MAX_TRAILING_TOTAL_CHARACTERS = 64 * 1024
+TRAILING_SCAN_CHUNK_BYTES = 64 * 1024
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 class NvmlDatError(ValueError):
     """NVML.DATの構造または復元結果が検証条件を満たさない場合の例外。"""
+
+
+class NvmlDatOptionalConfigLimit(NvmlDatError):
+    """任意の末尾config補強だけが探索上限へ達した場合の例外。"""
+
+
+def normalize_host(value: str) -> str | None:
+    """domain／IP literalを正規化し、IPv6のzone識別子を拒否する。"""
+
+    raw = value.strip()
+    bracketed = raw.startswith("[") and raw.endswith("]")
+    if bracketed:
+        raw = raw[1:-1]
+    if not raw or "%" in raw:
+        return None
+    try:
+        return ipaddress.ip_address(raw).compressed.casefold()
+    except ValueError:
+        if bracketed:
+            return None
+        host = raw.casefold().rstrip(".")
+        return host if valid_host(host) else None
+
+
+def render_authority(host: str, port: int | None = None) -> str | None:
+    """正規化済みhostをIPv6なら角括弧付きauthorityとして描画する。"""
+
+    normalized = normalize_host(host)
+    if normalized is None or (port is not None and not 1 <= port <= 65535):
+        return None
+    authority = f"[{normalized}]" if ":" in normalized else normalized
+    return f"{authority}:{port}" if port is not None else authority
+
+
+def render_endpoint(host: str, port: int) -> str | None:
+    """hostとportから曖昧でない正規化endpointを返す。"""
+
+    return render_authority(host, port)
+
+
+def parse_endpoint(value: str) -> tuple[str, int] | None:
+    """角括弧IPv6またはhost:portを曖昧性なく分解する。"""
+
+    if value.startswith("["):
+        closing = value.find("]")
+        if closing <= 1 or value[closing + 1 : closing + 2] != ":":
+            return None
+        raw_host = value[1:closing]
+        raw_port = value[closing + 2 :]
+    else:
+        raw_host, separator, raw_port = value.rpartition(":")
+        if not separator or ":" in raw_host:
+            return None
+    host = normalize_host(raw_host)
+    if host is None or (value.startswith("[") and ":" not in host) or not raw_port.isdigit():
+        return None
+    port = int(raw_port)
+    if not 1 <= port <= 65535:
+        return None
+    return host, port
 
 
 @dataclass(frozen=True)
@@ -167,13 +235,17 @@ def _rc4(data: bytes, key: bytes) -> bytes:
     return bytes(output)
 
 
-def _scatter_dwords(data: bytes, seed: int) -> bytes:
+def _scatter_dwords(data: bytes | bytearray, seed: int) -> bytes:
     """loaderと同じLCG／Fisher-Yates表でDWORDをscatterする。"""
 
     if not seed or seed > len(data) or len(data) % 4:
-        return data
+        return bytes(data)
+    if len(data) > MAX_PERMUTED_PAYLOAD_SIZE:
+        raise NvmlDatError("DWORD permutation対象が16 MiB上限を超えています")
     word_count = len(data) // 4
-    permutation = list(range(word_count))
+    permutation = array("I", range(word_count))
+    if permutation.itemsize != 4:
+        raise NvmlDatError("32-bit permutation配列を構築できません")
     state = seed ^ 0x5A5A5A5A
     for index in range(word_count - 1, 0, -1):
         state = (state * 0x41C64E6D + 0x3039) & 0xFFFFFFFF
@@ -232,8 +304,10 @@ def _slot(
         host = raw_host[:-1].decode("ascii")
     except UnicodeDecodeError as exc:
         raise NvmlDatError(f"codemark slot {index}のhostがASCIIではありません") from exc
-    if not valid_host(host):
+    normalized_host = normalize_host(host)
+    if normalized_host is None:
         raise NvmlDatError(f"codemark slot {index}のhost形式が不正です")
+    host = normalized_host
     port = int.from_bytes(
         stage[marker_offset + port_offset : marker_offset + port_offset + 4],
         "little",
@@ -253,10 +327,215 @@ def _slot(
             "host": host,
             "port": port,
             "enabled": enabled,
-            "endpoint": f"{host}:{port}" if enabled else None,
+            "active": enabled,
+            "header_enabled": enabled,
+            "transport_selector": None,
+            "transport": "unknown",
+            "endpoint": render_endpoint(host, port) if enabled else None,
         },
         end,
     )
+
+
+def _parse_reversed_trailing_config(
+    decoded: str,
+    header_slots: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """末尾UTF-16LE全文反転設定をheader先頭2 slotと相関する。"""
+
+    canonical = decoded[::-1]
+    if not canonical.startswith("|") or not canonical.endswith("|"):
+        return None
+    fields: dict[str, str] = {}
+    for part in canonical.split("|"):
+        if not part:
+            continue
+        key, separator, value = part.partition(":")
+        key = key.casefold()
+        if (
+            not separator
+            or re.fullmatch(r"[a-z][a-z0-9_]{0,15}", key) is None
+            or not value
+            or len(value) > MAX_HOST_BYTES
+        ):
+            return None
+        if key in fields and fields[key] != value:
+            return None
+        fields[key] = value
+    required = {
+        f"{prefix}{index}"
+        for index in (1, 2, 3)
+        for prefix in ("p", "o", "t")
+    }
+    if not required.issubset(fields):
+        return None
+    # codemark headerの2 DWORDだけが固定enabled flagである。反転設定の
+    # t1..t3は別物で、0=UDP／1=TCPのtransport selectorとして扱う。
+    # header側で無効なslotを末尾設定だけで再有効化しないため、相関対象の
+    # 先頭2 slotは両方とも明示的にactiveであることを要求する。
+    if any(item.get("header_enabled") is not True for item in header_slots):
+        return None
+
+    slots: list[dict[str, Any]] = []
+    for index in (1, 2, 3):
+        host = normalize_host(fields[f"p{index}"])
+        raw_port = fields[f"o{index}"]
+        raw_transport = fields[f"t{index}"]
+        if (
+            host is None
+            or not raw_port.isdigit()
+            or not 1 <= int(raw_port) <= 65535
+            or raw_transport not in {"0", "1"}
+        ):
+            return None
+        selector = int(raw_transport)
+        header_enabled = (
+            bool(header_slots[index - 1]["header_enabled"])
+            if index <= len(header_slots)
+            else None
+        )
+        slots.append(
+            {
+                "index": index,
+                "host": host,
+                "port": int(raw_port),
+                # 旧schemaとの互換field。t=0も無効ではなくUDP endpointである。
+                "enabled": True,
+                "active": True,
+                "header_enabled": header_enabled,
+                "transport_selector": selector,
+                "transport": "tcp" if selector == 1 else "udp",
+                "endpoint": render_endpoint(host, int(raw_port)),
+            }
+        )
+    header_identity = [
+        (item["host"], item["port"])
+        for item in header_slots
+    ]
+    trailing_identity = [
+        (item["host"], item["port"])
+        for item in slots[:2]
+    ]
+    if header_identity != trailing_identity:
+        return None
+    return {
+        "slots": slots,
+        "field_count": len(fields),
+        "decoded_sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        "raw_config_included": False,
+    }
+
+
+def _printable_utf16le_candidates(
+    data: bytes | memoryview,
+) -> tuple[list[str], dict[str, int]]:
+    """全入力をchunk走査し、Unicode候補を有界抽出する。"""
+
+    view = memoryview(data)
+    values: list[str] = []
+    seen: set[str] = set()
+    candidate_count = 0
+    total_characters = 0
+    scanned_code_units = 0
+
+    def record_candidate(characters: list[str], overflow: bool) -> None:
+        nonlocal candidate_count, total_characters
+        if len(characters) < MIN_TRAILING_CONFIG_CHARACTERS:
+            return
+        candidate_count += 1
+        if candidate_count > MAX_TRAILING_WIDE_CANDIDATES:
+            raise NvmlDatOptionalConfigLimit(
+                "末尾UTF-16LE設定候補数が上限を超えています"
+            )
+        if overflow:
+            raise NvmlDatOptionalConfigLimit(
+                "末尾UTF-16LE設定候補の文字数が上限を超えています"
+            )
+        total_characters += len(characters)
+        if total_characters > MAX_TRAILING_TOTAL_CHARACTERS:
+            raise NvmlDatOptionalConfigLimit(
+                "末尾UTF-16LE設定候補の総文字数が上限を超えています"
+            )
+        value = "".join(characters)
+        if value not in seen:
+            seen.add(value)
+            values.append(value)
+
+    for alignment in (0, 1):
+        characters: list[str] = []
+        overflow = False
+        for chunk_start in range(
+            alignment,
+            max(alignment, len(view) - 1),
+            TRAILING_SCAN_CHUNK_BYTES,
+        ):
+            chunk_stop = min(len(view) - 1, chunk_start + TRAILING_SCAN_CHUNK_BYTES)
+            for offset in range(chunk_start, chunk_stop, 2):
+                scanned_code_units += 1
+                code_unit = int(view[offset]) | (int(view[offset + 1]) << 8)
+                character = chr(code_unit)
+                if code_unit and character.isprintable():
+                    if len(characters) < MAX_TRAILING_CONFIG_CHARACTERS:
+                        characters.append(character)
+                    else:
+                        overflow = True
+                    continue
+                record_candidate(characters, overflow)
+                characters = []
+                overflow = False
+        record_candidate(characters, overflow)
+    return values, {
+        "candidate_count": candidate_count,
+        "unique_candidate_count": len(values),
+        "total_candidate_characters": total_characters,
+        "scanned_bytes": len(view),
+        "scanned_code_units": scanned_code_units,
+        "scan_chunk_bytes": TRAILING_SCAN_CHUNK_BYTES,
+    }
+
+
+def _recover_reversed_trailing_config(
+    trailing: bytes | memoryview,
+    header_slots: list[dict[str, Any]],
+) -> tuple[dict[str, Any] | None, dict[str, int]]:
+    """上限内の一意な3-slot反転設定だけを返す。"""
+
+    recoveries: dict[tuple[tuple[object, ...], ...], dict[str, Any]] = {}
+    candidates, scan = _printable_utf16le_candidates(trailing)
+    for candidate in candidates:
+        recovered = _parse_reversed_trailing_config(candidate, header_slots)
+        if recovered is None:
+            continue
+        identity = tuple(
+            (
+                item["index"],
+                item["host"],
+                item["port"],
+                item["active"],
+                item["header_enabled"],
+                item["transport_selector"],
+                item["transport"],
+            )
+            for item in recovered["slots"]
+        )
+        recoveries[identity] = recovered
+    if len(recoveries) > 1:
+        raise NvmlDatError("異なる末尾3-slot設定が複数あり一意に決定できません")
+    if not recoveries:
+        return None, scan
+    result = next(iter(recoveries.values()))
+    result["candidate_count"] = scan["candidate_count"]
+    return result, scan
+
+
+def _chunked_sha256(data: bytes | memoryview) -> str:
+    """大きなtailを複製せず固定chunkでSHA-256化する。"""
+
+    view = memoryview(data)
+    digest = hashlib.sha256()
+    for offset in range(0, len(view), TRAILING_SCAN_CHUNK_BYTES):
+        digest.update(view[offset : offset + TRAILING_SCAN_CHUNK_BYTES])
+    return digest.hexdigest()
 
 
 def _parse_codemark_at(stage: bytes, marker_offset: int) -> dict[str, Any]:
@@ -290,18 +569,56 @@ def _parse_codemark_at(stage: bytes, marker_offset: int) -> dict[str, Any]:
         enabled_offset=0x34,
     )
     slots = [first, second]
+    trailing_size = len(stage) - tail_offset
+    trailing = memoryview(stage)[tail_offset:]
+    trailing_recovery, trailing_scan = _recover_reversed_trailing_config(
+        trailing, slots
+    )
+    if trailing_recovery is not None:
+        slots = list(trailing_recovery["slots"])
     endpoints = [str(item["endpoint"]) for item in slots if item["endpoint"]]
     if not endpoints:
         raise NvmlDatError("codemarkに有効なC2 slotがありません")
-    trailing = stage[tail_offset:]
     return {
         "marker": CODEMARK.decode("ascii"),
         "marker_offset": marker_offset,
         "slots": slots,
         "endpoints": endpoints,
         "trailing_config_offset": tail_offset,
-        "trailing_config_size": len(trailing),
-        "trailing_config_sha256": hashlib.sha256(trailing).hexdigest(),
+        "trailing_config_size": trailing_size,
+        "trailing_config_sha256": _chunked_sha256(trailing),
+        "trailing_config_total_size": trailing_size,
+        "trailing_config_scan_limit": MAX_PAYLOAD_SIZE,
+        "trailing_config_scan_truncated": False,
+        "trailing_config_scan_completed": True,
+        "trailing_config_scan_chunk_bytes": trailing_scan["scan_chunk_bytes"],
+        "trailing_config_scanned_bytes": trailing_scan["scanned_bytes"],
+        "trailing_config": (
+            {
+                "status": "decoded_correlated_three_slots",
+                "format": "reversed_utf16le_vvas",
+                "field_count": trailing_recovery["field_count"],
+                "candidate_count": trailing_recovery["candidate_count"],
+                "unique_candidate_count": trailing_scan["unique_candidate_count"],
+                "total_candidate_characters": trailing_scan[
+                    "total_candidate_characters"
+                ],
+                "transport_selector_semantics": {"0": "udp", "1": "tcp"},
+                "decoded_sha256": trailing_recovery["decoded_sha256"],
+                "raw_config_included": False,
+            }
+            if trailing_recovery is not None
+            else {
+                "status": "not_recovered_or_not_correlated",
+                "candidate_limit_reached": False,
+                "candidate_count": trailing_scan["candidate_count"],
+                "unique_candidate_count": trailing_scan["unique_candidate_count"],
+                "total_candidate_characters": trailing_scan[
+                    "total_candidate_characters"
+                ],
+                "raw_config_included": False,
+            }
+        ),
         "confidence": "confirmed_static_config",
     }
 
@@ -309,6 +626,8 @@ def _parse_codemark_at(stage: bytes, marker_offset: int) -> dict[str, Any]:
 def parse_codemark_config(stage: bytes) -> dict[str, Any]:
     """復号stageから一意で有効なcodemark C2設定を返す。"""
 
+    if len(stage) > MAX_PAYLOAD_SIZE:
+        raise NvmlDatError("codemark解析対象が64 MiB上限を超えています")
     valid = []
     cursor = 0
     for _ in range(MAX_CODEMARK_OCCURRENCES):
@@ -317,13 +636,33 @@ def parse_codemark_config(stage: bytes) -> dict[str, Any]:
             break
         try:
             valid.append(_parse_codemark_at(stage, offset))
+        except NvmlDatOptionalConfigLimit:
+            # 1件でも探索が不完全なら、別markerの設定だけを採用して
+            # 相反configを見落とす可能性があるためstage全体を拒否する。
+            raise
         except NvmlDatError:
             pass
         cursor = offset + len(CODEMARK)
+    if stage.find(CODEMARK, cursor) >= 0:
+        raise NvmlDatError("codemark出現数が上限を超えています")
     if not valid:
         raise NvmlDatError("復号stageに有効なcodemark設定がありません")
-    endpoint_sets = {tuple(item["endpoints"]) for item in valid}
-    if len(endpoint_sets) != 1:
+    configuration_identities = {
+        tuple(
+            (
+                int(slot["index"]),
+                str(slot["host"]),
+                int(slot["port"]),
+                bool(slot["active"]),
+                slot["header_enabled"],
+                slot["transport_selector"],
+                str(slot["transport"]),
+            )
+            for slot in item["slots"]
+        )
+        for item in valid
+    }
+    if len(configuration_identities) != 1:
         raise NvmlDatError("複数の異なるcodemark設定があり一意に決定できません")
     return valid[0]
 

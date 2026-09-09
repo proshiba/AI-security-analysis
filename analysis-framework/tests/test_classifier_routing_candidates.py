@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 import json
 import os
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
 
 from classifiers import classify_sample
-
 
 ROOT_SHA = "a" * 64
 CHILD_SHA = "b" * 64
@@ -173,6 +172,148 @@ def test_metadata_hint_alone_never_selects_family() -> None:
     assert candidate["routing_eligibility"]["mode"] == "candidate_verification"
     assert candidate["routing_eligibility"]["family_attribution"] is False
     assert all(item["supports_attribution"] is False for item in candidate["evidence"])
+
+
+def test_operator_family_is_verification_only_without_detector_match() -> None:
+    """family optionはhandler候補検証を開始するが、family帰属には使わない。"""
+
+    result = classify_sample.build_family_routing_candidates(
+        [_layer(ROOT_SHA)],
+        operator_family="valleyrat",
+        family_coverage=[
+            _coverage(
+                "valleyrat",
+                detector_registered=True,
+                automatic_handlers=["valleyrat.extract_config"],
+            )
+        ],
+    )
+    candidate = result["candidates"][0]
+
+    assert result["selected_families"] == []
+    assert result["automatic_analysis_families"] == []
+    assert result["verification_only_families"] == ["valleyrat"]
+    assert candidate["family"] == "valleyrat"
+    assert candidate["source"] == "explicit_operator_hypothesis"
+    assert candidate["source_strength"] == "unverified"
+    assert candidate["operator_hypothesis"] is True
+    assert candidate["layer_sha256"] == [ROOT_SHA]
+    assert candidate["metadata_only"] is False
+    assert candidate["routing_eligibility"]["mode"] == "candidate_verification"
+    assert candidate["routing_eligibility"]["family_attribution"] is False
+    assert candidate["evidence"] == [
+        {
+            "kind": "explicit_operator_hypothesis",
+            "confidence": "unverified",
+            "source": "--family",
+            "layer_index": 0,
+            "layer_sha256": ROOT_SHA,
+            "supports_attribution": False,
+        }
+    ]
+
+
+def test_route_only_known_hash_stays_verification_only() -> None:
+    """review済みcomponent hashでも終端family未確定なら帰属へ昇格しない。"""
+
+    detection = classify_sample.normalize_detection_result(
+        {
+            "matched": True,
+            "observations": {"reviewed_component": "loader"},
+            "campaigns": [
+                {
+                    "campaign_type": "onyx_qt_loader",
+                    "confidence": "high",
+                    "reasons": ["known inner SHA-256"],
+                    "attribution_scope": "reviewed_component_handler_route",
+                    "terminal_family_confirmed": False,
+                }
+            ],
+        }
+    )
+    assert classify_sample.detection_supports_family_attribution(detection) is False
+    evaluation = {
+        "malware_type": "valleyrat",
+        "detector": "malware/valleyrat/detect.py",
+        "known_outer_sha256": False,
+        "known_inner_sha256": True,
+        "detector_matched": True,
+        "applicable": True,
+        "automatic_route_eligible": True,
+        "supports_family_attribution": False,
+        "error": None,
+        "detection": detection,
+    }
+    classification = classify_sample._classify_evaluations(
+        Path("reviewed-loader.bin"),
+        {
+            "sha256": ROOT_SHA,
+            "size": 128,
+            "detector_errors": {},
+            "evaluations": [evaluation],
+        },
+        None,
+    )
+    routing = classify_sample.build_family_routing_candidates(
+        [
+            _layer(
+                ROOT_SHA,
+                selected=classification["malware_type"],
+                confidence=classification["malware_type_confidence"],
+                basis=classification["attribution_basis"],
+                evaluations=classification["detector_evaluations"],
+            )
+        ],
+        family_coverage=[
+            _coverage(
+                "valleyrat",
+                detector_registered=True,
+                automatic_handlers=["valleyrat.extract_config"],
+            )
+        ],
+    )
+    candidate = routing["candidates"][0]
+
+    assert classification["malware_type"] == "unknown"
+    assert routing["selected_families"] == []
+    assert routing["verification_only_families"] == ["valleyrat"]
+    assert candidate["routing_eligibility"]["family_attribution"] is False
+    assert candidate["evidence"][0]["kind"] == "known_inner_sha256"
+    assert candidate["evidence"][0]["supports_attribution"] is False
+    assert candidate["layer_support"][0]["supports_family_attribution"] is False
+
+    inconsistent = classify_sample.build_family_routing_candidates(
+        [
+            _layer(
+                ROOT_SHA,
+                selected="valleyrat",
+                confidence="high",
+                basis="known_inner_sha256",
+                evaluations=[evaluation],
+            )
+        ],
+        family_coverage=[
+            _coverage(
+                "valleyrat",
+                detector_registered=True,
+                automatic_handlers=["valleyrat.extract_config"],
+            )
+        ],
+    )
+    assert inconsistent["selected_families"] == []
+    assert inconsistent["verification_only_families"] == ["valleyrat"]
+    assert inconsistent["candidates"][0]["routing_eligibility"]["family_attribution"] is False
+
+
+@pytest.mark.parametrize("value", ("unknown", "ValleyRAT", "../valleyrat"))
+def test_operator_family_rejects_noncanonical_values(value: str) -> None:
+    """operator hypothesisのfamily IDもstrict schemaでfail closedにする。"""
+
+    with pytest.raises(TypeError, match="operator_family"):
+        classify_sample.build_family_routing_candidates(
+            [_layer(ROOT_SHA)],
+            operator_family=value,
+        )
 
 
 def test_ambiguous_detector_matches_are_verification_only() -> None:

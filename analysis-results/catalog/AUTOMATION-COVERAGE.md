@@ -14,7 +14,7 @@
 - handler実装: 宣言99件 / AST監査通過99件 / runtime import確認済み99件 / 停止0件
 - automatic handlerがAST監査またはruntime importで停止: 0件
 - handlerによる候補検証のみ: 8件
-- 実行したformat別preflight: 1056件（上限2048件）
+- 実行したformat別preflight: 1042件（上限2048件）
 - 実行した検体なしruntime import確認: 99件（計画99件）
 
 | family | 状態 | detector | 品質policy | 宣言handler | 安全handler | blocker |

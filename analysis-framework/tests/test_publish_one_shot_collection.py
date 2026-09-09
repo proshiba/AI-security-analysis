@@ -457,6 +457,7 @@ def test_legacy_screenconnect_orchestration_refresh_separates_management_endpoin
     payload = {
         "schema_version": 1,
         "family": "ScreenConnect RMM",
+        "sample_sha256": digest,
         "classification": "commercial_rmm_dual_use",
         "malware_by_itself": False,
         "abuse_attribution": "not_established",
@@ -493,6 +494,7 @@ def test_legacy_screenconnect_orchestration_refresh_separates_management_endpoin
     artifact = {
         "handler": {"id": handler_id, "family": "screenconnect_rmm"},
         "result": payload,
+        "selected_layer": {"sha256": digest},
         "selected_evidence": quality,
         "executed_sample": False,
         "network_contacted": False,
@@ -674,7 +676,7 @@ def test_legacy_screenconnect_orchestration_refresh_separates_management_endpoin
     assert contract["deep_analysis"]["blockers"] == []
 
     mismatched_execution = {**execution, "selected_layer_sha256": "b" * 64}
-    with pytest.raises(ValueError, match="対象root handler"):
+    with pytest.raises(ValueError, match="handler信頼境界"):
         publisher._build_screenconnect_management_contract(
             digest=digest,
             public_family="screenconnect-rmm",
@@ -688,7 +690,7 @@ def test_legacy_screenconnect_orchestration_refresh_separates_management_endpoin
         **artifact,
         "handler": {"id": handler_id, "family": "vidar"},
     }
-    with pytest.raises(ValueError, match="対象root handler"):
+    with pytest.raises(ValueError, match="handler信頼境界"):
         publisher._build_screenconnect_management_contract(
             digest=digest,
             public_family="screenconnect-rmm",

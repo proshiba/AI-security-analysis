@@ -80,7 +80,9 @@ MAX_STRING_LENGTH = 65_536
 HANDLER_CONTRACT_NAME = "HANDLER_CONTRACT"
 DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE = 128 * 1024 * 1024
 DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE = 256 * 1024 * 1024
-MAX_ASSESSMENT_CANDIDATES = 64
+# classifier routerの有界候補集合と同じ上限。worker試行数は別途64で制限する。
+MAX_ASSESSMENT_CANDIDATES = 128
+MAX_ASSESSMENT_CANDIDATE_RANK = 128
 MAX_ASSESSMENT_LAYERS = 128
 MAX_ASSESSMENT_ATTEMPTS = 64
 MAX_ASSESSMENT_WALL_SECONDS = 300.0
@@ -1995,19 +1997,12 @@ def _import_handler_from_verified_snapshots(
         snapshots=snapshots,
     )
     handler_snapshot = next(
-        (
-            snapshot
-            for snapshot in snapshots
-            if snapshot.relative_path == handler_relative_path
-        ),
+        (snapshot for snapshot in snapshots if snapshot.relative_path == handler_relative_path),
         None,
     )
     if handler_snapshot is None:
         raise HandlerLoadError("handler source is absent from dependency manifest")
-    module_name = (
-        "one_shot_handler_import_"
-        f"{hashlib.sha256(str(path).encode()).hexdigest()[:16]}"
-    )
+    module_name = f"one_shot_handler_import_{hashlib.sha256(str(path).encode()).hexdigest()[:16]}"
     loader = _VerifiedSnapshotLoader(handler_snapshot)
     module_spec = importlib.util.spec_from_loader(
         module_name,
@@ -2036,9 +2031,7 @@ def _import_handler_from_verified_snapshots(
             if invocation == "profiled_bytes_name":
                 callable_value = callable_value(spec.family)
                 if not callable(callable_value):
-                    raise HandlerLoadError(
-                        f"profile factory did not return a callable: {spec.family}"
-                    )
+                    raise HandlerLoadError(f"profile factory did not return a callable: {spec.family}")
                 invocation = "bytes_name"
             return invocation
     finally:
@@ -2161,11 +2154,7 @@ def _runtime_import_worker_main(encoded_request: str, output_path: str) -> int:
     if worker_common not in sys.path:
         sys.path.insert(0, worker_common)
     worker_output = Path(output_path)
-    if (
-        not worker_output.is_absolute()
-        or worker_output.exists()
-        or not worker_output.parent.is_dir()
-    ):
+    if not worker_output.is_absolute() or worker_output.exists() or not worker_output.parent.is_dir():
         return 2
     try:
         from analysis_contract import ensure_no_reparse_components
@@ -2177,9 +2166,7 @@ def _runtime_import_worker_main(encoded_request: str, output_path: str) -> int:
         if len(encoded_request) > MAX_HANDLER_WORKER_REQUEST_SIZE:
             raise HandlerLoadError("worker request is too large")
         padding = "=" * (-len(encoded_request) % 4)
-        decoded = base64.urlsafe_b64decode(
-            (encoded_request + padding).encode("ascii")
-        )
+        decoded = base64.urlsafe_b64decode((encoded_request + padding).encode("ascii"))
         request = _strict_json_loads(decoded, description="runtime import worker request")
         if not isinstance(request, dict) or set(request) != {
             "dependency_source_manifest",
@@ -2192,16 +2179,10 @@ def _runtime_import_worker_main(encoded_request: str, output_path: str) -> int:
             "spec",
         }:
             raise HandlerLoadError("runtime import worker request fields are invalid")
-        repository = _worker_root(
-            request.get("repository_root"), name="repository_root"
-        )
-        framework = _worker_root(
-            request.get("framework_root"), name="framework_root"
-        )
+        repository = _worker_root(request.get("repository_root"), name="repository_root")
+        framework = _worker_root(request.get("framework_root"), name="framework_root")
         malware = _worker_root(request.get("malware_root"), name="malware_root")
-        extractors = _worker_root(
-            request.get("extractors_root"), name="extractors_root"
-        )
+        extractors = _worker_root(request.get("extractors_root"), name="extractors_root")
         if framework != repository / "analysis-framework":
             raise HandlerLoadError("worker framework_root does not match repository")
         if malware != framework / "malware" or extractors != repository / "extractors":
@@ -2639,9 +2620,7 @@ def _verify_handler_runtime_import_bounded(
 
     request = {
         "repository_root": str(REPOSITORY_ROOT.resolve(strict=True)),
-        "framework_root": str(
-            (REPOSITORY_ROOT / "analysis-framework").resolve(strict=True)
-        ),
+        "framework_root": str((REPOSITORY_ROOT / "analysis-framework").resolve(strict=True)),
         "malware_root": str(MALWARE_ROOT.resolve(strict=True)),
         "extractors_root": str(EXTRACTORS_ROOT.resolve(strict=True)),
         "spec": spec.public(),
@@ -2650,9 +2629,7 @@ def _verify_handler_runtime_import_bounded(
         "dependency_module_manifest": dependency_module_manifest,
     }
     token = (
-        base64.urlsafe_b64encode(
-            json.dumps(request, ensure_ascii=False, sort_keys=True).encode("utf-8")
-        )
+        base64.urlsafe_b64encode(json.dumps(request, ensure_ascii=False, sort_keys=True).encode("utf-8"))
         .decode("ascii")
         .rstrip("=")
     )
@@ -2700,17 +2677,13 @@ def _verify_handler_runtime_import_bounded(
                 description="handler runtime import worker output",
             )
         except (OSError, ValueError) as exc:
-            raise HandlerLoadError(
-                "handler runtime import worker output is unavailable"
-            ) from exc
+            raise HandlerLoadError("handler runtime import worker output is unavailable") from exc
         response = _strict_json_loads(
             output,
             description="handler runtime import worker output",
         )
         if not isinstance(response, dict):
-            raise HandlerLoadError(
-                "handler runtime import worker response is not an object"
-            )
+            raise HandlerLoadError("handler runtime import worker response is not an object")
         if response.get("ok") is False and set(response) == {
             "error",
             "error_type",
@@ -2730,9 +2703,7 @@ def _verify_handler_runtime_import_bounded(
                 "text",
             }
         ):
-            raise HandlerLoadError(
-                "handler runtime import worker response schema is invalid"
-            )
+            raise HandlerLoadError("handler runtime import worker response schema is invalid")
         return str(response["invocation"])
 
 
@@ -2945,11 +2916,14 @@ _APPROVED_EXTERNAL_CALLS = frozenset(
     {
         "Cryptodome.Cipher.AES.new",
         "Cryptodome.Cipher.DES.new",
+        "array.array",
         "ast.literal_eval",
         "base64.b64decode",
         "base64.b64encode",
         "base64.urlsafe_b64decode",
         "binascii.crc32",
+        "binascii.unhexlify",
+        "capstone.Cs",
         "codecs.decode",
         "collections.defaultdict",
         "contextlib.contextmanager",
@@ -3323,6 +3297,131 @@ _REVIEWED_REPOSITORY_DATA_READS = {
 }
 _REVIEWED_SOURCE_CALLS = {
     (
+        "extractors/valleyrat/ca01_sideload.py",
+        "reachable:_decode_instruction",
+        "disassembler.disasm",
+    ): ("file-backed x64実行section由来の最大15 byteを1命令だけ静的decodeする有界Capstone呼出し"),
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_decode_instruction",
+        "disassembler.disasm",
+    ): ("file-backed executable section由来の最大15 byteを1命令だけ静的decodeする有界Capstone呼出し"),
+    (
+        "extractors/valleyrat/run_dll_native_core.py",
+        "reachable:_referenced_operand",
+        "disassembler.disasm",
+    ): ("入力PEの実行section由来の最大15 byteを1命令だけ静的decodeし、固定幅config address operandを検証する有界Capstone呼出し"),
+    (
+        "unpackers/bin101_nibble_rc4.py",
+        "reachable:_parse_image",
+        "image.parse_data_directories",
+    ): ("入力bytesだけから構築した16 MiB以下のPE viewでresource directoryだけを静的解析する"),
+    (
+        "unpackers/bin101_nibble_rc4.py",
+        "reachable:_validate_x64_shellcode",
+        "engine.disasm",
+    ): ("復元済みraw stage先頭1,024 byteだけを静的decodeしx64命令被覆を検証する有界Capstone呼出し"),
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_function_summary",
+        "collections.deque",
+    ): "命令CFGの最大16,384件キューを重複排除して構築する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_function_summary",
+        "pending.popleft",
+    ): "有界命令CFGキューの先頭要素だけを取り出す",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_function_summary",
+        "queued.discard",
+    ): "有界命令CFGキューの投入済み集合だけを更新する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_cfg_reaches",
+        "collections.deque",
+    ): "同一function CFGの最大16,384件到達性キューを構築する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_cfg_reaches",
+        "pending.popleft",
+    ): "有界CFG到達性キューの先頭要素だけを取り出す",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_cfg_reaches",
+        "queued.discard",
+    ): "有界CFG到達性キューの投入済み集合だけを更新する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_cfg_network_masks",
+        "collections.deque",
+    ): "最大262,144状態のCFG network pathキューを構築する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_cfg_network_masks",
+        "pending.popleft",
+    ): "有界network pathキューの先頭状態だけを取り出す",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_cfg_network_masks",
+        "queued.discard",
+    ): "有界network pathキューの投入済み集合だけを更新する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_direct_return_masks",
+        "collections.deque",
+    ): "最大65,536回のcall-return fixed-pointキューを構築する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_direct_return_masks",
+        "pending.popleft",
+    ): "有界call-return fixed-pointキューの先頭だけを取り出す",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_direct_return_masks",
+        "queued.discard",
+    ): "有界fixed-pointで再評価対象だけを再投入可能にする",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_network_chain_proof",
+        "collections.deque",
+    ): "最大65,536状態の単一network chainキューを構築する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_network_chain_proof",
+        "pending.popleft",
+    ): "有界network chainキューの先頭状態だけを取り出す",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_network_chain_proof",
+        "queued.discard",
+    ): "有界network chainキューの投入済み集合だけを更新する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_pe_structure_evidence",
+        "collections.deque",
+    ): "最大2,048 functionと16,384 component edgeのキューだけを構築する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_pe_structure_evidence",
+        "pending.popleft",
+    ): "有界functionキューの先頭要素だけを取り出す",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_pe_structure_evidence",
+        "queued.discard",
+    ): "有界functionキューの投入済み集合だけを更新する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_pe_structure_evidence",
+        "component_pending.popleft",
+    ): "有界callback componentキューの先頭要素だけを取り出す",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_pe_structure_evidence",
+        "component_queued.discard",
+    ): "有界callback componentキューの投入済み集合だけを更新する",
+    (
         "extractors/profiled_family.py",
         "reachable:load_profiles",
         "path.resolve",
@@ -3460,6 +3559,11 @@ _REVIEWED_SOURCE_CALLS = {
 }
 _APPROVED_CALLBACK_PARAMETERS = frozenset(
     {
+        (
+            "extractors/valleyrat/ca01_sideload.py",
+            "_parse_producer",
+            "summary_resolver",
+        ),
         ("unpackers/javascript_obfuscator.py", "_safe_arithmetic", "parse_int"),
         ("unpackers/javascript_obfuscator.py", "visit", "parse_int"),
         ("unpackers/managed_il_triage.py", "wrapper", "function"),
@@ -5448,6 +5552,31 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
     }
 
 
+def assessment_format_blockers(
+    accepted_formats: Sequence[str],
+    actual_format: str,
+) -> tuple[str, ...]:
+    """候補handler/layer pairを実行前にfail-closedで形式検証する。"""
+
+    blockers: list[str] = []
+    if actual_format not in KNOWN_INPUT_FORMATS or actual_format == "any":
+        blockers.append(f"unknown_input_format:{actual_format}")
+    if "any" in accepted_formats:
+        blockers.append("unbounded_input_format_contract")
+    elif actual_format not in accepted_formats:
+        blockers.append(f"incompatible_input_format:{actual_format}")
+    return tuple(blockers)
+
+
+def assessment_format_compatible(
+    accepted_formats: Sequence[str],
+    actual_format: str,
+) -> bool:
+    """候補実行quotaへ算入できる、厳格な形式互換pairかを返す。"""
+
+    return not assessment_format_blockers(accepted_formats, actual_format)
+
+
 def preflight_handler_for_assessment(
     spec: HandlerSpec,
     *,
@@ -5462,12 +5591,7 @@ def preflight_handler_for_assessment(
         blockers.append("handler_not_automatic")
     if not spec.supported_interface:
         blockers.append(f"unsupported_interface:{spec.reason}")
-    if actual_format not in KNOWN_INPUT_FORMATS or actual_format == "any":
-        blockers.append(f"unknown_input_format:{actual_format}")
-    if "any" in spec.input_formats:
-        blockers.append("unbounded_input_format_contract")
-    elif actual_format not in spec.input_formats:
-        blockers.append(f"incompatible_input_format:{actual_format}")
+    blockers.extend(assessment_format_blockers(spec.input_formats, actual_format))
     if not isinstance(input_size, int) or isinstance(input_size, bool) or input_size <= 0:
         blockers.append("invalid_or_empty_input_size")
     if (
@@ -5654,15 +5778,9 @@ def preflight_handler_runtime_import(
         return {**base, "eligible": False, "blockers": sorted(set(blockers))}
 
     try:
-        dependency_source_manifest = _preflight_dependency_source_manifest(
-            static_preflight
-        )
-        dependency_data_manifest = _preflight_dependency_data_manifest(
-            static_preflight
-        )
-        dependency_module_manifest = _preflight_dependency_module_manifest(
-            static_preflight
-        )
+        dependency_source_manifest = _preflight_dependency_source_manifest(static_preflight)
+        dependency_data_manifest = _preflight_dependency_data_manifest(static_preflight)
+        dependency_module_manifest = _preflight_dependency_module_manifest(static_preflight)
     except (HandlerLoadError, OSError, ValueError):
         return {
             **base,
@@ -5915,6 +6033,8 @@ def _candidate_records(candidates: Sequence[Any]) -> list[dict[str, Any]]:
             routing_mode = "candidate_verification"
             caller_selected_string = True
             blocked_reasons: list[str] = []
+            rank = None
+            rank_score = 0
         elif isinstance(supplied, Mapping):
             family = supplied.get("family")
             raw_sources = supplied.get("sources", supplied.get("source", []))
@@ -5923,6 +6043,14 @@ def _candidate_records(candidates: Sequence[Any]) -> list[dict[str, Any]]:
             routing_mode = supplied.get("routing_mode")
             caller_selected_string = False
             blocked_reasons = []
+            rank = supplied.get("rank")
+            rank_score = supplied.get("rank_score", 0)
+            if rank is not None and (
+                not isinstance(rank, int) or isinstance(rank, bool) or not 1 <= rank <= MAX_ASSESSMENT_CANDIDATE_RANK
+            ):
+                raise ValueError(f"candidate[{index}].rankが不正です")
+            if not isinstance(rank_score, int) or isinstance(rank_score, bool) or not 0 <= rank_score <= 1_000_000:
+                raise ValueError(f"candidate[{index}].rank_scoreが不正です")
             if not routing_eligible:
                 blocked_reasons.append("routing_not_eligible")
             if routing_mode not in allowed_modes:
@@ -5954,6 +6082,8 @@ def _candidate_records(candidates: Sequence[Any]) -> list[dict[str, Any]]:
                 "all_routing_eligible": True,
                 "caller_selected_string": False,
                 "blocked_reasons": set(),
+                "ranks": set(),
+                "rank_score": 0,
             },
         )
         record["sources"].update(sources or ["unspecified_candidate"])
@@ -5966,9 +6096,20 @@ def _candidate_records(candidates: Sequence[Any]) -> list[dict[str, Any]]:
         )
         record["caller_selected_string"] = record["caller_selected_string"] or caller_selected_string
         record["blocked_reasons"].update(blocked_reasons)
+        if rank is not None:
+            record["ranks"].add(rank)
+        record["rank_score"] = max(record["rank_score"], rank_score)
 
     normalized: list[dict[str, Any]] = []
-    for family, record in sorted(merged.items()):
+    ordered = sorted(
+        merged.items(),
+        key=lambda item: (
+            min(item[1]["ranks"], default=MAX_ASSESSMENT_CANDIDATE_RANK + 1),
+            -int(item[1]["rank_score"]),
+            item[0],
+        ),
+    )
+    for family, record in ordered:
         modes = set(record["routing_modes"])
         if len(modes) != 1:
             record["blocked_reasons"].add("conflicting_duplicate_routing_modes")
@@ -5984,6 +6125,8 @@ def _candidate_records(candidates: Sequence[Any]) -> list[dict[str, Any]]:
                 "caller_selected_string": bool(record["caller_selected_string"]),
                 "assessment_eligible": assessment_eligible,
                 "blocked_reasons": sorted(record["blocked_reasons"]),
+                "rank": min(record["ranks"], default=None),
+                "rank_score": int(record["rank_score"]),
             }
         )
     return normalized
@@ -6016,6 +6159,12 @@ def detector_corroboration(value: Any) -> dict[str, Any]:
 
     if not isinstance(value, Mapping):
         return {"corroborated": False, "score": 0, "basis": "missing_detector_evidence"}
+    if value.get("supports_family_attribution") is False:
+        return {
+            "corroborated": False,
+            "score": 0,
+            "basis": "detector_route_does_not_support_family_attribution",
+        }
     if value.get("known_outer_sha256") is True:
         return {"corroborated": True, "score": 30_000, "basis": "known_outer_sha256"}
     if value.get("known_inner_sha256") is True:
@@ -6079,24 +6228,23 @@ def _detector_evidence_by_layer(
 
 
 def _lineage_distance(
-    source_sha256: str,
-    target_sha256: str,
+    detector_sha256: str,
+    handler_sha256: str,
     parents: Mapping[str, str | None],
 ) -> int | None:
-    """同一、祖先、子孫ならedge距離を返し、兄弟・無関係ならNoneを返す。"""
+    """detector層がhandler層と同一または祖先ならedge距離を返す。"""
 
-    if source_sha256 == target_sha256:
+    if detector_sha256 == handler_sha256:
         return 0
-    for start, goal in ((source_sha256, target_sha256), (target_sha256, source_sha256)):
-        distance = 0
-        current: str | None = start
-        visited: set[str] = set()
-        while current and current not in visited:
-            visited.add(current)
-            current = parents.get(current)
-            distance += 1
-            if current == goal:
-                return distance
+    distance = 0
+    current: str | None = handler_sha256
+    visited: set[str] = set()
+    while current and current not in visited:
+        visited.add(current)
+        current = parents.get(current)
+        distance += 1
+        if current == detector_sha256:
+            return distance
     return None
 
 
@@ -6109,7 +6257,7 @@ def _best_detector_for_layer(
     for digest, evidence in evidence_by_layer.items():
         if evidence.get("corroborated") is not True:
             continue
-        distance = _lineage_distance(layer_sha256, digest, parents)
+        distance = _lineage_distance(digest, layer_sha256, parents)
         if distance is None:
             continue
         candidates.append((int(evidence.get("score", 0)), -distance, digest, evidence))
@@ -6121,6 +6269,27 @@ def _best_detector_for_layer(
         "layer_sha256": digest,
         "lineage_distance": -negative_distance,
     }
+
+
+def _round_robin_candidate_pairs(
+    candidates: Sequence[Mapping[str, Any]],
+    pairs_by_family: Mapping[str, Sequence[tuple[HandlerSpec, dict[str, Any]]]],
+) -> list[tuple[str, HandlerSpec, dict[str, Any]]]:
+    """rank順のhandlerごとに第N層を配り、単一handlerによる枠独占を防ぐ。"""
+
+    queues: list[tuple[str, list[tuple[HandlerSpec, dict[str, Any]]]]] = []
+    for candidate in candidates:
+        family = str(candidate["family"])
+        by_handler: dict[str, list[tuple[HandlerSpec, dict[str, Any]]]] = {}
+        for spec, layer in pairs_by_family[family]:
+            by_handler.setdefault(spec.id, []).append((spec, layer))
+        queues.extend((family, pairs) for pairs in by_handler.values())
+    return [
+        (family, *pairs[ordinal])
+        for ordinal in range(max((len(pairs) for _family, pairs in queues), default=0))
+        for family, pairs in queues
+        if ordinal < len(pairs)
+    ]
 
 
 def assess_candidate_handlers(
@@ -6193,13 +6362,90 @@ def assess_candidate_handlers(
                 for spec in catalog
                 if (candidate["assessment_eligible"] and spec.family == candidate["family"] and spec.automatic)
             ),
-            key=lambda item: item.id,
+            # family共通config extractorをcampaign固有の詳細解析より先に試し、
+            # global quota到達前に広範な設定回収経路を必ず評価する。
+            key=lambda item: (item.campaign is not None, item.id),
         )
         for candidate in normalized_candidates
     }
-    planned_attempts = sum(
-        len(by_family[candidate["family"]]) * len(normalized_layers) for candidate in normalized_candidates
-    )
+    public_layers = [
+        {
+            key: layer[key]
+            for key in (
+                "index",
+                "name",
+                "sha256",
+                "parent_sha256",
+                "depth",
+                "transform",
+                "format",
+                "size",
+            )
+        }
+        for layer in normalized_layers
+    ]
+    for public_layer in public_layers:
+        public_layer["name"] = _sanitize_public_text(str(public_layer["name"]))
+        public_layer["transform"] = _sanitize_public_text(str(public_layer["transform"]))
+    execution_pairs_by_family: dict[str, list[tuple[HandlerSpec, dict[str, Any]]]] = {}
+    handler_plans_by_family: dict[str, list[dict[str, Any]]] = {}
+    skipped_pairs_by_family: dict[str, list[dict[str, Any]]] = {}
+    considered_pair_count = 0
+    skipped_pair_count = 0
+    for candidate in normalized_candidates:
+        family = str(candidate["family"])
+        execution_pairs: list[tuple[HandlerSpec, dict[str, Any]]] = []
+        handler_plans: list[dict[str, Any]] = []
+        skipped_pairs: list[dict[str, Any]] = []
+        for spec in by_family[family]:
+            compatible_layer_indexes: list[int] = []
+            skipped_groups: dict[tuple[str, ...], list[int]] = {}
+            for layer in normalized_layers:
+                considered_pair_count += 1
+                format_blockers = assessment_format_blockers(
+                    spec.input_formats,
+                    str(layer["format"]),
+                )
+                if format_blockers:
+                    skipped_pair_count += 1
+                    skipped_groups.setdefault(format_blockers, []).append(int(layer["index"]))
+                    continue
+                compatible_layer_indexes.append(int(layer["index"]))
+                execution_pairs.append((spec, layer))
+            for blockers, layer_indexes in sorted(skipped_groups.items()):
+                skipped_pairs.append(
+                    {
+                        "handler_id": spec.id,
+                        "family": family,
+                        "status": "skipped_before_execution_quota",
+                        "blockers": list(blockers),
+                        "layer_indexes": layer_indexes,
+                        "layer_sha256": [str(normalized_layers[index]["sha256"]) for index in layer_indexes],
+                        "execution_quota_consumed": False,
+                        "sample_execution_allowed": False,
+                        "network_allowed": False,
+                        "filesystem_write_allowed": False,
+                    }
+                )
+            handler_plans.append(
+                {
+                    "handler_id": spec.id,
+                    "family": family,
+                    "accepted_formats": list(spec.input_formats),
+                    "compatible_layer_indexes": compatible_layer_indexes,
+                    "compatible_pair_count": len(compatible_layer_indexes),
+                    "skipped_pair_count": sum(len(indexes) for indexes in skipped_groups.values()),
+                    "format_compatibility_checked_before_execution_quota": True,
+                    "incompatible_pairs_consume_execution_quota": False,
+                    "sample_execution_allowed": False,
+                    "network_allowed": False,
+                    "filesystem_write_allowed": False,
+                }
+            )
+        execution_pairs_by_family[family] = execution_pairs
+        handler_plans_by_family[family] = handler_plans
+        skipped_pairs_by_family[family] = skipped_pairs
+    planned_attempts = sum(len(pairs) for pairs in execution_pairs_by_family.values())
     started = time.monotonic()
     actual_attempt_count = 0
     response_bytes = 0
@@ -6221,179 +6467,159 @@ def assess_candidate_handlers(
     from analysis_contract import handler_result_quality
 
     parents = {str(layer["sha256"]): layer.get("parent_sha256") for layer in normalized_layers}
+    evidence_by_family = {
+        str(candidate["family"]): (
+            _detector_evidence_by_layer(
+                detector_evaluations,
+                str(candidate["family"]),
+                normalized_layers,
+            )
+            if candidate["assessment_eligible"]
+            else {}
+        )
+        for candidate in normalized_candidates
+    }
+    attempts_by_family: dict[str, list[dict[str, Any]]] = {
+        str(candidate["family"]): [] for candidate in normalized_candidates
+    }
+    execution_schedule = _round_robin_candidate_pairs(
+        normalized_candidates,
+        execution_pairs_by_family,
+    )
+    for family, spec, layer in execution_schedule:
+        if budget_exhausted:
+            break
+        elapsed = time.monotonic() - started
+        if elapsed >= float(maximum_wall_seconds):
+            budget_blockers.add("maximum_wall_seconds_exhausted")
+            budget_exhausted = True
+            break
+        if actual_attempt_count >= maximum_attempts:
+            budget_blockers.add("maximum_attempts_exhausted")
+            budget_exhausted = True
+            break
+        remaining_seconds = max(0.1, float(maximum_wall_seconds) - elapsed)
+        public_layer = public_layers[int(layer["index"])]
+        bounded = execute_handler_bounded_for_assessment(
+            spec,
+            layer["data"],
+            str(layer["name"]),
+            actual_format=str(layer["format"]),
+            maximum_input_size=maximum_layer_size,
+            timeout_seconds=min(float(handler_timeout_seconds), remaining_seconds),
+            artifact_directory=artifact_directory,
+            artifact_path_prefix=artifact_path_prefix,
+        )
+        actual_attempt_count += 1
+        if time.monotonic() - started >= float(maximum_wall_seconds):
+            budget_blockers.add("maximum_wall_seconds_exhausted")
+            budget_exhausted = True
+        bounded_size = len(
+            json.dumps(
+                bounded,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        )
+        if response_bytes + bounded_size > maximum_response_bytes:
+            budget_blockers.add("maximum_response_bytes_exhausted")
+            budget_exhausted = True
+            break
+        response_bytes += bounded_size
+        attempt: dict[str, Any] = {
+            "handler_id": spec.id,
+            "family": family,
+            "layer": public_layer,
+            "preflight": bounded["preflight"],
+        }
+        bounded_status = bounded["status"]
+        if bounded_status != "completed":
+            retain_attempt(
+                attempts_by_family[family],
+                {
+                    **attempt,
+                    "status": bounded_status,
+                    **({"error": bounded["error"]} if isinstance(bounded.get("error"), str) else {}),
+                    **({"error_type": bounded["error_type"]} if isinstance(bounded.get("error_type"), str) else {}),
+                },
+            )
+            continue
+        executed = bounded["execution"]
+        result_quota = executed.get("result_quota")
+        if isinstance(result_quota, Mapping) and result_quota.get("truncated") is True:
+            budget_blockers.add("worker_result_structure_quota_exhausted")
+            budget_exhausted = True
+            retain_attempt(
+                attempts_by_family[family],
+                {**attempt, "status": "partial_result_quota_exhausted"},
+            )
+            break
+        output_audit = executed.get("verified_binary_output_audit")
+        observed_outputs = output_audit.get("observed_output_count", 0) if isinstance(output_audit, Mapping) else 0
+        if not isinstance(observed_outputs, int) or observed_outputs < 0:
+            observed_outputs = maximum_verified_outputs + 1
+        if verified_output_count + observed_outputs > maximum_verified_outputs:
+            budget_blockers.add("maximum_verified_outputs_exhausted")
+            budget_exhausted = True
+            break
+        verified_output_count += observed_outputs
+        quality = handler_result_quality(
+            executed.get("result"),
+            minimum_score=spec.minimum_evidence_score,
+        )
+        detector = _best_detector_for_layer(
+            str(layer["sha256"]),
+            evidence_by_family[family],
+            parents,
+        )
+        if not quality["sufficient"]:
+            status = "no_evidence"
+        elif detector["corroborated"]:
+            status = "corroborated"
+        else:
+            status = "handler_evidence_without_detector"
+        retain_attempt(
+            attempts_by_family[family],
+            {
+                **attempt,
+                "status": status,
+                "handler_evidence": quality,
+                "detector_corroboration": detector,
+                "result": executed,
+            },
+        )
+
     family_results = []
     confirmed_families = []
     for candidate in normalized_candidates:
         family = str(candidate["family"])
+        evidence_by_layer = evidence_by_family[family]
+        attempts = attempts_by_family[family]
         if not candidate["assessment_eligible"]:
-            family_results.append(
-                {
-                    **candidate,
-                    "status": "blocked",
-                    "confirmed": False,
-                    "detector_layers": {},
-                    "attempts": [],
-                }
-            )
-            continue
-        evidence_by_layer = _detector_evidence_by_layer(
-            detector_evaluations,
-            family,
-            normalized_layers,
-        )
-        attempts: list[dict[str, Any]] = []
-        for spec in by_family[family]:
-            for layer in normalized_layers:
-                if budget_exhausted:
-                    break
-                elapsed = time.monotonic() - started
-                if elapsed >= float(maximum_wall_seconds):
-                    budget_blockers.add("maximum_wall_seconds_exhausted")
-                    budget_exhausted = True
-                    break
-                if actual_attempt_count >= maximum_attempts:
-                    budget_blockers.add("maximum_attempts_exhausted")
-                    budget_exhausted = True
-                    break
-                remaining_seconds = max(
-                    0.1,
-                    float(maximum_wall_seconds) - elapsed,
-                )
-                public_layer = {
-                    key: layer[key]
-                    for key in (
-                        "index",
-                        "name",
-                        "sha256",
-                        "parent_sha256",
-                        "depth",
-                        "transform",
-                        "format",
-                        "size",
-                    )
-                }
-                bounded = execute_handler_bounded_for_assessment(
-                    spec,
-                    layer["data"],
-                    str(layer["name"]),
-                    actual_format=str(layer["format"]),
-                    maximum_input_size=maximum_layer_size,
-                    timeout_seconds=min(
-                        float(handler_timeout_seconds),
-                        remaining_seconds,
-                    ),
-                    artifact_directory=artifact_directory,
-                    artifact_path_prefix=artifact_path_prefix,
-                )
-                actual_attempt_count += 1
-                if time.monotonic() - started >= float(maximum_wall_seconds):
-                    budget_blockers.add("maximum_wall_seconds_exhausted")
-                    budget_exhausted = True
-                bounded_size = len(
-                    json.dumps(
-                        bounded,
-                        ensure_ascii=False,
-                        sort_keys=True,
-                        separators=(",", ":"),
-                    ).encode("utf-8")
-                )
-                if response_bytes + bounded_size > maximum_response_bytes:
-                    budget_blockers.add("maximum_response_bytes_exhausted")
-                    budget_exhausted = True
-                    break
-                response_bytes += bounded_size
-                attempt: dict[str, Any] = {
-                    "handler_id": spec.id,
-                    "family": family,
-                    "layer": public_layer,
-                    "preflight": bounded["preflight"],
-                }
-                bounded_status = bounded["status"]
-                if bounded_status != "completed":
-                    retain_attempt(
-                        attempts,
-                        {
-                            **attempt,
-                            "status": bounded_status,
-                            **({"error": bounded["error"]} if isinstance(bounded.get("error"), str) else {}),
-                            **(
-                                {"error_type": bounded["error_type"]}
-                                if isinstance(bounded.get("error_type"), str)
-                                else {}
-                            ),
-                        },
-                    )
-                    continue
-                executed = bounded["execution"]
-                result_quota = executed.get("result_quota")
-                if isinstance(result_quota, Mapping) and result_quota.get("truncated") is True:
-                    budget_blockers.add("worker_result_structure_quota_exhausted")
-                    budget_exhausted = True
-                    retain_attempt(
-                        attempts,
-                        {
-                            **attempt,
-                            "status": "partial_result_quota_exhausted",
-                        },
-                    )
-                    break
-                output_audit = executed.get("verified_binary_output_audit")
-                observed_outputs = (
-                    output_audit.get("observed_output_count", 0) if isinstance(output_audit, Mapping) else 0
-                )
-                if not isinstance(observed_outputs, int) or observed_outputs < 0:
-                    observed_outputs = maximum_verified_outputs + 1
-                if verified_output_count + observed_outputs > maximum_verified_outputs:
-                    budget_blockers.add("maximum_verified_outputs_exhausted")
-                    budget_exhausted = True
-                    break
-                verified_output_count += observed_outputs
-                quality = handler_result_quality(
-                    executed.get("result"),
-                    minimum_score=spec.minimum_evidence_score,
-                )
-                detector = _best_detector_for_layer(
-                    str(layer["sha256"]),
-                    evidence_by_layer,
-                    parents,
-                )
-                if not quality["sufficient"]:
-                    status = "no_evidence"
-                elif detector["corroborated"]:
-                    status = "corroborated"
-                else:
-                    status = "handler_evidence_without_detector"
-                retain_attempt(
-                    attempts,
-                    {
-                        **attempt,
-                        "status": status,
-                        "handler_evidence": quality,
-                        "detector_corroboration": detector,
-                        "result": executed,
-                    },
-                )
-            if budget_exhausted:
-                break
-        statuses = {item["status"] for item in attempts}
-        detector_available = any(item.get("corroborated") is True for item in evidence_by_layer.values())
-        if "corroborated" in statuses:
-            family_status = "confirmed"
-            confirmed_families.append(family)
-        elif budget_exhausted:
-            family_status = "partial_budget_exhausted"
-        elif "handler_evidence_without_detector" in statuses:
-            family_status = "handler_evidence_without_detector"
-        elif detector_available:
-            family_status = "detector_only"
-        elif "timed_out" in statuses:
-            family_status = "handler_timed_out"
-        elif "failed" in statuses:
-            family_status = "handler_failed"
-        elif attempts:
-            family_status = "no_evidence"
+            family_status = "blocked"
         else:
-            family_status = "no_automatic_handler"
+            statuses = {item["status"] for item in attempts}
+            detector_available = any(item.get("corroborated") is True for item in evidence_by_layer.values())
+            if "corroborated" in statuses:
+                family_status = "confirmed"
+                confirmed_families.append(family)
+            elif budget_exhausted:
+                family_status = "partial_budget_exhausted"
+            elif "handler_evidence_without_detector" in statuses:
+                family_status = "handler_evidence_without_detector"
+            elif detector_available:
+                family_status = "detector_only"
+            elif "timed_out" in statuses:
+                family_status = "handler_timed_out"
+            elif "failed" in statuses:
+                family_status = "handler_failed"
+            elif attempts:
+                family_status = "no_evidence"
+            elif skipped_pairs_by_family[family]:
+                family_status = "no_compatible_handler_layer_pair"
+            else:
+                family_status = "no_automatic_handler"
         family_results.append(
             {
                 **candidate,
@@ -6401,6 +6627,8 @@ def assess_candidate_handlers(
                 "confirmed": family_status == "confirmed",
                 "detector_layers": {digest: evidence for digest, evidence in sorted(evidence_by_layer.items())},
                 "attempts": attempts,
+                "handler_layer_plan": handler_plans_by_family[family],
+                "skipped_pairs": skipped_pairs_by_family[family],
             }
         )
     elapsed_seconds = time.monotonic() - started
@@ -6414,8 +6642,10 @@ def assess_candidate_handlers(
         "candidate_count": len(normalized_candidates),
         "blocked_candidate_count": sum(not item["assessment_eligible"] for item in normalized_candidates),
         "layer_count": len(normalized_layers),
+        "considered_pair_count": considered_pair_count,
         "planned_attempt_count": planned_attempts,
         "actual_attempt_count": actual_attempt_count,
+        "skipped_pair_count": skipped_pair_count,
         "retained_attempt_detail_count": retained_attempt_details,
         "omitted_attempt_detail_count": max(
             0,
@@ -6424,6 +6654,20 @@ def assess_candidate_handlers(
         "unattempted_attempt_count": max(0, planned_attempts - actual_attempt_count),
         "handler_timeout_seconds": float(handler_timeout_seconds),
         "blockers": sorted(budget_blockers),
+        "pair_planning": {
+            "format_compatibility_checked_before_execution_quota": True,
+            "incompatible_pairs_consume_execution_quota": False,
+            "worker_started_for_incompatible_pairs": False,
+            "execution_order": "candidate_rank_then_handler_round_robin",
+            "each_handler_first_attempt_before_second": True,
+            "considered_pair_count": considered_pair_count,
+            "compatible_pair_count": planned_attempts,
+            "skipped_pair_count": skipped_pair_count,
+            "lineage_layers": public_layers,
+            "executed_sample": False,
+            "network_contacted": False,
+            "filesystem_written_by_handlers": False,
+        },
         "budget": {
             "maximum_attempts": maximum_attempts,
             "maximum_wall_seconds": float(maximum_wall_seconds),
@@ -6449,6 +6693,4 @@ if __name__ == "__main__":
         raise SystemExit(_assessment_worker_main(sys.argv[2], sys.argv[3]))
     if len(sys.argv) == 4 and sys.argv[1] == "--runtime-import-worker":
         raise SystemExit(_runtime_import_worker_main(sys.argv[2], sys.argv[3]))
-    raise SystemExit(
-        "このmoduleは内部worker option以外の直接実行に対応していません"
-    )
+    raise SystemExit("このmoduleは内部worker option以外の直接実行に対応していません")

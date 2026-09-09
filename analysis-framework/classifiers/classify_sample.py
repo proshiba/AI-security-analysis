@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Mapping
-from functools import lru_cache
 import hashlib
 import importlib.util
 import json
 import os
-from pathlib import Path
 import re
 import stat
 import sys
+from collections.abc import Mapping
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 CONFIDENCE_ORDER = {"high": 0, "medium": 1, "low": 2}
@@ -33,6 +33,11 @@ _ATTRIBUTION_EVIDENCE_BASES = {
     "known_outer_sha256",
     "known_inner_sha256",
     "type_detector_structure",
+}
+_ROUTE_ONLY_ATTRIBUTION_SCOPES = {
+    "component_handler_route",
+    "handler_route_only",
+    "reviewed_component_handler_route",
 }
 
 
@@ -140,11 +145,25 @@ def _load_registry_cached(
         if not isinstance(detector_path, str):
             raise TypeError(f"registry detector must be a string: {family}")
         _resolve_detector_path(FRAMEWORK_ROOT, family, detector_path)
-        known_hashes = metadata.get("known_sample_sha256", [])
-        if not isinstance(known_hashes, list):
-            raise TypeError(f"known_sample_sha256 must be a list: {family}")
-        if any(not isinstance(value, str) or SHA256_RE.fullmatch(value) is None for value in known_hashes):
-            raise TypeError(f"known_sample_sha256 contains an invalid digest: {family}")
+        known_hash_sets: dict[str, set[str]] = {}
+        for field in ("known_sample_sha256", "known_routing_sha256"):
+            known_hashes = metadata.get(field, [])
+            if not isinstance(known_hashes, list):
+                raise TypeError(f"{field} must be a list: {family}")
+            if any(
+                not isinstance(value, str) or SHA256_RE.fullmatch(value) is None
+                for value in known_hashes
+            ):
+                raise TypeError(f"{field} contains an invalid digest: {family}")
+            normalized_hashes = {value.lower() for value in known_hashes}
+            if len(normalized_hashes) != len(known_hashes):
+                raise TypeError(f"{field} contains a duplicate digest: {family}")
+            known_hash_sets[field] = normalized_hashes
+        if known_hash_sets["known_sample_sha256"] & known_hash_sets["known_routing_sha256"]:
+            raise TypeError(
+                "known_sample_sha256 and known_routing_sha256 must be disjoint: "
+                f"{family}"
+            )
     return values
 
 
@@ -202,9 +221,15 @@ def normalize_detection_result(value: Any) -> dict[str, Any]:
     observations = value.get("observations", {})
     if not isinstance(observations, dict):
         raise TypeError("detector observations must be an object")
+    if "supports_family_attribution" in value and not isinstance(
+        value["supports_family_attribution"], bool
+    ):
+        raise TypeError("detector supports_family_attribution must be a boolean")
     campaigns = value.get("campaigns", [])
     if not isinstance(campaigns, list):
         raise TypeError("detector campaigns must be a list")
+    if not matched and campaigns:
+        raise TypeError("unmatched detector result must not contain campaigns")
     normalized_campaigns = []
     for index, campaign in enumerate(campaigns):
         if not isinstance(campaign, dict):
@@ -218,6 +243,33 @@ def normalize_detection_result(value: Any) -> dict[str, Any]:
             raise TypeError(f"detector campaign[{index}].confidence is invalid")
         if not isinstance(reasons, list) or any(not isinstance(item, str) for item in reasons):
             raise TypeError(f"detector campaign[{index}].reasons must be a string list")
+        known_inner_digest = campaign.get("known_inner_sha256")
+        if known_inner_digest is not None and (
+            not isinstance(known_inner_digest, str)
+            or SHA256_RE.fullmatch(known_inner_digest) is None
+        ):
+            raise TypeError(
+                f"detector campaign[{index}].known_inner_sha256 must be a SHA-256 digest"
+            )
+        if "supports_family_attribution" in campaign and not isinstance(
+            campaign["supports_family_attribution"], bool
+        ):
+            raise TypeError(
+                f"detector campaign[{index}].supports_family_attribution must be a boolean"
+            )
+        if "terminal_family_confirmed" in campaign and not isinstance(
+            campaign["terminal_family_confirmed"], bool
+        ):
+            raise TypeError(
+                f"detector campaign[{index}].terminal_family_confirmed must be a boolean"
+            )
+        if "attribution_scope" in campaign and (
+            not isinstance(campaign["attribution_scope"], str)
+            or not campaign["attribution_scope"].strip()
+        ):
+            raise TypeError(
+                f"detector campaign[{index}].attribution_scope must be a non-empty string"
+            )
         normalized_campaigns.append(
             {
                 **campaign,
@@ -234,6 +286,51 @@ def normalize_detection_result(value: Any) -> dict[str, Any]:
     }
 
 
+def detection_supports_family_attribution(detection: Mapping[str, Any]) -> bool:
+    """component route専用のdetector一致をfamily帰属根拠から除外する。"""
+
+    if detection.get("supports_family_attribution") is False:
+        return False
+    campaigns = detection.get("campaigns")
+    if not isinstance(campaigns, list) or not campaigns:
+        return True
+    return not all(
+        isinstance(campaign, Mapping)
+        and (
+            campaign.get("supports_family_attribution") is False
+            or campaign.get("terminal_family_confirmed") is False
+            or campaign.get("attribution_scope") in _ROUTE_ONLY_ATTRIBUTION_SCOPES
+        )
+        for campaign in campaigns
+    )
+
+
+def detection_has_family_attribution_evidence(detection: Mapping[str, Any]) -> bool:
+    """routing hashを上書きできる明示的な構造campaign証拠があるか返す。"""
+
+    if detection.get("matched") is not True or not detection_supports_family_attribution(
+        detection
+    ):
+        return False
+    campaigns = detection.get("campaigns")
+    if not isinstance(campaigns, list):
+        return False
+    return any(
+        isinstance(campaign, Mapping)
+        and campaign.get("confidence") in {"high", "medium"}
+        and isinstance(campaign.get("reasons"), list)
+        and bool(campaign["reasons"])
+        and campaign.get("supports_family_attribution") is not False
+        and campaign.get("attribution_scope") not in _ROUTE_ONLY_ATTRIBUTION_SCOPES
+        and (
+            campaign.get("terminal_family_confirmed") is True
+            or campaign.get("attribution_scope")
+            == "validated_terminal_component_structure"
+        )
+        for campaign in campaigns
+    )
+
+
 def clear_classifier_caches() -> None:
     """batch境界でdetector moduleとregistry cacheを明示的に破棄する。"""
 
@@ -241,9 +338,40 @@ def clear_classifier_caches() -> None:
     _load_registry_cached.cache_clear()
 
 
-def detection_uses_known_inner(detection: dict) -> bool:
-    """検出器がレビュー済み内包SHA-256へ一致したか返す。"""
-    return any("known inner SHA-256" in candidate.get("reasons", []) for candidate in detection.get("campaigns", []))
+def detection_uses_known_inner(
+    detection: dict[str, Any],
+    verified_inner_sha256: str | None,
+) -> bool:
+    """独立再計算した内包SHA-256と構造fieldが一致した場合だけ返す。"""
+
+    if detection.get("matched") is not True or verified_inner_sha256 is None:
+        return False
+    observations = detection.get("observations")
+    if (
+        not isinstance(observations, Mapping)
+        or observations.get("inner_sha256") != verified_inner_sha256
+    ):
+        return False
+    campaigns = detection.get("campaigns")
+    return isinstance(campaigns, list) and any(
+        isinstance(candidate, Mapping)
+        and candidate.get("known_inner_sha256") == verified_inner_sha256
+        for candidate in campaigns
+    )
+
+
+def _verified_submission_inner_sha256(data: bytes) -> str | None:
+    """共通のbounded single-member unwrapで内包digestを独立再計算する。"""
+
+    common_root = str(FRAMEWORK_ROOT / "common")
+    if common_root not in sys.path:
+        sys.path.insert(0, common_root)
+    from detector_support import unwrap_single_submission
+
+    inner, member, _error = unwrap_single_submission(data)
+    if data.startswith(b"PK") and not member:
+        return None
+    return hashlib.sha256(inner).hexdigest()
 
 
 def _bounded_hint_text(value: Any, field: str, maximum: int) -> str:
@@ -661,12 +789,21 @@ def _routing_layer_records(
         selected_family = classification.get("malware_type")
         attribution_basis = classification.get("attribution_basis")
         confidence = classification.get("malware_type_confidence")
+        selected_evaluation = (
+            normalized_evaluations.get(selected_family)
+            if isinstance(selected_family, str)
+            else None
+        )
         selection_verified = bool(
             isinstance(selected_family, str)
             and FAMILY_ID_RE.fullmatch(selected_family) is not None
             and selected_family not in {"unknown", "unclassified"}
             and attribution_basis in _ATTRIBUTION_EVIDENCE_BASES
             and confidence in {"high", "medium"}
+            and (
+                selected_evaluation is None
+                or selected_evaluation.get("supports_family_attribution") is not False
+            )
         )
         records.append(
             {
@@ -690,9 +827,15 @@ def _positive_detector_evidence(
     """1 detector評価の肯定証拠を、推測を加えずrouting根拠へ変換する。"""
 
     evidence = []
+    supports_attribution = evaluation.get("supports_family_attribution") is not False
     values = (
         ("known_outer_sha256", "high", evaluation.get("known_outer_sha256") is True),
         ("known_inner_sha256", "high", evaluation.get("known_inner_sha256") is True),
+        (
+            "known_routing_sha256",
+            "unverified",
+            evaluation.get("known_routing_sha256") is True,
+        ),
         ("type_detector_structure", "medium", evaluation.get("detector_matched") is True),
     )
     for kind, confidence, matched in values:
@@ -703,7 +846,9 @@ def _positive_detector_evidence(
                     "confidence": confidence,
                     "layer_index": record["index"],
                     "layer_sha256": record["sha256"],
-                    "supports_attribution": True,
+                    "supports_attribution": (
+                        False if kind == "known_routing_sha256" else supports_attribution
+                    ),
                 }
             )
     return evidence
@@ -714,6 +859,7 @@ def build_family_routing_candidates(
     *,
     metadata_hints: list[dict[str, Any]] | None = None,
     family_coverage: list[dict[str, Any]] | None = None,
+    operator_family: str | None = None,
 ) -> dict[str, Any]:
     """全layer証拠と外部hintからfail-closedなfamily routing候補を作る。
 
@@ -721,6 +867,7 @@ def build_family_routing_candidates(
     外部metadataだけの候補や同順位で曖昧なdetector候補は、上限付きhandler
     がある場合でも候補検証routeに限定し、family attributionへ使わない。
     metadata_hintsはsubmitted rootの完全一致SHA-256で事前選択した値を渡す。
+    operator_familyも仮説として候補検証にだけ使い、帰属証拠にはしない。
     """
 
     records = _routing_layer_records(layer_classifications)
@@ -732,8 +879,16 @@ def build_family_routing_candidates(
     normalized_hints = [
         _normalize_family_hint(item, f"metadata_hints[{index}]") for index, item in enumerate(metadata_hints or [])
     ]
+    if operator_family is not None and (
+        not isinstance(operator_family, str)
+        or FAMILY_ID_RE.fullmatch(operator_family) is None
+        or operator_family in {"unknown", "unclassified"}
+    ):
+        raise TypeError("operator_family must be a routable canonical family id")
 
     candidate_families: set[str] = {item["family"] for item in normalized_hints}
+    if operator_family is not None:
+        candidate_families.add(operator_family)
     selected_families: set[str] = set()
     for record in records:
         selected = record["selected_family"]
@@ -744,6 +899,7 @@ def build_family_routing_candidates(
             if (
                 evaluation.get("known_outer_sha256") is True
                 or evaluation.get("known_inner_sha256") is True
+                or evaluation.get("known_routing_sha256") is True
                 or evaluation.get("detector_matched") is True
             ):
                 candidate_families.add(family)
@@ -754,6 +910,7 @@ def build_family_routing_candidates(
     candidates = []
     for family in sorted(candidate_families):
         family_hints = [dict(item) for item in normalized_hints if item["family"] == family]
+        operator_hypothesis = family == operator_family
         layer_support = []
         detector_evidence = []
         selected_layers = []
@@ -785,9 +942,13 @@ def build_family_routing_candidates(
                     "selected_by_existing_classifier": is_selected,
                     "known_outer_sha256": evaluation.get("known_outer_sha256") is True,
                     "known_inner_sha256": evaluation.get("known_inner_sha256") is True,
+                    "known_routing_sha256": evaluation.get("known_routing_sha256") is True,
                     "detector_matched": evaluation.get("detector_matched") is True,
                     "detector_error": evaluation.get("error"),
                     "automatic_route_eligible": evaluation.get("automatic_route_eligible") is True,
+                    "supports_family_attribution": (
+                        evaluation.get("supports_family_attribution") is not False
+                    ),
                 }
             )
 
@@ -824,7 +985,21 @@ def build_family_routing_candidates(
             }
             for hint in family_hints
         ]
-        evidence = detector_evidence + metadata_evidence
+        operator_evidence = (
+            [
+                {
+                    "kind": "explicit_operator_hypothesis",
+                    "confidence": "unverified",
+                    "source": "--family",
+                    "layer_index": 0 if records else None,
+                    "layer_sha256": records[0]["sha256"] if records else None,
+                    "supports_attribution": False,
+                }
+            ]
+            if operator_hypothesis
+            else []
+        )
+        evidence = detector_evidence + metadata_evidence + operator_evidence
         has_high = any(item["confidence"] == "high" for item in detector_evidence)
         has_medium = any(item["confidence"] == "medium" for item in detector_evidence)
         candidate_confidence = "high" if has_high else ("medium" if has_medium else "unverified")
@@ -834,14 +1009,20 @@ def build_family_routing_candidates(
         automatic_handlers = capability["automatic_handlers"] if capability else []
         manual_handlers = capability["manual_or_unsupported_handlers"] if capability else []
         selected_clean_route = any(
-            item["selected_by_existing_classifier"] and item["automatic_route_eligible"] and not item["detector_error"]
+            item["selected_by_existing_classifier"]
+            and item["automatic_route_eligible"]
+            and item["supports_family_attribution"]
+            and not item["detector_error"]
             for item in layer_support
         )
         selected_family_analysis = bool(
             selected_layers and selected_clean_route and detector_registered and automatic_handlers
         )
         verification_only = bool(
-            not selected_family_analysis and automatic_handlers and records and (detector_evidence or family_hints)
+            not selected_family_analysis
+            and automatic_handlers
+            and records
+            and (detector_evidence or family_hints or operator_hypothesis)
         )
         if selected_family_analysis:
             routing_mode = "selected_family_analysis"
@@ -855,8 +1036,12 @@ def build_family_routing_candidates(
             reason_codes.append("unambiguous_detector_selection")
         elif detector_evidence:
             reason_codes.append("ambiguous_or_nonwinning_detector_evidence")
+        if any(item["kind"] == "known_routing_sha256" for item in detector_evidence):
+            reason_codes.append("known_routing_sha256_verification_only")
         if family_hints:
             reason_codes.append("metadata_hint_unverified")
+        if operator_hypothesis:
+            reason_codes.append("explicit_operator_hypothesis_unverified")
         if not detector_registered:
             reason_codes.append("detector_not_registered")
         elif not detector_evidence:
@@ -884,7 +1069,13 @@ def build_family_routing_candidates(
             + provider_score
             + (1 if automatic_handlers else 0)
         )
-        if detector_evidence and family_hints:
+        if operator_hypothesis and detector_evidence:
+            source_kind = "detector_and_explicit_operator"
+        elif operator_hypothesis and family_hints:
+            source_kind = "external_metadata_and_explicit_operator"
+        elif operator_hypothesis:
+            source_kind = "explicit_operator_hypothesis"
+        elif detector_evidence and family_hints:
             source_kind = "detector_and_external_metadata"
         elif detector_evidence:
             source_kind = "detector"
@@ -906,7 +1097,10 @@ def build_family_routing_candidates(
                 "evidence": evidence,
                 "layer_support": layer_support,
                 "metadata_hints": family_hints,
-                "metadata_only": bool(family_hints and not detector_evidence),
+                "operator_hypothesis": operator_hypothesis,
+                "metadata_only": bool(
+                    family_hints and not detector_evidence and not operator_hypothesis
+                ),
                 "capabilities": {
                     "coverage_known": capability is not None,
                     "coverage_status": capability["status"] if capability else "not_supplied",
@@ -980,6 +1174,7 @@ def evaluate_detectors(
     """全登録検出器の適用可否を、失敗を分離しながら評価する。"""
 
     digest = hashlib.sha256(data).hexdigest()
+    verified_inner_sha256 = _verified_submission_inner_sha256(data)
     registry_data = _validated_registry(registry)
     if malware_type and malware_type not in registry_data:
         registered = ", ".join(sorted(registry_data))
@@ -995,6 +1190,7 @@ def evaluate_detectors(
             "detector": metadata.get("detector") if isinstance(metadata, dict) else None,
             "known_outer_sha256": False,
             "known_inner_sha256": False,
+            "known_routing_sha256": False,
             "detector_matched": False,
             "applicable": False,
             "error": None,
@@ -1006,8 +1202,14 @@ def evaluate_detectors(
             evaluation["error"] = error
             evaluations.append(evaluation)
             continue
-        known_outer = digest in {value.lower() for value in metadata.get("known_sample_sha256", [])}
+        known_outer = digest in {
+            value.lower() for value in metadata.get("known_sample_sha256", [])
+        }
+        known_routing = digest in {
+            value.lower() for value in metadata.get("known_routing_sha256", [])
+        }
         evaluation["known_outer_sha256"] = known_outer
+        evaluation["known_routing_sha256"] = known_routing
         try:
             detector = load_detector(framework_root, metadata.get("detector"), registered_type)
             detection = normalize_detection_result(detector(data, source))
@@ -1021,13 +1223,27 @@ def evaluate_detectors(
             detector_errors[registered_type] = error
             evaluation["error"] = error
             detection = {"matched": False, "observations": {}, "campaigns": []}
-        known_inner = detection_uses_known_inner(detection)
+        known_inner = detection_uses_known_inner(detection, verified_inner_sha256)
         detector_matched = detection.get("matched") is True
+        detector_supports_attribution = detection_supports_family_attribution(detection)
+        supports_family_attribution = bool(
+            detector_supports_attribution
+            and (
+                not known_routing
+                or detection_has_family_attribution_evidence(detection)
+            )
+        )
         evaluation.update(
             known_inner_sha256=known_inner,
             detector_matched=detector_matched,
-            applicable=bool(malware_type or known_outer or detector_matched),
-            automatic_route_eligible=bool(not evaluation["error"] and (known_outer or known_inner or detector_matched)),
+            applicable=bool(
+                malware_type or known_outer or known_routing or detector_matched
+            ),
+            automatic_route_eligible=bool(
+                not evaluation["error"]
+                and (known_outer or known_inner or known_routing or detector_matched)
+            ),
+            supports_family_attribution=supports_family_attribution,
             detection=detection,
         )
         evaluations.append(evaluation)
@@ -1052,7 +1268,10 @@ def _classify_evaluations(
     detector_errors = assessment["detector_errors"]
     detections = []
     for evaluation in assessment["evaluations"]:
-        if evaluation["applicable"]:
+        if (
+            evaluation["applicable"]
+            and evaluation.get("supports_family_attribution") is not False
+        ):
             known_outer = evaluation["known_outer_sha256"]
             known_inner = evaluation["known_inner_sha256"]
             detector_matched = evaluation["detector_matched"]

@@ -1,6 +1,7 @@
 """保守的なファミリー検出器で共有する入力正規化と証跡相関。"""
 
 from __future__ import annotations
+
 from malware_io import ArchiveValidationError, read_single_aes_zip_member, sha256_bytes
 
 
@@ -74,7 +75,16 @@ def known_campaign_result(
         []
         if not campaign
         else [
-            {"campaign_type": campaign, "confidence": "high" if digest in campaigns else "medium", "reasons": reasons}
+            {
+                "campaign_type": campaign,
+                "confidence": "high" if digest in campaigns else "medium",
+                "reasons": reasons,
+                **(
+                    {"known_inner_sha256": digest}
+                    if digest in campaigns
+                    else {}
+                ),
+            }
         ]
     )
     observations = {

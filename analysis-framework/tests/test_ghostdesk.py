@@ -194,6 +194,7 @@ def test_reviewed_ghostdesk_protocol_is_static_confirmed_live_unverified(
         {
             "handler": {"id": handler_id, "family": "ghostdesk"},
             "result": result,
+            "selected_layer": {"sha256": digest},
             "selected_evidence": quality,
             "executed_sample": False,
             "network_contacted": False,
