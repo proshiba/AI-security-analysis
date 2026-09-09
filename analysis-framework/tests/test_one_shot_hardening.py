@@ -9,6 +9,7 @@ import json
 import os
 import sys
 import zipfile
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -360,6 +361,138 @@ def test_case_handler_attempt_budget_is_partial_and_bounded(
     assert execution["resource_budget_truncated"] is True
     assert execution["resource_budget_reason"] == "handler_attempt_limit"
     assert report["case_state"]["status"] == "partial"
+
+
+def test_case_handlers_run_round_robin_at_case_attempt_limit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """公開順を変えず、共有extractorとcampaignへ64試行枠を交互に配る。"""
+
+    payloads = [f"valleyrat static layer {index:02d}".encode() for index in range(64)]
+    root_hash = hashlib.sha256(payloads[0]).hexdigest()
+    layers = [
+        one_shot.StaticLayer(
+            name=f"layer-{index:02d}.bin",
+            data=data,
+            sha256=hashlib.sha256(data).hexdigest(),
+            parent_sha256=None if index == 0 else root_hash,
+            depth=0 if index == 0 else 1,
+            transform="submission" if index == 0 else "fixture",
+        )
+        for index, data in enumerate(payloads)
+    ]
+    layer_report = {
+        "schema_version": 1,
+        "counts": {
+            "layers": len(layers),
+            "recovered_layers": len(layers) - 1,
+            "recovered_bytes": sum(len(value) for value in payloads[1:]),
+            "limit_events": 0,
+        },
+        "steps": [],
+        "limit_events": [],
+        "layers": [layer.public() for layer in layers],
+        "executed_sample": False,
+        "network_contacted": False,
+        "recovered_content_exported": False,
+    }
+    campaign_spec = replace(
+        _handler_spec("valleyrat"),
+        id="valleyrat:fixture:campaign",
+        source="malware_family_script",
+        campaign="bulk_campaign",
+    )
+    shared_spec = replace(
+        _handler_spec("valleyrat"),
+        id="valleyrat:fixture:shared",
+        source="shared_extractor",
+    )
+
+    monkeypatch.setattr(
+        one_shot,
+        "recover_static_layers",
+        lambda _unit, **_kwargs: (layers, layer_report),
+    )
+
+    def classify(_data: bytes, *_args, **_kwargs) -> dict:
+        result = _classification("valleyrat")
+        result["campaign_type"] = "bulk_campaign"
+        return result
+
+    monkeypatch.setattr(one_shot.classify_sample, "classify_bytes", classify)
+    monkeypatch.setattr(
+        one_shot,
+        "_preflight_applicable",
+        lambda _specs, applicability: [
+            {"handler_id": item["id"], "available": True, "error": None}
+            for item in applicability
+            if item["status"] == "applicable"
+        ],
+    )
+    monkeypatch.setattr(
+        one_shot,
+        "_run_generic_triage",
+        lambda _layers, _case_dir, **_kwargs: (
+            {"analysis_coverage": {"status": "complete"}},
+            "complete",
+        ),
+    )
+    calls: list[str] = []
+
+    def execute(spec: HandlerSpec, _data: bytes, _source_name: str, **_kwargs) -> dict:
+        calls.append(spec.id)
+        return {
+            "status": "completed",
+            "preflight": {"eligible": True, "blockers": []},
+            "execution": {
+                "handler": spec.public(),
+                "result": {
+                    "decoded_config_recovered": True,
+                    "config": {"family": spec.family, "endpoint": "198.51.100.24:449"},
+                },
+                "executed_sample": False,
+                "network_contacted": False,
+            },
+        }
+
+    monkeypatch.setattr(one_shot, "execute_handler_bounded_for_assessment", execute)
+    unit = one_shot.InputUnit(
+        source_name=layers[0].name,
+        data=layers[0].data,
+        input_kind="raw",
+        outer_sha256=root_hash,
+        outer_size=len(layers[0].data),
+    )
+    output = tmp_path / "out"
+
+    one_shot.analyze_unit(
+        unit,
+        output=output,
+        registry=REGISTRY,
+        specs=[campaign_spec, shared_spec],
+        registered={"valleyrat"},
+        forced_family=None,
+        minimum_confidence="medium",
+        assessment_only=False,
+        analysis_contract={"schema_version": 1, "sha256": "fixture-contract"},
+    )
+
+    case_dir = output / "cases" / root_hash
+    applicability = json.loads((case_dir / "applicability.json").read_text(encoding="utf-8"))
+    report = json.loads((case_dir / "report.json").read_text(encoding="utf-8"))
+    executions = {item["handler_id"]: item for item in report["handler_executions"]}
+
+    assert [item["id"] for item in applicability["handlers"]] == [campaign_spec.id, shared_spec.id]
+    assert calls == [shared_spec.id, campaign_spec.id] * (
+        one_shot.MAX_HANDLER_ATTEMPTS_PER_CASE // 2
+    )
+    assert executions[shared_spec.id]["status"] == "ambiguous_evidence"
+    assert executions[campaign_spec.id]["status"] == "ambiguous_evidence"
+    assert all(
+        executions[handler_id]["resource_budget_reason"] == "handler_attempt_limit"
+        for handler_id in (shared_spec.id, campaign_spec.id)
+    )
 
 
 def test_equivalent_pe_padding_parent_child_results_are_not_ambiguous() -> None:
@@ -1133,6 +1266,71 @@ def test_boolean_declarations_require_typed_evidence(flag: str, payload: dict) -
     assert correlated["sufficient"] is True
 
 
+def test_candidate_decoded_config_stays_at_static_configuration_tier() -> None:
+    """候補設定のdecoded自己申告は同一mappingの静的endpointをtier 4へ上げない。"""
+
+    quality = handler_result_quality(
+        {
+            "family": "valleyrat",
+            "config": {
+                "candidate_config_recovered": True,
+                "decoded_config_recovered": True,
+                "static_config_recovered": True,
+                "endpoints": ["45.194.37.221:449"],
+            },
+        }
+    )
+
+    assert quality["tier"] == 3
+    assert quality["tier_name"] == "validated_static_configuration"
+    assert quality["score"] == 30_001
+    assert quality["sufficient"] is True
+    assert quality["candidate_groups"] == ["endpoints"]
+
+
+def test_non_candidate_decoded_config_keeps_decoded_configuration_tier() -> None:
+    """候補ではない復号設定は相関endpointがあれば従来どおりtier 4とする。"""
+
+    quality = handler_result_quality(
+        {
+            "family": "valleyrat",
+            "config": {
+                "candidate_config_recovered": False,
+                "decoded_config_recovered": True,
+                "static_config_recovered": True,
+                "endpoints": ["45.194.37.221:449"],
+            },
+        }
+    )
+
+    assert quality["tier"] == 4
+    assert quality["tier_name"] == "decoded_configuration"
+    assert quality["score"] == 40_001
+    assert quality["sufficient"] is True
+    assert quality["candidate_groups"] == ["endpoints"]
+
+
+def test_candidate_config_boolean_declarations_without_payload_are_no_evidence() -> None:
+    """candidate／decoded／staticのbooleanだけではいずれの品質tierにも昇格しない。"""
+
+    quality = handler_result_quality(
+        {
+            "family": "valleyrat",
+            "config": {
+                "candidate_config_recovered": True,
+                "decoded_config_recovered": True,
+                "static_config_recovered": True,
+            },
+        }
+    )
+
+    assert quality["tier"] == 0
+    assert quality["tier_name"] == "no_evidence"
+    assert quality["score"] == 0
+    assert quality["sufficient"] is False
+    assert quality["candidate_groups"] == []
+
+
 @pytest.mark.parametrize(
     "value",
     [
@@ -1454,6 +1652,173 @@ def test_incomplete_selected_anchor_blocks_other_anchor_success() -> None:
     )
     assert completion["status"] == "partial"
     assert "selected_family_layer_incomplete" in completion["blockers"]
+
+
+def test_family_wide_handler_plan_includes_selected_bundle_descendants() -> None:
+    """外装bundleでfamily確定後も、共通handlerへ復元済み子孫を渡す。"""
+
+    root_data = b"selected bundle"
+    child_data = b"configuration member"
+    grandchild_data = b"decoded configuration"
+    unrelated_data = b"separate root"
+    root_hash = hashlib.sha256(root_data).hexdigest()
+    child_hash = hashlib.sha256(child_data).hexdigest()
+    layers = [
+        one_shot.StaticLayer(
+            name="bundle.zip",
+            data=root_data,
+            sha256=root_hash,
+            parent_sha256=None,
+            depth=0,
+            transform="submission",
+        ),
+        one_shot.StaticLayer(
+            name="bundle.zip::config.dat",
+            data=child_data,
+            sha256=child_hash,
+            parent_sha256=root_hash,
+            depth=1,
+            transform="archive_member",
+        ),
+        one_shot.StaticLayer(
+            name="bundle.zip::config.dat::decoded",
+            data=grandchild_data,
+            sha256=hashlib.sha256(grandchild_data).hexdigest(),
+            parent_sha256=child_hash,
+            depth=2,
+            transform="byte_transform",
+        ),
+        one_shot.StaticLayer(
+            name="separate.bin",
+            data=unrelated_data,
+            sha256=hashlib.sha256(unrelated_data).hexdigest(),
+            parent_sha256=None,
+            depth=0,
+            transform="submission",
+        ),
+    ]
+
+    plan = one_shot.plan_handler_layers(
+        replace(_handler_spec("family_a"), source="shared_extractor"),
+        {"applicable_layers": [root_hash]},
+        layers,
+    )
+    roles = {item["layer"].sha256: item["routing_role"] for item in plan}
+
+    assert roles[root_hash] == "selected_family_layer"
+    assert roles[child_hash] == "descendant_candidate"
+    assert roles[layers[2].sha256] == "descendant_candidate"
+    assert roles[layers[3].sha256] == "unrelated_layer"
+
+
+def test_family_wide_handler_plan_includes_direct_sibling_companion_branch() -> None:
+    """本体anchorと同じ親を持つ設定memberと、その復号子孫を共通handlerへ渡す。"""
+
+    root_data = b"bundle root"
+    anchor_data = b"MZ selected family dll"
+    companion_data = b"companion configuration"
+    decoded_data = b"decoded companion configuration"
+    unrelated_data = b"separate root"
+    root_hash = hashlib.sha256(root_data).hexdigest()
+    anchor_hash = hashlib.sha256(anchor_data).hexdigest()
+    companion_hash = hashlib.sha256(companion_data).hexdigest()
+    layers = [
+        one_shot.StaticLayer(
+            name="bundle.zip",
+            data=root_data,
+            sha256=root_hash,
+            parent_sha256=None,
+            depth=0,
+            transform="submission",
+        ),
+        one_shot.StaticLayer(
+            name="bundle.zip::payload.dll",
+            data=anchor_data,
+            sha256=anchor_hash,
+            parent_sha256=root_hash,
+            depth=1,
+            transform="archive_member",
+        ),
+        one_shot.StaticLayer(
+            name="bundle.zip::config.dat",
+            data=companion_data,
+            sha256=companion_hash,
+            parent_sha256=root_hash,
+            depth=1,
+            transform="archive_member",
+        ),
+        one_shot.StaticLayer(
+            name="bundle.zip::config.dat::decoded",
+            data=decoded_data,
+            sha256=hashlib.sha256(decoded_data).hexdigest(),
+            parent_sha256=companion_hash,
+            depth=2,
+            transform="byte_transform",
+        ),
+        one_shot.StaticLayer(
+            name="separate.bin",
+            data=unrelated_data,
+            sha256=hashlib.sha256(unrelated_data).hexdigest(),
+            parent_sha256=None,
+            depth=0,
+            transform="submission",
+        ),
+    ]
+
+    plan = one_shot.plan_handler_layers(
+        replace(
+            _handler_spec("family_a"),
+            source="shared_extractor",
+            input_formats=("data", "pe"),
+        ),
+        {"applicable_layers": [anchor_hash]},
+        layers,
+    )
+    roles = {item["layer"].sha256: item["routing_role"] for item in plan}
+
+    assert roles[anchor_hash] == "selected_family_layer"
+    assert roles[companion_hash] == "companion_candidate"
+    assert roles[layers[3].sha256] == "companion_candidate"
+    assert roles[root_hash] == "ancestor_fallback"
+    assert roles[layers[4].sha256] == "unrelated_layer"
+
+
+def test_campaign_handler_plan_does_not_expand_into_bundle_descendants() -> None:
+    """campaign固有handlerには、入力契約外の子memberを自動追加しない。"""
+
+    root_data = b"selected campaign bundle"
+    child_data = b"unrelated campaign member"
+    root_hash = hashlib.sha256(root_data).hexdigest()
+    child_hash = hashlib.sha256(child_data).hexdigest()
+    layers = [
+        one_shot.StaticLayer(
+            name="campaign.zip",
+            data=root_data,
+            sha256=root_hash,
+            parent_sha256=None,
+            depth=0,
+            transform="submission",
+        ),
+        one_shot.StaticLayer(
+            name="campaign.zip::member.dat",
+            data=child_data,
+            sha256=child_hash,
+            parent_sha256=root_hash,
+            depth=1,
+            transform="archive_member",
+        ),
+    ]
+    spec = replace(_handler_spec("family_a"), campaign="reviewed_campaign")
+
+    plan = one_shot.plan_handler_layers(
+        spec,
+        {"applicable_layers": [root_hash]},
+        layers,
+    )
+    roles = {item["layer"].sha256: item["routing_role"] for item in plan}
+
+    assert roles[root_hash] == "selected_family_layer"
+    assert roles[child_hash] == "unrelated_layer"
 
 
 def test_strongest_ancestor_fallback_is_not_skipped(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

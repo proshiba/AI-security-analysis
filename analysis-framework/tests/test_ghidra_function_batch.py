@@ -3751,6 +3751,7 @@ def _write_screenconnect_management_finalize_fixture(case_dir: Path) -> None:
     payload = {
         "schema_version": 1,
         "family": "ScreenConnect RMM",
+        "sample_sha256": digest,
         "classification": "commercial_rmm_dual_use",
         "malware_by_itself": False,
         "abuse_attribution": "not_established",
@@ -3788,6 +3789,7 @@ def _write_screenconnect_management_finalize_fixture(case_dir: Path) -> None:
     artifact = {
         "handler": {"id": handler_id, "family": "screenconnect_rmm"},
         "result": payload,
+        "selected_layer": {"sha256": digest},
         "selected_evidence": quality,
         "executed_sample": False,
         "network_contacted": False,

@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import importlib.util
 import hashlib
+import importlib.util
+import zipfile
 from pathlib import Path
 from types import SimpleNamespace
-import zipfile
 
 import yara
-
 
 ROOT = Path(__file__).resolve().parents[2]
 CAMPAIGNS = ROOT / "analysis-framework" / "malware" / "valleyrat" / "campaigns"
@@ -71,7 +70,7 @@ STATIC_PE = _load(
 )
 
 
-def test_single_pe_resource_requires_loader_chain_and_decoded_config(monkeypatch) -> None:
+def test_single_pe_resource_import_names_alone_do_not_confirm_loader(monkeypatch) -> None:
     raw_config = "|6666:1o|061.3.911.301:1p|".encode("utf-16le")
     resource = b"\x48\x81\xec" + raw_config
     lang = SimpleNamespace(
@@ -96,8 +95,11 @@ def test_single_pe_resource_requires_loader_chain_and_decoded_config(monkeypatch
 
     result = SINGLE.analyze(b"MZ synthetic")
 
-    assert result["campaign_type"] == "single_pe_vvas_resource"
-    assert result["config"]["endpoints"] == ["103.119.3.160:6666"]
+    assert result["campaign_type"] == "unknown_single_pe"
+    assert result["config"]["endpoints"] == []
+    assert result["config"]["candidate_config_present"] is True
+    assert result["config"]["candidate_endpoint_count"] == 1
+    assert result["config"]["candidate_values_included"] is False
     assert result["config"]["liveness_confirmed"] is False
     assert result["executed"] is False
 

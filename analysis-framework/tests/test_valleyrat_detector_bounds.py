@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import io
 import zipfile
@@ -15,6 +16,12 @@ SPEC = importlib.util.spec_from_file_location("valleyrat_bounded_detect", MODULE
 assert SPEC and SPEC.loader
 DETECT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(DETECT)
+
+
+def _large_pe_fixture(label: bytes) -> bytes:
+    """section境界契約を満たす、実行不能な大容量PE風byte fixtureを返す。"""
+
+    return b"MZ" + label + bytes(1_100_000)
 
 
 def _zip_fixture() -> bytes:
@@ -58,8 +65,12 @@ def test_raw_msi_requires_packed_valleyrat_pe_shape(
     )
     result = DETECT.detect(raw_msi, Path("sample.msi"))
     assert result["matched"] is True
-    assert result["campaigns"][0]["campaign_type"] == "msi_embedded_cab_custom_actions"
-    assert result["campaigns"][0]["confidence"] == "medium"
+    campaign = result["campaigns"][0]
+    assert campaign["campaign_type"] == "msi_embedded_cab_custom_actions"
+    assert campaign["confidence"] == "medium"
+    assert campaign["attribution_scope"] == "component_handler_route"
+    assert campaign["supports_family_attribution"] is False
+    assert campaign["terminal_family_confirmed"] is False
 
 
 def test_generic_msi_with_cab_and_pe_is_not_attributed(
@@ -96,5 +107,197 @@ def test_appdomainmanager_pixel_loader_requires_correlated_markers(
     result = DETECT.detect(data, Path("loader.dll"))
 
     assert result["matched"] is True
-    assert result["campaigns"][0]["campaign_type"] == "appdomainmanager_pixel_loader"
-    assert result["campaigns"][0]["confidence"] == "high"
+    campaign = result["campaigns"][0]
+    assert campaign["campaign_type"] == "appdomainmanager_pixel_loader"
+    assert campaign["confidence"] == "high"
+    assert campaign["attribution_scope"] == "component_handler_route"
+    assert campaign["supports_family_attribution"] is False
+    assert campaign["terminal_family_confirmed"] is False
+
+
+def _cef_proxy_result(data: bytes) -> dict[str, object]:
+    """signed-proxy analyzerの公開契約に合わせたCEF route fixtureを返す。"""
+
+    return {
+        "sample_sha256": hashlib.sha256(data).hexdigest(),
+        "campaign_type": "signed_proxy_sideload",
+        "components": [
+            {
+                "name": "libcef.dll",
+                "size": len(data),
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "proxy_type": "cef_proxy",
+                "export_count": 64,
+                "export_sample": ["cef_initialize"],
+                "export_target_peak_ratio": 0.5,
+                "resource_types": [],
+                "loader_markers": [],
+                "injection_or_decryption_apis": [],
+                "sections": [
+                    {
+                        "name": ".data",
+                        "raw_size": 1_000_001,
+                        "virtual_size": 1_000_001,
+                        "entropy": 7.9,
+                    }
+                ],
+            }
+        ],
+        "sideload_edges": [],
+        "structural_proxy_detected": True,
+        "matched_patterns": ["proxy_profile:cef_proxy"],
+        "config": {
+            "static_config_recovered": False,
+            "endpoints": [],
+            "nvml_dat": None,
+            "msocf_payloads": [],
+        },
+        "executed": False,
+        "network_contacted": False,
+    }
+
+
+def _route_only_proxy_result(data: bytes, proxy_type: str) -> dict[str, object]:
+    """4種の厳格proxy profileをdetector公開契約へ正規化する。"""
+
+    result = _cef_proxy_result(data)
+    component = result["components"][0]
+    component["proxy_type"] = proxy_type
+    result["matched_patterns"] = [f"proxy_profile:{proxy_type}"]
+    if proxy_type == "nvml_proxy":
+        component.update(
+            export_count=9,
+            export_sample=["nvmlInit_v2"],
+            injection_or_decryption_apis=[
+                "CreateToolhelp32Snapshot",
+                "OpenProcess",
+                "Process32FirstW",
+                "VirtualAllocEx",
+                "WriteProcessMemory",
+            ],
+        )
+    elif proxy_type == "pdfcore8_winos_proxy":
+        component.update(
+            export_count=1_392,
+            export_sample=["CoreLibFin", "CoreLibInit"],
+            export_target_peak_ratio=1.0,
+            resource_types=["UNDATAMANAGER", "UNDATAMODEL", "UNDATAPLUGIN"],
+            injection_or_decryption_apis=[
+                "CreateProcessW",
+                "CreateThread",
+                "DeviceIoControl",
+                "VirtualAlloc",
+            ],
+        )
+    elif proxy_type == "pdfcore8_minimal_protected_proxy":
+        component.update(
+            export_count=4,
+            export_sample=[
+                "CoreLibFin",
+                "CoreLibInit",
+                "GetCoreHFT",
+                "RestorePlugInFrame",
+            ],
+            export_target_peak_ratio=1.0,
+            injection_or_decryption_apis=[
+                "CreateProcessW",
+                "CreateThread",
+                "DeviceIoControl",
+                "VirtualAlloc",
+            ],
+        )
+    return result
+
+
+@pytest.mark.parametrize(
+    "proxy_type",
+    (
+        "cef_proxy",
+        "nvml_proxy",
+        "pdfcore8_winos_proxy",
+        "pdfcore8_minimal_protected_proxy",
+    ),
+)
+def test_all_strict_signed_proxy_profiles_are_hash_independent_routes(
+    monkeypatch: pytest.MonkeyPatch,
+    proxy_type: str,
+) -> None:
+    """既知4 profileはexact hashなしでもfamily非帰属routeへ載せる。"""
+
+    data = _large_pe_fixture(f" strict {proxy_type} fixture".encode())
+    proxy = _route_only_proxy_result(data, proxy_type)
+    monkeypatch.setattr(
+        DETECT,
+        "analyze_signed_proxy_sideload",
+        lambda *_args: proxy,
+    )
+
+    result = DETECT.detect(data, Path(f"unknown-{proxy_type}.dll"))
+
+    assert result["matched"] is True
+    assert result["supports_family_attribution"] is False
+    assert result["observations"]["validated_route_only_proxy_profile"] == proxy_type
+    campaign = result["campaigns"][0]
+    assert campaign["attribution_scope"] == "component_handler_route"
+    assert campaign["supports_family_attribution"] is False
+    assert campaign["terminal_family_confirmed"] is False
+
+
+def test_strict_signed_proxy_profile_is_hash_independent_route_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """強いCEF proxy構造はexact hashなしでもhandler routeへ載せる。"""
+
+    data = _large_pe_fixture(b" strict CEF proxy fixture")
+    monkeypatch.setattr(
+        DETECT,
+        "analyze_signed_proxy_sideload",
+        lambda *_args: _cef_proxy_result(data),
+    )
+
+    result = DETECT.detect(data, Path("unknown-libcef.dll"))
+
+    assert result["matched"] is True
+    assert result["supports_family_attribution"] is False
+    campaign = result["campaigns"][0]
+    assert campaign["campaign_type"] == "signed_proxy_sideload"
+    assert campaign["confidence"] == "high"
+    assert campaign["attribution_scope"] == "component_handler_route"
+    assert campaign["supports_family_attribution"] is False
+    assert campaign["terminal_family_confirmed"] is False
+    assert (
+        result["observations"]["validated_route_only_proxy_profile"]
+        == "cef_proxy"
+    )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        lambda value: value.update(structural_proxy_detected=False),
+        lambda value: value["components"][0].update(sha256="0" * 64),
+        lambda value: value["components"][0]["sections"][0].update(entropy=7.7),
+        lambda value: value.update(executed=True),
+        lambda value: value["config"].update(endpoints=["example.invalid:443"]),
+    ),
+    ids=("structural-flag", "digest", "entropy", "execution", "config"),
+)
+def test_route_only_proxy_contract_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    mutation,
+) -> None:
+    """profile再検証の必須条件を1つでも失うproxyをrouteしない。"""
+
+    data = _large_pe_fixture(b" strict CEF proxy fixture")
+    proxy = _cef_proxy_result(data)
+    mutation(proxy)
+    monkeypatch.setattr(
+        DETECT,
+        "analyze_signed_proxy_sideload",
+        lambda *_args: proxy,
+    )
+
+    result = DETECT.detect(data, Path("ambiguous-libcef.dll"))
+
+    assert result["matched"] is False
+    assert result["campaigns"] == []

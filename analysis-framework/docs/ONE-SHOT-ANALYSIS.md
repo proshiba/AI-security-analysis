@@ -40,7 +40,7 @@ WebUI／ローカルAPIからは`analysis_job_runner.py`を正本入口として
 
 1. symlinkと出力ディレクトリを除外し、ファイル数・ファイルサイズ上限を確認する。
 2. `auto`モードでは、暗号化された単一メンバーZIPだけをMalwareBazaar受け入れ用外装として認証し、内包物をメモリ内で読む。通常のZIP bundleは構造検出のため外装のまま扱う。
-3. 既存の静的アンパッカーでPE埋め込み物、ZIPメンバー、スクリプトの静的復号結果などをメモリ内で最大4層まで再帰復元する。層数、個別サイズ、総復元量に上限を適用し、復元本文は保存しない。
+3. 既存の静的アンパッカーでPE埋め込み物、ZIPメンバー、スクリプトの静的復号結果などをメモリ内で最大4層まで再帰復元する。PE resourceは内容を読む前にmetadataを別上限で棚卸しし、大量のPNG・iconよりnamed custom typeとRCDATA／HTMLを優先する。内容走査の件数・総byte・時間上限は維持し、metadataまたは内容の走査が打ち切られた場合は`partial`とする。named custom typeに限り512 byte以上の小型高entropy blobも後続候補へ保持する。.NET `ResourceSet` のbyte配列はentry件数・単体size・総byte数を制限して検査し、4-byte little-endian展開長に続く単一GZip memberが宣言長と完全一致する場合だけ、構造検証済みPEを次の層へ送る。trailing data、連結GZip、長さ不一致、展開比率超過はfail-closedで拒否する。全経路で層数、個別サイズ、総復元量に上限を適用し、公開結果へ復元本文を保存しない。
 4. ルート検体と各復元層に対して `registry/malware_types.json` の全検出器を評価し、既知SHA-256、構造一致、曖昧性、検出器エラーを分離する。
 5. `malware/**` と `extractors/**` にある既存の `extract_config`、`extract`、`analyze`、`extract_directory` 関数をASTで棚卸しし、共通バイト列APIと入力形式契約へ適合するか判定する。モジュールの `HANDLER_CONTRACT`、先頭マジック値の厳格な検査、呼び出しアダプターの順で受け入れ形式を決定する。
 6. ルート検体を含む全復元層へ汎用トリアージを個別に実行し、各層の `complete`、`partial`、`failed` と全体の `analysis_coverage` を記録する。1層の構文解析失敗や上限到達を、ルート層の成功で隠さない。
@@ -50,7 +50,7 @@ WebUI／ローカルAPIからは`analysis_job_runner.py`を正本入口として
 10. 静的結果から関数／スクリプト単位のロジックを構造化し、正規化ハッシュとSimHashを付ける。バイナリで関数解析が未実施の場合は要追加解析として明示する。
 11. 挙動・検体特徴プロファイルを作り、登録済みの強いキャンペーン指紋と一致する場合だけ自動ラベルを付ける。
 
-この処理順には、全レイヤーのdetector証拠をまとめる`family-routing.json`、exact root SHA-256に束縛した外部hintを安全handlerで補強する`candidate-handler-assessment.json`、family・config・network・終端payload・関数ロジックを判定する`orchestration.json`の品質ゲートが含まれます。さらに、十分な静的証拠を持つhandlerだけから設定回収状態と通信候補を`communication-patterns.json`へ正規化し、同じ証拠を10 phaseの`c2-analysis.json`へ反映します。外部label単独、空のhandler成功、別familyの結果だけでfamilyや完了状態を昇格しません。
+この処理順には、全レイヤーのdetector証拠をまとめる`family-routing.json`、exact root SHA-256に束縛した外部hintを安全handlerで補強する`candidate-handler-assessment.json`、family・config・network・終端payload・関数ロジックを判定する`orchestration.json`の品質ゲートが含まれます。さらに、十分な静的証拠を持つhandlerだけから設定回収状態と通信候補を`communication-patterns.json`へ正規化し、同じ証拠を10 phaseの`c2-analysis.json`へ反映します。独立detectorが帰属を裏付けられない一方、厳格な静的handlerが設定構造を復元できた場合は、許可した設定endpointだけを`route-config-candidates.json`へ分離して保持します。この候補はfamily確定、C2確定、IOC昇格、完了gateへ使用しません。外部label単独、空のhandler成功、別familyの結果だけでfamilyや完了状態を昇格しません。
 
 通信候補は候補のまま保持し、静的設定endpointと分離します。静的設定endpointが得られても稼働確認にはせず、family固有frame、serializer、通信関数などの証拠がない限りprotocol確認にも昇格しません。未完phaseにはblockerと次の最小手順を残すため、自動処理後も追加解析が必要な位置を機械的に判断できます。
 
@@ -118,6 +118,7 @@ HANDLER_CONTRACT = {
     classification.json
     family-routing.json
     candidate-handler-assessment.json
+    route-config-candidates.json
     orchestration.json
     communication-patterns.json
     c2-analysis.json
@@ -141,6 +142,7 @@ HANDLER_CONTRACT = {
 - `classification.json`: ルートと全復元層の検出器評価、選択ファミリー、キャンペーン、曖昧性、判定根拠
 - `family-routing.json`: 全レイヤーの候補、証拠tier、一意性、候補handler実行可否
 - `candidate-handler-assessment.json`: external hint候補の隔離検証結果。候補観測とfamily確定を分離する
+- `route-config-candidates.json`: 帰属未確定のcandidate handlerが復元した設定endpointを、handler ID・抽出layer SHA-256・variantへ束縛した候補。raw config、資格情報、payloadは含めず、family／C2／稼働の確証には使わない
 - `orchestration.json`: family、config、network、終端payload、関数ロジックの品質gateとblocker
 - `communication-patterns.json`: 信頼済みhandlerから得た静的設定endpoint、未確定候補、protocol hintを分離した公開可能な通信パターン
 - `c2-analysis.json`: root解析からprotocol確認までの10 phase、blocker、次の最小手順を記録するfail-closedのC2解析契約

@@ -72,6 +72,7 @@ import analyze_family_sample  # noqa: E402
 import automated_case_analysis  # noqa: E402
 import batch_error_contract  # noqa: E402
 import classify_sample  # noqa: E402
+import handler_evidence  # noqa: E402
 import orchestration_outcome  # noqa: E402
 import runtime_contract  # noqa: E402
 import static_implementation_commitment  # noqa: E402
@@ -113,6 +114,7 @@ from handler_catalog import (  # noqa: E402
     _read_verified_artifact,
     _sanitize_public_text,
     assess_candidate_handlers,
+    assessment_format_compatible,
     catalog_summary,
     clear_handler_caches,
     collect_detector_evaluations,
@@ -696,6 +698,8 @@ def _candidate_assessment_inputs(candidates: Sequence[Mapping[str, Any]]) -> lis
                 "routing_eligible": candidate.get("routing_eligible") is True,
                 "routing_mode": candidate.get("routing_mode"),
                 "routing_eligibility": candidate.get("routing_eligibility"),
+                "rank": candidate.get("rank"),
+                "rank_score": candidate.get("rank_score", 0),
             }
         )
     return public
@@ -711,7 +715,21 @@ def _public_candidate_layer(layer: StaticLayer) -> dict[str, Any]:
 
 
 def _sanitize_candidate_assessment_layers(result: dict[str, Any]) -> None:
-    """解析時のraw layer名を変えず、公開attempt layerだけを個別に無害化する。"""
+    """解析時のraw layer名を変えず、公開layer監査情報だけを個別に無害化する。"""
+
+    def sanitize_layer(layer: Any) -> None:
+        if not isinstance(layer, dict):
+            return
+        for field in ("name", "transform"):
+            value = layer.get(field)
+            if isinstance(value, str):
+                layer[field] = _sanitize_public_text(value)
+
+    pair_planning = result.get("pair_planning")
+    lineage_layers = pair_planning.get("lineage_layers") if isinstance(pair_planning, Mapping) else None
+    if isinstance(lineage_layers, list):
+        for layer in lineage_layers:
+            sanitize_layer(layer)
 
     families = result.get("families")
     if not isinstance(families, list):
@@ -722,12 +740,7 @@ def _sanitize_candidate_assessment_layers(result: dict[str, Any]) -> None:
             continue
         for attempt in attempts:
             layer = attempt.get("layer") if isinstance(attempt, Mapping) else None
-            if not isinstance(layer, dict):
-                continue
-            for field in ("name", "transform"):
-                value = layer.get(field)
-                if isinstance(value, str):
-                    layer[field] = _sanitize_public_text(value)
+            sanitize_layer(layer)
 
 
 def _load_family_analysis_requirements(path: Path = FAMILY_ANALYSIS_REQUIREMENTS) -> dict[str, dict[str, Any]]:
@@ -798,38 +811,71 @@ def _candidate_handler_assessment(
         return {**base, "status": "no_candidates", "planned_attempt_count": 0, "families": []}
     candidate_families = {str(item["family"]) for item in candidates}
     candidate_specs = [spec for spec in specs if spec.automatic and spec.family in candidate_families]
-    attempts_per_layer = sum(sum(spec.family == family for spec in candidate_specs) for family in candidate_families)
-    if attempts_per_layer <= 0:
+    if not candidate_specs:
         return {**base, "status": "no_automatic_handler", "planned_attempt_count": 0, "families": []}
 
     supported_hashes = {
         digest for item in candidates for digest in item.get("layer_sha256", []) if isinstance(digest, str)
     }
-    eligible: list[tuple[int, StaticLayer, str]] = []
+    compatible_layers: list[tuple[int, StaticLayer, str, int]] = []
+    lineage_only_layers: list[tuple[int, StaticLayer, str, int]] = []
     excluded: list[dict[str, Any]] = []
     for index, layer in enumerate(layers):
         public_layer = _public_candidate_layer(layer)
         actual_format = detect_format(layer.data, layer.name)
-        if not any(format_compatible(spec.input_formats, actual_format) for spec in candidate_specs):
-            excluded.append({"layer": public_layer, "reason": "no_candidate_handler_accepts_format"})
-        elif len(layer.data) > DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE:
-            excluded.append({"layer": public_layer, "reason": "candidate_layer_size_limit"})
+        compatible_pair_count = sum(
+            assessment_format_compatible(spec.input_formats, actual_format) for spec in candidate_specs
+        )
+        if len(layer.data) > DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE:
+            excluded.append(
+                {
+                    "layer": public_layer,
+                    "reason": "candidate_layer_size_limit",
+                    "compatible_pair_count": compatible_pair_count,
+                    "execution_quota_consumed": False,
+                }
+            )
+        elif compatible_pair_count == 0:
+            lineage_only_layers.append((index, layer, actual_format, 0))
         else:
-            eligible.append((index, layer, actual_format))
+            compatible_layers.append((index, layer, actual_format, compatible_pair_count))
 
-    layer_limit = min(MAX_ASSESSMENT_LAYERS, MAX_ASSESSMENT_ATTEMPTS // attempts_per_layer)
-    ordered = sorted(
-        eligible,
-        key=lambda item: (0 if item[1].sha256 in supported_hashes else 1, item[1].depth, item[0]),
-    )
-    selected: list[tuple[int, StaticLayer, str]] = []
+    def order_key(item: tuple[int, StaticLayer, str, int]) -> tuple[int, int, int]:
+        return (
+            0 if item[1].sha256 in supported_hashes else 1,
+            item[1].depth,
+            item[0],
+        )
+
+    ordered = sorted(compatible_layers, key=order_key) + sorted(lineage_only_layers, key=order_key)
+    selected: list[tuple[int, StaticLayer, str, int]] = []
     total_size = 0
     for item in ordered:
-        if len(selected) >= layer_limit:
-            excluded.append({"layer": _public_candidate_layer(item[1]), "reason": "candidate_attempt_limit"})
+        if len(selected) >= MAX_ASSESSMENT_LAYERS:
+            excluded.append(
+                {
+                    "layer": _public_candidate_layer(item[1]),
+                    "reason": "candidate_layer_limit",
+                    "compatible_pair_count": item[3],
+                    "selection_role": (
+                        "compatible_pair_candidate" if item[3] else "lineage_audit_only"
+                    ),
+                    "execution_quota_consumed": False,
+                }
+            )
             continue
         if total_size + len(item[1].data) > DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE:
-            excluded.append({"layer": _public_candidate_layer(item[1]), "reason": "candidate_total_size_limit"})
+            excluded.append(
+                {
+                    "layer": _public_candidate_layer(item[1]),
+                    "reason": "candidate_total_size_limit",
+                    "compatible_pair_count": item[3],
+                    "selection_role": (
+                        "compatible_pair_candidate" if item[3] else "lineage_audit_only"
+                    ),
+                    "execution_quota_consumed": False,
+                }
+            )
             continue
         selected.append(item)
         total_size += len(item[1].data)
@@ -853,7 +899,7 @@ def _candidate_handler_assessment(
             "transform": layer.transform,
             "format": actual_format,
         }
-        for _index, layer, actual_format in selected
+        for _index, layer, actual_format, _compatible_pair_count in selected
     ]
     result = assess_candidate_handlers(
         _candidate_assessment_inputs(candidates),
@@ -866,6 +912,7 @@ def _candidate_handler_assessment(
     )
     result["selected_layer_count"] = len(selected)
     result["selected_total_size"] = total_size
+    result["selected_compatible_pair_count"] = sum(item[3] for item in selected)
     result["excluded_layers"] = excluded
     _sanitize_candidate_assessment_layers(result)
     return result
@@ -897,7 +944,7 @@ def plan_handler_layers(
     applicability: dict[str, Any],
     layers: list[StaticLayer],
 ) -> list[dict[str, Any]]:
-    """family一致層とその外装祖先だけを、形式契約付きで実行順へ変換する。"""
+    """family一致層と安全に関連付けられる層を、形式契約付き実行順へ変換する。"""
 
     anchors = set(applicability.get("applicable_layers") or [])
     by_hash = {layer.sha256: layer for layer in layers}
@@ -907,17 +954,65 @@ def plan_handler_layers(
         while current is not None and current.parent_sha256:
             ancestors.add(current.parent_sha256)
             current = by_hash.get(current.parent_sha256)
+
+    # family共通shared extractorは、bundle外装でfamilyが確定した場合も、
+    # その配下に復元された設定用DAT/PNG/DLL等を静的に確認する必要がある。
+    # 他のhandlerへは入力契約外のmemberを広げず、従来どおりanchorと祖先だけを渡す。
+    descendants: set[str] = set()
+    companions: set[str] = set()
+    if spec.source == "shared_extractor" and spec.campaign is None and anchors:
+        children_by_parent: dict[str, list[str]] = {}
+        for layer in layers:
+            if layer.parent_sha256:
+                children_by_parent.setdefault(layer.parent_sha256, []).append(layer.sha256)
+        pending = list(anchors)
+        visited = set(anchors)
+        while pending:
+            parent_sha256 = pending.pop()
+            for child_sha256 in children_by_parent.get(parent_sha256, []):
+                if child_sha256 in visited:
+                    continue
+                visited.add(child_sha256)
+                descendants.add(child_sha256)
+                pending.append(child_sha256)
+
+        # family本体DLLと同じbundleに設定DAT等が並ぶ構成もあるため、anchorの
+        # 直接の兄弟branchだけをcompanionとして追加する。別rootや祖先全体へは
+        # 広げず、同一parentという明示的lineage境界を維持する。
+        related = set(anchors) | descendants
+        for anchor in anchors:
+            current = by_hash.get(anchor)
+            if current is None or not current.parent_sha256:
+                continue
+            pending = [
+                sibling_sha256
+                for sibling_sha256 in children_by_parent.get(current.parent_sha256, [])
+                if sibling_sha256 not in related
+            ]
+            while pending:
+                companion_sha256 = pending.pop()
+                if companion_sha256 in related or companion_sha256 in companions:
+                    continue
+                companions.add(companion_sha256)
+                pending.extend(children_by_parent.get(companion_sha256, []))
+
     plan = []
     for index, layer in enumerate(layers):
         if layer.sha256 in anchors:
             routing_role = "selected_family_layer"
             priority = 0
+        elif layer.sha256 in descendants:
+            routing_role = "descendant_candidate"
+            priority = 1
+        elif layer.sha256 in companions:
+            routing_role = "companion_candidate"
+            priority = 2
         elif layer.sha256 in ancestors:
             routing_role = "ancestor_fallback"
-            priority = 1
+            priority = 3
         else:
             routing_role = "unrelated_layer"
-            priority = 2
+            priority = 4
         actual_format = detect_format(layer.data, layer.name)
         plan.append(
             {
@@ -930,6 +1025,245 @@ def plan_handler_layers(
             }
         )
     return sorted(plan, key=lambda item: (item["priority"], item["layer_index"]))
+
+
+def _next_round_robin_handler_plan(state: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """skip監査を保持しつつ、handlerの次の実行可能pairを1件だけ返す。"""
+
+    spec = state["spec"]
+    while state["cursor"] < len(state["plan"]):
+        planned = state["plan"][state["cursor"]]
+        state["cursor"] += 1
+        layer = planned["layer"]
+        attempt = {
+            "layer": layer.public(),
+            "routing_role": planned["routing_role"],
+            "actual_format": planned["actual_format"],
+            "accepted_formats": list(spec.input_formats),
+        }
+        if planned["routing_role"] == "unrelated_layer":
+            state["attempts"].append({**attempt, "status": "skipped_unrelated_layer"})
+            continue
+        if not planned["compatible"]:
+            state["attempts"].append({**attempt, "status": "skipped_incompatible_format"})
+            continue
+        if planned["routing_role"] == "ancestor_fallback" and any(
+            value[0]["sufficient"] and value[0]["tier"] >= 4 for value in state["completed"]
+        ):
+            state["attempts"].append({**attempt, "status": "skipped_fallback_not_needed"})
+            continue
+        return planned, attempt
+    return None
+
+
+def _run_handler_rounds(
+    states: list[dict[str, Any]],
+    *,
+    recovered_payload_directory: Path | None,
+) -> str | None:
+    """各handlerを1pairずつ巡回し、case共通予算内で静的workerを実行する。"""
+
+    attempts_used = 0
+    result_bytes_used = 0
+    deadline = time.monotonic() + MAX_HANDLER_WALL_SECONDS_PER_CASE
+    budget_reason: str | None = None
+    active = list(states)
+    while active and budget_reason is None:
+        next_active: list[dict[str, Any]] = []
+        for state in active:
+            selected = _next_round_robin_handler_plan(state)
+            if selected is None:
+                continue
+            planned, attempt = selected
+            if (
+                attempts_used >= MAX_HANDLER_ATTEMPTS_PER_CASE
+                or time.monotonic() >= deadline
+                or result_bytes_used >= MAX_HANDLER_RESULT_BYTES_PER_CASE
+            ):
+                if attempts_used >= MAX_HANDLER_ATTEMPTS_PER_CASE:
+                    budget_reason = "handler_attempt_limit"
+                elif time.monotonic() >= deadline:
+                    budget_reason = "handler_wall_clock_limit"
+                else:
+                    budget_reason = "handler_result_bytes_limit"
+                state["attempts"].append({**attempt, "status": "failed", "error": budget_reason})
+                state["truncated"] = True
+                state["budget_reason"] = budget_reason
+                break
+            spec = state["spec"]
+            layer = planned["layer"]
+            attempts_used += 1
+            try:
+                bounded = execute_handler_bounded_for_assessment(
+                    spec,
+                    layer.data,
+                    layer.name,
+                    actual_format=planned["actual_format"],
+                    maximum_input_size=DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
+                    artifact_directory=recovered_payload_directory,
+                    artifact_path_prefix="p",
+                )
+                worker_status = bounded.get("status")
+                worker_attempt = {
+                    **attempt,
+                    "execution_boundary": "bounded_assessment_worker",
+                    "worker_status": worker_status,
+                    "preflight": sanitize_public_value(bounded.get("preflight")),
+                }
+                if worker_status != "completed":
+                    state["attempts"].append(
+                        {
+                            **worker_attempt,
+                            "status": "failed",
+                            "error": sanitize_public_value(
+                                bounded.get("error")
+                                or (
+                                    "handler_preflight_blocked"
+                                    if worker_status == "preflight_blocked"
+                                    else "handler_worker_incomplete"
+                                )
+                            ),
+                        }
+                    )
+                else:
+                    result = bounded.get("execution")
+                    if not isinstance(result, dict):
+                        state["attempts"].append(
+                            {**worker_attempt, "status": "failed", "error": "handler_worker_invalid_execution"}
+                        )
+                    else:
+                        remaining = MAX_HANDLER_RESULT_BYTES_PER_CASE - result_bytes_used
+                        result_size = _bounded_json_size(result, maximum_bytes=remaining)
+                        if result_size is None:
+                            budget_reason = "handler_result_bytes_limit"
+                            state["truncated"] = True
+                            state["budget_reason"] = budget_reason
+                            state["attempts"].append(
+                                {**worker_attempt, "status": "failed", "error": budget_reason}
+                            )
+                        else:
+                            result_bytes_used += result_size
+                            quality = handler_result_quality(
+                                result.get("result"),
+                                minimum_score=spec.minimum_evidence_score,
+                            )
+                            state["attempts"].append(
+                                {
+                                    **worker_attempt,
+                                    "status": "succeeded",
+                                    "evidence_status": (
+                                        "sufficient" if quality["sufficient"] else "insufficient"
+                                    ),
+                                    "evidence": quality,
+                                }
+                            )
+                            state["completed"].append(
+                                (quality, -planned["layer_index"], layer, result)
+                            )
+            except Exception as exc:
+                state["attempts"].append(
+                    {
+                        **attempt,
+                        "status": "failed",
+                        "error": sanitize_public_value(f"{type(exc).__name__}: {exc}"),
+                    }
+                )
+            if budget_reason is not None:
+                break
+            if budget_reason is None and state["cursor"] < len(state["plan"]):
+                next_active.append(state)
+        active = next_active
+    if budget_reason is not None:
+        for state in states:
+            if state["cursor"] < len(state["plan"]):
+                state["truncated"] = True
+                state["budget_reason"] = budget_reason
+    return budget_reason
+
+
+def _materialize_handler_state(state: dict[str, Any], case_dir: Path) -> dict[str, Any]:
+    """round-robin後のhandler状態から従来互換の実行記録と成果物を生成する。"""
+
+    handler_id = state["handler_id"]
+    if "preflight_error" in state:
+        return {
+            "handler_id": handler_id,
+            "status": "preflight_failed",
+            "error": state["preflight_error"],
+        }
+    attempts = state["attempts"]
+    completed = state["completed"]
+    truncated = bool(state["truncated"])
+    budget_reason = state["budget_reason"]
+    if not completed:
+        attempted = any(value["status"] == "failed" for value in attempts)
+        return {
+            "handler_id": handler_id,
+            "status": "failed" if attempted or truncated else "incompatible_input_format",
+            "error": (
+                budget_reason
+                if truncated and isinstance(budget_reason, str)
+                else "all_eligible_layers_failed"
+                if attempted
+                else "no_eligible_layer_satisfied_input_contract"
+            ),
+            "resource_budget_truncated": truncated,
+            "resource_budget_reason": budget_reason if truncated else None,
+            "attempts": attempts,
+        }
+    selected_quality, _, selected_layer, selected_result = max(
+        completed,
+        key=lambda value: (value[0]["score"], value[1]),
+    )
+    strongest = [
+        value
+        for value in completed
+        if value[0]["score"] == selected_quality["score"] and value[0]["sufficient"]
+    ]
+    tied_layers = sorted({value[2].sha256 for value in strongest})
+    equivalent_layers = _equivalent_pe_padding_handler_layers(strongest)
+    ambiguous_layers = [] if equivalent_layers else tied_layers
+    if not selected_quality["sufficient"]:
+        execution_status = "no_evidence"
+    elif len(ambiguous_layers) > 1 or truncated:
+        execution_status = "ambiguous_evidence"
+    else:
+        execution_status = "succeeded"
+    spec = state["spec"]
+    filename = (
+        safe_output_name(spec.family)
+        + "-"
+        + hashlib.sha256(handler_id.encode("utf-8")).hexdigest()[:16]
+        + ".json"
+    )
+    write_json(
+        case_dir / "handlers" / filename,
+        {
+            **selected_result,
+            "handler": spec.public(),
+            "selected_layer": selected_layer.public(),
+            "selected_evidence": selected_quality,
+            "selected_evidence_score": selected_quality["score"],
+            "selection_strategy": "evidence_tier_then_score_then_root_order",
+            "ambiguous_best_layer_sha256": ambiguous_layers,
+            "equivalent_best_layer_sha256": equivalent_layers,
+            "resource_budget_truncated": truncated,
+            "resource_budget_reason": budget_reason if truncated else None,
+            "attempts": attempts,
+        },
+    )
+    return {
+        "handler_id": handler_id,
+        "status": execution_status,
+        "selected_layer_sha256": selected_layer.sha256,
+        "selected_evidence": selected_quality,
+        "ambiguous_best_layer_sha256": ambiguous_layers,
+        "equivalent_best_layer_sha256": equivalent_layers,
+        "resource_budget_truncated": truncated,
+        "resource_budget_reason": budget_reason if truncated else None,
+        "result": f"handlers/{filename}",
+        "attempts": attempts,
+    }
 
 
 def _triage_issues(value: Any, path: str = "root") -> list[str]:
@@ -1491,6 +1825,92 @@ def _candidate_outcome_handler_records(assessment: dict[str, Any]) -> list[dict[
     return records
 
 
+def _candidate_automation_handler_results(
+    assessment: Mapping[str, Any],
+    *,
+    resolved_family: str | None,
+) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    """detectorで相関済みの候補handler結果だけを通信成果物へ射影する。
+
+    candidate verificationは、既存分類器が一意選択できなかった場合だけ走る。
+    その結果は従来family解決には使われていた一方、config／C2成果物へ渡されて
+    いなかった。ここではfamily解決と同じく``corroborated``だけを受理し、
+    handler wrapper、layer hash、十分性を再確認して既存の厳格な
+    ``trusted_handler_result``入力へ変換する。metadata hint単独やhandlerの
+    自己申告だけでは射影しない。
+    """
+
+    if not isinstance(resolved_family, str) or not resolved_family:
+        return []
+    projected: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    for family_result in assessment.get("families") or []:
+        if (
+            not isinstance(family_result, Mapping)
+            or family_result.get("family") != resolved_family
+            or family_result.get("confirmed") is not True
+            or family_result.get("status") != "confirmed"
+        ):
+            continue
+        for attempt in family_result.get("attempts") or []:
+            if not isinstance(attempt, Mapping) or attempt.get("status") != "corroborated":
+                continue
+            evidence = attempt.get("handler_evidence")
+            corroboration = attempt.get("detector_corroboration")
+            wrapper = attempt.get("result")
+            layer = attempt.get("layer")
+            handler_id = attempt.get("handler_id")
+            if (
+                not isinstance(evidence, Mapping)
+                or evidence.get("sufficient") is not True
+                or not isinstance(corroboration, Mapping)
+                or corroboration.get("corroborated") is not True
+                or not isinstance(wrapper, Mapping)
+                or wrapper.get("executed_sample") is not False
+                or wrapper.get("network_contacted") is not False
+                or not isinstance(layer, Mapping)
+                or not isinstance(layer.get("sha256"), str)
+                or not isinstance(handler_id, str)
+                or not handler_id
+            ):
+                continue
+            handler = wrapper.get("handler")
+            if (
+                not isinstance(handler, Mapping)
+                or handler.get("id") != handler_id
+                or handler.get("family") != resolved_family
+            ):
+                continue
+            public_evidence = dict(evidence)
+            public_layer = {
+                key: layer[key]
+                for key in (
+                    "name",
+                    "sha256",
+                    "parent_sha256",
+                    "depth",
+                    "transform",
+                    "format",
+                    "size",
+                )
+                if key in layer
+            }
+            execution = {
+                "source": "candidate_verification",
+                "handler_id": handler_id,
+                "status": "succeeded",
+                "selected_evidence": public_evidence,
+                "selected_layer_sha256": layer["sha256"],
+                "detector_corroboration": dict(corroboration),
+            }
+            artifact = {
+                **dict(wrapper),
+                "selected_evidence": public_evidence,
+                "selected_layer": public_layer,
+            }
+            projected.append((execution, artifact))
+    return projected
+
+
 def _outcome_candidates(
     routing: dict[str, Any],
     layers: list[StaticLayer],
@@ -1928,6 +2348,7 @@ def analyze_unit(
         _routing_classifications(layer_selections),
         metadata_hints=metadata_hints,
         family_coverage=routing_family_coverage,
+        operator_family=(forced_family if forced_family in registered else None),
     )
     write_json(case_dir / "family-routing.json", routing)
     applicability = assess_handlers(
@@ -1978,237 +2399,50 @@ def analyze_unit(
             recovered_payload_directory.mkdir()
             ensure_no_reparse_components(recovered_payload_directory)
     specs_by_id = {item.id: item for item in specs}
-    handler_attempts_used = 0
-    handler_result_bytes_used = 0
-    handler_deadline = time.monotonic() + MAX_HANDLER_WALL_SECONDS_PER_CASE
-    handler_budget_reason: str | None = None
     if not assessment_only:
-        for item in applicability:
+        # 公開applicability順は保持し、実行対象だけを共有extractor優先で
+        # handler round-robinへ渡す。各handlerの第1試行を第2試行より先に行う。
+        execution_applicability = sorted(
+            applicability,
+            key=lambda item: (
+                item.get("source") != "shared_extractor",
+                item.get("campaign") is not None,
+            ),
+        )
+        handler_states: list[dict[str, Any]] = []
+        for item in execution_applicability:
             if item["status"] not in {"applicable", "applicable_forced"}:
                 continue
             handler_id = item["id"]
-            if (
-                handler_attempts_used >= MAX_HANDLER_ATTEMPTS_PER_CASE
-                or time.monotonic() >= handler_deadline
-                or handler_result_bytes_used >= MAX_HANDLER_RESULT_BYTES_PER_CASE
-            ):
-                handler_budget_reason = handler_budget_reason or "handler_case_budget_exhausted"
-                executions.append(
-                    {
-                        "handler_id": handler_id,
-                        "status": "failed",
-                        "error": handler_budget_reason,
-                        "attempts": [],
-                    }
-                )
-                continue
             if not available.get(handler_id, {}).get("available"):
-                executions.append(
+                handler_states.append(
                     {
                         "handler_id": handler_id,
-                        "status": "preflight_failed",
-                        "error": available.get(handler_id, {}).get("error"),
+                        "preflight_error": available.get(handler_id, {}).get("error"),
                     }
                 )
                 continue
-            attempts = []
-            completed = []
-            handler_truncated = False
             spec = specs_by_id[handler_id]
-            plan = plan_handler_layers(spec, item, layers)
-            for planned in plan:
-                layer = planned["layer"]
-                attempt = {
-                    "layer": layer.public(),
-                    "routing_role": planned["routing_role"],
-                    "actual_format": planned["actual_format"],
-                    "accepted_formats": list(spec.input_formats),
-                }
-                if planned["routing_role"] == "unrelated_layer":
-                    attempts.append({**attempt, "status": "skipped_unrelated_layer"})
-                    continue
-                if not planned["compatible"]:
-                    attempts.append({**attempt, "status": "skipped_incompatible_format"})
-                    continue
-                if planned["routing_role"] == "ancestor_fallback" and any(
-                    value[0]["sufficient"] and value[0]["tier"] >= 4 for value in completed
-                ):
-                    attempts.append({**attempt, "status": "skipped_fallback_not_needed"})
-                    continue
-                if handler_attempts_used >= MAX_HANDLER_ATTEMPTS_PER_CASE or time.monotonic() >= handler_deadline:
-                    handler_budget_reason = (
-                        "handler_attempt_limit"
-                        if handler_attempts_used >= MAX_HANDLER_ATTEMPTS_PER_CASE
-                        else "handler_wall_clock_limit"
-                    )
-                    attempts.append(
-                        {
-                            **attempt,
-                            "status": "failed",
-                            "error": handler_budget_reason,
-                        }
-                    )
-                    handler_truncated = True
-                    break
-                handler_attempts_used += 1
-                try:
-                    bounded = execute_handler_bounded_for_assessment(
-                        spec,
-                        layer.data,
-                        layer.name,
-                        actual_format=planned["actual_format"],
-                        maximum_input_size=DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
-                        artifact_directory=recovered_payload_directory,
-                        artifact_path_prefix="p",
-                    )
-                    worker_status = bounded.get("status")
-                    worker_attempt = {
-                        **attempt,
-                        "execution_boundary": "bounded_assessment_worker",
-                        "worker_status": worker_status,
-                        "preflight": sanitize_public_value(bounded.get("preflight")),
-                    }
-                    if worker_status != "completed":
-                        attempts.append(
-                            {
-                                **worker_attempt,
-                                "status": "failed",
-                                "error": sanitize_public_value(
-                                    bounded.get("error")
-                                    or (
-                                        "handler_preflight_blocked"
-                                        if worker_status == "preflight_blocked"
-                                        else "handler_worker_incomplete"
-                                    )
-                                ),
-                            }
-                        )
-                        continue
-                    result = bounded.get("execution")
-                    if not isinstance(result, dict):
-                        attempts.append(
-                            {
-                                **worker_attempt,
-                                "status": "failed",
-                                "error": "handler_worker_invalid_execution",
-                            }
-                        )
-                        continue
-                    remaining_result_bytes = MAX_HANDLER_RESULT_BYTES_PER_CASE - handler_result_bytes_used
-                    result_size = _bounded_json_size(
-                        result,
-                        maximum_bytes=remaining_result_bytes,
-                    )
-                    if result_size is None:
-                        handler_budget_reason = "handler_result_bytes_limit"
-                        handler_truncated = True
-                        attempts.append(
-                            {
-                                **worker_attempt,
-                                "status": "failed",
-                                "error": handler_budget_reason,
-                            }
-                        )
-                        break
-                    handler_result_bytes_used += result_size
-                    quality = handler_result_quality(
-                        result.get("result"),
-                        minimum_score=spec.minimum_evidence_score,
-                    )
-                    attempts.append(
-                        {
-                            **worker_attempt,
-                            "status": "succeeded",
-                            "evidence_status": ("sufficient" if quality["sufficient"] else "insufficient"),
-                            "evidence": quality,
-                        }
-                    )
-                    completed.append(
-                        (
-                            quality,
-                            -planned["layer_index"],
-                            layer,
-                            result,
-                        )
-                    )
-                except Exception as exc:
-                    attempts.append(
-                        {
-                            **attempt,
-                            "status": "failed",
-                            "error": sanitize_public_value(f"{type(exc).__name__}: {exc}"),
-                        }
-                    )
-            if not completed:
-                attempted = any(value["status"] == "failed" for value in attempts)
-                executions.append(
-                    {
-                        "handler_id": handler_id,
-                        "status": "failed" if attempted else "incompatible_input_format",
-                        "error": (
-                            "all_eligible_layers_failed" if attempted else "no_eligible_layer_satisfied_input_contract"
-                        ),
-                        "attempts": attempts,
-                    }
-                )
-                continue
-            selected_quality, _, selected_layer, selected_result = max(
-                completed,
-                key=lambda value: (
-                    value[0]["score"],
-                    value[1],
-                ),
-            )
-            strongest = [
-                value
-                for value in completed
-                if value[0]["score"] == selected_quality["score"] and value[0]["sufficient"]
-            ]
-            tied_layers = sorted({value[2].sha256 for value in strongest})
-            equivalent_layers = _equivalent_pe_padding_handler_layers(strongest)
-            ambiguous_layers = [] if equivalent_layers else tied_layers
-            if not selected_quality["sufficient"]:
-                execution_status = "no_evidence"
-            elif len(ambiguous_layers) > 1 or handler_truncated:
-                execution_status = "ambiguous_evidence"
-            else:
-                execution_status = "succeeded"
-            filename = (
-                safe_output_name(spec.family)
-                + "-"
-                + hashlib.sha256(handler_id.encode("utf-8")).hexdigest()[:16]
-                + ".json"
-            )
-            destination = case_dir / "handlers" / filename
-            write_json(
-                destination,
-                {
-                    **selected_result,
-                    "selected_layer": selected_layer.public(),
-                    "selected_evidence": selected_quality,
-                    "selected_evidence_score": selected_quality["score"],
-                    "selection_strategy": "evidence_tier_then_score_then_root_order",
-                    "ambiguous_best_layer_sha256": ambiguous_layers,
-                    "equivalent_best_layer_sha256": equivalent_layers,
-                    "resource_budget_truncated": handler_truncated,
-                    "resource_budget_reason": (handler_budget_reason if handler_truncated else None),
-                    "attempts": attempts,
-                },
-            )
-            executions.append(
+            handler_states.append(
                 {
                     "handler_id": handler_id,
-                    "status": execution_status,
-                    "selected_layer_sha256": selected_layer.sha256,
-                    "selected_evidence": selected_quality,
-                    "ambiguous_best_layer_sha256": ambiguous_layers,
-                    "equivalent_best_layer_sha256": equivalent_layers,
-                    "resource_budget_truncated": handler_truncated,
-                    "resource_budget_reason": (handler_budget_reason if handler_truncated else None),
-                    "result": f"handlers/{filename}",
-                    "attempts": attempts,
+                    "spec": spec,
+                    "plan": plan_handler_layers(spec, item, layers),
+                    "cursor": 0,
+                    "attempts": [],
+                    "completed": [],
+                    "truncated": False,
+                    "budget_reason": None,
                 }
             )
+        _run_handler_rounds(
+            [state for state in handler_states if "spec" in state],
+            recovered_payload_directory=recovered_payload_directory,
+        )
+        executions = [
+            _materialize_handler_state(state, case_dir)
+            for state in handler_states
+        ]
 
     candidate_assessment = _candidate_handler_assessment(
         routing=routing,
@@ -2231,6 +2465,11 @@ def analyze_unit(
             recovered_payload_directory.rmdir()
             recovered_payload_directory = None
     write_json(case_dir / "candidate-handler-assessment.json", candidate_assessment)
+    route_config_candidates = handler_evidence.build_route_config_candidate_document(
+        sha256=digest,
+        assessment=candidate_assessment,
+    )
+    write_json(case_dir / "route-config-candidates.json", route_config_candidates)
 
     report = {
         "schema_version": 1,
@@ -2344,6 +2583,14 @@ def analyze_unit(
     automation_family = family_resolution.get("family")
     if not isinstance(automation_family, str) or not automation_family:
         automation_family = "unclassified"
+    handler_results.extend(
+        _candidate_automation_handler_results(
+            candidate_assessment,
+            resolved_family=(
+                automation_family if automation_family != "unclassified" else None
+            ),
+        )
+    )
     communication_patterns, c2_analysis = automated_case_analysis.build_case_automation_artifacts(
         sha256=digest,
         family=automation_family,
@@ -2371,6 +2618,7 @@ def analyze_unit(
     outcome["artifacts"] = {
         "routing": "family-routing.json",
         "candidate_handler_assessment": "candidate-handler-assessment.json",
+        "route_config_candidates": "route-config-candidates.json",
     }
     write_json(case_dir / "orchestration.json", outcome)
 
@@ -2404,6 +2652,7 @@ def analyze_unit(
         "static_logic_markdown": "STATIC-LOGIC.md",
         "communication_patterns": "communication-patterns.json",
         "c2_analysis": "c2-analysis.json",
+        "route_config_candidates": "route-config-candidates.json",
     }
     report["case_state"] = completion
     report["classification"]["automation_family"] = family_resolution.get("family")
@@ -2411,6 +2660,19 @@ def analyze_unit(
     report["candidate_handler_assessment"] = {
         "status": candidate_assessment.get("status"),
         "planned_attempt_count": candidate_assessment.get("planned_attempt_count", 0),
+    }
+    report["route_config_candidates"] = {
+        "status": route_config_candidates["status"],
+        "status_scope": route_config_candidates["status_scope"],
+        "projection_disposition": route_config_candidates["projection_disposition"],
+        "projection_reason": route_config_candidates["projection_reason"],
+        "overall_analysis_result_affected": route_config_candidates[
+            "overall_analysis_result_affected"
+        ],
+        "candidate_count": route_config_candidates["candidate_count"],
+        "candidate_set_complete": route_config_candidates["candidate_set_complete"],
+        "family_attribution_confirmed": False,
+        "used_for_c2_confirmation": False,
     }
     report["orchestration"] = "orchestration.json"
     report["knowledge_artifacts"].update(
@@ -2431,6 +2693,7 @@ def analyze_unit(
         "STATIC-LOGIC.md",
         "communication-patterns.json",
         "c2-analysis.json",
+        "route-config-candidates.json",
     ]
     if not assessment_only:
         artifact_paths.append("generic-triage.json")

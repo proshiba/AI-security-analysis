@@ -38,6 +38,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from unpackers.asar_unpacker import is_asar, recover_asar
+from unpackers.bin101_nibble_rc4 import recover_bin101_payload
 from unpackers.bounded_pe_scan import (
     BoundedExtent,
     CarvedPeArtifacts,
@@ -153,8 +154,16 @@ PADDING_COMPARE_CHUNK_BYTES = 1024 * 1024
 MAX_PEFILE_EMBEDDED_CANDIDATE_BYTES = 32 * 1024 * 1024
 LEGACY_PEFILE_CANDIDATE_BYTES = 64 * 1024
 MAX_PE_RESOURCE_ENTRIES = 512
+MAX_PE_RESOURCE_METADATA_ENTRIES = 8192
 MAX_PE_RESOURCE_TOTAL_BYTES = 256 * 1024 * 1024
 MAX_PE_RESOURCE_ELAPSED_SECONDS = 10.0
+LOW_PRIORITY_NAMED_PE_RESOURCE_TYPES = frozenset(
+    {"png", "style_xml", "afx_dialog_layout"}
+)
+MAX_DOTNET_RESOURCE_ENTRIES = 512
+MAX_DOTNET_RESOURCE_ENTRY_BYTES = 64 * 1024 * 1024
+MAX_DOTNET_RESOURCE_ENTRY_TOTAL_BYTES = 128 * 1024 * 1024
+MAX_DOTNET_RESOURCE_GZIP_RATIO = 200.0
 MAX_STATIC_TOOL_STDOUT_BYTES = 1024 * 1024
 MAX_STATIC_TOOL_STDERR_BYTES = 1024 * 1024
 MAX_STATIC_TOOL_TEMP_BYTES = 1024 * 1024 * 1024
@@ -216,6 +225,17 @@ class _CabLzxFallbackError(ValueError):
     def __init__(self, reason: str) -> None:
         super().__init__(reason)
         self.reason = reason
+
+
+@dataclass(frozen=True)
+class _PeResourceCandidate:
+    """内容読取り前に検証・優先順位付けしたPE resource metadata。"""
+
+    data_struct: object
+    custom_named_type: bool
+    named_ui_type: bool
+    priority: int
+    ordinal: int
 
 
 @dataclass(frozen=True)
@@ -1285,6 +1305,100 @@ def carve_embedded_pes(data: bytes, limit: int = 16) -> list[tuple[str, bytes]]:
     return CarvedPeArtifacts(artifacts, scan_report)
 
 
+def _prioritize_pe_resource_entries(
+    pe: object,
+) -> tuple[list[_PeResourceCandidate], int, bool, int]:
+    """resource bodyを読まず、独自typeとdata系typeを有界に先行させる。
+
+    大量のicon/PNGがresource treeの先頭にある検体でも、後方に置かれた
+    named custom typeやRCDATAを ``MAX_PE_RESOURCE_ENTRIES`` の内容走査枠へ
+    入れる。metadata自体も別上限で打ち切り、未列挙分があればcompleteとは
+    扱わない。
+    """
+
+    root = getattr(pe, "DIRECTORY_ENTRY_RESOURCE", None)
+    type_entries = getattr(root, "entries", ())
+    candidates: list[_PeResourceCandidate] = []
+    discovered = 0
+    invalid = 0
+    truncated = False
+    stop = False
+    try:
+        iterator = iter(type_entries)
+    except TypeError:
+        return [], 0, False, 1
+    for type_entry in iterator:
+        type_name = getattr(type_entry, "name", None)
+        try:
+            type_text = str(type_name).strip().casefold() if type_name is not None else ""
+        except (TypeError, ValueError):
+            type_text = ""
+        named_ui_type = type_text in LOW_PRIORITY_NAMED_PE_RESOURCE_TYPES
+        custom_named_type = type_name is not None and not named_ui_type
+        try:
+            type_id = int(getattr(type_entry, "id", -1))
+        except (TypeError, ValueError, OverflowError):
+            type_id = -1
+        type_directory = getattr(type_entry, "directory", None)
+        name_entries = getattr(type_directory, "entries", ())
+        try:
+            name_iterator = iter(name_entries)
+        except TypeError:
+            invalid += 1
+            continue
+        for name_entry in name_iterator:
+            name_directory = getattr(name_entry, "directory", None)
+            lang_entries = getattr(name_directory, "entries", ())
+            try:
+                lang_iterator = iter(lang_entries)
+            except TypeError:
+                invalid += 1
+                continue
+            for lang_entry in lang_iterator:
+                discovered += 1
+                if discovered > MAX_PE_RESOURCE_METADATA_ENTRIES:
+                    truncated = True
+                    stop = True
+                    break
+                data_struct = getattr(getattr(lang_entry, "data", None), "struct", None)
+                if data_struct is None:
+                    invalid += 1
+                    continue
+                if custom_named_type:
+                    priority = 0
+                elif type_id in {10, 23}:
+                    # RT_RCDATA / RT_HTMLは任意payload carrierとして頻出する。
+                    priority = 1
+                elif named_ui_type or type_id in {
+                    2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 14, 16, 21, 24
+                }:
+                    priority = 3
+                else:
+                    priority = 2
+                candidates.append(
+                    _PeResourceCandidate(
+                        data_struct=data_struct,
+                        custom_named_type=custom_named_type,
+                        named_ui_type=named_ui_type,
+                        priority=priority,
+                        ordinal=discovered,
+                    )
+                )
+            if stop:
+                break
+        if stop:
+            break
+    candidates.sort(key=lambda item: (item.priority, item.ordinal))
+    return candidates, min(discovered, MAX_PE_RESOURCE_METADATA_ENTRIES), truncated, invalid
+
+
+def _retain_opaque_pe_resource(blob: bytes, *, custom_named_type: bool) -> bool:
+    """独自named typeだけ小型の高entropy payload候補も保持する。"""
+
+    minimum_size = 512 if custom_named_type else 4096
+    return len(blob) >= minimum_size and entropy(blob) >= 7.2
+
+
 def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
     """PEのパッキング証拠を分類し、埋め込みアーティファクトを上限付きで復元する。"""
     pe = pefile.PE(data=data, fast_load=True)
@@ -1405,28 +1519,56 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
     png_resources_with_concealed_data = 0
     invalid_png_resources = 0
     resource_started = time.monotonic()
+    resource_metadata_entries = 0
+    invalid_resource_metadata_entries = 0
+    invalid_resource_data_entries = 0
+    resource_metadata_truncated = False
+    prioritized_custom_type_entries = 0
+    prioritized_data_type_entries = 0
+    deprioritized_named_ui_entries = 0
     if directory_parse["resources"]["status"] != "parsed":
         resource_exhausted_reasons.append(
             f"resource_directory_{directory_parse['resources']['status']}"
         )
     if hasattr(pe, "DIRECTORY_ENTRY_RESOURCE"):
-        resource_entries = (
-            lang_entry
-            for type_entry in pe.DIRECTORY_ENTRY_RESOURCE.entries
-            for name_entry in getattr(type_entry.directory, "entries", [])
-            for lang_entry in getattr(name_entry.directory, "entries", [])
+        (
+            resource_entries,
+            resource_metadata_entries,
+            resource_metadata_truncated,
+            invalid_resource_metadata_entries,
+        ) = _prioritize_pe_resource_entries(pe)
+        prioritized_custom_type_entries = sum(
+            item.custom_named_type for item in resource_entries
         )
-        for lang_entry in resource_entries:
+        prioritized_data_type_entries = sum(
+            item.priority == 1 for item in resource_entries
+        )
+        deprioritized_named_ui_entries = sum(
+            item.named_ui_type for item in resource_entries
+        )
+        if resource_metadata_truncated:
+            resource_exhausted_reasons.append("resource_metadata_count_budget")
+        if invalid_resource_metadata_entries:
+            resource_exhausted_reasons.append("resource_metadata_invalid")
+        for resource_entry in resource_entries:
             if resource_count >= MAX_PE_RESOURCE_ENTRIES:
                 resource_exhausted_reasons.append("resource_count_budget")
                 break
             if time.monotonic() - resource_started >= MAX_PE_RESOURCE_ELAPSED_SECONDS:
                 resource_exhausted_reasons.append("resource_elapsed_time_budget")
                 break
-            item = lang_entry.data.struct
-            declared_size = int(item.Size)
+            item = resource_entry.data_struct
+            try:
+                declared_size = int(getattr(item, "Size"))
+                data_offset = int(getattr(item, "OffsetToData"))
+            except (AttributeError, TypeError, ValueError, OverflowError):
+                invalid_resource_data_entries += 1
+                continue
             resource_count += 1
-            if declared_size <= 0:
+            if declared_size < 0 or data_offset < 0:
+                invalid_resource_data_entries += 1
+                continue
+            if declared_size == 0:
                 continue
             if declared_size > MAX_ARTIFACT:
                 resource_exhausted_reasons.append("resource_entry_size_budget")
@@ -1434,7 +1576,11 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             if resource_bytes_inspected + declared_size > MAX_PE_RESOURCE_TOTAL_BYTES:
                 resource_exhausted_reasons.append("resource_total_bytes_budget")
                 break
-            blob = pe.get_data(item.OffsetToData, declared_size)
+            try:
+                blob = pe.get_data(data_offset, declared_size)
+            except (AttributeError, IndexError, pefile.PEFormatError, ValueError):
+                invalid_resource_data_entries += 1
+                continue
             resource_bytes_inspected += len(blob)
             if len(blob) != declared_size:
                 continue
@@ -1451,18 +1597,31 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             if (
                 resource_format == "data"
                 and not children
-                and len(blob) >= 4096
-                and entropy(blob) >= 7.2
+                and _retain_opaque_pe_resource(
+                    blob,
+                    custom_named_type=resource_entry.custom_named_type,
+                )
                 and opaque_resources < 32
             ):
                 artifacts.append(("pe-resource-opaque", blob))
                 opaque_resources += 1
+        if invalid_resource_data_entries:
+            resource_exhausted_reasons.append("resource_data_metadata_invalid")
     resource_scan = {
         "status": "partial" if resource_exhausted_reasons else "complete",
         "entries_inspected": resource_count,
+        "metadata_entries_discovered": resource_metadata_entries,
+        "invalid_metadata_entries": invalid_resource_metadata_entries,
+        "invalid_data_entries": invalid_resource_data_entries,
+        "metadata_inventory_truncated": resource_metadata_truncated,
+        "custom_named_type_entries_prioritized": prioritized_custom_type_entries,
+        "rcdata_or_html_entries_prioritized": prioritized_data_type_entries,
+        "named_ui_type_entries_deprioritized": deprioritized_named_ui_entries,
+        "priority_strategy": "named_custom_then_rcdata_html_then_other_then_ui",
         "bytes_inspected": resource_bytes_inspected,
         "budgets": {
             "max_entries": MAX_PE_RESOURCE_ENTRIES,
+            "max_metadata_entries": MAX_PE_RESOURCE_METADATA_ENTRIES,
             "max_total_bytes": MAX_PE_RESOURCE_TOTAL_BYTES,
             "max_elapsed_seconds": MAX_PE_RESOURCE_ELAPSED_SECONDS,
         },
@@ -1661,6 +1820,41 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
     )
 
 
+def inflate_dotnet_length_prefixed_gzip(data: bytes) -> bytes | None:
+    """4-byte展開長と単一GZip memberを上限付きで復元する。"""
+
+    if not isinstance(data, bytes) or len(data) < 6 or data[4:6] != b"\x1f\x8b":
+        return None
+    if len(data) - 4 > MAX_DOTNET_RESOURCE_ENTRY_BYTES:
+        raise ValueError(".NET resource GZip入力が単体上限を超えています")
+    declared = struct.unpack_from("<I", data, 0)[0]
+    if not 0 < declared <= MAX_DOTNET_RESOURCE_ENTRY_BYTES:
+        raise ValueError(".NET resource GZip展開長が上限外です")
+    compressed = memoryview(data)[4:]
+    if declared / max(1, len(compressed)) > MAX_DOTNET_RESOURCE_GZIP_RATIO:
+        raise ValueError(".NET resource GZip展開比率が上限を超えています")
+    decoder = zlib.decompressobj(16 + zlib.MAX_WBITS)
+    try:
+        output = decoder.decompress(compressed, declared + 1)
+    except zlib.error as exc:
+        raise ValueError(".NET resource GZip memberが不正です") from exc
+    if len(output) > declared or decoder.unconsumed_tail:
+        raise ValueError(".NET resource GZip出力が宣言長を超えています")
+    try:
+        tail = decoder.flush()
+    except zlib.error as exc:
+        raise ValueError(".NET resource GZip終端が不正です") from exc
+    output += tail
+    if (
+        len(output) != declared
+        or not decoder.eof
+        or decoder.unused_data
+        or decoder.unconsumed_tail
+    ):
+        raise ValueError(".NET resource GZip長・終端・trailing dataが一致しません")
+    return output
+
+
 @_contain_parser_diagnostics
 def recover_dotnet_resources(
     data: bytes,
@@ -1670,9 +1864,22 @@ def recover_dotnet_resources(
         image = dnfile.dnPE(data=data)
     except Exception as exc:  # dnfile raises several parser-specific exceptions
         return {"status": "parse_failed", "error": type(exc).__name__}, []
-    resources = getattr(getattr(image, "net", None), "resources", []) or []
+    resources = list(getattr(getattr(image, "net", None), "resources", []) or [])
+    if len(resources) > MAX_ARCHIVE_MEMBERS:
+        return {
+            "status": "resource_budget_exhausted",
+            "reason": "manifest_resource_count_limit",
+            "count": len(resources),
+        }, []
     inventory, artifacts = [], []
-    for resource in resources[:MAX_ARCHIVE_MEMBERS]:
+    entry_count = 0
+    entry_bytes = 0
+    byte_entry_count = 0
+    gzip_candidate_count = 0
+    gzip_rejection_count = 0
+    gzip_pe_count = 0
+    recovered_gzip_hashes: set[str] = set()
+    for resource in resources:
         name = str(getattr(resource, "name", "unnamed.resources"))
         size = int(getattr(resource, "size", 0) or 0)
         rva = int(getattr(resource, "rva", 0) or 0)
@@ -1686,14 +1893,46 @@ def recover_dotnet_resources(
             inventory.append({"name": name, "size": size, "status": "empty"})
             continue
         resource_set = getattr(resource, "data", None)
+        resource_entries = list(getattr(resource_set, "entries", []) or [])
+        if entry_count + len(resource_entries) > MAX_DOTNET_RESOURCE_ENTRIES:
+            return {
+                "status": "resource_budget_exhausted",
+                "reason": "resource_entry_count_limit",
+                "count": len(inventory),
+                "resource_entry_scan": {
+                    "entries_inspected": entry_count,
+                    "entry_bytes_inspected": entry_bytes,
+                },
+            }, []
+        entry_count += len(resource_entries)
         entries = []
-        for entry in (getattr(resource_set, "entries", []) or [])[:MAX_ARCHIVE_MEMBERS]:
+        entry_payloads: list[bytes] = []
+        for entry in resource_entries:
             entries.append(
                 {
                     "name": str(getattr(entry, "name", "")),
                     "type": str(getattr(entry, "type_name", "")),
                 }
             )
+            value = getattr(entry, "value", None)
+            if not isinstance(value, (bytes, bytearray)):
+                continue
+            payload = bytes(value)
+            if len(payload) > MAX_DOTNET_RESOURCE_ENTRY_BYTES:
+                return {
+                    "status": "resource_budget_exhausted",
+                    "reason": "resource_entry_size_limit",
+                    "count": len(inventory),
+                }, []
+            entry_bytes += len(payload)
+            if entry_bytes > MAX_DOTNET_RESOURCE_ENTRY_TOTAL_BYTES:
+                return {
+                    "status": "resource_budget_exhausted",
+                    "reason": "resource_entry_total_bytes_limit",
+                    "count": len(inventory),
+                }, []
+            byte_entry_count += 1
+            entry_payloads.append(payload)
         kind = detect_format(blob, name)
         item = {
             "name": name,
@@ -1710,6 +1949,26 @@ def recover_dotnet_resources(
         artifacts.extend(carve_embedded_pes(blob))
         if kind == "data" and len(blob) >= 4096 and entropy(blob) >= 7.0:
             artifacts.append(("dotnet-resource-opaque", blob))
+        for payload in entry_payloads:
+            if len(payload) < 6 or payload[4:6] != b"\x1f\x8b":
+                continue
+            gzip_candidate_count += 1
+            try:
+                recovered = inflate_dotnet_length_prefixed_gzip(payload)
+            except ValueError:
+                gzip_rejection_count += 1
+                continue
+            if recovered is None:
+                continue
+            extent = valid_pe_extent(recovered, 0) if recovered.startswith(b"MZ") else None
+            if extent is None:
+                continue
+            digest = sha256_bytes(recovered)
+            if digest in recovered_gzip_hashes:
+                continue
+            recovered_gzip_hashes.add(digest)
+            artifacts.append(("dotnet-resource-le32-gzip-pe", recovered))
+            gzip_pe_count += 1
         bitmap_report, bitmap_artifacts = recover_dotnet_bitmap_payloads(resource_set)
         if bitmap_report["status"] != "no_bitmap_entries":
             item["bitmap_payloads"] = bitmap_report
@@ -1718,6 +1977,20 @@ def recover_dotnet_resources(
         "status": "resources_recovered" if inventory else "no_manifest_resources",
         "count": len(inventory),
         "inventory": inventory,
+        "resource_entry_scan": {
+            "status": "complete",
+            "entries_inspected": entry_count,
+            "byte_entries_inspected": byte_entry_count,
+            "entry_bytes_inspected": entry_bytes,
+            "length_prefixed_gzip_candidates": gzip_candidate_count,
+            "length_prefixed_gzip_rejections": gzip_rejection_count,
+            "length_prefixed_gzip_pe_recovered": gzip_pe_count,
+            "limits": {
+                "entries": MAX_DOTNET_RESOURCE_ENTRIES,
+                "entry_bytes": MAX_DOTNET_RESOURCE_ENTRY_BYTES,
+                "total_bytes": MAX_DOTNET_RESOURCE_ENTRY_TOTAL_BYTES,
+            },
+        },
     }, artifacts
 
 
@@ -3914,6 +4187,12 @@ def unpack_bytes(
             report["unpack_status"] = "corrupt_or_truncated"
             return report, []
         artifacts.extend(recovered)
+        bin101_recovery = recover_bin101_payload(static_data)
+        if bin101_recovery is not None:
+            report["bin101_nibble_rc4_loader"] = bin101_recovery.metadata()
+            artifacts.append(
+                ("bin101-nibble-rc4-shellcode", bin101_recovery.payload)
+            )
         if should_analyze_opaque_native_entry(report["pe"]):
             report["opaque_native_entry"] = analyze_opaque_native_pe(static_data)
         report["dotnet_bundle"], recovered = recover_dotnet_bundle(

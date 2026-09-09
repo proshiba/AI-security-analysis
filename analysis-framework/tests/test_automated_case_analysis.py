@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import importlib
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
@@ -16,6 +15,7 @@ handler_evidence = importlib.import_module("handler_evidence")
 DIGEST = "a" * 64
 REPOSITORY = Path(__file__).resolve().parents[2]
 HANDLER_ID = "fixture:extract_config.py:extract_config"
+SCREENCONNECT_HANDLER_ID = "screenconnect_rmm:extract_config.py:extract_config"
 
 
 def _execution(**updates: object) -> dict:
@@ -31,16 +31,30 @@ def _artifact(
     result: dict,
     *,
     handler_family: str = "fixture",
+    handler_id: str = HANDLER_ID,
     **updates: object,
 ) -> dict:
     return {
-        "handler": {"id": HANDLER_ID, "family": handler_family},
+        "handler": {"id": handler_id, "family": handler_family},
         "result": result,
         "selected_evidence": {"sufficient": True},
         "executed_sample": False,
         "network_contacted": False,
         **updates,
     }
+
+
+def _screenconnect_pair(result: dict) -> tuple[dict, dict]:
+    """catalog familyとhandler ID prefixが一致するScreenConnect fixtureを返す。"""
+
+    return (
+        _execution(handler_id=SCREENCONNECT_HANDLER_ID),
+        _artifact(
+            result,
+            handler_family="screenconnect_rmm",
+            handler_id=SCREENCONNECT_HANDLER_ID,
+        ),
+    )
 
 
 def test_trusted_handler_result_requires_matching_static_evidence() -> None:
@@ -104,6 +118,37 @@ def test_pattern_document_separates_confirmed_and_candidate_endpoints() -> None:
     assert "token=secret" not in encoded
 
 
+def test_stage_locator_is_candidate_without_config_or_c2_promotion() -> None:
+    """取得先URLは観測候補に残すが、終端configやC2確認には使わない。"""
+
+    result = {
+        "static_stage_locator_recovered": True,
+        "static_config_recovered": False,
+        "config": {
+            "static_stage_locator_recovered": True,
+            "static_config_recovered": False,
+            "stage_urls": ["https://stage.example.org/payload.bin"],
+        },
+    }
+    document = handler_evidence.build_communication_pattern_document(
+        sha256=DIGEST,
+        family="fixture",
+        handler_results=[(_execution(), _artifact(result))],
+    )
+
+    assert document["status"] == "candidate_patterns_only"
+    assert document["config"]["static_config_recovered"] is False
+    assert document["communication"]["confirmed_static_endpoints"] == []
+    assert document["communication"]["candidate_patterns"] == [
+        {
+            "value": "https://stage.example.org/payload.bin",
+            "source": f"handler:{HANDLER_ID}",
+            "source_field": "result.config.stage_urls",
+            "status": "candidate_static_handler_output",
+        }
+    ]
+
+
 def test_nested_unvalidated_dual_use_config_is_not_treated_as_management() -> None:
     result = {
         "relay": {
@@ -137,7 +182,7 @@ def test_nested_unvalidated_dual_use_config_is_not_treated_as_management() -> No
     document = handler_evidence.build_communication_pattern_document(
         sha256=DIGEST,
         family="screenconnect_rmm",
-        handler_results=[(_execution(), _artifact(result))],
+        handler_results=[_screenconnect_pair(result)],
     )
 
     endpoints = document["communication"]["confirmed_static_endpoints"]
@@ -153,7 +198,7 @@ def test_nested_unvalidated_dual_use_config_is_not_treated_as_management() -> No
                 "c2_classification": "dual_use_not_c2_by_itself",
                 "malicious_use_confirmed": False,
             },
-            "source": f"handler:{HANDLER_ID}",
+            "source": f"handler:{SCREENCONNECT_HANDLER_ID}",
         }
     ]
     assert "tenant_key" not in repr(endpoints).casefold()
@@ -178,7 +223,7 @@ def test_nested_config_endpoint_requires_complete_static_validation() -> None:
     document = handler_evidence.build_communication_pattern_document(
         sha256=DIGEST,
         family="screenconnect_rmm",
-        handler_results=[(_execution(), _artifact({"config": config}))],
+        handler_results=[_screenconnect_pair({"config": config})],
     )
 
     assert document["config"]["static_config_recovered"] is True
@@ -216,9 +261,7 @@ def test_legacy_screenconnect_result_is_projected_fail_closed() -> None:
     document = handler_evidence.build_communication_pattern_document(
         sha256=DIGEST,
         family="screenconnect_rmm",
-        handler_results=[
-            (_execution(), _artifact(legacy, handler_family="screenconnect_rmm"))
-        ],
+        handler_results=[_screenconnect_pair(legacy)],
     )
 
     endpoint = document["communication"]["confirmed_static_endpoints"][0]
@@ -232,9 +275,7 @@ def test_legacy_screenconnect_result_is_projected_fail_closed() -> None:
     rejected = handler_evidence.build_communication_pattern_document(
         sha256=DIGEST,
         family="screenconnect_rmm",
-        handler_results=[
-            (_execution(), _artifact(legacy, handler_family="screenconnect_rmm"))
-        ],
+        handler_results=[_screenconnect_pair(legacy)],
     )
     assert rejected["communication"]["confirmed_static_endpoints"] == []
 
@@ -271,9 +312,7 @@ def test_dual_use_management_endpoint_is_excluded_from_c2_contract() -> None:
         sha256=DIGEST,
         family="screenconnect_rmm",
         layer_report={"counts": {"recovered_layers": 1}},
-        handler_results=[
-            (_execution(), _artifact(legacy, handler_family="screenconnect_rmm"))
-        ],
+        handler_results=[_screenconnect_pair(legacy)],
     )
 
     communication = patterns["communication"]
@@ -294,9 +333,7 @@ def test_dual_use_management_endpoint_is_excluded_from_c2_contract() -> None:
         sha256=DIGEST,
         family="screenconnect_rmm",
         layer_report={"counts": {"recovered_layers": 1}},
-        handler_results=[
-            (_execution(), _artifact(legacy, handler_family="screenconnect_rmm"))
-        ],
+        handler_results=[_screenconnect_pair(legacy)],
         screenconnect_no_c2_completion_verified=True,
     )
     assert contract["c2"]["outcome"] == "no_c2_capability_verified"
@@ -316,9 +353,7 @@ def test_dual_use_management_endpoint_is_excluded_from_c2_contract() -> None:
         sha256=DIGEST,
         family="screenconnect_rmm",
         layer_report={"counts": {"recovered_layers": 1}},
-        handler_results=[
-            (_execution(), _artifact(legacy, handler_family="screenconnect_rmm"))
-        ],
+        handler_results=[_screenconnect_pair(legacy)],
         screenconnect_no_c2_completion_verified=True,
     )
     assert rejected_patterns["config"]["terminal_managed_client"] is False
@@ -371,9 +406,7 @@ def test_malformed_screenconnect_cannot_fallback_to_generic_terminal_flag() -> N
         sha256=DIGEST,
         family="screenconnect_rmm",
         layer_report={"counts": {"recovered_layers": 1}},
-        handler_results=[
-            (_execution(), _artifact(result, handler_family="screenconnect_rmm"))
-        ],
+        handler_results=[_screenconnect_pair(result)],
         screenconnect_no_c2_completion_verified=True,
     )
 
@@ -503,9 +536,7 @@ def test_screenconnect_protocol_evidence_prevents_no_c2_completion() -> None:
         sha256=DIGEST,
         family="screenconnect_rmm",
         layer_report={"counts": {"recovered_layers": 1}},
-        handler_results=[
-            (_execution(), _artifact(result, handler_family="screenconnect_rmm"))
-        ],
+        handler_results=[_screenconnect_pair(result)],
         screenconnect_no_c2_completion_verified=True,
     )
 

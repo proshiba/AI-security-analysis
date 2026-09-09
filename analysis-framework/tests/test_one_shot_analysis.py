@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import pytest
 import pyzipper
-
 
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
 COMMON_ROOT = FRAMEWORK_ROOT / "common"
@@ -29,7 +28,6 @@ from handler_catalog import (  # noqa: E402
     load_handler,
     sanitize_public_value,
 )
-
 
 REGISTRY = FRAMEWORK_ROOT / "registry" / "malware_types.json"
 
@@ -528,6 +526,12 @@ def test_handler_quality_separates_family_label_from_evidence() -> None:
     static = handler_result_quality(
         {"static_config_recovered": True, "config": {"host": "static.example.org"}}
     )
+    locator = handler_result_quality(
+        {
+            "static_stage_locator_recovered": True,
+            "stage_urls": ["https://stage.example.org/payload.bin"],
+        }
+    )
     decoded = handler_result_quality(
         {"decoded_config_recovered": True, "config": {"host": "decoded.example.org"}}
     )
@@ -535,6 +539,8 @@ def test_handler_quality_separates_family_label_from_evidence() -> None:
     assert empty["sufficient"] is False
     assert candidate["tier"] == 1
     assert static["tier"] == 3
+    assert locator["tier"] == 3
+    assert locator["tier_name"] == "validated_static_stage_locator"
     assert decoded["tier"] == 4
     assert decoded["score"] > static["score"] > candidate["score"]
 

@@ -39,14 +39,32 @@ def _key_builder(key: bytes) -> bytes:
     return bytes(result)
 
 
+def _codemark_payload() -> bytes:
+    """厳密な2-slot codemark headerを持つ合成x86 stageを返す。"""
+
+    payload = bytearray(b"\x55\x8b\xec" + b"\x90" * 1_197)
+    marker_offset = 128
+    first = b"203.0.113.77\0"
+    second = b"198.51.100.24\0"
+    header = bytearray(0x38)
+    header[:8] = b"codemark"
+    header[0x20:0x24] = len(first).to_bytes(4, "little")
+    header[0x24:0x28] = (443).to_bytes(4, "little")
+    header[0x28:0x2C] = (1).to_bytes(4, "little")
+    header[0x2C:0x30] = len(second).to_bytes(4, "little")
+    header[0x30:0x34] = (8443).to_bytes(4, "little")
+    header[0x34:0x38] = (1).to_bytes(4, "little")
+    end = marker_offset + len(header) + len(first) + len(second)
+    payload[marker_offset:end] = header + first + second
+    return bytes(payload)
+
+
 def _valid_sample() -> tuple[bytes, bytes, bytes]:
     key = (b"Ab9" * 80)[:200]
-    payload = bytearray(b"\x55\x8b\xec" + b"\x90" * 1_197)
-    payload[128:136] = b"codemark"
-    payload[256:270] = b"203.0.113.77\0"
+    payload = _codemark_payload()
     encrypted = MODULE.rc4(bytes(value ^ 0xFF for value in payload), key)
     sample = _key_builder(key) + b"\x00not-hex\x00" + encrypted.hex().encode() + b"\x00"
-    return sample, bytes(payload), key
+    return sample, payload, key
 
 
 def test_sequential_key_builder_and_payload_are_recovered_without_execution() -> None:
@@ -75,7 +93,7 @@ def test_sequential_key_builder_and_payload_are_recovered_without_execution() ->
         "network_contacted",
     }
     assert summary["algorithm"] == ["ascii_hex_decode", "rc4", "xor_each_byte_0xff"]
-    assert summary["endpoints"] == ["203.0.113.77"]
+    assert summary["endpoints"] == ["203.0.113.77:443", "198.51.100.24:8443"]
     assert summary["markers"] == ["codemark"]
     assert summary["executed"] is False
     assert summary["network_contacted"] is False
@@ -110,12 +128,22 @@ def test_ambiguous_valid_recoveries_fail_closed() -> None:
     """検証済みの組が複数ある入力を一意なpayloadとして返さない。"""
 
     key = (b"Ab9" * 80)[:200]
-    payload = bytearray(b"\x90" * 1_200)
-    payload[128:136] = b"codemark"
-    payload[256:270] = b"203.0.113.77\0"
+    payload = _codemark_payload()
     encrypted = MODULE.rc4(bytes(value ^ 0xFF for value in payload), key)
     hex_blob = encrypted.hex().encode()
     sample = _key_builder(key) + b"\x00" + hex_blob + b"\x00" + hex_blob + b"\x00"
+
+    with pytest.raises(MODULE.MsocfPayloadError, match="count must be one"):
+        MODULE.recover_msocf_payload(sample)
+
+
+def test_marker_and_ipv4_without_valid_codemark_header_fail_closed() -> None:
+    """markerとIP文字列だけの復号物をterminal configへ昇格しない。"""
+
+    key = (b"Ab9" * 80)[:200]
+    payload = b"codemark " + b"203.0.113.77" + b"\x90" * 1_200
+    encrypted = MODULE.rc4(bytes(value ^ 0xFF for value in payload), key)
+    sample = _key_builder(key) + b"\x00" + encrypted.hex().encode() + b"\x00"
 
     with pytest.raises(MODULE.MsocfPayloadError, match="count must be one"):
         MODULE.recover_msocf_payload(sample)
@@ -290,6 +318,30 @@ def test_candidate_and_decode_work_limits_fail_before_rc4(
     monkeypatch.setattr(MODULE, "rc4", lambda *_args: pytest.fail("RC4へ到達してはなりません"))
     with pytest.raises(MODULE.MsocfPayloadError, match="復号予定byte数"):
         MODULE.recover_msocf_payload(sample)
+
+
+def test_hex_blob_decode_uses_span_without_materializing_match_group(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """長大なhex文字列をmatch.groupで複製せず、元入力のviewから復号する。"""
+
+    class SpanOnlyMatch:
+        @staticmethod
+        def span(group: int) -> tuple[int, int]:
+            assert group == 1
+            return 0, 2048
+
+        @staticmethod
+        def group(_group: int) -> bytes:
+            pytest.fail("長大なmatch.groupをmaterializeしてはなりません")
+
+    class SpanOnlyPattern:
+        @staticmethod
+        def finditer(_data: bytes) -> list[SpanOnlyMatch]:
+            return [SpanOnlyMatch()]
+
+    monkeypatch.setattr(MODULE, "HEX_RUN", SpanOnlyPattern())
+    assert MODULE.find_hex_blobs(b"00" * 1024) == [(0, b"\x00" * 1024)]
 
 
 def test_input_size_limit_fails_before_candidate_scan(

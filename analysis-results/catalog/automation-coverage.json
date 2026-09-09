@@ -22,12 +22,12 @@
     "declared_script_only_handler_available": 87,
     "declared_script_only_handler_percent": 97.75,
     "detector_registered": 79,
-    "executed_preflight_count": 1056,
+    "executed_preflight_count": 1042,
     "executed_runtime_import_count": 99,
     "families": 89,
     "fully_routable": 79,
     "fully_routable_percent": 88.76,
-    "planned_preflight_count": 1056,
+    "planned_preflight_count": 1042,
     "planned_runtime_import_count": 99,
     "preflight_limit": 2048,
     "quality_gated_script_only_handler_available": 87,
@@ -78,7 +78,7 @@
             "zip"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "700c997bdf7b04375701338dc6fd54f58050737e08c9d5b44316496164fad509",
+          "dependency_fingerprint_sha256": "1dc10c0b022f85b1079cbc76c3135563fddc56578183b7e07389259eb48597e1",
           "eligible": true,
           "eligible_formats": [
             "autoit-a3x",
@@ -192,8 +192,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 33,
-          "dependency_fingerprint_sha256": "fd9cd2c1810bd3d0ca48ac48649b490d134d283e26517713863e756cc7a69ce3",
+          "dependency_file_count": 34,
+          "dependency_fingerprint_sha256": "b1055d62c7d55c438dbbc1c69059c3b777e81204862a52b16e491636fa1f51a7",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -256,7 +256,7 @@
             "zip"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "eaec30d6a9677782f60c4cb2e629392435a67da5c2a437f939c7c5114d45438c",
+          "dependency_fingerprint_sha256": "3350a8ebd45d7224a637ef740684cc67c289e4209921309a6dacbbea5dc7c41b",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -422,7 +422,7 @@
             "zip"
           ],
           "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "60adb52dfef061b440eee60fb541fd85e135d6f8c7177b8ef9dc26be922e5a1b",
+          "dependency_fingerprint_sha256": "8f9a3150d06167173f04148a86e30858f7577852948f304302faf60478e1fdb9",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -581,7 +581,7 @@
             "zip"
           ],
           "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "79a5eb42ab18a9e11fdfcfeb5a4e389542eb4b7fda9cdbf14d397a89c0fd520a",
+          "dependency_fingerprint_sha256": "de6e909b82f4a6f966a41e7c32a1924aa6600916c33d62a8b162cdbd92d3e6fd",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -695,7 +695,7 @@
             "pe"
           ],
           "dependency_file_count": 7,
-          "dependency_fingerprint_sha256": "6cb02d7801731c628ca7ccd4bb1d26711494b28b3a40d9e4f6d1290f49a3be74",
+          "dependency_fingerprint_sha256": "e3494f80d0ed8a94c8601a0954467a066670f8deb1f90d5e64e64d08124573dc",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -824,7 +824,7 @@
             "zip"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "3169055b4fda383084ebba28f735b48d4abf4a9f8c33c8a0f13b2c4e68ce86da",
+          "dependency_fingerprint_sha256": "5674688a52eba0ea0f49701f03be66d5e0b051bfeee516f8831900334d70c4a6",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -2020,7 +2020,7 @@
             "zip"
           ],
           "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "2f0ba4aa80618291b90c673ff308556ff5e10ba7bec1fd10d88ed01f36dd0b16",
+          "dependency_fingerprint_sha256": "4969b7469bbc62ea1e67817f8a795ce8f027ade0b965fb159d949d2918740452",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -2134,7 +2134,7 @@
             "pe"
           ],
           "dependency_file_count": 7,
-          "dependency_fingerprint_sha256": "47672bd92bf53f7a1d67f3c63581553ae2917cadd2604b26adff5c1b8f8b83e3",
+          "dependency_fingerprint_sha256": "605c7ac2faca868047d30dc34fbeeb1c29103347f2e883ee9c843fc34635d3df",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -2262,8 +2262,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 33,
-          "dependency_fingerprint_sha256": "e708754a44c5d649b086c3477387b9e18f20dc03e36b642698c998d369f56f18",
+          "dependency_file_count": 34,
+          "dependency_fingerprint_sha256": "0894961e259e01f69f7e6ae392cbc32bc84ff53eaa3b7005f32db33f1fe6d8d9",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -2376,8 +2376,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 31,
-          "dependency_fingerprint_sha256": "b967a1a65b7f242e85681979e9885c16af8294f31be47b0effcdef94339401aa",
+          "dependency_file_count": 32,
+          "dependency_fingerprint_sha256": "a7b7fcff350e3665dd8a1beae8fab64ff0fc4366761769ccf0a09ba0f6d44cd0",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -2466,7 +2466,7 @@
             "elf"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "0c2ef55091b43ba2ec07e5d3028693e50a730bdbd5c8b45276b0ebaffb85bdfe",
+          "dependency_fingerprint_sha256": "a8bbfef721bfce81fe4683ea11db38e83204f8a0f490cfabebffdf5d938dcae7",
           "eligible": true,
           "eligible_formats": [
             "elf"
@@ -2709,7 +2709,7 @@
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "48218838a6e3428f0337b2f3a8271985032a2bec6301188da2a6f0609fba20a5",
+          "dependency_fingerprint_sha256": "47b6279c0a16de626dbe89e991b7629478425a58f2d28683a39e108a4dfd2e60",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -2999,7 +2999,7 @@
             "zip"
           ],
           "dependency_file_count": 5,
-          "dependency_fingerprint_sha256": "c6cfc5b9482daeb5f965e17a7d7b00453da44fc4dede21437c451327b2671f7a",
+          "dependency_fingerprint_sha256": "b3200ec445c532130df56d5f80bcef79c54d78511959cdd1e4cc72a97ff3f648",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -3157,8 +3157,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 29,
-          "dependency_fingerprint_sha256": "48a5df696f6f3a4170a2981c9d1d39c9d53c447480f1b51a4e4522df2be5954e",
+          "dependency_file_count": 30,
+          "dependency_fingerprint_sha256": "267fd0307f6733b7c90805b0adab40a96034cc42957b0df476e1b1c366418403",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -3523,7 +3523,7 @@
             "script"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
+          "dependency_fingerprint_sha256": "003fb6a3be8a2496c519ce878d703436f7ff194cd13b58000ec23f2add5d33c9",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -3611,7 +3611,7 @@
             "pe"
           ],
           "dependency_file_count": 1,
-          "dependency_fingerprint_sha256": "83d64db351f59512c9872e87235a0736736a4acd2452abb7bc0656ddddbb3da5",
+          "dependency_fingerprint_sha256": "a8f3b4e3d4693937d821ceaf3f500fbb92dd9a482575525dfe4bf35f7446c6ca",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -3953,7 +3953,7 @@
             "script"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
+          "dependency_fingerprint_sha256": "003fb6a3be8a2496c519ce878d703436f7ff194cd13b58000ec23f2add5d33c9",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -4723,7 +4723,7 @@
             "zip"
           ],
           "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "dd41493fbd21f83da3e72782007e1c61e655ddb97117fbf359bf421c7d777012",
+          "dependency_fingerprint_sha256": "87802f769c8b081828622ce691aff569687f2021b29d5bf6adbef6c3e173bf74",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -4837,7 +4837,7 @@
             "script"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "b45cd8b1c633d613d9739ccd82dc9bf0735db0f1d80704800b685b16b8e9ab1f",
+          "dependency_fingerprint_sha256": "221639d23ad9cb3ad91f1ae60fa35267238536feb2887a9866fbc0500605aeea",
           "eligible": true,
           "eligible_formats": [
             "script"
@@ -5283,7 +5283,7 @@
             "zip"
           ],
           "dependency_file_count": 5,
-          "dependency_fingerprint_sha256": "a59f204ef326ba3f956bdd0e6c621fd932536bbedbe999bc750041818e51c349",
+          "dependency_fingerprint_sha256": "1af4e4173236139ffca15c9d1904302eed8a9e4671ba357ab2dd38fe2b4970f4",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -6338,7 +6338,7 @@
             "zip"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "d28917c3525f70efa537a16e9f21612cc5d548be7ef9ba754e335ad7e267488f",
+          "dependency_fingerprint_sha256": "7407f4d19f964b61873591f63fa1ae54e5fad8e1a0ed6e2d6c2e56282ed050e7",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -6611,7 +6611,7 @@
             "pe"
           ],
           "dependency_file_count": 5,
-          "dependency_fingerprint_sha256": "fd7a9109d38162a0ffc57070cdb2f7896657b9ec4bd63c2503988d66cf2f26fc",
+          "dependency_fingerprint_sha256": "e69198f50608b9145343111d51779a62d4c37def92fb9db6495791a07bc53a10",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -6740,7 +6740,7 @@
             "zip"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "8ed48648a1223de5d25d28d5adbd2fe07a8a8254c1a9d7bce34845ae21d9f055",
+          "dependency_fingerprint_sha256": "e47d4115054dc4fb38eb9cec9886539192b023319c9c9f4a2cc02e160d3154b5",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -8547,7 +8547,7 @@
             "pe"
           ],
           "dependency_file_count": 7,
-          "dependency_fingerprint_sha256": "878cffc9f3b94dd026ea5e47d768d4b077814d82e1d6b4f7bc8cd6b661156e9b",
+          "dependency_fingerprint_sha256": "103bf65eb2dd65cacd6493a724d9901ef48c4601f4c614db6a991ec0e0036b6c",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -8608,7 +8608,7 @@
             "zip"
           ],
           "dependency_file_count": 5,
-          "dependency_fingerprint_sha256": "7090b5280ad0339b0c393e3585f878e63fc5eed8d3dc2812df2c85d7976b36b4",
+          "dependency_fingerprint_sha256": "3086fe921236d280019a48afe2db2713d5570a519b255082b27a1db376390168",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -8770,7 +8770,7 @@
             "zip"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "dd61c15d042b713746cc01cda9966b956d941f4c9baf51b25edc1fd2f007f9c3",
+          "dependency_fingerprint_sha256": "36fb46b12c477f33752bccb13f5057eba1105da417a31f1c55e8f4f5315c5d13",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -9087,8 +9087,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 32,
-          "dependency_fingerprint_sha256": "57e4efe7f28b58cb073f263613543ed28010646da413757186ba83a0599ea470",
+          "dependency_file_count": 33,
+          "dependency_fingerprint_sha256": "36a94f7b51b4712836c5e1cb6b1843cecd626700b70284018ed4fd940bb990c4",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -9205,7 +9205,7 @@
             "elf"
           ],
           "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "4c3bf3403124ada139cad243d8edf1a07b53ee204b02d21bd68fcafbeaa43c58",
+          "dependency_fingerprint_sha256": "06da80b4aca3fc2ca215294d5407bf45ca774dd11f81905caa7579c6f143dd96",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -9297,7 +9297,7 @@
             "script"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
+          "dependency_fingerprint_sha256": "003fb6a3be8a2496c519ce878d703436f7ff194cd13b58000ec23f2add5d33c9",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -9430,7 +9430,7 @@
             "zip"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "051381dc61f87e9782c060424498148b682ddc04657030b3310e2fa4d8586938",
+          "dependency_fingerprint_sha256": "cfeac21a1b6e76bf25f669002996e1ee21c5f3b56d6e90bcf36df49e72c6ee69",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -9591,7 +9591,7 @@
             "zip"
           ],
           "dependency_file_count": 9,
-          "dependency_fingerprint_sha256": "11277dafd667fb77bb4a932cfc6cf25e02540e4f53dc41f573f66b4e40c95749",
+          "dependency_fingerprint_sha256": "4cc2bf2b3b1c95ea77ee17955ddc744ea9f354194dd48fc159bf970c86d58a87",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -9834,7 +9834,7 @@
             "zip"
           ],
           "dependency_file_count": 5,
-          "dependency_fingerprint_sha256": "94d7fb5fe1292f5b17fda40f9a4596365e2fd7d13b65a14a049e6dbcc43017da",
+          "dependency_fingerprint_sha256": "a821e4aa6f56b68011682d06e128fd44024e4eb20226b30e3ece3f967934404d",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -10121,8 +10121,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 33,
-          "dependency_fingerprint_sha256": "82da36f1d981f25e9eb09077d481e4bdb0c95f2aff97c29a60289db129e65ac9",
+          "dependency_file_count": 34,
+          "dependency_fingerprint_sha256": "6da1ca9f57bf3dd69b9bad798cd69c930c81e754ca928ae60c48f317dbd57834",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -10573,8 +10573,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 31,
-          "dependency_fingerprint_sha256": "37caceaaaed602406c0497575c0e4c779c687c01c4db9ee155575f315548a566",
+          "dependency_file_count": 32,
+          "dependency_fingerprint_sha256": "2070eff4c04ac8d59a2495f51fde6a7941e8b3c067000c08d1cac378e68b6f69",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -10733,7 +10733,7 @@
             "zip"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "cb112b82603d94f605da13cc5b5319ec66770be50c883037997a08f87e20f2a5",
+          "dependency_fingerprint_sha256": "97089d75d24b7ca8a8e053c2b0428c5cc254c41dcf8a90544e2a2b4c8dc60f79",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -11310,21 +11310,10 @@
     {
       "accepted_formats": [
         "7z",
-        "apple-disk-image",
-        "asar",
-        "autoit-a3x",
-        "cab",
         "data",
-        "elf",
-        "java-class",
-        "macho",
         "ole",
         "pe",
-        "png",
-        "rar",
-        "script",
-        "xz",
-        "zip"
+        "png"
       ],
       "automated_analysis_completion_possible": true,
       "automated_analysis_completion_verified": false,
@@ -11339,8 +11328,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 1,
-          "dependency_fingerprint_sha256": "b4b8da64032f6bbdf4b6891ab67210ded1a253e35085278c989ef9c752e7c0db",
+          "dependency_file_count": 39,
+          "dependency_fingerprint_sha256": "4abce6b7edcdaa28d027a2d8750b0ea624ba54e82e272706385d4cece44e0070",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11401,8 +11390,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 31,
-          "dependency_fingerprint_sha256": "26c452926888e0323b1f65461fe42a9f662a82ba6f40993f9c8d19ec97099817",
+          "dependency_file_count": 32,
+          "dependency_fingerprint_sha256": "199eb8137af7ef3d9acfd0acc70394f0c6195f23c909444faea1b0785438d261",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11465,8 +11454,8 @@
             "data",
             "pe"
           ],
-          "dependency_file_count": 37,
-          "dependency_fingerprint_sha256": "5b231aa1ab278fae4430b28b3cdb9ce82ed82ec9471f2d046ca454eea18d85c9",
+          "dependency_file_count": 42,
+          "dependency_fingerprint_sha256": "e12e99ecb71a0c24332f9f7ec3c23449dff9570bed9e743ea80c3e87e48f9617",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -11559,8 +11548,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 34,
-          "dependency_fingerprint_sha256": "8cfd05bed22ad15e005d79594c32267fc747d9265205881e08789202a2effaa2",
+          "dependency_file_count": 39,
+          "dependency_fingerprint_sha256": "2aa4f5ed3ec0863971b98dbfa5e06abc7341a95bb7c726adb9a313afe2ef1ad6",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11622,64 +11611,22 @@
         },
         {
           "ast_eligible_formats": [
-            "7z",
-            "apple-disk-image",
-            "asar",
-            "autoit-a3x",
-            "cab",
             "data",
-            "elf",
-            "java-class",
-            "macho",
-            "ole",
-            "pe",
-            "png",
-            "rar",
-            "script",
-            "xz",
-            "zip"
+            "pe"
           ],
           "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
-            "7z",
-            "apple-disk-image",
-            "asar",
-            "autoit-a3x",
-            "cab",
             "data",
-            "elf",
-            "java-class",
-            "macho",
-            "ole",
-            "pe",
-            "png",
-            "rar",
-            "script",
-            "xz",
-            "zip"
+            "pe"
           ],
-          "dependency_file_count": 33,
-          "dependency_fingerprint_sha256": "ea5e3ded45a31ca0e73881723c7b86c5a2d92ebf702399c215ed23b3ae5ba939",
+          "dependency_file_count": 38,
+          "dependency_fingerprint_sha256": "f61ef36f8af1326ceb5a4a9549b5052dd500fbbbd4b089affbb26dac9eb8d334",
           "eligible": true,
           "eligible_formats": [
-            "7z",
-            "apple-disk-image",
-            "asar",
-            "autoit-a3x",
-            "cab",
             "data",
-            "elf",
-            "java-class",
-            "macho",
-            "ole",
-            "pe",
-            "png",
-            "rar",
-            "script",
-            "xz",
-            "zip"
+            "pe"
           ],
           "handler_id": "valleyrat:extractors.valleyrat.extractor.py:extract",
           "runtime_import": {
@@ -11727,21 +11674,10 @@
       },
       "declared_accepted_formats": [
         "7z",
-        "apple-disk-image",
-        "asar",
-        "autoit-a3x",
-        "cab",
         "data",
-        "elf",
-        "java-class",
-        "macho",
         "ole",
         "pe",
-        "png",
-        "rar",
-        "script",
-        "xz",
-        "zip"
+        "png"
       ],
       "declared_automatic_handlers": [
         "valleyrat:analysis.framework.malware.valleyrat.campaigns.appdomainmanager.pixel.loader.analyze.py:analyze",
@@ -11806,7 +11742,7 @@
             "pe"
           ],
           "dependency_file_count": 6,
-          "dependency_fingerprint_sha256": "f24980eb3ef98ede739d9b76fd5bccf43692527142a48162a548277570f2e63b",
+          "dependency_fingerprint_sha256": "cb147014f5d5db068b7963614f63e52d13a37ab0bae874890aeb9961e765f73b",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11936,8 +11872,8 @@
             "xz",
             "zip"
           ],
-          "dependency_file_count": 34,
-          "dependency_fingerprint_sha256": "d952c526456b7236e26a4a9f48beb2dcda1a64b4644cfbda677927edb814feae",
+          "dependency_file_count": 35,
+          "dependency_fingerprint_sha256": "fe1577f89d3c09697b08ac69121c9fa8b0c698a74e74093bc3665b65d22fb3c5",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -12541,7 +12477,7 @@
             "script"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "ab454f242974720670d4acdc3bb84461cdaf3b6c90843e8d334c15be58c84a88",
+          "dependency_fingerprint_sha256": "003fb6a3be8a2496c519ce878d703436f7ff194cd13b58000ec23f2add5d33c9",
           "eligible": true,
           "eligible_formats": [
             "data",

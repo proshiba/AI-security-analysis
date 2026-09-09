@@ -3,11 +3,11 @@ from __future__ import annotations
 import importlib.util
 import io
 import json
-from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
 import zipfile
+from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -43,7 +43,20 @@ class ClassificationTests(unittest.TestCase):
         data = self.make_zip({"chgport.exe": b"MZhost", "LoggerCollector.dll": b"MZdll", "vvaS.bin": b"shell"})
         result = self.valleyrat.detect(data, Path("sample.zip"))
         self.assertTrue(result["matched"])
-        self.assertEqual(result["campaigns"][0]["campaign_type"], "dll_sideload_vvas_bundle")
+        campaign = result["campaigns"][0]
+        self.assertEqual(campaign["campaign_type"], "dll_sideload_vvas_bundle")
+        self.assertEqual(campaign["attribution_scope"], "component_handler_route")
+        self.assertFalse(campaign["supports_family_attribution"])
+        self.assertFalse(campaign["terminal_family_confirmed"])
+
+    def test_valleyrat_generic_single_pe_zip_fails_closed(self):
+        """固有証拠のない単一PE ZIPをValleyRAT候補へ昇格しない。"""
+
+        data = self.make_zip({"payload.exe": b"MZ" + bytes(126)})
+        result = self.valleyrat.detect(data, Path("single-pe.zip"))
+
+        self.assertFalse(result["matched"])
+        self.assertEqual(result["campaigns"], [])
 
     def test_unknown_non_zip(self):
         """Return an unknown low-confidence result when no detector matches."""
@@ -81,6 +94,46 @@ class ClassificationTests(unittest.TestCase):
             with self.subTest(relative=relative):
                 with self.assertRaises(self.classify_sample.DetectorPathError):
                     self.classify_sample.load_detector(root, relative, family)
+
+    def test_unmatched_detector_cannot_smuggle_known_inner_reason(self):
+        """matched=falseのcampaign自由記述をknown-inner帰属へ昇格しない。"""
+
+        with self.assertRaisesRegex(TypeError, "must not contain campaigns"):
+            self.classify_sample.normalize_detection_result(
+                {
+                    "matched": False,
+                    "observations": {},
+                    "campaigns": [
+                        {
+                            "campaign_type": "forged",
+                            "confidence": "low",
+                            "reasons": ["known inner SHA-256"],
+                        }
+                    ],
+                }
+            )
+
+    def test_known_inner_requires_structured_reverified_digest(self):
+        """reason文字列だけではknown-innerとして扱わない。"""
+
+        digest = "a" * 64
+        base = {
+            "matched": True,
+            "observations": {"inner_sha256": digest},
+            "campaigns": [
+                {
+                    "campaign_type": "fixture",
+                    "confidence": "high",
+                    "reasons": ["known inner SHA-256"],
+                }
+            ],
+        }
+        self.assertFalse(self.classify_sample.detection_uses_known_inner(base, digest))
+        base["campaigns"][0]["known_inner_sha256"] = digest
+        self.assertTrue(self.classify_sample.detection_uses_known_inner(base, digest))
+        self.assertFalse(
+            self.classify_sample.detection_uses_known_inner(base, "b" * 64)
+        )
 
     def test_tied_family_detections_are_ambiguous_with_all_evidence(self):
         """Do not let registry order decide equal-confidence family matches."""

@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-
 MODULE_PATH = Path(__file__).resolve().parents[1] / "malware" / "valleyrat" / "detect.py"
 SPEC = importlib.util.spec_from_file_location("valleyrat_nvml_iso_detect", MODULE_PATH)
 assert SPEC and SPEC.loader
@@ -157,8 +156,11 @@ def test_hash_independent_iso_structure_recovers_two_c2(
     result = DETECT.detect(image, Path("unknown.img"))
 
     assert result["matched"] is True
-    assert result["campaigns"][0]["campaign_type"] == "signed_proxy_sideload"
-    assert result["campaigns"][0]["confidence"] == "high"
+    campaign = result["campaigns"][0]
+    assert campaign["campaign_type"] == "signed_proxy_sideload"
+    assert campaign["confidence"] == "high"
+    assert campaign["attribution_scope"] == "validated_terminal_component_structure"
+    assert campaign["terminal_family_confirmed"] is True
     assert result["observations"]["nvml_dat"]["summary"]["codemark_config"]["endpoints"] == [
         "192.0.2.10:6666",
         "198.51.100.20:7777",
@@ -179,7 +181,11 @@ def test_iso_with_valid_trailer_but_unresolved_stage_is_medium(
     result = DETECT.detect(image, Path("unknown.img"))
 
     assert result["matched"] is True
-    assert result["campaigns"][0]["confidence"] == "medium"
+    campaign = result["campaigns"][0]
+    assert campaign["confidence"] == "medium"
+    assert campaign["attribution_scope"] == "component_handler_route"
+    assert campaign["supports_family_attribution"] is False
+    assert campaign["terminal_family_confirmed"] is False
     assert result["observations"]["nvml_dat"]["status"] == "trailer_valid_stage_unresolved"
 
 
@@ -242,9 +248,16 @@ def test_raw_dat_and_compact_proxy_layers_route_to_valleyrat(
 
     dat_result = DETECT.detect(_nvml_dat(), Path("NVML.DAT"))
     assert dat_result["matched"] is True
-    assert dat_result["campaigns"][0]["confidence"] == "high"
+    dat_campaign = dat_result["campaigns"][0]
+    assert dat_campaign["confidence"] == "high"
+    assert dat_campaign["attribution_scope"] == "validated_terminal_component_structure"
+    assert dat_campaign["terminal_family_confirmed"] is True
 
     monkeypatch.setattr(DETECT, "analyze_signed_proxy_sideload", lambda *_args: _proxy_result())
     dll_result = DETECT.detect(b"MZproxy-fixture", Path("NVML.DLL"))
     assert dll_result["matched"] is True
-    assert dll_result["campaigns"][0]["campaign_type"] == "signed_proxy_sideload"
+    dll_campaign = dll_result["campaigns"][0]
+    assert dll_campaign["campaign_type"] == "signed_proxy_sideload"
+    assert dll_campaign["attribution_scope"] == "component_handler_route"
+    assert dll_campaign["supports_family_attribution"] is False
+    assert dll_campaign["terminal_family_confirmed"] is False

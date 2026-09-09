@@ -77,11 +77,13 @@ STRUCTURAL_EVIDENCE_KEYS = frozenset(
 )
 EVIDENCE_CONTROL_KEYS = frozenset(
     {
+        "candidate_config_recovered",
         "decoded_config_recovered",
         "matched",
         "profile_literal_correlation",
         "reviewed_hash",
         "static_config_recovered",
+        "static_stage_locator_recovered",
     }
 )
 EVIDENCE_METADATA_KEYS = frozenset(
@@ -189,10 +191,21 @@ def _collect_evidence(value: Any, state: dict[str, Any], *, depth: int = 0) -> N
     if isinstance(value, Mapping):
         for raw_key, item in value.items():
             key = str(raw_key).casefold()
-            if key == "decoded_config_recovered" and item is True and _mapping_has_correlated_payload(value):
+            if (
+                key == "decoded_config_recovered"
+                and item is True
+                and value.get("candidate_config_recovered") is not True
+                and _mapping_has_correlated_payload(value)
+            ):
                 state["decoded_config"] = True
             elif key == "static_config_recovered" and item is True and _mapping_has_correlated_payload(value):
                 state["static_config"] = True
+            elif (
+                key == "static_stage_locator_recovered"
+                and item is True
+                and _mapping_has_correlated_payload(value)
+            ):
+                state["stage_locator"] = True
             elif key in NETWORK_EVIDENCE_KEYS and _meaningful_collection(item):
                 state["candidate_groups"].add(key)
                 state["candidate_count"] += min(len(item), 100)
@@ -218,6 +231,7 @@ def handler_result_quality(value: Any, minimum_score: int = 1) -> dict[str, Any]
     state: dict[str, Any] = {
         "decoded_config": False,
         "static_config": False,
+        "stage_locator": False,
         "corroborated": False,
         "structural_groups": set(),
         "candidate_groups": set(),
@@ -229,6 +243,8 @@ def handler_result_quality(value: Any, minimum_score: int = 1) -> dict[str, Any]
         tier, label = 4, "decoded_configuration"
     elif state["static_config"]:
         tier, label = 3, "validated_static_configuration"
+    elif state["stage_locator"]:
+        tier, label = 3, "validated_static_stage_locator"
     elif state["corroborated"] or state["structural_groups"]:
         tier, label = 2, "structural_corroboration"
     elif state["candidate_groups"]:
