@@ -15,6 +15,10 @@ from capstone.x86 import X86_OP_IMM
 
 from extractors.valleyrat import ca01_sideload as ca01
 
+_SYNTHETIC_REVIEWED_CEF_SHA256 = hashlib.sha256(
+    b"synthetic-reviewed-cef-unit-test-fixture"
+).hexdigest()
+
 
 def _encoded_host(host: bytes) -> bytes:
     return base64.b64encode(base64.b64encode(host))
@@ -78,6 +82,7 @@ def _valid_recovery(outer_sha256: str) -> ca01.Ca01SideloadRecovery:
         },
         structural_evidence={
             "architecture": "x64",
+            "outer_profile": ca01._VULKAN_OUTER_PROFILE,
             "vulkan_export_count": 1,
             "export_reachable_thread_config_lineage_present": True,
             "create_thread_wrapper_reachable": True,
@@ -325,6 +330,309 @@ def test_required_kernel_apis_must_share_one_valid_descriptor() -> None:
     assert ca01._import_addresses(spoofed) is None
 
 
+def test_cef_imports_require_kernel_and_crt_ownership() -> None:
+    """CEF型はKERNEL APIと_beginthreadexを正規ownerへ個別に束縛する。"""
+
+    def descriptor(
+        dll: bytes,
+        names: tuple[bytes, ...],
+        base: int,
+    ) -> SimpleNamespace:
+        return SimpleNamespace(
+            dll=dll,
+            imports=[
+                SimpleNamespace(name=name, address=base + index * 8)
+                for index, name in enumerate(names)
+            ],
+        )
+
+    kernel = descriptor(
+        b"KERNEL32.dll",
+        (b"VirtualProtect", b"Sleep"),
+        0x180003000,
+    )
+    runtime = descriptor(
+        b"api-ms-win-crt-runtime-l1-1-0.dll",
+        (b"_beginthreadex",),
+        0x180004000,
+    )
+    accepted = SimpleNamespace(DIRECTORY_ENTRY_IMPORT=[kernel, runtime])
+    wrong_owner = SimpleNamespace(
+        DIRECTORY_ENTRY_IMPORT=[
+            kernel,
+            descriptor(b"UNRELATED.dll", (b"_beginthreadex",), 0x180004000),
+        ]
+    )
+    duplicate = SimpleNamespace(
+        DIRECTORY_ENTRY_IMPORT=[
+            kernel,
+            runtime,
+            descriptor(b"ucrtbase.dll", (b"_beginthreadex",), 0x180005000),
+        ]
+    )
+    mixed_thread_api = SimpleNamespace(
+        DIRECTORY_ENTRY_IMPORT=[
+            descriptor(
+                b"KERNEL32.dll",
+                (b"VirtualProtect", b"Sleep", b"CreateThread"),
+                0x180003000,
+            ),
+            runtime,
+        ]
+    )
+
+    assert ca01._cef_import_addresses(accepted) is not None
+    assert ca01._cef_import_addresses(wrong_owner) is None
+    assert ca01._cef_import_addresses(duplicate) is None
+    assert ca01._cef_import_addresses(mixed_thread_api) is None
+
+
+def _cef_export_image(
+    *,
+    target_override: int | None = None,
+    dll_name: bytes = b"IndCode.dll",
+) -> SimpleNamespace:
+    names = sorted(ca01._REQUIRED_CEF_EXPORTS)
+    names.extend(
+        f"cef_fixture_{index:03d}".encode()
+        for index in range(128 - len(names))
+    )
+    symbols = [
+        SimpleNamespace(
+            name=name,
+            address=(
+                target_override
+                if target_override is not None and index == 0
+                else 0x1100
+            ),
+        )
+        for index, name in enumerate(names)
+    ]
+    return SimpleNamespace(
+        DIRECTORY_ENTRY_EXPORT=SimpleNamespace(
+            name=dll_name,
+            symbols=symbols,
+        )
+    )
+
+
+def _valid_cef_recovery(outer_sha256: str) -> ca01.Ca01SideloadRecovery:
+    recovery = _valid_recovery(outer_sha256)
+    evidence = recovery.structural_evidence
+    for key in (
+        "vulkan_export_count",
+        "export_reachable_thread_config_lineage_present",
+        "create_thread_wrapper_reachable",
+    ):
+        evidence.pop(key)
+    evidence.update(
+        {
+            "outer_profile": ca01._CEF_OUTER_PROFILE,
+            "cef_export_count": 205,
+            "cef_named_export_count": 205,
+            "cef_export_count_with_prefix": 196,
+            "cef_required_export_count": len(ca01._REQUIRED_CEF_EXPORTS),
+            "coalesced_export_target_count": 1,
+            "coalesced_export_peak_count": 205,
+            "export_dll_name_matches_indcode": True,
+            "mapped_loader_marker_count": len(ca01._CEF_LOADER_MARKERS),
+            "mapped_loader_marker_set_complete": True,
+            "export_reachable_beginthreadex_config_lineage_present": True,
+            "beginthreadex_wrapper_reachable": True,
+            "lineage_counts": {
+                "export_to_main_direct_call_count": 1,
+                "main_to_beginthreadex_wrapper_direct_call_count": 1,
+                "beginthreadex_api_call_count": 1,
+                "producer_pointer_store_count": 1,
+                "callback_trampoline_indirect_call_count": 1,
+            },
+        }
+    )
+    return recovery
+
+
+def test_cef_export_profile_requires_named_coalesced_facade() -> None:
+    """必須CEF名が同一stubへ集約されたfacadeだけを受理する。"""
+
+    sections = [
+        _section(
+            raw_start=0,
+            virtual_start=0x180001000,
+            size=0x1000,
+            executable=True,
+        )
+    ]
+
+    profile = ca01._cef_export_profile(
+        _cef_export_image(),
+        sections,
+        0x180000000,
+    )
+
+    assert profile is not None
+    assert profile.export_count == 128
+    assert profile.cef_export_count == 128
+    assert profile.root == 0x180001100
+    assert (
+        ca01._cef_export_profile(
+            _cef_export_image(target_override=0x1180),
+            sections,
+            0x180000000,
+        )
+        is None
+    )
+    assert (
+        ca01._cef_export_profile(
+            _cef_export_image(dll_name=b"libcef.dll"),
+            sections,
+            0x180000000,
+        )
+        is None
+    )
+
+
+def test_cef_loader_markers_ignore_resource_only_decoys() -> None:
+    """10 markerはmapped非resource領域に全て存在する場合だけ成立する。"""
+
+    encoded = b"\0\0".join(
+        marker.encode("utf-16le") for marker in ca01._CEF_LOADER_MARKERS
+    )
+    missing = encoded.replace(
+        ca01._CEF_LOADER_MARKERS[-1].encode("utf-16le"),
+        b"",
+    )
+    data = missing + b"\0" * 32 + encoded
+    sections = [
+        _section(raw_start=0, virtual_start=0x180001000, size=len(missing)),
+        _section(
+            raw_start=len(missing) + 32,
+            virtual_start=0x180002000,
+            size=len(encoded),
+            resource=True,
+        ),
+    ]
+
+    assert ca01._cef_loader_markers_present(data, sections) is False
+    assert ca01._cef_loader_markers_present(
+        encoded,
+        [_section(raw_start=0, virtual_start=0x180001000, size=len(encoded))],
+    ) is True
+
+
+def _rip_lea(prefix: bytes, source: int, target: int) -> bytes:
+    return prefix + struct.pack("<i", target - (source + len(prefix) + 4))
+
+
+def _cef_lineage_summaries(
+    *,
+    argument_register: bytes = b"\x49\x89\xc1",
+    trampoline_call: bytes = b"\xff\x11",
+    allocation_size: int = 8,
+) -> tuple[dict[int, ca01._FunctionSummary], list[ca01._Section]]:
+    export = 0x1000
+    main = 0x1100
+    wrapper = 0x1200
+    producer = 0x1400
+    trampoline = 0x1500
+    allocator = 0x1700
+    export_summary = _summary(_call(export, main) + b"\xc3", start=export)
+    main_summary = _summary(_call(main, wrapper) + b"\xc3", start=main)
+
+    code = bytearray(b"\xb9" + struct.pack("<I", allocation_size))
+    code += _call(wrapper + len(code), allocator)
+    source = wrapper + len(code)
+    code += _rip_lea(b"\x48\x8d\x0d", source, producer)
+    code += b"\x48\x89\x08"
+    code += argument_register
+    source = wrapper + len(code)
+    code += _rip_lea(b"\x4c\x8d\x05", source, trampoline)
+    code += b"\x31\xd2\x31\xc9"
+    beginthreadex_call = wrapper + len(code)
+    code += b"\xff\x15\x00\x00\x00\x00\xc3"
+    wrapper_summary = _summary(bytes(code), start=wrapper)
+    wrapper_summary.api_calls = [(beginthreadex_call, "_beginthreadex")]
+    trampoline_summary = _summary(trampoline_call + b"\xc3", start=trampoline)
+    return (
+        {
+            export: export_summary,
+            main: main_summary,
+            wrapper: wrapper_summary,
+            trampoline: trampoline_summary,
+        },
+        [
+            _section(
+                raw_start=0,
+                virtual_start=0x1000,
+                size=0x1000,
+                executable=True,
+            )
+        ],
+    )
+
+
+def test_cef_callback_requires_argument_cell_and_rcx_trampoline() -> None:
+    """producer cellのR9引渡しとtrampolineのcall [rcx]を同時に要求する。"""
+
+    summaries, sections = _cef_lineage_summaries()
+    lineage = ca01._cef_callback_lineage(
+        sections,
+        0x1000,
+        summaries.get,
+    )
+
+    assert lineage is not None
+    assert lineage.producer == 0x1400
+    wrong_argument, _ = _cef_lineage_summaries(
+        argument_register=b"\x49\x89\xd9"
+    )
+    wrong_trampoline, _ = _cef_lineage_summaries(
+        trampoline_call=b"\xff\x12"
+    )
+    assert ca01._cef_callback_lineage(
+        sections, 0x1000, wrong_argument.get
+    ) is None
+    assert ca01._cef_callback_lineage(
+        sections, 0x1000, wrong_trampoline.get
+    ) is None
+
+
+def test_cef_callback_rejects_broken_cell_allocation_lineage() -> None:
+    """8-byte call返値とstore後のR9 cell identityが崩れた経路を拒否する。"""
+
+    wrong_size, sections = _cef_lineage_summaries(allocation_size=16)
+    clobbered_cell, _ = _cef_lineage_summaries(
+        argument_register=b"\x48\x31\xc0\x49\x89\xc1"
+    )
+
+    assert ca01._cef_callback_lineage(
+        sections, 0x1000, wrong_size.get
+    ) is None
+    assert ca01._cef_callback_lineage(
+        sections, 0x1000, clobbered_cell.get
+    ) is None
+
+
+def test_cef_trampoline_requires_preserved_rcx_and_mandatory_unique_callback() -> None:
+    """entry RCXの変更、追加indirect call、callback迂回branchを拒否する。"""
+
+    clobbered_rcx, sections = _cef_lineage_summaries(
+        trampoline_call=b"\x48\x89\xc1\xff\x11"
+    )
+    extra_indirect, _ = _cef_lineage_summaries(
+        trampoline_call=b"\xff\x12\xff\x11"
+    )
+    conditional_skip, _ = _cef_lineage_summaries(
+        trampoline_call=b"\x85\xc0\x74\x02\xff\x11"
+    )
+
+    for summaries in (clobbered_rcx, extra_indirect, conditional_skip):
+        assert ca01._cef_callback_lineage(
+            sections,
+            0x1000,
+            summaries.get,
+        ) is None
+
+
 def test_builder_accepts_two_reachable_double_decode_chains() -> None:
     """実CA01と同じconverter共有・2組の二重decodeだけを強い証拠にする。"""
 
@@ -538,6 +846,121 @@ def test_probe_confirms_family_only_for_reviewed_exact_outer(
     assert probe["terminal_family_confirmed"] is True
     assert probe["classification_confidence"] == "high_structural_decoded_config"
     assert probe["config"]["slot_count"] == 3
+
+
+def test_unknown_cef_profile_recovers_config_but_remains_route_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CEF構造だけでは未知hashをfamily確定へ昇格しない。"""
+
+    recovery = _valid_cef_recovery("b" * 64)
+    assert ca01.validate_recovery_contract(recovery) is True
+    monkeypatch.setattr(ca01, "recover_config", lambda _data: recovery)
+
+    probe = ca01.probe_config(b"MZ")
+
+    assert probe["matched"] is True
+    assert probe["outer_profile"] == ca01._CEF_OUTER_PROFILE
+    assert probe["static_config_recovered"] is True
+    assert probe["family"] is None
+    assert probe["supports_family_attribution"] is False
+    assert probe["terminal_family_confirmed"] is False
+    assert probe["attribution_scope"] == "component_handler_route"
+
+
+def test_reviewed_hash_must_match_its_outer_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """レビュー済みhashへ別profile証拠を結合する混在を拒否する。"""
+
+    monkeypatch.setitem(
+        ca01._REVIEWED_CA01_OUTER_PROFILES,
+        _SYNTHETIC_REVIEWED_CEF_SHA256,
+        ca01._CEF_OUTER_PROFILE,
+    )
+    wrong_profile = _valid_recovery(_SYNTHETIC_REVIEWED_CEF_SHA256)
+
+    assert ca01.validate_recovery_contract(wrong_profile) is False
+
+
+def test_synthetic_reviewed_cef_mapping_controls_family_confirmation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CEF family確定分岐はtest内だけの合成reviewed mappingで検証する。"""
+
+    recovery = _valid_cef_recovery(_SYNTHETIC_REVIEWED_CEF_SHA256)
+    monkeypatch.setattr(ca01, "recover_config", lambda _data: recovery)
+
+    route_only = ca01.probe_config(b"MZ synthetic CEF route")
+    assert route_only["family"] is None
+    assert route_only["terminal_family_confirmed"] is False
+
+    monkeypatch.setitem(
+        ca01._REVIEWED_CA01_OUTER_PROFILES,
+        _SYNTHETIC_REVIEWED_CEF_SHA256,
+        ca01._CEF_OUTER_PROFILE,
+    )
+    reviewed = ca01.probe_config(b"MZ synthetic CEF reviewed")
+
+    assert reviewed["family"] == "valleyrat"
+    assert reviewed["terminal_family_confirmed"] is True
+
+
+@pytest.mark.parametrize(
+    "lineage_key",
+    (
+        "export_to_main_direct_call_count",
+        "main_to_beginthreadex_wrapper_direct_call_count",
+        "beginthreadex_api_call_count",
+        "producer_pointer_store_count",
+        "callback_trampoline_indirect_call_count",
+    ),
+)
+def test_cef_contract_rejects_boolean_lineage_counts(lineage_key: str) -> None:
+    """boolを整数1としてCEF lineage countへ受理しない。"""
+
+    recovery = _valid_cef_recovery("b" * 64)
+    recovery.structural_evidence["lineage_counts"][lineage_key] = True
+
+    assert ca01.validate_recovery_contract(recovery) is False
+
+
+def test_profiles_reject_partial_opposite_evidence_union() -> None:
+    """profile名を跨いだ部分的なflag/count unionも拒否する。"""
+
+    cef_recovery = _valid_cef_recovery("b" * 64)
+    cef_recovery.structural_evidence[
+        "export_reachable_thread_config_lineage_present"
+    ] = True
+    cef_recovery.structural_evidence["lineage_counts"][
+        "thread_factory_to_create_thread_wrapper_count"
+    ] = 1
+
+    vulkan_recovery = _valid_recovery("c" * 64)
+    vulkan_recovery.structural_evidence[
+        "mapped_loader_marker_set_complete"
+    ] = True
+    vulkan_recovery.structural_evidence["lineage_counts"][
+        "callback_trampoline_indirect_call_count"
+    ] = 1
+
+    assert ca01.validate_recovery_contract(cef_recovery) is False
+    assert ca01.validate_recovery_contract(vulkan_recovery) is False
+
+
+def test_recover_config_rejects_ambiguous_outer_profiles(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Vulkan型とCEF型が同時成立した場合は一方を恣意的に選ばない。"""
+
+    monkeypatch.setattr(ca01, "_recover", lambda _data: _valid_recovery("b" * 64))
+    monkeypatch.setattr(
+        ca01,
+        "_recover_cef",
+        lambda _data: _valid_cef_recovery("c" * 64),
+    )
+
+    assert ca01.recover_config(b"MZ ambiguous profiles") is None
 
 
 def test_invalid_or_oversized_input_is_fail_closed() -> None:

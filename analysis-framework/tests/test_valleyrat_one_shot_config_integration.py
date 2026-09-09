@@ -381,6 +381,13 @@ def test_selected_valleyrat_zip_routes_child_config_to_case_artifacts(
     assert attempts[child_hash]["routing_role"] == "descendant_candidate"
     assert attempts[child_hash]["evidence_status"] == "sufficient"
     assert execution["selected_layer_sha256"] == child_hash
+    assert report["candidate_handler_assessment"]["status"] == "no_candidates"
+    assert report["route_config_candidates"]["projection_disposition"] == (
+        "not_applicable"
+    )
+    assert report["route_config_candidates"]["projection_reason"] == (
+        "no_candidate_verification_routes"
+    )
     assert patterns["family"] == "valleyrat"
     assert patterns["config"]["static_config_recovered"] is True
     assert patterns["communication"]["candidate_patterns"] == [
@@ -661,6 +668,11 @@ def test_route_only_component_config_never_confirms_valleyrat_family(
     assert report["knowledge_artifacts"]["route_config_candidates"] == (
         "route-config-candidates.json"
     )
+    assert report["route_config_candidates"]["status_scope"] == (
+        "route_candidate_projection_only"
+    )
+    assert report["route_config_candidates"]["projection_disposition"] == "completed"
+    assert report["route_config_candidates"]["overall_analysis_result_affected"] is False
     assert "route-config-candidates.json" in report["artifact_sha256"]
 
 

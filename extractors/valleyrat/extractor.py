@@ -2504,6 +2504,30 @@ def _extract_ca01_sideload(data: bytes, name: str) -> dict | None:
         return None
     public_summary = public_ca01_recovery_summary(recovery)
     reviewed_exact = public_summary.get("reviewed_exact_outer_sha256") is True
+    outer_profile = public_summary.get("outer_profile")
+    cef_profile = outer_profile == "cef_alias_export_beginthreadex"
+    attribution_scope = (
+        (
+            "reviewed_exact_cef_alias_loader_linked_config_and_"
+            "memory_stage_consumer"
+        )
+        if cef_profile
+        else "reviewed_exact_loader_linked_config_and_memory_stage_consumer"
+    )
+    family_attribution_basis = (
+        (
+            "reviewed_exact_sha256_and_cef_alias_export_to_"
+            "beginthreadex_callback_double_base64_three_slot_consumer_lineage"
+        )
+        if cef_profile
+        else "reviewed_exact_sha256_and_vulkan_export_to_thread_callback_"
+        "double_base64_three_slot_consumer_lineage"
+    )
+    if not reviewed_exact:
+        attribution_scope = "component_handler_route"
+        family_attribution_basis = (
+            "ca01_structure_without_reviewed_terminal_identity"
+        )
     raw_endpoints = recovery.config.get("endpoints")
     raw_slots = recovery.config.get("slots")
     if not isinstance(raw_endpoints, list) or not isinstance(raw_slots, list):
@@ -2589,17 +2613,8 @@ def _extract_ca01_sideload(data: bytes, name: str) -> dict | None:
             "static_config_recovered": True,
             "candidate_config_recovered": False,
             "terminal_family_confirmed": reviewed_exact,
-            "attribution_scope": (
-                "reviewed_exact_loader_linked_config_and_memory_stage_consumer"
-                if reviewed_exact
-                else "component_handler_route"
-            ),
-            "family_attribution_basis": (
-                "reviewed_exact_sha256_and_vulkan_export_to_thread_callback_"
-                "double_base64_three_slot_consumer_lineage"
-                if reviewed_exact
-                else "ca01_structure_without_reviewed_terminal_identity"
-            ),
+            "attribution_scope": attribution_scope,
+            "family_attribution_basis": family_attribution_basis,
             "classification_confidence": (
                 "high_structural_decoded_config"
                 if reviewed_exact
@@ -2607,6 +2622,7 @@ def _extract_ca01_sideload(data: bytes, name: str) -> dict | None:
             ),
             "c2_liveness_confirmed": False,
             "source_name": _safe_source_name(name),
+            "outer_profile": outer_profile,
             "endpoints": endpoints,
             "ipv4": ipv4_candidates(endpoints),
             "urls": [],
@@ -2624,7 +2640,15 @@ def _extract_ca01_sideload(data: bytes, name: str) -> dict | None:
             for endpoint in endpoints
         ],
         [
-            "Vulkan exportからthread callback、二重Base64設定、3-slot builder、memory-stage consumerまでを同一の有界CFG lineageで検証しました。",
+            (
+                "CEF alias exportから_beginthreadex callback、二重Base64設定、"
+                "3-slot builder、memory-stage consumerまでを同一の有界CFG "
+                "lineageで検証しました。"
+                if cef_profile
+                else "Vulkan exportからthread callback、二重Base64設定、3-slot "
+                "builder、memory-stage consumerまでを同一の有界CFG lineageで"
+                "検証しました。"
+            ),
             "endpoint、port、transport selectorは静的defaultです。現在の稼働状態と所有者は確認していません。",
             "復元後のmemory stage自体は復号していないため、network APIへの直接到達性は未確認です。",
             "生のBase64 token、内部label、内部address、設定identityは公開しません。検体実行と外部通信も行っていません。",

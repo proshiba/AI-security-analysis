@@ -11,7 +11,11 @@ from extractors.valleyrat import ca01_sideload as ca01
 from extractors.valleyrat import extractor
 
 
-def _recovery(outer_sha256: str) -> ca01.Ca01SideloadRecovery:
+def _recovery(
+    outer_sha256: str,
+    *,
+    outer_profile: str = ca01._VULKAN_OUTER_PROFILE,
+) -> ca01.Ca01SideloadRecovery:
     slots = [
         {
             "index": 1,
@@ -47,6 +51,63 @@ def _recovery(outer_sha256: str) -> ca01.Ca01SideloadRecovery:
         f"{slot['transport_selector']}|{slot['role']}"
         for slot in slots
     ).encode("utf-8")
+    structural_evidence = {
+        "architecture": "x64",
+        "outer_profile": outer_profile,
+        "producer_candidate_count": 1,
+        "producer": {
+            "double_base64_decode_depth": 2,
+            "slot_count": 3,
+            "unique_endpoint_count": 2,
+            "primary_slot_count": 2,
+            "alternate_slot_count": 1,
+            "explicit_transport_selector_count": 3,
+            "periodic_wait_after_consumer_present": True,
+            "raw_encoded_token_included": False,
+            "raw_network_values_included": False,
+            "raw_labels_included": False,
+            "raw_addresses_included": False,
+        },
+        "sample_executed": False,
+        "recovered_stage_executed": False,
+        "network_contacted": False,
+    }
+    if outer_profile == ca01._CEF_OUTER_PROFILE:
+        structural_evidence.update(
+            {
+                "cef_export_count": 205,
+                "cef_named_export_count": 205,
+                "cef_export_count_with_prefix": 196,
+                "cef_required_export_count": len(ca01._REQUIRED_CEF_EXPORTS),
+                "coalesced_export_target_count": 1,
+                "coalesced_export_peak_count": 205,
+                "export_dll_name_matches_indcode": True,
+                "mapped_loader_marker_count": len(ca01._CEF_LOADER_MARKERS),
+                "mapped_loader_marker_set_complete": True,
+                "export_reachable_beginthreadex_config_lineage_present": True,
+                "beginthreadex_wrapper_reachable": True,
+                "lineage_counts": {
+                    "export_to_main_direct_call_count": 1,
+                    "main_to_beginthreadex_wrapper_direct_call_count": 1,
+                    "beginthreadex_api_call_count": 1,
+                    "producer_pointer_store_count": 1,
+                    "callback_trampoline_indirect_call_count": 1,
+                },
+            }
+        )
+    else:
+        structural_evidence.update(
+            {
+                "vulkan_export_count": 1,
+                "export_reachable_thread_config_lineage_present": True,
+                "create_thread_wrapper_reachable": True,
+                "lineage_counts": {
+                    "export_to_main_direct_call_count": 1,
+                    "main_to_thread_factory_direct_call_count": 1,
+                    "thread_factory_to_create_thread_wrapper_count": 1,
+                },
+            }
+        )
     return ca01.Ca01SideloadRecovery(
         outer_sha256=outer_sha256,
         config={
@@ -71,34 +132,7 @@ def _recovery(outer_sha256: str) -> ca01.Ca01SideloadRecovery:
             ).hexdigest(),
             "raw_token": "UEVSSU9ESUM=",
         },
-        structural_evidence={
-            "architecture": "x64",
-            "vulkan_export_count": 1,
-            "producer_candidate_count": 1,
-            "export_reachable_thread_config_lineage_present": True,
-            "create_thread_wrapper_reachable": True,
-            "lineage_counts": {
-                "export_to_main_direct_call_count": 1,
-                "main_to_thread_factory_direct_call_count": 1,
-                "thread_factory_to_create_thread_wrapper_count": 1,
-            },
-            "producer": {
-                "double_base64_decode_depth": 2,
-                "slot_count": 3,
-                "unique_endpoint_count": 2,
-                "primary_slot_count": 2,
-                "alternate_slot_count": 1,
-                "explicit_transport_selector_count": 3,
-                "periodic_wait_after_consumer_present": True,
-                "raw_encoded_token_included": False,
-                "raw_network_values_included": False,
-                "raw_labels_included": False,
-                "raw_addresses_included": False,
-            },
-            "sample_executed": False,
-            "recovered_stage_executed": False,
-            "network_contacted": False,
-        },
+        structural_evidence=structural_evidence,
     )
 
 
@@ -195,6 +229,36 @@ def test_unknown_ca01_hash_keeps_config_but_not_family_confirmation(
     assert result["config"]["static_config_recovered"] is True
     assert result["config"]["terminal_family_confirmed"] is False
     assert result["config"]["attribution_scope"] == "component_handler_route"
+
+
+def test_reviewed_cef_ca01_confirms_family_with_profile_specific_basis(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """合成reviewed CEF外層はfamily確定し、Vulkan根拠を混在させない。"""
+
+    cef_sha256 = hashlib.sha256(b"synthetic-reviewed-cef-pipeline").hexdigest()
+    monkeypatch.setitem(
+        ca01._REVIEWED_CA01_OUTER_PROFILES,
+        cef_sha256,
+        ca01._CEF_OUTER_PROFILE,
+    )
+    monkeypatch.setattr(
+        extractor,
+        "recover_ca01_config",
+        lambda _data: _recovery(
+            cef_sha256,
+            outer_profile=ca01._CEF_OUTER_PROFILE,
+        ),
+    )
+
+    result = extractor._extract_ca01_sideload(b"MZ-cef-ca01", "libcef.dll")
+
+    assert result is not None
+    config = result["config"]
+    assert config["terminal_family_confirmed"] is True
+    assert config["outer_profile"] == ca01._CEF_OUTER_PROFILE
+    assert "cef_alias_export_to_beginthreadex" in config["family_attribution_basis"]
+    assert "Vulkan export" not in "\n".join(result["limitations"])
 
 
 @pytest.mark.parametrize(

@@ -3564,6 +3564,11 @@ _APPROVED_CALLBACK_PARAMETERS = frozenset(
             "_parse_producer",
             "summary_resolver",
         ),
+        (
+            "extractors/valleyrat/ca01_sideload.py",
+            "_cef_callback_lineage",
+            "summary_resolver",
+        ),
         ("unpackers/javascript_obfuscator.py", "_safe_arithmetic", "parse_int"),
         ("unpackers/javascript_obfuscator.py", "visit", "parse_int"),
         ("unpackers/managed_il_triage.py", "wrapper", "function"),

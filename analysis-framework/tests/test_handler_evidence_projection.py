@@ -91,6 +91,7 @@ def _route_only_assessment() -> dict:
         "schema_version": 1,
         "status": "no_confirmed_family",
         "confirmed_families": [],
+        "candidate_count": 1,
         "planned_attempt_count": 1,
         "actual_attempt_count": 1,
         "unattempted_attempt_count": 0,
@@ -122,12 +123,26 @@ def test_route_only_valleyrat_config_is_preserved_without_attribution() -> None:
     )
 
     assert document["status"] == "route_config_candidates_recovered"
+    assert document["status_scope"] == "route_candidate_projection_only"
+    assert document["projection_disposition"] == "completed"
+    assert document["projection_reason"] == "route_config_candidates_recovered"
+    assert document["overall_analysis_result_affected"] is False
     assert document["route_config_candidate_recovered"] is True
     assert document["candidate_set_complete"] is True
     assert document["family_attribution_confirmed"] is False
     assert document["used_for_family_resolution"] is False
     assert document["used_for_c2_confirmation"] is False
     assert document["distinct_configuration_count"] == 1
+    assert document["assessment_status"] == "no_confirmed_family"
+    assert document["assessment_candidate_count"] == 1
+    assert document["planned_handler_attempt_count"] == 1
+    assert document["actual_handler_attempt_count"] == 1
+    assert document["evaluated_route_attempt_count"] == 1
+    assert document["observed_excluded_route_attempt_count"] == 0
+    assert document["assessment_rejection_reasons"] == []
+    assert document["assessment_exclusion_reason_counts"] == {}
+    assert document["route_attempt_exclusion_reason_counts"] == {}
+    assert document["route_attempt_rejection_reason_counts"] == {}
     candidate = document["candidates"][0]
     assert candidate["candidate_family"] == "valleyrat"
     assert candidate["selected_layer_sha256"] == LEFT_SHA256
@@ -139,6 +154,123 @@ def test_route_only_valleyrat_config_is_preserved_without_attribution() -> None:
     assert all(item["contacted"] is False for item in candidate["configured_network_candidates"])
     assert "family" not in document
     assert "family" not in candidate
+
+
+def test_route_config_preserves_no_candidate_assessment_diagnostics() -> None:
+    """routing候補が無い早期終了でもassessment理由と0件の試行計画を保持する。"""
+
+    assessment = {
+        "schema_version": 1,
+        "status": "no_candidates",
+        "candidate_count": 0,
+        "planned_attempt_count": 0,
+        "families": [],
+        "executed_sample": False,
+        "network_contacted": False,
+        "filesystem_written_by_handlers": False,
+    }
+
+    document = handler_evidence.build_route_config_candidate_document(
+        sha256=ROOT_SHA256,
+        assessment=assessment,
+    )
+
+    assert document["status"] == "assessment_rejected"
+    assert document["status_scope"] == "route_candidate_projection_only"
+    assert document["projection_disposition"] == "not_applicable"
+    assert document["projection_reason"] == "no_candidate_verification_routes"
+    assert document["overall_analysis_result_affected"] is False
+    assert document["assessment_status"] == "no_candidates"
+    assert document["assessment_candidate_count"] == 0
+    assert document["planned_handler_attempt_count"] == 0
+    assert document["evaluated_route_attempt_count"] == 0
+    assert document["assessment_rejection_reasons"] == [
+        "assessment_status_not_projection_eligible",
+        "confirmed_family_summary_invalid",
+    ]
+    assert document["assessment_exclusion_reason_counts"] == {
+        "no_planned_handler_attempts": 1,
+        "no_routing_candidates": 1,
+    }
+    assert document["route_attempt_exclusion_reason_counts"] == {}
+    assert document["route_attempt_rejection_reason_counts"] == {}
+
+
+@pytest.mark.parametrize(
+    ("assessment_status", "expected_disposition", "expected_reason"),
+    (
+        (
+            "not_run_assessment_only",
+            "not_run",
+            "candidate_verification_disabled_in_assessment_only_mode",
+        ),
+        (
+            "no_automatic_handler",
+            "blocked",
+            "no_automatic_candidate_handler",
+        ),
+        (
+            "no_eligible_layer_within_limits",
+            "blocked",
+            "no_eligible_candidate_layer_within_limits",
+        ),
+        (
+            "unexpected_assessment_state",
+            "rejected",
+            "assessment_contract_rejected",
+        ),
+    ),
+)
+def test_route_config_explains_other_rejected_assessment_states(
+    assessment_status: str,
+    expected_disposition: str,
+    expected_reason: str,
+) -> None:
+    """早期終了と不正assessmentをroute-only投影の意味に沿って区別する。"""
+
+    assessment = {
+        "schema_version": 1,
+        "status": assessment_status,
+        "candidate_count": 1,
+        "planned_attempt_count": 0,
+        "families": [],
+        "executed_sample": False,
+        "network_contacted": False,
+        "filesystem_written_by_handlers": False,
+    }
+
+    document = handler_evidence.build_route_config_candidate_document(
+        sha256=ROOT_SHA256,
+        assessment=assessment,
+    )
+
+    assert document["status"] == "assessment_rejected"
+    assert document["projection_disposition"] == expected_disposition
+    assert document["projection_reason"] == expected_reason
+    assert document["overall_analysis_result_affected"] is False
+
+
+def test_route_config_records_non_route_attempt_exclusion_status() -> None:
+    """handler試行済みだが設定証拠なしの場合を未評価ではなく除外理由付きで示す。"""
+
+    assessment = _route_only_assessment()
+    assessment["families"][0]["status"] = "no_evidence"
+    assessment["families"][0]["attempts"][0]["status"] = "no_evidence"
+
+    document = handler_evidence.build_route_config_candidate_document(
+        sha256=ROOT_SHA256,
+        assessment=assessment,
+    )
+
+    assert document["status"] == "no_route_config_candidate"
+    assert document["projection_disposition"] == "completed"
+    assert document["projection_reason"] == "no_route_config_candidate"
+    assert document["evaluated_route_attempt_count"] == 0
+    assert document["observed_excluded_route_attempt_count"] == 1
+    assert document["route_attempt_exclusion_reason_counts"] == {
+        "attempt_status_no_evidence": 1
+    }
+    assert document["route_attempt_rejection_reason_counts"] == {}
 
 
 @pytest.mark.parametrize(
@@ -284,6 +416,11 @@ def test_route_config_builder_rejects_loopback_endpoint() -> None:
     assert document["route_config_candidate_recovered"] is False
     assert document["candidates"] == []
     assert document["rejected_route_attempt_count"] == 1
+    assert document["projection_disposition"] == "rejected"
+    assert document["projection_reason"] == "route_attempt_projection_rejected"
+    assert document["route_attempt_rejection_reason_counts"] == {
+        "config_endpoint_invalid": 1
+    }
 
 
 def test_partial_route_assessment_preserves_candidate_but_not_completeness() -> None:

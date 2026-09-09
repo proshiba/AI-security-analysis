@@ -30,6 +30,7 @@ MAX_ROUTE_ASSESSMENT_ATTEMPTS = 4096
 ROUTE_ONLY_ATTEMPT_STATUS = "handler_evidence_without_detector"
 ROUTE_CONFIG_VARIANT_RE = re.compile(r"[a-z0-9][a-z0-9_-]{0,127}\Z")
 ROUTE_CONFIG_DOMAIN_LABEL_RE = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\Z")
+ROUTE_DIAGNOSTIC_CODE_RE = re.compile(r"[a-z][a-z0-9_]{0,127}\Z")
 DUAL_USE_MANAGEMENT_ROLES = frozenset(
     {"remote_management_relay", "screenconnect_clickonce_bootstrap"}
 )
@@ -873,13 +874,94 @@ def _route_assessment_complete(assessment: Mapping[str, Any]) -> bool:
     )
 
 
-def _validated_route_config_candidate(
+def _route_diagnostic_code(value: object) -> str:
+    """公開診断へ出せる既知形式の理由・status categoryだけを返す。"""
+
+    if not isinstance(value, str):
+        return "invalid_or_missing"
+    category = value.split(":", 1)[0]
+    if ROUTE_DIAGNOSTIC_CODE_RE.fullmatch(category) is None:
+        return "invalid_or_unrecognized"
+    return category
+
+
+def _route_assessment_count(assessment: Mapping[str, Any], field: str) -> int | None:
+    """上流assessmentの非負整数をboolと区別して保持する。"""
+
+    value = assessment.get(field)
+    if type(value) is not int or value < 0:
+        return None
+    return value
+
+
+def _increment_reason(
+    counts: dict[str, int],
+    reason: str,
+    amount: int = 1,
+) -> None:
+    """上限付き診断で使う理由件数を決定的に加算する。"""
+
+    if amount <= 0:
+        return
+    counts[reason] = counts.get(reason, 0) + amount
+
+
+def _route_projection_disposition(
+    *,
+    status: str,
+    assessment_status: str,
+    assessment_candidate_count: int | None,
+    planned_handler_attempts: int | None,
+    recovered: bool,
+    complete: bool,
+    rejected_attempts: int,
+) -> tuple[str, str]:
+    """既存statusを変えず、route-only投影の適用状態と理由を補足する。"""
+
+    if (
+        status == "assessment_rejected"
+        and assessment_status == "no_candidates"
+        and assessment_candidate_count == 0
+        and planned_handler_attempts == 0
+    ):
+        return "not_applicable", "no_candidate_verification_routes"
+    if status == "assessment_rejected":
+        early_dispositions = {
+            "not_run_assessment_only": (
+                "not_run",
+                "candidate_verification_disabled_in_assessment_only_mode",
+            ),
+            "no_automatic_handler": (
+                "blocked",
+                "no_automatic_candidate_handler",
+            ),
+            "no_eligible_layer_within_limits": (
+                "blocked",
+                "no_eligible_candidate_layer_within_limits",
+            ),
+        }
+        return early_dispositions.get(
+            assessment_status,
+            ("rejected", "assessment_contract_rejected"),
+        )
+    if recovered and complete:
+        return "completed", "route_config_candidates_recovered"
+    if recovered:
+        return "partial", "partial_route_config_candidates_recovered"
+    if rejected_attempts:
+        return "rejected", "route_attempt_projection_rejected"
+    if not complete:
+        return "incomplete", "candidate_assessment_incomplete"
+    return "completed", "no_route_config_candidate"
+
+
+def _route_config_candidate_projection(
     *,
     family: str,
     family_result: Mapping[str, Any],
     attempt: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    """帰属未確定のValleyRAT handler結果を設定候補だけへ厳格に縮約する。"""
+) -> tuple[dict[str, Any] | None, str | None]:
+    """帰属未確定のValleyRAT handler結果を縮約し、拒否時は理由コードを返す。"""
 
     if (
         _family_identity(family) != "valleyrat"
@@ -891,7 +973,7 @@ def _validated_route_config_candidate(
         or attempt.get("family") != family
         or attempt.get("status") != ROUTE_ONLY_ATTEMPT_STATUS
     ):
-        return None
+        return None, "family_route_contract_invalid"
     evidence = attempt.get("handler_evidence")
     detector = attempt.get("detector_corroboration")
     wrapper = attempt.get("result")
@@ -900,40 +982,50 @@ def _validated_route_config_candidate(
     if (
         not isinstance(evidence, Mapping)
         or evidence.get("sufficient") is not True
-        or not isinstance(detector, Mapping)
+    ):
+        return None, "handler_evidence_contract_invalid"
+    if (
+        not isinstance(detector, Mapping)
         or detector.get("corroborated") is not False
         or detector.get("basis")
         not in {
             "no_corroborated_detector_in_lineage",
             "detector_route_does_not_support_family_attribution",
         }
-        or not isinstance(wrapper, Mapping)
+    ):
+        return None, "detector_non_corroboration_contract_invalid"
+    if (
+        not isinstance(wrapper, Mapping)
         or not isinstance(layer, Mapping)
         or not isinstance(handler_id, str)
         or not handler_id
         or len(handler_id) > 512
         or any(ord(character) < 0x20 for character in handler_id)
     ):
-        return None
+        return None, "attempt_wrapper_contract_invalid"
     layer_sha256 = _sha256_identity(layer.get("sha256"))
     result = wrapper.get("result")
     quota = wrapper.get("result_quota")
+    if layer_sha256 is None:
+        return None, "layer_identity_invalid"
+    if not isinstance(result, Mapping) or not isinstance(quota, Mapping):
+        return None, "handler_result_contract_invalid"
     if (
-        layer_sha256 is None
-        or not isinstance(result, Mapping)
-        or not isinstance(quota, Mapping)
-        or quota.get("truncated") is not False
+        quota.get("truncated") is not False
         or quota.get("reasons") not in (None, [])
-        or result.get("executed") is not False
+    ):
+        return None, "handler_result_quota_incomplete"
+    if (
+        result.get("executed") is not False
         or result.get("network_contacted") is not False
     ):
-        return None
+        return None, "handler_safety_contract_invalid"
     minimum_score = evidence.get("minimum_score")
     if type(minimum_score) is not int or not 1 <= minimum_score <= 1_000_000:
-        return None
+        return None, "handler_quality_threshold_invalid"
     computed_quality = handler_result_quality(result, minimum_score=minimum_score)
     if dict(evidence) != computed_quality:
-        return None
+        return None, "handler_quality_recalculation_mismatch"
     execution = {
         "source": "candidate_verification",
         "handler_id": handler_id,
@@ -949,7 +1041,7 @@ def _validated_route_config_candidate(
         "selected_layer": dict(layer),
     }
     if not trusted_handler_result(execution, artifact):
-        return None
+        return None, "trusted_handler_lineage_invalid"
     handler = wrapper.get("handler")
     if (
         not isinstance(handler, Mapping)
@@ -957,7 +1049,7 @@ def _validated_route_config_candidate(
         or _family_identity(handler.get("family")) != "valleyrat"
         or _family_identity(result.get("family")) != "valleyrat"
     ):
-        return None
+        return None, "handler_family_lineage_invalid"
     config = result.get("config")
     findings = result.get("findings")
     if (
@@ -972,7 +1064,7 @@ def _validated_route_config_candidate(
         or not isinstance(findings, list)
         or len(findings) > 1024
     ):
-        return None
+        return None, "static_config_contract_invalid"
     variant = config.get("variant")
     endpoints = config.get("endpoints")
     if (
@@ -981,16 +1073,16 @@ def _validated_route_config_candidate(
         or not isinstance(endpoints, list)
         or not 1 <= len(endpoints) <= MAX_ROUTE_CONFIG_ENDPOINTS
     ):
-        return None
+        return None, "config_variant_or_endpoint_count_invalid"
     canonical_endpoints: list[tuple[str, str, int]] = []
     for value in endpoints:
         endpoint = _canonical_route_config_endpoint(value)
         if endpoint is None:
-            return None
+            return None, "config_endpoint_invalid"
         canonical_endpoints.append(endpoint)
     endpoint_values = [item[0] for item in canonical_endpoints]
     if len(endpoint_values) != len(set(endpoint_values)):
-        return None
+        return None, "config_endpoint_duplicate"
     finding_sources: dict[str, str] = {}
     for finding in findings:
         if not isinstance(finding, Mapping) or finding.get("kind") != "network.endpoint":
@@ -1006,10 +1098,10 @@ def _validated_route_config_candidate(
             or len(source) > 256
             or any(ord(character) < 0x20 for character in source)
         ):
-            return None
+            return None, "network_finding_contract_invalid"
         finding_sources[endpoint[0]] = source
     if set(finding_sources) != set(endpoint_values):
-        return None
+        return None, "config_finding_endpoint_mismatch"
     configured_network_candidates = [
         {
             "endpoint": endpoint,
@@ -1039,7 +1131,23 @@ def _validated_route_config_candidate(
         "configured_network_candidates": configured_network_candidates,
         "used_for_family_resolution": False,
         "used_for_c2_confirmation": False,
-    }
+    }, None
+
+
+def _validated_route_config_candidate(
+    *,
+    family: str,
+    family_result: Mapping[str, Any],
+    attempt: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """帰属未確定のValleyRAT handler結果を設定候補だけへ厳格に縮約する。"""
+
+    candidate, _reason = _route_config_candidate_projection(
+        family=family,
+        family_result=family_result,
+        attempt=attempt,
+    )
+    return candidate
 
 
 def build_route_config_candidate_document(
@@ -1051,45 +1159,182 @@ def build_route_config_candidate_document(
 
     if _sha256_identity(sha256) is None:
         raise ValueError("route config candidateのroot SHA-256が不正です")
-    global_safety_valid = bool(
-        assessment.get("schema_version") == 1
-        and assessment.get("executed_sample") is False
-        and assessment.get("network_contacted") is False
-        and assessment.get("filesystem_written_by_handlers") is False
-        and assessment.get("confirmed_families") == []
-        and assessment.get("status") in {"no_confirmed_family", "partial"}
+    assessment_status = _route_diagnostic_code(assessment.get("status"))
+    assessment_candidate_count = _route_assessment_count(assessment, "candidate_count")
+    planned_handler_attempts = _route_assessment_count(
+        assessment,
+        "planned_attempt_count",
     )
-    complete = global_safety_valid and _route_assessment_complete(assessment)
+    actual_handler_attempts = _route_assessment_count(
+        assessment,
+        "actual_attempt_count",
+    )
+    unattempted_handler_attempts = _route_assessment_count(
+        assessment,
+        "unattempted_attempt_count",
+    )
+    omitted_handler_attempt_details = _route_assessment_count(
+        assessment,
+        "omitted_attempt_detail_count",
+    )
+    assessment_rejection_reasons: set[str] = set()
+    assessment_exclusion_reason_counts: dict[str, int] = {}
+    route_attempt_exclusion_reason_counts: dict[str, int] = {}
+    route_attempt_rejection_reason_counts: dict[str, int] = {}
+
+    if assessment.get("schema_version") != 1:
+        assessment_rejection_reasons.add("assessment_schema_version_invalid")
+    if assessment.get("executed_sample") is not False:
+        assessment_rejection_reasons.add("sample_execution_safety_contract_invalid")
+    if assessment.get("network_contacted") is not False:
+        assessment_rejection_reasons.add("network_safety_contract_invalid")
+    if assessment.get("filesystem_written_by_handlers") is not False:
+        assessment_rejection_reasons.add("filesystem_safety_contract_invalid")
+    confirmed_families = assessment.get("confirmed_families")
+    if not isinstance(confirmed_families, list):
+        assessment_rejection_reasons.add("confirmed_family_summary_invalid")
+    elif confirmed_families:
+        assessment_rejection_reasons.add("confirmed_family_present")
+    if assessment.get("status") not in {"no_confirmed_family", "partial"}:
+        assessment_rejection_reasons.add("assessment_status_not_projection_eligible")
+
+    if assessment_candidate_count == 0:
+        _increment_reason(
+            assessment_exclusion_reason_counts,
+            "no_routing_candidates",
+        )
+    if planned_handler_attempts == 0:
+        _increment_reason(
+            assessment_exclusion_reason_counts,
+            "no_planned_handler_attempts",
+        )
+    if unattempted_handler_attempts:
+        _increment_reason(
+            assessment_exclusion_reason_counts,
+            "unattempted_handler_attempts",
+            unattempted_handler_attempts,
+        )
+    if omitted_handler_attempt_details:
+        _increment_reason(
+            assessment_exclusion_reason_counts,
+            "omitted_handler_attempt_details",
+            omitted_handler_attempt_details,
+        )
+    budget = assessment.get("budget")
+    if isinstance(budget, Mapping) and budget.get("exhausted") is True:
+        _increment_reason(
+            assessment_exclusion_reason_counts,
+            "assessment_budget_exhausted",
+        )
+    blockers = assessment.get("blockers")
+    if isinstance(blockers, list):
+        if len(blockers) > MAX_ROUTE_ASSESSMENT_FAMILIES:
+            _increment_reason(
+                assessment_exclusion_reason_counts,
+                "assessment_blocker_detail_limit_exceeded",
+                len(blockers),
+            )
+        else:
+            for blocker in blockers:
+                _increment_reason(
+                    assessment_exclusion_reason_counts,
+                    f"assessment_blocker_{_route_diagnostic_code(blocker)}",
+                )
+    excluded_layers = assessment.get("excluded_layers")
+    if isinstance(excluded_layers, list):
+        if len(excluded_layers) > MAX_ROUTE_ASSESSMENT_ATTEMPTS:
+            _increment_reason(
+                assessment_exclusion_reason_counts,
+                "excluded_layer_detail_limit_exceeded",
+                len(excluded_layers),
+            )
+        else:
+            for excluded_layer in excluded_layers:
+                reason = (
+                    excluded_layer.get("reason")
+                    if isinstance(excluded_layer, Mapping)
+                    else None
+                )
+                _increment_reason(
+                    assessment_exclusion_reason_counts,
+                    f"excluded_layer_{_route_diagnostic_code(reason)}",
+                )
+
+    families = assessment.get("families")
+    family_details_valid = bool(
+        isinstance(families, list)
+        and len(families) <= MAX_ROUTE_ASSESSMENT_FAMILIES
+    )
+    if not isinstance(families, list):
+        assessment_rejection_reasons.add("family_details_invalid")
+    elif len(families) > MAX_ROUTE_ASSESSMENT_FAMILIES:
+        assessment_rejection_reasons.add("family_detail_limit_exceeded")
+    global_safety_valid = bool(
+        not assessment_rejection_reasons
+    )
     unique: dict[str, dict[str, Any]] = {}
     evaluated_attempts = 0
     rejected_attempts = 0
-    families = assessment.get("families")
+    observed_excluded_attempts = 0
+    complete = bool(
+        global_safety_valid
+        and family_details_valid
+        and _route_assessment_complete(assessment)
+    )
     if (
         global_safety_valid
-        and isinstance(families, list)
-        and len(families) <= MAX_ROUTE_ASSESSMENT_FAMILIES
+        and family_details_valid
     ):
         for family_result in families:
             if not isinstance(family_result, Mapping):
+                _increment_reason(
+                    route_attempt_exclusion_reason_counts,
+                    "family_detail_invalid",
+                )
                 continue
             family = family_result.get("family")
             attempts = family_result.get("attempts")
             if not isinstance(family, str) or not isinstance(attempts, list):
+                _increment_reason(
+                    route_attempt_exclusion_reason_counts,
+                    "family_attempt_details_invalid",
+                )
                 continue
             if len(attempts) > MAX_ROUTE_ASSESSMENT_ATTEMPTS:
                 rejected_attempts += len(attempts)
+                _increment_reason(
+                    route_attempt_rejection_reason_counts,
+                    "family_attempt_detail_limit_exceeded",
+                    len(attempts),
+                )
                 continue
             for attempt in attempts:
-                if not isinstance(attempt, Mapping) or attempt.get("status") != ROUTE_ONLY_ATTEMPT_STATUS:
+                if not isinstance(attempt, Mapping):
+                    observed_excluded_attempts += 1
+                    _increment_reason(
+                        route_attempt_exclusion_reason_counts,
+                        "attempt_detail_invalid",
+                    )
+                    continue
+                if attempt.get("status") != ROUTE_ONLY_ATTEMPT_STATUS:
+                    observed_excluded_attempts += 1
+                    _increment_reason(
+                        route_attempt_exclusion_reason_counts,
+                        f"attempt_status_{_route_diagnostic_code(attempt.get('status'))}",
+                    )
                     continue
                 evaluated_attempts += 1
-                candidate = _validated_route_config_candidate(
+                candidate, rejection_reason = _route_config_candidate_projection(
                     family=family,
                     family_result=family_result,
                     attempt=attempt,
                 )
                 if candidate is None:
                     rejected_attempts += 1
+                    _increment_reason(
+                        route_attempt_rejection_reason_counts,
+                        rejection_reason or "route_candidate_projection_failed",
+                    )
                     continue
                 identity = json.dumps(
                     candidate,
@@ -1117,15 +1362,45 @@ def build_route_config_candidate_document(
         status = "assessment_incomplete_no_route_config_candidate"
     else:
         status = "no_route_config_candidate"
+    projection_disposition, projection_reason = _route_projection_disposition(
+        status=status,
+        assessment_status=assessment_status,
+        assessment_candidate_count=assessment_candidate_count,
+        planned_handler_attempts=planned_handler_attempts,
+        recovered=recovered,
+        complete=complete,
+        rejected_attempts=rejected_attempts,
+    )
     return {
         "schema_version": 1,
         "sha256": sha256,
         "status": status,
+        "status_scope": "route_candidate_projection_only",
+        "projection_disposition": projection_disposition,
+        "projection_reason": projection_reason,
+        "overall_analysis_result_affected": False,
+        "assessment_status": assessment_status,
+        "assessment_candidate_count": assessment_candidate_count,
+        "planned_handler_attempt_count": planned_handler_attempts,
+        "actual_handler_attempt_count": actual_handler_attempts,
+        "unattempted_handler_attempt_count": unattempted_handler_attempts,
+        "omitted_handler_attempt_detail_count": omitted_handler_attempt_details,
         "route_config_candidate_recovered": recovered,
         "candidate_count": len(candidates),
         "observed_candidate_count": len(ordered),
         "evaluated_route_attempt_count": evaluated_attempts,
+        "observed_excluded_route_attempt_count": observed_excluded_attempts,
         "rejected_route_attempt_count": rejected_attempts,
+        "assessment_rejection_reasons": sorted(assessment_rejection_reasons),
+        "assessment_exclusion_reason_counts": dict(
+            sorted(assessment_exclusion_reason_counts.items())
+        ),
+        "route_attempt_exclusion_reason_counts": dict(
+            sorted(route_attempt_exclusion_reason_counts.items())
+        ),
+        "route_attempt_rejection_reason_counts": dict(
+            sorted(route_attempt_rejection_reason_counts.items())
+        ),
         "distinct_configuration_count": len(configurations),
         "conflicting_configuration_candidates_present": len(configurations) > 1,
         "candidate_set_complete": bool(complete and not truncated),

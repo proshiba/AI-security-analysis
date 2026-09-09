@@ -2663,6 +2663,12 @@ def analyze_unit(
     }
     report["route_config_candidates"] = {
         "status": route_config_candidates["status"],
+        "status_scope": route_config_candidates["status_scope"],
+        "projection_disposition": route_config_candidates["projection_disposition"],
+        "projection_reason": route_config_candidates["projection_reason"],
+        "overall_analysis_result_affected": route_config_candidates[
+            "overall_analysis_result_affected"
+        ],
         "candidate_count": route_config_candidates["candidate_count"],
         "candidate_set_complete": route_config_candidates["candidate_set_complete"],
         "family_attribution_confirmed": False,

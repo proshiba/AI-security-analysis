@@ -16,15 +16,22 @@ assert SPEC and SPEC.loader
 DETECT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(DETECT)
 
-
-def _probe(*, reviewed_exact: bool) -> dict[str, object]:
+def _probe(
+    *,
+    reviewed_exact: bool,
+    outer_profile: str = "vulkan_export_create_thread",
+) -> dict[str, object]:
+    cef_profile = outer_profile == "cef_alias_export_beginthreadex"
     return {
         "matched": True,
         "family": "valleyrat" if reviewed_exact else None,
         "variant": "ca01_x64_double_base64_sideload_terminal",
+        "outer_profile": outer_profile,
         "supports_family_attribution": reviewed_exact,
         "attribution_scope": (
-            "reviewed_exact_loader_linked_config_and_memory_stage_consumer"
+            "reviewed_exact_cef_alias_loader_linked_config_and_memory_stage_consumer"
+            if cef_profile and reviewed_exact
+            else "reviewed_exact_loader_linked_config_and_memory_stage_consumer"
             if reviewed_exact
             else "component_handler_route"
         ),
@@ -100,3 +107,48 @@ def test_unknown_ca01_is_route_only_and_probe_output_remains_redacted(
     assert "198.51.100.24" not in serialized
     assert "UEVSSU9ESUM=" not in serialized
     assert "0x1800" not in serialized
+
+
+def test_reviewed_cef_ca01_uses_beginthreadex_lineage_reason(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CEF型は_beginthreadex根拠で確定し、Vulkan経路を混在させない。"""
+
+    monkeypatch.setattr(
+        DETECT,
+        "probe_ca01_config",
+        lambda _data: _probe(
+            reviewed_exact=True,
+            outer_profile="cef_alias_export_beginthreadex",
+        ),
+    )
+
+    result = DETECT.detect(b"MZ reviewed-cef-ca01", Path("libcef.dll"))
+
+    assert result["matched"] is True
+    assert result["supports_family_attribution"] is True
+    reasons = result["campaigns"][0]["reasons"]
+    assert any("_beginthreadex" in reason for reason in reasons)
+    assert not any("Vulkan export" in reason for reason in reasons)
+
+
+def test_unknown_cef_ca01_remains_route_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """同じCEF構造でも未レビューhashはfamily確定へ昇格しない。"""
+
+    monkeypatch.setattr(
+        DETECT,
+        "probe_ca01_config",
+        lambda _data: _probe(
+            reviewed_exact=False,
+            outer_profile="cef_alias_export_beginthreadex",
+        ),
+    )
+
+    result = DETECT.detect(b"MZ unknown-cef-ca01", Path("libcef.dll"))
+
+    assert result["matched"] is True
+    assert result["supports_family_attribution"] is False
+    assert result["campaigns"][0]["terminal_family_confirmed"] is False
+    assert result["campaigns"][0]["attribution_scope"] == "component_handler_route"
