@@ -43,14 +43,28 @@ MAX_FOLLOW_ON_WALL_SECONDS = 300.0
 MAX_FOLLOW_ON_CHILD_SECONDS = 120.0
 MAX_FOLLOW_ON_WORKER_REQUEST = 64 * 1024
 MAX_FOLLOW_ON_WORKER_RESPONSE = 4 * 1024 * 1024
+FOLLOW_ON_WORKER_FRAME_HEADER_BYTES = 8
 MAX_DIRECT_CLI_SECONDS = 24 * 60 * 60
 MAX_DIRECT_CLI_ACTIVE_PROCESSES = 32
 MAX_DIRECT_CLI_MEMORY_BYTES = 4 * 1024 * 1024 * 1024
+MAX_DIRECT_CLI_REQUEST = 64 * 1024
+MAX_DIRECT_CLI_RESPONSE = 64 * 1024
+MAX_DIRECT_CLI_ARGUMENTS = 256
+MAX_DIRECT_CLI_ARGUMENT_CHARACTERS = 32 * 1024
+MAX_CLI_CREDENTIAL_BYTES = 4096
 MAX_FOLLOW_ON_WORKER_ACTIVE_PROCESSES = 8
 MAX_FOLLOW_ON_WORKER_MEMORY_BYTES = 2 * 1024 * 1024 * 1024
 MAX_HANDLER_ATTEMPTS_PER_CASE = 64
 MAX_HANDLER_RESULT_BYTES_PER_CASE = 16 * 1024 * 1024
 MAX_HANDLER_WALL_SECONDS_PER_CASE = 300.0
+MAX_PE_FUNCTION_WORKER_WALL_SECONDS = 120.0
+MAX_PE_FUNCTION_WORKER_REQUEST = 64 * 1024
+MAX_PE_FUNCTION_WORKER_RESPONSE = 4 * 1024 * 1024
+MAX_PE_FUNCTION_WORKER_LAYER_BYTES = 128 * 1024 * 1024
+MAX_PE_FUNCTION_WORKER_TOTAL_BYTES = 256 * 1024 * 1024
+MAX_PE_FUNCTION_WORKER_PROGRAMS = 8
+MAX_PE_FUNCTION_WORKER_ACTIVE_PROCESSES = 1
+MAX_PE_FUNCTION_WORKER_MEMORY_BYTES = 512 * 1024 * 1024
 MAX_STATIC_TOOL_BINARY_BYTES = 128 * 1024 * 1024
 CONFIDENCE = {"high": 3, "medium": 2, "low": 1}
 FAMILY_ALIASES = {
@@ -392,9 +406,11 @@ def recover_static_layers(
     upx: Path | None = None,
     sevenzip: Path | None = None,
     diec: Path | None = None,
+    innounp: Path | None = None,
     force_container_probe: bool = False,
     max_static_layers: int = MAX_STATIC_LAYERS,
     archive_password: str = "infected",
+    inno_password: str = "",
 ) -> tuple[list[StaticLayer], dict[str, Any]]:
     """共有パイプラインへ既存unpackerと公開値sanitizerを注入する互換入口。"""
 
@@ -406,8 +422,10 @@ def recover_static_layers(
         upx=upx,
         sevenzip=sevenzip,
         diec=diec,
+        innounp=innounp,
         force_container_probe=force_container_probe,
         archive_password=archive_password,
+        inno_password=inno_password,
     )
 
 
@@ -786,6 +804,30 @@ def _requirements_policy_summary(policies: dict[str, dict[str, Any]]) -> dict[st
     }
 
 
+def _zero_attempt_candidate_assessment(
+    *,
+    base: Mapping[str, Any],
+    status: str,
+    excluded_layers: Sequence[Mapping[str, Any]] = (),
+) -> dict[str, Any]:
+    """候補検証の早期終了を、欠落のない0件accountingとして返す。"""
+
+    return {
+        **base,
+        "status": status,
+        "confirmed_families": [],
+        "planned_attempt_count": 0,
+        "actual_attempt_count": 0,
+        "retained_attempt_detail_count": 0,
+        "omitted_attempt_detail_count": 0,
+        "unattempted_attempt_count": 0,
+        "blockers": [],
+        "budget": {"exhausted": False},
+        "families": [],
+        "excluded_layers": [dict(item) for item in excluded_layers],
+    }
+
+
 def _candidate_handler_assessment(
     *,
     routing: dict[str, Any],
@@ -806,13 +848,22 @@ def _candidate_handler_assessment(
         "filesystem_written_by_handlers": False,
     }
     if assessment_only:
-        return {**base, "status": "not_run_assessment_only", "planned_attempt_count": 0, "families": []}
+        return _zero_attempt_candidate_assessment(
+            base=base,
+            status="not_run_assessment_only",
+        )
     if not candidates:
-        return {**base, "status": "no_candidates", "planned_attempt_count": 0, "families": []}
+        return _zero_attempt_candidate_assessment(
+            base=base,
+            status="no_candidates",
+        )
     candidate_families = {str(item["family"]) for item in candidates}
     candidate_specs = [spec for spec in specs if spec.automatic and spec.family in candidate_families]
     if not candidate_specs:
-        return {**base, "status": "no_automatic_handler", "planned_attempt_count": 0, "families": []}
+        return _zero_attempt_candidate_assessment(
+            base=base,
+            status="no_automatic_handler",
+        )
 
     supported_hashes = {
         digest for item in candidates for digest in item.get("layer_sha256", []) if isinstance(digest, str)
@@ -880,13 +931,11 @@ def _candidate_handler_assessment(
         selected.append(item)
         total_size += len(item[1].data)
     if not selected:
-        return {
-            **base,
-            "status": "no_eligible_layer_within_limits",
-            "planned_attempt_count": 0,
-            "families": [],
-            "excluded_layers": excluded,
-        }
+        return _zero_attempt_candidate_assessment(
+            base=base,
+            status="no_eligible_layer_within_limits",
+            excluded_layers=excluded,
+        )
 
     selected_hashes = {item[1].sha256 for item in selected}
     assessment_layers = [
@@ -1577,6 +1626,160 @@ def _completed_in_memory_lzx_cab(report: dict[str, Any]) -> bool:
     return True
 
 
+def _completed_in_memory_cabarchive_cab(report: dict[str, Any]) -> bool:
+    """全preflightとinventoryが一致する通常cabarchive CAB成功だけを承認する。"""
+
+    if report.get("format") != "cab":
+        return False
+    report_size = report.get("size")
+    report_sha256 = report.get("sha256")
+    if (
+        isinstance(report_size, bool)
+        or not isinstance(report_size, int)
+        or report_size <= 0
+        or not isinstance(report_sha256, str)
+        or re.fullmatch(r"[0-9a-f]{64}", report_sha256) is None
+        or report.get("executed") is not False
+        or report.get("network_contacted") is not False
+    ):
+        return False
+
+    cab = report.get("cab")
+    if not isinstance(cab, dict):
+        return False
+    preflight = cab.get("preflight")
+    inventory = cab.get("inventory")
+    if not isinstance(preflight, dict) or not isinstance(inventory, list) or not inventory:
+        return False
+    if any(
+        key in cab
+        for key in (
+            "error",
+            "error_type",
+            "failure_reason",
+            "fallback_from",
+            "in_memory_extraction",
+        )
+    ):
+        return False
+
+    numeric_values = (
+        cab.get("member_count"),
+        cab.get("extracted_total_size"),
+        preflight.get("cabinet_size"),
+        preflight.get("folder_count"),
+        preflight.get("file_count"),
+        preflight.get("data_block_count"),
+        preflight.get("declared_file_total_size"),
+        preflight.get("declared_folder_output_total_size"),
+        preflight.get("checksum_blocks_required"),
+        preflight.get("checksum_blocks_verified"),
+    )
+    if any(isinstance(value, bool) or not isinstance(value, int) for value in numeric_values):
+        return False
+    (
+        member_count,
+        extracted_total_size,
+        cabinet_size,
+        folder_count,
+        file_count,
+        data_block_count,
+        declared_file_total_size,
+        declared_folder_output_total_size,
+        checksum_blocks_required,
+        checksum_blocks_verified,
+    ) = numeric_values
+    if (
+        member_count <= 0
+        or folder_count <= 0
+        or data_block_count <= 0
+        or member_count != file_count
+        or member_count != len(inventory)
+        or cabinet_size != report_size
+        or extracted_total_size < 0
+        or declared_file_total_size < 0
+        or extracted_total_size != declared_file_total_size
+        or declared_folder_output_total_size < declared_file_total_size
+        or checksum_blocks_required != 0
+        or checksum_blocks_verified < 0
+        or checksum_blocks_verified > data_block_count
+    ):
+        return False
+
+    names: list[str] = []
+    inventory_total_size = 0
+    for item in inventory:
+        if not isinstance(item, dict):
+            return False
+        name = item.get("name")
+        size = item.get("size")
+        digest = item.get("sha256")
+        member_format = item.get("format")
+        if (
+            item.get("status") != "extracted"
+            or not isinstance(name, str)
+            or not name
+            or isinstance(size, bool)
+            or not isinstance(size, int)
+            or size < 0
+            or not isinstance(digest, str)
+            or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+            or not isinstance(member_format, str)
+            or not member_format
+            or len(member_format) > 128
+        ):
+            return False
+        normalized_name = name.replace("\\", "/")
+        try:
+            invalid_name = (
+                normalized_name != name
+                or len(name.encode("utf-8")) > 4096
+                or name.startswith("/")
+                or re.match(r"^[A-Za-z]:", name) is not None
+                or any(part in {"", ".", ".."} for part in name.split("/"))
+            )
+        except UnicodeEncodeError:
+            return False
+        if invalid_name:
+            return False
+        names.append(name)
+        inventory_total_size += size
+    if (
+        len({name.casefold() for name in names}) != len(names)
+        or names != sorted(names, key=lambda name: (name.casefold(), name))
+        or inventory_total_size != declared_file_total_size
+    ):
+        return False
+
+    required_values = {
+        "cab_status": cab.get("status") in {"artifacts_recovered", "no_artifact_recovered"},
+        "cab_parser": cab.get("parser") == "cabarchive",
+        "cab_backend": cab.get("backend") == "in_memory_python",
+        "cab_order": cab.get("deterministic_member_order") is True,
+        "fallback_attempted": cab.get("lzx_fallback_attempted") is False,
+        "fallback_completed": cab.get("lzx_fallback_completed") is False,
+        "preflight_status": preflight.get("status") == "passed",
+        "preflight_compression": preflight.get("compression")
+        in {"none", "mszip", "none_or_mszip"},
+        "preflight_no_lzx_windows": preflight.get("lzx_window_bits") == [],
+        "preflight_no_lzx_budget": "lzx_peak_memory_budget" not in preflight,
+        "preflight_bounds": preflight.get("bounds_validation") == "passed",
+        "preflight_paths": preflight.get("path_validation") == "passed",
+        "preflight_single_volume": preflight.get("multi_volume") is False,
+    }
+    if not all(required_values.values()):
+        return False
+    return not any(
+        cab.get(field) is not False
+        for field in (
+            "executed",
+            "network_contacted",
+            "external_process_started",
+            "disk_written",
+        )
+    )
+
+
 def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
     """静的復元stepの失敗、深度上限、parser上限を決定的に列挙する。"""
 
@@ -1658,7 +1861,9 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
         visit(step.get("report"), f"steps[{index}].report")
         report = step.get("report")
         if isinstance(report, dict) and "sevenzip" not in report:
-            in_memory_cab_complete = _completed_in_memory_lzx_cab(report)
+            in_memory_cab_complete = _completed_in_memory_lzx_cab(
+                report
+            ) or _completed_in_memory_cabarchive_cab(report)
             if report.get("format") in {"7z", "apple-disk-image", "cab", "rar"} and not (
                 report.get("format") == "cab" and in_memory_cab_complete
             ):
@@ -2210,12 +2415,14 @@ def analyze_unit(
     upx: Path | None = None,
     sevenzip: Path | None = None,
     diec: Path | None = None,
+    innounp: Path | None = None,
     force_container_probe: bool = False,
     max_static_layers: int = MAX_STATIC_LAYERS,
     retry_max_static_layers: int | None = None,
     archive_password: str = "infected",
     string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT,
     follow_on_lineage: dict[str, Any] | None = None,
+    inno_password: str = "",
 ) -> dict[str, Any]:
     """1検体を分類し、適用可能な既存静的解析器を一括実行する。"""
 
@@ -2250,9 +2457,11 @@ def analyze_unit(
             upx=upx,
             sevenzip=sevenzip,
             diec=diec,
+            innounp=innounp,
             force_container_probe=force_container_probe,
             max_static_layers=max_static_layers,
             archive_password=archive_password,
+            inno_password=inno_password,
         )
         if retry_max_static_layers is not None and _layer_count_limit_reached(layer_report):
             initial_counts = layer_report.get("counts", {})
@@ -2262,9 +2471,11 @@ def analyze_unit(
                 upx=upx,
                 sevenzip=sevenzip,
                 diec=diec,
+                innounp=innounp,
                 force_container_probe=force_container_probe,
                 max_static_layers=retry_max_static_layers,
                 archive_password=archive_password,
+                inno_password=inno_password,
             )
             layer_report["adaptive_retry"] = {
                 "trigger": "layer_count_limit",
@@ -2515,6 +2726,10 @@ def analyze_unit(
         report["follow_on_lineage"] = sanitize_public_value(follow_on_lineage)
     handler_logic_records = _handler_static_logic_records(case_dir, executions)
     handler_program_evidence = _handler_static_logic_program_evidence(case_dir, executions)
+    automated_binary_analysis = _run_pe_function_analysis_isolated(
+        layers,
+        assessment_only=assessment_only,
+    )
     logic_report = build_static_logic_report(
         sha256=digest,
         family=root_selection["selected_family"] or root_classification.get("malware_type"),
@@ -2522,6 +2737,7 @@ def analyze_unit(
         data=None if assessment_only or handler_logic_records else unit.data,
         records=handler_logic_records,
         program_evidence=handler_program_evidence,
+        automated_binary_analysis=automated_binary_analysis,
         analysis_source=(
             "campaign_handler_representative_functions" if handler_logic_records else "one_shot_static_analysis"
         ),
@@ -3027,11 +3243,17 @@ def _tool_identity(path: Path | None) -> dict[str, Any] | None:
     }
 
 
-def _static_tool_settings(upx: Path | None, sevenzip: Path | None, diec: Path | None) -> dict[str, Any]:
+def _static_tool_settings(
+    upx: Path | None,
+    sevenzip: Path | None,
+    diec: Path | None,
+    innounp: Path | None = None,
+) -> dict[str, Any]:
     return {
         "upx": _tool_identity(upx),
         "sevenzip": _tool_identity(sevenzip),
         "diec": _tool_identity(diec),
+        "innounp": _tool_identity(innounp),
     }
 
 
@@ -3045,6 +3267,7 @@ def _build_analysis_contract(
     upx: Path | None = None,
     sevenzip: Path | None = None,
     diec: Path | None = None,
+    innounp: Path | None = None,
     force_container_probe: bool = False,
     max_static_layers: int = MAX_STATIC_LAYERS,
     retry_max_static_layers: int | None = None,
@@ -3054,6 +3277,7 @@ def _build_analysis_contract(
     string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT,
     family_hint_manifest_identity: dict[str, Any] | None = None,
     component_snapshot: _AnalysisComponentSnapshot | None = None,
+    inno_password: str = "",
 ) -> dict[str, Any]:
     """再開判定に必要なコード・レジストリ・設定指紋を構築する。"""
 
@@ -3072,7 +3296,7 @@ def _build_analysis_contract(
         "max_file_size": max_file_size,
         "string_scan_limit": string_scan_limit,
         "family_hint_manifest": family_hint_manifest_identity,
-        "static_tools": _static_tool_settings(upx, sevenzip, diec),
+        "static_tools": _static_tool_settings(upx, sevenzip, diec, innounp),
         "force_container_probe": force_container_probe,
         "max_static_layers": max_static_layers,
         "retry_max_static_layers": retry_max_static_layers,
@@ -3086,7 +3310,8 @@ def _build_analysis_contract(
             "maximum_wall_seconds": MAX_FOLLOW_ON_WALL_SECONDS,
             "maximum_child_seconds": MAX_FOLLOW_ON_CHILD_SECONDS,
         },
-        "archive_password_fingerprint": hashlib.sha256(archive_password.encode("utf-8")).hexdigest(),
+        "archive_password_configured": bool(archive_password),
+        "inno_password_configured": bool(inno_password),
         "handler_catalog_sha256": hashlib.sha256(catalog).hexdigest(),
         "runtime": runtime_dependency_versions(),
     }
@@ -3113,6 +3338,8 @@ def _build_follow_on_analysis_contract(
     string_scan_limit: int,
     family_hint_manifest_identity: dict[str, Any] | None = None,
     component_snapshot: _AnalysisComponentSnapshot | None = None,
+    innounp: Path | None = None,
+    inno_password: str = "",
 ) -> dict[str, Any]:
     """保持済みraw payloadへ実際に適用する設定だけで契約を構築する。"""
 
@@ -3126,6 +3353,7 @@ def _build_follow_on_analysis_contract(
         upx=upx,
         sevenzip=sevenzip,
         diec=diec,
+        innounp=innounp,
         force_container_probe=force_container_probe,
         max_static_layers=max_static_layers,
         retry_max_static_layers=retry_max_static_layers,
@@ -3134,6 +3362,7 @@ def _build_follow_on_analysis_contract(
         string_scan_limit=string_scan_limit,
         family_hint_manifest_identity=family_hint_manifest_identity,
         component_snapshot=component_snapshot,
+        inno_password=inno_password,
     )
 
 
@@ -3172,6 +3401,17 @@ def load_resumable_case(
     if any("reparse" in error for error in integrity_errors):
         raise ValueError(f"再開対象caseにreparse pointがあります: {digest} ({integrity_errors})")
     if integrity_errors:
+        return None
+    settings = expected_contract.get("settings")
+    if (
+        not isinstance(settings, Mapping)
+        or type(settings.get("archive_password_configured")) is not bool
+        or type(settings.get("inno_password_configured")) is not bool
+        or settings["archive_password_configured"]
+        or settings["inno_password_configured"]
+    ):
+        # 公開contractへcredential verifierを保持しないため、値の一致を
+        # 証明できない設定済みpasswordのcaseは直接呼出しでも再利用しない。
         return None
     state = report.get("case_state")
     sample = report.get("sample")
@@ -3397,7 +3637,7 @@ def _strict_json_object_bytes(raw: bytes, *, label: str) -> dict[str, Any]:
         return parsed
 
     def parse_bounded_int(raw_value: str) -> int:
-        digits = raw_value[1:] if raw_value.startswith("-") else raw_value
+        digits = raw_value.removeprefix("-")
         if len(digits) > 128:
             raise ValueError(f"{label}の整数桁数が上限を超えています")
         return int(raw_value)
@@ -3426,13 +3666,282 @@ def _strict_json_object_bytes(raw: bytes, *, label: str) -> dict[str, Any]:
     return value
 
 
-def _follow_on_worker_main(
+def _pe_function_layer_selection(
+    layers: Sequence[StaticLayer],
+) -> tuple[list[tuple[int, StaticLayer]], int]:
+    """root保持・深さ優先で、隔離workerへ渡すPE層を有界選択する。"""
+
+    eligible = [
+        index
+        for index, layer in enumerate(layers)
+        if isinstance(layer.data, bytes) and layer.data.startswith(b"MZ")
+    ]
+    if len(eligible) <= MAX_PE_FUNCTION_WORKER_PROGRAMS:
+        return [(index, layers[index]) for index in eligible], len(eligible)
+    selected: list[int] = []
+    if 0 in eligible:
+        selected.append(0)
+    ranked = sorted(eligible, key=lambda index: (-int(layers[index].depth), index))
+    for index in ranked:
+        if index not in selected:
+            selected.append(index)
+        if len(selected) >= MAX_PE_FUNCTION_WORKER_PROGRAMS:
+            break
+    return [(index, layers[index]) for index in selected], len(eligible)
+
+
+def _pe_function_worker_artifact(
+    status: str,
+    *,
+    eligible_pe_layer_count: int,
+    requested_program_count: int,
+    timeout_seconds: float,
+    error_type: str | None = None,
+) -> dict[str, Any]:
+    """worker失敗を、完了gateを満たさない安全な部分成果物へ正規化する。"""
+
+    worker = {
+        "status": status,
+        "execution_boundary": "bounded_isolated_process",
+        "wall_clock_limit_seconds": timeout_seconds,
+        "maximum_active_processes": MAX_PE_FUNCTION_WORKER_ACTIVE_PROCESSES,
+        "maximum_memory_bytes": MAX_PE_FUNCTION_WORKER_MEMORY_BYTES,
+        "requested_program_count": requested_program_count,
+    }
+    if isinstance(error_type, str) and re.fullmatch(r"[A-Za-z][A-Za-z0-9_.]{0,127}", error_type):
+        worker["error_type"] = error_type
+    return {
+        "schema_version": 1,
+        "analysis_mode": "bounded_static_disassembly_only",
+        "status": status,
+        "programs": [],
+        "counts": {
+            "eligible_pe_layer_count": eligible_pe_layer_count,
+            "selected_pe_layer_count": 0,
+            "analyzed_program_count": 0,
+            "representative_function_candidate_count": 0,
+            "import_count": 0,
+            "call_site_count": 0,
+            "process_behavior_count": 0,
+        },
+        "program_selection": {
+            "policy": "root_then_deepest_then_discovery_order",
+            "maximum_programs": MAX_PE_FUNCTION_WORKER_PROGRAMS,
+            "truncated": eligible_pe_layer_count > 0,
+            "artifact_name_or_hash_specific_exception_used": False,
+        },
+        "completion_contract": {
+            "satisfies_reviewed_function_analysis_gate": False,
+            "blocker_must_be_retained_without_independent_reviewed_functions": True,
+            "required_gate": "validate_function_analysis.py",
+            "reason": "automated_candidate_evidence_requires_independent_function_review",
+        },
+        "safety": {
+            "sample_executed": False,
+            "sample_emulated": False,
+            "network_contacted": False,
+            "raw_pseudocode_exported": False,
+            "raw_endpoint_or_config_exported": False,
+            "source_name_exported": False,
+        },
+        "worker_execution": worker,
+    }
+
+
+def _pe_function_worker_request_item(
+    value: Any,
+    *,
+    ordinal: int,
+    transferred_bytes: int,
+) -> tuple[dict[str, Any], int]:
+    """worker requestの1層を厳格検証し、次の転送済みbyte数を返す。"""
+
+    expected_keys = {
+        "ordinal",
+        "sha256",
+        "size",
+        "depth",
+        "relationship",
+        "transfer_status",
+        "file_name",
+    }
+    if not isinstance(value, dict) or set(value) != expected_keys or value.get("ordinal") != ordinal:
+        raise ValueError("PE function worker layer schemaが不正です")
+    digest = normalize_sha256_digest(value.get("sha256"))
+    size = value.get("size")
+    depth = value.get("depth")
+    relationship = value.get("relationship")
+    transfer_status = value.get("transfer_status")
+    file_name = value.get("file_name")
+    if (
+        isinstance(size, bool)
+        or not isinstance(size, int)
+        or size < 2
+        or isinstance(depth, bool)
+        or not isinstance(depth, int)
+        or not 0 <= depth <= 64
+        or relationship not in {"root_program", "statically_recovered_program"}
+    ):
+        raise ValueError("PE function worker layer metadataが不正です")
+    if relationship == "root_program" and ordinal != 0:
+        raise ValueError("PE function worker root relationshipが不正です")
+    expected_name = f"layer-{ordinal:04d}.bin"
+    if transfer_status == "available":
+        if (
+            file_name != expected_name
+            or size > MAX_PE_FUNCTION_WORKER_LAYER_BYTES
+            or transferred_bytes + size > MAX_PE_FUNCTION_WORKER_TOTAL_BYTES
+        ):
+            raise ValueError("PE function worker transferred layerが不正です")
+        transferred_bytes += size
+    elif transfer_status == "input_budget_exceeded":
+        if file_name is not None or size <= MAX_PE_FUNCTION_WORKER_LAYER_BYTES:
+            raise ValueError("PE function worker input budget recordが不正です")
+    elif transfer_status == "worker_total_input_budget_exceeded":
+        if (
+            file_name is not None
+            or size > MAX_PE_FUNCTION_WORKER_LAYER_BYTES
+            or transferred_bytes + size <= MAX_PE_FUNCTION_WORKER_TOTAL_BYTES
+        ):
+            raise ValueError("PE function worker total budget recordが不正です")
+    else:
+        raise ValueError("PE function worker transfer statusが不正です")
+    return {**value, "sha256": digest}, transferred_bytes
+
+
+def _pe_function_result_has_forbidden_fields(value: Any) -> bool:
+    """source名や生endpoint/config用fieldがworker結果へ混入していないか調べる。"""
+
+    pending = [value]
+    forbidden = {
+        "source_name",
+        "source_path",
+        "raw_endpoint",
+        "raw_config",
+        "raw_configuration",
+    }
+    while pending:
+        current = pending.pop()
+        if isinstance(current, dict):
+            if any(str(key).casefold() in forbidden for key in current):
+                return True
+            pending.extend(current.values())
+        elif isinstance(current, list):
+            pending.extend(current)
+    return False
+
+
+def _validate_pe_function_worker_result(
+    value: Any,
+    *,
+    request_layers: Sequence[Mapping[str, Any]],
+    eligible_pe_layer_count: int,
+    assessment_only: bool,
+) -> dict[str, Any]:
+    """隔離worker結果を入力manifestと安全契約へ結び付けて検証する。"""
+
+    expected_keys = {
+        "schema_version",
+        "analysis_mode",
+        "status",
+        "programs",
+        "counts",
+        "program_selection",
+        "completion_contract",
+        "safety",
+    }
+    if not isinstance(value, dict) or set(value) != expected_keys:
+        raise ValueError("PE function worker result schemaが不正です")
+    counts = value.get("counts")
+    count_keys = {
+        "eligible_pe_layer_count",
+        "selected_pe_layer_count",
+        "analyzed_program_count",
+        "representative_function_candidate_count",
+        "import_count",
+        "call_site_count",
+        "process_behavior_count",
+    }
+    programs = value.get("programs")
+    selection = value.get("program_selection")
+    completion = value.get("completion_contract")
+    safety = value.get("safety")
+    if (
+        value.get("schema_version") != 1
+        or value.get("analysis_mode") != "bounded_static_disassembly_only"
+        or value.get("status")
+        not in {
+            "not_run_assessment_only",
+            "not_applicable",
+            "candidate_evidence_collected",
+            "candidate_evidence_partial",
+        }
+        or not isinstance(programs, list)
+        or len(programs) != len(request_layers)
+        or not isinstance(counts, dict)
+        or set(counts) != count_keys
+        or any(isinstance(item, bool) or not isinstance(item, int) or item < 0 for item in counts.values())
+        or counts.get("eligible_pe_layer_count") != eligible_pe_layer_count
+        or counts.get("selected_pe_layer_count") != len(request_layers)
+        or not isinstance(selection, dict)
+        or selection.get("policy") != "root_then_deepest_then_discovery_order"
+        or selection.get("maximum_programs") != MAX_PE_FUNCTION_WORKER_PROGRAMS
+        or selection.get("truncated") is not (eligible_pe_layer_count > len(request_layers))
+        or selection.get("artifact_name_or_hash_specific_exception_used") is not False
+        or not isinstance(completion, dict)
+        or completion.get("satisfies_reviewed_function_analysis_gate") is not False
+        or completion.get("blocker_must_be_retained_without_independent_reviewed_functions") is not True
+        or not isinstance(safety, dict)
+        or any(
+            safety.get(name) is not False
+            for name in (
+                "sample_executed",
+                "sample_emulated",
+                "network_contacted",
+                "raw_pseudocode_exported",
+                "raw_endpoint_or_config_exported",
+                "source_name_exported",
+            )
+        )
+        or _pe_function_result_has_forbidden_fields(value)
+    ):
+        raise ValueError("PE function worker result contractが不正です")
+    if assessment_only and (programs or eligible_pe_layer_count != 0):
+        raise ValueError("assessment-only PE function worker resultが不正です")
+    for program, expected in zip(programs, request_layers, strict=True):
+        program_completion = program.get("completion_contract") if isinstance(program, dict) else None
+        program_safety = program.get("safety") if isinstance(program, dict) else None
+        if (
+            not isinstance(program, dict)
+            or program.get("program_selector") != f"sha256:{expected['sha256']}"
+            or program.get("relationship") != expected["relationship"]
+            or program.get("depth") != expected["depth"]
+            or not isinstance(program.get("status"), str)
+            or not isinstance(program_completion, dict)
+            or program_completion.get("satisfies_reviewed_function_analysis_gate") is not False
+            or program_completion.get("requires_independent_reviewed_function_logic") is not True
+            or not isinstance(program_safety, dict)
+            or any(
+                program_safety.get(name) is not False
+                for name in (
+                    "sample_executed",
+                    "sample_emulated",
+                    "network_contacted",
+                    "raw_pseudocode_exported",
+                )
+            )
+        ):
+            raise ValueError("PE function worker program contractが不正です")
+    return value
+
+
+def _pe_function_worker_main(
     request_path: str,
     request_size_text: str,
     request_sha256: str,
     response_path: str,
 ) -> int:
-    """1つの保持payloadだけを既存pipelineへ通す隔離worker entrypoint。"""
+    """PE代表関数候補を静的解析する隔離worker entrypoint。"""
 
     request_file = Path(request_path)
     response_file = Path(response_path)
@@ -3447,15 +3956,370 @@ def _follow_on_worker_main(
     try:
         ensure_no_reparse_components(response_file.parent)
         if not request_size_text.isascii() or not request_size_text.isdecimal():
-            raise ValueError("follow-on worker request sizeが不正です")
+            raise ValueError("PE function worker request sizeが不正です")
         request_size = int(request_size_text)
         request_digest = normalize_sha256_digest(request_sha256)
         request_raw = _read_private_regular_file(
             request_file,
-            maximum_size=MAX_FOLLOW_ON_WORKER_REQUEST,
+            maximum_size=MAX_PE_FUNCTION_WORKER_REQUEST,
             expected_size=request_size,
             expected_sha256=request_digest,
         )
+        request = _strict_json_object_bytes(request_raw, label="PE function worker request")
+        if set(request) != {
+            "schema_version",
+            "assessment_only",
+            "eligible_pe_layer_count",
+            "layers",
+        }:
+            raise ValueError("PE function worker request schemaが不正です")
+        assessment_only = request.get("assessment_only")
+        eligible_count = request.get("eligible_pe_layer_count")
+        supplied_layers = request.get("layers")
+        if (
+            request.get("schema_version") != 1
+            or type(assessment_only) is not bool
+            or isinstance(eligible_count, bool)
+            or not isinstance(eligible_count, int)
+            or not 0 <= eligible_count <= 1_000_000
+            or not isinstance(supplied_layers, list)
+            or len(supplied_layers) > MAX_PE_FUNCTION_WORKER_PROGRAMS
+            or eligible_count < len(supplied_layers)
+            or (assessment_only and (eligible_count != 0 or supplied_layers))
+        ):
+            raise ValueError("PE function worker request contractが不正です")
+        layer_root = request_file.parent / "layers"
+        ensure_no_reparse_components(layer_root)
+        resolved_layer_root = layer_root.resolve(strict=True)
+        if not resolved_layer_root.is_dir() or resolved_layer_root.parent != request_file.parent:
+            raise ValueError("PE function worker layer rootが不正です")
+        layers: list[dict[str, Any]] = []
+        transferred_bytes = 0
+        for ordinal, supplied in enumerate(supplied_layers):
+            normalized, transferred_bytes = _pe_function_worker_request_item(
+                supplied,
+                ordinal=ordinal,
+                transferred_bytes=transferred_bytes,
+            )
+            layers.append(normalized)
+
+        import pe_function_analysis
+
+        programs = []
+        for layer in layers:
+            selector = f"sha256:{layer['sha256']}"
+            if layer["transfer_status"] == "available":
+                path = resolved_layer_root / str(layer["file_name"])
+                if path.parent != resolved_layer_root:
+                    raise ValueError("PE function worker layer pathが不正です")
+                data = _read_private_regular_file(
+                    path,
+                    maximum_size=MAX_PE_FUNCTION_WORKER_LAYER_BYTES,
+                    expected_size=int(layer["size"]),
+                    expected_sha256=str(layer["sha256"]),
+                )
+                program = pe_function_analysis.analyze_pe(
+                    data,
+                    program_selector=selector,
+                    relationship=str(layer["relationship"]),
+                    depth=int(layer["depth"]),
+                )
+                del data
+            else:
+                program = pe_function_analysis._base_program(
+                    selector,
+                    str(layer["relationship"]),
+                    int(layer["depth"]),
+                )
+                program["status"] = str(layer["transfer_status"])
+            programs.append(program)
+        result = pe_function_analysis.build_static_layer_report(
+            programs,
+            eligible_pe_layer_count=eligible_count,
+            assessment_only=assessment_only,
+        )
+        response: dict[str, Any] = {"ok": True, "result": result}
+    except Exception as exc:  # noqa: BLE001 - worker境界では例外詳細を型へ正規化する
+        response = {
+            "ok": False,
+            "error": "pe_function_worker_failed",
+            "error_type": type(exc).__name__,
+        }
+    encoded = json.dumps(
+        response,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    if len(encoded) > MAX_PE_FUNCTION_WORKER_RESPONSE:
+        encoded = b'{"error":"pe_function_worker_response_limit","error_type":"ValueError","ok":false}'
+    try:
+        _write_private_regular_file(
+            response_file,
+            encoded,
+            maximum_size=MAX_PE_FUNCTION_WORKER_RESPONSE,
+        )
+    except (OSError, ValueError):
+        return 3
+    return 0
+
+
+def _run_pe_function_analysis_isolated(
+    layers: Sequence[StaticLayer],
+    *,
+    assessment_only: bool = False,
+    timeout_seconds: float = MAX_PE_FUNCTION_WORKER_WALL_SECONDS,
+) -> dict[str, Any]:
+    """PE静的関数解析を資源制限付き子processへ隔離し、失敗をcase内へ閉じ込める。"""
+
+    selected, eligible_count = (
+        ([], 0) if assessment_only else _pe_function_layer_selection(layers)
+    )
+    if (
+        isinstance(timeout_seconds, bool)
+        or not isinstance(timeout_seconds, (int, float))
+        or not math.isfinite(float(timeout_seconds))
+        or float(timeout_seconds) <= 0
+    ):
+        effective_timeout = MAX_PE_FUNCTION_WORKER_WALL_SECONDS
+        return _pe_function_worker_artifact(
+            "worker_failed",
+            eligible_pe_layer_count=eligible_count,
+            requested_program_count=len(selected),
+            timeout_seconds=effective_timeout,
+            error_type="ValueError",
+        )
+    effective_timeout = min(float(timeout_seconds), MAX_PE_FUNCTION_WORKER_WALL_SECONDS)
+    if not selected:
+        import pe_function_analysis
+
+        result = pe_function_analysis.build_static_layer_report(
+            [],
+            eligible_pe_layer_count=eligible_count,
+            assessment_only=assessment_only,
+        )
+        result["worker_execution"] = {
+            "status": (
+                "not_started_assessment_only"
+                if assessment_only
+                else "not_started_no_eligible_pe_layers"
+            ),
+            "execution_boundary": "parent_process_short_circuit_no_worker_started",
+            "wall_clock_limit_seconds": effective_timeout,
+            "maximum_active_processes": MAX_PE_FUNCTION_WORKER_ACTIVE_PROCESSES,
+            "maximum_memory_bytes": MAX_PE_FUNCTION_WORKER_MEMORY_BYTES,
+            "requested_program_count": 0,
+        }
+        return result
+    request_layers = []
+    transferred_bytes = 0
+    for ordinal, (original_index, layer) in enumerate(selected):
+        size = len(layer.data)
+        digest = hashlib.sha256(layer.data).hexdigest()
+        if size > MAX_PE_FUNCTION_WORKER_LAYER_BYTES:
+            transfer_status = "input_budget_exceeded"
+            file_name = None
+        elif transferred_bytes + size > MAX_PE_FUNCTION_WORKER_TOTAL_BYTES:
+            transfer_status = "worker_total_input_budget_exceeded"
+            file_name = None
+        else:
+            transfer_status = "available"
+            file_name = f"layer-{ordinal:04d}.bin"
+            transferred_bytes += size
+        request_layers.append(
+            {
+                "ordinal": ordinal,
+                "sha256": digest,
+                "size": size,
+                "depth": int(layer.depth),
+                "relationship": (
+                    "root_program" if original_index == 0 else "statically_recovered_program"
+                ),
+                "transfer_status": transfer_status,
+                "file_name": file_name,
+            }
+        )
+    request = {
+        "schema_version": 1,
+        "assessment_only": assessment_only,
+        "eligible_pe_layer_count": eligible_count,
+        "layers": request_layers,
+    }
+    request_raw = json.dumps(
+        request,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    if len(request_raw) > MAX_PE_FUNCTION_WORKER_REQUEST:
+        return _pe_function_worker_artifact(
+            "worker_failed",
+            eligible_pe_layer_count=eligible_count,
+            requested_program_count=len(selected),
+            timeout_seconds=effective_timeout,
+            error_type="ValueError",
+        )
+    request_digest = hashlib.sha256(request_raw).hexdigest()
+    try:
+        from bounded_process import run_bounded
+
+        with tempfile.TemporaryDirectory(prefix="pe-function-analysis-") as temporary:
+            temporary_root = Path(temporary).resolve(strict=True)
+            ensure_no_reparse_components(temporary_root)
+            request_path = temporary_root / "request.json"
+            response_path = temporary_root / "response.json"
+            layer_root = temporary_root / "layers"
+            worker_temp = temporary_root / "worker-temp"
+            layer_root.mkdir(mode=0o700)
+            worker_temp.mkdir(mode=0o700)
+            os.chmod(layer_root, 0o700)
+            os.chmod(worker_temp, 0o700)
+            for item, (_, layer) in zip(request_layers, selected, strict=True):
+                if item["transfer_status"] != "available":
+                    continue
+                _write_private_regular_file(
+                    layer_root / str(item["file_name"]),
+                    layer.data,
+                    maximum_size=MAX_PE_FUNCTION_WORKER_LAYER_BYTES,
+                )
+            _write_private_regular_file(
+                request_path,
+                request_raw,
+                maximum_size=MAX_PE_FUNCTION_WORKER_REQUEST,
+            )
+            command = [
+                sys.executable,
+                "-I",
+                "-B",
+                str(Path(__file__).resolve()),
+                "--pe-function-worker",
+                str(request_path),
+                str(len(request_raw)),
+                request_digest,
+                str(response_path),
+            ]
+            try:
+                completed = run_bounded(
+                    command,
+                    timeout=effective_timeout,
+                    check=False,
+                    shell=False,
+                    env=_bounded_handler_environment(temporary_root=worker_temp),
+                    cwd=REPOSITORY_ROOT,
+                    input=b"",
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    text=False,
+                    require_containment=True,
+                    maximum_active_processes=MAX_PE_FUNCTION_WORKER_ACTIVE_PROCESSES,
+                    maximum_memory_bytes=MAX_PE_FUNCTION_WORKER_MEMORY_BYTES,
+                )
+            except subprocess.TimeoutExpired:
+                return _pe_function_worker_artifact(
+                    "worker_timeout",
+                    eligible_pe_layer_count=eligible_count,
+                    requested_program_count=len(selected),
+                    timeout_seconds=effective_timeout,
+                    error_type="TimeoutExpired",
+                )
+            except (OSError, RuntimeError, subprocess.SubprocessError, ValueError) as exc:
+                return _pe_function_worker_artifact(
+                    "worker_failed",
+                    eligible_pe_layer_count=eligible_count,
+                    requested_program_count=len(selected),
+                    timeout_seconds=effective_timeout,
+                    error_type=type(exc).__name__,
+                )
+            if completed.returncode != 0:
+                return _pe_function_worker_artifact(
+                    "worker_failed",
+                    eligible_pe_layer_count=eligible_count,
+                    requested_program_count=len(selected),
+                    timeout_seconds=effective_timeout,
+                    error_type="WorkerExitError",
+                )
+            try:
+                response_raw = _read_private_regular_file(
+                    response_path,
+                    maximum_size=MAX_PE_FUNCTION_WORKER_RESPONSE,
+                )
+                response = _strict_json_object_bytes(
+                    response_raw,
+                    label="PE function worker response",
+                )
+                if response.get("ok") is False and set(response) == {
+                    "ok",
+                    "error",
+                    "error_type",
+                }:
+                    return _pe_function_worker_artifact(
+                        "worker_failed",
+                        eligible_pe_layer_count=eligible_count,
+                        requested_program_count=len(selected),
+                        timeout_seconds=effective_timeout,
+                        error_type=(
+                            response.get("error_type")
+                            if isinstance(response.get("error_type"), str)
+                            else "WorkerError"
+                        ),
+                    )
+                if response.get("ok") is not True or set(response) != {"ok", "result"}:
+                    raise ValueError("PE function worker response schemaが不正です")
+                result = _validate_pe_function_worker_result(
+                    response.get("result"),
+                    request_layers=request_layers,
+                    eligible_pe_layer_count=eligible_count,
+                    assessment_only=assessment_only,
+                )
+            except (OSError, TypeError, ValueError):
+                return _pe_function_worker_artifact(
+                    "worker_response_invalid",
+                    eligible_pe_layer_count=eligible_count,
+                    requested_program_count=len(selected),
+                    timeout_seconds=effective_timeout,
+                    error_type="WorkerResponseError",
+                )
+    except (OSError, RuntimeError, ValueError) as exc:
+        return _pe_function_worker_artifact(
+            "worker_failed",
+            eligible_pe_layer_count=eligible_count,
+            requested_program_count=len(selected),
+            timeout_seconds=effective_timeout,
+            error_type=type(exc).__name__,
+        )
+    result["worker_execution"] = {
+        "status": "completed",
+        "execution_boundary": "bounded_isolated_process",
+        "wall_clock_limit_seconds": effective_timeout,
+        "maximum_active_processes": MAX_PE_FUNCTION_WORKER_ACTIVE_PROCESSES,
+        "maximum_memory_bytes": MAX_PE_FUNCTION_WORKER_MEMORY_BYTES,
+        "requested_program_count": len(selected),
+    }
+    return result
+
+
+def _follow_on_worker_main() -> int:
+    """1つの保持payloadだけを既存pipelineへ通す隔離worker entrypoint。"""
+
+    if not _interpreter_is_isolated():
+        return 2
+    try:
+        response_root = Path.cwd().resolve(strict=True)
+        ensure_no_reparse_components(response_root)
+        response_file = response_root / "response.json"
+        if response_file.exists():
+            raise ValueError("follow-on worker responseが既に存在します")
+        header = sys.stdin.buffer.read(FOLLOW_ON_WORKER_FRAME_HEADER_BYTES)
+        if len(header) != FOLLOW_ON_WORKER_FRAME_HEADER_BYTES:
+            raise ValueError("follow-on worker frame headerが切れています")
+        request_size = int.from_bytes(header, "big")
+        if not 0 < request_size <= MAX_FOLLOW_ON_WORKER_REQUEST:
+            raise ValueError("follow-on worker request sizeが不正です")
+        request_raw = sys.stdin.buffer.read(request_size)
+        if len(request_raw) != request_size:
+            raise ValueError("follow-on worker requestが切れています")
         request = _strict_json_object_bytes(request_raw, label="follow-on worker request")
         expected_keys = {
             "schema_version",
@@ -3465,20 +4329,26 @@ def _follow_on_worker_main(
             "upx",
             "sevenzip",
             "diec",
+            "innounp",
             "force_container_probe",
             "max_static_layers",
             "retry_max_static_layers",
             "archive_password",
+            "inno_password",
             "string_scan_limit",
             "analysis_contract",
             "source_name",
             "expected_sha256",
+            "expected_size",
             "depth",
             "parent_sha256",
             "family_hints",
         }
         if not isinstance(request, dict) or set(request) != expected_keys:
             raise ValueError("follow-on worker request schemaが不正です")
+        inno_password = request["inno_password"]
+        if not isinstance(inno_password, str):
+            raise ValueError("follow-on Inno passwordが不正です")
         output = _follow_on_worker_root(request["output"], name="output")
         repository = REPOSITORY_ROOT.resolve(strict=True)
         if output == repository or repository in output.parents:
@@ -3489,6 +4359,12 @@ def _follow_on_worker_main(
         if repository not in registry.parents or not registry.is_file():
             raise ValueError("follow-on registryがrepository境界外です")
         expected_sha256 = normalize_sha256_digest(request["expected_sha256"])
+        expected_size = request["expected_size"]
+        if (
+            type(expected_size) is not int
+            or not 0 <= expected_size <= MAX_FOLLOW_ON_PAYLOAD_SIZE
+        ):
+            raise ValueError("follow-on payload sizeが不正です")
         parent_sha256 = normalize_sha256_digest(request["parent_sha256"])
         supplied_family_hints = request["family_hints"]
         if not isinstance(supplied_family_hints, list):
@@ -3514,9 +4390,9 @@ def _follow_on_worker_main(
             or any(ord(character) < 32 or ord(character) == 127 for character in source_name)
         ):
             raise ValueError("follow-on source_nameが不正です")
-        data = sys.stdin.buffer.read(MAX_FOLLOW_ON_PAYLOAD_SIZE + 1)
-        if len(data) > MAX_FOLLOW_ON_PAYLOAD_SIZE:
-            raise ValueError("follow-on payloadがsize上限を超えています")
+        data = sys.stdin.buffer.read(expected_size + 1)
+        if len(data) != expected_size:
+            raise ValueError("follow-on payload lengthが一致しません")
         if hashlib.sha256(data).hexdigest() != expected_sha256:
             raise ValueError("follow-on payload hashが一致しません")
         analysis_contract = request["analysis_contract"]
@@ -3545,6 +4421,12 @@ def _follow_on_worker_main(
             Path(request["diec"]) if isinstance(request["diec"], str) else None,
             "Detect It Easy CLI",
         )
+        innounp = _normalize_tool_path(
+            Path(request["innounp"])
+            if isinstance(request["innounp"], str)
+            else None,
+            "innounp",
+        )
         child_contract = _build_follow_on_analysis_contract(
             registry=registry,
             specs=specs,
@@ -3552,6 +4434,7 @@ def _follow_on_worker_main(
             upx=upx,
             sevenzip=sevenzip,
             diec=diec,
+            innounp=innounp,
             force_container_probe=request["force_container_probe"] is True,
             max_static_layers=int(request["max_static_layers"]),
             retry_max_static_layers=request["retry_max_static_layers"],
@@ -3563,6 +4446,7 @@ def _follow_on_worker_main(
                 else None
             ),
             component_snapshot=component_snapshot,
+            inno_password=inno_password,
         )
         if analysis_contract != child_contract:
             raise ValueError("follow-on analysis_contractが実行時設定と一致しません")
@@ -3591,11 +4475,13 @@ def _follow_on_worker_main(
                 upx=upx,
                 sevenzip=sevenzip,
                 diec=diec,
+                innounp=innounp,
                 force_container_probe=request["force_container_probe"] is True,
                 max_static_layers=int(request["max_static_layers"]),
                 retry_max_static_layers=request["retry_max_static_layers"],
                 archive_password=str(request["archive_password"]),
                 string_scan_limit=int(request["string_scan_limit"]),
+                inno_password=inno_password,
                 follow_on_lineage={
                     "schema_version": 1,
                     "depth": depth,
@@ -3652,6 +4538,8 @@ def _execute_follow_on_child(
     analysis_contract: dict[str, Any],
     timeout_seconds: float,
     family_hints: Sequence[Mapping[str, Any]] | None = None,
+    innounp: Path | None = None,
+    inno_password: str = "",
 ) -> dict[str, Any]:
     """保持payloadを隔離processの既存analyze_unitへwall-clock上限付きで渡す。"""
 
@@ -3672,14 +4560,17 @@ def _execute_follow_on_child(
         "upx": str(upx) if upx is not None else None,
         "sevenzip": str(sevenzip) if sevenzip is not None else None,
         "diec": str(diec) if diec is not None else None,
+        "innounp": str(innounp) if innounp is not None else None,
         "force_container_probe": force_container_probe,
         "max_static_layers": max_static_layers,
         "retry_max_static_layers": retry_max_static_layers,
         "archive_password": archive_password,
+        "inno_password": inno_password,
         "string_scan_limit": string_scan_limit,
         "analysis_contract": analysis_contract,
         "source_name": f"follow-on-{digest[:16]}.bin",
         "expected_sha256": digest,
+        "expected_size": len(payload),
         "depth": depth,
         "parent_sha256": parent_sha256,
         "family_hints": normalized_family_hints,
@@ -3693,22 +4584,20 @@ def _execute_follow_on_child(
     ).encode("utf-8")
     if len(request_raw) > MAX_FOLLOW_ON_WORKER_REQUEST:
         raise ValueError("follow-on worker requestがsize上限を超えています")
-    request_digest = hashlib.sha256(request_raw).hexdigest()
+    frame = (
+        len(request_raw).to_bytes(FOLLOW_ON_WORKER_FRAME_HEADER_BYTES, "big")
+        + request_raw
+        + payload
+    )
     from bounded_process import run_bounded
 
     with tempfile.TemporaryDirectory(prefix="follow-on-analysis-") as temporary:
         temporary_root = Path(temporary).resolve(strict=True)
         ensure_no_reparse_components(temporary_root)
-        request_path = temporary_root / "request.json"
         response_path = temporary_root / "response.json"
         worker_temp = temporary_root / "worker-temp"
         worker_temp.mkdir(mode=0o700)
         os.chmod(worker_temp, 0o700)
-        _write_private_regular_file(
-            request_path,
-            request_raw,
-            maximum_size=MAX_FOLLOW_ON_WORKER_REQUEST,
-        )
         completed = run_bounded(
             [
                 sys.executable,
@@ -3716,17 +4605,13 @@ def _execute_follow_on_child(
                 "-B",
                 str(Path(__file__).resolve()),
                 "--follow-on-worker",
-                str(request_path),
-                str(len(request_raw)),
-                request_digest,
-                str(response_path),
             ],
             timeout=timeout_seconds,
             check=False,
             shell=False,
             env=_bounded_handler_environment(temporary_root=worker_temp),
-            cwd=REPOSITORY_ROOT,
-            input=payload,
+            cwd=temporary_root,
+            input=frame,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             text=False,
@@ -4567,9 +5452,12 @@ def _run_follow_on_fixed_point(
     execute_child: Callable[..., dict[str, Any]] | None = None,
     monotonic: Callable[[], float] = time.monotonic,
     root_family_hints: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
+    innounp: Path | None = None,
+    inno_password: str = "",
 ) -> dict[str, Any]:
     """保持payloadをSHA-256固定点queueで同一job内の子caseへ再投入する。"""
 
+    credential_safe_resume = resume and not archive_password and not inno_password
     repository = REPOSITORY_ROOT.resolve(strict=True)
     resolved_output = output.resolve(strict=True)
     limits = {
@@ -4874,7 +5762,7 @@ def _run_follow_on_fixed_point(
                 pending = queue.popleft()
                 nodes[pending["sha256"]]["state"] = "wall_clock_limit"
             break
-        resumed_complete = resume and _case_strict_complete(
+        resumed_complete = credential_safe_resume and _case_strict_complete(
             output,
             digest,
             expected_contract=analysis_contract,
@@ -4914,10 +5802,12 @@ def _run_follow_on_fixed_point(
                 upx=upx,
                 sevenzip=sevenzip,
                 diec=diec,
+                innounp=innounp,
                 force_container_probe=force_container_probe,
                 max_static_layers=max_static_layers,
                 retry_max_static_layers=retry_max_static_layers,
                 archive_password=archive_password,
+                inno_password=inno_password,
                 string_scan_limit=string_scan_limit,
                 analysis_contract=analysis_contract,
                 timeout_seconds=timeout,
@@ -5079,6 +5969,20 @@ def _run_follow_on_fixed_point(
     }
 
 
+def _validate_runtime_handler_catalog(specs: Sequence[HandlerSpec]) -> None:
+    """解析直前のautomatic handler集合が有界な入力契約を持つか検証する。"""
+
+    automatic = [
+        spec for spec in specs if spec.automatic and spec.supported_interface
+    ]
+    if not automatic or len(automatic) > 256:
+        raise ValueError("automatic handler catalog件数が不正です")
+    for spec in automatic:
+        formats = [value for value in spec.input_formats if value != "any"]
+        if not formats:
+            raise ValueError(f"handler input formatが有界ではありません: {spec.id}")
+
+
 def run_batch(
     inputs: list[Path],
     output: Path,
@@ -5093,6 +5997,7 @@ def run_batch(
     upx: Path | None = None,
     sevenzip: Path | None = None,
     diec: Path | None = None,
+    innounp: Path | None = None,
     force_container_probe: bool = False,
     max_static_layers: int = MAX_STATIC_LAYERS,
     retry_max_static_layers: int | None = None,
@@ -5100,6 +6005,7 @@ def run_batch(
     string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT,
     resume: bool = False,
     family_hint_manifest: Path | None = None,
+    inno_password: str = "",
 ) -> dict[str, Any]:
     """複数入力をSHA-256で重複排除し、失敗を検体単位に分離する。"""
 
@@ -5111,6 +6017,8 @@ def run_batch(
         raise ValueError("解析対象ファイルがありません")
     if not isinstance(password, str):
         raise TypeError("archive passwordは文字列で指定してください")
+    if not isinstance(inno_password, str):
+        raise TypeError("Inno passwordは文字列で指定してください")
     if isinstance(string_scan_limit, bool) or not isinstance(string_scan_limit, int) or string_scan_limit <= 0:
         raise ValueError("string_scan_limitは正の整数で指定してください")
     StaticLayerPolicy(max_layers=max_static_layers)
@@ -5121,6 +6029,7 @@ def run_batch(
     upx = _normalize_tool_path(upx, "UPX")
     sevenzip = _normalize_tool_path(sevenzip, "7-Zip")
     diec = _normalize_tool_path(diec, "Detect It Easy CLI")
+    innounp = _normalize_tool_path(innounp, "innounp")
     family_hint_document, family_hint_identity = _load_family_hint_manifest(family_hint_manifest)
     family_requirements_policy = _load_family_analysis_requirements()
 
@@ -5129,6 +6038,7 @@ def run_batch(
     clear_profile_cache()
     clear_known_hash_cache()
     specs = discover_handlers()
+    _validate_runtime_handler_catalog(specs)
     component_snapshot = _AnalysisComponentSnapshot.capture(registry, specs)
     registered = _registered_families(registry)
     forced_family = normalize_family(forced_family) if forced_family else None
@@ -5144,6 +6054,7 @@ def run_batch(
         upx=upx,
         sevenzip=sevenzip,
         diec=diec,
+        innounp=innounp,
         force_container_probe=force_container_probe,
         max_static_layers=max_static_layers,
         retry_max_static_layers=retry_max_static_layers,
@@ -5152,6 +6063,7 @@ def run_batch(
         string_scan_limit=string_scan_limit,
         family_hint_manifest_identity=family_hint_identity,
         component_snapshot=component_snapshot,
+        inno_password=inno_password,
     )
     follow_on_analysis_contract = _build_follow_on_analysis_contract(
         registry=registry,
@@ -5160,6 +6072,7 @@ def run_batch(
         upx=upx,
         sevenzip=sevenzip,
         diec=diec,
+        innounp=innounp,
         force_container_probe=force_container_probe,
         max_static_layers=max_static_layers,
         retry_max_static_layers=retry_max_static_layers,
@@ -5167,8 +6080,10 @@ def run_batch(
         string_scan_limit=string_scan_limit,
         family_hint_manifest_identity=family_hint_identity,
         component_snapshot=component_snapshot,
+        inno_password=inno_password,
     )
     component_snapshot.verify()
+    credential_safe_follow_on_resume = resume and not password and not inno_password
     cases = []
     errors = []
     duplicates = []
@@ -5230,10 +6145,12 @@ def run_batch(
                     upx=upx,
                     sevenzip=sevenzip,
                     diec=diec,
+                    innounp=innounp,
                     force_container_probe=force_container_probe,
                     max_static_layers=max_static_layers,
                     retry_max_static_layers=retry_max_static_layers,
                     archive_password=password,
+                    inno_password=inno_password,
                     string_scan_limit=string_scan_limit,
                     assessment_only=assessment_only,
                     analysis_contract=analysis_contract,
@@ -5276,14 +6193,16 @@ def run_batch(
                 upx=upx,
                 sevenzip=sevenzip,
                 diec=diec,
+                innounp=innounp,
                 force_container_probe=force_container_probe,
                 max_static_layers=max_static_layers,
                 retry_max_static_layers=retry_max_static_layers,
                 archive_password=password,
+                inno_password=inno_password,
                 string_scan_limit=string_scan_limit,
                 analysis_contract=follow_on_analysis_contract,
                 root_analysis_contract=analysis_contract,
-                resume=resume,
+                resume=credential_safe_follow_on_resume,
                 root_family_hints={
                     item["sha256"]: (
                         classify_sample.family_hints_for_sha256(
@@ -5481,7 +6400,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--output", required=True, type=Path, help="解析結果の出力先。")
     parser.add_argument("--registry", type=Path, default=DEFAULT_REGISTRY, help="検出器レジストリ。")
-    parser.add_argument("--password", default="infected", help="受け入れ用暗号化ZIPのパスワード。")
+    parser.add_argument(
+        "--password-stdin",
+        action="store_true",
+        help="外装archive credentialを有界stdinから読みます（automation推奨）。",
+    )
     parser.add_argument(
         "--archive-mode",
         choices=("auto", "raw", "malwarebazaar"),
@@ -5534,6 +6457,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="任意の7-Zip実行file。7z/RAR/CAB/DMG/PE containerの静的展開に使用します。",
     )
     parser.add_argument(
+        "--innounp",
+        type=Path,
+        help="任意のinnounp実行file。Inno Setupの静的一覧化・選択展開に使用します。",
+    )
+    parser.add_argument(
+        "--inno-password-stdin",
+        action="store_true",
+        help=(
+            "互換credentialを有界stdinから読みます。暗号化Innoの自動解除は"
+            "credential transport未対応のためblockedです。"
+        ),
+    )
+    parser.add_argument(
         "--diec",
         type=Path,
         help="任意のDetect It Easy CLI実行file。PE/Mach-O識別補助に使用します。",
@@ -5564,13 +6500,17 @@ def _runtime_preflight_main() -> int:
         runtime_contract.import_required_runtime_modules()
         clear_handler_caches()
         specs = discover_handlers()
-        automatic = [spec for spec in specs if spec.automatic and spec.supported_interface]
-        if not automatic or len(automatic) > 256:
-            raise ValueError("automatic handler catalog件数が不正です")
-        for spec in automatic:
-            formats = [value for value in spec.input_formats if value != "any"]
-            if not formats:
-                raise ValueError(f"handler input formatが有界ではありません: {spec.id}")
+        _validate_runtime_handler_catalog(specs)
+    except Exception:  # noqa: BLE001 - runtime境界では詳細を外へ出さず失敗codeだけ返す
+        return 2
+    return 0
+
+
+def _runtime_dependency_preflight_main() -> int:
+    """通常CLIで固定runtime依存だけを検査し、catalog発見はrun_batchへ委ねる。"""
+
+    try:
+        runtime_contract.import_required_runtime_modules()
     except Exception:  # noqa: BLE001 - runtime境界では詳細を外へ出さず失敗codeだけ返す
         return 2
     return 0
@@ -5582,52 +6522,261 @@ def _interpreter_is_isolated() -> bool:
     return bool(sys.flags.isolated)
 
 
+def _direct_cli_request(
+    request: Any,
+) -> tuple[list[str], str | None, str | None]:
+    """direct CLI worker requestを完全一致schemaとcredentialへ正規化する。"""
+
+    expected_keys = {
+        "schema_version",
+        "arguments",
+        "archive_password",
+        "inno_password",
+    }
+    if not isinstance(request, dict) or set(request) != expected_keys:
+        raise ValueError("direct CLI worker request schemaが不正です")
+    if type(request["schema_version"]) is not int or request["schema_version"] != 1:
+        raise ValueError("direct CLI worker request versionが不正です")
+    arguments = request["arguments"]
+    if not isinstance(arguments, list) or len(arguments) > MAX_DIRECT_CLI_ARGUMENTS:
+        raise ValueError("direct CLI worker argv件数が不正です")
+    if any(
+        not isinstance(value, str)
+        or "\x00" in value
+        or len(value) > MAX_DIRECT_CLI_ARGUMENT_CHARACTERS
+        for value in arguments
+    ):
+        raise ValueError("direct CLI worker argv値が不正です")
+    if _contains_raw_cli_credential_option(arguments):
+        raise ValueError("direct CLI worker argvに廃止済みcredential optionがあります")
+    credentials: list[str | None] = []
+    for name in ("archive_password", "inno_password"):
+        credential = request[name]
+        if credential is not None and (
+            not isinstance(credential, str)
+            or "\x00" in credential
+            or "\r" in credential
+            or "\n" in credential
+            or len(credential.encode("utf-8")) > MAX_CLI_CREDENTIAL_BYTES
+        ):
+            raise ValueError("direct CLI worker credentialが不正です")
+        credentials.append(credential)
+    return list(arguments), credentials[0], credentials[1]
+
+
+def _contains_raw_cli_credential_option(arguments: Sequence[str]) -> bool:
+    """廃止済みの値付きcredential optionが含まれる場合だけTrueを返す。"""
+
+    raw_options = ("--password", "--inno-password")
+    return any(
+        value == option or value.startswith(f"{option}=")
+        for value in arguments
+        for option in raw_options
+    )
+
+
+def _resolve_cli_stdin_credential_options(
+    arguments: Sequence[str],
+) -> tuple[list[str], str | None, str | None]:
+    """stdin credential optionを除去し、private request fieldへ分離する。"""
+
+    resolved = list(arguments)
+    options = (
+        ("--password-stdin", "archive_password"),
+        ("--inno-password-stdin", "inno_password"),
+    )
+    selected = [(source, target) for source, target in options if source in resolved]
+    if not selected:
+        return resolved, None, None
+    if len(selected) != 1 or resolved.count(selected[0][0]) != 1:
+        raise ValueError("stdin credential optionの指定が不正です")
+    source, target = selected[0]
+    raw = sys.stdin.buffer.read(MAX_CLI_CREDENTIAL_BYTES + 1)
+    if not raw or len(raw) > MAX_CLI_CREDENTIAL_BYTES:
+        raise ValueError("stdin credential sizeが不正です")
+    raw = raw.removesuffix(b"\n").removesuffix(b"\r")
+    if b"\x00" in raw or b"\r" in raw or b"\n" in raw:
+        raise ValueError("stdin credential形式が不正です")
+    try:
+        credential = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError("stdin credential encodingが不正です") from exc
+    resolved.remove(source)
+    return (
+        resolved,
+        credential if target == "archive_password" else None,
+        credential if target == "inno_password" else None,
+    )
+
+
+def _direct_cli_response(raw: bytes) -> tuple[int, dict[str, int]]:
+    """direct CLI worker応答を固定schemaの終了codeとcountsへ正規化する。"""
+
+    response = _strict_json_object_bytes(raw, label="direct CLI worker response")
+    if set(response) != {"schema_version", "exit_code", "counts"}:
+        raise ValueError("direct CLI worker response schemaが不正です")
+    if type(response["schema_version"]) is not int or response["schema_version"] != 1:
+        raise ValueError("direct CLI worker response versionが不正です")
+    exit_code = response["exit_code"]
+    counts = response["counts"]
+    if type(exit_code) is not int or not 0 <= exit_code <= 255:
+        raise ValueError("direct CLI worker response終了codeが不正です")
+    if not isinstance(counts, dict) or len(counts) > 128:
+        raise ValueError("direct CLI worker response countsが不正です")
+    if any(
+        not isinstance(key, str)
+        or not key
+        or len(key) > 128
+        or type(value) is not int
+        or not 0 <= value <= sys.maxsize
+        for key, value in counts.items()
+    ):
+        raise ValueError("direct CLI worker response count値が不正です")
+    return exit_code, dict(counts)
+
+
+def _direct_cli_worker_main() -> int:
+    """秘密値をargvへ載せず、有界stdin requestから通常CLIを実行する。"""
+
+    if not _interpreter_is_isolated():
+        return 2
+    try:
+        response_root = Path.cwd().resolve(strict=True)
+        ensure_no_reparse_components(response_root)
+        request_raw = sys.stdin.buffer.read(MAX_DIRECT_CLI_REQUEST + 1)
+        if not request_raw or len(request_raw) > MAX_DIRECT_CLI_REQUEST:
+            raise ValueError("direct CLI worker request sizeが不正です")
+        request = _strict_json_object_bytes(request_raw, label="direct CLI worker request")
+        arguments, archive_password, inno_password = _direct_cli_request(request)
+    except (OSError, TypeError, ValueError):
+        return 2
+    try:
+        os.chdir(REPOSITORY_ROOT)
+        try:
+            exit_code, counts = _execute_cli(
+                arguments,
+                archive_password_override=archive_password,
+                inno_password_override=inno_password,
+            )
+        finally:
+            os.chdir(response_root)
+    except BaseException:  # noqa: BLE001 - private request由来の値をstdioへ出さない
+        return 2
+    try:
+        response_raw = json.dumps(
+            {"schema_version": 1, "exit_code": exit_code, "counts": counts},
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+        _write_private_regular_file(
+            response_root / "response.json",
+            response_raw,
+            maximum_size=MAX_DIRECT_CLI_RESPONSE,
+        )
+    except (OSError, TypeError, ValueError):
+        return 2
+    return 0
+
+
 def _run_isolated_cli(argv: Sequence[str] | None) -> int:
     """通常CLIの解析本体を同じPythonの隔離processへ移し、終了codeを返す。"""
 
     if _interpreter_is_isolated():
         raise RuntimeError("isolated CLIを再帰起動できません")
     arguments = list(sys.argv[1:] if argv is None else argv)
+    if _contains_raw_cli_credential_option(arguments):
+        return 2
+    if any(value in {"-h", "--help"} for value in arguments):
+        build_parser().print_help()
+        return 0
     try:
+        arguments, archive_password, inno_password = (
+            _resolve_cli_stdin_credential_options(arguments)
+        )
+        request = {
+            "schema_version": 1,
+            "arguments": arguments,
+            "archive_password": archive_password,
+            "inno_password": inno_password,
+        }
+        arguments, archive_password, inno_password = _direct_cli_request(request)
+        request = {
+            "schema_version": 1,
+            "arguments": arguments,
+            "archive_password": archive_password,
+            "inno_password": inno_password,
+        }
+        request_raw = json.dumps(
+            request,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+        if not 0 < len(request_raw) <= MAX_DIRECT_CLI_REQUEST:
+            raise ValueError("direct CLI worker requestがsize上限を超えています")
         from bounded_process import run_bounded
 
-        completed = run_bounded(
-            [
-                sys.executable,
-                "-I",
-                "-B",
-                str(Path(__file__).resolve()),
-                *arguments,
-            ],
-            cwd=REPOSITORY_ROOT,
-            env=_bounded_handler_environment(),
-            shell=False,
-            check=False,
-            stdout=sys.stdout,
-            stderr=sys.stderr,
-            timeout=MAX_DIRECT_CLI_SECONDS,
-            require_containment=True,
-            maximum_active_processes=MAX_DIRECT_CLI_ACTIVE_PROCESSES,
-            maximum_memory_bytes=MAX_DIRECT_CLI_MEMORY_BYTES,
-        )
+        with tempfile.TemporaryDirectory(prefix="direct-cli-analysis-") as temporary:
+            temporary_root = Path(temporary).resolve(strict=True)
+            ensure_no_reparse_components(temporary_root)
+            response_path = temporary_root / "response.json"
+            worker_temp = temporary_root / "worker-temp"
+            worker_temp.mkdir(mode=0o700)
+            os.chmod(worker_temp, 0o700)
+            completed = run_bounded(
+                [
+                    sys.executable,
+                    "-I",
+                    "-B",
+                    str(Path(__file__).resolve()),
+                    "--direct-cli-worker",
+                ],
+                cwd=temporary_root,
+                env=_bounded_handler_environment(temporary_root=worker_temp),
+                shell=False,
+                check=False,
+                input=request_raw,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=MAX_DIRECT_CLI_SECONDS,
+                require_containment=True,
+                maximum_active_processes=MAX_DIRECT_CLI_ACTIVE_PROCESSES,
+                maximum_memory_bytes=MAX_DIRECT_CLI_MEMORY_BYTES,
+            )
+            if completed.returncode != 0:
+                return 2
+            response_raw = _read_private_regular_file(
+                response_path,
+                maximum_size=MAX_DIRECT_CLI_RESPONSE,
+            )
+            exit_code, counts = _direct_cli_response(response_raw)
     except (OSError, RuntimeError, subprocess.SubprocessError, ValueError):
         return 2
-    return int(completed.returncode)
+    print(json.dumps(counts, ensure_ascii=False, indent=2, allow_nan=False))
+    return exit_code
 
 
-def main(argv: list[str] | None = None) -> int:
-    """CLI引数を処理し、失敗を検体単位に分離した一括解析を実行する。"""
+def _execute_cli(
+    argv: list[str] | None,
+    *,
+    archive_password_override: str | None = None,
+    inno_password_override: str | None = None,
+) -> tuple[int, dict[str, int]]:
+    """検証済みCLI引数から一括解析を実行し、終了codeと公開countsだけを返す。"""
 
-    if not _interpreter_is_isolated():
-        return _run_isolated_cli(argv)
-    if _runtime_preflight_main() != 0:
-        return 2
+    if _runtime_dependency_preflight_main() != 0:
+        raise RuntimeError("runtime dependency preflight failed")
     args = build_parser().parse_args(argv)
     summary = run_batch(
         args.input,
         args.output,
         registry=args.registry,
-        password=args.password,
+        password=(
+            "infected" if archive_password_override is None else archive_password_override
+        ),
         archive_mode=args.archive_mode,
         forced_family=args.family,
         minimum_confidence=args.minimum_confidence,
@@ -5636,6 +6785,8 @@ def main(argv: list[str] | None = None) -> int:
         upx=args.upx,
         sevenzip=args.sevenzip,
         diec=args.diec,
+        innounp=args.innounp,
+        inno_password=("" if inno_password_override is None else inno_password_override),
         force_container_probe=args.force_container_probe,
         max_static_layers=args.max_static_layers,
         retry_max_static_layers=args.retry_max_static_layers,
@@ -5644,7 +6795,6 @@ def main(argv: list[str] | None = None) -> int:
         resume=args.resume,
         family_hint_manifest=args.family_hint_manifest,
     )
-    print(json.dumps(summary["counts"], ensure_ascii=False, indent=2, allow_nan=False))
     counts = summary["counts"]
     incomplete = (
         counts.get("errors", 0)
@@ -5660,12 +6810,29 @@ def main(argv: list[str] | None = None) -> int:
         "disabled_assessment_only",
     }:
         incomplete += 1
-    return 0 if incomplete == 0 else 20
+    return (0 if incomplete == 0 else 20), counts
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI引数を処理し、失敗を検体単位に分離した一括解析を実行する。"""
+
+    if not _interpreter_is_isolated():
+        return _run_isolated_cli(argv)
+    try:
+        exit_code, counts = _execute_cli(argv)
+    except RuntimeError:
+        return 2
+    print(json.dumps(counts, ensure_ascii=False, indent=2, allow_nan=False))
+    return exit_code
 
 
 if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1] == "--runtime-preflight":
         raise SystemExit(_runtime_preflight_main())
-    if len(sys.argv) == 6 and sys.argv[1] == "--follow-on-worker":
-        raise SystemExit(_follow_on_worker_main(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]))
+    if len(sys.argv) == 6 and sys.argv[1] == "--pe-function-worker":
+        raise SystemExit(_pe_function_worker_main(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]))
+    if len(sys.argv) == 2 and sys.argv[1] == "--follow-on-worker":
+        raise SystemExit(_follow_on_worker_main())
+    if len(sys.argv) == 2 and sys.argv[1] == "--direct-cli-worker":
+        raise SystemExit(_direct_cli_worker_main())
     raise SystemExit(main())

@@ -36,6 +36,7 @@ NETWORK_KEYS = frozenset(
     {
         "c2",
         "c2_candidates",
+        "c2_endpoints",
         "config_endpoints",
         "endpoints",
         "findings",

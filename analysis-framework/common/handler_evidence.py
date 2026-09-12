@@ -28,6 +28,10 @@ MAX_ROUTE_CONFIG_ENDPOINTS = 32
 MAX_ROUTE_ASSESSMENT_FAMILIES = 256
 MAX_ROUTE_ASSESSMENT_ATTEMPTS = 4096
 ROUTE_ONLY_ATTEMPT_STATUS = "handler_evidence_without_detector"
+EXPLICIT_ROUTE_ONLY_ATTEMPT_STATUS = "handler_evidence_route_only"
+ROUTE_ONLY_ATTEMPT_STATUSES = frozenset(
+    {ROUTE_ONLY_ATTEMPT_STATUS, EXPLICIT_ROUTE_ONLY_ATTEMPT_STATUS}
+)
 ROUTE_CONFIG_VARIANT_RE = re.compile(r"[a-z0-9][a-z0-9_-]{0,127}\Z")
 ROUTE_CONFIG_DOMAIN_LABEL_RE = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\Z")
 ROUTE_DIAGNOSTIC_CODE_RE = re.compile(r"[a-z][a-z0-9_]{0,127}\Z")
@@ -969,11 +973,17 @@ def _route_config_candidate_projection(
         or family_result.get("assessment_eligible") is not True
         or family_result.get("confirmed") is not False
         or family_result.get("status")
-        not in {ROUTE_ONLY_ATTEMPT_STATUS, "partial_budget_exhausted"}
+        not in {
+            ROUTE_ONLY_ATTEMPT_STATUS,
+            EXPLICIT_ROUTE_ONLY_ATTEMPT_STATUS,
+            "partial_budget_exhausted",
+            "partial_result_quota_exhausted",
+        }
         or attempt.get("family") != family
-        or attempt.get("status") != ROUTE_ONLY_ATTEMPT_STATUS
+        or attempt.get("status") not in ROUTE_ONLY_ATTEMPT_STATUSES
     ):
         return None, "family_route_contract_invalid"
+    attempt_status = str(attempt["status"])
     evidence = attempt.get("handler_evidence")
     detector = attempt.get("detector_corroboration")
     wrapper = attempt.get("result")
@@ -984,16 +994,37 @@ def _route_config_candidate_projection(
         or evidence.get("sufficient") is not True
     ):
         return None, "handler_evidence_contract_invalid"
+    if not isinstance(detector, Mapping):
+        return None, "detector_non_corroboration_contract_invalid"
     if (
-        not isinstance(detector, Mapping)
-        or detector.get("corroborated") is not False
-        or detector.get("basis")
-        not in {
-            "no_corroborated_detector_in_lineage",
-            "detector_route_does_not_support_family_attribution",
-        }
+        attempt_status == ROUTE_ONLY_ATTEMPT_STATUS
+        and (
+            detector.get("corroborated") is not False
+            or detector.get("basis")
+            not in {
+                "no_corroborated_detector_in_lineage",
+                "detector_route_does_not_support_family_attribution",
+            }
+        )
     ):
         return None, "detector_non_corroboration_contract_invalid"
+    if attempt_status == EXPLICIT_ROUTE_ONLY_ATTEMPT_STATUS:
+        attribution = attempt.get("handler_family_attribution")
+        if (
+            not isinstance(attribution, Mapping)
+            or attribution.get("supports_family_confirmation") is not False
+            or attribution.get("route_only") is not True
+            or attribution.get("explicit_contract") is not True
+            or attribution.get("basis")
+            != "handler_explicitly_limits_result_to_route_only"
+        ):
+            return None, "handler_route_only_contract_invalid"
+        if (
+            type(detector.get("corroborated")) is not bool
+            or not isinstance(detector.get("basis"), str)
+            or not detector.get("basis")
+        ):
+            return None, "detector_corroboration_contract_invalid"
     if (
         not isinstance(wrapper, Mapping)
         or not isinstance(layer, Mapping)
@@ -1032,7 +1063,7 @@ def _route_config_candidate_projection(
         "status": "succeeded",
         "selected_evidence": dict(evidence),
         "selected_layer_sha256": layer_sha256,
-        "candidate_assessment_status": ROUTE_ONLY_ATTEMPT_STATUS,
+        "candidate_assessment_status": attempt_status,
         "detector_corroboration": dict(detector),
     }
     artifact = {
@@ -1316,7 +1347,7 @@ def build_route_config_candidate_document(
                         "attempt_detail_invalid",
                     )
                     continue
-                if attempt.get("status") != ROUTE_ONLY_ATTEMPT_STATUS:
+                if attempt.get("status") not in ROUTE_ONLY_ATTEMPT_STATUSES:
                     observed_excluded_attempts += 1
                     _increment_reason(
                         route_attempt_exclusion_reason_counts,

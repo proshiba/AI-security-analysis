@@ -104,7 +104,7 @@
     "non_dns_name_excluded": 10,
     "non_global_ip_excluded": 2,
     "onion_excluded_by_policy": 504,
-    "role_not_c2": 2398
+    "role_not_c2": 2394
   },
   "exclusions": [
     {
@@ -15398,42 +15398,6 @@
       "host": "127.0.0.1",
       "port": 80,
       "reason": "non_global_ip_excluded"
-    },
-    {
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[0]",
-      "container": "network",
-      "role": "delivery",
-      "family": "valleyrat",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "confidence": "confirmed_reported",
-      "reason": "role_not_c2"
-    },
-    {
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[1]",
-      "container": "network",
-      "role": "contacted_domain",
-      "family": "valleyrat",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "confidence": "confirmed_public_relation",
-      "reason": "role_not_c2"
-    },
-    {
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[2]",
-      "container": "network",
-      "role": "reported_infrastructure",
-      "family": "valleyrat",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "confidence": "unverified_in_config",
-      "reason": "role_not_c2"
-    },
-    {
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[3]",
-      "container": "network",
-      "role": "cloudflare_resolution",
-      "family": "valleyrat",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "confidence": "context_only_not_c2",
-      "reason": "role_not_c2"
     },
     {
       "source": "analysis-results/malware/wannacry/versions/unknown/cases/3a64e403b83cd168adb9db17a1537022f2db9f9e92940b3b7a1f0efeeeb2e3b3/iocs.json:network[0]",

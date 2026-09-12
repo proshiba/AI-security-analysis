@@ -7,19 +7,24 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from typing import Any
 
 from generate_code_similarity_index import generate as generate_code_similarity
 from generate_ioc_lists import generate as generate_ioc_lists
 from generate_logic_similarity_index import generate as generate_logic_similarity
 from result_layout import build_layout_plan
-from sync_result_catalog import sync_case_identity_metadata, sync_catalog
-
+from sync_result_catalog import (
+    CatalogSyncError,
+    preflight_catalog_sync,
+    read_approved_case_removals_from_stdin,
+    sync_case_identity_metadata,
+    sync_catalog,
+)
 
 _ROOT_COUNT_RE = re.compile(r"含む[0-9,]+件のSHA-256 caseを扱い")
 _RESULTS_TABLE_RE = re.compile(
@@ -239,12 +244,25 @@ def _run_ui_command(repository: Path, script: str, *, check: bool) -> dict[str, 
 
 
 def refresh(
-    repository: Path, *, write: bool = False, check: bool = False
+    repository: Path,
+    *,
+    write: bool = False,
+    check: bool = False,
+    approved_case_removals: frozenset[str] = frozenset(),
+    bootstrap_missing_catalog: bool = False,
 ) -> dict[str, Any]:
     """case identityからUIまでを依存順に更新し、書込み後は同じ範囲を再検証する。"""
 
     if write and check:
         raise ValueError("--write and --check are mutually exclusive")
+    if approved_case_removals and not write:
+        raise ValueError("approved case removals require write mode")
+    if bootstrap_missing_catalog and approved_case_removals:
+        raise CatalogSyncError(
+            "catalog bootstrap cannot be combined with approved case removals"
+        )
+    if bootstrap_missing_catalog and not write:
+        raise ValueError("catalog bootstrap requires write mode")
     root = repository.resolve()
     mode = "write" if write else "check" if check else "dry_run"
     publication_safety = _validate_publication_safety(root)
@@ -263,12 +281,31 @@ def refresh(
     plan = build_layout_plan(root)
     if plan.get("errors"):
         raise ValueError(f"layout preflight failed: {plan['errors'][0]}")
+    if write:
+        preflight_catalog_sync(
+            root,
+            plan=plan,
+            approved_case_removals=approved_case_removals,
+            bootstrap_missing_catalog=bootstrap_missing_catalog,
+        )
     metadata = sync_case_identity_metadata(root, write=write, plan=plan)
     if metadata["write_performed"]:
         plan = build_layout_plan(root)
         if plan.get("errors"):
             raise ValueError(f"layout preflight failed: {plan['errors'][0]}")
-    catalog = sync_catalog(root, write=write, plan=plan)
+        preflight_catalog_sync(
+            root,
+            plan=plan,
+            approved_case_removals=approved_case_removals,
+            bootstrap_missing_catalog=bootstrap_missing_catalog,
+        )
+    catalog = sync_catalog(
+        root,
+        write=write,
+        plan=plan,
+        approved_case_removals=approved_case_removals,
+        bootstrap_missing_catalog=bootstrap_missing_catalog,
+    )
     counts = plan["counts"]
     documents = sync_documented_case_counts(root, counts, write=write)
     iocs = generate_ioc_lists(root, write=write, check=check)
@@ -295,7 +332,11 @@ def refresh(
 
     stale = {
         "metadata": bool(metadata["updated_cases"]),
-        "catalog": bool(catalog["added_cases"] or catalog["updated_cases"]),
+        "catalog": bool(
+            catalog["added_cases"]
+            or catalog["updated_cases"]
+            or catalog["removed_case_count"]
+        ),
         "documents": bool(documents["mismatches"]),
         "iocs": bool(iocs["mismatches"]),
         "code_similarity": bool(similarity["mismatches"]),
@@ -355,6 +396,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--repository", type=Path, default=repository)
     parser.add_argument("--write", action="store_true", help="全派生成物を更新して再検証する")
     parser.add_argument("--check", action="store_true", help="差分があれば終了コード1を返す")
+    parser.add_argument(
+        "--allow-removed-case-stdin",
+        action="store_true",
+        help="意図した削除対象のSHA-256を1行1件でstdinから受け取る",
+    )
+    parser.add_argument(
+        "--bootstrap-missing-catalog",
+        action="store_true",
+        help="catalogが存在しない初回作成だけを明示承認する",
+    )
     return parser
 
 
@@ -362,7 +413,26 @@ def main(argv: list[str] | None = None) -> int:
     """CLI引数を処理し、機械可読な実行結果を出力する。"""
 
     args = build_parser().parse_args(argv)
-    result = refresh(args.repository, write=args.write, check=args.check)
+    if args.bootstrap_missing_catalog and args.allow_removed_case_stdin:
+        raise CatalogSyncError(
+            "--bootstrap-missing-catalog cannot be combined with --allow-removed-case-stdin"
+        )
+    if args.bootstrap_missing_catalog and not args.write:
+        raise ValueError("--bootstrap-missing-catalog requires --write")
+    if args.allow_removed_case_stdin and not args.write:
+        raise ValueError("--allow-removed-case-stdin requires --write")
+    approved = (
+        read_approved_case_removals_from_stdin()
+        if args.allow_removed_case_stdin
+        else frozenset()
+    )
+    result = refresh(
+        args.repository,
+        write=args.write,
+        check=args.check,
+        approved_case_removals=approved,
+        bootstrap_missing_catalog=args.bootstrap_missing_catalog,
+    )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return int(result["check_failed"])
 

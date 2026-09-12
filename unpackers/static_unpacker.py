@@ -38,6 +38,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from unpackers.asar_unpacker import is_asar, recover_asar
+from unpackers.bcrypt_resource import recover_bcrypt_resource
 from unpackers.bin101_nibble_rc4 import recover_bin101_payload
 from unpackers.bounded_pe_scan import (
     BoundedExtent,
@@ -52,11 +53,27 @@ from unpackers.container_recovery import (
 )
 from unpackers.donut_unpacker import recover_donut_payloads
 from unpackers.donut_wrapper_unpacker import recover_xor32_donut_wrapper
-from unpackers.dotnet_bundle_unpacker import recover_dotnet_bundle
+from unpackers.dotnet_bundle_unpacker import (
+    BUNDLE_SIGNATURE,
+    SUPPORTED_MAJOR_VERSIONS,
+    recover_dotnet_bundle,
+)
 from unpackers.embedded_installer_archive import recover_embedded_installer_archive
 from unpackers.inno_sideload_bundle import (
     recover_inno_sideload_bundle,
     recover_scene_record_artifacts,
+)
+from unpackers.inno_static import (
+    InnoMember,
+    assess_inno_candidate,
+    inno_candidate_public,
+    inno_listing_public,
+    inno_segmented_zip_public,
+    inno_selection_public,
+    parse_innounp_listing,
+    parse_install_script,
+    recover_segmented_zip,
+    select_inno_members,
 )
 from unpackers.javascript_dropper_unpacker import recover_javascript_dropper
 from unpackers.javascript_obfuscator import (
@@ -69,6 +86,16 @@ from unpackers.managed_il_triage import (
     analyze_managed_pe,
 )
 from unpackers.managed_proxy_deobfuscator import analyze_managed_protector
+from unpackers.nsis_nhencv1 import recover_nsis_nhencv1
+from unpackers.nsis_static import (
+    NsisMember,
+    nsis_listing_public,
+    nsis_selection_public,
+    parse_nsis_launch_graph,
+    parse_nsis_listing,
+    parse_sevenzip_version,
+    select_nsis_members,
+)
 from unpackers.nsis_unpacker import recover_nsis_scripted_layers
 from unpackers.onyx_qt_loader import (
     matches_onyx_qt_profile,
@@ -120,6 +147,11 @@ MAX_ARCHIVE_MEMBERS = 512
 MAX_RETAINED_MEMBERS = 128
 MAX_SELECTIVE_ARCHIVE_SCAN_MEMBERS = 8192
 MAX_COMPRESSION_RATIO = 200.0
+MIN_OVERLAY_CONTAINER_BYTES = 1024 * 1024
+MIN_OVERLAY_CONTAINER_UNIQUE_PE_COUNT = 4
+CLASSIC_UPX_SECTION_NAMES = frozenset({"upx", "upx0", "upx1", "upx2"})
+MIN_CLASSIC_UPX_SECTION_SIZE = 4096
+MIN_CLASSIC_UPX_PACKED_ENTROPY = 7.2
 ARCHIVE_READ_CHUNK_SIZE = 1024 * 1024
 MAX_CAB_DATA_BLOCKS = 8192
 MAX_CAB_MEMBER_NAME_BYTES = 4096
@@ -153,6 +185,10 @@ PADDING_PREFILTER_BYTES = 64 * 1024
 PADDING_COMPARE_CHUNK_BYTES = 1024 * 1024
 MAX_PEFILE_EMBEDDED_CANDIDATE_BYTES = 32 * 1024 * 1024
 LEGACY_PEFILE_CANDIDATE_BYTES = 64 * 1024
+MAX_EMBEDDED_PE_RESULTS = 64
+DOTNET_BUNDLE_MAX_IDENTIFIER_BYTES = 1024
+DOTNET_BUNDLE_MAX_PATH_BYTES = 4096
+DOTNET_BUNDLE_V2_HEADER_TRAILER_BYTES = 40
 MAX_PE_RESOURCE_ENTRIES = 512
 MAX_PE_RESOURCE_METADATA_ENTRIES = 8192
 MAX_PE_RESOURCE_TOTAL_BYTES = 256 * 1024 * 1024
@@ -763,6 +799,31 @@ def _read_static_tool_output(
     return payload
 
 
+def _static_tool_identity(executable: Path) -> dict[str, object]:
+    """外部toolを単一handleで読み、公開可能な同一性情報を返す。"""
+
+    if not executable.is_absolute():
+        raise StaticToolExecutionError("tool_file_invalid")
+    try:
+        ensure_no_reparse_components(executable)
+        parent = executable.parent.resolve(strict=True)
+        payload = _read_static_tool_output(
+            executable,
+            root=parent,
+            maximum_size=MAX_STATIC_TOOL_BINARY_BYTES,
+        )
+    except (OSError, ValueError, StaticToolExecutionError) as exc:
+        if isinstance(exc, StaticToolExecutionError):
+            raise
+        raise StaticToolExecutionError("tool_file_invalid") from exc
+    if not payload:
+        raise StaticToolExecutionError("tool_file_invalid")
+    return {
+        "sha256": sha256_bytes(payload),
+        "size": len(payload),
+    }
+
+
 def sha256_bytes(data: bytes) -> str:
     """バイト列の小文字SHA-256ダイジェストを返す。"""
     return hashlib.sha256(data).hexdigest()
@@ -1267,8 +1328,16 @@ def valid_pe_extent(data: bytes, offset: int = 0) -> int | None:
         return None
 
 
-def carve_embedded_pes(data: bytes, limit: int = 16) -> list[tuple[str, bytes]]:
+def carve_embedded_pes(
+    data: bytes,
+    limit: int = MAX_EMBEDDED_PE_RESULTS,
+    *,
+    start_offset: int | None = None,
+) -> list[tuple[str, bytes]]:
     """実行せず、有界走査で検証済みの埋め込みPEを切り出す。"""
+    scan_start = min(1, len(data)) if start_offset is None else start_offset
+    if not 0 <= scan_start <= len(data):
+        raise ValueError("start_offsetが入力範囲外です")
     if limit <= 0:
         return CarvedPeArtifacts(
             [],
@@ -1279,6 +1348,10 @@ def carve_embedded_pes(data: bytes, limit: int = 16) -> list[tuple[str, bytes]]:
                 "recovered_candidate_count": 0,
                 "budget_exhausted": True,
                 "exhausted_reasons": ["result_count_budget"],
+                "candidate_scope": "validated_pe_extent_byte_scan",
+                "lineage_status": "structural_carve_only",
+                "terminal_promotion_eligible": False,
+                "family_attribution_allowed": False,
                 "executed": False,
                 "network_contacted": False,
             },
@@ -1286,7 +1359,7 @@ def carve_embedded_pes(data: bytes, limit: int = 16) -> list[tuple[str, bytes]]:
     candidates, scan_report = scan_embedded_pe_candidates(
         data,
         valid_pe_extent,
-        start_offset=min(1, len(data)),
+        start_offset=scan_start,
         max_results=limit,
     )
     artifacts: list[tuple[str, bytes]] = []
@@ -1302,6 +1375,10 @@ def carve_embedded_pes(data: bytes, limit: int = 16) -> list[tuple[str, bytes]]:
         seen.add(digest)
     scan_report["unique_artifact_count"] = len(artifacts)
     scan_report["duplicate_digest_count"] = duplicate_digests
+    scan_report["candidate_scope"] = "validated_pe_extent_byte_scan"
+    scan_report["lineage_status"] = "structural_carve_only"
+    scan_report["terminal_promotion_eligible"] = False
+    scan_report["family_attribution_allowed"] = False
     return CarvedPeArtifacts(artifacts, scan_report)
 
 
@@ -1330,7 +1407,9 @@ def _prioritize_pe_resource_entries(
     for type_entry in iterator:
         type_name = getattr(type_entry, "name", None)
         try:
-            type_text = str(type_name).strip().casefold() if type_name is not None else ""
+            type_text = (
+                str(type_name).strip().casefold() if type_name is not None else ""
+            )
         except (TypeError, ValueError):
             type_text = ""
         named_ui_type = type_text in LOW_PRIORITY_NAMED_PE_RESOURCE_TYPES
@@ -1370,7 +1449,20 @@ def _prioritize_pe_resource_entries(
                     # RT_RCDATA / RT_HTMLは任意payload carrierとして頻出する。
                     priority = 1
                 elif named_ui_type or type_id in {
-                    2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 14, 16, 21, 24
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    11,
+                    12,
+                    14,
+                    16,
+                    21,
+                    24,
                 }:
                     priority = 3
                 else:
@@ -1389,7 +1481,12 @@ def _prioritize_pe_resource_entries(
         if stop:
             break
     candidates.sort(key=lambda item: (item.priority, item.ordinal))
-    return candidates, min(discovered, MAX_PE_RESOURCE_METADATA_ENTRIES), truncated, invalid
+    return (
+        candidates,
+        min(discovered, MAX_PE_RESOURCE_METADATA_ENTRIES),
+        truncated,
+        invalid,
+    )
 
 
 def _retain_opaque_pe_resource(blob: bytes, *, custom_named_type: bool) -> bool:
@@ -1397,6 +1494,122 @@ def _retain_opaque_pe_resource(blob: bytes, *, custom_named_type: bool) -> bool:
 
     minimum_size = 512 if custom_named_type else 4096
     return len(blob) >= minimum_size and entropy(blob) >= 7.2
+
+
+def _pe_overlay_format(data: bytes, start: int) -> str:
+    """巨大overlayを複製せず、先頭headerだけで対応形式を識別する。"""
+
+    if not 0 <= start <= len(data):
+        raise ValueError("overlay startが入力範囲外です")
+    prefix = data[start : min(len(data), start + 4096)]
+    if prefix.startswith(b"PK\x03\x04"):
+        # central directoryの検証は後段のbounded ZIP parserが担当する。
+        return "zip"
+    if prefix[:4] == b"\x04\x00\x00\x00" and len(prefix) >= 16:
+        pickle_size = struct.unpack_from("<I", prefix, 4)[0]
+        header_end = 12 + pickle_size
+        if 16 <= header_end <= 16 * 1024 * 1024:
+            probe = data[start : min(len(data), start + header_end)]
+            if is_asar(probe):
+                return "asar"
+    return detect_format(prefix, "overlay.bin")
+
+
+def _pe_overlay_repetitive_padding(
+    data: bytes,
+    start: int,
+) -> dict[str, object] | None:
+    """通常overlayはprefixで除外し、周期候補だけ全域検証する。"""
+
+    size = len(data) - start
+    if size < 4096:
+        return None
+    probe = data[start : start + min(size, PADDING_PREFILTER_BYTES)]
+    if repetitive_padding(probe) is None:
+        return None
+    return repetitive_padding(data[start:])
+
+
+def _overlay_embedded_pe_container_signal(
+    overlay_size: int,
+    scan_report: object,
+) -> bool:
+    """完全走査済みの大容量overlayに複数の妥当PEがある場合だけcontainer候補化する。"""
+
+    if (
+        isinstance(overlay_size, bool)
+        or not isinstance(overlay_size, int)
+        or overlay_size < MIN_OVERLAY_CONTAINER_BYTES
+        or not isinstance(scan_report, dict)
+        or scan_report.get("status") != "complete"
+    ):
+        return False
+    unique_count = scan_report.get("unique_artifact_count")
+    return bool(
+        isinstance(unique_count, int)
+        and not isinstance(unique_count, bool)
+        and unique_count >= MIN_OVERLAY_CONTAINER_UNIQUE_PE_COUNT
+    )
+
+
+def _has_local_pe_resource_decoder(pe: object) -> bool:
+    """同一PE内にresourceを消費し得る実行codeが存在するかを返す。"""
+
+    return any(
+        bool(section.Characteristics & 0x20000000) and bool(section.SizeOfRawData)
+        for section in pe.sections
+    )
+
+
+def _has_classic_upx_structure(summary: object) -> bool:
+    """UPX風の名前だけでなく、展開先・packed stubの組を検証する。"""
+
+    if not isinstance(summary, dict):
+        return False
+    raw_markers = summary.get("packer_markers")
+    markers = (
+        {value.casefold() for value in raw_markers if isinstance(value, str)}
+        if isinstance(raw_markers, list)
+        else set()
+    )
+    raw_sections = summary.get("sections")
+    if not isinstance(raw_sections, list):
+        return False
+    entrypoint = summary.get("entrypoint_section")
+    safe_entrypoint = entrypoint.casefold() if isinstance(entrypoint, str) else None
+    named_labels: set[str] = set()
+    zero_raw_virtual = False
+    high_entropy_entrypoint = False
+    for section in raw_sections:
+        if not isinstance(section, dict):
+            continue
+        name = section.get("name")
+        if isinstance(name, str):
+            normalized = name.casefold().removeprefix(".")
+            if normalized in CLASSIC_UPX_SECTION_NAMES:
+                named_labels.add(normalized)
+        raw_size = section.get("raw_size")
+        virtual_size = section.get("virtual_size")
+        section_entropy = section.get("entropy")
+        if (
+            type(raw_size) is int
+            and raw_size == 0
+            and type(virtual_size) is int
+            and virtual_size >= MIN_CLASSIC_UPX_SECTION_SIZE
+        ):
+            zero_raw_virtual = True
+        if (
+            type(raw_size) is int
+            and raw_size >= MIN_CLASSIC_UPX_SECTION_SIZE
+            and type(section_entropy) in {int, float}
+            and math.isfinite(section_entropy)
+            and MIN_CLASSIC_UPX_PACKED_ENTROPY <= section_entropy <= 8.0
+            and isinstance(name, str)
+            and name.casefold() == safe_entrypoint
+        ):
+            high_entropy_entrypoint = True
+    label_corroborated = "upx!" in markers or len(named_labels) >= 2
+    return label_corroborated and zero_raw_virtual and high_entropy_entrypoint
 
 
 def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
@@ -1437,6 +1650,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
                 "characteristics": hex(section.Characteristics),
             }
         )
+    has_executable_code = _has_local_pe_resource_decoder(pe)
     import_analysis_complete = directory_parse["imports"]["status"] == "parsed"
     import_entries = (
         list(getattr(pe, "DIRECTORY_ENTRY_IMPORT", []))
@@ -1482,24 +1696,30 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         }
     )
     artifacts: list[tuple[str, bytes]] = []
-    overlay = data[overlay_offset:] if overlay_offset is not None else b""
-    overlay_format = detect_format(overlay, "overlay.bin") if overlay else "data"
-    overlay_padding = repetitive_padding(overlay) if overlay else None
+    overlay_start = overlay_offset if overlay_offset is not None else len(data)
+    overlay_size = len(data) - overlay_start
+    overlay_format = _pe_overlay_format(data, overlay_start) if overlay_size else "data"
+    overlay_padding = (
+        _pe_overlay_repetitive_padding(data, overlay_start) if overlay_size else None
+    )
     gdpf_pdf_footer, gdpf_pdf_artifacts = recover_gdpf_pdf_overlay(
         data,
         minimum_offset=image_end,
     )
     artifacts.extend(gdpf_pdf_artifacts)
-    if overlay and overlay_padding is not None and overlay_offset is not None:
+    if overlay_size and overlay_padding is not None and overlay_offset is not None:
         artifacts.append(("pe-overlay-padding-removed", data[:overlay_offset]))
     if (
-        overlay
+        overlay_size
         and overlay_format != "data"
         and overlay_padding is None
         and not gdpf_pdf_artifacts
     ):
-        artifacts.append((f"pe-overlay-{overlay_format}", overlay))
-    overlay_embedded = carve_embedded_pes(overlay)
+        artifacts.append((f"pe-overlay-{overlay_format}", data[overlay_start:]))
+    overlay_embedded = carve_embedded_pes(
+        data,
+        start_offset=overlay_start,
+    )
     artifacts.extend(overlay_embedded)
     overlay_embedded_scan = getattr(
         overlay_embedded,
@@ -1514,6 +1734,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
     resource_bytes_inspected = 0
     resource_exhausted_reasons: list[str] = []
     opaque_resources = 0
+    opaque_resources_skipped_without_local_decoder = 0
     archive_resources = 0
     png_resources_inspected = 0
     png_resources_with_concealed_data = 0
@@ -1594,15 +1815,20 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
                 elif png_status != "valid_png_no_concealed_data":
                     invalid_png_resources += 1
             artifacts.extend(children)
-            if (
+            opaque_candidate = (
                 resource_format == "data"
                 and not children
                 and _retain_opaque_pe_resource(
                     blob,
                     custom_named_type=resource_entry.custom_named_type,
                 )
-                and opaque_resources < 32
-            ):
+            )
+            if opaque_candidate and not has_executable_code:
+                # Resource-only PEには、このblobを設定やcodeへ変換するローカル
+                # decoderが存在しない。親/siblingからの参照系譜もない単独走査で
+                # 高entropy画像等をpayloadへ昇格させない。
+                opaque_resources_skipped_without_local_decoder += 1
+            elif opaque_candidate and opaque_resources < 32:
                 artifacts.append(("pe-resource-opaque", blob))
                 opaque_resources += 1
         if invalid_resource_data_entries:
@@ -1656,10 +1882,17 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         for item in sections
         if item["raw_size"] == 0 and item["virtual_size"] >= 4096
     ]
-    strong_section_marker = any(
+    classic_upx_structure = _has_classic_upx_structure(
+        {
+            "packer_markers": markers,
+            "sections": sections,
+            "entrypoint_section": entrypoint_section,
+        }
+    )
+    strong_section_marker = classic_upx_structure or any(
         token in name
         for name in section_names
-        for token in ("upx", "mpress", "vmp", "themida")
+        for token in ("mpress", "vmp", "themida")
     )
     strong_string_markers = [
         marker for marker in markers if marker in {"Themida", "VMProtect"}
@@ -1671,9 +1904,14 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         and item["raw_size"] >= 4096
         and item["name"].lower() not in {".rsrc", ".reloc"}
     ]
-    containerized = (
-        bool({"Nullsoft", "Inno Setup"}.intersection(markers)) or archive_resources > 0
-    )
+    containerization_signals: list[str] = []
+    if {"Nullsoft", "Inno Setup"}.intersection(markers):
+        containerization_signals.append("installer_marker")
+    if archive_resources > 0:
+        containerization_signals.append("embedded_archive_resource")
+    if _overlay_embedded_pe_container_signal(overlay_size, overlay_embedded_scan):
+        containerization_signals.append("bounded_overlay_multi_pe_fanout")
+    containerized = bool(containerization_signals)
     virtualized_shape = (
         isinstance(imports, int)
         and imports <= 2
@@ -1793,17 +2031,22 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             "packer_markers": markers,
             "classification": classification,
             "containerized": containerized,
+            "containerization_signals": containerization_signals,
             "entrypoint_section": entrypoint_section,
+            "classic_upx_structure": classic_upx_structure,
             "zero_raw_virtual_sections": zero_raw_virtual_sections,
             "virtualized_shape": virtualized_shape,
             "encrypted_sideload_host_shape": encrypted_sideload_host_shape,
             "packing_suspected": packed,
-            "overlay_size": len(overlay),
+            "overlay_size": overlay_size,
             "overlay_format": overlay_format,
             "overlay_repetitive_padding": overlay_padding,
             "gdpf_pdf_footer": gdpf_pdf_footer,
             "resource_count": resource_count,
             "opaque_resources_recovered": opaque_resources,
+            "opaque_resources_skipped_without_local_decoder": (
+                opaque_resources_skipped_without_local_decoder
+            ),
             "archive_resources_recovered": archive_resources,
             "png_resources_inspected": png_resources_inspected,
             "png_resources_with_concealed_data": png_resources_with_concealed_data,
@@ -1817,6 +2060,113 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             "managed_protector_profile": managed_protector,
         },
         artifacts,
+    )
+
+
+def _dotnet_bundle_manifest_string_end(
+    data: bytes,
+    cursor: int,
+    *,
+    maximum_length: int,
+) -> int | None:
+    """7-bit長文字列が入力範囲内で完結する場合だけ終端を返す。"""
+
+    length = 0
+    shift = 0
+    for _ in range(5):
+        if cursor >= len(data):
+            return None
+        value = data[cursor]
+        cursor += 1
+        length |= (value & 0x7F) << shift
+        if value & 0x80 == 0:
+            if length <= 0 or length > maximum_length or length > len(data) - cursor:
+                return None
+            return cursor + length
+        shift += 7
+    return None
+
+
+def _has_bounded_dotnet_bundle_manifest_candidate(
+    data: bytes,
+    *,
+    max_entries: int,
+) -> bool:
+    """apphost署名から一意かつ境界内のmanifestを指す場合だけ真を返す。
+
+    大容量native PE中の偶然の署名一致をbundle破損として扱わないため、
+    本parse前にpointer、固定header、全entryのmanifest範囲だけを確認する。
+    pathの安全性やpayload範囲などの意味検証は本parserへ残す。
+    """
+
+    marker_offset = data.find(BUNDLE_SIGNATURE)
+    if marker_offset < 8:
+        return False
+    if data.find(BUNDLE_SIGNATURE, marker_offset + 1) >= 0:
+        return False
+    header_offset = struct.unpack_from("<q", data, marker_offset - 8)[0]
+    if (
+        header_offset < marker_offset + len(BUNDLE_SIGNATURE)
+        or header_offset > len(data) - 12
+    ):
+        return False
+    major, minor, entry_count = struct.unpack_from("<IIi", data, header_offset)
+    if (
+        major not in SUPPORTED_MAJOR_VERSIONS
+        or minor != 0
+        or entry_count <= 0
+        or entry_count > max_entries
+    ):
+        return False
+
+    cursor = header_offset + 12
+    identifier_end = _dotnet_bundle_manifest_string_end(
+        data,
+        cursor,
+        maximum_length=DOTNET_BUNDLE_MAX_IDENTIFIER_BYTES,
+    )
+    if identifier_end is None:
+        return False
+    cursor = identifier_end
+    if DOTNET_BUNDLE_V2_HEADER_TRAILER_BYTES > len(data) - cursor:
+        return False
+    cursor += DOTNET_BUNDLE_V2_HEADER_TRAILER_BYTES
+
+    entry_fixed_size = 25 if major >= 6 else 17
+    for _ in range(entry_count):
+        if entry_fixed_size > len(data) - cursor:
+            return False
+        cursor += entry_fixed_size
+        path_end = _dotnet_bundle_manifest_string_end(
+            data,
+            cursor,
+            maximum_length=DOTNET_BUNDLE_MAX_PATH_BYTES,
+        )
+        if path_end is None:
+            return False
+        cursor = path_end
+    return True
+
+
+def recover_preflighted_dotnet_bundle(
+    data: bytes,
+    *,
+    max_entries: int = MAX_ARCHIVE_MEMBERS,
+    max_entry_size: int = MAX_ARTIFACT,
+    max_total_size: int = MAX_EXTRACTED_TOTAL,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """境界内manifestを持つ候補だけを.NET bundle parserへ渡す。"""
+
+    if not _has_bounded_dotnet_bundle_manifest_candidate(
+        data,
+        max_entries=max_entries,
+    ):
+        return {"status": "not_dotnet_bundle"}, []
+    return recover_dotnet_bundle(
+        data,
+        max_entries=max_entries,
+        max_entry_size=max_entry_size,
+        max_total_size=max_total_size,
     )
 
 
@@ -1960,7 +2310,9 @@ def recover_dotnet_resources(
                 continue
             if recovered is None:
                 continue
-            extent = valid_pe_extent(recovered, 0) if recovered.startswith(b"MZ") else None
+            extent = (
+                valid_pe_extent(recovered, 0) if recovered.startswith(b"MZ") else None
+            )
             if extent is None:
                 continue
             digest = sha256_bytes(recovered)
@@ -2738,6 +3090,39 @@ def select_high_value_archive_members(
     return selected
 
 
+def _validated_sevenzip_member_records(
+    listing: dict[str, object],
+    records: object,
+) -> tuple[list[dict[str, object]], int]:
+    """7-Zipの全member名を外部展開前に検証し、正規化済みrecordを返す。"""
+
+    source_records: object = records
+    if not source_records:
+        members = listing.get("members")
+        if isinstance(members, list):
+            source_records = [{"name": name} for name in members]
+    if not isinstance(source_records, list):
+        return [], 1
+
+    validated: list[dict[str, object]] = []
+    blocked = 0
+    for record in source_records:
+        if not isinstance(record, dict):
+            blocked += 1
+            continue
+        raw_name = record.get("name")
+        if not isinstance(raw_name, str):
+            blocked += 1
+            continue
+        try:
+            normalized = safe_member_name(raw_name)
+        except ValueError:
+            blocked += 1
+            continue
+        validated.append({**record, "name": normalized})
+    return validated, blocked
+
+
 def safe_temporary_suffix(name: str) -> str:
     """復元レイヤー名から外部静的ツール用の安全な拡張子だけを返す。"""
 
@@ -2745,8 +3130,993 @@ def safe_temporary_suffix(name: str) -> str:
     return candidate if re.fullmatch(r"\.[A-Za-z0-9]{1,16}", candidate) else ".bin"
 
 
+def _collect_inno_outputs(
+    output: Path,
+    expected: tuple[InnoMember, ...],
+    *,
+    maximum_total_size: int,
+) -> list[tuple[InnoMember, bytes]]:
+    """innounp出力を一覧snapshotと照合し、完全一致した集合だけを読む。"""
+
+    if not output.is_dir():
+        raise StaticToolExecutionError("output_directory_missing")
+    expected_by_name = {
+        member.normalized_name.casefold(): member for member in expected
+    }
+    if len(expected_by_name) != len(expected):
+        raise StaticToolExecutionError("output_member_ambiguous")
+    observed: dict[str, tuple[Path, int]] = {}
+    for entry in output.rglob("*"):
+        information = entry.lstat()
+        if entry.is_symlink() or _has_reparse_attribute(information):
+            raise StaticToolExecutionError("output_reparse_forbidden")
+        if stat.S_ISDIR(information.st_mode):
+            continue
+        if not stat.S_ISREG(information.st_mode) or not _has_single_link(
+            information, entry
+        ):
+            raise StaticToolExecutionError("output_file_invalid")
+        try:
+            relative = validate_member_name(
+                entry.relative_to(output).as_posix(), kind="Inno"
+            )
+        except ValueError as exc:
+            raise StaticToolExecutionError("output_path_escape") from exc
+        folded = relative.casefold()
+        if folded in observed or folded not in expected_by_name:
+            raise StaticToolExecutionError("output_member_mismatch")
+        observed[folded] = (entry, information.st_size)
+    if set(observed) != set(expected_by_name):
+        raise StaticToolExecutionError("output_member_missing")
+
+    recovered: list[tuple[InnoMember, bytes]] = []
+    total = 0
+    for folded, member in expected_by_name.items():
+        path, observed_size = observed[folded]
+        if observed_size != member.size:
+            raise StaticToolExecutionError("output_member_size_mismatch")
+        total += observed_size
+        if total > maximum_total_size:
+            raise StaticToolExecutionError("output_total_size_limit")
+        blob = _read_static_tool_output(
+            path,
+            root=output,
+            maximum_size=member.size,
+        )
+        if len(blob) != member.size:
+            raise StaticToolExecutionError("output_member_size_mismatch")
+        recovered.append((member, blob))
+    return recovered
+
+
+def _inno_artifact_label(index: int, member: InnoMember, blob: bytes) -> str:
+    """隔離ZIP内でpathにならない決定的なartifact labelを返す。"""
+
+    if member.normalized_name.casefold() == "install_script.iss":
+        return "inno-install-script.iss"
+    detected = detect_format(blob, member.normalized_name)
+    suffix = member.suffix if re.fullmatch(r"\.[a-z0-9]{1,16}", member.suffix) else ""
+    return f"inno-member-{index:03d}-{detected}{suffix}"
+
+
+def _finalize_inno_result(
+    executable: Path,
+    identity_before: dict[str, object],
+    report: dict[str, object],
+    artifacts: list[tuple[str, bytes]],
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """一連の操作後もtool digestが同じ場合だけ復元物を信頼する。"""
+
+    tool = report.setdefault("tool", {})
+    if not isinstance(tool, dict):  # pragma: no cover - 内部contract防御
+        raise TypeError("Inno tool reportが不正です")
+    try:
+        identity_after = _static_tool_identity(executable)
+    except StaticToolExecutionError:
+        tool["identity_unchanged"] = False
+        report["status"] = "tool_integrity_failed"
+        report["extraction_complete"] = False
+        report["route_only_reasons"] = ["tool_identity_not_stable"]
+        return report, []
+    unchanged = identity_after == identity_before
+    tool["identity_unchanged"] = unchanged
+    if not unchanged:
+        report["status"] = "tool_integrity_failed"
+        report["extraction_complete"] = False
+        report["route_only_reasons"] = ["tool_identity_not_stable"]
+        return report, []
+    return report, artifacts
+
+
+def inno_static_extract(
+    data: bytes,
+    executable: Path,
+    name: str = "input.exe",
+    inno_password: str = "",
+    *,
+    max_members: int = MAX_ARCHIVE_MEMBERS,
+    max_member_size: int = MAX_ARTIFACT,
+    max_total_size: int = MAX_EXTRACTED_TOTAL,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """Inno Setupを実行せず、非暗号化memberだけを同一snapshot内で選択復元する。"""
+
+    base: dict[str, object] = {
+        "schema_version": 1,
+        "status": "tool_unavailable",
+        "candidate": True,
+        "executed": False,
+        "sample_executed": False,
+        "network_contacted": False,
+        "external_parser_started": False,
+        "inventory_complete": False,
+        "extraction_complete": False,
+        "terminal_promotion_eligible": False,
+        "route_only_reasons": [
+            "terminal_family_and_config_require_downstream_validation"
+        ],
+        "archive_unlock_attempted": False,
+        "tool": {
+            "configured": True,
+            "available": False,
+            "identity_unchanged": False,
+        },
+    }
+    for value, label in (
+        (max_members, "max_members"),
+        (max_member_size, "max_member_size"),
+        (max_total_size, "max_total_size"),
+    ):
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise ValueError(f"{label}は正の整数である必要があります")
+    try:
+        identity_before = _static_tool_identity(executable)
+    except StaticToolExecutionError as exc:
+        base["status"] = _static_tool_failure_status(exc)
+        return base, []
+    base["tool"] = {
+        "configured": True,
+        "available": True,
+        "sha256": identity_before["sha256"],
+        "size": identity_before["size"],
+        "identity_unchanged": False,
+    }
+
+    with tempfile.TemporaryDirectory(prefix="asa-inno-") as temp:
+        root = Path(temp).resolve(strict=True)
+        source = root / f"input{safe_temporary_suffix(name)}"
+        source.write_bytes(data)
+        list_command = [
+            str(executable),
+            "-v",
+            "-b",
+            "-o",
+            "-u",
+            str(source),
+        ]
+        try:
+            listed = _run_static_tool_process(
+                list_command,
+                cwd=root,
+                timeout=90,
+                max_temp_entries=32,
+                max_temp_bytes=min(
+                    MAX_STATIC_TOOL_TEMP_BYTES,
+                    max(1, len(data) + 16 * 1024 * 1024),
+                ),
+                encoding="utf-8",
+            )
+        except StaticToolExecutionError as exc:
+            base["status"] = _static_tool_failure_status(exc)
+            return _finalize_inno_result(executable, identity_before, base, [])
+        base["external_parser_started"] = True
+        listing = parse_innounp_listing(
+            f"{listed.stdout}\n{listed.stderr}", listed.returncode
+        )
+        inventory = inno_listing_public(listing)
+        base["inventory"] = inventory
+        base["inventory_complete"] = listing.complete
+        tool = base["tool"]
+        if isinstance(tool, dict):
+            tool["version"] = listing.tool_version
+        if not listing.complete:
+            base["status"] = listing.status
+            base["route_only_reasons"] = [
+                "inno_inventory_not_complete",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_inno_result(executable, identity_before, base, [])
+
+        script_members = tuple(
+            member
+            for member in listing.members
+            if member.normalized_name.casefold() == "install_script.iss"
+        )
+        if len(script_members) != 1 or script_members[0].size > max_member_size:
+            base["status"] = "install_script_unavailable"
+            base["route_only_reasons"] = [
+                "encryption_state_not_proven",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_inno_result(executable, identity_before, base, [])
+
+        script_output = root / "script-output"
+        script_command = [
+            str(executable),
+            "-x",
+            "-b",
+            "-q",
+            "-m",
+            "-o",
+            "-u",
+            "-y",
+            f"-d{script_output}",
+            str(source),
+            script_members[0].archive_name,
+        ]
+        try:
+            script_completed = _run_static_tool_process(
+                script_command,
+                cwd=root,
+                timeout=90,
+                max_temp_entries=64,
+                max_temp_bytes=min(
+                    MAX_STATIC_TOOL_TEMP_BYTES,
+                    max(1, len(data) + script_members[0].size + 16 * 1024 * 1024),
+                ),
+                encoding="utf-8",
+            )
+            if script_completed.returncode != 0:
+                raise StaticToolExecutionError("script_extract_failed")
+            script_outputs = _collect_inno_outputs(
+                script_output,
+                script_members,
+                maximum_total_size=max_member_size,
+            )
+        except (OSError, StaticToolExecutionError) as exc:
+            base["status"] = (
+                _static_tool_failure_status(exc)
+                if isinstance(exc, StaticToolExecutionError)
+                else "unsafe_tool_output"
+            )
+            base["route_only_reasons"] = [
+                "install_script_not_trusted",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_inno_result(executable, identity_before, base, [])
+
+        script_blob = script_outputs[0][1]
+        facts = parse_install_script(script_blob)
+        base["install_script"] = {
+            "status": "recovered_and_parsed",
+            "size": len(script_blob),
+            "sha256": sha256_bytes(script_blob),
+            "payload_encrypted": facts.encrypted,
+            "decompiler_provenance_verified": facts.decompiler_provenance,
+            "launch_target_count": len(facts.launch_targets),
+            "launch_targets": list(facts.launch_targets),
+            "dynamic_launch_target_count": facts.dynamic_launch_target_count,
+            "invalid_launch_target_count": facts.invalid_launch_target_count,
+        }
+        if not facts.decompiler_provenance:
+            base["status"] = "install_script_untrusted"
+            base["route_only_reasons"] = [
+                "install_script_provenance_not_verified",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_inno_result(executable, identity_before, base, [])
+        selection = select_inno_members(
+            listing,
+            facts,
+            max_members=max_members,
+            max_member_size=max_member_size,
+            max_total_size=max_total_size,
+        )
+        base["selection"] = inno_selection_public(selection)
+        script_artifact = (
+            _inno_artifact_label(0, script_members[0], script_blob),
+            script_blob,
+        )
+        if facts.encrypted:
+            base["status"] = "encrypted_payload_blocked"
+            base["route_only_reasons"] = [
+                "inno_encrypted_archive_unlock_not_supported",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_inno_result(
+                executable, identity_before, base, [script_artifact]
+            )
+
+        payload_members = tuple(
+            member
+            for member in selection.members
+            if member.normalized_name.casefold() != "install_script.iss"
+        )
+        if not payload_members:
+            base["status"] = "no_payload_member_selected"
+            base["route_only_reasons"] = [
+                "no_bounded_high_value_member",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_inno_result(
+                executable, identity_before, base, [script_artifact]
+            )
+
+        payload_output = root / "payload-output"
+        extract_command = [
+            str(executable),
+            "-x",
+            "-b",
+            "-q",
+            "-o",
+            "-u",
+            "-y",
+        ]
+        extract_command.extend(
+            [
+                f"-d{payload_output}",
+                str(source),
+                *(member.archive_name for member in payload_members),
+            ]
+        )
+        try:
+            extracted = _run_static_tool_process(
+                extract_command,
+                cwd=root,
+                timeout=240,
+                max_temp_entries=min(
+                    MAX_STATIC_TOOL_TEMP_ENTRIES,
+                    max(128, len(payload_members) * 4 + 64),
+                ),
+                max_temp_bytes=min(
+                    MAX_STATIC_TOOL_TEMP_BYTES,
+                    max(
+                        1,
+                        len(data)
+                        + selection.declared_size
+                        + max(member.size for member in payload_members)
+                        + script_members[0].size
+                        + 64 * 1024 * 1024,
+                    ),
+                ),
+                encoding="utf-8",
+            )
+            if extracted.returncode != 0:
+                raise StaticToolExecutionError(
+                    "archive_unlock_failed" if facts.encrypted else "extract_failed"
+                )
+            payloads = _collect_inno_outputs(
+                payload_output,
+                payload_members,
+                maximum_total_size=max_total_size,
+            )
+        except (OSError, StaticToolExecutionError) as exc:
+            base["status"] = (
+                "archive_unlock_failed"
+                if facts.encrypted
+                else _static_tool_failure_status(exc)
+                if isinstance(exc, StaticToolExecutionError)
+                else "unsafe_tool_output"
+            )
+            base["route_only_reasons"] = [
+                "selected_member_extraction_not_complete",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_inno_result(
+                executable, identity_before, base, [script_artifact]
+            )
+
+        artifacts = [script_artifact]
+        recovered_metadata: list[dict[str, object]] = []
+        launch_targets = {value.casefold() for value in facts.launch_targets}
+        for index, (member, blob) in enumerate(payloads, start=1):
+            detected = detect_format(blob, member.normalized_name)
+            digest = sha256_bytes(blob)
+            artifacts.append((_inno_artifact_label(index, member, blob), blob))
+            recovered_metadata.append(
+                {
+                    "name": member.normalized_name,
+                    "size": len(blob),
+                    "sha256": digest,
+                    "format": detected,
+                    "launch_target": member.normalized_name.casefold()
+                    in launch_targets,
+                }
+            )
+        if selection.complete_archive:
+            segmented_zip = recover_segmented_zip(
+                tuple(payloads),
+                max_members=max_members,
+                max_member_size=max_member_size,
+                max_total_size=max_total_size,
+            )
+            base["segmented_zip_reassembly"] = inno_segmented_zip_public(segmented_zip)
+            if segmented_zip.blob is not None:
+                artifacts.append(("inno-segmented-zip", segmented_zip.blob))
+                reassembly = base["segmented_zip_reassembly"]
+                if isinstance(reassembly, dict):
+                    reassembly["size"] = len(segmented_zip.blob)
+                    reassembly["sha256"] = sha256_bytes(segmented_zip.blob)
+        else:
+            base["segmented_zip_reassembly"] = {
+                "status": "not_attempted_incomplete_selection",
+                "executed": False,
+                "network_contacted": False,
+            }
+        base["recovered_members"] = recovered_metadata
+        base["extraction_complete"] = True
+        base["status"] = (
+            "artifacts_recovered"
+            if selection.complete_archive
+            else "bounded_selection_recovered"
+        )
+        if not selection.complete_archive:
+            base["route_only_reasons"] = [
+                "inno_bounded_selection_not_complete",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+        return _finalize_inno_result(executable, identity_before, base, artifacts)
+
+
+def _collect_nsis_outputs(
+    output: Path,
+    expected: tuple[NsisMember, ...],
+    *,
+    maximum_member_size: int,
+    maximum_total_size: int,
+) -> list[tuple[NsisMember, bytes]]:
+    """`-aou`出力をlisting順の期待path・sizeと完全照合する。"""
+
+    if not output.is_dir():
+        raise StaticToolExecutionError("output_directory_missing")
+    output_root = output.resolve(strict=True)
+    expected_by_name = {member.output_name.casefold(): member for member in expected}
+    if len(expected_by_name) != len(expected):
+        raise StaticToolExecutionError("output_member_ambiguous")
+    observed: dict[str, tuple[Path, int]] = {}
+    for entry in output.rglob("*"):
+        information = entry.lstat()
+        if entry.is_symlink() or _has_reparse_attribute(information):
+            raise StaticToolExecutionError("output_reparse_forbidden")
+        resolved = entry.resolve()
+        try:
+            resolved.relative_to(output_root)
+        except ValueError as exc:
+            raise StaticToolExecutionError("output_path_escape") from exc
+        try:
+            normalized = validate_member_name(
+                entry.relative_to(output).as_posix(), kind="NSIS"
+            )
+        except ValueError as exc:
+            raise StaticToolExecutionError("output_path_escape") from exc
+        if stat.S_ISDIR(information.st_mode):
+            continue
+        if not stat.S_ISREG(information.st_mode) or not _has_single_link(
+            information, entry
+        ):
+            raise StaticToolExecutionError("output_file_invalid")
+        folded = normalized.casefold()
+        if folded in observed or folded not in expected_by_name:
+            raise StaticToolExecutionError("output_member_mismatch")
+        if not 0 <= information.st_size <= maximum_member_size:
+            raise StaticToolExecutionError("output_member_size_limit")
+        observed[folded] = (entry, information.st_size)
+    if set(observed) != set(expected_by_name):
+        raise StaticToolExecutionError("output_member_missing")
+
+    recovered: list[tuple[NsisMember, bytes]] = []
+    total = 0
+    for folded, member in expected_by_name.items():
+        path, observed_size = observed[folded]
+        if member.size is not None and observed_size != member.size:
+            raise StaticToolExecutionError("output_member_size_mismatch")
+        total += observed_size
+        if total > maximum_total_size:
+            raise StaticToolExecutionError("output_total_size_limit")
+        blob = _read_static_tool_output(
+            path,
+            root=output,
+            maximum_size=maximum_member_size,
+        )
+        if len(blob) != observed_size:
+            raise StaticToolExecutionError("output_member_size_mismatch")
+        recovered.append((member, blob))
+    return recovered
+
+
+def _finalize_nsis_result(
+    executable: Path,
+    identity_before: dict[str, object],
+    report: dict[str, object],
+    artifacts: list[tuple[str, bytes]],
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """一連のNSIS操作後も7-Zip digestが同一の場合だけ復元物を返す。"""
+
+    tool = report.setdefault("tool", {})
+    if not isinstance(tool, dict):  # pragma: no cover - 内部contract防御
+        raise TypeError("NSIS tool reportが不正です")
+    try:
+        identity_after = _static_tool_identity(executable)
+    except StaticToolExecutionError:
+        tool["identity_unchanged"] = False
+        report["status"] = "tool_integrity_failed"
+        report["extraction_complete"] = False
+        report["route_only_reasons"] = ["tool_identity_not_stable"]
+        return report, []
+    unchanged = identity_after == identity_before
+    tool["identity_unchanged"] = unchanged
+    if not unchanged:
+        report["status"] = "tool_integrity_failed"
+        report["extraction_complete"] = False
+        report["route_only_reasons"] = ["tool_identity_not_stable"]
+        return report, []
+    return report, artifacts
+
+
+def nsis_static_extract(
+    data: bytes,
+    executable: Path,
+    name: str = "input.exe",
+    *,
+    max_members: int = MAX_ARCHIVE_MEMBERS,
+    max_member_size: int = MAX_ARTIFACT,
+    max_total_size: int = MAX_EXTRACTED_TOTAL,
+    max_compression_ratio: float = MAX_COMPRESSION_RATIO,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """NSISを実行せず、固定7-Zipで同一snapshotから厳格に復元する。"""
+
+    base: dict[str, object] = {
+        "schema_version": 1,
+        "status": "tool_unavailable",
+        "candidate": True,
+        "executed": False,
+        "sample_executed": False,
+        "network_contacted": False,
+        "external_parser_started": False,
+        "inventory_complete": False,
+        "archive_test_complete": False,
+        "extraction_complete": False,
+        "full_archive_extraction_complete": False,
+        "terminal_promotion_eligible": False,
+        "archive_unlock_attempted": False,
+        "route_only_reasons": [
+            "terminal_family_and_config_require_downstream_validation"
+        ],
+        "tool": {
+            "configured": True,
+            "available": False,
+            "identity_unchanged": False,
+        },
+    }
+    for value, label in (
+        (max_members, "max_members"),
+        (max_member_size, "max_member_size"),
+        (max_total_size, "max_total_size"),
+    ):
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise ValueError(f"{label}は正の整数である必要があります")
+    if (
+        isinstance(max_compression_ratio, bool)
+        or not isinstance(max_compression_ratio, (int, float))
+        or not math.isfinite(float(max_compression_ratio))
+        or max_compression_ratio <= 0
+    ):
+        raise ValueError("max_compression_ratioは正数である必要があります")
+    try:
+        identity_before = _static_tool_identity(executable)
+    except StaticToolExecutionError as exc:
+        base["status"] = _static_tool_failure_status(exc)
+        return base, []
+    base["tool"] = {
+        "configured": True,
+        "available": True,
+        "sha256": identity_before["sha256"],
+        "size": identity_before["size"],
+        "version": None,
+        "version_supported": False,
+        "identity_unchanged": False,
+    }
+
+    with tempfile.TemporaryDirectory(prefix="asa-nsis-") as temp:
+        root = Path(temp).resolve(strict=True)
+        source = root / f"input{safe_temporary_suffix(name)}"
+        source.write_bytes(data)
+        common_temp_limit = min(
+            MAX_STATIC_TOOL_TEMP_BYTES,
+            max(1, len(data) + 64 * 1024 * 1024),
+        )
+        try:
+            version_result = _run_static_tool_process(
+                [str(executable), "i"],
+                cwd=root,
+                timeout=30,
+                max_temp_entries=64,
+                max_temp_bytes=common_temp_limit,
+                encoding="utf-8",
+            )
+        except StaticToolExecutionError as exc:
+            base["status"] = _static_tool_failure_status(exc)
+            return _finalize_nsis_result(executable, identity_before, base, [])
+        base["external_parser_started"] = True
+        tool_version, version_supported = parse_sevenzip_version(
+            f"{version_result.stdout}\n{version_result.stderr}"
+        )
+        tool = base["tool"]
+        if isinstance(tool, dict):
+            tool["version"] = tool_version
+            tool["version_supported"] = version_supported
+        if version_result.returncode != 0 or not version_supported:
+            base["status"] = (
+                "tool_version_unsupported"
+                if tool_version is not None
+                else "tool_identity_unrecognized"
+            )
+            base["route_only_reasons"] = [
+                "sevenzip_version_not_trusted",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_nsis_result(executable, identity_before, base, [])
+
+        list_command = [
+            str(executable),
+            "l",
+            "-slt",
+            "-sccUTF-8",
+            "--",
+            str(source),
+        ]
+        try:
+            listed = _run_static_tool_process(
+                list_command,
+                cwd=root,
+                timeout=90,
+                max_temp_entries=64,
+                max_temp_bytes=common_temp_limit,
+                encoding="utf-8",
+            )
+        except StaticToolExecutionError as exc:
+            base["status"] = _static_tool_failure_status(exc)
+            return _finalize_nsis_result(executable, identity_before, base, [])
+        listing = parse_nsis_listing(
+            f"{listed.stdout}\n{listed.stderr}", listed.returncode, len(data)
+        )
+        base.update(nsis_listing_public(listing))
+        base["members"] = [member.normalized_name for member in listing.members]
+        if not listing.complete:
+            base["status"] = listing.status
+            base["route_only_reasons"] = [
+                "nsis_inventory_not_complete",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_nsis_result(executable, identity_before, base, [])
+
+        selection = select_nsis_members(
+            listing,
+            max_members=max_members,
+            max_member_size=max_member_size,
+            max_total_size=max_total_size,
+        )
+        base["selective_extraction"] = nsis_selection_public(selection)
+        if not selection.members:
+            base["status"] = "no_bounded_high_value_member"
+            base["route_only_reasons"] = [
+                "no_bounded_high_value_member",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_nsis_result(executable, identity_before, base, [])
+
+        test_command = [
+            str(executable),
+            "t",
+            "-bd",
+            "-bb0",
+            "-sccUTF-8",
+            "--",
+            str(source),
+        ]
+        try:
+            tested = _run_static_tool_process(
+                test_command,
+                cwd=root,
+                timeout=180,
+                max_temp_entries=64,
+                max_temp_bytes=common_temp_limit,
+                encoding="utf-8",
+            )
+        except StaticToolExecutionError as exc:
+            base["status"] = _static_tool_failure_status(exc)
+            base["route_only_reasons"] = [
+                "nsis_archive_test_not_complete",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_nsis_result(executable, identity_before, base, [])
+        test_text = f"{tested.stdout}\n{tested.stderr}"
+        tested_members = re.search(r"(?mi)^Files:\s+(\d+)\s*$", test_text)
+        tested_size = re.search(r"(?mi)^Size:\s+(\d+)\s*$", test_text)
+        base["archive_test_exit_code"] = tested.returncode
+        base["archive_test_member_count"] = (
+            int(tested_members.group(1)) if tested_members else None
+        )
+        base["archive_test_size"] = int(tested_size.group(1)) if tested_size else None
+        if (
+            tested.returncode != 0
+            or tested_members is None
+            or int(tested_members.group(1)) != len(listing.members)
+        ):
+            base["status"] = "archive_test_failed"
+            base["route_only_reasons"] = [
+                "nsis_archive_test_not_complete",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_nsis_result(executable, identity_before, base, [])
+        base["archive_test_complete"] = True
+
+        output = root / "output"
+        extract_command = [
+            str(executable),
+            "x",
+            "-aou",
+            "-bd",
+            "-bb0",
+            "-sccUTF-8",
+            f"-o{output}",
+            "--",
+            str(source),
+        ]
+        if not selection.complete_archive:
+            selected_names: list[str] = []
+            seen_names: set[str] = set()
+            for member in selection.members:
+                folded = member.archive_name.casefold()
+                if folded not in seen_names:
+                    selected_names.append(member.archive_name)
+                    seen_names.add(folded)
+            extract_command.extend(selected_names)
+        temporary_entries = min(
+            MAX_STATIC_TOOL_TEMP_ENTRIES,
+            max(128, len(selection.members) * 4 + 64),
+        )
+        temporary_bytes = min(
+            MAX_STATIC_TOOL_TEMP_BYTES,
+            max(1, len(data) + max_total_size + 64 * 1024 * 1024),
+        )
+        try:
+            extracted = _run_static_tool_process(
+                extract_command,
+                cwd=root,
+                timeout=300,
+                max_temp_entries=temporary_entries,
+                max_temp_bytes=temporary_bytes,
+                encoding="utf-8",
+            )
+            if extracted.returncode != 0:
+                raise StaticToolExecutionError("extract_failed")
+            payloads = _collect_nsis_outputs(
+                output,
+                selection.members,
+                maximum_member_size=max_member_size,
+                maximum_total_size=max_total_size,
+            )
+        except (OSError, StaticToolExecutionError) as exc:
+            base["status"] = (
+                _static_tool_failure_status(exc)
+                if isinstance(exc, StaticToolExecutionError)
+                else "unsafe_tool_output"
+            )
+            base["route_only_reasons"] = [
+                "selected_member_extraction_not_complete",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_nsis_result(executable, identity_before, base, [])
+
+        extracted_total = sum(len(blob) for _, blob in payloads)
+        overall_ratio = extracted_total / max(1, len(data))
+        if overall_ratio > max_compression_ratio:
+            base["status"] = "compression_ratio_blocked"
+            base["observed_compression_ratio"] = round(overall_ratio, 6)
+            base["route_only_reasons"] = [
+                "nsis_compression_ratio_limit",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_nsis_result(executable, identity_before, base, [])
+
+        ratio_blocked_members: list[dict[str, object]] = []
+        ratio_validated_payloads: list[tuple[NsisMember, bytes]] = []
+        for member, blob in payloads:
+            ratio: float | None = None
+            reason: str | None = None
+            if member.packed_size == 0 and blob:
+                reason = "packed_size_zero_for_nonempty_member"
+            elif member.packed_size is not None and member.packed_size > 0:
+                ratio = len(blob) / member.packed_size
+                if ratio > max_compression_ratio:
+                    reason = "member_compression_ratio_limit"
+            if reason is not None:
+                ratio_blocked_members.append(
+                    {
+                        "name": member.normalized_name,
+                        "reason": reason,
+                        "observed_ratio": round(ratio, 6)
+                        if ratio is not None
+                        else None,
+                    }
+                )
+                continue
+            ratio_validated_payloads.append((member, blob))
+        payloads = ratio_validated_payloads
+        if not payloads:
+            base["status"] = "compression_ratio_blocked"
+            base["ratio_validation"] = {
+                "complete": False,
+                "blocked_member_count": len(ratio_blocked_members),
+                "blocked_members": ratio_blocked_members,
+            }
+            base["route_only_reasons"] = [
+                "all_selected_nsis_members_exceeded_compression_ratio",
+                "terminal_family_and_config_require_downstream_validation",
+            ]
+            return _finalize_nsis_result(executable, identity_before, base, [])
+
+        crc_verified = 0
+        crc_unavailable = 0
+        recovered_metadata: list[dict[str, object]] = []
+        artifacts: list[tuple[str, bytes]] = []
+        file_map: dict[str, bytes] = {}
+        for index, (member, blob) in enumerate(payloads):
+            observed_crc = f"{zlib.crc32(blob) & 0xFFFFFFFF:08X}"
+            if member.crc32 is not None:
+                if observed_crc != member.crc32:
+                    base["status"] = "crc_mismatch"
+                    base["route_only_reasons"] = [
+                        "nsis_member_crc_mismatch",
+                        "terminal_family_and_config_require_downstream_validation",
+                    ]
+                    return _finalize_nsis_result(executable, identity_before, base, [])
+                crc_verified += 1
+            else:
+                crc_unavailable += 1
+            detected = detect_format(blob, member.normalized_name)
+            digest = sha256_bytes(blob)
+            recovered_metadata.append(
+                {
+                    "name": member.normalized_name,
+                    "output_name": member.output_name,
+                    "size": len(blob),
+                    "sha256": digest,
+                    "format": detected,
+                    "crc_available": member.crc32 is not None,
+                    "crc_verified": member.crc32 is not None,
+                }
+            )
+            file_map[member.output_name] = blob
+            suffix = (
+                member.suffix
+                if re.fullmatch(r"\.[a-z0-9]{1,16}", member.suffix)
+                else ""
+            )
+            label = (
+                "nsis-install-script.nsi"
+                if PurePosixPath(member.normalized_name.casefold()).name == "[nsis].nsi"
+                else f"nsis-member-{index:03d}-{detected}{suffix}"
+            )
+            artifacts.append((label, blob))
+
+        try:
+            source_after = _read_static_tool_output(
+                source,
+                root=root,
+                maximum_size=len(data),
+            )
+        except (OSError, StaticToolExecutionError):
+            base["status"] = "source_snapshot_changed"
+            base["route_only_reasons"] = ["source_snapshot_not_stable"]
+            return _finalize_nsis_result(executable, identity_before, base, [])
+        if len(source_after) != len(data) or sha256_bytes(source_after) != sha256_bytes(
+            data
+        ):
+            base["status"] = "source_snapshot_changed"
+            base["route_only_reasons"] = ["source_snapshot_not_stable"]
+            return _finalize_nsis_result(executable, identity_before, base, [])
+
+        script_blobs = [
+            blob
+            for member, blob in payloads
+            if PurePosixPath(member.normalized_name.casefold()).name == "[nsis].nsi"
+        ]
+        launch_graph = (
+            parse_nsis_launch_graph(script_blobs[0])
+            if len(script_blobs) == 1
+            else {
+                "status": "missing_or_ambiguous_script",
+                "decompiler_provenance": False,
+                "action_count": 0,
+                "placement_count": 0,
+                "launch_count": 0,
+                "dynamic_launch_count": 0,
+                "invalid_action_count": 0,
+                "truncated": False,
+                "actions": [],
+                "executed": False,
+                "network_contacted": False,
+            }
+        )
+        nsis_report, nsis_artifacts = recover_nsis_scripted_layers(file_map)
+        artifacts.extend(nsis_artifacts)
+        if len(script_blobs) == 1:
+            nhencv1_report, nhencv1_artifacts = recover_nsis_nhencv1(
+                script_blobs[0],
+                payloads,
+                max_output_size=max_member_size,
+                max_total_size=max_total_size,
+            )
+        else:
+            nhencv1_report, nhencv1_artifacts = (
+                {
+                    "schema_version": 1,
+                    "status": "script_missing_or_ambiguous",
+                    "terminal_promotion_eligible": False,
+                    "terminal_validation_required": True,
+                    "executed": False,
+                    "sample_executed": False,
+                    "network_contacted": False,
+                },
+                [],
+            )
+        artifacts.extend(nhencv1_artifacts)
+        base["inventory"] = recovered_metadata
+        base["extracted_total_size"] = extracted_total
+        base["observed_compression_ratio"] = round(overall_ratio, 6)
+        base["retained_members"] = len(payloads)
+        base["ratio_validation"] = {
+            "complete": not ratio_blocked_members,
+            "blocked_member_count": len(ratio_blocked_members),
+            "blocked_members": ratio_blocked_members,
+        }
+        base["crc_validation"] = {
+            "available_count": crc_verified,
+            "verified_count": crc_verified,
+            "unavailable_count": crc_unavailable,
+            "complete": crc_unavailable == 0,
+        }
+        base["launch_graph"] = launch_graph
+        base["nsis_script_recovery"] = nsis_report
+        base["nsis_nhencv1"] = nhencv1_report
+        base["extraction_complete"] = not ratio_blocked_members
+        base["full_archive_extraction_complete"] = (
+            selection.complete_archive and not ratio_blocked_members
+        )
+        base["status"] = (
+            "extracted"
+            if selection.complete_archive and not ratio_blocked_members
+            else "selectively_extracted"
+        )
+        route_reasons = ["terminal_family_and_config_require_downstream_validation"]
+        if ratio_blocked_members:
+            route_reasons.insert(0, "nsis_ratio_blocked_members_omitted")
+        if not selection.complete_archive:
+            route_reasons.insert(0, "nsis_bounded_selection_not_complete")
+        if crc_unavailable:
+            route_reasons.insert(0, "nsis_member_crc_unavailable")
+        if launch_graph.get("status") != "parsed":
+            route_reasons.insert(0, "nsis_launch_graph_not_complete")
+        elif int(launch_graph.get("dynamic_launch_count", 0)):
+            route_reasons.insert(0, "nsis_dynamic_launch_target_unresolved")
+        base["route_only_reasons"] = route_reasons
+        return _finalize_nsis_result(executable, identity_before, base, artifacts)
+
+
 def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dict:
     """アーカイブ候補の識別と一覧化だけに7-Zipを使用する。"""
+    if password:
+        return {
+            "status": "credential_transport_unsupported",
+            "archive_types": [],
+            "members": [],
+            "total_members": 0,
+            "declared_total_size": 0,
+            "archive_unlock_attempted": False,
+            "external_parser_started": False,
+            "_member_records": [],
+        }
     if not executable.is_file():
         return {"status": "unavailable", "path": str(executable)}
     with tempfile.TemporaryDirectory(prefix="asa-7z-list-") as temp:
@@ -2754,8 +4124,6 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
         source = root / "input.bin"
         source.write_bytes(data)
         command = [str(executable), "l", "-slt", "-sccUTF-8"]
-        if password:
-            command.append(f"-p{password}")
         command.extend(["--", str(source)])
         try:
             completed = _run_static_tool_process(
@@ -3039,20 +4407,11 @@ def sevenzip_extract(
     ):
         if isinstance(value, bool) or value <= 0:
             raise ValueError(f"{label} must be positive")
-    # Supplying an unrelated archive password to a PE/NSIS image makes 7-Zip
-    # omit its synthetic [NSIS].nsi decompilation stream. Probe without a
-    # password first and keep that mode for NSIS; other archive types retain
-    # the caller-provided password for encrypted RAR/7z/ZIP cases.
+    # 外部toolへcredentialを安全に渡す検証済み契約がないため、inventoryと
+    # 抽出は常に無資格で試す。無資格抽出が失敗しpasswordが設定されている
+    # 場合は、argvへ値を載せず明示blockedへ閉じる。
     unkeyed_listing = sevenzip_inventory(data, executable, "")
-    unkeyed_types = {
-        str(value).lower() for value in unkeyed_listing.get("archive_types", [])
-    }
-    effective_password = "" if "nsis" in unkeyed_types else password
-    listing = (
-        unkeyed_listing
-        if not effective_password
-        else sevenzip_inventory(data, executable, effective_password)
-    )
+    listing = unkeyed_listing
     member_records = listing.pop("_member_records", [])
     if listing["status"] in {
         "unavailable",
@@ -3063,6 +4422,24 @@ def sevenzip_extract(
         "tool_failed",
     }:
         return listing, []
+    if password and listing["status"] != "listed":
+        return {
+            **listing,
+            "status": "credential_transport_unsupported",
+            "archive_unlock_attempted": False,
+            "external_credential_transport": "unsupported",
+        }, []
+    member_records, unsafe_member_count = _validated_sevenzip_member_records(
+        listing,
+        member_records,
+    )
+    if unsafe_member_count:
+        return {
+            **listing,
+            "status": "unsafe_member_path_blocked",
+            "unsafe_member_count": unsafe_member_count,
+            "external_extraction_started": False,
+        }, []
     extractable_types = {
         "7z",
         "apm",
@@ -3101,11 +4478,7 @@ def sevenzip_extract(
                 else "declared_size_blocked"
             )
             return {**listing, "status": status}, []
-    password_candidates = [effective_password]
-    if any(value.startswith("rar") for value in archive_types):
-        for candidate in ("WNcry@2ol7",):
-            if candidate not in password_candidates:
-                password_candidates.append(candidate)
+    password_candidates = [""]
 
     with tempfile.TemporaryDirectory(prefix="asa-7z-extract-") as temp:
         root = Path(temp).resolve(strict=True)
@@ -3119,11 +4492,11 @@ def sevenzip_extract(
         for candidate_index, candidate_password in enumerate(password_candidates):
             output = root / f"out-{candidate_index}"
             command = [str(executable), "x", "-y", "-bd", "-bb0", "-sccUTF-8"]
-            if candidate_password:
-                command.append(f"-p{candidate_password}")
             command.extend([f"-o{output}", "--", str(source)])
             if selective_members:
                 command.extend(str(item["name"]) for item in selective_members)
+            else:
+                command.extend(str(item["name"]) for item in member_records)
             try:
                 completed = _run_static_tool_process(
                     command,
@@ -3163,6 +4536,13 @@ def sevenzip_extract(
             if completed.returncode == 0:
                 break
         if not attempts:
+            if password:
+                return {
+                    **listing,
+                    "status": "credential_transport_unsupported",
+                    "archive_unlock_attempted": False,
+                    "external_credential_transport": "unsupported",
+                }, []
             status = (
                 "extract_timeout"
                 if attempt_failures and set(attempt_failures) == {"timeout"}
@@ -3175,6 +4555,13 @@ def sevenzip_extract(
             attempts,
             key=lambda item: (item[0].returncode == 0, item[3], -item[2]),
         )
+        if completed.returncode != 0 and password:
+            return {
+                **listing,
+                "status": "credential_transport_unsupported",
+                "archive_unlock_attempted": False,
+                "external_credential_transport": "unsupported",
+            }, []
         inventory, candidates = [], []
         extracted_total = 0
         try:
@@ -4131,6 +5518,8 @@ def unpack_bytes(
     max_archive_member_size: int = MAX_ARTIFACT,
     max_archive_total_size: int = MAX_EXTRACTED_TOTAL,
     max_archive_compression_ratio: float = MAX_COMPRESSION_RATIO,
+    innounp: Path | None = None,
+    inno_password: str = "",
 ) -> tuple[dict, list[tuple[str, bytes]]]:
     """上限付き静的復元を実行し、メタデータとアーティファクトを返す。
     forceフラグは、汎用コンテナ判定に合致しない既知NSISキャリアなど、
@@ -4187,15 +5576,15 @@ def unpack_bytes(
             report["unpack_status"] = "corrupt_or_truncated"
             return report, []
         artifacts.extend(recovered)
+        report["bcrypt_resource"], recovered = recover_bcrypt_resource(static_data)
+        artifacts.extend(recovered)
         bin101_recovery = recover_bin101_payload(static_data)
         if bin101_recovery is not None:
             report["bin101_nibble_rc4_loader"] = bin101_recovery.metadata()
-            artifacts.append(
-                ("bin101-nibble-rc4-shellcode", bin101_recovery.payload)
-            )
+            artifacts.append(("bin101-nibble-rc4-shellcode", bin101_recovery.payload))
         if should_analyze_opaque_native_entry(report["pe"]):
             report["opaque_native_entry"] = analyze_opaque_native_pe(static_data)
-        report["dotnet_bundle"], recovered = recover_dotnet_bundle(
+        report["dotnet_bundle"], recovered = recover_preflighted_dotnet_bundle(
             static_data,
             max_entries=max_archive_members,
             max_entry_size=max_archive_member_size,
@@ -4230,37 +5619,164 @@ def unpack_bytes(
                 static_data
             )
             artifacts.extend(recovered)
-        section_names = {item["name"].lower() for item in report["pe"]["sections"]}
-        likely_upx = "UPX!" in report["pe"]["packer_markers"] or any(
-            "upx" in value for value in section_names
-        )
+        likely_upx = _has_classic_upx_structure(report["pe"])
         if upx and likely_upx:
             report["upx"], blob = run_upx(static_data, upx)
             if blob:
                 artifacts.append(("upx", blob))
         elif upx:
             report["upx"] = {"status": "skipped_no_upx_evidence"}
-        if sevenzip and (report["pe"]["containerized"] or force_container_probe):
-            report["sevenzip"], recovered = sevenzip_extract(
+        inno_assessment = assess_inno_candidate(
+            static_data,
+            packer_markers=report["pe"].get("packer_markers", ()),
+        )
+        # markerはassessmentを開始するsignalにすぎない。検証済みloader構造を
+        # 欠くPEを外部parserへ渡さない。
+        inno_candidate = inno_assessment.candidate
+        if inno_assessment.status != "not_signaled":
+            report["inno_candidate_assessment"] = inno_candidate_public(inno_assessment)
+        inno_handled = False
+        inno_attempted = False
+        if inno_candidate and innounp:
+            inno_attempted = True
+            report["inno"], recovered = inno_static_extract(
                 static_data,
-                sevenzip,
+                innounp,
                 name,
-                archive_password,
+                inno_password=inno_password,
                 max_members=max_archive_members,
                 max_member_size=max_archive_member_size,
                 max_total_size=max_archive_total_size,
             )
             artifacts.extend(recovered)
+            inno_handled = bool(report["inno"].get("inventory_complete"))
+        elif inno_candidate:
+            report["inno"] = {
+                "schema_version": 1,
+                "status": "tool_not_configured",
+                "candidate": True,
+                "tool": {"configured": False, "available": False},
+                "inventory_complete": False,
+                "extraction_complete": False,
+                "executed": False,
+                "sample_executed": False,
+                "network_contacted": False,
+                "terminal_promotion_eligible": False,
+                "route_only_reasons": [
+                    "inno_static_parser_not_configured",
+                    "terminal_family_and_config_require_downstream_validation",
+                    *(
+                        ["inno_structure_confirmed_parser_not_configured"]
+                        if inno_assessment.candidate
+                        else []
+                    ),
+                ],
+            }
+        nsis_candidate = "Nullsoft" in report["pe"]["packer_markers"]
+        if sevenzip and (
+            (report["pe"]["containerized"] and not inno_handled)
+            or force_container_probe
+        ):
+            if nsis_candidate and not inno_handled:
+                report["sevenzip"], recovered = nsis_static_extract(
+                    static_data,
+                    sevenzip,
+                    name,
+                    max_members=max_archive_members,
+                    max_member_size=max_archive_member_size,
+                    max_total_size=max_archive_total_size,
+                    max_compression_ratio=max_archive_compression_ratio,
+                )
+            else:
+                report["sevenzip"], recovered = sevenzip_extract(
+                    static_data,
+                    sevenzip,
+                    name,
+                    "",
+                    max_members=max_archive_members,
+                    max_member_size=max_archive_member_size,
+                    max_total_size=max_archive_total_size,
+                )
+            artifacts.extend(recovered)
             report["sevenzip"]["forced_by_reviewed_hint"] = bool(
                 force_container_probe and not report["pe"]["containerized"]
             )
+            inno_assessment = assess_inno_candidate(
+                static_data,
+                archive_types=report["sevenzip"].get("archive_types", ()),
+                packer_markers=report["pe"].get("packer_markers", ()),
+            )
+            if inno_assessment.status != "not_signaled":
+                report["inno_candidate_assessment"] = inno_candidate_public(
+                    inno_assessment
+                )
+            if inno_assessment.candidate and not inno_attempted:
+                inno_candidate = True
+                if innounp:
+                    inno_attempted = True
+                    report["inno"], inno_recovered = inno_static_extract(
+                        static_data,
+                        innounp,
+                        name,
+                        inno_password=inno_password,
+                        max_members=max_archive_members,
+                        max_member_size=max_archive_member_size,
+                        max_total_size=max_archive_total_size,
+                    )
+                    retained_digests = {
+                        sha256_bytes(artifact_data)
+                        for _artifact_kind, artifact_data in artifacts
+                    }
+                    for artifact in inno_recovered:
+                        digest = sha256_bytes(artifact[1])
+                        if digest in retained_digests:
+                            continue
+                        retained_digests.add(digest)
+                        artifacts.append(artifact)
+                    inno_handled = bool(report["inno"].get("inventory_complete"))
+                else:
+                    existing_inno = report.get("inno")
+                    if not isinstance(existing_inno, dict):
+                        existing_inno = {
+                            "schema_version": 1,
+                            "status": "tool_not_configured",
+                            "candidate": True,
+                            "tool": {"configured": False, "available": False},
+                            "inventory_complete": False,
+                            "extraction_complete": False,
+                            "executed": False,
+                            "sample_executed": False,
+                            "network_contacted": False,
+                            "terminal_promotion_eligible": False,
+                            "route_only_reasons": [],
+                        }
+                        report["inno"] = existing_inno
+                    route_reasons = existing_inno.get("route_only_reasons")
+                    if not isinstance(route_reasons, list):
+                        route_reasons = []
+                        existing_inno["route_only_reasons"] = route_reasons
+                    for reason in (
+                        "inno_structure_confirmed_parser_not_configured",
+                        "terminal_family_and_config_require_downstream_validation",
+                    ):
+                        if reason not in route_reasons:
+                            route_reasons.append(reason)
             if (
                 report["pe"]["containerized"]
-                and report["sevenzip"].get("status") == "not_archive_container"
+                and not inno_handled
+                and report["sevenzip"].get("status")
+                in {
+                    "not_archive_container",
+                    "not_nsis_archive",
+                }
             ):
                 report["unpack_status"] = "container_parser_unavailable"
-        elif report["pe"]["containerized"]:
-            report["unpack_status"] = "container_extractor_unavailable"
+        elif report["pe"]["containerized"] and not inno_handled:
+            report["unpack_status"] = (
+                "container_parser_unavailable"
+                if inno_candidate and innounp
+                else "container_extractor_unavailable"
+            )
     elif kind == "macho":
         report["macho"] = macho_summary(data)
         report["macho_slices"], recovered = recover_macho_slices(data)
@@ -4329,8 +5845,11 @@ def unpack_bytes(
                 return report, []
             if "size_blocked" in blocked:
                 report["unpack_status"] = "bounded_limit_with_partial_recovery"
-        except (ValueError, zipfile.BadZipFile) as exc:
-            report["zip_error"] = str(exc)
+        except ValueError:
+            report["zip_error"] = "zip_validation_failed"
+            report["unpack_status"] = "bounded_limit"
+        except zipfile.BadZipFile:
+            report["zip_error"] = "invalid_zip_structure"
             report["unpack_status"] = "bounded_limit"
     elif kind in {"7z", "apple-disk-image", "rar"} and sevenzip:
         report["sevenzip"], recovered = sevenzip_extract(
@@ -4460,7 +5979,25 @@ def unpack_bytes(
                 artifacts.append(("onyx-qt-shellcode", onyx_result.payload))
         report["donut"], recovered = recover_donut_payloads(static_data)
         artifacts.extend(recovered)
-    whole_file_embedded = [] if iso9660_candidate else carve_embedded_pes(static_data)
+    if iso9660_candidate:
+        whole_file_embedded = []
+    elif kind == "pe":
+        # pe_summaryはoverlayを既に全域走査し、resource directoryも個別に
+        # 復元している。ここで再びPE全体を走査すると、大規模fanoutでは
+        # 同じchild bytesを二重にmaterializeしてmemoryだけを消費する。
+        pe_report = report.get("pe")
+        overlay_size = (
+            int(pe_report.get("overlay_size", 0)) if isinstance(pe_report, dict) else 0
+        )
+        image_extent = max(0, len(static_data) - overlay_size)
+        whole_file_embedded = carve_embedded_pes(static_data[:image_extent])
+        image_scan_report = getattr(whole_file_embedded, "scan_report", None)
+        if isinstance(image_scan_report, dict):
+            image_scan_report["candidate_scope"] = (
+                "pe_image_without_already_scanned_overlay"
+            )
+    else:
+        whole_file_embedded = carve_embedded_pes(static_data)
     artifacts.extend(whole_file_embedded)
     if iso9660_candidate:
         report["embedded_pe_scan"] = {
@@ -4519,25 +6056,80 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--artifact-zip", type=Path)
     parser.add_argument("--upx", type=Path)
     parser.add_argument("--sevenzip", type=Path)
+    parser.add_argument(
+        "--innounp",
+        type=Path,
+        help="Inno Setupを実行せず一覧化・選択抽出するinnounpの絶対path",
+    )
+    parser.add_argument(
+        "--inno-password-stdin",
+        action="store_true",
+        help="互換Inno credentialを有界stdinから読みます（自動解除は未対応）。",
+    )
     parser.add_argument("--diec", type=Path)
     parser.add_argument("--force-container-probe", action="store_true")
-    parser.add_argument("--archive-password", default="")
+    parser.add_argument(
+        "--archive-password-stdin",
+        action="store_true",
+        help="archive credentialを有界stdinから読みます（automation推奨）。",
+    )
     return parser
+
+
+def _resolve_standalone_stdin_credential(args: argparse.Namespace) -> None:
+    """standalone CLIのcredentialをargvへ載せず有界stdinから解決する。"""
+
+    args.archive_password = ""
+    args.inno_password = ""
+    selected = [
+        ("archive_password", args.archive_password_stdin),
+        ("inno_password", args.inno_password_stdin),
+    ]
+    selected = [name for name, enabled in selected if enabled]
+    if not selected:
+        return
+    if len(selected) != 1:
+        raise ValueError("stdin credential optionは一度に1種類だけ指定できます")
+    name = selected[0]
+    raw = sys.stdin.buffer.read(4097)
+    if not raw or len(raw) > 4096:
+        raise ValueError("stdin credential sizeが不正です")
+    raw = raw.removesuffix(b"\n").removesuffix(b"\r")
+    if b"\x00" in raw or b"\r" in raw or b"\n" in raw:
+        raise ValueError("stdin credential形式が不正です")
+    try:
+        setattr(args, name, raw.decode("utf-8"))
+    except UnicodeDecodeError as exc:
+        raise ValueError("stdin credential encodingが不正です") from exc
 
 
 def main(argv: list[str] | None = None) -> int:
     """生アーティファクト1件を解析し、必要に応じて復元層をアーカイブする。"""
-    args = build_parser().parse_args(argv)
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    raw_options = ("--archive-password", "--inno-password")
+    if any(
+        value == option or value.startswith(f"{option}=")
+        for value in arguments
+        for option in raw_options
+    ):
+        return 2
+    args = build_parser().parse_args(arguments)
+    try:
+        _resolve_standalone_stdin_credential(args)
+    except (OSError, ValueError):
+        return 2
     if args.input.resolve() == args.output.resolve():
         raise ValueError("input and output paths must differ")
     report, artifacts = unpack_bytes(
         args.input.read_bytes(),
         args.input.name,
-        args.upx,
-        args.sevenzip,
-        args.diec,
-        args.force_container_probe,
-        args.archive_password,
+        upx=args.upx,
+        sevenzip=args.sevenzip,
+        diec=args.diec,
+        force_container_probe=args.force_container_probe,
+        archive_password=args.archive_password,
+        innounp=args.innounp,
+        inno_password=args.inno_password,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

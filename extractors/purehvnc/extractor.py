@@ -7,12 +7,14 @@ import gzip
 import ipaddress
 import re
 from collections import defaultdict
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 import dnfile
 import pefile
 
 from extractors.common import build_result, extract_strings, sha256_bytes
+from extractors.managed_pe import has_clr_metadata
 
 
 class _ManagedMetadataError(ValueError):
@@ -67,9 +69,11 @@ def parse_protobuf(data: bytes) -> dict[int, list[Any]]:
 
 def iter_dotnet_user_strings(data: bytes) -> Iterator[str]:
     """有効な#US heapがある.NET PEだけから範囲内の文字列を返す。"""
+    if not has_clr_metadata(data):
+        return
     try:
         pe = dnfile.dnPE(data=data)
-    except Exception:
+    except Exception:  # noqa: BLE001 - 任意の壊れたmanaged metadataを検出器境界で拒否する
         return
     try:
         heap = pe.net.user_strings
@@ -142,7 +146,7 @@ def certificate_metadata(value: str) -> dict[str, Any]:
             "not_before": cert.not_valid_before_utc.isoformat(),
             "not_after": cert.not_valid_after_utc.isoformat(),
         }
-    except Exception as error:
+    except Exception as error:  # noqa: BLE001 - 証明書parser境界をfail-closedにする
         return {"parse_error": type(error).__name__}
 
 

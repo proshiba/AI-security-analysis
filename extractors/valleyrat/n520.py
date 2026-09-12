@@ -21,6 +21,7 @@ from Cryptodome.Cipher import AES
 from dncil.cil.body.reader import read_method_body_from_bytes
 
 from extractors.common import endpoint_candidates, url_candidates
+from extractors.managed_pe import has_clr_metadata
 from extractors.valleyrat.nvml_dat import (
     normalize_host,
     parse_endpoint,
@@ -243,8 +244,8 @@ def _constant_i4(instruction: object) -> int | None:
 def _open_managed_image(data: bytes) -> dnfile.dnPE:
     if len(data) > MAXIMUM_INPUT_SIZE:
         raise N520ConfigError("入力が64 MiB上限を超えています")
-    if not data.startswith(b"MZ"):
-        raise N520ConfigError("入力はPEではありません")
+    if not has_clr_metadata(data):
+        raise N520ConfigError("有効なPE／CLR metadataがありません")
     try:
         image = dnfile.dnPE(data=data)
     except Exception as exc:
@@ -398,8 +399,10 @@ def _int32_to_byte_conversion_validated(
 def _recover_key(
     image: dnfile.dnPE,
     data: bytes,
+    *,
+    method_bodies: dict[int, list[object]] | None = None,
 ) -> tuple[bytes, dict[str, object]]:
-    bodies = _method_bodies(image, data)
+    bodies = method_bodies if method_bodies is not None else _method_bodies(image, data)
     method_tokens = _key_initializer_method_tokens(image, bodies)
     if len(method_tokens) != 1:
         raise N520ConfigError("key initializer列を持つmethodが一意ではありません")
@@ -832,10 +835,15 @@ def _validated_base64(value: str) -> bool:
     return 32 <= len(decoded) <= MAXIMUM_DECODED_CANDIDATE_SIZE
 
 
-def _base64_values(image: dnfile.dnPE, data: bytes) -> list[str]:
+def _base64_values(
+    image: dnfile.dnPE,
+    data: bytes,
+    *,
+    method_bodies: dict[int, list[object]] | None = None,
+) -> list[str]:
     """cloud設定経路へ一意に結び付く暗号文だけを返す。"""
 
-    bodies = _method_bodies(image, data)
+    bodies = method_bodies if method_bodies is not None else _method_bodies(image, data)
     key_tokens = _key_initializer_method_tokens(image, bodies)
     decrypt_tokens = _decrypt_method_tokens(image, bodies, key_tokens)
     reader_tokens = _cloud_reader_method_tokens(image, bodies, decrypt_tokens)
@@ -995,8 +1003,9 @@ def recover_config(data: bytes) -> N520ConfigRecovery:
     evidence = _structural_evidence_from_image(image)
     if evidence["matched"] is not True:
         raise N520ConfigError("N520の独立したmanaged構造が一致しません")
-    key, initializer = _recover_key(image, data)
-    candidates = _base64_values(image, data)
+    method_bodies = _method_bodies(image, data)
+    key, initializer = _recover_key(image, data, method_bodies=method_bodies)
+    candidates = _base64_values(image, data, method_bodies=method_bodies)
     if not candidates:
         raise N520ConfigError("N520 AES設定候補がありません")
     decrypted: dict[str, str] = {}
@@ -1082,8 +1091,8 @@ __all__ = [
     "MAXIMUM_INPUT_SIZE",
     "N520ConfigError",
     "N520ConfigRecovery",
-    "public_recovery_summary",
     "probe_config",
+    "public_recovery_summary",
     "recover_config",
     "structural_evidence",
 ]

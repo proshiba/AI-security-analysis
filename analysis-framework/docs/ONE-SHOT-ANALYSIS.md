@@ -10,7 +10,7 @@ python .\analysis-framework\common\analyze_sample.py `
   --output C:\malware-lab\analysis-output
 ```
 
-UPX、7-Zip、Detect It Easy CLIは自動探索せず、必要な場合だけ実行ファイルを明示します。
+UPX、7-Zip、Detect It Easy CLI、innounpは自動探索せず、必要な場合だけ実行ファイルを明示します。
 
 ```powershell
 python .\analysis-framework\common\analyze_sample.py `
@@ -18,10 +18,11 @@ python .\analysis-framework\common\analyze_sample.py `
   --output C:\malware-lab\analysis-output `
   --sevenzip 'C:\Program Files\7-Zip\7z.exe' `
   --upx C:\malware-lab\tools\upx.exe `
+  --innounp C:\malware-lab\tools\innounp.exe `
   --diec C:\malware-lab\tools\diec.exe
 ```
 
-`--sevenzip` は7z、RAR、CAB、DMGおよびコンテナー候補のPE、`--upx` はUPX圧縮層、`--diec` はPE／Mach-Oの識別補助に使用します。レビュー済みの手掛かりがあるPEを7-Zipで追加検査するときだけ `--force-container-probe` も指定します。指定した実行ファイルの同一性は解析契約へ含めます。
+`--sevenzip` は7z、RAR、CAB、DMGおよびコンテナー候補のPE、`--upx` はUPX圧縮層、`--innounp` はInno Setupの静的一覧化・選択展開、`--diec` はPE／Mach-Oの識別補助に使用します。レビュー済みの手掛かりがあるPEを7-Zipで追加検査するときだけ `--force-container-probe` も指定します。指定した実行ファイルの同一性は解析契約へ含めます。
 
 既存のPowerShell入口も、追加オプションがない場合は同じ処理へ委譲します。
 
@@ -198,7 +199,7 @@ python .\analysis-framework\common\analyze_sample.py `
 - `case_state.resumable` が `true` で、`complete`または`assessment_only_complete`である。
 - `status`、`complete`、`resumable`、`blockers`、実行モード、選択family、handler成功状態が相互に矛盾しない。
 - 内包検体SHA-256に加え、入力名、入力種別、外装SHA-256、メンバー名が現在の入力と一致する。
-- `analysis_contract` が現在の解析コード、依存版、レジストリ、ルール、カタログ、外部ツールの同一性、パスワードのSHA-256指紋を含むCLI設定から計算した指紋と完全一致する。パスワード平文は保存しない。
+- `analysis_contract` が現在の解析コード、依存版、レジストリ、ルール、カタログ、外部ツールの同一性、credential設定有無を含むCLI設定から計算した指紋と完全一致する。credentialの値や値から作ったfingerprintは保存しない。credentialを使う実行は、安全な再照合材料を永続化しないためresume対象にしない。
 - `report_semantic_sha256` がreport全体と一致する。
 - 必須成果物、knowledge成果物、handler結果の集合が `artifact_sha256` と完全一致し、各内容ハッシュが一致する。
 - handler／knowledge pathが正規化済み相対pathで、case境界内の通常ファイルだけを指す。symbolic link、Windows junction、その他のreparse pointは途中componentを含めて拒否する。
@@ -228,7 +229,19 @@ python .\analysis-framework\common\analyze_sample.py `
 
 アーカイブmember名、member数、個別サイズ、総展開量、圧縮率を検証し、path traversalとzip bomb候補を拒否します。一括解析の残り層数・個別サイズ・総復元量の上限は、内側ZIPと7-Zip展開にも伝播します。
 
-`--password` はMalwareBazaar受け入れ用外装だけでなく、再帰処理中に見つかった標準ZIPとAES ZIPにも使用します。AES ZIPの復号には `pyzipper` が必要です。復号失敗、暗号方式未対応、上限到達はその層を `partial` とし、別層の成功で隠しません。
+MalwareBazaarの標準credential `infected` は内部既定値であり、CLIへ値を書く必要はありません。異なるarchive credentialを使う場合は、値をprocessのargvへ残さず `--password-stdin` で有界stdinから渡します。
+
+```powershell
+Get-Content -LiteralPath C:\malware-lab\secrets\archive-password.txt -Raw |
+  python .\analysis-framework\common\analyze_sample.py `
+    --input C:\malware-lab\incoming\sample.zip `
+    --output C:\malware-lab\analysis-output `
+    --password-stdin
+```
+
+値付きの`--password`、`--inno-password`、standalone unpackerの`--archive-password`は受理しません。credentialはargv、環境変数、作業directory名、request file、公開解析契約へ保存しません。`--password-stdin`と`--inno-password-stdin`は同時指定できません。
+
+標準ZIPとAES ZIPのメモリ内復号には、このarchive credentialを使用します。AES ZIPの復号には`pyzipper`が必要です。一方、外部7-Zip／RAR／innounpへcredentialをargvで渡すことはありません。暗号化された7z／RAR／Inno payloadは、安全な非argv transportを実装するまで`credential_transport_unsupported`または`encrypted_payload_blocked`として`partial`に維持します。復号失敗、暗号方式未対応、上限到達を別層の成功で隠しません。
 
 ## 旧ValleyRATワークフロー
 

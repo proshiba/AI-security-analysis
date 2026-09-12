@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""固定レイアウトのcaseを、単調追加だけ許可して全件catalogへ同期する。"""
+"""固定レイアウトのcaseを、安全な明示変更だけ許可して全件catalogへ同期する。"""
 
 from __future__ import annotations
 
 import argparse
 import json
 import os
-from pathlib import Path
+import re
+import sys
 import tempfile
+from collections.abc import Iterable
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from result_layout import LayoutPlanError, build_layout_plan
@@ -17,9 +21,51 @@ class CatalogSyncError(ValueError):
     """既存catalogの破壊的変更が必要な場合に送出する。"""
 
 
-def _load_catalog(path: Path) -> dict[str, Any]:
+_SHA256_RE = re.compile(r"[0-9a-f]{64}")
+
+
+@dataclass(frozen=True)
+class _CatalogSyncPlan:
+    """検証済みcatalog差分をwriteまで不変のまま保持する。"""
+
+    root: Path
+    path: Path
+    existing: dict[str, Any]
+    desired: dict[str, Any]
+    additions: tuple[str, ...]
+    removals: frozenset[str]
+
+
+def normalize_approved_case_removals(values: Iterable[str]) -> frozenset[str]:
+    """明示承認された削除対象を正規化し、曖昧な入力を拒否する。"""
+
+    normalized: list[str] = []
+    for raw in values:
+        digest = raw.strip().lower()
+        if not _SHA256_RE.fullmatch(digest):
+            raise CatalogSyncError("approved case removal must be one lowercase SHA-256")
+        normalized.append(digest)
+    if len(normalized) != len(set(normalized)):
+        raise CatalogSyncError("approved case removal contains a duplicate SHA-256")
+    return frozenset(normalized)
+
+
+def read_approved_case_removals_from_stdin() -> frozenset[str]:
+    """秘密性のあるcase識別子をargvへ残さずstdinから受け取る。"""
+
+    approved = normalize_approved_case_removals(sys.stdin)
+    if not approved:
+        raise CatalogSyncError("approved case removal stdin is empty")
+    return approved
+
+
+def _load_catalog(path: Path, *, allow_missing: bool = False) -> dict[str, Any]:
     if not path.exists():
-        return {"schema_version": 1, "cases": {}}
+        if allow_missing:
+            return {"schema_version": 1, "cases": {}}
+        raise CatalogSyncError(
+            "catalog is missing; use --bootstrap-missing-catalog with --write for first creation"
+        )
     value = json.loads(path.read_text(encoding="utf-8-sig"))
     if not isinstance(value, dict) or not isinstance(value.get("cases"), dict):
         raise CatalogSyncError("catalog must be an object with a cases mapping")
@@ -30,17 +76,31 @@ def _load_catalog(path: Path) -> dict[str, Any]:
 
 
 def validate_monotonic(
-    existing: dict[str, Any], desired: dict[str, Any]
+    existing: dict[str, Any],
+    desired: dict[str, Any],
+    *,
+    approved_case_removals: Iterable[str] = (),
 ) -> tuple[str, ...]:
-    """既存entryが消失・変更しないことを検証し、新規SHA-256を返す。"""
+    """既存entryの変更と未承認削除を拒否し、新規SHA-256を返す。"""
 
     old_cases = existing.get("cases")
     new_cases = desired.get("cases")
     if not isinstance(old_cases, dict) or not isinstance(new_cases, dict):
         raise CatalogSyncError("catalog cases must be mappings")
+    approved = normalize_approved_case_removals(approved_case_removals)
+    removed = set(old_cases) - set(new_cases)
+    unexpected = removed - approved
+    if unexpected:
+        digest = min(unexpected)
+        raise CatalogSyncError(f"existing case would disappear: {digest}")
+    unused = approved - removed
+    if unused:
+        raise CatalogSyncError(
+            "approved case removal does not exactly match disappearing catalog cases"
+        )
     for digest, entry in old_cases.items():
         if digest not in new_cases:
-            raise CatalogSyncError(f"existing case would disappear: {digest}")
+            continue
         replacement = new_cases[digest]
         if replacement != entry and not (
             _is_safe_version_relocation(digest, entry, replacement)
@@ -192,50 +252,115 @@ def _atomic_write(path: Path, value: dict[str, Any]) -> None:
     content = (
         json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     ).encode("utf-8")
-    handle = tempfile.NamedTemporaryFile(
-        prefix=".catalog-", suffix=".tmp", dir=path.parent, delete=False
-    )
-    temporary = Path(handle.name)
+    temporary: Path | None = None
     try:
-        with handle:
+        with tempfile.NamedTemporaryFile(
+            prefix=".catalog-", suffix=".tmp", dir=path.parent, delete=False
+        ) as handle:
+            temporary = Path(handle.name)
             handle.write(content)
             handle.flush()
             os.fsync(handle.fileno())
+        if temporary is None:
+            raise RuntimeError("catalog一時fileを作成できませんでした")
         os.replace(temporary, path)
     finally:
-        if temporary.exists():
+        if temporary is not None and temporary.exists():
             temporary.unlink()
 
 
-def sync_catalog(
-    repository: Path, *, write: bool = False, plan: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    """レイアウト計画からcatalogを再構成し、単調追加だけを任意で反映する。
-
-    `plan` の意味は sync_case_identity_metadata と同じ。
-    """
+def _prepare_catalog_sync(
+    repository: Path,
+    *,
+    plan: dict[str, Any] | None = None,
+    approved_case_removals: Iterable[str] = (),
+    bootstrap_missing_catalog: bool = False,
+) -> _CatalogSyncPlan:
+    """catalog差分と明示承認を副作用なしで検証する。"""
 
     root = repository.resolve()
     plan = build_layout_plan(root) if plan is None else plan
     errors = plan.get("errors") or []
     if errors:
         raise LayoutPlanError(f"layout preflight failed: {errors[0]}")
+    approved = normalize_approved_case_removals(approved_case_removals)
+    if bootstrap_missing_catalog and approved:
+        raise CatalogSyncError(
+            "catalog bootstrap cannot be combined with approved case removals"
+        )
     path = root / plan["catalog"]["path"]
-    existing = _load_catalog(path)
+    catalog_exists = path.exists()
+    if bootstrap_missing_catalog and catalog_exists:
+        raise CatalogSyncError("catalog bootstrap approval is unused because catalog already exists")
+    existing = _load_catalog(path, allow_missing=bootstrap_missing_catalog)
     desired = plan["catalog"]["document"]
-    additions = validate_monotonic(existing, desired)
-    changed = desired != existing
+    additions = validate_monotonic(
+        existing,
+        desired,
+        approved_case_removals=approved,
+    )
+    removals = frozenset(set(existing["cases"]) - set(desired["cases"]))
+    return _CatalogSyncPlan(
+        root=root,
+        path=path,
+        existing=existing,
+        desired=desired,
+        additions=additions,
+        removals=removals,
+    )
+
+
+def preflight_catalog_sync(
+    repository: Path,
+    *,
+    plan: dict[str, Any] | None = None,
+    approved_case_removals: Iterable[str] = (),
+    bootstrap_missing_catalog: bool = False,
+) -> None:
+    """refreshの全write前にcatalog変更の明示承認を検証する。"""
+
+    _prepare_catalog_sync(
+        repository,
+        plan=plan,
+        approved_case_removals=approved_case_removals,
+        bootstrap_missing_catalog=bootstrap_missing_catalog,
+    )
+
+
+def sync_catalog(
+    repository: Path,
+    *,
+    write: bool = False,
+    plan: dict[str, Any] | None = None,
+    approved_case_removals: Iterable[str] = (),
+    bootstrap_missing_catalog: bool = False,
+) -> dict[str, Any]:
+    """レイアウト計画からcatalogを再構成し、安全な差分だけを任意で反映する。
+
+    `plan` の意味は sync_case_identity_metadata と同じ。
+    """
+
+    if bootstrap_missing_catalog and not write:
+        raise CatalogSyncError("catalog bootstrap requires write mode")
+    prepared = _prepare_catalog_sync(
+        repository,
+        plan=plan,
+        approved_case_removals=approved_case_removals,
+        bootstrap_missing_catalog=bootstrap_missing_catalog,
+    )
+    changed = bootstrap_missing_catalog or prepared.desired != prepared.existing
     if write and changed:
-        _atomic_write(path, desired)
+        _atomic_write(prepared.path, prepared.desired)
     return {
-        "catalog": path.relative_to(root).as_posix(),
-        "existing_cases": len(existing["cases"]),
-        "desired_cases": len(desired["cases"]),
-        "added_cases": list(additions),
+        "catalog": prepared.path.relative_to(prepared.root).as_posix(),
+        "existing_cases": len(prepared.existing["cases"]),
+        "desired_cases": len(prepared.desired["cases"]),
+        "added_cases": list(prepared.additions),
+        "removed_case_count": len(prepared.removals),
         "updated_cases": sorted(
             digest
-            for digest in set(existing["cases"]) & set(desired["cases"])
-            if existing["cases"][digest] != desired["cases"][digest]
+            for digest in set(prepared.existing["cases"]) & set(prepared.desired["cases"])
+            if prepared.existing["cases"][digest] != prepared.desired["cases"][digest]
         ),
         "write_performed": bool(write and changed),
     }
@@ -249,7 +374,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--write",
         action="store_true",
-        help="単調追加の検証に成功した場合だけcatalogを置換する",
+        help="安全な差分の検証に成功した場合だけcatalogを置換する",
+    )
+    parser.add_argument(
+        "--allow-removed-case-stdin",
+        action="store_true",
+        help="意図した削除対象のSHA-256を1行1件でstdinから受け取る",
+    )
+    parser.add_argument(
+        "--bootstrap-missing-catalog",
+        action="store_true",
+        help="catalogが存在しない初回作成だけを明示承認する",
     )
     return parser
 
@@ -258,7 +393,25 @@ def main(argv: list[str] | None = None) -> int:
     """CLI引数を処理し、同期計画または書込み結果を出力する。"""
 
     args = build_parser().parse_args(argv)
-    result = sync_catalog(args.repository, write=args.write)
+    if args.bootstrap_missing_catalog and args.allow_removed_case_stdin:
+        raise CatalogSyncError(
+            "--bootstrap-missing-catalog cannot be combined with --allow-removed-case-stdin"
+        )
+    if args.bootstrap_missing_catalog and not args.write:
+        raise CatalogSyncError("--bootstrap-missing-catalog requires --write")
+    if args.allow_removed_case_stdin and not args.write:
+        raise CatalogSyncError("--allow-removed-case-stdin requires --write")
+    approved = (
+        read_approved_case_removals_from_stdin()
+        if args.allow_removed_case_stdin
+        else frozenset()
+    )
+    result = sync_catalog(
+        args.repository,
+        write=args.write,
+        approved_case_removals=approved,
+        bootstrap_missing_catalog=args.bootstrap_missing_catalog,
+    )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

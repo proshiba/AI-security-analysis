@@ -16,6 +16,8 @@ from capstone.x86 import (
     X86_OP_IMM,
     X86_OP_MEM,
     X86_OP_REG,
+    X86_REG_EBP,
+    X86_REG_ESP,
     X86_REG_INVALID,
     X86_REG_RIP,
 )
@@ -36,6 +38,10 @@ from extractors.valleyrat.ca01_sideload import (
 )
 from extractors.valleyrat.ca01_sideload import (
     validate_recovery_contract as validate_ca01_recovery_contract,
+)
+from extractors.valleyrat.export_funnel import (
+    collect_external_code_roots,
+    probe_export_funnel_route,
 )
 from extractors.valleyrat.n520 import (
     N520ConfigError,
@@ -60,8 +66,20 @@ from extractors.valleyrat.nvml_dat import (
     render_authority,
     render_endpoint,
 )
+from extractors.valleyrat.native_loader_lineage import (
+    analyze_native_loader_lineage,
+)
 from extractors.valleyrat.run_dll_native_core import (
     probe_run_dll_native_core_config,
+)
+from extractors.valleyrat.silverfox_loader_lineage import (
+    analyze_silverfox_loader_lineage,
+)
+from extractors.valleyrat.wide_pipe_config import (
+    public_recovery_summary as public_wide_pipe_recovery_summary,
+)
+from extractors.valleyrat.wide_pipe_config import (
+    recover_config as recover_wide_pipe_config,
 )
 from extractors.valleyrat.x86_codemark_resource import (
     analyze_raw_stage as analyze_x86_codemark_stage,
@@ -74,6 +92,10 @@ from extractors.valleyrat.x86_codemark_resource import (
 )
 from extractors.valleyrat.x86_codemark_resource import (
     recover_from_pe as recover_x86_codemark_resource,
+)
+from extractors.valleyrat.zip_sideload_shellcode import (
+    public_raw_shellcode_summary,
+    recover_raw_vvas_shellcode,
 )
 from unpackers.bin101_nibble_rc4 import (
     looks_like_bin101_profile,
@@ -99,13 +121,23 @@ MAXIMUM_STRING_LENGTH = 8_192
 MAXIMUM_STRING_CHARACTERS = 4 * 1024 * 1024
 MAXIMUM_VVAS_XOR_INPUT_SIZE = 8 * 1024 * 1024
 MAXIMUM_VVAS_XOR_CANDIDATES = 4
-MAXIMUM_VVAS_PROBE_INPUT_SIZE = 16 * 1024 * 1024
+# 大容量の低entropy mapped data sectionも、全体文字列列挙を行わずに
+# 走査できるよう、PE probeは共有extractor上限まで受け付ける。実際に
+# marker走査するbyte数は、下記の独立したsection/total上限でさらに絞る。
+MAXIMUM_VVAS_PROBE_INPUT_SIZE = MAXIMUM_INPUT_SIZE
+MAXIMUM_VVAS_PE_GLOBAL_STRING_SCAN_INPUT_SIZE = 16 * 1024 * 1024
 MAXIMUM_PE_IMPORT_DESCRIPTORS = 1_024
 MAXIMUM_PE_IMPORTS = 65_536
 MAXIMUM_PE_IMPORT_NAME_LENGTH = 128
 MAXIMUM_VVAS_PE_SECTIONS = 96
 MAXIMUM_VVAS_EXECUTABLE_BYTES = 8 * 1024 * 1024
 MAXIMUM_VVAS_CONFIG_LOCATIONS = 32
+MAXIMUM_VVAS_MAPPED_SCAN_SECTIONS = 96
+MAXIMUM_VVAS_MAPPED_SCAN_SECTION_BYTES = 40 * 1024 * 1024
+MAXIMUM_VVAS_MAPPED_SCAN_TOTAL_BYTES = 48 * 1024 * 1024
+MAXIMUM_VVAS_MAPPED_SCAN_CHUNK_BYTES = 256 * 1024
+MAXIMUM_VVAS_MAPPED_SCAN_HITS = 64
+MAXIMUM_VVAS_MAPPED_CANDIDATE_CHARACTERS = 8_192
 MAXIMUM_VVAS_REACHABLE_FUNCTIONS = 2_048
 MAXIMUM_VVAS_FUNCTION_INSTRUCTIONS = 16_384
 MAXIMUM_VVAS_REACHABLE_INSTRUCTIONS = 200_000
@@ -126,9 +158,14 @@ MINIMUM_CODEMARK_RAW_STAGE_SIZE = 512
 MAXIMUM_CODEMARK_RAW_STAGE_SIZE = 4 * 1024 * 1024
 VVAS_MARKER = b"odaktomk"
 XOR_B1_KEY = 0xB1
+_XOR_B1_TRANSLATION = bytes(value ^ XOR_B1_KEY for value in range(256))
 
 _ASCII = re.compile(rb"[\x20-\x7e]{4,}")
 _WIDE = re.compile(rb"(?:[\x20-\x7e]\x00){4,}")
+_XOR_B1_WININET_MARKER = re.compile(
+    rb"(?:wininet\.dll|w\x00i\x00n\x00i\x00n\x00e\x00t\x00\.\x00d\x00l\x00l\x00)",
+    re.IGNORECASE,
+)
 _VVAS_FIELD = re.compile(r"(?:^|\|)([pot][123]):([^|]{0,255})(?=\||$)", re.IGNORECASE)
 _SENSITIVE_URL_PATH = re.compile(
     r"(?i)(?:^|/)(?:access[_-]?token|token|secret|password|passwd|"
@@ -154,6 +191,17 @@ class _VvasPeSection:
     resource: bool
 
 
+@dataclass(frozen=True)
+class _VvasMappedConfigCandidate:
+    """marker-first走査で完全に検証したmapped設定候補。"""
+
+    value: str
+    raw_start: int
+    raw_end: int
+    configuration_identity: str
+    encoding: str
+
+
 @dataclass
 class _VvasFunctionSummary:
     """1個のdirect-call function rootから得た非公開の到達性要約。"""
@@ -173,6 +221,7 @@ class _VvasFunctionSummary:
     api_calls: set[tuple[str, int]]
     api_call_sites: tuple[tuple[int, str, int], ...]
     cfg_successors: dict[int, tuple[int, ...]]
+    instructions: dict[int, object]
     return_sites: tuple[int, ...]
     config_reference_count: int
     repeated_direct_call_count: int
@@ -239,6 +288,24 @@ def _bounded_strings(data: bytes) -> tuple[list[str], dict[str, object]]:
             values.append(value)
             characters += len(value)
     return values, scan_evidence()
+
+
+def _vvas_string_scan_not_attempted(reason: str) -> dict[str, object]:
+    """PEの厳格なmarker-first経路で省略した全文字列走査を記録する。"""
+
+    return {
+        "status": "not_attempted",
+        "completed": False,
+        "skipped": True,
+        "skip_reason": reason,
+        "truncated": False,
+        "truncation_reasons": [],
+        "string_count": 0,
+        "character_count": 0,
+        "maximum_string_count": MAXIMUM_STRING_COUNT,
+        "maximum_string_length": MAXIMUM_STRING_LENGTH,
+        "maximum_string_characters": MAXIMUM_STRING_CHARACTERS,
+    }
 
 
 def _public_urls(strings: list[str]) -> list[str]:
@@ -328,7 +395,8 @@ def _parse_vvas_reversed_value(
     p と o がともに空で、対応する t が明示される場合だけ許容する。
     """
 
-    if len(value) > MAXIMUM_STRING_LENGTH or ":1p" not in value or ":1o" not in value:
+    folded = value.casefold()
+    if len(value) > MAXIMUM_STRING_LENGTH or ":1p" not in folded or ":1o" not in folded:
         return None
     fields: dict[str, str] = {}
     for match in _VVAS_FIELD.finditer(value[::-1]):
@@ -728,14 +796,374 @@ def _vvas_pe_sections(
     return sections, image_base, entrypoint
 
 
+def _vvas_mapped_candidate_window(
+    data: bytes,
+    section: _VvasPeSection,
+    marker_offset: int,
+    encoding: str,
+) -> tuple[str | None, int, int, bool]:
+    """markerを含む1文字列だけをsection境界内で有界に復元する。"""
+
+    if encoding == "ascii":
+        marker_size = 3
+        maximum_bytes = MAXIMUM_VVAS_MAPPED_CANDIDATE_CHARACTERS
+
+        def is_character(offset: int) -> bool:
+            return 0x20 <= data[offset] <= 0x7E
+
+        start = marker_offset
+        while start > section.raw_start and is_character(start - 1):
+            if marker_offset - start >= maximum_bytes:
+                return None, marker_offset, marker_offset + marker_size, True
+            start -= 1
+        end = marker_offset + marker_size
+        while end < section.raw_end and is_character(end):
+            if end - start >= maximum_bytes:
+                return None, start, end, True
+            end += 1
+        if end - start > maximum_bytes:
+            return None, start, end, True
+        try:
+            return data[start:end].decode("ascii", errors="strict"), start, end, False
+        except UnicodeError:
+            return None, start, end, False
+
+    if encoding != "utf-16le":
+        return None, marker_offset, marker_offset, False
+    marker_size = 6
+    maximum_bytes = MAXIMUM_VVAS_MAPPED_CANDIDATE_CHARACTERS * 2
+    start = marker_offset
+    while start - 2 >= section.raw_start:
+        if data[start - 2 : start] == b"\0\0":
+            break
+        if marker_offset - start >= maximum_bytes:
+            return None, marker_offset, marker_offset + marker_size, True
+        start -= 2
+    end = marker_offset + marker_size
+    while end + 2 <= section.raw_end:
+        if data[end : end + 2] == b"\0\0":
+            break
+        if end - start >= maximum_bytes:
+            return None, start, end, True
+        end += 2
+    if end - start > maximum_bytes:
+        return None, start, end, True
+    try:
+        return data[start:end].decode("utf-16le", errors="strict"), start, end, False
+    except UnicodeError:
+        return None, start, end, False
+
+
+def _vvas_mapped_config_candidates(
+    data: bytes,
+) -> tuple[tuple[_VvasMappedConfigCandidate, ...], dict[str, object]]:
+    """mapped PE sectionをmarker-firstで完全走査し、反転設定だけを返す。
+
+    全sectionを走査できない場合は、それ以前に得た候補をすべて破棄する。
+    raw文字列やendpointは公開evidenceへ含めない。
+    """
+
+    maximums = {
+        "maximum_input_size": MAXIMUM_VVAS_PROBE_INPUT_SIZE,
+        "maximum_section_count": MAXIMUM_VVAS_MAPPED_SCAN_SECTIONS,
+        "maximum_section_bytes": MAXIMUM_VVAS_MAPPED_SCAN_SECTION_BYTES,
+        "maximum_total_bytes": MAXIMUM_VVAS_MAPPED_SCAN_TOTAL_BYTES,
+        "maximum_chunk_bytes": MAXIMUM_VVAS_MAPPED_SCAN_CHUNK_BYTES,
+        "maximum_marker_hits": MAXIMUM_VVAS_MAPPED_SCAN_HITS,
+        "maximum_candidate_count": MAXIMUM_VVAS_CONFIG_LOCATIONS,
+        "maximum_candidate_characters": MAXIMUM_VVAS_MAPPED_CANDIDATE_CHARACTERS,
+    }
+
+    def evidence(
+        status: str,
+        *,
+        complete: bool,
+        section_count: int = 0,
+        total_bytes: int = 0,
+        scanned_bytes: int = 0,
+        marker_hit_count: int = 0,
+        candidate_count: int = 0,
+        unique_configuration_count: int = 0,
+        rejected_marker_hit_count: int = 0,
+        marker_scan_passes: int = 0,
+        truncation_reasons: tuple[str, ...] = (),
+    ) -> dict[str, object]:
+        return {
+            "status": status,
+            "completed": complete,
+            "candidate_set_complete": complete,
+            "truncated": bool(truncation_reasons),
+            "truncation_reasons": list(truncation_reasons),
+            "section_scope": "all_nonoverlapping_file_backed_mapped_sections",
+            "section_count": section_count,
+            "total_section_bytes": total_bytes,
+            "scanned_byte_count": scanned_bytes,
+            "marker_scan_passes": marker_scan_passes,
+            "marker_encoding_count": 2,
+            "marker_hit_count": marker_hit_count,
+            "rejected_marker_hit_count": rejected_marker_hit_count,
+            "candidate_count": candidate_count,
+            "unique_configuration_count": unique_configuration_count,
+            **maximums,
+            "raw_config_included": False,
+            "raw_network_values_included": False,
+        }
+
+    if not isinstance(data, bytes) or not data.startswith(b"MZ"):
+        return (), evidence("invalid_pe_input", complete=False)
+    if len(data) > MAXIMUM_VVAS_PROBE_INPUT_SIZE:
+        return (), evidence(
+            "input_size_limit_rejected",
+            complete=False,
+            truncation_reasons=("maximum_input_size",),
+        )
+    if any(
+        limit < 1
+        for limit in (
+            MAXIMUM_VVAS_MAPPED_SCAN_SECTIONS,
+            MAXIMUM_VVAS_MAPPED_SCAN_SECTION_BYTES,
+            MAXIMUM_VVAS_MAPPED_SCAN_TOTAL_BYTES,
+            MAXIMUM_VVAS_MAPPED_SCAN_CHUNK_BYTES,
+            MAXIMUM_VVAS_MAPPED_SCAN_HITS,
+            MAXIMUM_VVAS_CONFIG_LOCATIONS,
+            MAXIMUM_VVAS_MAPPED_CANDIDATE_CHARACTERS,
+        )
+    ):
+        return (), evidence(
+            "invalid_scan_limits",
+            complete=False,
+            truncation_reasons=("invalid_scan_limits",),
+        )
+    try:
+        # marker走査に必要なのはsection tableとresource directory範囲だけであり、
+        # import/resource tree全体の eager parseは不要。後段lineageは候補成立後に
+        # 別途fast_load=Falseで解析する。
+        image = pefile.PE(data=data, fast_load=True)
+    except (pefile.PEFormatError, ValueError, OverflowError):
+        return (), evidence("invalid_pe_structure", complete=False)
+    section_result = _vvas_pe_sections(image, data)
+    if section_result is None:
+        return (), evidence("invalid_pe_sections", complete=False)
+    sections, _image_base, _entrypoint = section_result
+    section_count = len(sections)
+    if section_count > MAXIMUM_VVAS_MAPPED_SCAN_SECTIONS:
+        return (), evidence(
+            "section_count_limit_rejected",
+            complete=False,
+            section_count=section_count,
+            truncation_reasons=("maximum_section_count",),
+        )
+    section_sizes = [section.raw_end - section.raw_start for section in sections]
+    total_bytes = sum(section_sizes)
+    if any(size > MAXIMUM_VVAS_MAPPED_SCAN_SECTION_BYTES for size in section_sizes):
+        return (), evidence(
+            "section_byte_limit_rejected",
+            complete=False,
+            section_count=section_count,
+            total_bytes=total_bytes,
+            truncation_reasons=("maximum_section_bytes",),
+        )
+    if total_bytes > MAXIMUM_VVAS_MAPPED_SCAN_TOTAL_BYTES:
+        return (), evidence(
+            "total_byte_limit_rejected",
+            complete=False,
+            section_count=section_count,
+            total_bytes=total_bytes,
+            truncation_reasons=("maximum_total_bytes",),
+        )
+
+    markers = (
+        (b":1p", "ascii"),
+        (b":1P", "ascii"),
+        (b":\x001\x00p\x00", "utf-16le"),
+        (b":\x001\x00P\x00", "utf-16le"),
+    )
+    carry_size = max(len(marker) for marker, _encoding in markers) - 1
+    hits: set[tuple[int, str, int]] = set()
+    scanned_bytes = 0
+    for section_index, section in enumerate(sections):
+        cursor = section.raw_start
+        carry = b""
+        while cursor < section.raw_end:
+            chunk_end = min(
+                cursor + MAXIMUM_VVAS_MAPPED_SCAN_CHUNK_BYTES,
+                section.raw_end,
+            )
+            chunk = carry + data[cursor:chunk_end]
+            chunk_base = cursor - len(carry)
+            for marker, encoding in markers:
+                search_from = 0
+                while True:
+                    relative = chunk.find(marker, search_from)
+                    if relative < 0:
+                        break
+                    offset = chunk_base + relative
+                    if (
+                        section.raw_start <= offset
+                        and offset + len(marker) <= section.raw_end
+                    ):
+                        hits.add((offset, encoding, section_index))
+                        if len(hits) > MAXIMUM_VVAS_MAPPED_SCAN_HITS:
+                            return (), evidence(
+                                "marker_hit_limit_rejected",
+                                complete=False,
+                                section_count=section_count,
+                                total_bytes=total_bytes,
+                                scanned_bytes=scanned_bytes + chunk_end - cursor,
+                                marker_hit_count=len(hits),
+                                marker_scan_passes=1,
+                                truncation_reasons=("maximum_marker_hits",),
+                            )
+                    search_from = relative + 1
+            scanned_bytes += chunk_end - cursor
+            carry = chunk[-carry_size:] if chunk_end < section.raw_end else b""
+            cursor = chunk_end
+
+    candidates: list[_VvasMappedConfigCandidate] = []
+    candidate_spans: set[tuple[int, int, str]] = set()
+    rejected_hits = 0
+    for marker_offset, encoding, section_index in sorted(hits):
+        value, raw_start, raw_end, window_limit = _vvas_mapped_candidate_window(
+            data,
+            sections[section_index],
+            marker_offset,
+            encoding,
+        )
+        if window_limit:
+            return (), evidence(
+                "candidate_window_limit_rejected",
+                complete=False,
+                section_count=section_count,
+                total_bytes=total_bytes,
+                scanned_bytes=scanned_bytes,
+                marker_hit_count=len(hits),
+                rejected_marker_hit_count=rejected_hits + 1,
+                marker_scan_passes=1,
+                truncation_reasons=("maximum_candidate_characters",),
+            )
+        if value is None:
+            rejected_hits += 1
+            continue
+        # mapped PEではNUL等で区切られた文字列全体が設定そのものであることを
+        # 要求する。printable prefix/suffixやsection端で切れた部分設定から、
+        # 内部のfield substringだけを採用しない。
+        if not value.startswith("|") or not value.endswith("|"):
+            rejected_hits += 1
+            continue
+        parsed = _parse_vvas_reversed_value(value)
+        if parsed is None:
+            rejected_hits += 1
+            continue
+        _endpoints, identity, _slot_evidence = parsed
+        identity_hash = _vvas_configuration_identity(identity)
+        span = (raw_start, raw_end, identity_hash)
+        if span in candidate_spans:
+            continue
+        candidate_spans.add(span)
+        candidates.append(
+            _VvasMappedConfigCandidate(
+                value=value,
+                raw_start=raw_start,
+                raw_end=raw_end,
+                configuration_identity=identity_hash,
+                encoding=encoding,
+            )
+        )
+        if len(candidates) > MAXIMUM_VVAS_CONFIG_LOCATIONS:
+            return (), evidence(
+                "candidate_count_limit_rejected",
+                complete=False,
+                section_count=section_count,
+                total_bytes=total_bytes,
+                scanned_bytes=scanned_bytes,
+                marker_hit_count=len(hits),
+                candidate_count=len(candidates),
+                rejected_marker_hit_count=rejected_hits,
+                marker_scan_passes=1,
+                truncation_reasons=("maximum_candidate_count",),
+            )
+
+    unique_configuration_count = len(
+        {candidate.configuration_identity for candidate in candidates}
+    )
+    return tuple(candidates), evidence(
+        "complete_candidates" if candidates else "complete_no_candidates",
+        complete=True,
+        section_count=section_count,
+        total_bytes=total_bytes,
+        scanned_bytes=scanned_bytes,
+        marker_hit_count=len(hits),
+        candidate_count=len(candidates),
+        unique_configuration_count=unique_configuration_count,
+        rejected_marker_hit_count=rejected_hits,
+        marker_scan_passes=1,
+    )
+
+
+def _decode_vvas_mapped_pe_config(
+    data: bytes,
+) -> tuple[
+    dict[str, str],
+    dict[str, object],
+    tuple[_VvasMappedConfigCandidate, ...],
+]:
+    """完全走査済みmapped候補だけを既存slot grammarへ渡す。"""
+
+    candidates, scan = _vvas_mapped_config_candidates(data)
+    if scan["candidate_set_complete"] is not True:
+        return (
+            {},
+            {
+                "status": "mapped_config_scan_incomplete_rejected",
+                "mapped_config_scan": scan,
+            },
+            (),
+        )
+    decoded, recovery = _decode_vvas_reversed_config(
+        [candidate.value for candidate in candidates]
+    )
+    recovery["mapped_config_scan"] = scan
+    return decoded, recovery, candidates
+
+
 def _vvas_config_locations(
     data: bytes,
     sections: list[_VvasPeSection],
     configuration_identity: str,
+    *,
+    allow_resource: bool = False,
+    mapped_candidates: tuple[_VvasMappedConfigCandidate, ...] | None = None,
 ) -> list[tuple[int, int]] | None:
-    """一意configと同じidentityを持つmapped非resource位置だけを返す。"""
+    """一意configと同じidentityを持つ許可済みmapped位置だけを返す。"""
 
     locations: set[tuple[int, int]] = set()
+    if mapped_candidates is not None:
+        for candidate in mapped_candidates:
+            if candidate.configuration_identity != configuration_identity:
+                continue
+            # 現在検証しているparserはUTF-16LEの16-bit反転loopである。
+            # ASCII候補を同じVAで参照していても、このlineageへ昇格しない。
+            if candidate.encoding != "utf-16le":
+                continue
+            containing = [
+                section
+                for section in sections
+                if section.raw_start <= candidate.raw_start
+                and candidate.raw_end <= section.raw_end
+            ]
+            if len(containing) != 1:
+                return None
+            section = containing[0]
+            if section.resource and not allow_resource:
+                continue
+            virtual_start = (
+                section.virtual_start + candidate.raw_start - section.raw_start
+            )
+            locations.add(
+                (virtual_start, virtual_start + candidate.raw_end - candidate.raw_start)
+            )
+        return sorted(locations)
+
     candidate_count = 0
     for pattern, encoding in ((_ASCII, "ascii"), (_WIDE, "utf-16le")):
         for match in pattern.finditer(data):
@@ -758,7 +1186,7 @@ def _vvas_config_locations(
             containing = [
                 section
                 for section in sections
-                if not section.resource
+                if (allow_resource or not section.resource)
                 and section.raw_start <= match.start()
                 and match.end() <= section.raw_end
             ]
@@ -1052,6 +1480,46 @@ def _vvas_utf16_reverse_loop(instructions: dict[int, object]) -> bool:
     )
 
 
+def _vvas_x86_push_arguments(
+    instructions: dict[int, object],
+    cfg_successors: dict[int, tuple[int, ...]],
+    callsite: int,
+) -> tuple[int | None, ...]:
+    """x86 call直前の6個のpushを安全な非stack命令越しに復元する。"""
+
+    ordered = sorted(instructions)
+    ending_at = {
+        address + int(instructions[address].size): address for address in ordered
+    }
+    if len(ending_at) != len(ordered):
+        return ()
+    current = callsite
+    pushed: list[int | None] = []
+    for _index in range(MAXIMUM_VVAS_CALLBACK_LOOKBACK_INSTRUCTIONS):
+        address = ending_at.get(current)
+        if address is None or callsite - address > 96:
+            break
+        instruction = instructions[address]
+        if current not in cfg_successors.get(address, ()):
+            break
+        operands = list(instruction.operands)
+        if instruction.mnemonic == "push" and len(operands) == 1:
+            pushed.append(_vvas_operand_address(instruction, operands[0], 4))
+            if len(pushed) == 6:
+                return tuple(pushed)
+        elif instruction.mnemonic in {"mov", "lea"}:
+            if (
+                operands
+                and operands[0].type == X86_OP_REG
+                and operands[0].reg == X86_REG_ESP
+            ):
+                break
+        else:
+            break
+        current = address
+    return ()
+
+
 def _vvas_function_summary(
     data: bytes,
     sections: list[_VvasPeSection],
@@ -1183,7 +1651,9 @@ def _vvas_function_summary(
         if instruction.mnemonic.startswith("j") or instruction.mnemonic.startswith(
             "loop"
         ):
-            previous = instructions.get(predecessor) if predecessor is not None else None
+            previous = (
+                instructions.get(predecessor) if predecessor is not None else None
+            )
             constant_target = _vvas_constant_zero_branch(instruction, previous)
             if (
                 direct_target is not None
@@ -1203,7 +1673,9 @@ def _vvas_function_summary(
     callback_sites: dict[int, int] = {}
     callback_call_sites: dict[int, set[int]] = {}
     create_thread_callsites = [
-        callsite for callsite, name, _descriptor_index in api_calls if name == "createthread"
+        callsite
+        for callsite, name, _descriptor_index in api_calls
+        if name == "createthread"
     ]
     if len(create_thread_callsites) > MAXIMUM_VVAS_CREATE_THREAD_CALLS_PER_FUNCTION:
         return None
@@ -1211,36 +1683,13 @@ def _vvas_function_summary(
     for previous_address, address in zip(ordered_addresses, ordered_addresses[1:]):
         if address < previous_address + int(instructions[previous_address].size):
             return None
-    instruction_ending_at = {
-        address + int(instructions[address].size): address for address in ordered_addresses
-    }
-    if len(instruction_ending_at) != len(ordered_addresses):
-        return None
     if pointer_size == 4:
         for callsite in create_thread_callsites:
-            current = callsite
-            pushed_values: list[int | None] = []
-            for _index in range(MAXIMUM_VVAS_CALLBACK_LOOKBACK_INSTRUCTIONS):
-                address = instruction_ending_at.get(current)
-                if address is None or callsite - address > 64:
-                    break
-                previous_instruction = instructions[address]
-                previous_operands = list(previous_instruction.operands)
-                if (
-                    previous_instruction.mnemonic != "push"
-                    or len(previous_operands) != 1
-                    or previous_operands[0].type != X86_OP_IMM
-                    or current not in cfg_successors.get(address, ())
-                ):
-                    break
-                pushed_values.append(
-                    _vvas_operand_address(
-                        previous_instruction, previous_operands[0], pointer_size
-                    )
-                )
-                current = address
-                if len(pushed_values) == 6:
-                    break
+            pushed_values = _vvas_x86_push_arguments(
+                instructions,
+                cfg_successors,
+                callsite,
+            )
             if len(pushed_values) != 6:
                 continue
             target = pushed_values[2]
@@ -1279,9 +1728,7 @@ def _vvas_function_summary(
             sites.update(reference_sites)
 
     filtered_successors = {
-        address: tuple(
-            target for target in targets if target in instructions
-        )
+        address: tuple(target for target in targets if target in instructions)
         for address, targets in cfg_successors.items()
     }
 
@@ -1292,8 +1739,7 @@ def _vvas_function_summary(
         direct_call_counts=dict(direct_call_counts),
         direct_call_first_sites=direct_call_first_sites,
         direct_call_sites={
-            target: tuple(sorted(sites))
-            for target, sites in direct_call_sites.items()
+            target: tuple(sorted(sites)) for target, sites in direct_call_sites.items()
         },
         callback_targets=callback_targets,
         callback_sites=callback_sites,
@@ -1308,11 +1754,11 @@ def _vvas_function_summary(
         },
         api_names={name for _address, name, _descriptor_index in api_calls},
         api_calls={
-            (name, descriptor_index)
-            for _address, name, descriptor_index in api_calls
+            (name, descriptor_index) for _address, name, descriptor_index in api_calls
         },
         api_call_sites=tuple(sorted(api_calls)),
         cfg_successors=filtered_successors,
+        instructions=instructions,
         return_sites=tuple(
             sorted(
                 address
@@ -1354,11 +1800,7 @@ def _vvas_network_api_mask(name: str) -> int:
     """Winsock API名を高確度化に必要な機能bitへ変換する。"""
 
     groups = _vvas_network_groups({name})
-    return sum(
-        bit
-        for group, bit in _VVAS_NETWORK_GROUP_BITS.items()
-        if groups[group]
-    )
+    return sum(bit for group, bit in _VVAS_NETWORK_GROUP_BITS.items() if groups[group])
 
 
 def _vvas_cfg_reaches(
@@ -1561,9 +2003,7 @@ def _vvas_network_chain_proof(
             path_cache[function_start] = recovered
         return recovered
 
-    pending: deque[tuple[int, int, bool, int]] = deque(
-        [(callback_start, 0, False, 1)]
-    )
+    pending: deque[tuple[int, int, bool, int]] = deque([(callback_start, 0, False, 1)])
     queued: set[tuple[int, int, bool]] = {(callback_start, 0, False)}
     seen: set[tuple[int, int, bool]] = set()
     while pending:
@@ -1610,9 +2050,7 @@ def _vvas_network_chain_proof(
                 return True
             if len(seen) + len(pending) >= MAXIMUM_VVAS_NETWORK_CHAIN_STATES:
                 return False
-            pending.append(
-                (target, combined_mask, next_used_vtable, chain_length + 1)
-            )
+            pending.append((target, combined_mask, next_used_vtable, chain_length + 1))
             queued.add(next_state)
             return True
 
@@ -1644,11 +2082,387 @@ def _vvas_network_chain_proof(
     return {"matched": False, "analysis_complete": True}
 
 
+def _vvas_parser_paths(
+    summaries: dict[int, _VvasFunctionSummary],
+) -> dict[int, tuple[set[int], set[int]]]:
+    """設定参照を内包する1段wrapperまで含めてparser lineageを返す。
+
+    config文字列の直接参照、UTF-16反転、3回以上のfield parser呼出しは、
+    同一functionまたはその直下callee群だけで揃う必要がある。単にcall graph
+    全体で観測したsignalを合算しない。
+    """
+
+    parser_paths: dict[int, tuple[set[int], set[int]]] = {}
+    for root in summaries.values():
+        component = [root]
+        if not root.callback_targets:
+            component.extend(
+                child
+                for target in root.direct_calls
+                if (child := summaries.get(target)) is not None
+                and child.config_reference_count > 0
+            )
+        if not any(item.config_reference_count > 0 for item in component):
+            continue
+        reverse_targets = {
+            target
+            for item in component
+            for target in item.direct_calls
+            if (target_summary := summaries.get(target)) is not None
+            and target_summary.utf16_reverse_loop
+        }
+        field_parser_targets = {
+            target
+            for item in component
+            for target, count in item.direct_call_counts.items()
+            if count >= 3
+            and target not in reverse_targets
+            and summaries.get(target) is not None
+        }
+        if reverse_targets and field_parser_targets:
+            parser_paths[root.start] = (reverse_targets, field_parser_targets)
+    nested = {
+        target
+        for root in parser_paths
+        for target in summaries[root].direct_calls
+        if target in parser_paths
+    }
+    return {
+        root: evidence for root, evidence in parser_paths.items() if root not in nested
+    }
+
+
+def _vvas_thread_wrapper_callback_parameter(
+    summaries: dict[int, _VvasFunctionSummary],
+    wrapper_start: int,
+) -> int | None:
+    """静的thread wrapperが保存・trampoline実行するcallback引数を返す。"""
+
+    wrapper = summaries.get(wrapper_start)
+    if wrapper is None:
+        return None
+    create_calls = [
+        callsite
+        for callsite, name, _descriptor in wrapper.api_call_sites
+        if name == "createthread"
+    ]
+    if len(create_calls) != 1:
+        return None
+    create_call = create_calls[0]
+    create_args = _vvas_x86_push_arguments(
+        wrapper.instructions,
+        wrapper.cfg_successors,
+        create_call,
+    )
+    if len(create_args) != 6:
+        return None
+    trampoline = create_args[2]
+    if trampoline is None or trampoline not in wrapper.callback_targets:
+        return None
+
+    stores: set[tuple[int, int]] = set()
+    for address, instruction in wrapper.instructions.items():
+        if address >= create_call or instruction.mnemonic != "mov":
+            continue
+        operands = list(instruction.operands)
+        if (
+            len(operands) != 2
+            or operands[0].type != X86_OP_REG
+            or operands[1].type != X86_OP_MEM
+            or operands[1].mem.base != X86_REG_EBP
+            or operands[1].mem.index != X86_REG_INVALID
+        ):
+            continue
+        argument_offset = int(operands[1].mem.disp)
+        if not 8 <= argument_offset <= 0x40 or (argument_offset - 8) % 4:
+            continue
+        register = int(operands[0].reg)
+        for later_address, later in wrapper.instructions.items():
+            if not address < later_address < create_call or later.mnemonic != "mov":
+                continue
+            later_operands = list(later.operands)
+            if (
+                len(later_operands) == 2
+                and later_operands[0].type == X86_OP_MEM
+                and later_operands[0].mem.base != X86_REG_INVALID
+                and later_operands[0].mem.index == X86_REG_INVALID
+                and later_operands[1].type == X86_OP_REG
+                and later_operands[1].reg == register
+                and 0 < int(later_operands[0].mem.disp) <= 0x400
+            ):
+                stores.add(
+                    ((argument_offset - 8) // 4, int(later_operands[0].mem.disp))
+                )
+
+    validated: set[int] = set()
+    for argument_index, field_offset in stores:
+        pending: list[tuple[int, int]] = [(trampoline, 0)]
+        pending_index = 0
+        seen: set[int] = set()
+        indirect_call = False
+        while pending_index < len(pending):
+            current, depth = pending[pending_index]
+            pending_index += 1
+            if current in seen or depth > 2:
+                continue
+            seen.add(current)
+            summary = summaries.get(current)
+            if summary is None:
+                continue
+            for instruction in summary.instructions.values():
+                operands = list(instruction.operands)
+                if (
+                    instruction.mnemonic == "call"
+                    and len(operands) == 1
+                    and operands[0].type == X86_OP_MEM
+                    and operands[0].mem.base != X86_REG_INVALID
+                    and operands[0].mem.index == X86_REG_INVALID
+                    and int(operands[0].mem.disp) == field_offset
+                ):
+                    indirect_call = True
+                    break
+            if indirect_call:
+                break
+            pending.extend((target, depth + 1) for target in summary.direct_calls)
+        if indirect_call:
+            validated.add(argument_index)
+    return next(iter(validated)) if len(validated) == 1 else None
+
+
+def _vvas_object_worker_network_proof(
+    data: bytes,
+    sections: list[_VvasPeSection],
+    disassembler: Cs,
+    import_addresses: dict[int, tuple[str, int]],
+    summaries: dict[int, _VvasFunctionSummary],
+    callback_start: int,
+    descriptor_index: int,
+    component_functions: set[int],
+) -> dict[str, object]:
+    """同一object vtableと静的thread wrapper上の送受信lineageを証明する。"""
+
+    if callback_start not in component_functions:
+        return {"matched": False, "analysis_complete": False}
+    wrappers = {
+        start: parameter
+        for start in summaries
+        if (parameter := _vvas_thread_wrapper_callback_parameter(summaries, start))
+        is not None
+    }
+    if not wrappers:
+        return {"matched": False, "analysis_complete": True}
+
+    def ws_names(summary: _VvasFunctionSummary) -> set[str]:
+        return {
+            name
+            for name, descriptor in summary.api_calls
+            if descriptor == descriptor_index
+        }
+
+    receive_callbacks: set[int] = set()
+    send_callbacks: set[int] = set()
+
+    def callback_network_names(callback: int) -> set[str] | None:
+        """wrapper callbackとその2段direct calleeのWinsock群を返す。"""
+
+        pending: list[tuple[int, int]] = [(callback, 0)]
+        pending_index = 0
+        seen: set[int] = set()
+        names: set[str] = set()
+        while pending_index < len(pending):
+            current, depth = pending[pending_index]
+            pending_index += 1
+            if current in seen or depth > 2:
+                continue
+            if len(seen) >= 64:
+                return None
+            seen.add(current)
+            summary = summaries.get(current)
+            if summary is None:
+                summary = _vvas_function_summary(
+                    data,
+                    sections,
+                    disassembler,
+                    current,
+                    4,
+                    import_addresses,
+                    [],
+                )
+            if summary is None:
+                return None
+            names.update(ws_names(summary))
+            pending.extend((target, depth + 1) for target in summary.direct_calls)
+        return names
+
+    for constructor_start in component_functions:
+        constructor = summaries.get(constructor_start)
+        if constructor is None or "wsastartup" not in ws_names(constructor):
+            continue
+        target_groups: dict[tuple[int, ...], set[int]] = {}
+        for target, sites in constructor.vtable_target_sites.items():
+            if target in component_functions:
+                site_identity = tuple(sites)
+                targets = target_groups.get(site_identity)
+                if targets is None:
+                    targets = set()
+                    target_groups[site_identity] = targets
+                targets.add(target)
+        for targets in target_groups.values():
+            connection_targets = {
+                target
+                for target in targets
+                if all(
+                    _vvas_network_groups(ws_names(summaries[target]))[group]
+                    for group in ("socket_creation", "connection")
+                )
+            }
+            if not connection_targets:
+                continue
+            for source in connection_targets:
+                summary = summaries[source]
+                for wrapper_start in summary.direct_calls & wrappers.keys():
+                    argument_index = wrappers[wrapper_start]
+                    for callsite in summary.direct_call_sites.get(wrapper_start, ()):
+                        arguments = _vvas_x86_push_arguments(
+                            summary.instructions,
+                            summary.cfg_successors,
+                            callsite,
+                        )
+                        if argument_index >= len(arguments):
+                            continue
+                        callback = arguments[argument_index]
+                        if (
+                            callback is None
+                            or _vvas_section_for_address(
+                                callback,
+                                sections,
+                                executable=True,
+                            )
+                            is None
+                        ):
+                            continue
+                        names = callback_network_names(callback)
+                        if names is None:
+                            return {"matched": False, "analysis_complete": False}
+                        groups = _vvas_network_groups(names)
+                        if groups["receive"]:
+                            receive_callbacks.add(callback)
+                        if groups["send"]:
+                            send_callbacks.add(callback)
+            if receive_callbacks and send_callbacks:
+                return {
+                    "matched": True,
+                    "analysis_complete": True,
+                    "single_reachable_chain": False,
+                    "object_vtable_worker_lineage": True,
+                    "thread_wrapper_callback_lineage": True,
+                    "chain_function_count": len(component_functions),
+                    "receive_callback_count": len(receive_callbacks),
+                    "send_callback_count": len(send_callbacks),
+                    "network_groups": {
+                        "winsock_initialization": True,
+                        "socket_creation": True,
+                        "connection": True,
+                        "send": True,
+                        "receive": True,
+                    },
+                    "raw_addresses_included": False,
+                }
+    return {"matched": False, "analysis_complete": True}
+
+
+def _vvas_reachable_functions(
+    summaries: dict[int, _VvasFunctionSummary],
+    roots: tuple[int, ...],
+) -> set[int]:
+    """root別のdirect/callback/vtable到達集合を有界に復元する。"""
+
+    pending = list(roots)
+    pending_index = 0
+    queued = set(roots)
+    seen: set[int] = set()
+    while pending_index < len(pending):
+        current = pending[pending_index]
+        pending_index += 1
+        if current in seen:
+            continue
+        if len(seen) >= MAXIMUM_VVAS_REACHABLE_FUNCTIONS:
+            return set()
+        summary = summaries.get(current)
+        if summary is None:
+            return set()
+        seen.add(current)
+        targets = (
+            summary.direct_calls | summary.callback_targets | summary.vtable_targets
+        )
+        for target in targets:
+            if target in summaries and target not in seen and target not in queued:
+                pending.append(target)
+                queued.add(target)
+    return seen
+
+
+def _vvas_resource_source_reaches_parser(
+    launcher: _VvasFunctionSummary,
+    parser_site: int,
+) -> bool:
+    """同一launcher CFGでresource取得API列がparser callへ達するか検証する。"""
+
+    groups = {
+        "find": {
+            "findresourcea",
+            "findresourcew",
+            "findresourceexa",
+            "findresourceexw",
+        },
+        "load": {"loadresource"},
+        "lock": {"lockresource"},
+        "size": {"sizeofresource"},
+    }
+    sites = {
+        group: [
+            address
+            for address, name, _descriptor in launcher.api_call_sites
+            if name in names
+        ]
+        for group, names in groups.items()
+    }
+    if any(not values for values in sites.values()):
+        return False
+    for find_site in sites["find"]:
+        reachable_loads = [
+            site
+            for site in sites["load"]
+            if _vvas_cfg_reaches(launcher, find_site, site)
+        ]
+        reachable_sizes = [
+            site
+            for site in sites["size"]
+            if _vvas_cfg_reaches(launcher, find_site, site)
+            and _vvas_cfg_reaches(launcher, site, parser_site)
+        ]
+        for load_site in reachable_loads:
+            if (
+                any(
+                    _vvas_cfg_reaches(launcher, load_site, lock_site)
+                    and _vvas_cfg_reaches(launcher, lock_site, parser_site)
+                    for lock_site in sites["lock"]
+                )
+                and reachable_sizes
+            ):
+                return True
+    return False
+
+
 def _vvas_pe_structure_evidence(
     data: bytes,
     configuration_identity: str,
+    *,
+    use_external_roots: bool = False,
+    allow_resource_config: bool = False,
+    mapped_candidates: tuple[_VvasMappedConfigCandidate, ...] | None = None,
 ) -> dict[str, object]:
-    """mapped configとentrypoint到達可能なparser／network pathを検証する。"""
+    """mapped configと選択root到達可能なparser／network pathを検証する。"""
 
     unmatched: dict[str, object] = {"matched": False}
     if len(data) > MAXIMUM_VVAS_PROBE_INPUT_SIZE or not data.startswith(b"MZ"):
@@ -1674,9 +2488,34 @@ def _vvas_pe_structure_evidence(
         mode, pointer_size, architecture = CS_MODE_64, 8, "x64"
     else:
         return unmatched
-    config_locations = _vvas_config_locations(data, sections, configuration_identity)
+    config_locations = _vvas_config_locations(
+        data,
+        sections,
+        configuration_identity,
+        allow_resource=allow_resource_config,
+        mapped_candidates=mapped_candidates,
+    )
     if not config_locations:
         return unmatched
+    location_kinds = {
+        "resource" if section.resource else "mapped_data"
+        for location_start, location_end in config_locations
+        for section in sections
+        if section.virtual_start <= location_start
+        and location_end <= section.virtual_end
+    }
+    if len(location_kinds) != 1:
+        return unmatched
+    resource_config = location_kinds == {"resource"}
+    if resource_config and not allow_resource_config:
+        return unmatched
+    external = collect_external_code_roots(image, data)
+    if use_external_roots:
+        if external is None or not external.export_funnel or not external.roots:
+            return unmatched
+        analysis_roots = external.roots
+    else:
+        analysis_roots = (entrypoint,)
     import_map = _vvas_import_address_map(image)
     if import_map is None:
         return unmatched
@@ -1689,8 +2528,8 @@ def _vvas_pe_structure_evidence(
 
     if MAXIMUM_VVAS_PENDING_FUNCTIONS < 1:
         return unmatched
-    pending: deque[tuple[int, int]] = deque([(entrypoint, 0)])
-    queued: set[int] = {entrypoint}
+    pending: deque[tuple[int, int]] = deque((root, 0) for root in analysis_roots)
+    queued: set[int] = set(analysis_roots)
     seen_functions: set[int] = set()
     summaries: dict[int, _VvasFunctionSummary] = {}
     total_instructions = 0
@@ -1747,25 +2586,14 @@ def _vvas_pe_structure_evidence(
             pending.append((target, depth + 1))
             queued.add(target)
 
-    parser_paths: dict[int, tuple[set[int], set[int]]] = {}
-    for summary in summaries.values():
-        if summary.config_reference_count <= 0:
-            continue
-        reverse_targets = {
-            target
-            for target in summary.direct_calls
-            if (target_summary := summaries.get(target)) is not None
-            and target_summary.utf16_reverse_loop
-        }
-        field_parser_targets = {
-            target
-            for target, count in summary.direct_call_counts.items()
-            if count >= 3
-            and (target_summary := summaries.get(target)) is not None
-            and target_summary.config_reference_count > 0
-        }
-        if reverse_targets and field_parser_targets - reverse_targets:
-            parser_paths[summary.start] = (reverse_targets, field_parser_targets)
+    parser_paths = _vvas_parser_paths(summaries)
+    external_reachable = (
+        _vvas_reachable_functions(summaries, analysis_roots)
+        if use_external_roots
+        else set(summaries)
+    )
+    if not external_reachable:
+        return unmatched
 
     reachable_api_names = {
         name
@@ -1780,6 +2608,7 @@ def _vvas_pe_structure_evidence(
     component_cache: dict[int, set[int]] = {}
     network_proof_cache: dict[int, dict[str, object]] = {}
     component_edge_count = 0
+    resource_source_path_count = 0
 
     def component_for(callback_start: int) -> set[int] | None:
         nonlocal component_edge_count
@@ -1818,6 +2647,8 @@ def _vvas_pe_structure_evidence(
         return component_seen
 
     for launcher in summaries.values():
+        if launcher.start not in external_reachable:
+            continue
         launcher_parsers = launcher.direct_calls & parser_paths.keys()
         if not launcher_parsers or not launcher.callback_targets:
             continue
@@ -1829,6 +2660,11 @@ def _vvas_pe_structure_evidence(
                     (),
                 )
                 for parser_site in parser_sites:
+                    if resource_config and not _vvas_resource_source_reaches_parser(
+                        launcher,
+                        parser_site,
+                    ):
+                        continue
                     valid_callback_sites = [
                         callback_site
                         for callback_site in callback_sites
@@ -1852,11 +2688,24 @@ def _vvas_pe_structure_evidence(
                             validated_ws2_descriptor,
                             component_seen,
                         )
+                        if proof.get("matched") is not True:
+                            proof = _vvas_object_worker_network_proof(
+                                data,
+                                sections,
+                                disassembler,
+                                import_addresses,
+                                summaries,
+                                callback_start,
+                                validated_ws2_descriptor,
+                                component_seen,
+                            )
                         network_proof_cache[callback_start] = proof
                     if proof.get("analysis_complete") is not True:
                         return unmatched
                     if proof.get("matched") is not True:
                         continue
+                    if resource_config:
+                        resource_source_path_count += 1
                     for callback_site in valid_callback_sites:
                         validated_paths.add(
                             (launcher.start, parser_start, callback_start)
@@ -1864,13 +2713,15 @@ def _vvas_pe_structure_evidence(
                     network_components.add(tuple(sorted(component_seen)))
 
     validated_network_proofs = [
-        proof
-        for proof in network_proof_cache.values()
-        if proof.get("matched") is True
+        proof for proof in network_proof_cache.values() if proof.get("matched") is True
     ]
 
     required_groups = {
-        "mapped_nonresource_config": bool(config_locations),
+        "mapped_configuration_source": bool(config_locations),
+        "resource_source_to_parser": (
+            not resource_config or resource_source_path_count > 0
+        ),
+        "selected_root_to_launcher": bool(validated_paths),
         "reachable_config_reference": bool(parser_paths),
         "reachable_parser_reverse_path": bool(parser_paths),
         "launcher_parser_before_callback": bool(validated_paths),
@@ -1885,6 +2736,20 @@ def _vvas_pe_structure_evidence(
     return {
         "matched": True,
         "architecture": architecture,
+        "root_strategy": ("export_tls" if use_external_roots else "entrypoint"),
+        "external_cfg_root_count": (len(analysis_roots) if use_external_roots else 0),
+        "export_root_count": (
+            len(external.export_roots)
+            if use_external_roots and external is not None
+            else 0
+        ),
+        "tls_callback_root_count": (
+            len(external.tls_roots)
+            if use_external_roots and external is not None
+            else 0
+        ),
+        "configuration_storage": ("resource" if resource_config else "mapped_data"),
+        "resource_source_parser_path_count": resource_source_path_count,
         "mapped_config_location_count": len(config_locations),
         "reachable_function_count": len(summaries),
         "reachable_instruction_count": total_instructions,
@@ -1916,6 +2781,18 @@ def _vvas_pe_structure_evidence(
             if validated_network_proofs
             else {}
         ),
+        "validated_object_worker_lineage_count": sum(
+            proof.get("object_vtable_worker_lineage") is True
+            for proof in validated_network_proofs
+        ),
+        "validated_receive_callback_count": sum(
+            int(proof.get("receive_callback_count", 0))
+            for proof in validated_network_proofs
+        ),
+        "validated_send_callback_count": sum(
+            int(proof.get("send_callback_count", 0))
+            for proof in validated_network_proofs
+        ),
         "required_groups": required_groups,
         "import_corroboration": import_evidence,
         "raw_addresses_included": False,
@@ -1924,14 +2801,38 @@ def _vvas_pe_structure_evidence(
     }
 
 
+def _vvas_terminal_structure_evidence(
+    data: bytes,
+    configuration_identity: str,
+    *,
+    mapped_candidates: tuple[_VvasMappedConfigCandidate, ...] | None = None,
+) -> dict[str, object]:
+    """既存entrypoint経路の後にexport/TLS経路をfail-closedで試す。"""
+
+    entrypoint = _vvas_pe_structure_evidence(
+        data,
+        configuration_identity,
+        mapped_candidates=mapped_candidates,
+    )
+    if entrypoint.get("matched") is True:
+        return entrypoint
+    return _vvas_pe_structure_evidence(
+        data,
+        configuration_identity,
+        use_external_roots=True,
+        allow_resource_config=True,
+        mapped_candidates=mapped_candidates,
+    )
+
+
 def probe_vvas_config(data: bytes, *, input_format: str) -> dict[str, object]:
     """一意な反転設定とformat別の構造補強が揃う場合だけfamily帰属を許可する。
 
-    PEは同一WS2_32 descriptorのAPI群だけでなく、mapped非resource設定、
-    実行sectionからの参照、entrypointからparser／reverse／network component
-    への有界到達性を要求する。dataはplaintextのodaktomk markerが一度だけ
-    現れる場合に限定し、route-onlyとする。endpointやraw設定自体は
-    detector向けprobeへ含めない。
+    PEは同一WS2_32 descriptorのAPI群だけでなく、mapped設定、実行section
+    からの参照、entrypointまたはexport/TLS rootからparser／reverse／network
+    componentへの有界到達性を要求する。resource内設定ではさらに同一launcher
+    CFG上のresource取得API列を要求する。endpointやraw設定自体はdetector向け
+    probeへ含めない。
     """
 
     unmatched: dict[str, object] = {
@@ -1947,25 +2848,61 @@ def probe_vvas_config(data: bytes, *, input_format: str) -> dict[str, object]:
     }
     if (
         not isinstance(data, bytes)
-        or len(data) > MAXIMUM_VVAS_PROBE_INPUT_SIZE
         or input_format not in {"pe", "data"}
     ):
         return unmatched
-    strings, string_scan = _bounded_strings(data)
-    if string_scan["truncated"] is True:
+    if len(data) > MAXIMUM_VVAS_PROBE_INPUT_SIZE:
+        if input_format != "pe":
+            return unmatched
+        _decoded, recovery, _candidates = _decode_vvas_mapped_pe_config(data)
         limited = dict(unmatched)
-        limited["analysis_limits"] = {"string_scan": string_scan}
+        limited["analysis_limits"] = {
+            "mapped_config_scan": recovery["mapped_config_scan"]
+        }
         return limited
-    decoded, decode_evidence = _decode_vvas_reversed_config(strings)
+    mapped_candidates: tuple[_VvasMappedConfigCandidate, ...] = ()
+    if input_format == "pe":
+        decoded, decode_evidence, mapped_candidates = (
+            _decode_vvas_mapped_pe_config(data)
+        )
+        mapped_scan = decode_evidence.get("mapped_config_scan", {})
+        if (
+            isinstance(mapped_scan, dict)
+            and mapped_scan.get("candidate_set_complete") is not True
+        ):
+            limited = dict(unmatched)
+            limited["analysis_limits"] = {"mapped_config_scan": mapped_scan}
+            return limited
+    else:
+        strings, string_scan = _bounded_strings(data)
+        if string_scan["truncated"] is True:
+            limited = dict(unmatched)
+            limited["analysis_limits"] = {"string_scan": string_scan}
+            return limited
+        decoded, decode_evidence = _decode_vvas_reversed_config(strings)
     if not decoded or decode_evidence["status"] != "decoded_unique":
-        return unmatched
+        if input_format != "pe":
+            return unmatched
+        completed = dict(unmatched)
+        completed["analysis_coverage"] = {
+            "mapped_config_scan": decode_evidence["mapped_config_scan"],
+            "decode_status": decode_evidence["status"],
+            "terminal_lineage_matched": False,
+        }
+        return completed
     if input_format == "pe":
         identity = decode_evidence.get("configuration_identity_sha256")
         if not isinstance(identity, str):
             return unmatched
-        format_evidence = _vvas_pe_structure_evidence(data, identity)
+        format_evidence = _vvas_terminal_structure_evidence(
+            data,
+            identity,
+            mapped_candidates=mapped_candidates,
+        )
         attribution_basis = (
-            "unique_vvas_config_and_mapped_reachable_parser_network_dataflow"
+            "unique_vvas_config_and_export_tls_resource_parser_network_dataflow"
+            if format_evidence.get("root_strategy") == "export_tls"
+            else "unique_vvas_config_and_mapped_reachable_parser_network_dataflow"
         )
     else:
         marker_count = data.count(VVAS_MARKER)
@@ -1976,7 +2913,15 @@ def probe_vvas_config(data: bytes, *, input_format: str) -> dict[str, object]:
         }
         attribution_basis = "unique_vvas_config_and_plaintext_odaktomk_marker"
     if format_evidence.get("matched") is not True:
-        return unmatched
+        if input_format != "pe":
+            return unmatched
+        unlinked = dict(unmatched)
+        unlinked["analysis_coverage"] = {
+            "mapped_config_scan": decode_evidence["mapped_config_scan"],
+            "decode_status": decode_evidence["status"],
+            "terminal_lineage_matched": False,
+        }
+        return unlinked
     supports_attribution = input_format == "pe"
     return {
         "matched": True,
@@ -2026,6 +2971,11 @@ def probe_vvas_config(data: bytes, *, input_format: str) -> dict[str, object]:
                 ],
                 "tcp_transport_slot_count": decode_evidence["tcp_transport_slot_count"],
                 "udp_transport_slot_count": decode_evidence["udp_transport_slot_count"],
+                **(
+                    {"mapped_config_scan": decode_evidence["mapped_config_scan"]}
+                    if input_format == "pe"
+                    else {}
+                ),
                 "raw_config_included": False,
             },
             "format_corroboration": format_evidence,
@@ -2362,8 +3312,7 @@ def _extract_bin101(data: bytes, name: str) -> dict | None:
         or probe.get("supports_family_attribution") is not True
         or probe.get("terminal_family_confirmed") is not True
         or probe.get("static_config_recovered") is not True
-        or probe.get("attribution_scope")
-        != "validated_terminal_component_structure"
+        or probe.get("attribution_scope") != "validated_terminal_component_structure"
     ):
         return None
     probe_config = probe.get("config")
@@ -2507,10 +3456,7 @@ def _extract_ca01_sideload(data: bytes, name: str) -> dict | None:
     outer_profile = public_summary.get("outer_profile")
     cef_profile = outer_profile == "cef_alias_export_beginthreadex"
     attribution_scope = (
-        (
-            "reviewed_exact_cef_alias_loader_linked_config_and_"
-            "memory_stage_consumer"
-        )
+        ("reviewed_exact_cef_alias_loader_linked_config_and_memory_stage_consumer")
         if cef_profile
         else "reviewed_exact_loader_linked_config_and_memory_stage_consumer"
     )
@@ -2525,9 +3471,7 @@ def _extract_ca01_sideload(data: bytes, name: str) -> dict | None:
     )
     if not reviewed_exact:
         attribution_scope = "component_handler_route"
-        family_attribution_basis = (
-            "ca01_structure_without_reviewed_terminal_identity"
-        )
+        family_attribution_basis = "ca01_structure_without_reviewed_terminal_identity"
     raw_endpoints = recovery.config.get("endpoints")
     raw_slots = recovery.config.get("slots")
     if not isinstance(raw_endpoints, list) or not isinstance(raw_slots, list):
@@ -2595,12 +3539,10 @@ def _extract_ca01_sideload(data: bytes, name: str) -> dict | None:
         or slots[0]["endpoint"] == slots[2]["endpoint"]
         or len({item["transport_selector"] for item in slots}) != 1
         or any(
-            item["transport"]
-            != ("tcp" if item["transport_selector"] == 1 else "udp")
+            item["transport"] != ("tcp" if item["transport_selector"] == 1 else "udp")
             for item in slots
         )
-        or endpoints
-        != list(dict.fromkeys(str(item["endpoint"]) for item in slots))
+        or endpoints != list(dict.fromkeys(str(item["endpoint"]) for item in slots))
     ):
         return None
 
@@ -2675,7 +3617,11 @@ def _extract_xor_b1_downloader(data: bytes, name: str) -> dict | None:
 
     if len(data) > MAXIMUM_VVAS_XOR_INPUT_SIZE or not _x86_pe_header_valid(data):
         return None
-    decoded_view = bytes(value ^ XOR_B1_KEY for value in data)
+    # C実装のtranslateで全byteを一度だけ変換し、後段が必須とする
+    # WinINet marker不在なら高コストの全文文字列列挙を開始しない。
+    decoded_view = data.translate(_XOR_B1_TRANSLATION)
+    if _XOR_B1_WININET_MARKER.search(decoded_view) is None:
+        return None
     strings, string_scan = _bounded_strings(decoded_view)
     if string_scan["truncated"] is True:
         return None
@@ -2894,7 +3840,6 @@ def _extract_codemark_stage(data: bytes, name: str) -> dict | None:
             "urls": [],
             "codemark_stage": codemark,
             "codemark_terminal_probe": probe,
-            "terminal_family_confirmed": False,
             "family_attribution_basis": (
                 "component_handler_route_only_raw_stage"
                 if architecture == "x86"
@@ -2917,6 +3862,53 @@ def _extract_codemark_stage(data: bytes, name: str) -> dict | None:
             "末尾3-slot設定はUTF-16LE全文反転後の先頭2 slotがactiveなheaderのhost／portと一致する場合だけ追加し、t=0をUDP、t=1をTCPとして分離します。",
             "raw stage単体は外層の静的復元provenanceを欠くため、family帰属ではなくroute-onlyです。",
             "現在の稼働状態と所有者は未確認で、検体実行と外部通信は行っていません。",
+        ],
+    )
+
+
+def _extract_raw_vvas_transport_shellcode(data: bytes, name: str) -> dict | None:
+    """外層provenanceのないraw vvaS transport shellcodeを候補として復元する。"""
+
+    recovery = recover_raw_vvas_shellcode(data)
+    if recovery is None:
+        return None
+    endpoints = list(recovery.endpoints)
+    return build_result(
+        "valleyrat",
+        data,
+        {
+            "variant": "raw_vvas_codemark_transport_candidate",
+            "decoded_config_recovered": True,
+            "static_config_recovered": True,
+            "candidate_config_recovered": True,
+            "terminal_family_confirmed": False,
+            "attribution_scope": "component_handler_route",
+            "family_attribution_basis": (
+                "validated_raw_x86_transport_and_correlated_vvas_config_without_outer_lineage"
+            ),
+            "c2_liveness_confirmed": False,
+            "source_name": _safe_source_name(name),
+            "endpoints": endpoints,
+            "ipv4": ipv4_candidates(endpoints),
+            "urls": [],
+            "raw_vvas_transport_shellcode": public_raw_shellcode_summary(recovery),
+        },
+        [
+            {
+                "kind": "network.endpoint",
+                "value": endpoint,
+                "role": "static_config_c2",
+                "confidence": "confirmed_static_config",
+                "source": "validated_raw_vvas_transport_shellcode",
+            }
+            for endpoint in endpoints
+        ],
+        [
+            "raw x86 shellcodeのPEB resolver、Winsock構築、socket引数、check-in、受信stage用memory sinkを有界CFGで静的に検証しました。",
+            "codemark headerと末尾の全文反転UTF-16LE 3-slot設定を相関し、ゼロ埋めportは数値同値の場合だけ受理します。",
+            "portを欠く重複backupはheader側もport 0の場合だけ不完全slotとして除外し、loopback既定slotもC2へ昇格しません。",
+            "raw stage単体ではZIPからのsource／transform／sink provenanceがないため、family帰属はroute-onlyです。",
+            "検体とpayloadは実行せず、外部通信も行っていません。",
         ],
     )
 
@@ -3020,6 +4012,326 @@ def _reviewed_pdfcore8_result(data: bytes, name: str) -> dict | None:
     )
 
 
+def _extract_wide_pipe_config(data: bytes, name: str) -> dict | None:
+    """UTF-16LE pipe設定とWinos bootstrapの静的系譜を評価する。"""
+
+    recovery = recover_wide_pipe_config(data)
+    if recovery is None:
+        return None
+    terminal = recovery.terminal_family_confirmed
+    endpoints = list(recovery.endpoints)
+    slots = [
+        {
+            "slot": slot.index,
+            "endpoint": slot.endpoint,
+            "transport": "tcp" if slot.transport == 1 else "udp",
+            "transport_selector": slot.transport,
+            "enabled": True,
+        }
+        for slot in recovery.slots
+        if slot.endpoint is not None
+    ]
+    findings = [
+        {
+            "kind": "network.endpoint",
+            "value": endpoint,
+            "role": "static_config_c2" if terminal else "static_config_c2_candidate",
+            "confidence": (
+                "confirmed_static_config" if terminal else "decoded_candidate_config"
+            ),
+            "source": (
+                "validated_wide_pipe_winos_bootstrap_lineage"
+                if terminal
+                else "wide_pipe_plaintext_config_candidate"
+            ),
+        }
+        for endpoint in endpoints
+    ]
+    return build_result(
+        "valleyrat",
+        data,
+        {
+            "variant": (
+                "winos_plaintext_pipe_bootstrap_terminal"
+                if terminal
+                else "winos_plaintext_pipe_config_candidate"
+            ),
+            "decoded_config_recovered": True,
+            "static_config_recovered": terminal,
+            "candidate_config_recovered": not terminal,
+            "terminal_family_confirmed": terminal,
+            "attribution_scope": (
+                "validated_winos_bootstrap_component"
+                if terminal
+                else "component_handler_route"
+            ),
+            "family_attribution_basis": (
+                "unique_pipe_config_parser_runtime_globals_tcp_vtable_winos_frame_dispatcher"
+                if terminal
+                else "unique_plaintext_pipe_config_without_complete_network_lineage"
+            ),
+            "classification_confidence": (
+                "high_structural_decoded_config"
+                if terminal
+                else "medium_candidate_decoded_config"
+            ),
+            "c2_liveness_confirmed": False,
+            "source_name": _safe_source_name(name),
+            "endpoints": endpoints,
+            "ipv4": ipv4_candidates(endpoints),
+            "urls": [],
+            "slots": slots,
+            "wide_pipe_config": public_wide_pipe_recovery_summary(recovery),
+        },
+        findings,
+        [
+            (
+                "一意なUTF-16LE pipe設定、全field tagのparser参照、実行時endpoint global、"
+                "workerからTCP vtableの同一socket fieldを使うconnect／send／recvまでを"
+                "静的に検証しました。"
+                if terminal
+                else "一意なUTF-16LE pipe設定を復元しましたが、parserから実行時global、"
+                "network sink、protocol dispatcherまでの完全な系譜は証明できないため"
+                "候補としてのみ記録します。"
+            ),
+            (
+                "4-byte長、10-byte header、header由来XOR、初期command 0x0004、"
+                "受信dispatcher markerを同一bootstrap内で検証しました。"
+                if terminal
+                else "不足するnetworkまたはprotocol証拠があるため、ValleyRAT familyへは"
+                "昇格していません。"
+            ),
+            "loopback placeholderはC2候補から除外しました。現在の稼働状態と所有者は確認していません。",
+            "検体実行と外部通信は行っていません。",
+        ],
+    )
+
+
+def _extract_run_dll_native_core(
+    data: bytes,
+    name: str,
+) -> dict | None:
+    """run export型native DLLの設定を、終端とroute-onlyを分離して返す。"""
+
+    run_dll_config = probe_run_dll_native_core_config(data)
+    if run_dll_config.get("matched") is not True:
+        return None
+    endpoints = list(run_dll_config["endpoints"])
+    terminal_family_confirmed = bool(
+        run_dll_config.get("terminal_family_confirmed") is True
+    )
+    findings = [
+        {
+            "kind": "network.endpoint",
+            "value": endpoint,
+            "role": "static_config_c2",
+            "confidence": "confirmed_static_config",
+            "source": "validated_run_export_static_config",
+        }
+        for endpoint in endpoints
+    ]
+    return build_result(
+        "valleyrat",
+        data,
+        {
+            "variant": run_dll_config["variant"],
+            "decoded_config_recovered": False,
+            "static_config_recovered": True,
+            "candidate_config_recovered": not terminal_family_confirmed,
+            "terminal_family_confirmed": terminal_family_confirmed,
+            "supports_family_attribution": terminal_family_confirmed,
+            "attribution_scope": run_dll_config["attribution_scope"],
+            "family_attribution_basis": run_dll_config[
+                "family_attribution_basis"
+            ],
+            "c2_liveness_confirmed": False,
+            "source_name": _safe_source_name(name),
+            "endpoints": endpoints,
+            "ipv4": ipv4_candidates(endpoints),
+            "urls": [],
+            "slots": list(run_dll_config["slots"]),
+            "excluded_placeholder_defaults": list(
+                run_dll_config["excluded_placeholder_defaults"]
+            ),
+            "run_dll_native_core": dict(run_dll_config["evidence"]),
+        },
+        findings,
+        [
+            "run export型native DLLの厳格なPE profile、固定幅3-record設定、全9 fieldへの実行code参照を静的に検証しました。",
+            "重複する主設定は1 endpointへ縮約し、第三recordのIPv4/IPv6 loopback placeholderは値を公開せずC2候補から除外しました。",
+            (
+                "run exportから同一socketのnetwork sinkおよび終端protocolまでの静的系譜を検証しました。"
+                if terminal_family_confirmed
+                else "未証明のnetworkまたはserializer系譜があるため、終端family確定には昇格していません。"
+            ),
+            "検体実行と外部通信は行っていません。",
+        ],
+    )
+
+
+def _attach_final_payloads(
+    result: dict,
+    payloads: tuple[dict[str, object], ...],
+) -> None:
+    """既存payloadとloader follow-onをdigest一意に統合する。"""
+
+    combined: list[dict[str, object]] = []
+    existing = result.pop("final_payload", None)
+    if isinstance(existing, dict):
+        combined.append(existing)
+    existing_many = result.pop("final_payloads", None)
+    if isinstance(existing_many, list):
+        combined.extend(item for item in existing_many if isinstance(item, dict))
+    combined.extend(payloads)
+
+    unique: dict[bytes, dict[str, object]] = {}
+    for payload in combined:
+        raw = payload.get("data")
+        if (
+            payload.get("role") != "final_payload"
+            or not isinstance(payload.get("name"), str)
+            or not payload.get("name")
+            or not isinstance(raw, bytes)
+            or not raw
+        ):
+            continue
+        unique.setdefault(hashlib.sha256(raw).digest(), payload)
+    retained = list(unique.values())
+    if len(retained) == 1:
+        result["final_payload"] = retained[0]
+    elif retained:
+        result["final_payloads"] = retained
+
+
+def _extract_native_loader_lineage(
+    data: bytes,
+    name: str,
+) -> tuple[
+    dict | None,
+    dict[str, object],
+    tuple[dict[str, object], ...],
+]:
+    """native loaderを静的に辿り、確定終端、route観測、follow-onを返す。"""
+
+    native = analyze_native_loader_lineage(data)
+    observations: dict[str, object] = {}
+    if native is not None:
+        native_observation = dict(native.observation)
+        terminal = native_observation.get("terminal")
+        confirmed = bool(
+            isinstance(native.terminal_component, bytes)
+            and native.terminal_component
+            and native_observation.get("supports_family_attribution") is True
+            and native_observation.get("terminal_family_confirmed") is True
+            and native_observation.get("terminal_network_lineage_proven") is True
+            and native_observation.get("terminal_protocol_lineage_proven") is True
+            and isinstance(terminal, dict)
+            and terminal.get("static_config_recovered") is True
+            and terminal.get("candidate_only") is False
+        )
+        if confirmed:
+            endpoint_count = terminal.get("endpoint_count")
+            terminal_result = extract(
+                native.terminal_component,
+                f"{_safe_source_name(name)}::validated-terminal",
+            )
+            terminal_config = terminal_result.get("config")
+            endpoints = (
+                terminal_config.get("endpoints")
+                if isinstance(terminal_config, dict)
+                else None
+            )
+            if (
+                terminal_result.get("family") != "valleyrat"
+                or not isinstance(terminal_config, dict)
+                or terminal_config.get("static_config_recovered") is not True
+                or terminal_config.get("terminal_family_confirmed") is not True
+                or type(endpoint_count) is not int
+                or not isinstance(endpoints, list)
+                or len(endpoints) != endpoint_count
+                or any(not isinstance(endpoint, str) or not endpoint for endpoint in endpoints)
+            ):
+                raise RuntimeError(
+                    "native loader終端とshared extractor結果の契約が一致しません"
+                )
+            result = dict(terminal_result)
+            result["sample_sha256"] = sha256_bytes(data)
+            result["config"] = {
+                **terminal_config,
+                "variant": "native_loader_valleyrat_terminal_lineage",
+                "terminal_component_variant": terminal_config.get("variant"),
+                "source_name": _safe_source_name(name),
+                "supports_family_attribution": True,
+                "terminal_network_lineage_proven": True,
+                "terminal_protocol_lineage_proven": True,
+                "native_loader_lineage": native_observation,
+            }
+            limitations = list(result.get("limitations") or [])
+            limitations.insert(
+                0,
+                "native loaderの全復元辺と終端config/network/protocolを静的に検証しました。",
+            )
+            result["limitations"] = limitations
+            result["terminal_payload"] = {
+                "role": "terminal_payload",
+                "name": "validated-native-loader-terminal.bin",
+                "data": native.terminal_component,
+            }
+            return result, {}, ()
+        observations["native_loader_lineage"] = native_observation
+        if (
+            native_observation.get("supports_family_attribution") is False
+            and native_observation.get("terminal_family_confirmed") is False
+            and native_observation.get("follow_on_candidate_set_complete") is True
+            and native_observation.get("raw_payload_included") is False
+            and native_observation.get("sample_executed") is False
+            and native_observation.get("network_contacted") is False
+        ):
+            native_follow_ons = [
+                {
+                    "role": "final_payload",
+                    "name": f"{sha256_bytes(component)}.bin",
+                    "data": component,
+                }
+                for component in native.recovered_components
+                if isinstance(component, bytes) and component
+            ]
+        else:
+            native_follow_ons = []
+    else:
+        native_follow_ons = []
+
+    follow_ons = native_follow_ons
+    silverfox = analyze_silverfox_loader_lineage(data)
+    if silverfox is not None:
+        silverfox_observation = dict(silverfox.observation)
+        observations["silverfox_loader_lineage"] = silverfox_observation
+        component = silverfox.recovered_component
+        if (
+            isinstance(component, bytes)
+            and component
+            and silverfox_observation.get("status")
+            == "validated_silverfox_style_infection_loader_lineage"
+            and silverfox_observation.get("matched") is True
+            and silverfox_observation.get("supports_family_attribution") is False
+            and silverfox_observation.get("terminal_family_confirmed") is False
+            and silverfox_observation.get("terminal_network_lineage_proven") is False
+            and silverfox_observation.get("terminal_protocol_lineage_proven") is False
+            and silverfox_observation.get("candidate_only") is True
+            and silverfox_observation.get("raw_payload_included") is False
+            and silverfox_observation.get("sample_executed") is False
+            and silverfox_observation.get("network_contacted") is False
+        ):
+            follow_ons.append(
+                {
+                    "role": "final_payload",
+                    "name": f"{sha256_bytes(component)}.bin",
+                    "data": component,
+                }
+            )
+    return None, observations, tuple(follow_ons)
+
+
 def extract(data: bytes, name: str = "sample") -> dict:
     """endpointへ接続せず、ValleyRAT関連の静的設定候補を返す。"""
     safe_name = _safe_source_name(name)
@@ -3054,6 +4366,9 @@ def extract(data: bytes, name: str = "sample") -> dict:
     onyx = _extract_onyx_terminal(data, name)
     if onyx is not None:
         return onyx
+    run_dll = _extract_run_dll_native_core(data, name)
+    if run_dll is not None:
+        return run_dll
     x86_codemark_resource = _extract_x86_codemark_resource(data, name)
     if x86_codemark_resource is not None:
         return x86_codemark_resource
@@ -3063,58 +4378,105 @@ def extract(data: bytes, name: str = "sample") -> dict:
     codemark_stage = _extract_codemark_stage(data, name)
     if codemark_stage is not None:
         return codemark_stage
+    raw_vvas_transport = _extract_raw_vvas_transport_shellcode(data, name)
+    if raw_vvas_transport is not None:
+        return raw_vvas_transport
     n520 = _extract_n520(data, name)
     if n520 is not None:
         return n520
     xor_b1_downloader = _extract_xor_b1_downloader(data, name)
     if xor_b1_downloader is not None:
         return xor_b1_downloader
-    run_dll_config = probe_run_dll_native_core_config(data)
-    if run_dll_config.get("matched") is True:
-        endpoints = list(run_dll_config["endpoints"])
-        findings = [
-            {
-                "kind": "network.endpoint",
-                "value": endpoint,
-                "role": "static_config_c2",
-                "confidence": "confirmed_static_config",
-                "source": "validated_run_export_static_config",
-            }
-            for endpoint in endpoints
-        ]
-        return build_result(
-            "valleyrat",
-            data,
-            {
-                "variant": run_dll_config["variant"],
-                "decoded_config_recovered": False,
-                "static_config_recovered": True,
-                "candidate_config_recovered": True,
-                "terminal_family_confirmed": False,
-                "attribution_scope": "component_handler_route",
-                "family_attribution_basis": run_dll_config[
-                    "family_attribution_basis"
-                ],
-                "c2_liveness_confirmed": False,
-                "source_name": safe_name,
-                "endpoints": endpoints,
-                "ipv4": ipv4_candidates(endpoints),
-                "urls": [],
-                "slots": list(run_dll_config["slots"]),
-                "excluded_placeholder_defaults": list(
-                    run_dll_config["excluded_placeholder_defaults"]
-                ),
-                "run_dll_native_core": dict(run_dll_config["evidence"]),
-            },
-            findings,
-            [
-                "run export型native DLLの厳格なPE profile、固定幅3-record設定、全9 fieldへの実行code参照を静的に検証しました。",
-                "重複する主設定は1 endpointへ縮約し、127.0.0.1:80はloopback placeholderとしてC2候補から除外しました。",
-                "このcomponent単独では終端family、C2稼働、通信成功を確定しません。",
-                "検体実行と外部通信は行っていません。",
-            ],
+    wide_pipe = _extract_wide_pipe_config(data, name)
+    if wide_pipe is not None:
+        return wide_pipe
+    (
+        native_terminal,
+        native_loader_observations,
+        loader_follow_ons,
+    ) = _extract_native_loader_lineage(
+        data,
+        name,
+    )
+    if native_terminal is not None:
+        return native_terminal
+    mapped_candidates: tuple[_VvasMappedConfigCandidate, ...] = ()
+    mapped_decoded: dict[str, str] = {}
+    mapped_recovery: dict[str, object] = {}
+    if data.startswith(b"MZ"):
+        mapped_decoded, mapped_recovery, mapped_candidates = (
+            _decode_vvas_mapped_pe_config(data)
         )
-    strings, string_scan = _bounded_strings(data)
+    if not mapped_candidates:
+        export_funnel_route = probe_export_funnel_route(data)
+        if export_funnel_route.get("matched") is True:
+            result = build_result(
+                "valleyrat",
+                data,
+                {
+                    "variant": export_funnel_route["variant"],
+                    "decoded_config_recovered": False,
+                    "static_config_recovered": False,
+                    "candidate_config_recovered": False,
+                    "encoded_config_candidate_observed": (
+                        export_funnel_route.get("encoded_config_candidate_observed")
+                        is True
+                    ),
+                    "recovery_status": export_funnel_route.get(
+                        "recovery_status", "not_recovered"
+                    ),
+                    "terminal_family_confirmed": False,
+                    "terminal_network_lineage_proven": False,
+                    "supports_family_attribution": False,
+                    "attribution_scope": "component_handler_route",
+                    "c2_liveness_confirmed": False,
+                    "source_name": safe_name,
+                    "endpoints": [],
+                    "ipv4": [],
+                    "urls": [],
+                    "export_funnel_native_route": export_funnel_route,
+                },
+                [],
+                [
+                    "名称に依存せず、複数exportの単一code root収束、resource処理、Winsock call群を静的に確認しました。",
+                    "書込み可能・非実行sectionの高entropy UTF-16LE hexは暗号化設定候補としてのみinventory化し、raw値は出力していません。",
+                    "復号、設定parser、実行時endpoint、connect、同一socketのsend／recv系譜が閉じないため、設定復元またはValleyRAT family確定へ昇格していません。",
+                    "検体実行と外部通信は行っていません。",
+                ],
+            )
+            _attach_final_payloads(result, loader_follow_ons)
+            return result
+    mapped_scan = mapped_recovery.get("mapped_config_scan")
+    mapped_scan_incomplete = bool(
+        isinstance(mapped_scan, dict)
+        and mapped_scan.get("candidate_set_complete") is not True
+    )
+    if data.startswith(b"MZ") and mapped_candidates:
+        # 候補の一意性とcode lineageはmapped候補だけで評価できる。ここで
+        # 全PE文字列を再走査すると、大容量printable sectionの巨大matchを
+        # 一時割当してmarker-first化の目的を失うため、明示的に省略する。
+        strings = []
+        string_scan = _vvas_string_scan_not_attempted(
+            "mapped_vvas_candidates_available"
+        )
+    elif data.startswith(b"MZ") and mapped_scan_incomplete:
+        # 未完了のmapped候補集合を全体文字列scanのprefixで補完しない。
+        strings = []
+        string_scan = _vvas_string_scan_not_attempted(
+            "mapped_config_scan_incomplete"
+        )
+    elif (
+        data.startswith(b"MZ")
+        and len(data) > MAXIMUM_VVAS_PE_GLOBAL_STRING_SCAN_INPUT_SIZE
+    ):
+        # markerがない大容量PEでも、generic variant推測のためだけに全文字列を
+        # 列挙しない。family/configは未解決のまま保持する。
+        strings = []
+        string_scan = _vvas_string_scan_not_attempted(
+            "large_pe_marker_first_only"
+        )
+    else:
+        strings, string_scan = _bounded_strings(data)
     nvml_recovery = None
     if looks_like_nvml_dat(data):
         try:
@@ -3127,7 +4489,17 @@ def extract(data: bytes, name: str = "sample") -> dict:
         if nvml_recovery is not None
         else identify_variant(strings)
     )
-    if string_scan["truncated"] is True:
+    if variant == "unresolved_variant":
+        if "silverfox_loader_lineage" in native_loader_observations:
+            variant = "silverfox_style_infection_loader"
+        elif "native_loader_lineage" in native_loader_observations:
+            variant = "native_loader_candidate"
+    if data.startswith(b"MZ"):
+        # PEではmapped sectionの完全なmarker-first走査だけを設定候補源にする。
+        # 全体文字列scanが上限へ達しても、そのpartial prefixへfallbackしない。
+        decoded = mapped_decoded
+        vvas_recovery = mapped_recovery
+    elif string_scan["truncated"] is True:
         decoded = {}
         vvas_recovery = {
             "status": "string_scan_truncated_rejected",
@@ -3141,7 +4513,11 @@ def extract(data: bytes, name: str = "sample") -> dict:
         if data.startswith(b"MZ"):
             identity = vvas_recovery.get("configuration_identity_sha256")
             format_corroboration = (
-                _vvas_pe_structure_evidence(data, identity)
+                _vvas_terminal_structure_evidence(
+                    data,
+                    identity,
+                    mapped_candidates=mapped_candidates,
+                )
                 if isinstance(identity, str)
                 else {"matched": False}
             )
@@ -3214,7 +4590,9 @@ def extract(data: bytes, name: str = "sample") -> dict:
         static_config_confirmed = True
         candidate_config_recovered = False
     endpoints, urls = endpoint_candidates(strings), _public_urls(strings)
-    if not decoded and variant == "unresolved_variant":
+    if not decoded and (
+        variant == "unresolved_variant" or native_loader_observations
+    ):
         endpoints = []
         urls = []
     if variant == "pdfcore8_winos_recovered_stage" and not decoded:
@@ -3309,6 +4687,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
                 if nvml_recovery is not None
                 else None
             ),
+            **native_loader_observations,
             "placeholder_defaults_excluded": (
                 ["192.168.1.200:6669", "192.168.1.200:9999"]
                 if variant == "pdfcore8_winos_recovered_stage"
@@ -3330,6 +4709,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "name": f"{nvml_recovery.stage_sha256}.bin",
             "data": nvml_recovery.stage,
         }
+    _attach_final_payloads(result, loader_follow_ons)
     return result
 
 

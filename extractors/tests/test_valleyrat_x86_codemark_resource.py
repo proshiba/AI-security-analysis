@@ -308,6 +308,11 @@ def _fake_pe(
     outer = bytearray(b"\0" * (section_offset + len(section_code)))
     outer[:2] = b"MZ"
     outer[section_offset:] = section_code
+    # 実PEではresource bytesもouter file-backed data内に存在する。fakeの
+    # get_data mappingだけでなく必要markerもouterへ含め、cheap prefilterを
+    # 通過する現実的なfixtureにする。
+    for raw in mapping.values():
+        outer.extend(raw)
     imports = [
         SimpleNamespace(name=name, address=address)
         for name, address in import_addresses.items()
@@ -473,6 +478,24 @@ def test_outer_pe_deduplicates_aliased_stage_and_probe_hides_values(
         "terminal_resource_is_launched_application": True,
         "terminal_resource_to_process_argument_proven": True,
     }
+
+
+def test_outer_pe_without_codemark_rejects_before_pe_parser(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """必須markerのない大容量PEをresource parserへ渡さない。"""
+
+    parser_called = False
+
+    def unexpected_parser(**_kwargs: object) -> object:
+        nonlocal parser_called
+        parser_called = True
+        raise AssertionError("PE parser must not be called")
+
+    monkeypatch.setattr(x86_resource.pefile, "PE", unexpected_parser)
+
+    assert x86_resource.recover_from_pe(b"MZ" + b"\0" * (8 * 1024 * 1024)) is None
+    assert parser_called is False
 
 
 def test_outer_pe_rejects_required_apis_split_across_descriptors(

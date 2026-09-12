@@ -65,11 +65,15 @@ def test_repetitive_pe_overlay_emits_compact_executable(monkeypatch) -> None:
     )
     monkeypatch.setattr(unpacker.pefile, "PE", lambda **_kwargs: image)
     monkeypatch.setattr(unpacker, "entropy", lambda _value: 1.0)
-    monkeypatch.setattr(unpacker, "carve_embedded_pes", lambda _value: [])
+    monkeypatch.setattr(
+        unpacker,
+        "carve_embedded_pes",
+        lambda _value, **_kwargs: [],
+    )
     monkeypatch.setattr(
         unpacker, "repetitive_padding", lambda _value: {"period": 4, "byte": None}
     )
-    data = b"MZ" + b"A" * 62 + b"89:;" * 32
+    data = b"MZ" + b"A" * 62 + b"89:;" * 1024
 
     summary, artifacts = unpacker.pe_summary(data)
 

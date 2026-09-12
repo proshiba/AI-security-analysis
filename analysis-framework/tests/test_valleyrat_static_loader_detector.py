@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -290,6 +291,100 @@ def _candidate_extractor_result(data: bytes) -> dict:
             },
         },
     }
+
+
+def _terminal_extractor_result(data: bytes) -> dict:
+    result = _candidate_extractor_result(data)
+    config = result["config"]
+    config.update(
+        variant="vvas_reversed_config_terminal",
+        static_config_recovered=True,
+        decoded_config_recovered=True,
+        candidate_config_recovered=False,
+        terminal_family_confirmed=True,
+        attribution_scope="validated_terminal_component_structure",
+    )
+    config["vvas_recovery"]["format_corroboration"] = {
+        "matched": True,
+        "mapped_config_location_count": 1,
+        "reachable_parser_path_count": 1,
+        "validated_parser_callback_network_path_count": 1,
+        "validated_object_worker_lineage_count": 1,
+        "validated_send_callback_count": 1,
+        "validated_receive_callback_count": 1,
+        "validated_network_chain_groups": {
+            "winsock_initialization": True,
+            "socket_creation": True,
+            "connection": True,
+            "send": True,
+            "receive": True,
+        },
+    }
+    return result
+
+
+def test_nested_managed_vvas_terminal_requires_both_lineages_and_is_redacted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """managed drop/startとnative config/networkが揃う場合だけ終端へ昇格する。"""
+
+    data = b"MZ BSJB managed fixture"
+    child = b"MZ" + bytes(143_870)
+    outer_view = _outer_candidate_view()
+    child_view = _child_candidate_view(hashlib.sha256(child).hexdigest())
+    child_view["export_sample"] = ["arbitrary-export"]
+    monkeypatch.setattr(
+        DETECTOR,
+        "_static_component_view",
+        lambda _analysis, blob: outer_view if blob == data else child_view,
+    )
+    monkeypatch.setattr(
+        DETECTOR,
+        "resource_blobs",
+        lambda _data: (
+            [
+                {
+                    "container_name": "arbitrary.resources",
+                    "resource_type": "System.ByteArray",
+                    "value_encoding": "binary",
+                    "data": child,
+                }
+            ],
+            [],
+        ),
+    )
+    managed_observation = {
+        "status": "validated_managed_resource_write_start_lineage",
+        "resource_names_included": False,
+        "output_paths_included": False,
+    }
+    monkeypatch.setattr(
+        DETECTOR,
+        "validate_managed_resource_lineage",
+        lambda _data: SimpleNamespace(
+            embedded_pe=child,
+            observation=managed_observation,
+        ),
+    )
+    monkeypatch.setattr(DETECTOR, "analyze_signed_proxy_sideload", lambda *_args: {})
+    monkeypatch.setattr(
+        DETECTOR,
+        "extract_valleyrat_config",
+        lambda blob, _name: _terminal_extractor_result(blob),
+    )
+
+    observation = DETECTOR._vvas_pe_candidate_observation(data, {})
+
+    assert observation is not None
+    assert observation["supports_family_attribution"] is True
+    assert observation["terminal_family_confirmed"] is True
+    assert observation["status"] == "validated_managed_vvas_terminal_lineage"
+    serialized = repr(observation)
+    assert "hidden.example" not in serialized
+    assert "198.51.100.7" not in serialized
+
+    monkeypatch.setattr(DETECTOR, "validate_managed_resource_lineage", lambda _data: None)
+    assert DETECTOR._vvas_pe_candidate_observation(data, {}) is None
 
 
 def test_nested_vvas_candidate_is_strict_and_redacted(

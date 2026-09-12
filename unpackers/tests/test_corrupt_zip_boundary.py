@@ -17,5 +17,5 @@ def test_unpack_bytes_isolates_bad_zip(monkeypatch) -> None:
     )
     report, artifacts = static_unpacker.unpack_bytes(b"fixture", "broken.zip")
     assert report["unpack_status"] == "bounded_limit"
-    assert "corrupt extra field" in report["zip_error"]
+    assert report["zip_error"] == "invalid_zip_structure"
     assert artifacts == []

@@ -70,6 +70,107 @@ def _fixture_handler_spec(
     )
 
 
+def _candidate_routing(family: str) -> dict:
+    return {
+        "candidates": [
+            {
+                "family": family,
+                "routing_eligible": True,
+                "routing_mode": "candidate_verification",
+                "routing_eligibility": {"candidate_verification": True},
+            }
+        ]
+    }
+
+
+def _assert_zero_attempt_accounting(result: dict, expected_status: str) -> None:
+    assert result["status"] == expected_status
+    assert result["confirmed_families"] == []
+    assert result["planned_attempt_count"] == 0
+    assert result["actual_attempt_count"] == 0
+    assert result["retained_attempt_detail_count"] == 0
+    assert result["omitted_attempt_detail_count"] == 0
+    assert result["unattempted_attempt_count"] == 0
+    assert result["blockers"] == []
+    assert result["budget"]["exhausted"] is False
+    assert result["families"] == []
+
+
+def test_candidate_assessment_early_returns_keep_complete_zero_accounting(
+    monkeypatch,
+) -> None:
+    """候補検証を開始しない全経路でも、件数fieldを欠落させない。"""
+
+    data = b"early candidate assessment"
+    layer = one_shot.StaticLayer(
+        name="fixture.bin",
+        data=data,
+        sha256=hashlib.sha256(data).hexdigest(),
+        parent_sha256=None,
+        depth=0,
+        transform="submission",
+    )
+    routing = _candidate_routing("guloader")
+    spec = _fixture_handler_spec("guloader")
+
+    assessment_only = one_shot._candidate_handler_assessment(
+        routing=routing,
+        layers=[layer],
+        layer_classifications=[],
+        specs=[spec],
+        assessment_only=True,
+        artifact_directory=None,
+    )
+    _assert_zero_attempt_accounting(
+        assessment_only,
+        "not_run_assessment_only",
+    )
+    assert assessment_only["excluded_layers"] == []
+
+    no_candidates = one_shot._candidate_handler_assessment(
+        routing={"candidates": []},
+        layers=[layer],
+        layer_classifications=[],
+        specs=[spec],
+        assessment_only=False,
+        artifact_directory=None,
+    )
+    _assert_zero_attempt_accounting(no_candidates, "no_candidates")
+    assert no_candidates["excluded_layers"] == []
+
+    no_automatic_handler = one_shot._candidate_handler_assessment(
+        routing=routing,
+        layers=[layer],
+        layer_classifications=[],
+        specs=[],
+        assessment_only=False,
+        artifact_directory=None,
+    )
+    _assert_zero_attempt_accounting(
+        no_automatic_handler,
+        "no_automatic_handler",
+    )
+    assert no_automatic_handler["excluded_layers"] == []
+
+    monkeypatch.setattr(one_shot, "DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE", 0)
+    no_eligible_layer = one_shot._candidate_handler_assessment(
+        routing=routing,
+        layers=[layer],
+        layer_classifications=[],
+        specs=[spec],
+        assessment_only=False,
+        artifact_directory=None,
+    )
+    _assert_zero_attempt_accounting(
+        no_eligible_layer,
+        "no_eligible_layer_within_limits",
+    )
+    assert len(no_eligible_layer["excluded_layers"]) == 1
+    assert no_eligible_layer["excluded_layers"][0]["reason"] == (
+        "candidate_layer_size_limit"
+    )
+
+
 def _configure_selected_case(monkeypatch, data: bytes, family: str) -> one_shot.InputUnit:
     digest = hashlib.sha256(data).hexdigest()
     layer = one_shot.StaticLayer(

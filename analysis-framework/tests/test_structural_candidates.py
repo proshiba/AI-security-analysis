@@ -269,6 +269,81 @@ def test_output_and_stable_ids_are_deterministic_across_step_order() -> None:
     ]
 
 
+def test_upx_names_and_marker_without_classic_structure_do_not_block() -> None:
+    """UPX風の名前や文字列だけでは復元必須候補へ昇格しない。"""
+
+    step = _step(
+        "7" * 64,
+        {
+            "pe": {
+                "packer_markers": ["UPX!"],
+                "sections": [{"name": ".UPX"}, {"name": ".UPX0"}],
+                "classification": "packed_or_protected",
+                "packing_suspected": True,
+            }
+        },
+    )
+
+    result = build_structural_candidates({"steps": [step], "limit_events": []})
+
+    assert result["status"] == "complete_no_candidates"
+    assert result["candidate_count"] == 0
+    assert result["candidates"] == []
+    assert "upx_static_recovery_not_run" not in json.dumps(result)
+
+
+def test_classic_upx_structure_without_recovery_records_required_blocker() -> None:
+    """展開先と高entropy entry stubが揃う場合だけUPX復元を要求する。"""
+
+    step = _step(
+        "8" * 64,
+        {
+            "pe": {
+                "packer_markers": [],
+                "sections": [
+                    {
+                        "name": "UPX0",
+                        "raw_size": 0,
+                        "virtual_size": 0x9000,
+                        "entropy": 0.0,
+                    },
+                    {
+                        "name": "UPX1",
+                        "raw_size": 0x5000,
+                        "virtual_size": 0x6000,
+                        "entropy": 7.75,
+                    },
+                ],
+                "entrypoint_section": "UPX1",
+                "classification": "packed_or_protected",
+                "packing_suspected": True,
+            }
+        },
+    )
+
+    result = build_structural_candidates({"steps": [step], "limit_events": []})
+    candidate = result["candidates"][0]
+
+    assert result["status"] == "candidates_with_blockers"
+    assert candidate["kind"] == "upx_packed"
+    assert candidate["status"] == "structure_confirmed"
+    assert candidate["extraction"]["status"] == "not_attempted"
+    assert candidate["blockers"] == ["upx_static_recovery_not_run"]
+    assert candidate["evidence"]["counts"] == {
+        "upx_entrypoint_packed_section_count": 1,
+        "upx_high_entropy_section_count": 1,
+        "upx_section_count": 2,
+        "upx_zero_raw_virtual_section_count": 1,
+    }
+    assert candidate["evidence"]["signals"] == [
+        "upx_entrypoint_in_packed_section",
+        "upx_high_entropy_packed_section",
+        "upx_named_section",
+        "upx_named_section_pair",
+        "upx_zero_raw_virtual_unpack_target",
+    ]
+
+
 def test_fully_validated_nonpriority_pyinstaller_entries_are_not_blockers() -> None:
     """全内容検証済みの非候補破棄を高価値entry未保持と混同しない。"""
 
@@ -312,6 +387,55 @@ def test_fully_validated_nonpriority_pyinstaller_entries_are_not_blockers() -> N
     assert candidate["evidence"]["counts"]["unretained_candidate_count"] == 0
 
 
+def test_embedded_pe_fanout_remains_route_only_without_selection_lineage() -> None:
+    """全child scan済みでもbyte carveだけではfamilyへ昇格しない。"""
+
+    step = _step(
+        "0" * 64,
+        {
+            "pe": {
+                "overlay_size": 64 * 1024 * 1024,
+                "opaque_resources_skipped_without_local_decoder": 46,
+                "overlay_embedded_pe_scan": {
+                    "status": "complete",
+                    "recovered_candidate_count": 31,
+                    "unique_artifact_count": 27,
+                    "duplicate_digest_count": 4,
+                    "terminal_promotion_eligible": False,
+                },
+            },
+            "embedded_pe_scan": {
+                "status": "complete",
+                "recovered_candidate_count": 0,
+                "unique_artifact_count": 0,
+                "duplicate_digest_count": 0,
+                "terminal_promotion_eligible": False,
+            },
+            "recovered": [{"kind": "embedded-pe"} for _ in range(27)],
+        },
+        accepted_children=27,
+    )
+
+    result = build_structural_candidates({"steps": [step], "limit_events": []})
+    candidate = result["candidates"][0]
+
+    assert result["status"] == "candidates_with_blockers"
+    assert candidate["kind"] == "embedded_pe_fanout"
+    assert candidate["family_attribution_allowed"] is False
+    assert candidate["extraction"]["status"] == "recovered"
+    assert candidate["evidence"]["counts"] == {
+        "complete_scan_count": 2,
+        "discovered_candidate_count": 31,
+        "duplicate_digest_count": 4,
+        "incomplete_scan_count": 0,
+        "opaque_resources_skipped_without_local_decoder": 46,
+        "unique_artifact_count": 27,
+    }
+    assert candidate["blockers"] == [
+        "embedded_pe_byte_carve_has_no_launch_or_decoder_lineage"
+    ]
+
+
 def test_inno_overlay_marker_is_recorded_when_archive_parser_is_unsupported() -> None:
     """Inno markerを汎用SFXへ落とさず、未復元blocker付きで保持する。"""
 
@@ -334,6 +458,214 @@ def test_inno_overlay_marker_is_recorded_when_archive_parser_is_unsupported() ->
     assert candidate["status"] == "structure_suspected"
     assert candidate["extraction"]["status"] == "not_recovered"
     assert candidate["blockers"] == ["archive_extraction_incomplete"]
+
+
+def _authoritative_inno_report(
+    *,
+    status: str = "artifacts_recovered",
+) -> dict[str, object]:
+    """開始済みinnounpの相互整合する公開report fixtureを返す。"""
+
+    bounded = status == "bounded_selection_recovered"
+    encrypted = status == "encrypted_payload_blocked"
+    member_count = 3 if bounded else 2
+    declared_total_size = 30 if bounded else 10
+    selection = {
+        "selected_member_count": 2,
+        "selected_declared_size": 10,
+        "complete_archive_extraction": not bounded,
+        "omitted_member_count": 1 if bounded else 0,
+        "limit_reasons": ["member_size_limit"] if bounded else [],
+        "launch_target_match_count": 1,
+    }
+    inno: dict[str, object] = {
+        "schema_version": 1,
+        "status": status,
+        "candidate": True,
+        "executed": False,
+        "sample_executed": False,
+        "network_contacted": False,
+        "external_parser_started": True,
+        "inventory_complete": True,
+        "extraction_complete": not encrypted,
+        "terminal_promotion_eligible": False,
+        "archive_unlock_attempted": False,
+        "tool": {
+            "configured": True,
+            "available": True,
+            "sha256": "a" * 64,
+            "size": 1024,
+            "identity_unchanged": True,
+            "version": "2.71.1",
+        },
+        "inventory": {
+            "status": "listed",
+            "tool_version": "2.71.1",
+            "inventory_complete": True,
+            "member_count": member_count,
+            "declared_total_size": declared_total_size,
+            "invalid_member_count": 0,
+            "duplicate_member_count": 0,
+        },
+        "selection": selection,
+        "install_script": {
+            "status": "recovered_and_parsed",
+            "size": 4,
+            "sha256": "b" * 64,
+            "payload_encrypted": encrypted,
+            "decompiler_provenance_verified": True,
+            "launch_target_count": 1,
+            "launch_targets": ["{app}/host.exe"],
+            "dynamic_launch_target_count": 0,
+            "invalid_launch_target_count": 0,
+        },
+    }
+    if not encrypted:
+        inno["recovered_members"] = [
+            {
+                "name": "{app}/host.exe",
+                "size": 6,
+                "sha256": "c" * 64,
+                "format": "pe",
+                "launch_target": True,
+            }
+        ]
+    return inno
+
+
+def test_authoritative_inno_complete_state_supersedes_failed_sevenzip() -> None:
+    """完全なinnounp stateは失敗した汎用archive判定より優先する。"""
+
+    step = _step(
+        "5" * 64,
+        {
+            "pe": {
+                "packer_markers": ["Inno Setup"],
+                "containerized": True,
+                "packing_suspected": False,
+            },
+            "sevenzip": {"status": "not_archive_container", "archive_types": ["PE"]},
+            "inno": _authoritative_inno_report(),
+        },
+    )
+
+    result = build_structural_candidates({"steps": [step], "limit_events": []})
+    candidate = result["candidates"][0]
+
+    assert result["status"] == "candidates_recorded"
+    assert candidate["extraction"]["status"] == "recovered"
+    assert candidate["blockers"] == []
+    assert "innounp_authoritative_state" in candidate["evidence"]["signals"]
+
+
+def test_authoritative_inno_bounded_selection_is_not_not_attempted_without_sevenzip() -> None:
+    """SevenZip不在でもinnounpの有界選択済み状態と未保持件数を保持する。"""
+
+    step = _step(
+        "6" * 64,
+        {
+            "pe": {
+                "packer_markers": ["Inno Setup"],
+                "containerized": True,
+                "packing_suspected": False,
+            },
+            "inno": _authoritative_inno_report(
+                status="bounded_selection_recovered"
+            ),
+        },
+    )
+
+    result = build_structural_candidates({"steps": [step], "limit_events": []})
+    candidate = result["candidates"][0]
+
+    assert candidate["extraction"]["status"] == "selective_recovery"
+    assert candidate["blockers"] == ["archive_inventory_not_fully_retained"]
+    assert "archive_extractor_not_run" not in candidate["blockers"]
+    assert candidate["evidence"]["counts"]["member_count"] == 3
+    assert candidate["evidence"]["counts"]["omitted_member_count"] == 1
+
+
+def test_authoritative_inno_encryption_block_is_not_not_attempted_without_sevenzip() -> None:
+    """暗号化を確認済みのinnounp stateを未試行へ後退させない。"""
+
+    step = _step(
+        "7" * 64,
+        {
+            "pe": {
+                "packer_markers": ["Inno Setup"],
+                "containerized": True,
+                "packing_suspected": False,
+            },
+            "inno": _authoritative_inno_report(status="encrypted_payload_blocked"),
+        },
+    )
+
+    result = build_structural_candidates({"steps": [step], "limit_events": []})
+    candidate = result["candidates"][0]
+
+    assert candidate["extraction"]["status"] == "recovery_incomplete"
+    assert candidate["blockers"] == [
+        "archive_extraction_incomplete",
+        "inno_encrypted_payload_blocked",
+    ]
+    assert "archive_extractor_not_run" not in candidate["blockers"]
+
+
+def test_malformed_authoritative_inno_success_fails_closed_without_sevenzip() -> None:
+    """開始済みでもhash不整合の成功reportを回収済みに昇格しない。"""
+
+    inno = _authoritative_inno_report()
+    recovered_members = inno["recovered_members"]
+    assert isinstance(recovered_members, list)
+    recovered_members[0]["sha256"] = "invalid"
+    step = _step(
+        "8" * 64,
+        {
+            "pe": {
+                "packer_markers": ["Inno Setup"],
+                "containerized": True,
+                "packing_suspected": False,
+            },
+            "inno": inno,
+        },
+    )
+
+    result = build_structural_candidates({"steps": [step], "limit_events": []})
+    candidate = result["candidates"][0]
+
+    assert candidate["extraction"]["status"] == "recovery_incomplete"
+    assert candidate["blockers"] == [
+        "archive_extraction_incomplete",
+        "inno_extraction_report_invalid",
+    ]
+    assert "archive_extractor_not_run" not in candidate["blockers"]
+
+
+def test_unstarted_inno_report_still_uses_missing_archive_extractor_state() -> None:
+    """innounp未開始reportは権威的成功とせず従来の未試行状態を維持する。"""
+
+    step = _step(
+        "9" * 64,
+        {
+            "pe": {
+                "packer_markers": ["Inno Setup"],
+                "containerized": True,
+                "packing_suspected": False,
+            },
+            "inno": {
+                "schema_version": 1,
+                "candidate": True,
+                "status": "tool_unavailable",
+                "external_parser_started": False,
+            },
+        },
+    )
+
+    result = build_structural_candidates({"steps": [step], "limit_events": []})
+    candidate = result["candidates"][0]
+
+    assert candidate["extraction"]["status"] == "not_attempted"
+    assert candidate["blockers"] == ["archive_extractor_not_run"]
 
 
 def test_assessment_only_is_explicitly_empty_and_summarized() -> None:
