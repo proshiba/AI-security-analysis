@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from extractors.valleyrat import extractor
+from extractors.valleyrat import extractor, run_dll_native_core
 
 _SAMPLE_SIZE = 380 * 1024
 _IMAGE_BASE = 0x10000000
@@ -189,7 +189,9 @@ def _fixture(
         for index, offset in enumerate(starts)
         if index != missing_reference
     ]
-    code = b"".join(b"\x68" + struct.pack("<I", value) + b"\x58" for value in referenced_values)
+    code = b"".join(
+        b"\x68" + struct.pack("<I", value) + b"\x58" for value in referenced_values
+    )
     code += b"\xc3"
     code_start = _DATA_RAW + 0x1000 if references_in_data else _CODE_RAW
     data[code_start : code_start + len(code)] = code
@@ -212,19 +214,14 @@ def _fixture(
         ),
     }
     if zero_raw_section is not None:
-        raw_start, _raw_size, rva, characteristics = section_specs[
-            zero_raw_section
-        ]
+        raw_start, _raw_size, rva, characteristics = section_specs[zero_raw_section]
         section_specs[zero_raw_section] = (
             raw_start,
             0,
             rva,
             characteristics,
         )
-    sections = [
-        _section(data, name, *section_specs[name])
-        for name in section_names
-    ]
+    sections = [_section(data, name, *section_specs[name]) for name in section_names]
 
     imports = {
         library: tuple(symbol for symbol in symbols if symbol != missing_api)
@@ -232,16 +229,24 @@ def _fixture(
     }
     if extra_library:
         imports["VERSION.dll"] = ("GetFileVersionInfoW",)
-    import_descriptors = [
-        SimpleNamespace(
-            dll=library.encode("ascii"),
-            imports=[
-                SimpleNamespace(name=symbol.encode("ascii"), address=0x10070000 + index)
-                for index, symbol in enumerate(symbols)
-            ],
+    import_descriptors = []
+    iat_index = 0
+    for library, symbols in imports.items():
+        imported_symbols = []
+        for symbol in symbols:
+            imported_symbols.append(
+                SimpleNamespace(
+                    name=symbol.encode("ascii"),
+                    address=0x10070000 + iat_index * 4,
+                )
+            )
+            iat_index += 1
+        import_descriptors.append(
+            SimpleNamespace(
+                dll=library.encode("ascii"),
+                imports=imported_symbols,
+            )
         )
-        for library, symbols in imports.items()
-    ]
     export_names = [b"run", *([b"extra"] if extra_export else [])]
     directories = [SimpleNamespace(VirtualAddress=0, Size=0) for _ in range(16)]
     if resource_directory:
@@ -318,7 +323,7 @@ def test_probe_recovers_three_fixed_width_records_and_excludes_loopback(
     assert probe["terminal_family_confirmed"] is False
     assert probe["attribution_scope"] == "component_handler_route"
     assert probe["endpoints"] == [f"{_PRIMARY_HOST}:441"]
-    assert probe["excluded_placeholder_defaults"] == [f"{_FALLBACK_HOST}:80"]
+    assert probe["excluded_placeholder_defaults"] == []
     assert probe["slots"] == [
         {
             "slot": 1,
@@ -336,20 +341,30 @@ def test_probe_recovers_three_fixed_width_records_and_excludes_loopback(
             "transport": "tcp",
             "role": "primary",
         },
-        {
-            "slot": 3,
-            "host": _FALLBACK_HOST,
-            "port": 80,
-            "transport_selector": 1,
-            "transport": "tcp",
-            "role": "loopback_placeholder",
-        },
     ]
     evidence = probe["evidence"]
     assert evidence["configuration_record_count"] == 3
     assert evidence["unique_configuration_count"] == 1
+    assert evidence["loopback_placeholder_slot_count"] == 1
+    assert evidence["loopback_placeholder_values_included"] is False
     assert evidence["validated_code_reference_target_count"] == 9
     assert evidence["validated_code_reference_count"] == 9
+    assert evidence["native_dataflow"]["terminal_network_lineage_proven"] is False
+    assert (
+        "native_flow_same_socket_connect_send_receive_unproven"
+        in evidence["missing_proof_codes"]
+    )
+    assert (
+        "run_dll_terminal_protocol_serializer_unproven"
+        in evidence["missing_proof_codes"]
+    )
+    assert evidence["terminal_protocol_contract"] == {
+        "proven": False,
+        "status": "serializer_producer_consumer_lineage_unproven",
+        "frame_marker_candidate_present": False,
+        "literal_marker_alone_is_terminal_proof": False,
+        "raw_frame_included": False,
+    }
     assert evidence["raw_config_included"] is False
 
 
@@ -369,7 +384,8 @@ def test_extract_projects_route_only_config_and_confirmed_static_finding(
     assert config["terminal_family_confirmed"] is False
     assert config["attribution_scope"] == "component_handler_route"
     assert config["endpoints"] == [f"{_PRIMARY_HOST}:441"]
-    assert config["excluded_placeholder_defaults"] == [f"{_FALLBACK_HOST}:80"]
+    assert config["excluded_placeholder_defaults"] == []
+    assert _FALLBACK_HOST not in repr(config)
     assert config["source_name"] == "run-core.dll"
     assert result["findings"] == [
         {
@@ -382,6 +398,69 @@ def test_extract_projects_route_only_config_and_confirmed_static_finding(
     ]
     assert result["executed"] is False
     assert result["network_contacted"] is False
+
+
+def test_probe_projects_confirmed_terminal_lineage_to_strict_family(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """完全な終端lineageだけをfamily・config確定へ投影する。"""
+
+    sample = _fixture(monkeypatch)
+    terminal_lineage = {
+        "schema_version": 1,
+        "status": "validated_terminal_lineage",
+        "analysis_complete": True,
+        "terminal_family_lineage_proven": True,
+        "proof": {
+            "run_thread_callback": True,
+            "all_config_fields_referenced": True,
+            "runtime_config_copy": True,
+            "selector_one_transport_binding": True,
+            "runtime_config_to_connect": True,
+            "same_socket_connect_send_receive": True,
+            "framed_send_receive": True,
+            "periodic_keepalive": True,
+            "callback_dispatcher": True,
+            "registration_serializer": True,
+        },
+        "missing_proof_codes": [],
+        "coverage": {},
+        "protocol": {
+            "transport": "tcp",
+            "length_prefix_size": 4,
+            "session_header_size": 10,
+            "frame_header_size": 14,
+            "marker": "uint16_0x00ca",
+            "initial_registration_command": 6,
+            "raw_frame_included": False,
+        },
+        "sample_executed": False,
+        "network_contacted": False,
+        "raw_addresses_included": False,
+        "raw_config_included": False,
+    }
+    monkeypatch.setattr(
+        run_dll_native_core,
+        "analyze_run_dll_terminal_lineage",
+        lambda *_args, **_kwargs: terminal_lineage,
+    )
+
+    probe = extractor.probe_run_dll_native_core_config(sample)
+
+    assert probe["family"] == "valleyrat"
+    assert probe["variant"] == "run_dll_native_terminal_config"
+    assert probe["supports_family_attribution"] is True
+    assert probe["terminal_family_confirmed"] is True
+    assert probe["static_config_recovered"] is True
+    assert probe["candidate_config_recovered"] is False
+    assert probe["evidence"]["missing_proof_codes"] == []
+    assert probe["evidence"]["terminal_protocol_contract"] == {
+        "proven": True,
+        "status": "validated_serializer_producer_consumer_lineage",
+        "frame_marker_candidate_present": True,
+        "literal_marker_alone_is_terminal_proof": False,
+        "raw_frame_included": False,
+    }
 
 
 @pytest.mark.parametrize("primary_port", [7, 80, 441])
@@ -401,11 +480,52 @@ def test_probe_reads_short_ports_from_fixed_width_fields(
 
     assert probe["matched"] is True
     assert probe["endpoints"] == [f"{_PRIMARY_HOST}:{primary_port}"]
-    assert [slot["port"] for slot in probe["slots"]] == [
-        primary_port,
-        primary_port,
-        80,
-    ]
+    assert [slot["port"] for slot in probe["slots"]] == [primary_port, primary_port]
+
+
+@pytest.mark.parametrize(
+    ("fallback_host", "fallback_port"),
+    [
+        ("127.0.0.2", 8_448),
+        ("0:0:0:0:0:0:0:1", 53),
+    ],
+)
+def test_probe_accepts_any_valid_ipv4_or_ipv6_loopback_placeholder(
+    monkeypatch: pytest.MonkeyPatch,
+    fallback_host: str,
+    fallback_port: int,
+) -> None:
+    """loopbackの表記やport値を固定せず、値自体はC2出力へ含めない。"""
+
+    probe = extractor.probe_run_dll_native_core_config(
+        _fixture(
+            monkeypatch,
+            fallback_host=fallback_host,
+            fallback_port=fallback_port,
+        )
+    )
+
+    assert probe["matched"] is True
+    assert probe["endpoints"] == [f"{_PRIMARY_HOST}:441"]
+    assert len(probe["slots"]) == 2
+    assert [slot["port"] for slot in probe["slots"]] == [441, 441]
+    assert probe["excluded_placeholder_defaults"] == []
+    assert probe["evidence"]["loopback_placeholder_slot_count"] == 1
+    assert probe["evidence"]["loopback_placeholder_values_included"] is False
+    assert fallback_host not in repr(probe)
+
+
+def test_probe_rejects_public_third_endpoint_as_placeholder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """第三recordがpublic addressならplaceholderとして誤分類しない。"""
+
+    probe = extractor.probe_run_dll_native_core_config(
+        _fixture(monkeypatch, fallback_host="8.8.8.8", fallback_port=443)
+    )
+
+    assert probe["matched"] is False
+    assert probe["evidence"]["status"] == "ambiguous_or_missing_static_triplet"
 
 
 @pytest.mark.parametrize("sample_size", [350 * 1024, 450 * 1024])
@@ -466,8 +586,6 @@ def test_probe_rejects_values_outside_profile_size_boundaries(
     [
         ({"duplicate_host": "45.67.89.124"}, "primary host duplicate mismatch"),
         ({"duplicate_port": 442}, "primary port duplicate mismatch"),
-        ({"fallback_host": "127.0.0.2"}, "fallback host mismatch"),
-        ({"fallback_port": 81}, "fallback port mismatch"),
         ({"selectors": (1, 0, 1)}, "primary selector duplicate mismatch"),
         ({"selectors": (1, 1, 2)}, "unsupported selector"),
         ({"missing_reference": 0}, "first host reference missing"),
@@ -519,6 +637,18 @@ def test_probe_rejects_out_of_range_primary_port(
         primary_port=invalid_port,
         duplicate_port=invalid_port,
     )
+
+    assert extractor.probe_run_dll_native_core_config(sample)["matched"] is False
+
+
+@pytest.mark.parametrize("invalid_port", [0, 65536])
+def test_probe_rejects_out_of_range_loopback_port(
+    monkeypatch: pytest.MonkeyPatch,
+    invalid_port: int,
+) -> None:
+    """loopback placeholderでもportの有効範囲は緩和しない。"""
+
+    sample = _fixture(monkeypatch, fallback_port=invalid_port)
 
     assert extractor.probe_run_dll_native_core_config(sample)["matched"] is False
 

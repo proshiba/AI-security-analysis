@@ -2,7 +2,9 @@
 
 このmoduleは検体を実行せず、外部通信も行わない。既知componentで確認した
 PE構造、3件の固定幅UTF-16LE record、実行sectionから各fieldへの参照が
-すべて一致する場合だけ、family未確定のroute-only設定候補を返す。
+すべて一致する場合だけ設定候補を返す。さらに共通native data-flow coreで
+run exportからnetwork sinkまでを評価し、証明が閉じない場合は欠落code付きの
+route-only結果に留める。
 """
 
 from __future__ import annotations
@@ -15,6 +17,11 @@ from dataclasses import dataclass
 import pefile
 from capstone import CS_ARCH_X86, CS_MODE_32, Cs, CsError
 from capstone.x86 import X86_OP_IMM, X86_OP_MEM, X86_REG_INVALID
+
+from extractors.native_dataflow import NativeSource, analyze_x86_pe_dataflow
+from extractors.valleyrat.run_dll_native_terminal import (
+    analyze_run_dll_terminal_lineage,
+)
 
 MINIMUM_SAMPLE_SIZE = 350 * 1024
 MAXIMUM_SAMPLE_SIZE = 450 * 1024
@@ -138,7 +145,10 @@ def _section_views(image: pefile.PE, data_size: int) -> list[_SectionView] | Non
             characteristics = section.Characteristics
         except (AttributeError, UnicodeError, TypeError, ValueError, OverflowError):
             return None
-        if any(type(value) is not int for value in (raw_start, raw_size, virtual_address, characteristics)):
+        if any(
+            type(value) is not int
+            for value in (raw_start, raw_size, virtual_address, characteristics)
+        ):
             return None
         raw_end = raw_start + raw_size
         if (
@@ -164,11 +174,7 @@ def _section_views(image: pefile.PE, data_size: int) -> list[_SectionView] | Non
         return None
     if [view.name for view in views if view.executable] != [".text"]:
         return None
-    if any(
-        view.raw_end <= view.raw_start
-        for view in views
-        if view.name != ".fptable"
-    ):
+    if any(view.raw_end <= view.raw_start for view in views if view.name != ".fptable"):
         return None
     return views
 
@@ -228,30 +234,92 @@ def _imports(image: pefile.PE) -> tuple[set[str], set[str]] | None:
     return libraries, apis
 
 
-def _valid_export(image: pefile.PE, executable: _SectionView) -> bool:
-    """唯一の非forwarded ``run`` exportが実行section内にあることを確認する。"""
+def _export_address(image: pefile.PE, executable: _SectionView) -> int | None:
+    """唯一の非forwarded ``run`` exportのVAを返す。"""
 
     try:
         symbols = list(image.DIRECTORY_ENTRY_EXPORT.symbols)
     except (AttributeError, TypeError, ValueError, OverflowError):
-        return False
+        return None
     if len(symbols) != 1:
-        return False
+        return None
     symbol = symbols[0]
     try:
         name = symbol.name
         address = symbol.address
     except AttributeError:
-        return False
+        return None
     forwarder = symbol.forwarder if hasattr(symbol, "forwarder") else None
     if name != b"run" or forwarder is not None:
-        return False
-    return bool(
+        return None
+    try:
+        image_base = image.OPTIONAL_HEADER.ImageBase
+    except (AttributeError, TypeError, ValueError, OverflowError):
+        return None
+    if not (
         type(address) is int
+        and type(image_base) is int
         and executable.virtual_address
         <= address
         < executable.virtual_address + (executable.raw_end - executable.raw_start)
+        and 0 <= image_base + address <= 0xFFFFFFFF
+    ):
+        return None
+    return image_base + address
+
+
+def _native_sources(
+    image: pefile.PE,
+    records: tuple[_ConfigRecord, _ConfigRecord, _ConfigRecord],
+) -> tuple[NativeSource, ...] | None:
+    """configの値を公開せず、9 fieldのVA範囲と役割だけを構成する。"""
+
+    try:
+        image_base = image.OPTIONAL_HEADER.ImageBase
+    except (AttributeError, TypeError, ValueError, OverflowError):
+        return None
+    if type(image_base) is not int or not 0 <= image_base <= 0xFFFFFFFF:
+        return None
+    result: list[NativeSource] = []
+    for slot, record in enumerate(records, start=1):
+        for field, offset, size, kind in (
+            ("host", record.host_offset, HOST_FIELD_SIZE, "host"),
+            ("port", record.port_offset, PORT_FIELD_SIZE, "port"),
+            ("selector", record.selector_offset, 4, "selector"),
+        ):
+            rva = _mapped_rva(image, offset)
+            if rva is None or image_base + rva > 0xFFFFFFFF:
+                return None
+            result.append(
+                NativeSource(
+                    name=f"slot_{slot}_{field}",
+                    address=image_base + rva,
+                    size=size,
+                    kind=kind,
+                )
+            )
+    return tuple(result)
+
+
+def _terminal_protocol_contract(data: bytes) -> dict[str, object]:
+    """文字列の存在を終端証明と誤認せず、serializer未証明を明示する。"""
+
+    frame_marker_candidate = any(
+        marker in data
+        for marker in (
+            b"CA00",
+            b"CA01",
+            "CA00".encode("utf-16le"),
+            "CA01".encode("utf-16le"),
+        )
     )
+    return {
+        "proven": False,
+        "status": "serializer_producer_consumer_lineage_unproven",
+        "frame_marker_candidate_present": frame_marker_candidate,
+        "literal_marker_alone_is_terminal_proof": False,
+        "raw_frame_included": False,
+    }
 
 
 def _decode_zero_padded_utf16(data: bytes, start: int, width: int) -> str | None:
@@ -294,6 +362,21 @@ def _normalize_external_host(value: str) -> str | None:
             return None
         return host
     if address.version != 4 or not address.is_global:
+        return None
+    return str(address)
+
+
+def _normalize_loopback_host(value: str) -> str | None:
+    """IPv4/IPv6 loopbackだけをplaceholder hostとして正規化する。"""
+
+    host = value.rstrip(".").casefold()
+    if not host or len(host) > 253:
+        return None
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return None
+    if not address.is_loopback:
         return None
     return str(address)
 
@@ -384,8 +467,7 @@ def _referenced_operand(
         instruction = instructions[0]
         instruction_end = instruction_start + instruction.size
         if not (
-            instruction_start <= packed_offset
-            and packed_offset + 4 <= instruction_end
+            instruction_start <= packed_offset and packed_offset + 4 <= instruction_end
         ):
             continue
         for operand in instruction.operands:
@@ -493,13 +575,13 @@ def _config_candidates(
         first, second, fallback = parsed
         normalized_primary = _normalize_external_host(first.host)
         normalized_duplicate = _normalize_external_host(second.host)
+        normalized_fallback = _normalize_loopback_host(fallback.host)
         if (
             normalized_primary is None
             or normalized_duplicate != normalized_primary
             or first.port != second.port
             or first.selector != second.selector
-            or fallback.host != "127.0.0.1"
-            or fallback.port != 80
+            or normalized_fallback is None
         ):
             continue
         offsets = tuple(
@@ -535,7 +617,20 @@ def _config_candidates(
             port_offset=second.port_offset,
             selector_offset=second.selector_offset,
         )
-        results.append(((normalized_first, normalized_second, fallback), references))
+        normalized_placeholder = _ConfigRecord(
+            host=normalized_fallback,
+            port=fallback.port,
+            selector=fallback.selector,
+            host_offset=fallback.host_offset,
+            port_offset=fallback.port_offset,
+            selector_offset=fallback.selector_offset,
+        )
+        results.append(
+            (
+                (normalized_first, normalized_second, normalized_placeholder),
+                references,
+            )
+        )
         if len(results) >= MAXIMUM_CONFIG_CANDIDATES:
             break
     return results
@@ -571,7 +666,13 @@ def probe_run_dll_native_core_config(data: bytes) -> dict[str, object]:
             characteristics = image.FILE_HEADER.Characteristics
             magic = image.OPTIONAL_HEADER.Magic
             subsystem = image.OPTIONAL_HEADER.Subsystem
-        except (AttributeError, TypeError, ValueError, OverflowError, pefile.PEFormatError):
+        except (
+            AttributeError,
+            TypeError,
+            ValueError,
+            OverflowError,
+            pefile.PEFormatError,
+        ):
             return _empty_probe("invalid_pe_headers")
         if (
             machine != 0x14C
@@ -586,7 +687,13 @@ def probe_run_dll_native_core_config(data: bytes) -> dict[str, object]:
             return _empty_probe("profile_mismatch")
         try:
             overlay_start = image.get_overlay_data_start_offset()
-        except (AttributeError, TypeError, ValueError, OverflowError, pefile.PEFormatError):
+        except (
+            AttributeError,
+            TypeError,
+            ValueError,
+            OverflowError,
+            pefile.PEFormatError,
+        ):
             return _empty_probe("overlay_state_unavailable")
         if overlay_start is not None:
             return _empty_probe("overlay_rejected")
@@ -595,30 +702,79 @@ def probe_run_dll_native_core_config(data: bytes) -> dict[str, object]:
             return _empty_probe("section_contract_rejected")
         executable = sections[0]
         data_section = sections[2]
-        if not _valid_export(image, executable):
+        run_export = _export_address(image, executable)
+        if run_export is None:
             return _empty_probe("export_contract_rejected")
         imported = _imports(image)
         if imported is None:
             return _empty_probe("import_contract_rejected")
         libraries, apis = imported
-        if (
-            libraries != PROFILE_IMPORT_LIBRARIES
-            or not PROFILE_REQUIRED_APIS.issubset(apis)
+        if libraries != PROFILE_IMPORT_LIBRARIES or not PROFILE_REQUIRED_APIS.issubset(
+            apis
         ):
             return _empty_probe("import_profile_mismatch")
         candidates = _config_candidates(data, image, data_section, executable)
         if len(candidates) != 1:
             return _empty_probe("ambiguous_or_missing_static_triplet")
         records, references = candidates[0]
-        first, second, fallback = records
+        first, second, _fallback = records
+        sources = _native_sources(image, records)
+        if sources is None:
+            return _empty_probe("native_source_mapping_failed")
+        native_flow = analyze_x86_pe_dataflow(
+            data,
+            image,
+            roots=(run_export,),
+            sources=sources,
+            require_callback=True,
+        )
+        terminal_lineage = analyze_run_dll_terminal_lineage(
+            data,
+            image,
+            run_export=run_export,
+            sources=sources,
+            selector_values=tuple(record.selector for record in records),
+        )
+        terminal_family_confirmed = bool(
+            terminal_lineage["terminal_family_lineage_proven"] is True
+        )
+        protocol_proven = bool(
+            terminal_lineage["proof"]["framed_send_receive"] is True
+            and terminal_lineage["proof"]["registration_serializer"] is True
+        )
+        missing_proof_codes = list(terminal_lineage["missing_proof_codes"])
+        if not terminal_family_confirmed:
+            missing_proof_codes.extend(
+                code
+                for code in native_flow["missing_proof_codes"]
+                if code not in missing_proof_codes
+            )
+        if not protocol_proven:
+            missing_proof_codes.append("run_dll_terminal_protocol_serializer_unproven")
+        terminal_protocol_contract = {
+            "proven": protocol_proven,
+            "status": (
+                "validated_serializer_producer_consumer_lineage"
+                if protocol_proven
+                else "serializer_producer_consumer_lineage_unproven"
+            ),
+            "frame_marker_candidate_present": (
+                terminal_lineage["protocol"]["marker"] is not None
+            ),
+            "literal_marker_alone_is_terminal_proof": False,
+            "raw_frame_included": False,
+        }
         endpoint = f"{first.host}:{first.port}"
         slots = [
             _public_slot(first, 1, "primary"),
             _public_slot(second, 2, "primary"),
-            _public_slot(fallback, 3, "loopback_placeholder"),
         ]
         evidence = {
-            "status": "validated_static_config_route_candidate",
+            "status": (
+                "validated_terminal_family_config"
+                if terminal_family_confirmed
+                else "validated_static_config_route_candidate"
+            ),
             "profile": "run_dll_native_core",
             "sample_size": len(data),
             "section_count": len(sections),
@@ -629,30 +785,47 @@ def probe_run_dll_native_core_config(data: bytes) -> dict[str, object]:
             "duplicate_primary_slot_count": 2,
             "external_endpoint_count": 1,
             "loopback_placeholder_slot_count": 1,
+            "loopback_placeholder_values_included": False,
             "validated_code_reference_target_count": len(references),
             "validated_code_reference_count": sum(references.values()),
+            "native_dataflow": native_flow,
+            "run_dll_terminal_lineage": terminal_lineage,
+            "terminal_protocol_contract": terminal_protocol_contract,
+            "missing_proof_codes": missing_proof_codes,
             "raw_config_included": False,
             "raw_payload_included": False,
         }
         return {
             "matched": True,
-            "family": None,
-            "variant": "run_dll_native_core_static_triplet_candidate",
-            "supports_family_attribution": False,
-            "attribution_scope": "component_handler_route",
-            "terminal_family_confirmed": False,
-            "family_attribution_basis": (
-                "strict_run_export_native_core_pe_and_unique_referenced_static_triplet"
+            "family": "valleyrat" if terminal_family_confirmed else None,
+            "variant": (
+                "run_dll_native_terminal_config"
+                if terminal_family_confirmed
+                else "run_dll_native_core_static_triplet_candidate"
             ),
-            "classification_confidence": "high_structural_static_config_candidate",
+            "supports_family_attribution": terminal_family_confirmed,
+            "attribution_scope": (
+                "terminal_payload"
+                if terminal_family_confirmed
+                else "component_handler_route"
+            ),
+            "terminal_family_confirmed": terminal_family_confirmed,
+            "family_attribution_basis": (
+                "run_export_config_to_same_socket_network_and_terminal_protocol"
+                if terminal_family_confirmed
+                else "strict_run_export_native_core_pe_and_unique_referenced_static_triplet"
+            ),
+            "classification_confidence": (
+                "confirmed_static_terminal_lineage"
+                if terminal_family_confirmed
+                else "high_structural_static_config_candidate"
+            ),
             "decoded_config_recovered": False,
             "static_config_recovered": True,
-            "candidate_config_recovered": True,
+            "candidate_config_recovered": not terminal_family_confirmed,
             "endpoints": [endpoint],
             "slots": slots,
-            "excluded_placeholder_defaults": [
-                f"{fallback.host}:{fallback.port}"
-            ],
+            "excluded_placeholder_defaults": [],
             "evidence": evidence,
             "config": {
                 "endpoint_count": 1,

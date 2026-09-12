@@ -8,14 +8,13 @@ SHA-256とサイズへ縮約する。
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
-from types import SimpleNamespace
 import struct
 import sys
+from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import dnfile
-
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 if str(REPOSITORY_ROOT) not in sys.path:
@@ -26,7 +25,6 @@ from unpackers.static_unpacker import (  # noqa: E402
     recover_dotnet_bitmap_payloads,
     valid_pe_extent,
 )
-
 
 BITMAP_MARKERS = (
     b"System.Drawing.Bitmap",
@@ -100,17 +98,48 @@ def managed_pe_shape(data: bytes) -> dict[str, Any]:
 
 
 def _integer_field(value: object, name: str) -> int:
+    """監査済みの固定metadata fieldだけを読み、動的属性参照を行わない。"""
+
     try:
-        return int(getattr(value, name, 0) or 0)
-    except (TypeError, ValueError):
+        if name == "cb":
+            raw = value.cb
+        elif name == "Signature":
+            raw = value.Signature
+        elif name == "MetaDataRva":
+            raw = value.MetaDataRva
+        elif name == "MetaDataSize":
+            raw = value.MetaDataSize
+        elif name == "Offset":
+            raw = value.Offset
+        elif name == "Size":
+            raw = value.Size
+        elif name == "ResourcesRva":
+            raw = value.ResourcesRva
+        elif name == "ResourcesSize":
+            raw = value.ResourcesSize
+        else:
+            return 0
+        return int(raw or 0)
+    except (AttributeError, TypeError, ValueError):
         return 0
 
 
 def _declared_table_rows(tables: object, name: str) -> int:
-    table = getattr(tables, name, None)
+    """監査済みの固定metadata tableだけを読み、動的属性参照を行わない。"""
+
     try:
-        return max(0, int(getattr(table, "num_rows", 0) or 0))
-    except (TypeError, ValueError):
+        if name == "Module":
+            raw = tables.Module.num_rows
+        elif name == "TypeDef":
+            raw = tables.TypeDef.num_rows
+        elif name == "MethodDef":
+            raw = tables.MethodDef.num_rows
+        elif name == "ManifestResource":
+            raw = tables.ManifestResource.num_rows
+        else:
+            return 0
+        return max(0, int(raw or 0))
+    except (AttributeError, TypeError, ValueError):
         return 0
 
 

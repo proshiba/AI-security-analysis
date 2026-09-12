@@ -198,10 +198,73 @@ def test_collection_metadata_rejects_mismatched_sha256(short_tmp: Path) -> None:
         raise AssertionError("mismatched SHA-256 was accepted")
 
 
+def test_frozen_corpus_selected_metadata_builds_exact_hint(short_tmp: Path) -> None:
+    path = short_tmp / "download-manifest.json"
+    path.write_text(
+        json.dumps(
+            {
+                "selected": [
+                    {
+                        "sha256": SHA256,
+                        "metadata": {
+                            "sha256": SHA256,
+                            "signature": "ValleyRAT",
+                            "tags": ["SilverFox", "ValleyRAT", "exe"],
+                            "first_seen": "2026-09-09 03:03:20",
+                        },
+                        "selection_sources": [
+                            "signature:ValleyRAT",
+                            "tag:ValleyRAT",
+                        ],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    manifest = build_collection_manifest(path, source="frozen_corpus_fixture")
+
+    assert list(manifest["samples"]) == [SHA256]
+    hints = manifest["samples"][SHA256]
+    assert {hint["family"] for hint in hints} == {"valleyrat"}
+    assert {hint["provenance"] for hint in hints} == {
+        "metadata-manifest:reported_signature"
+    }
+    assert all(hint["confidence"] == "unverified" for hint in hints)
+
+
+def test_frozen_corpus_rejects_nested_sha256_mismatch(short_tmp: Path) -> None:
+    path = short_tmp / "download-manifest.json"
+    path.write_text(
+        json.dumps(
+            {
+                "selected": [
+                    {
+                        "sha256": SHA256,
+                        "metadata": {
+                            "sha256": "b" * 64,
+                            "signature": "ValleyRAT",
+                        },
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    try:
+        build_collection_manifest(path, source="frozen_corpus_fixture")
+    except ValueError as exc:
+        assert "do not match" in str(exc)
+    else:
+        raise AssertionError("mismatched nested SHA-256 was accepted")
+
+
 def test_collection_metadata_rejects_ambiguous_item_fields(short_tmp: Path) -> None:
     path = short_tmp / "manifest.json"
     path.write_text(
-        json.dumps({"acquisition_items": [], "items": []}),
+        json.dumps({"acquisition_items": [], "items": [], "selected": []}),
         encoding="utf-8",
     )
 

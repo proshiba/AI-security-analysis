@@ -10,13 +10,13 @@ that a particular commercial protector or obfuscator was used.
 from __future__ import annotations
 
 import argparse
-from collections import Counter, deque
 import hashlib
 import json
 import math
-from pathlib import Path
 import re
 import struct
+from collections import Counter, deque
+from pathlib import Path
 from typing import Any
 
 try:
@@ -594,12 +594,30 @@ def _analyze_mapped_code(
     indirect_calls = 0
     import_indirect_calls = 0
     unexplained_indirect_calls = 0
+    direct_call_sites: list[dict[str, Any]] = []
     indirect_transfer_sites: list[dict[str, Any]] = []
     returns = 0
     stack_pointer_writes = 0
     unresolved_successors = 0
     budget_exhausted = False
     known_indirect_targets = known_indirect_targets or {}
+
+    def record_direct_call(instruction: Any, target: int) -> None:
+        """Record one bounded direct-call site without following the callee."""
+
+        if len(direct_call_sites) >= MAX_EVIDENCE:
+            return
+        direct_call_sites.append(
+            {
+                "address": hex(int(instruction.address)),
+                "target": hex(target),
+                "classification": (
+                    "mapped_internal_candidate"
+                    if _mapped_address(mappings, target)
+                    else "unmapped_direct_target"
+                ),
+            }
+        )
 
     def record_indirect(instruction: Any, kind: str, classification: str) -> None:
         """Record one bounded indirect-transfer site."""
@@ -684,7 +702,10 @@ def _analyze_mapped_code(
             is_return = instruction.group(capstone.CS_GRP_RET)
             if is_call:
                 calls += 1
-                if _direct_target(instruction) is None:
+                direct_target = _direct_target(instruction)
+                if direct_target is not None:
+                    record_direct_call(instruction, direct_target)
+                else:
                     indirect_calls += 1
                     _, import_label = _known_indirect_transfer(
                         instruction, bits, known_indirect_targets
@@ -817,6 +838,11 @@ def _analyze_mapped_code(
         "import_indirect_branches": import_indirect_branches,
         "unexplained_indirect_branches": unexplained_indirect_branches,
         "calls": calls,
+        "direct_calls": calls - indirect_calls,
+        "direct_call_sites": direct_call_sites,
+        "direct_call_site_inventory_truncated": (
+            calls - indirect_calls > len(direct_call_sites)
+        ),
         "indirect_calls": indirect_calls,
         "import_indirect_calls": import_indirect_calls,
         "unexplained_indirect_calls": unexplained_indirect_calls,
@@ -824,6 +850,9 @@ def _analyze_mapped_code(
             unexplained_indirect_branches + unexplained_indirect_calls
         ),
         "indirect_transfer_sites": indirect_transfer_sites,
+        "indirect_transfer_site_inventory_truncated": (
+            indirect_calls + indirect_branches > len(indirect_transfer_sites)
+        ),
         "returns": returns,
         "unresolved_successors": unresolved_successors,
         "decode_failures": decode_failures,

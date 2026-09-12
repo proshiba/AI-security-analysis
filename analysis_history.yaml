@@ -745,20 +745,6 @@ analyses:
     c2: ['31.58.136.207']
     result_path: analysis-results/malware/spyglace/versions/v3.1.15/cases/c86f319f64d25f23ac29d9b53c9764f06a150634ee8e2d836424d460e5a99b52/
     notes: 'Recovered PE 7621e4ef...e067; no execution or C2 contact.'
-  - malware_type: ValleyRAT
-    analyzed_at: 2026-07-16
-    sample_sha256: f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd
-    analysis_level: source_and_public_artifact_correlation
-    campaign_type: cefclient_libcef_sideload_malspam
-    matched_patterns:
-      - 'Japanese bonus-notice lure'
-      - 'signed CEF host beside malicious libcef.dll'
-      - 'exact outer ZIP and DLL hashes'
-    c2:
-      - 'ljowqjd.cn'
-    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/
-    notes: 'Malicious DLL unavailable from MalwareBazaar; final config remains unverified and the signed host hash is context-only.'
-
   - malware_type: npm_supply_chain
     analyzed_at: 2026-07-16
     sample_sha256: e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09

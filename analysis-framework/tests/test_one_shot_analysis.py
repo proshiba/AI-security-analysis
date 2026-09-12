@@ -375,6 +375,7 @@ def test_resume_reuses_only_valid_completed_case(tmp_path: Path, monkeypatch) ->
         [sample],
         output,
         registry=REGISTRY,
+        password="",
         assessment_only=True,
     )
     assert first["counts"]["resumed"] == 0
@@ -387,6 +388,7 @@ def test_resume_reuses_only_valid_completed_case(tmp_path: Path, monkeypatch) ->
         [sample],
         output,
         registry=REGISTRY,
+        password="",
         assessment_only=True,
         resume=True,
     )

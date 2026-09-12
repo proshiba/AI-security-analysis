@@ -12,6 +12,7 @@
 ## 現行基盤
 
 - [AI非依存の一括静的解析オーケストレーション](AI-FREE-STATIC-ANALYSIS-ORCHESTRATION.md)
+- [ValleyRAT AI非依存設定抽出の100件holdout受入試験](VALLEYRAT-AI-FREE-HOLDOUT.md)
 - [識別・解析・公開・保管を接続する解析lifecycleの自動化](ANALYSIS-LIFECYCLE-AUTOMATION.md)
 - [複数の解析lifecycleを統括する解析全体オーケストレータ](ANALYSIS-ORCHESTRATOR.md)
 - [WebUI／ローカルAPI向け静的解析ジョブ契約](LOCAL-ANALYSIS-JOB-CONTRACT.md)

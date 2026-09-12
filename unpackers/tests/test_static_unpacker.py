@@ -17,6 +17,7 @@ import pytest
 import pyzipper
 
 from unpackers import static_unpacker as unpacker
+from unpackers.inno_static import InnoCandidateAssessment
 
 
 def test_static_tool_process_drops_host_secret_environment(
@@ -303,7 +304,9 @@ def test_pyinstaller_carchive_is_fully_validated_and_routed_as_static_layer() ->
     assert artifacts == [("pyinstaller-python_script-000-entrypoint", payload)]
 
 
-def test_anonymous_pyinstaller_script_reaches_static_layer_with_source_commitment() -> None:
+def test_anonymous_pyinstaller_script_reaches_static_layer_with_source_commitment() -> (
+    None
+):
     """匿名TOC名でも静的unpackerがpayloadを保持し、元名はhashだけを公開する。"""
 
     payload = b"print('anonymous fixture')"
@@ -313,8 +316,11 @@ def test_anonymous_pyinstaller_script_reaches_static_layer_with_source_commitmen
         unpacker.MemoryCArchiveReader.COOKIE_FORMAT, sample, cookie_offset
     )
     name_start = (
-        cookie_offset + unpacker.MemoryCArchiveReader.COOKIE_LENGTH
-        - archive_length + toc_offset + unpacker.MemoryCArchiveReader.TOC_ENTRY_LENGTH
+        cookie_offset
+        + unpacker.MemoryCArchiveReader.COOKIE_LENGTH
+        - archive_length
+        + toc_offset
+        + unpacker.MemoryCArchiveReader.TOC_ENTRY_LENGTH
     )
     sample[name_start] = 0
 
@@ -324,7 +330,7 @@ def test_anonymous_pyinstaller_script_reaches_static_layer_with_source_commitmen
     assert pyinstaller["status"] == "artifacts_recovered"
     assert pyinstaller["complete"] is True
     assert pyinstaller["archive"]["anonymous_script_entry_count"] == 1
-    selected, = pyinstaller["selection"]["selected_entries"]
+    (selected,) = pyinstaller["selection"]["selected_entries"]
     assert selected["name_source"] == "synthetic_anonymous_script"
     assert len(selected["name_field_sha256"]) == 64
     assert [blob for _, blob in artifacts] == [payload]
@@ -343,6 +349,60 @@ def test_installer_overlay_marker_does_not_become_an_image_packer_marker() -> No
     assert "Nullsoft" in summary["packer_markers"]
     assert "Inno Setup" in summary["packer_markers"]
     assert "UPX!" not in summary["packer_markers"]
+
+
+def test_upx_section_name_alone_is_not_classified_or_sent_to_tool(
+    tmp_path: Path,
+) -> None:
+    """単独の.UPX0名だけではpacked分類にもUPX復元開始にも使わない。"""
+
+    sample = bytearray(minimal_pe())
+    section_name_offset = sample.find(b".text\0\0\0")
+    assert section_name_offset >= 0
+    sample[section_name_offset : section_name_offset + 8] = b".UPX0\0\0\0"
+
+    summary, _artifacts = unpacker.pe_summary(bytes(sample))
+    report, _artifacts = unpacker.unpack_bytes(
+        bytes(sample),
+        "named-only.exe",
+        upx=tmp_path / "must-not-run.exe",
+    )
+
+    assert summary["classic_upx_structure"] is False
+    assert summary["classification"] == "not_packed"
+    assert summary["packing_suspected"] is False
+    assert report["upx"] == {"status": "skipped_no_upx_evidence"}
+
+
+def test_classic_upx_structure_requires_unpack_target_and_entry_stub() -> None:
+    """markerまたは名前pairに加え、zero-raw展開先と高entropy entry stubを要求する。"""
+
+    superficial = {
+        "packer_markers": ["UPX!"],
+        "sections": [{"name": "UPX0"}, {"name": "UPX1"}],
+        "entrypoint_section": "UPX1",
+    }
+    classic = {
+        "packer_markers": [],
+        "sections": [
+            {
+                "name": "UPX0",
+                "raw_size": 0,
+                "virtual_size": 0x8000,
+                "entropy": 0.0,
+            },
+            {
+                "name": "UPX1",
+                "raw_size": 0x4000,
+                "virtual_size": 0x5000,
+                "entropy": 7.8,
+            },
+        ],
+        "entrypoint_section": "UPX1",
+    }
+
+    assert unpacker._has_classic_upx_structure(superficial) is False
+    assert unpacker._has_classic_upx_structure(classic) is True
 
 
 def test_gdpf_pdf_footer_is_recovered_from_validated_pe_overlay() -> None:
@@ -617,6 +677,20 @@ def test_small_opaque_resource_is_retained_only_for_named_custom_type() -> None:
     )
 
 
+def test_resource_only_pe_has_no_local_opaque_resource_decoder() -> None:
+    """実行sectionを持たないresource-only PEをopaque payload源にしない。"""
+
+    resource_only = SimpleNamespace(
+        sections=[SimpleNamespace(Characteristics=0x40000040, SizeOfRawData=0x2000)]
+    )
+    code_bearing = SimpleNamespace(
+        sections=[SimpleNamespace(Characteristics=0x60000020, SizeOfRawData=0x200)]
+    )
+
+    assert not unpacker._has_local_pe_resource_decoder(resource_only)
+    assert unpacker._has_local_pe_resource_decoder(code_bearing)
+
+
 def test_repetitive_padding_detection() -> None:
     """反復PEオーバーレイと埋め込みペイロードを区別する。"""
     report = unpacker.repetitive_padding(b"pqrs" * 4096)
@@ -627,6 +701,64 @@ def test_repetitive_padding_detection() -> None:
         "trailing_bytes": 0,
     }
     assert unpacker.repetitive_padding(bytes(range(256)) * 16) is None
+
+
+@pytest.mark.parametrize(
+    ("overlay_size", "scan_report", "expected"),
+    [
+        (
+            unpacker.MIN_OVERLAY_CONTAINER_BYTES,
+            {
+                "status": "complete",
+                "unique_artifact_count": unpacker.MIN_OVERLAY_CONTAINER_UNIQUE_PE_COUNT,
+            },
+            True,
+        ),
+        (
+            unpacker.MIN_OVERLAY_CONTAINER_BYTES - 1,
+            {
+                "status": "complete",
+                "unique_artifact_count": unpacker.MIN_OVERLAY_CONTAINER_UNIQUE_PE_COUNT,
+            },
+            False,
+        ),
+        (
+            unpacker.MIN_OVERLAY_CONTAINER_BYTES,
+            {
+                "status": "complete",
+                "unique_artifact_count": unpacker.MIN_OVERLAY_CONTAINER_UNIQUE_PE_COUNT
+                - 1,
+            },
+            False,
+        ),
+        (
+            unpacker.MIN_OVERLAY_CONTAINER_BYTES,
+            {
+                "status": "candidate_scan_limit",
+                "unique_artifact_count": unpacker.MIN_OVERLAY_CONTAINER_UNIQUE_PE_COUNT
+                + 10,
+            },
+            False,
+        ),
+        (
+            unpacker.MIN_OVERLAY_CONTAINER_BYTES,
+            {"status": "complete", "unique_artifact_count": True},
+            False,
+        ),
+    ],
+    ids=["threshold", "small-overlay", "few-pes", "incomplete-scan", "boolean-count"],
+)
+def test_overlay_multi_pe_container_signal_is_bounded_and_fail_closed(
+    overlay_size: int,
+    scan_report: object,
+    expected: bool,
+) -> None:
+    """byte carveは完全走査・大容量・複数一意PEが揃う場合だけprobe根拠にする。"""
+
+    assert (
+        unpacker._overlay_embedded_pe_container_signal(overlay_size, scan_report)
+        is expected
+    )
 
 
 def test_macho_and_encoded_blob() -> None:
@@ -685,6 +817,27 @@ def test_zip_recovery_and_write(tmp_path: Path) -> None:
     destination = tmp_path / "artifacts.zip"
     unpacker.write_artifacts(destination, artifacts)
     assert zipfile.is_zipfile(destination)
+
+
+@pytest.mark.parametrize(
+    "member_name",
+    ("../RAW_TRAVERSAL_SENTINEL.bin", "safe/\x01RAW_CONTROL_SENTINEL.bin"),
+)
+def test_zip_unsafe_member_name_is_absent_from_public_report(member_name: str) -> None:
+    """危険なZIP member名は例外・公開reportへ転記しない。"""
+
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as archive:
+        archive.writestr(member_name, b"fixture")
+
+    report, artifacts = unpacker.unpack_bytes(stream.getvalue(), "unsafe.zip")
+
+    assert report["zip_error"] == "zip_validation_failed"
+    assert report["unpack_status"] == "bounded_limit"
+    assert member_name not in repr(report)
+    assert "RAW_TRAVERSAL_SENTINEL" not in repr(report)
+    assert "RAW_CONTROL_SENTINEL" not in repr(report)
+    assert artifacts == []
 
 
 def test_aes_zip_password_and_member_name_are_propagated() -> None:
@@ -908,6 +1061,96 @@ def test_autoit_xor_and_rc4_lznt1_recovery(monkeypatch: pytest.MonkeyPatch) -> N
     assert artifacts[0][1] == payload
 
 
+def _bounded_dotnet_bundle_fixture(
+    *,
+    path: bytes = b"fixture.dll",
+    payload: bytes = b"MZfixture",
+) -> bytes:
+    """static unpackerのbundle preflight用に最小version 6 manifestを作る。"""
+
+    image = bytearray(512)
+    marker_offset = 64
+    payload_offset = 128
+    header_offset = 256
+    image[marker_offset : marker_offset + len(unpacker.BUNDLE_SIGNATURE)] = (
+        unpacker.BUNDLE_SIGNATURE
+    )
+    image[payload_offset : payload_offset + len(payload)] = payload
+    struct.pack_into("<q", image, marker_offset - 8, header_offset)
+    manifest = bytearray(struct.pack("<IIi", 6, 0, 1))
+    manifest.extend(b"\x0afixture-id")
+    manifest.extend(struct.pack("<qqqqQ", 0, 0, 0, 0, 0))
+    manifest.extend(struct.pack("<qqqB", payload_offset, len(payload), 0, 1))
+    manifest.extend(bytes((len(path),)))
+    manifest.extend(path)
+    image[header_offset : header_offset + len(manifest)] = manifest
+    return bytes(image[: header_offset + len(manifest)])
+
+
+def test_dotnet_bundle_preflight_accepts_bounded_manifest() -> None:
+    """一意な署名が境界内manifestを指す正規候補だけを復元する。"""
+
+    sample = _bounded_dotnet_bundle_fixture()
+
+    report, artifacts = unpacker.recover_preflighted_dotnet_bundle(sample)
+
+    assert report["status"] == "recovered"
+    assert report["entry_count"] == 1
+    assert artifacts == [("dotnet-bundle-assembly", b"MZfixture")]
+
+
+def test_dotnet_bundle_preflight_ignores_unreferenced_signature(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """nativeデータ中の偶然の署名一致をbundle parse失敗へ昇格しない。"""
+
+    sample = b"MZ" + b"N" * 126 + unpacker.BUNDLE_SIGNATURE + b"tail"
+    monkeypatch.setattr(
+        unpacker,
+        "recover_dotnet_bundle",
+        lambda *_args, **_kwargs: pytest.fail("偽署名をbundle parserへ渡さない"),
+    )
+
+    report, artifacts = unpacker.recover_preflighted_dotnet_bundle(sample)
+
+    assert report == {"status": "not_dotnet_bundle"}
+    assert artifacts == []
+
+
+@pytest.mark.parametrize(
+    "sample",
+    [
+        unpacker.BUNDLE_SIGNATURE + b"short-prefix",
+        (
+            b"P" * 56
+            + struct.pack("<q", 4096)
+            + unpacker.BUNDLE_SIGNATURE
+            + b"short-file"
+        ),
+        _bounded_dotnet_bundle_fixture()[:-1],
+    ],
+)
+def test_dotnet_bundle_preflight_rejects_out_of_bounds_manifest(sample: bytes) -> None:
+    """pointer、固定header、可変長pathの各境界外候補をparseしない。"""
+
+    report, artifacts = unpacker.recover_preflighted_dotnet_bundle(sample)
+
+    assert report == {"status": "not_dotnet_bundle"}
+    assert artifacts == []
+
+
+def test_dotnet_bundle_preflight_preserves_semantic_parse_failures() -> None:
+    """範囲内manifestの危険なpathは本parserでfail-closedに拒否する。"""
+
+    sample = _bounded_dotnet_bundle_fixture(path=b"../fixture.dll")
+
+    report, artifacts = unpacker.recover_preflighted_dotnet_bundle(sample)
+
+    assert report["status"] == "parse_failed"
+    assert "安全ではありません" in str(report["error"])
+    assert artifacts == []
+
+
 def test_dotnet_bitmap_payload_recovery(monkeypatch: pytest.MonkeyPatch) -> None:
     """ResourceSetエントリからBitmap.GetPixelの列優先抽出を再現する。"""
     pixel = bytes((0x41, 0x5A, 0x4D, 0xFF))  # BGRA becomes RGB ``MZA``.
@@ -978,7 +1221,9 @@ def test_dotnet_resource_entry_gzip_pe_becomes_recursive_layer(
     monkeypatch.setattr(
         unpacker,
         "valid_pe_extent",
-        lambda data, offset: len(data) if offset == 0 and data.startswith(b"MZ") else None,
+        lambda data, offset: (
+            len(data) if offset == 0 and data.startswith(b"MZ") else None
+        ),
     )
 
     report, artifacts = unpacker.recover_dotnet_resources(b"MZ fixture")
@@ -1117,6 +1362,111 @@ def test_select_high_value_archive_members_prioritizes_application_code() -> Non
     assert sum(int(item["size"]) for item in selected) == 140
 
 
+@pytest.mark.parametrize(
+    ("total_members", "max_members", "declared_total_size", "max_total_size"),
+    [
+        (2, 8, 20, 1024),
+        (20, 1, 20_000, 1024),
+    ],
+)
+def test_sevenzip_unsafe_member_blocks_before_external_extraction(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    total_members: int,
+    max_members: int,
+    declared_total_size: int,
+    max_total_size: int,
+) -> None:
+    """通常・上限超過の双方でunsafe pathを暗黙除外せず展開前に閉じる。"""
+
+    records = [
+        {"name": "safe/payload.exe", "size": 10, "attributes": "A"},
+        {"name": "../escape.dll", "size": 10, "attributes": "A"},
+    ]
+
+    def fake_inventory(_data: bytes, _executable: Path, _password: str = ""):
+        return {
+            "status": "listed",
+            "archive_types": ["7z"],
+            "members": [item["name"] for item in records],
+            "total_members": total_members,
+            "declared_total_size": declared_total_size,
+            "archive_unlock_attempted": False,
+            "_member_records": records,
+        }
+
+    runner_called = False
+
+    def fake_run(*_args, **_kwargs):
+        nonlocal runner_called
+        runner_called = True
+        raise AssertionError("unsafe memberを含むarchiveで展開processを起動しました")
+
+    monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
+
+    report, artifacts = unpacker.sevenzip_extract(
+        b"7zfixture",
+        tmp_path / "7z.exe",
+        max_members=max_members,
+        max_member_size=1024,
+        max_total_size=max_total_size,
+    )
+
+    assert report["status"] == "unsafe_member_path_blocked"
+    assert report["unsafe_member_count"] == 1
+    assert report["external_extraction_started"] is False
+    assert runner_called is False
+    assert artifacts == []
+
+
+def test_sevenzip_normal_archive_explicitly_extracts_validated_members(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """上限内archiveも検証・正規化済みmemberだけを外部toolへ渡す。"""
+
+    records = [
+        {"name": "safe\\payload.exe", "size": 9, "attributes": "A"},
+        {"name": "safe/config.dat", "size": 6, "attributes": "A"},
+    ]
+    commands: list[list[str]] = []
+
+    def fake_inventory(_data: bytes, _executable: Path, _password: str = ""):
+        return {
+            "status": "listed",
+            "archive_types": ["7z"],
+            "members": [item["name"] for item in records],
+            "total_members": len(records),
+            "declared_total_size": 15,
+            "archive_unlock_attempted": False,
+            "_member_records": records,
+        }
+
+    def fake_run(command, **_kwargs):
+        commands.append(command)
+        output_arg = next(item for item in command if item.startswith("-o"))
+        output = Path(output_arg[2:]) / "safe"
+        output.mkdir(parents=True)
+        (output / "payload.exe").write_bytes(b"MZfixture")
+        (output / "config.dat").write_bytes(b"config")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
+
+    report, artifacts = unpacker.sevenzip_extract(
+        b"7zfixture",
+        tmp_path / "7z.exe",
+        max_members=8,
+        max_member_size=1024,
+        max_total_size=1024,
+    )
+
+    assert report["status"] == "extracted"
+    assert commands[0][-2:] == ["safe/payload.exe", "safe/config.dat"]
+    assert {kind for kind, _blob in artifacts} == {"7z-pe", "7z-data"}
+
+
 def test_sevenzip_over_member_limit_uses_bounded_selective_extraction(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1237,7 +1587,7 @@ def test_detected_installer_marker_triggers_archive_probe_without_manual_hint(
         observed.append(data)
         return {"status": "not_archive_container"}, []
 
-    monkeypatch.setattr(unpacker, "sevenzip_extract", fake_extract)
+    monkeypatch.setattr(unpacker, "nsis_static_extract", fake_extract)
     sample = minimal_pe() + b"Nullsoft"
     report, _artifacts = unpacker.unpack_bytes(
         sample,
@@ -1249,6 +1599,436 @@ def test_detected_installer_marker_triggers_archive_probe_without_manual_hint(
     assert report["pe"]["containerized"] is True
     assert report["sevenzip"]["forced_by_reviewed_hint"] is False
     assert report["unpack_status"] == "container_parser_unavailable"
+
+
+def _stub_inno_routing_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Inno/7-Zip分岐以外のPE復元器を空結果へ固定する。"""
+
+    monkeypatch.setattr(unpacker, "detect_format", lambda *_args: "pe")
+    monkeypatch.setattr(
+        unpacker, "recover_inflated_pe", lambda _data: ({"status": "none"}, None)
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": True,
+                "is_dotnet": False,
+                "sections": [],
+                "packer_markers": [],
+                "overlay_size": 0,
+            },
+            [],
+        ),
+    )
+    monkeypatch.setattr(unpacker, "recover_bcrypt_resource", lambda _data: ({}, []))
+    monkeypatch.setattr(
+        unpacker,
+        "recover_preflighted_dotnet_bundle",
+        lambda _data, **_kwargs: ({}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_embedded_installer_archive",
+        lambda *_args, **_kwargs: ({}, [], set()),
+    )
+    monkeypatch.setattr(unpacker, "recover_xor32_donut_wrapper", lambda _data: ({}, []))
+    monkeypatch.setattr(unpacker, "recover_donut_payloads", lambda _data: ({}, []))
+    monkeypatch.setattr(
+        unpacker,
+        "carve_embedded_pes",
+        lambda _data: unpacker.CarvedPeArtifacts([], {}),
+    )
+
+
+def _inno_assessment(
+    candidate: bool,
+    *,
+    signaled: bool = True,
+) -> InnoCandidateAssessment:
+    if not signaled:
+        return InnoCandidateAssessment(
+            "not_signaled", False, (), False, None, None, False, False
+        )
+    return InnoCandidateAssessment(
+        "candidate" if candidate else "signal_without_validated_structure",
+        candidate,
+        ("sevenzip_inno_archive_type",),
+        True,
+        "pe_rcdata_11111" if candidate else None,
+        2 if candidate else None,
+        candidate,
+        candidate,
+        None if candidate else "loader_table_or_offsets_invalid",
+    )
+
+
+def test_inno_marker_without_tools_records_validated_route_only_assessment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """外部toolがなくてもmarker由来構造assessmentを公開reportへ残す。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": True,
+                "is_dotnet": False,
+                "sections": [],
+                "packer_markers": ["Inno Setup"],
+                "overlay_size": 0,
+            },
+            [],
+        ),
+    )
+    calls: list[dict[str, object]] = []
+
+    def fake_assessment(_data: bytes, **kwargs):
+        calls.append(kwargs)
+        return InnoCandidateAssessment(
+            "candidate",
+            True,
+            ("inno_setup_pe_marker",),
+            True,
+            "pe_rcdata_11111",
+            2,
+            True,
+            True,
+        )
+
+    monkeypatch.setattr(unpacker, "assess_inno_candidate", fake_assessment)
+    report, artifacts = unpacker.unpack_bytes(b"MZfixture", "fixture.exe")
+
+    assert calls == [{"packer_markers": ["Inno Setup"]}]
+    assert artifacts == []
+    assert report["inno_candidate_assessment"]["candidate"] is True
+    assert report["inno"]["status"] == "tool_not_configured"
+    assert (
+        "inno_structure_confirmed_parser_not_configured"
+        in report["inno"]["route_only_reasons"]
+    )
+
+
+def test_inno_marker_uses_only_explicit_inno_password(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """外装archive passwordをInnoへ流さず、専用値だけを渡す。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": True,
+                "is_dotnet": False,
+                "sections": [],
+                "packer_markers": ["Inno Setup"],
+                "overlay_size": 0,
+            },
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "assess_inno_candidate",
+        lambda *_args, **_kwargs: _inno_assessment(True),
+    )
+    passwords: list[str] = []
+
+    def fake_inno(
+        _data: bytes,
+        _tool: Path,
+        _name: str,
+        *,
+        inno_password: str,
+        **_kwargs,
+    ):
+        passwords.append(inno_password)
+        return {
+            "status": "artifacts_recovered",
+            "inventory_complete": True,
+        }, []
+
+    monkeypatch.setattr(unpacker, "inno_static_extract", fake_inno)
+    common = {
+        "archive_password": "outer-password",
+        "innounp": tmp_path / "innounp.exe",
+    }
+    unpacker.unpack_bytes(b"MZfixture", "fixture.exe", **common)
+    unpacker.unpack_bytes(
+        b"MZfixture",
+        "fixture.exe",
+        **common,
+        inno_password="inner-password",
+    )
+
+    assert passwords == ["", "inner-password"]
+
+
+def test_inno_marker_without_validated_structure_never_starts_innounp(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """PE marker単独では設定済みinnounpにも検体を渡さない。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": True,
+                "is_dotnet": False,
+                "sections": [],
+                "packer_markers": ["Inno Setup"],
+                "overlay_size": 0,
+            },
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "assess_inno_candidate",
+        lambda *_args, **_kwargs: _inno_assessment(False),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "inno_static_extract",
+        lambda *_args, **_kwargs: pytest.fail("構造未確認PEでinnounpが開始された"),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(
+        b"MZfixture",
+        "fixture.exe",
+        innounp=tmp_path / "innounp.exe",
+    )
+
+    assert artifacts == []
+    assert report["inno_candidate_assessment"]["candidate"] is False
+    assert "inno" not in report
+
+
+def test_sevenzip_inno_type_reroutes_only_after_structure_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """後段のInno typeを構造確認後だけinnounpへ一度だけ送る。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    assessment_calls: list[tuple[object, object]] = []
+    inno_calls: list[dict[str, object]] = []
+    inno_passwords: list[str] = []
+    sevenzip_passwords: list[str] = []
+
+    def fake_sevenzip(
+        _data: bytes,
+        _tool: Path,
+        _name: str,
+        password: str,
+        **_kwargs,
+    ):
+        sevenzip_passwords.append(password)
+        return {
+            "status": "not_archive_container",
+            "archive_types": ["PE", "Inno Setup"],
+        }, [("sevenzip-copy", b"shared")]
+
+    def fake_assessment(
+        _data: bytes,
+        *,
+        archive_types=(),
+        packer_markers=(),
+    ):
+        assessment_calls.append((archive_types, packer_markers))
+        return _inno_assessment(True, signaled=bool(archive_types))
+
+    def fake_inno(
+        _data: bytes,
+        _tool: Path,
+        _name: str,
+        *,
+        inno_password: str,
+        **kwargs,
+    ):
+        inno_passwords.append(inno_password)
+        inno_calls.append(kwargs)
+        return {
+            "status": "artifacts_recovered",
+            "inventory_complete": True,
+        }, [("inno-duplicate", b"shared"), ("inno-child", b"unique")]
+
+    monkeypatch.setattr(unpacker, "sevenzip_extract", fake_sevenzip)
+    monkeypatch.setattr(unpacker, "assess_inno_candidate", fake_assessment)
+    monkeypatch.setattr(unpacker, "inno_static_extract", fake_inno)
+    report, artifacts = unpacker.unpack_bytes(
+        b"MZfixture",
+        "fixture.exe",
+        sevenzip=tmp_path / "7z.exe",
+        innounp=tmp_path / "innounp.exe",
+        archive_password="outer-password",
+    )
+
+    assert assessment_calls == [
+        ((), []),
+        (["PE", "Inno Setup"], []),
+    ]
+    assert len(inno_calls) == 1
+    assert inno_passwords == [""]
+    assert sevenzip_passwords == [""]
+    assert report["inno"]["status"] == "artifacts_recovered"
+    assert report["inno_candidate_assessment"]["loader_crc_verified"] is True
+    assert report["unpack_status"] == "artifacts_recovered"
+    assert artifacts == [("sevenzip-copy", b"shared"), ("inno-child", b"unique")]
+
+
+def test_forced_inno_pe_never_reuses_outer_archive_password(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """明示forceでもInno/7-Zipの双方へ外装credentialを流さない。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": False,
+                "is_dotnet": False,
+                "sections": [],
+                "packer_markers": ["Inno Setup"],
+                "overlay_size": 0,
+            },
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "assess_inno_candidate",
+        lambda *_args, **_kwargs: _inno_assessment(True),
+    )
+    inno_passwords: list[str] = []
+    sevenzip_passwords: list[str] = []
+
+    def fake_inno(
+        _data: bytes,
+        _tool: Path,
+        _name: str,
+        *,
+        inno_password: str,
+        **_kwargs,
+    ):
+        inno_passwords.append(inno_password)
+        return {"status": "artifacts_recovered", "inventory_complete": True}, []
+
+    def fake_sevenzip(
+        _data: bytes,
+        _tool: Path,
+        _name: str,
+        password: str,
+        **_kwargs,
+    ):
+        sevenzip_passwords.append(password)
+        return {"status": "not_archive_container", "archive_types": ["Inno"]}, []
+
+    monkeypatch.setattr(unpacker, "inno_static_extract", fake_inno)
+    monkeypatch.setattr(unpacker, "sevenzip_extract", fake_sevenzip)
+    unpacker.unpack_bytes(
+        b"MZfixture",
+        "fixture.exe",
+        sevenzip=tmp_path / "7z.exe",
+        innounp=tmp_path / "innounp.exe",
+        archive_password="outer-sentinel",
+        force_container_probe=True,
+    )
+
+    assert inno_passwords == [""]
+    assert sevenzip_passwords == [""]
+
+
+def test_sevenzip_inno_type_without_innounp_records_route_only_blocker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """構造確認済みでもparser未設定なら復元せずroute-only根拠を残す。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "sevenzip_extract",
+        lambda *_args, **_kwargs: (
+            {
+                "status": "not_archive_container",
+                "archive_types": ["Inno Setup"],
+            },
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "assess_inno_candidate",
+        lambda *_args, **kwargs: _inno_assessment(
+            True, signaled=bool(kwargs.get("archive_types"))
+        ),
+    )
+    report, artifacts = unpacker.unpack_bytes(
+        b"MZfixture",
+        "fixture.exe",
+        sevenzip=tmp_path / "7z.exe",
+    )
+
+    assert artifacts == []
+    assert report["inno_candidate_assessment"]["candidate"] is True
+    assert report["inno"]["status"] == "tool_not_configured"
+    assert (
+        "inno_structure_confirmed_parser_not_configured"
+        in report["inno"]["route_only_reasons"]
+    )
+    assert report["unpack_status"] == "container_parser_unavailable"
+
+
+def test_sevenzip_inno_label_without_structure_does_not_start_innounp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """7-Zip label単独ではinnounpを開始しない。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "sevenzip_extract",
+        lambda *_args, **_kwargs: (
+            {
+                "status": "not_archive_container",
+                "archive_types": ["Inno Setup"],
+            },
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "assess_inno_candidate",
+        lambda *_args, **kwargs: _inno_assessment(
+            False, signaled=bool(kwargs.get("archive_types"))
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "inno_static_extract",
+        lambda *_args, **_kwargs: pytest.fail("構造未確認labelでinnounpが開始された"),
+    )
+    report, artifacts = unpacker.unpack_bytes(
+        b"MZfixture",
+        "fixture.exe",
+        sevenzip=tmp_path / "7z.exe",
+        innounp=tmp_path / "innounp.exe",
+    )
+
+    assert artifacts == []
+    assert report["inno_candidate_assessment"]["candidate"] is False
+    assert "inno" not in report
 
 
 def test_reviewed_container_hint_forces_bounded_archive_probe(
@@ -1274,7 +2054,11 @@ def test_reviewed_container_hint_forces_bounded_archive_probe(
     )
     monkeypatch.setattr(unpacker, "recover_xor32_donut_wrapper", lambda _data: ({}, []))
     monkeypatch.setattr(unpacker, "recover_donut_payloads", lambda _data: ({}, []))
-    monkeypatch.setattr(unpacker, "carve_embedded_pes", lambda _data: [])
+    monkeypatch.setattr(
+        unpacker,
+        "carve_embedded_pes",
+        lambda _data: unpacker.CarvedPeArtifacts([], {}),
+    )
     observed: list[tuple[bytes, dict[str, object]]] = []
 
     def fake_extract(data: bytes, *_args, **kwargs):
@@ -1299,6 +2083,52 @@ def test_reviewed_container_hint_forces_bounded_archive_probe(
     ]
     assert report["sevenzip"]["forced_by_reviewed_hint"] is True
     assert artifacts == [("nsis-stage", b"child")]
+
+
+def test_pe_bcrypt_resource_report_and_artifact_reach_static_layers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """BCrypt resource復号結果をreportとfixed-point artifactの両方へ渡す。"""
+    monkeypatch.setattr(unpacker, "detect_format", lambda *_args: "pe")
+    monkeypatch.setattr(
+        unpacker, "recover_inflated_pe", lambda _data: ({"status": "none"}, None)
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": False,
+                "is_dotnet": False,
+                "sections": [],
+                "packer_markers": [],
+            },
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_bcrypt_resource",
+        lambda _data: (
+            {"status": "recovered", "terminal_promotion_eligible": False},
+            [("bcrypt-resource-shellcode", b"decoded")],
+        ),
+    )
+    monkeypatch.setattr(unpacker, "recover_xor32_donut_wrapper", lambda _data: ({}, []))
+    monkeypatch.setattr(unpacker, "recover_donut_payloads", lambda _data: ({}, []))
+    monkeypatch.setattr(
+        unpacker,
+        "carve_embedded_pes",
+        lambda _data: unpacker.CarvedPeArtifacts([], {}),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(b"MZfixture", "fixture.exe")
+
+    assert report["bcrypt_resource"] == {
+        "status": "recovered",
+        "terminal_promotion_eligible": False,
+    }
+    assert artifacts == [("bcrypt-resource-shellcode", b"decoded")]
 
 
 def test_nsis_probe_does_not_hide_decompiled_script_with_archive_password(
@@ -1332,6 +2162,95 @@ def test_nsis_probe_does_not_hide_decompiled_script_with_archive_password(
     assert all(not argument.startswith("-p") for argument in commands[0])
     assert report["archive_unlock_attempted"] is False
     assert report["status"] == "extracted"
+    assert artifacts == []
+
+
+@pytest.mark.parametrize(
+    "archive_types",
+    (["Inno"], ["PE", "Inno Setup"], ["Inno Setup 6"], ["Inno", "Rar5"]),
+)
+def test_sevenzip_inno_inventory_never_reuses_generic_archive_password(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    archive_types: list[str],
+) -> None:
+    """Inno系typeは無資格inventory後にgeneric credentialを遮断する。"""
+
+    inventory_passwords: list[str] = []
+    commands: list[list[str]] = []
+
+    def fake_inventory(_data: bytes, _executable: Path, password: str = ""):
+        inventory_passwords.append(password)
+        return {
+            "status": "listed",
+            "archive_types": archive_types,
+            "members": [],
+            "total_members": 0,
+            "declared_total_size": 0,
+            "archive_unlock_attempted": bool(password),
+        }
+
+    monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
+
+    def fake_run(command: list[str], **_kwargs):
+        commands.append(command)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
+    report, artifacts = unpacker.sevenzip_extract(
+        b"MZfixture",
+        tmp_path / "7z.exe",
+        password="outer-sentinel",
+    )
+
+    assert inventory_passwords == [""]
+    assert all(not value.startswith("-p") for command in commands for value in command)
+    assert report["archive_unlock_attempted"] is False
+    assert artifacts == []
+
+
+@pytest.mark.parametrize("archive_type", ["ZIP", "7z", "Rar5"])
+def test_sevenzip_external_encrypted_archives_block_without_credential_argv(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    archive_type: str,
+) -> None:
+    """外部ZIP/7z/RARへcredentialを渡せない場合は明示blockedへ閉じる。"""
+
+    sentinel = "outer-archive-sentinel"
+    inventory_passwords: list[str] = []
+    commands: list[list[str]] = []
+
+    def fake_inventory(_data: bytes, _executable: Path, password: str = ""):
+        inventory_passwords.append(password)
+        return {
+            "status": "listed",
+            "archive_types": [archive_type],
+            "members": ["payload.exe"],
+            "total_members": 1,
+            "declared_total_size": 9,
+            "archive_unlock_attempted": bool(password),
+        }
+
+    def fake_run(command: list[str], **_kwargs):
+        commands.append(command)
+        return SimpleNamespace(returncode=2, stdout="", stderr="data error")
+
+    monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
+    report, artifacts = unpacker.sevenzip_extract(
+        b"archive-fixture",
+        tmp_path / "7z.exe",
+        password=sentinel,
+    )
+
+    assert inventory_passwords == [""]
+    assert len(commands) == 1
+    assert all(sentinel not in argument for argument in commands[0])
+    assert all(not argument.startswith("-p") for argument in commands[0])
+    assert sentinel not in repr(report)
+    assert report["status"] == "credential_transport_unsupported"
+    assert report["archive_unlock_attempted"] is False
     assert artifacts == []
 
 
@@ -1369,7 +2288,9 @@ def test_sevenzip_empty_member_is_inventory_only(
         {
             "name": "package.dat",
             "size": 0,
-            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256": (
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ),
             "format": "data",
             "status": "empty_file",
         }
@@ -1377,10 +2298,10 @@ def test_sevenzip_empty_member_is_inventory_only(
     assert artifacts == []
 
 
-def test_sevenzip_rar_retries_known_wannacry_password_without_reporting_value(
+def test_sevenzip_rar_does_not_retry_known_password_in_external_argv(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """RARは既知候補を再試行し、reportにはpassword値を残さない。"""
+    """RARの既知候補も外部process argvへ載せず明示blockedへ閉じる。"""
 
     commands: list[list[str]] = []
 
@@ -1399,9 +2320,6 @@ def test_sevenzip_rar_retries_known_wannacry_password_without_reporting_value(
         output_arg = next(item for item in command if item.startswith("-o"))
         output = Path(output_arg[2:])
         output.mkdir(parents=True)
-        if "-pWNcry@2ol7" in command:
-            (output / "eee.exe").write_bytes(b"MZpayload")
-            return SimpleNamespace(returncode=0, stdout="", stderr="")
         (output / "eee.exe").write_bytes(b"")
         return SimpleNamespace(returncode=2, stdout="", stderr="data error")
 
@@ -1412,12 +2330,12 @@ def test_sevenzip_rar_retries_known_wannacry_password_without_reporting_value(
         b"Rar!fixture", tmp_path / "7z.exe", password="infected"
     )
 
-    assert len(commands) == 2
-    assert report["status"] == "extracted"
-    assert report["archive_unlock_attempt_count"] == 2
-    assert report["archive_unlock_candidate_index"] == 1
+    assert len(commands) == 1
+    assert all(not argument.startswith("-p") for argument in commands[0])
+    assert report["status"] == "credential_transport_unsupported"
+    assert report["archive_unlock_attempted"] is False
     assert "WNcry@2ol7" not in repr(report)
-    assert artifacts == [("7z-pe", b"MZpayload")]
+    assert artifacts == []
 
 
 def test_sevenzip_temp_source_rejects_unsafe_layer_suffix(
@@ -1496,6 +2414,106 @@ def test_unpack_and_cli(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="paths must differ"):
         unpacker.main(["--input", str(source), "--output", str(source)])
     assert source.read_bytes() == original
+
+
+@pytest.mark.parametrize(
+    ("option", "attribute"),
+    (
+        ("--archive-password-stdin", "archive_password"),
+        ("--inno-password-stdin", "inno_password"),
+    ),
+)
+def test_standalone_cli_reads_credentials_from_bounded_stdin(
+    option: str,
+    attribute: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """standalone automationはcredentialをprocess argvへ載せずstdinで渡せる。"""
+
+    secret = "private-stdin-credential"
+    args = unpacker.build_parser().parse_args(
+        ["--input", "sample.bin", "--output", "report.json", option]
+    )
+    monkeypatch.setattr(
+        unpacker.sys,
+        "stdin",
+        SimpleNamespace(buffer=io.BytesIO((secret + "\n").encode())),
+    )
+
+    unpacker._resolve_standalone_stdin_credential(args)
+
+    assert getattr(args, attribute) == secret
+    other = "inno_password" if attribute == "archive_password" else "archive_password"
+    assert getattr(args, other) == ""
+
+
+@pytest.mark.parametrize("raw_option", ("--archive-password", "--inno-password"))
+def test_standalone_cli_rejects_raw_password_before_parsing_without_echo(
+    raw_option: str,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """廃止済みraw optionは解析前に固定codeで拒否し秘密を診断へ出さない。"""
+
+    secret = "raw-secret-must-not-be-echoed"
+    monkeypatch.setattr(
+        unpacker,
+        "unpack_bytes",
+        lambda *_args, **_kwargs: pytest.fail("raw credentialで解析してはならない"),
+    )
+
+    assert unpacker.main(
+        ["--input", "sample.bin", "--output", "report.json", raw_option, secret]
+    ) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
+@pytest.mark.parametrize(
+    "raw",
+    (
+        b"",
+        b"X" * 4097,
+        b"private\x00NUL_SENTINEL",
+        b"private\nNEWLINE_SENTINEL",
+        b"\xffUTF8_SENTINEL",
+    ),
+    ids=("empty", "oversized", "nul", "newline", "utf8"),
+)
+def test_standalone_invalid_stdin_credential_is_silent_and_fail_closed(
+    raw: bytes,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """不正credential stdinは解析前に固定codeへ正規化し内容を出力しない。"""
+
+    monkeypatch.setattr(
+        unpacker.sys,
+        "stdin",
+        SimpleNamespace(buffer=io.BytesIO(raw)),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "unpack_bytes",
+        lambda *_args, **_kwargs: pytest.fail("不正credentialで解析してはならない"),
+    )
+
+    assert unpacker.main(
+        [
+            "--input",
+            "private-input-path.bin",
+            "--output",
+            "private-output-path.json",
+            "--archive-password-stdin",
+        ]
+    ) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+    assert "Traceback" not in captured.out + captured.err
+    for sentinel in ("NUL_SENTINEL", "NEWLINE_SENTINEL", "UTF8_SENTINEL"):
+        assert sentinel not in captured.out + captured.err
 
 
 def test_recover_ole_streams_routes_cab_and_pe_without_execution(

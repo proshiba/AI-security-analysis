@@ -105,7 +105,7 @@
     "non_dns_name_excluded": 10,
     "non_global_ip_excluded": 2,
     "onion_excluded_by_policy": 560,
-    "role_not_c2": 2414
+    "role_not_c2": 2410
   },
   "exclusions": [
     {
@@ -16096,42 +16096,6 @@
       "host": "127.0.0.1",
       "port": 80,
       "reason": "non_global_ip_excluded"
-    },
-    {
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[0]",
-      "container": "network",
-      "role": "delivery",
-      "family": "valleyrat",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "confidence": "confirmed_reported",
-      "reason": "role_not_c2"
-    },
-    {
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[1]",
-      "container": "network",
-      "role": "contacted_domain",
-      "family": "valleyrat",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "confidence": "confirmed_public_relation",
-      "reason": "role_not_c2"
-    },
-    {
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[2]",
-      "container": "network",
-      "role": "reported_infrastructure",
-      "family": "valleyrat",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "confidence": "unverified_in_config",
-      "reason": "role_not_c2"
-    },
-    {
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[3]",
-      "container": "network",
-      "role": "cloudflare_resolution",
-      "family": "valleyrat",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "confidence": "context_only_not_c2",
-      "reason": "role_not_c2"
     },
     {
       "source": "analysis-results/malware/venomrat/versions/v6.0.3/cases/6a24ba25482c73d193fcc208d8ae267236b870b9ab30c44cabe2dc8bfb7a1073/iocs.json:network[0]",

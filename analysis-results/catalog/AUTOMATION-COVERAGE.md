@@ -11,11 +11,11 @@
 - AST監査＋runtime import確認済みscript-only handler: 87件（97.75%）
 - 品質policy宣言済み: 87件 / 安全handler＋品質policy: 87件
 - 安全handlerはあるが品質policy未宣言: 0件
-- handler実装: 宣言99件 / AST監査通過99件 / runtime import確認済み99件 / 停止0件
+- handler実装: 宣言100件 / AST監査通過100件 / runtime import確認済み100件 / 停止0件
 - automatic handlerがAST監査またはruntime importで停止: 0件
 - handlerによる候補検証のみ: 8件
-- 実行したformat別preflight: 1042件（上限2048件）
-- 実行した検体なしruntime import確認: 99件（計画99件）
+- 実行したformat別preflight: 1043件（上限2048件）
+- 実行した検体なしruntime import確認: 100件（計画100件）
 
 | family | 状態 | detector | 品質policy | 宣言handler | 安全handler | blocker |
 |---|---|---:|---:|---:|---:|---|
@@ -101,7 +101,7 @@
 | tor_openssh_backdoor | manual_only_without_detector | なし | なし | 0 | 0 | detector_and_automatic_handler_missing |
 | traffmonetizer_deployer | fully_routable | あり | あり | 1 | 1 | なし |
 | unclassified | manual_only_without_detector | なし | なし | 0 | 0 | detector_and_automatic_handler_missing |
-| valleyrat | fully_routable | あり | あり | 10 | 10 | なし |
+| valleyrat | fully_routable | あり | あり | 11 | 11 | なし |
 | venomrat | fully_routable | あり | あり | 1 | 1 | なし |
 | vidar | fully_routable | あり | あり | 1 | 1 | なし |
 | wannacry | fully_routable | あり | あり | 1 | 1 | なし |

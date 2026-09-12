@@ -143,21 +143,133 @@ def test_bin101_outer_without_valid_terminal_config_is_not_promoted(
 
 
 def _terminal_probe(variant: str) -> dict[str, object]:
-    return {
+    probe: dict[str, object] = {
         "matched": True,
         "family": "valleyrat",
         "variant": variant,
         "supports_family_attribution": True,
         "attribution_scope": "validated_terminal_component_structure",
         "static_config_recovered": True,
-        "evidence": {"validated_structure": True},
-        "config": {
-            "public_network_value_count": 1,
-            "raw_network_values_included": False,
-        },
         "sample_executed": False,
         "network_contacted": False,
     }
+    if variant == "single_pe_n520_managed":
+        probe["classification_confidence"] = "high_structural_decoded_config"
+        probe["evidence"] = {
+            "managed_structure": {
+                "matched": True,
+                "managed_metadata_validated": True,
+                "key_method_name_required": False,
+                "key_method_identification": (
+                    "validated_cil_initializer_data_flow"
+                ),
+                "crypto_api_groups": {
+                    group: True
+                    for group in DETECT._N520_REQUIRED_CRYPTO_GROUPS
+                },
+                "required_crypto_group_count": 4,
+                "matched_crypto_group_count": 4,
+                "sample_executed": False,
+                "network_contacted": False,
+            },
+            "initializer": {
+                "method_identification": "validated_cil_initializer_data_flow",
+                "method_name_required": False,
+                "source_array_type": "System.Byte",
+                "returned_array_type": "System.Byte",
+                "int32_to_byte_conversion_validated": False,
+                "initializer": "RuntimeHelpers.InitializeArray",
+                "field_rva_present": True,
+                "key_size": 16,
+                "raw_key_included": False,
+            },
+            "aes_cbc_pkcs7_validated": True,
+        }
+        probe["config"] = {
+            "decrypted_value_count": 1,
+            "public_network_value_count": 1,
+            "opaque_value_count": 0,
+            "raw_key_included": False,
+            "raw_ciphertexts_included": False,
+            "raw_plaintexts_included": False,
+            "raw_network_values_included": False,
+        }
+        return probe
+    if variant == "vvas_reversed_config_terminal":
+        probe["terminal_family_confirmed"] = True
+        probe["candidate_config_recovered"] = False
+        probe["classification_confidence"] = "high_structural_decoded_config"
+        probe["family_attribution_basis"] = (
+            "unique_vvas_config_and_mapped_reachable_parser_network_dataflow"
+        )
+        probe["evidence"] = {
+            "vvas_reversed_config": {
+                "candidate_count": 1,
+                "unique_configuration_count": 1,
+                "endpoint_count": 1,
+                "configured_slot_count": 1,
+                "mapped_config_scan": {
+                    "status": "complete_candidates",
+                    "completed": True,
+                    "candidate_set_complete": True,
+                    "truncated": False,
+                    "truncation_reasons": [],
+                    "marker_scan_passes": 1,
+                    "unique_configuration_count": 1,
+                    "raw_config_included": False,
+                    "raw_network_values_included": False,
+                },
+                "raw_config_included": False,
+            },
+            "format_corroboration": {
+                "matched": True,
+                "architecture": "x86",
+                "root_strategy": "entrypoint",
+                "configuration_storage": "mapped_data",
+                "validated_network_chain_count": 1,
+                "required_groups": {
+                    group: True
+                    for group in DETECT._VVAS_REQUIRED_STRUCTURE_GROUPS
+                },
+                "validated_network_chain_groups": {
+                    group: True
+                    for group in DETECT._VVAS_REQUIRED_NETWORK_GROUPS
+                },
+                "raw_addresses_included": False,
+                "raw_config_included": False,
+                "raw_network_values_included": False,
+            },
+        }
+        probe["config"] = {
+            "endpoint_count": 1,
+            "raw_config_included": False,
+            "raw_network_values_included": False,
+        }
+        return probe
+    probe["evidence"] = {
+        "markers": {
+            marker: True
+            for marker in DETECT._VVAS_RESOURCE_REQUIRED_MARKERS
+        },
+        "loader_linkage": {
+            **{
+                group: True
+                for group in DETECT._VVAS_RESOURCE_REQUIRED_LOADER_PROOF
+            },
+            "architecture": "x86_64",
+            "copy_callee_profile": "bounded_scalar_byte_copy_loop",
+            "reachable_function_count": 1,
+            "validated_loader_count": 1,
+            "raw_code_included": False,
+        },
+        "matched_resource_count": 1,
+        "resource_bytes_included": False,
+    }
+    probe["config"] = {
+        "endpoint_count": 1,
+        "raw_network_values_included": False,
+    }
+    return probe
 
 
 def test_n520_probe_selects_family_before_other_pe_probes(

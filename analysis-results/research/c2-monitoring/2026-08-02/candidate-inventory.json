@@ -25,7 +25,7 @@
     "explicit_non_c2_role": 299,
     "non_dns_name_excluded": 10,
     "onion_excluded_by_policy": 488,
-    "role_not_c2": 2164
+    "role_not_c2": 2160
   },
   "exclusions": [
     {
@@ -10767,42 +10767,6 @@
       "family": "valleyrat",
       "sample_sha256": "307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b",
       "confidence": "confirmed_sandbox",
-      "reason": "role_not_c2"
-    },
-    {
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[0]",
-      "container": "network",
-      "role": "delivery",
-      "family": "valleyrat",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "confidence": "confirmed_reported",
-      "reason": "role_not_c2"
-    },
-    {
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[1]",
-      "container": "network",
-      "role": "contacted_domain",
-      "family": "valleyrat",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "confidence": "confirmed_public_relation",
-      "reason": "role_not_c2"
-    },
-    {
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[2]",
-      "container": "network",
-      "role": "reported_infrastructure",
-      "family": "valleyrat",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "confidence": "unverified_in_config",
-      "reason": "role_not_c2"
-    },
-    {
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[3]",
-      "container": "network",
-      "role": "cloudflare_resolution",
-      "family": "valleyrat",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "confidence": "context_only_not_c2",
       "reason": "role_not_c2"
     },
     {
