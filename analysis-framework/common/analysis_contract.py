@@ -66,7 +66,6 @@ STRUCTURAL_EVIDENCE_KEYS = frozenset(
     {
         "capabilities",
         "commands",
-        "logic",
         "marker_hits",
         "matched_patterns",
         "observed_config_keys",
@@ -98,6 +97,7 @@ EVIDENCE_METADATA_KEYS = frozenset(
         "kind",
         "label",
         "limitations",
+        "logic",
         "message",
         "name",
         "network_contacted",
@@ -191,6 +191,10 @@ def _collect_evidence(value: Any, state: dict[str, Any], *, depth: int = 0) -> N
     if isinstance(value, Mapping):
         for raw_key, item in value.items():
             key = str(raw_key).casefold()
+            # metadataは説明・制御用であり、その配下に証拠風のkeyを置いても
+            # 検体固有の観測へ昇格させない。
+            if key in EVIDENCE_METADATA_KEYS:
+                continue
             if (
                 key == "decoded_config_recovered"
                 and item is True

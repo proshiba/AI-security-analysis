@@ -50,8 +50,6 @@ _EXACT_TRANSLATIONS = {
         "- analysis-framework、extractors、unpackers の関連テストスイートは合計84件に合格。",
     "# Security news analysis: 2026-04-01":
         "# 2026年4月1日のセキュリティニュース解析",
-    "| 1 | 日本語賞与通知を装う ValleyRAT | 配布チェーン confirmed、最終設定 unverified | [ケース解析](../../../malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/README.md)、誤帰属を避ける検出器改修 |":
-        "| 1 | 日本語賞与通知を装う ValleyRAT | 配布チェーンを確認済み、最終設定は未検証 | [ケース解析](../../../malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/README.md)、誤帰属を避ける検出器改修 |",
     "| 2 | Trivy/TeamPCP と Cisco 開発環境侵害報道 | Trivy confirmed、Cisco範囲は報道ベース | [供給網解析](../../supply-chain/trivy-teampcp-2026/README.md)、オフライン監査器 |":
         "| 2 | Trivy/TeamPCP とシスコ開発環境の侵害報道 | Trivy は確認済み、シスコの範囲は報道情報のみ | [供給網解析](../../supply-chain/trivy-teampcp-2026/README.md)、オフライン監査器 |",
     "| 3 | Uranium Finance 約5,300万ドル窃取 | 起訴内容 confirmed、マルウェアなし | スマートコントラクト悪用として整理。検体解析対象外 |":

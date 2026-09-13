@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import subprocess
 import sys
@@ -390,16 +391,28 @@ def test_worker_command_does_not_expose_archive_password(tmp_path: Path, monkeyp
     output = tmp_path / 'jobs'
     output.mkdir()
     secret = 'password-that-must-not-enter-process-list'
+    inno_secret = 'inno-password-that-must-not-enter-process-list'
     captured: dict[str, object] = {}
 
     def fake_run(command, **kwargs):
         captured['command'] = command
         captured['kwargs'] = kwargs
-        request_path = Path(command[-4])
-        assert request_path.is_file()
-        assert secret in request_path.read_text(encoding='utf-8')
+        frame = kwargs['input']
+        request_size = int.from_bytes(
+            frame[:one_shot.FOLLOW_ON_WORKER_FRAME_HEADER_BYTES], 'big'
+        )
+        request_raw = frame[
+            one_shot.FOLLOW_ON_WORKER_FRAME_HEADER_BYTES:
+            one_shot.FOLLOW_ON_WORKER_FRAME_HEADER_BYTES + request_size
+        ]
+        request = json.loads(request_raw)
+        assert request['archive_password'] == secret
+        assert request['inno_password'] == inno_secret
+        assert request['expected_size'] == len(payload)
+        assert frame[one_shot.FOLLOW_ON_WORKER_FRAME_HEADER_BYTES + request_size:] == payload
+        assert not (Path(kwargs['cwd']) / 'request.json').exists()
         one_shot._write_private_regular_file(
-            Path(command[-1]),
+            Path(kwargs['cwd']) / 'response.json',
             json.dumps({'ok': True, 'result': {}}).encode('utf-8'),
             maximum_size=one_shot.MAX_FOLLOW_ON_WORKER_RESPONSE,
         )
@@ -422,6 +435,7 @@ def test_worker_command_does_not_expose_archive_password(tmp_path: Path, monkeyp
         max_static_layers=8,
         retry_max_static_layers=None,
         archive_password=secret,
+        inno_password=inno_secret,
         string_scan_limit=1000,
         analysis_contract={},
         timeout_seconds=1,
@@ -429,6 +443,13 @@ def test_worker_command_does_not_expose_archive_password(tmp_path: Path, monkeyp
 
     assert result == {}
     assert secret not in ' '.join(str(item) for item in captured['command'])
+    assert inno_secret not in ' '.join(str(item) for item in captured['command'])
+    assert captured['command'][1:] == [
+        '-I',
+        '-B',
+        str(Path(one_shot.__file__).resolve()),
+        '--follow-on-worker',
+    ]
     worker_options = captured['kwargs']
     assert isinstance(worker_options, dict)
     assert worker_options['timeout'] == 1
@@ -450,27 +471,20 @@ def test_worker_command_does_not_expose_archive_password(tmp_path: Path, monkeyp
     assert not child_temp.exists()
 
 
-def test_worker_cli_dispatch_accepts_request_file_contract(tmp_path: Path) -> None:
-    request = tmp_path / 'request.json'
+def test_worker_cli_dispatch_accepts_bounded_stdin_frame(tmp_path: Path) -> None:
     response = tmp_path / 'response.json'
     raw = b'{}'
-    one_shot._write_private_regular_file(
-        request,
-        raw,
-        maximum_size=one_shot.MAX_FOLLOW_ON_WORKER_REQUEST,
-    )
+    frame = len(raw).to_bytes(one_shot.FOLLOW_ON_WORKER_FRAME_HEADER_BYTES, 'big') + raw
     completed = subprocess.run(
         [
             sys.executable,
+            '-I',
             '-B',
             str(Path(one_shot.__file__).resolve()),
             '--follow-on-worker',
-            str(request),
-            str(len(raw)),
-            hashlib.sha256(raw).hexdigest(),
-            str(response),
         ],
-        input=b'',
+        cwd=tmp_path,
+        input=frame,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         check=False,
@@ -481,6 +495,82 @@ def test_worker_cli_dispatch_accepts_request_file_contract(tmp_path: Path) -> No
     value = json.loads(response.read_text(encoding='utf-8'))
     assert value['ok'] is False
     assert value['error'] == 'follow_on_worker_failed'
+
+
+@pytest.mark.parametrize(
+    'frame',
+    [
+        (5).to_bytes(8, 'big') + b'{}',
+        (one_shot.MAX_FOLLOW_ON_WORKER_REQUEST + 1).to_bytes(8, 'big'),
+        b'\x00\x00\x00',
+    ],
+)
+def test_follow_on_worker_rejects_truncated_or_oversized_frame_before_analysis(
+    frame: bytes,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(one_shot, '_interpreter_is_isolated', lambda: True)
+    monkeypatch.setattr(one_shot.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(frame)))
+    monkeypatch.setattr(
+        one_shot,
+        'analyze_unit',
+        lambda *_args, **_kwargs: pytest.fail('不正frameを解析してはならない'),
+    )
+
+    assert one_shot._follow_on_worker_main() == 0
+    response = json.loads((tmp_path / 'response.json').read_text(encoding='utf-8'))
+    assert response['ok'] is False
+    assert response['error'] == 'follow_on_worker_failed'
+    assert response['error_type'] == 'ValueError'
+
+
+def test_follow_on_worker_rejects_truncated_payload_before_analysis(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """宣言sizeより短いpayloadはhash/build/analyzeより前に拒否する。"""
+
+    payload = b'abc'
+    request = {
+        'schema_version': 1,
+        'output': str(tmp_path),
+        'registry': str(REGISTRY.resolve()),
+        'minimum_confidence': 'medium',
+        'upx': None,
+        'sevenzip': None,
+        'diec': None,
+        'innounp': None,
+        'force_container_probe': False,
+        'max_static_layers': 8,
+        'retry_max_static_layers': None,
+        'archive_password': '',
+        'inno_password': '',
+        'string_scan_limit': 1000,
+        'analysis_contract': {},
+        'source_name': 'follow-on.bin',
+        'expected_sha256': hashlib.sha256(payload).hexdigest(),
+        'expected_size': len(payload) + 1,
+        'depth': 1,
+        'parent_sha256': 'a' * 64,
+        'family_hints': [],
+    }
+    request_raw = json.dumps(request, separators=(',', ':')).encode()
+    frame = len(request_raw).to_bytes(8, 'big') + request_raw + payload
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(one_shot, '_interpreter_is_isolated', lambda: True)
+    monkeypatch.setattr(one_shot.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(frame)))
+    monkeypatch.setattr(
+        one_shot,
+        'analyze_unit',
+        lambda *_args, **_kwargs: pytest.fail('truncated payloadを解析してはならない'),
+    )
+
+    assert one_shot._follow_on_worker_main() == 0
+    response = json.loads((tmp_path / 'response.json').read_text(encoding='utf-8'))
+    assert response['ok'] is False
+    assert response['error'] == 'follow_on_worker_failed'
 
 
 def test_isolated_runtime_preflight_discovers_automatic_handlers() -> None:
@@ -735,6 +825,9 @@ def _run_fixed_point(
     strict_complete=None,
     monotonic=None,
     root_digests=None,
+    archive_password='infected',
+    inno_password='',
+    resume=False,
 ):
     root = 'a' * 64
     tmp_path.mkdir(exist_ok=True)
@@ -776,15 +869,68 @@ def _run_fixed_point(
         force_container_probe=False,
         max_static_layers=8,
         retry_max_static_layers=None,
-        archive_password='infected',
+        archive_password=archive_password,
+        inno_password=inno_password,
         string_scan_limit=1000,
         analysis_contract={},
         root_analysis_contract={},
-        resume=False,
+        resume=resume,
         execute_child=execute,
         **optional_arguments,
     )
     return result, calls
+
+
+@pytest.mark.parametrize(
+    ('archive_password', 'inno_password'),
+    [
+        ('private-archive-password', ''),
+        ('', 'private-inno-password'),
+    ],
+)
+def test_configured_credential_disables_follow_on_resume(
+    tmp_path: Path,
+    monkeypatch,
+    archive_password: str,
+    inno_password: str,
+) -> None:
+    """公開credential verifierなしでは既存の子caseを再利用しない。"""
+
+    root = 'a' * 64
+    child_data = b'MZ credential-sensitive child'
+    child = hashlib.sha256(child_data).hexdigest()
+
+    def retained(_output: Path, digest: str, **_kwargs):
+        if digest == root:
+            return [
+                {
+                    'sha256': child,
+                    'size': len(child_data),
+                    'path': 'retained/child.bin',
+                    'role': 'terminal_payload',
+                    'kind': 'pe',
+                    'data': child_data,
+                }
+            ], [], 1, len(child_data)
+        return [], [], 0, 0
+
+    def strict_complete(_output: Path, digest: str, **_kwargs):
+        if digest == child:
+            pytest.fail('credential設定時に既存child caseをresumeしてはならない')
+        return False
+
+    result, calls = _run_fixed_point(
+        tmp_path,
+        monkeypatch,
+        retained,
+        strict_complete=strict_complete,
+        archive_password=archive_password,
+        inno_password=inno_password,
+        resume=True,
+    )
+
+    assert calls == [child]
+    assert {item['sha256']: item['state'] for item in result['nodes']}[child] == 'analyzed'
 
 
 def test_fixed_point_propagates_parent_family_hint_with_hash_lineage(
@@ -1404,6 +1550,7 @@ def test_run_batch_never_publishes_timeout_child_case(tmp_path: Path, monkeypatc
         'resumed': False,
     }
     monkeypatch.setattr(one_shot, 'discover_handlers', lambda: [])
+    monkeypatch.setattr(one_shot, '_validate_runtime_handler_catalog', lambda _specs: None)
     monkeypatch.setattr(one_shot, '_registered_families', lambda _registry: set())
     monkeypatch.setattr(one_shot, '_load_family_analysis_requirements', lambda: {})
     monkeypatch.setattr(
@@ -1525,7 +1672,7 @@ def test_main_returns_partial_when_follow_on_is_incomplete(tmp_path: Path, monke
     """rootがcompleteでも後段graph partialならWebUIへexit 20を返す。"""
 
     monkeypatch.setattr(one_shot, '_interpreter_is_isolated', lambda: True)
-    monkeypatch.setattr(one_shot, '_runtime_preflight_main', lambda: 0)
+    monkeypatch.setattr(one_shot, '_runtime_dependency_preflight_main', lambda: 0)
     monkeypatch.setattr(
         one_shot,
         'run_batch',

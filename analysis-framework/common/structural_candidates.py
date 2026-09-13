@@ -42,6 +42,9 @@ PACKED_CLASSIFICATIONS = frozenset(
     }
 )
 STRONG_PACKER_MARKERS = frozenset({"mpress1", "mpress2", "themida", "vmprotect"})
+CLASSIC_UPX_SECTION_NAMES = frozenset({"upx", "upx0", "upx1", "upx2"})
+MIN_CLASSIC_UPX_SECTION_SIZE = 4096
+MIN_CLASSIC_UPX_PACKED_ENTROPY = 7.2
 ARCHIVE_COMPLETE_STATUSES = frozenset({"extracted"})
 ARCHIVE_SELECTIVE_STATUSES = frozenset({"selectively_extracted"})
 ARCHIVE_PARTIAL_STATUSES = frozenset(
@@ -61,6 +64,15 @@ ARCHIVE_PARTIAL_STATUSES = frozenset(
     }
 )
 SAFE_ARCHIVE_MEMBER_STATUSES = frozenset({"extracted", "empty_file"})
+INNO_SELECTION_LIMIT_REASONS = frozenset(
+    {
+        "command_length_limit",
+        "low_value_members_omitted",
+        "member_count_limit",
+        "member_size_limit",
+        "total_size_limit",
+    }
+)
 SAFE_AGGREGATION_STATUSES = frozenset(
     {
         "candidates_recorded",
@@ -109,6 +121,24 @@ def _safe_count(mapping: Mapping[str, Any] | None, key: str) -> int | None:
 def _status(mapping: Mapping[str, Any] | None) -> str | None:
     value = mapping.get("status") if mapping is not None else None
     return value.casefold() if isinstance(value, str) else None
+
+
+def _safe_entropy(value: object) -> float | None:
+    """PE section entropyを有限な0..8の数値だけに制限する。"""
+
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    numeric = float(value)
+    return numeric if 0.0 <= numeric <= 8.0 else None
+
+
+def _classic_upx_section_name(value: object) -> str | None:
+    """古典的UPX section名だけを正規化し、部分一致を避ける。"""
+
+    if not isinstance(value, str):
+        return None
+    normalized = value.casefold().removeprefix(".")
+    return normalized if normalized in CLASSIC_UPX_SECTION_NAMES else None
 
 
 def _safe_commitment(value: object, role: str) -> dict[str, Any] | None:
@@ -483,6 +513,292 @@ def _archive_extraction(
     return extraction_status, dict(sorted(counts.items())), blockers
 
 
+def _inno_extraction(
+    inno: Mapping[str, Any] | None,
+) -> tuple[str, dict[str, int], set[str]] | None:
+    """開始済みinnounpの権威的な状態だけをfail-closedで集約する。"""
+
+    if inno is None or inno.get("external_parser_started") is not True:
+        return None
+
+    inventory = _mapping(inno.get("inventory"))
+    selection = _mapping(inno.get("selection"))
+    script = _mapping(inno.get("install_script"))
+    tool = _mapping(inno.get("tool"))
+    counts = _fixed_count_fields(
+        (
+            inventory,
+            (
+                "member_count",
+                "declared_total_size",
+                "invalid_member_count",
+                "duplicate_member_count",
+            ),
+        ),
+        (
+            selection,
+            (
+                "selected_member_count",
+                "selected_declared_size",
+                "omitted_member_count",
+                "launch_target_match_count",
+            ),
+        ),
+    )
+    recovered_members = inno.get("recovered_members")
+    if isinstance(recovered_members, list):
+        counts["recovered_member_count"] = len(recovered_members)
+
+    status = _status(inno)
+    base_valid = (
+        inno.get("schema_version") == 1
+        and inno.get("candidate") is True
+        and inno.get("executed") is False
+        and inno.get("sample_executed") is False
+        and inno.get("network_contacted") is False
+        and inno.get("terminal_promotion_eligible") is False
+        and inno.get("archive_unlock_attempted") is False
+        and status is not None
+        and tool is not None
+        and tool.get("configured") is True
+        and tool.get("available") is True
+    )
+    if not base_valid:
+        return (
+            "recovery_incomplete",
+            dict(sorted(counts.items())),
+            {"archive_extraction_incomplete", "inno_extraction_report_invalid"},
+        )
+
+    trusted_statuses = {
+        "artifacts_recovered",
+        "bounded_selection_recovered",
+        "encrypted_payload_blocked",
+    }
+    if status not in trusted_statuses:
+        return (
+            "recovery_incomplete",
+            dict(sorted(counts.items())),
+            {"archive_extraction_incomplete"},
+        )
+
+    tool_digest = tool.get("sha256")
+    tool_size = _non_negative_int(tool.get("size"))
+    tool_version = tool.get("version")
+    member_count = _safe_count(inventory, "member_count")
+    declared_total_size = _safe_count(inventory, "declared_total_size")
+    invalid_member_count = _safe_count(inventory, "invalid_member_count")
+    duplicate_member_count = _safe_count(inventory, "duplicate_member_count")
+    selected_member_count = _safe_count(selection, "selected_member_count")
+    selected_declared_size = _safe_count(selection, "selected_declared_size")
+    omitted_member_count = _safe_count(selection, "omitted_member_count")
+    launch_target_match_count = _safe_count(selection, "launch_target_match_count")
+    complete_archive = (
+        selection.get("complete_archive_extraction")
+        if selection is not None
+        else None
+    )
+    limit_reasons = selection.get("limit_reasons") if selection is not None else None
+    structural_contract_valid = (
+        tool.get("identity_unchanged") is True
+        and isinstance(tool_digest, str)
+        and SHA256_RE.fullmatch(tool_digest) is not None
+        and tool_size is not None
+        and tool_size > 0
+        and isinstance(tool_version, str)
+        and 0 < len(tool_version) <= 128
+        and inventory is not None
+        and inventory.get("status") == "listed"
+        and inventory.get("tool_version") == tool_version
+        and inno.get("inventory_complete") is True
+        and inventory.get("inventory_complete") is True
+        and member_count is not None
+        and member_count > 0
+        and declared_total_size is not None
+        and invalid_member_count == 0
+        and duplicate_member_count == 0
+        and selection is not None
+        and selected_member_count is not None
+        and selected_declared_size is not None
+        and omitted_member_count is not None
+        and launch_target_match_count is not None
+        and isinstance(complete_archive, bool)
+        and isinstance(limit_reasons, list)
+        and all(
+            isinstance(reason, str) and reason in INNO_SELECTION_LIMIT_REASONS
+            for reason in limit_reasons
+        )
+        and limit_reasons == sorted(set(limit_reasons))
+        and selected_member_count + omitted_member_count == member_count
+        and selected_declared_size <= declared_total_size
+        and launch_target_match_count <= selected_member_count
+        and script is not None
+        and script.get("status") == "recovered_and_parsed"
+        and script.get("decompiler_provenance_verified") is True
+    )
+    if not structural_contract_valid:
+        return (
+            "recovery_incomplete",
+            dict(sorted(counts.items())),
+            {"archive_extraction_incomplete", "inno_extraction_report_invalid"},
+        )
+
+    script_size = _safe_count(script, "size")
+    script_digest = script.get("sha256")
+    payload_encrypted = script.get("payload_encrypted")
+    launch_target_count = _safe_count(script, "launch_target_count")
+    dynamic_launch_target_count = _safe_count(script, "dynamic_launch_target_count")
+    invalid_launch_target_count = _safe_count(script, "invalid_launch_target_count")
+    launch_targets = script.get("launch_targets")
+    script_contract_valid = (
+        script_size is not None
+        and script_size > 0
+        and isinstance(script_digest, str)
+        and SHA256_RE.fullmatch(script_digest) is not None
+        and isinstance(payload_encrypted, bool)
+        and launch_target_count is not None
+        and dynamic_launch_target_count == 0
+        and invalid_launch_target_count == 0
+        and isinstance(launch_targets, list)
+        and launch_target_count == len(launch_targets)
+        and all(
+            isinstance(target, str) and 0 < len(target) <= 1024
+            for target in launch_targets
+        )
+        and len({target.casefold() for target in launch_targets})
+        == len(launch_targets)
+        and launch_target_match_count <= launch_target_count
+    )
+    if not script_contract_valid:
+        return (
+            "recovery_incomplete",
+            dict(sorted(counts.items())),
+            {"archive_extraction_incomplete", "inno_extraction_report_invalid"},
+        )
+
+    if status == "encrypted_payload_blocked":
+        encrypted_contract_valid = (
+            inno.get("extraction_complete") is False
+            and payload_encrypted is True
+            and script_size <= selected_declared_size
+            and (recovered_members is None or recovered_members == [])
+            and (
+                (
+                    complete_archive is False
+                    and omitted_member_count > 0
+                    and limit_reasons
+                    and selected_member_count < member_count
+                )
+                or (
+                    complete_archive is True
+                    and omitted_member_count == 0
+                    and limit_reasons == []
+                    and selected_member_count == member_count
+                    and selected_declared_size == declared_total_size
+                )
+            )
+        )
+        if encrypted_contract_valid:
+            return (
+                "recovery_incomplete",
+                dict(sorted(counts.items())),
+                {"archive_extraction_incomplete", "inno_encrypted_payload_blocked"},
+            )
+        return (
+            "recovery_incomplete",
+            dict(sorted(counts.items())),
+            {"archive_extraction_incomplete", "inno_extraction_report_invalid"},
+        )
+
+    recovered_contract_valid = (
+        inno.get("extraction_complete") is True
+        and payload_encrypted is False
+        and isinstance(recovered_members, list)
+        and selected_member_count > 0
+        and len(recovered_members) == selected_member_count - 1
+    )
+    recovered_total_size = script_size
+    recovered_names: list[str] = []
+    recovered_launch_target_count = 0
+    if recovered_contract_valid:
+        for member in recovered_members:
+            item = _mapping(member)
+            if item is None:
+                recovered_contract_valid = False
+                break
+            name = item.get("name")
+            size = _safe_count(item, "size")
+            digest = item.get("sha256")
+            member_format = item.get("format")
+            launch_target = item.get("launch_target")
+            try:
+                encoded_name_size = (
+                    len(name.encode("utf-8")) if isinstance(name, str) else None
+                )
+            except UnicodeEncodeError:
+                encoded_name_size = None
+            if (
+                not isinstance(name, str)
+                or not name
+                or encoded_name_size is None
+                or encoded_name_size > 4096
+                or name != name.replace("\\", "/")
+                or name.startswith("/")
+                or re.match(r"^[A-Za-z]:", name) is not None
+                or any(part in {"", ".", ".."} for part in name.split("/"))
+                or size is None
+                or not isinstance(digest, str)
+                or SHA256_RE.fullmatch(digest) is None
+                or not isinstance(member_format, str)
+                or not member_format
+                or len(member_format) > 128
+                or not isinstance(launch_target, bool)
+            ):
+                recovered_contract_valid = False
+                break
+            recovered_names.append(name)
+            recovered_total_size += size
+            recovered_launch_target_count += int(launch_target)
+    if (
+        not recovered_contract_valid
+        or len({name.casefold() for name in recovered_names}) != len(recovered_names)
+        or recovered_total_size != selected_declared_size
+        or recovered_launch_target_count != launch_target_match_count
+    ):
+        return (
+            "recovery_incomplete",
+            dict(sorted(counts.items())),
+            {"archive_extraction_incomplete", "inno_extraction_report_invalid"},
+        )
+
+    if status == "artifacts_recovered":
+        complete_contract_valid = (
+            complete_archive is True
+            and omitted_member_count == 0
+            and limit_reasons == []
+            and selected_member_count == member_count
+            and selected_declared_size == declared_total_size
+        )
+        if complete_contract_valid:
+            return "recovered", dict(sorted(counts.items())), set()
+    elif (
+        complete_archive is False
+        and omitted_member_count > 0
+        and limit_reasons
+        and selected_member_count < member_count
+    ):
+        return (
+            "selective_recovery",
+            dict(sorted(counts.items())),
+            {"archive_inventory_not_fully_retained"},
+        )
+    return (
+        "recovery_incomplete",
+        dict(sorted(counts.items())),
+        {"archive_extraction_incomplete", "inno_extraction_report_invalid"},
+    )
+
+
 def _installer_candidates(
     *,
     report: Mapping[str, Any],
@@ -493,6 +809,7 @@ def _installer_candidates(
 ) -> list[dict[str, Any]]:
     pe = _mapping(report.get("pe"))
     sevenzip = _mapping(report.get("sevenzip"))
+    inno = _mapping(report.get("inno"))
     types = _archive_types(sevenzip)
     marker_values = pe.get("packer_markers") if pe is not None else None
     markers = {
@@ -506,6 +823,7 @@ def _installer_candidates(
     inno_marker = "inno setup" in markers
     candidates = []
     extraction_status, archive_counts, archive_blockers = _archive_extraction(sevenzip)
+    inno_extraction = _inno_extraction(inno)
     if nsis_type or nsis_marker:
         signals = set()
         if nsis_type:
@@ -527,25 +845,40 @@ def _installer_candidates(
                 blockers=set(archive_blockers),
             )
         )
-    if inno_type or inno_marker:
+    if inno_type or inno_marker or inno_extraction is not None:
         signals = set()
         if inno_type:
             signals.add("sevenzip_inno_archive_type")
         if inno_marker:
             signals.add("inno_setup_pe_marker")
+        if inno_extraction is not None:
+            signals.add("innounp_authoritative_state")
+            inno_extraction_status, inno_counts, inno_blockers = inno_extraction
+        else:
+            inno_extraction_status, inno_counts, inno_blockers = (
+                extraction_status,
+                archive_counts,
+                archive_blockers,
+            )
         candidates.append(
             _make_candidate(
                 kind="inno_setup_installer",
                 source_layer=source_layer,
-                confidence="high" if inno_type else "medium",
-                structural_status="structure_confirmed" if inno_type else "structure_suspected",
-                extraction_status=extraction_status,
+                confidence=(
+                    "high" if inno_type or inno_extraction is not None else "medium"
+                ),
+                structural_status=(
+                    "structure_confirmed"
+                    if inno_type or inno_extraction is not None
+                    else "structure_suspected"
+                ),
+                extraction_status=inno_extraction_status,
                 accepted_child_count=accepted_child_count,
                 reported_artifact_count=reported_artifact_count,
                 source_limit_event_count=source_limit_event_count,
                 signals=signals,
-                counts=archive_counts,
-                blockers=set(archive_blockers),
+                counts=inno_counts,
+                blockers=set(inno_blockers),
             )
         )
     if (
@@ -580,6 +913,78 @@ def _installer_candidates(
     return candidates
 
 
+def _classic_upx_evidence(
+    pe: Mapping[str, Any],
+    markers: set[str],
+) -> tuple[bool, set[str], dict[str, int]]:
+    """名前だけを信用せず、古典的UPXの展開先・stub構造を検証する。"""
+
+    raw_sections = pe.get("sections")
+    sections = raw_sections if isinstance(raw_sections, list) else []
+    named_labels: set[str] = set()
+    zero_raw_virtual_count = 0
+    high_entropy_count = 0
+    entrypoint_high_entropy_count = 0
+    entrypoint = pe.get("entrypoint_section")
+    safe_entrypoint = entrypoint.casefold() if isinstance(entrypoint, str) else None
+    for raw_section in sections:
+        section = _mapping(raw_section)
+        if section is None:
+            continue
+        name = section.get("name")
+        normalized_name = _classic_upx_section_name(name)
+        if normalized_name is not None:
+            named_labels.add(normalized_name)
+        raw_size = _non_negative_int(section.get("raw_size"))
+        virtual_size = _non_negative_int(section.get("virtual_size"))
+        section_entropy = _safe_entropy(section.get("entropy"))
+        if (
+            raw_size == 0
+            and virtual_size is not None
+            and virtual_size >= MIN_CLASSIC_UPX_SECTION_SIZE
+        ):
+            zero_raw_virtual_count += 1
+        high_entropy = (
+            raw_size is not None
+            and raw_size >= MIN_CLASSIC_UPX_SECTION_SIZE
+            and section_entropy is not None
+            and section_entropy >= MIN_CLASSIC_UPX_PACKED_ENTROPY
+        )
+        if high_entropy:
+            high_entropy_count += 1
+            if isinstance(name, str) and name.casefold() == safe_entrypoint:
+                entrypoint_high_entropy_count += 1
+
+    exact_marker = "upx!" in markers
+    label_corroborated = exact_marker or len(named_labels) >= 2
+    structure_confirmed = bool(
+        label_corroborated
+        and zero_raw_virtual_count
+        and high_entropy_count
+        and entrypoint_high_entropy_count
+    )
+    signals: set[str] = set()
+    if exact_marker:
+        signals.add("upx_exact_marker")
+    if named_labels:
+        signals.add("upx_named_section")
+    if len(named_labels) >= 2:
+        signals.add("upx_named_section_pair")
+    if zero_raw_virtual_count:
+        signals.add("upx_zero_raw_virtual_unpack_target")
+    if high_entropy_count:
+        signals.add("upx_high_entropy_packed_section")
+    if entrypoint_high_entropy_count:
+        signals.add("upx_entrypoint_in_packed_section")
+    counts = {
+        "upx_entrypoint_packed_section_count": entrypoint_high_entropy_count,
+        "upx_high_entropy_section_count": high_entropy_count,
+        "upx_section_count": len(named_labels),
+        "upx_zero_raw_virtual_section_count": zero_raw_virtual_count,
+    }
+    return structure_confirmed, signals, counts
+
+
 def _upx_and_packed_candidates(
     *,
     report: Mapping[str, Any],
@@ -597,24 +1002,13 @@ def _upx_and_packed_candidates(
         for value in (marker_values if isinstance(marker_values, list) else [])
         if isinstance(value, str)
     }
-    sections = pe.get("sections")
-    upx_section_count = 0
-    if isinstance(sections, list):
-        for raw_section in sections:
-            section = _mapping(raw_section)
-            name = section.get("name") if section is not None else None
-            if isinstance(name, str) and "upx" in name.casefold():
-                upx_section_count += 1
+    upx_structure, upx_signals, upx_counts = _classic_upx_evidence(pe, markers)
     upx = _mapping(report.get("upx"))
     upx_status = _status(upx)
-    upx_detected = "upx!" in markers or upx_section_count > 0 or upx_status == "recovered"
+    upx_detected = upx_status == "recovered" or upx_structure
     candidates: list[dict[str, Any]] = []
     if upx_detected:
-        signals = set()
-        if "upx!" in markers:
-            signals.add("upx_exact_marker")
-        if upx_section_count:
-            signals.add("upx_section_shape")
+        signals = set(upx_signals)
         if upx_status == "recovered":
             signals.add("trusted_upx_static_recovery")
             extraction_status = "recovered"
@@ -625,19 +1019,18 @@ def _upx_and_packed_candidates(
         else:
             extraction_status = "not_recovered"
             blockers = {"upx_static_recovery_incomplete"}
-        counts = {"upx_section_count": upx_section_count}
         candidates.append(
             _make_candidate(
                 kind="upx_packed",
                 source_layer=source_layer,
-                confidence="high" if upx_status == "recovered" or upx_section_count else "medium",
-                structural_status="structure_confirmed" if upx_status == "recovered" else "structure_suspected",
+                confidence="high",
+                structural_status="structure_confirmed",
                 extraction_status=extraction_status,
                 accepted_child_count=accepted_child_count,
                 reported_artifact_count=reported_artifact_count,
                 source_limit_event_count=source_limit_event_count,
                 signals=signals,
-                counts=counts,
+                counts=upx_counts,
                 blockers=blockers,
             )
         )
@@ -647,6 +1040,30 @@ def _upx_and_packed_candidates(
     if (not isinstance(classification, str) or classification not in PACKED_CLASSIFICATIONS) and not packing_suspected:
         return candidates
     exact_markers = markers.intersection(STRONG_PACKER_MARKERS)
+    reported_high_entropy = pe.get("high_entropy_sections")
+    reported_code_entropy = pe.get("code_entropy_sections")
+    independent_packing_evidence = bool(
+        exact_markers
+        or upx_counts["upx_high_entropy_section_count"]
+        or (
+            isinstance(reported_high_entropy, list)
+            and any(isinstance(value, str) for value in reported_high_entropy)
+        )
+        or (
+            isinstance(reported_code_entropy, list)
+            and any(isinstance(value, str) for value in reported_code_entropy)
+        )
+        or pe.get("virtualized_shape") is True
+        or pe.get("encrypted_sideload_host_shape") is True
+    )
+    if (
+        upx_counts["upx_section_count"]
+        and classification == "packed_or_protected"
+        and not independent_packing_evidence
+    ):
+        # static_unpackerの旧reportではUPX風section名だけでこの分類に
+        # なり得た。独立構造証拠がなければrequired blockerへ昇格しない。
+        return candidates
     signals = {"pe_packing_heuristic"}
     if isinstance(classification, str) and classification in PACKED_CLASSIFICATIONS:
         signals.add("pe_packing_classification")
@@ -728,6 +1145,83 @@ def _dotnet_resource_candidate(
         confidence="high",
         structural_status="structure_confirmed",
         extraction_status=extraction_status,
+        accepted_child_count=accepted_child_count,
+        reported_artifact_count=reported_artifact_count,
+        source_limit_event_count=source_limit_event_count,
+        signals=signals,
+        counts=counts,
+        blockers=blockers,
+    )
+
+
+def _embedded_pe_fanout_candidate(
+    *,
+    report: Mapping[str, Any],
+    source_layer: Mapping[str, Any],
+    accepted_child_count: int,
+    reported_artifact_count: int,
+    source_limit_event_count: int,
+) -> dict[str, Any] | None:
+    """byte carveだけの多層PE fanoutを非帰属のroute候補として保持する。"""
+
+    pe = _mapping(report.get("pe"))
+    scans = [
+        scan
+        for scan in (
+            _mapping(report.get("embedded_pe_scan")),
+            _mapping(pe.get("overlay_embedded_pe_scan")) if pe is not None else None,
+        )
+        if scan is not None
+    ]
+    discovered = sum(
+        _safe_count(scan, "recovered_candidate_count") or 0 for scan in scans
+    )
+    if discovered < 4:
+        return None
+    unique_artifacts = sum(
+        _safe_count(scan, "unique_artifact_count") or 0 for scan in scans
+    )
+    duplicate_digests = sum(
+        _safe_count(scan, "duplicate_digest_count") or 0 for scan in scans
+    )
+    complete_scan_count = sum(_status(scan) == "complete" for scan in scans)
+    incomplete_scan_count = len(scans) - complete_scan_count
+    signals = {
+        "bounded_embedded_pe_extent_validation",
+        "multi_child_pe_fanout",
+        "byte_carve_without_selection_lineage",
+    }
+    if pe is not None and _safe_count(pe, "overlay_size"):
+        signals.add("pe_overlay_fanout")
+    counts = {
+        "discovered_candidate_count": discovered,
+        "unique_artifact_count": unique_artifacts,
+        "duplicate_digest_count": duplicate_digests,
+        "complete_scan_count": complete_scan_count,
+        "incomplete_scan_count": incomplete_scan_count,
+    }
+    skipped_opaque = (
+        _safe_count(pe, "opaque_resources_skipped_without_local_decoder")
+        if pe is not None
+        else None
+    )
+    if skipped_opaque is not None:
+        counts["opaque_resources_skipped_without_local_decoder"] = skipped_opaque
+    blockers = {"embedded_pe_byte_carve_has_no_launch_or_decoder_lineage"}
+    if incomplete_scan_count:
+        blockers.add("embedded_pe_fanout_scan_incomplete")
+    return _make_candidate(
+        kind="embedded_pe_fanout",
+        source_layer=source_layer,
+        confidence="high",
+        structural_status="structure_confirmed",
+        extraction_status=(
+            "recovered"
+            if accepted_child_count and not incomplete_scan_count
+            else "selective_recovery"
+            if accepted_child_count
+            else "inventory_only"
+        ),
         accepted_child_count=accepted_child_count,
         reported_artifact_count=reported_artifact_count,
         source_limit_event_count=source_limit_event_count,
@@ -863,6 +1357,15 @@ def build_structural_candidates(
         )
         if dotnet is not None:
             candidates.append(dotnet)
+        embedded_fanout = _embedded_pe_fanout_candidate(
+            report=report,
+            source_layer=source_layer,
+            accepted_child_count=accepted_child_count,
+            reported_artifact_count=reported_artifact_count,
+            source_limit_event_count=source_limit_event_count,
+        )
+        if embedded_fanout is not None:
+            candidates.append(embedded_fanout)
     candidates = _deduplicate(candidates)
     kind_counts = Counter(item["kind"] for item in candidates)
     base.update(

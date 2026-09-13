@@ -23988,13 +23988,6 @@
       "family": "remusstealer",
       "version_key": "unknown"
     },
-    "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd": {
-      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "case_id": "sha256:f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "case_kind": "malware",
-      "family": "valleyrat",
-      "version_key": "unknown"
-    },
     "f552f87811e0ac4c6757926e79bbf3a38fe6648634aaadb5a01f6e87e3a4951a": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/f552f87811e0ac4c6757926e79bbf3a38fe6648634aaadb5a01f6e87e3a4951a",

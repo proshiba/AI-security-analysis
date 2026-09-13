@@ -156,6 +156,66 @@ def test_route_only_valleyrat_config_is_preserved_without_attribution() -> None:
     assert "family" not in candidate
 
 
+def test_explicit_route_only_config_survives_detector_corroboration() -> None:
+    """独立detectorがあってもroute-only設定をfamily/C2確証へ昇格しない。"""
+
+    assessment = _route_only_assessment()
+    family = assessment["families"][0]
+    attempt = family["attempts"][0]
+    family["status"] = "handler_evidence_route_only"
+    attempt["status"] = "handler_evidence_route_only"
+    attempt["handler_family_attribution"] = {
+        "supports_family_confirmation": False,
+        "route_only": True,
+        "explicit_contract": True,
+        "basis": "handler_explicitly_limits_result_to_route_only",
+    }
+    attempt["detector_corroboration"] = {
+        "corroborated": True,
+        "score": 44_100,
+        "basis": "structural_detector_evidence",
+        "layer_sha256": LEFT_SHA256,
+        "lineage_distance": 0,
+    }
+
+    document = handler_evidence.build_route_config_candidate_document(
+        sha256=ROOT_SHA256,
+        assessment=assessment,
+    )
+
+    assert document["route_config_candidate_recovered"] is True
+    assert document["family_attribution_confirmed"] is False
+    assert document["used_for_family_resolution"] is False
+    assert document["used_for_c2_confirmation"] is False
+    assert document["candidates"][0]["candidate_family"] == "valleyrat"
+
+
+def test_explicit_route_only_projection_rejects_missing_attribution_contract() -> None:
+    """新状態だけを偽装し、handlerの明示契約が無いattemptは投影しない。"""
+
+    assessment = _route_only_assessment()
+    family = assessment["families"][0]
+    attempt = family["attempts"][0]
+    family["status"] = "handler_evidence_route_only"
+    attempt["status"] = "handler_evidence_route_only"
+    attempt["detector_corroboration"] = {
+        "corroborated": True,
+        "score": 44_100,
+        "basis": "structural_detector_evidence",
+    }
+
+    document = handler_evidence.build_route_config_candidate_document(
+        sha256=ROOT_SHA256,
+        assessment=assessment,
+    )
+
+    assert document["route_config_candidate_recovered"] is False
+    assert document["rejected_route_attempt_count"] == 1
+    assert document["route_attempt_rejection_reason_counts"] == {
+        "handler_route_only_contract_invalid": 1
+    }
+
+
 def test_route_config_preserves_no_candidate_assessment_diagnostics() -> None:
     """routing候補が無い早期終了でもassessment理由と0件の試行計画を保持する。"""
 
@@ -164,6 +224,14 @@ def test_route_config_preserves_no_candidate_assessment_diagnostics() -> None:
         "status": "no_candidates",
         "candidate_count": 0,
         "planned_attempt_count": 0,
+        "actual_attempt_count": 0,
+        "retained_attempt_detail_count": 0,
+        "omitted_attempt_detail_count": 0,
+        "unattempted_attempt_count": 0,
+        "confirmed_families": [],
+        "blockers": [],
+        "budget": {"exhausted": False},
+        "excluded_layers": [],
         "families": [],
         "executed_sample": False,
         "network_contacted": False,
@@ -183,10 +251,12 @@ def test_route_config_preserves_no_candidate_assessment_diagnostics() -> None:
     assert document["assessment_status"] == "no_candidates"
     assert document["assessment_candidate_count"] == 0
     assert document["planned_handler_attempt_count"] == 0
+    assert document["actual_handler_attempt_count"] == 0
+    assert document["unattempted_handler_attempt_count"] == 0
+    assert document["omitted_handler_attempt_detail_count"] == 0
     assert document["evaluated_route_attempt_count"] == 0
     assert document["assessment_rejection_reasons"] == [
         "assessment_status_not_projection_eligible",
-        "confirmed_family_summary_invalid",
     ]
     assert document["assessment_exclusion_reason_counts"] == {
         "no_planned_handler_attempts": 1,
@@ -271,6 +341,40 @@ def test_route_config_records_non_route_attempt_exclusion_status() -> None:
         "attempt_status_no_evidence": 1
     }
     assert document["route_attempt_rejection_reason_counts"] == {}
+
+
+def test_truncated_worker_result_is_not_projected_as_route_evidence() -> None:
+    """worker公開上限で欠けたresultは他試行継続後もroute候補へ採用しない。"""
+
+    assessment = _route_only_assessment()
+    assessment["status"] = "partial"
+    assessment["partial_result_attempt_count"] = 1
+    family = assessment["families"][0]
+    family["status"] = "partial_result_quota_exhausted"
+    attempt = family["attempts"][0]
+    attempt["status"] = "partial_result_quota_exhausted"
+    attempt["result_quota"] = {
+        "truncated": True,
+        "reasons": ["maximum_total_entries"],
+    }
+    attempt.pop("result")
+
+    document = handler_evidence.build_route_config_candidate_document(
+        sha256=ROOT_SHA256,
+        assessment=assessment,
+    )
+
+    assert document["status"] == (
+        "assessment_incomplete_no_route_config_candidate"
+    )
+    assert document["route_config_candidate_recovered"] is False
+    assert document["candidate_set_complete"] is False
+    assert document["evaluated_route_attempt_count"] == 0
+    assert document["observed_excluded_route_attempt_count"] == 1
+    assert document["rejected_route_attempt_count"] == 0
+    assert document["route_attempt_exclusion_reason_counts"] == {
+        "attempt_status_partial_result_quota_exhausted": 1
+    }
 
 
 @pytest.mark.parametrize(
@@ -442,6 +546,45 @@ def test_partial_route_assessment_preserves_candidate_but_not_completeness() -> 
     assert document["status"] == "partial_route_config_candidates_recovered"
     assert document["route_config_candidate_recovered"] is True
     assert document["candidate_set_complete"] is False
+
+
+def test_valid_route_attempt_survives_sibling_worker_result_truncation() -> None:
+    """同じfamilyの正常な別試行は保持し、欠損試行だけをroute投影から除外する。"""
+
+    assessment = _route_only_assessment()
+    assessment["status"] = "partial"
+    assessment["planned_attempt_count"] = 2
+    assessment["actual_attempt_count"] = 2
+    assessment["partial_result_attempt_count"] = 1
+    family = assessment["families"][0]
+    family["status"] = "partial_result_quota_exhausted"
+    family["attempts"].append(
+        {
+            "handler_id": family["attempts"][0]["handler_id"],
+            "family": "valleyrat",
+            "status": "partial_result_quota_exhausted",
+            "layer": dict(family["attempts"][0]["layer"]),
+            "result_quota": {
+                "truncated": True,
+                "reasons": ["maximum_total_entries"],
+            },
+        }
+    )
+
+    document = handler_evidence.build_route_config_candidate_document(
+        sha256=ROOT_SHA256,
+        assessment=assessment,
+    )
+
+    assert document["status"] == "partial_route_config_candidates_recovered"
+    assert document["route_config_candidate_recovered"] is True
+    assert document["candidate_count"] == 1
+    assert document["candidate_set_complete"] is False
+    assert document["evaluated_route_attempt_count"] == 1
+    assert document["observed_excluded_route_attempt_count"] == 1
+    assert document["route_attempt_exclusion_reason_counts"] == {
+        "attempt_status_partial_result_quota_exhausted": 1
+    }
 
 
 def test_duplicate_route_config_attempt_is_deduplicated() -> None:

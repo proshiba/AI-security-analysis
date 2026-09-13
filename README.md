@@ -1,6 +1,6 @@
 # AIセキュリティ解析
 
-AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む3,363件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
+AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む3,362件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
 
 > **安全上の前提**: このリポジトリには検体本体、抽出した実行可能ファイル、復号バイナリ、PCAP、Ghidra project、資格情報を保存しません。保存対象はレポート、メタデータ、IOC、テキスト化した逆アセンブル、検知ルール候補など公開可能な成果物に限定します。
 
@@ -210,7 +210,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 
 | マルウェア種 | 解析回数 | 最後の解析日 | 主な解析パターン |
 |---|---:|---|---|
-| ValleyRAT | 13 | 2026-07-27 | 従来パターン、`cefclient_libcef_sideload_malspam`、`iso_pdfcore8_winos_proxy_sideload` |
+| ValleyRAT | 13 | 2026-07-27 | 従来パターン、`iso_pdfcore8_winos_proxy_sideload` |
 | ValleyRAT（提供元報告・未確認） | 6 | 2026-09-05 | EXE 5件・IMG 1件の追加静的解析。終端通信・登録・timerは未解決 |
 | AgentTesla | 11 | 2026-07-29 | `unicode_marker_powershell_png_stage`, `javascript_aes_inmemory_dotnet`, `fromcharcode_eval_loader`, `rar_wrapped_javascript`, `japanese_invoice_malspam_js_luajit_donut_ftp` |
 | RemcosRAT | 10 | 2026-07-13 | VBS/JS/HTAローダー、直接PE、ISO二重拡張子による配布 |
@@ -262,7 +262,6 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 | 2026-07-15 | `df603ed5` | `inno_installer_silverfox_unresolved` | 静的解析＋公開証拠の相関 | 推定 `oidng2.duoshit.com:443` / `51.79.18.52:443` |
 | 2026-07-15 | `6546aad6` | `upx_nrv2e_silverfox_http_bundle` | 静的深掘りによる復元 | 配布 `43.198.235.91:80`、最終C2は未解決 |
 | 2026-07-15 | `32146526` | `qt_static_obfuscated_silverfox` | 静的解析＋DNS相関 | `cqbxbkj.cn` / `18.167.91.239`、ポート `8880` は未検証 |
-| 2026-07-16 | `f543dcf4` | `cefclient_libcef_sideload_malspam` | 情報源／公開成果物の相関 | `ljowqjd.cn`、最終設定は取得不能 |
 | 2026-07-27 | `ee0ef34a` | `iso_pdfcore8_winos_proxy_sideload` | Ghidra静的深掘り＋PCAP＋限定protocol確認 | `haochisadnka.cc:6685/6698/6699` |
 
 ### AgentTesla / RemcosRAT 解析履歴

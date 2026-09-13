@@ -101,6 +101,7 @@ def test_appdomainmanager_pixel_loader_requires_correlated_markers(
     directories = [SimpleNamespace(Size=0) for _ in range(15)]
     directories[14] = SimpleNamespace(Size=72)
     fake_pe = SimpleNamespace(OPTIONAL_HEADER=SimpleNamespace(DATA_DIRECTORY=directories))
+    monkeypatch.setattr(DETECT, "has_clr_metadata", lambda _data: True)
     monkeypatch.setattr(DETECT.pefile, "PE", lambda **_kwargs: fake_pe)
     data = b"MZ fixture MyAppDomainManager InitializeNewDomain VirtualAllocExNuma EnumUILanguagesA Win32_CacheMemory"
 
@@ -301,3 +302,41 @@ def test_route_only_proxy_contract_fails_closed(
 
     assert result["matched"] is False
     assert result["campaigns"] == []
+
+
+def test_export_funnel_probe_routes_to_single_pe_without_family_attribution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """export-funnel形状はgeneric single-PE解析へだけrouteする。"""
+
+    data = _large_pe_fixture(b" anonymous export funnel fixture")
+    monkeypatch.setattr(DETECT, "analyze_signed_proxy_sideload", lambda *_args: {})
+    monkeypatch.setattr(
+        DETECT,
+        "probe_export_funnel_route",
+        lambda _data: {
+            "matched": True,
+            "attribution_scope": "component_handler_route",
+            "supports_family_attribution": False,
+            "terminal_family_confirmed": False,
+            "terminal_network_lineage_proven": False,
+            "evidence": {
+                "export_names_included": False,
+                "resource_labels_included": False,
+                "raw_addresses_included": False,
+            },
+            "sample_executed": False,
+            "network_contacted": False,
+        },
+    )
+
+    result = DETECT.detect(data, Path("anonymous.dll"))
+
+    assert result["matched"] is True
+    assert result["supports_family_attribution"] is False
+    assert "export_funnel_native_route" in result["observations"]
+    campaign = result["campaigns"][0]
+    assert campaign["campaign_type"] == "single_pe"
+    assert campaign["attribution_scope"] == "component_handler_route"
+    assert campaign["supports_family_attribution"] is False
+    assert campaign["terminal_family_confirmed"] is False

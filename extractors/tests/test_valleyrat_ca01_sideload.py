@@ -960,7 +960,29 @@ def test_recover_config_rejects_ambiguous_outer_profiles(
         lambda _data: _valid_cef_recovery("c" * 64),
     )
 
-    assert ca01.recover_config(b"MZ ambiguous profiles") is None
+    profile_markers = b"|".join(
+        [ca01._VULKAN_EXPORT, *sorted(ca01._REQUIRED_CEF_EXPORTS)]
+    )
+    assert ca01.recover_config(b"MZ ambiguous profiles " + profile_markers) is None
+
+
+def test_recover_config_skips_both_profiles_without_export_markers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """一般PEは高コストな両profile復元を開始せず不一致にする。"""
+
+    monkeypatch.setattr(
+        ca01,
+        "_recover",
+        lambda _data: pytest.fail("Vulkan export marker不在で復元してはいけません"),
+    )
+    monkeypatch.setattr(
+        ca01,
+        "_recover_cef",
+        lambda _data: pytest.fail("CEF export marker不在で復元してはいけません"),
+    )
+
+    assert ca01.recover_config(b"MZ unrelated PE") is None
 
 
 def test_invalid_or_oversized_input_is_fail_closed() -> None:

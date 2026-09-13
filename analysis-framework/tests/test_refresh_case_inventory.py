@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import pytest
 
 COMMON = Path(__file__).resolve().parents[1] / "common"
 sys.path.insert(0, str(COMMON))
 
-import refresh_case_inventory as inventory  # noqa: E402
+import refresh_case_inventory as inventory
 
 
 def test_publication_safety_rejects_datastore_upload_receipt(tmp_path: Path) -> None:
@@ -151,19 +151,24 @@ def _install_plan_counter(monkeypatch, *, metadata_written: bool) -> list[int]:
         return _stub_plan()
 
     monkeypatch.setattr(inventory, "build_layout_plan", counting_plan)
+    monkeypatch.setattr(inventory, "preflight_catalog_sync", lambda *args, **kwargs: None)
     monkeypatch.setattr(
         inventory,
         "sync_case_identity_metadata",
         lambda root, *, write=False, plan=None: {
             "updated_cases": [],
-            "write_performed": metadata_written,
+            "write_performed": bool(write and metadata_written),
         },
     )
     monkeypatch.setattr(
         inventory,
         "sync_catalog",
-        lambda root, *, write=False, plan=None: {
-            "added_cases": [], "updated_cases": [], "write_performed": False
+        lambda root, *, write=False, plan=None, approved_case_removals=frozenset(),
+        bootstrap_missing_catalog=False: {
+            "added_cases": [],
+            "updated_cases": [],
+            "removed_case_count": 0,
+            "write_performed": False,
         },
     )
     monkeypatch.setattr(
@@ -199,11 +204,202 @@ def test_check_builds_layout_plan_once(monkeypatch, tmp_path: Path) -> None:
 
 
 def test_write_rebuilds_plan_only_when_metadata_changed(monkeypatch, tmp_path: Path) -> None:
-    """metadataを書き換えた場合だけ計画を作り直す。計画はmetadata.jsonを読むため。"""
+    """write後checkを再帰実行し、metadata変更時だけouter planを作り直す。"""
     calls = _install_plan_counter(monkeypatch, metadata_written=True)
-    inventory.refresh(tmp_path, check=True)
-    assert calls[0] == 2
+    result = inventory.refresh(tmp_path, write=True)
+    assert calls[0] == 3
+    assert result["verification"]["mode"] == "check"
 
     calls = _install_plan_counter(monkeypatch, metadata_written=False)
-    inventory.refresh(tmp_path, check=True)
-    assert calls[0] == 1
+    result = inventory.refresh(tmp_path, write=True)
+    assert calls[0] == 2
+    assert result["verification"]["check_failed"] is False
+
+
+def test_write_preflight_failure_happens_before_metadata_write(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """削除承認不一致なら最初のmetadata writeより前に停止する。"""
+
+    _install_plan_counter(monkeypatch, metadata_written=False)
+    events = []
+
+    def reject_preflight(*_args, **_kwargs):
+        events.append("preflight")
+        raise inventory.CatalogSyncError("approval mismatch")
+
+    def unexpected_metadata(*_args, **_kwargs):
+        events.append("metadata")
+        pytest.fail("承認不一致後にmetadata writeへ進んではならない")
+
+    monkeypatch.setattr(inventory, "preflight_catalog_sync", reject_preflight)
+    monkeypatch.setattr(inventory, "sync_case_identity_metadata", unexpected_metadata)
+
+    with pytest.raises(inventory.CatalogSyncError, match="approval mismatch"):
+        inventory.refresh(tmp_path, write=True)
+    assert events == ["preflight"]
+
+
+def test_refresh_bootstrap_requires_write_and_rejects_deletion_approval(
+    tmp_path: Path,
+) -> None:
+    """refresh API/CLIのbootstrapをwrite専用かつ削除承認と排他的にする。"""
+
+    with pytest.raises(ValueError, match="requires write mode"):
+        inventory.refresh(tmp_path, bootstrap_missing_catalog=True)
+    with pytest.raises(inventory.CatalogSyncError, match="cannot be combined"):
+        inventory.refresh(
+            tmp_path,
+            write=True,
+            approved_case_removals=frozenset({"a" * 64}),
+            bootstrap_missing_catalog=True,
+        )
+    with pytest.raises(ValueError, match="requires --write"):
+        inventory.main(["--bootstrap-missing-catalog"])
+    with pytest.raises(ValueError, match="requires --write"):
+        inventory.main(["--allow-removed-case-stdin"])
+    with pytest.raises(inventory.CatalogSyncError, match="cannot be combined"):
+        inventory.main(
+            [
+                "--write",
+                "--bootstrap-missing-catalog",
+                "--allow-removed-case-stdin",
+            ]
+        )
+
+
+def test_refresh_cli_passes_stdin_approval_without_argv_digest(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    approved = frozenset({"a" * 64})
+    captured = {}
+    monkeypatch.setattr(
+        inventory,
+        "read_approved_case_removals_from_stdin",
+        lambda: approved,
+    )
+
+    def refresh(repository, **kwargs):
+        captured.update(repository=repository, **kwargs)
+        return {"check_failed": False}
+
+    monkeypatch.setattr(inventory, "refresh", refresh)
+
+    assert inventory.main(
+        [
+            "--repository",
+            str(tmp_path),
+            "--write",
+            "--allow-removed-case-stdin",
+        ]
+    ) == 0
+    assert captured == {
+        "repository": tmp_path,
+        "write": True,
+        "check": False,
+        "approved_case_removals": approved,
+        "bootstrap_missing_catalog": False,
+    }
+
+
+def test_refresh_cli_passes_explicit_catalog_bootstrap(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured = {}
+
+    def refresh(repository, **kwargs):
+        captured.update(repository=repository, **kwargs)
+        return {"check_failed": False}
+
+    monkeypatch.setattr(inventory, "refresh", refresh)
+
+    assert inventory.main(
+        [
+            "--repository",
+            str(tmp_path),
+            "--write",
+            "--bootstrap-missing-catalog",
+        ]
+    ) == 0
+    assert captured == {
+        "repository": tmp_path,
+        "write": True,
+        "check": False,
+        "approved_case_removals": frozenset(),
+        "bootstrap_missing_catalog": True,
+    }
+
+
+def test_write_repreflights_rebuilt_plan_and_then_recursively_checks(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """metadata更新後のplanを再承認検証してからcatalogを書き、checkを再帰実行する。"""
+
+    _install_plan_counter(monkeypatch, metadata_written=False)
+    approved = frozenset({"a" * 64})
+    events = []
+    metadata_calls = 0
+
+    def preflight(_root, **kwargs):
+        events.append(
+            (
+                "preflight",
+                kwargs["approved_case_removals"],
+                kwargs["bootstrap_missing_catalog"],
+            )
+        )
+
+    def metadata(_root, *, write=False, plan=None):
+        nonlocal metadata_calls
+        metadata_calls += 1
+        events.append(("metadata", write))
+        return {
+            "updated_cases": [],
+            "write_performed": bool(write and metadata_calls == 1),
+        }
+
+    def sync_catalog(
+        _root,
+        *,
+        write=False,
+        plan=None,
+        approved_case_removals=frozenset(),
+        bootstrap_missing_catalog=False,
+    ):
+        events.append(
+            (
+                "catalog",
+                write,
+                approved_case_removals,
+                bootstrap_missing_catalog,
+            )
+        )
+        return {
+            "added_cases": [],
+            "updated_cases": [],
+            "removed_case_count": int(write),
+            "write_performed": write,
+        }
+
+    monkeypatch.setattr(inventory, "preflight_catalog_sync", preflight)
+    monkeypatch.setattr(inventory, "sync_case_identity_metadata", metadata)
+    monkeypatch.setattr(inventory, "sync_catalog", sync_catalog)
+
+    result = inventory.refresh(
+        tmp_path,
+        write=True,
+        approved_case_removals=approved,
+    )
+
+    assert events[:4] == [
+        ("preflight", approved, False),
+        ("metadata", True),
+        ("preflight", approved, False),
+        ("catalog", True, approved, False),
+    ]
+    assert ("catalog", False, frozenset(), False) in events
+    assert result["verification"]["mode"] == "check"

@@ -17,6 +17,29 @@ DETECT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(DETECT)
 
 
+def test_appdomainmanager_prefilter_skips_full_pe_parse(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CLR metadataなしと判明した入力をfull PE parserへ渡さない。"""
+
+    monkeypatch.setattr(DETECT, "has_clr_metadata", lambda _data: False)
+    monkeypatch.setattr(
+        DETECT.pefile,
+        "PE",
+        lambda **_kwargs: pytest.fail("managed prefilter後にPEを再解析してはならない"),
+    )
+
+    result = DETECT._appdomainmanager_loader_shape(b"MZ-native-fixture")
+
+    assert result == {
+        "matched": False,
+        "status": "managed_prefilter_rejected",
+        "clr_directory_size": 0,
+        "required_markers": [],
+        "supporting_markers": [],
+    }
+
+
 def _proxy_result(*, count: int = 1) -> dict[str, object]:
     components = []
     for index in range(count):

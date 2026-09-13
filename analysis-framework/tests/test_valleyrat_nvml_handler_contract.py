@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 COMMON = REPOSITORY_ROOT / "analysis-framework" / "common"
@@ -15,13 +14,13 @@ for import_root in (REPOSITORY_ROOT, COMMON):
         sys.path.insert(0, str(import_root))
 
 from analysis_contract import handler_result_quality  # noqa: E402
+from extractors.valleyrat.extractor import extract  # noqa: E402
+from extractors.valleyrat.nvml_dat import recover_nvml_dat  # noqa: E402
 from handler_catalog import (  # noqa: E402
     discover_handlers,
     execute_handler_bounded_for_assessment,
     preflight_handler_for_assessment,
 )
-from extractors.valleyrat.extractor import extract  # noqa: E402
-from extractors.valleyrat.nvml_dat import recover_nvml_dat  # noqa: E402
 
 
 def _load_module(name: str, path: Path):
@@ -105,6 +104,7 @@ def test_nvml_dat_handlers_return_validated_static_configuration() -> None:
         assert quality["sufficient"] is True
         assert result["config"]["static_config_recovered"] is True
         assert result["config"]["endpoints"] == expected
+        assert result["config"].get("c2_endpoints", expected) == expected
         assert result["network_contacted"] is False
         assert result["terminal_payload"] == {
             "role": "terminal_payload",
@@ -112,6 +112,7 @@ def test_nvml_dat_handlers_return_validated_static_configuration() -> None:
             "data": recovered.stage,
         }
     assert signed["matched_patterns"] == ["nvml_dat_static_stage_codemark"]
+    assert signed["config"]["c2_endpoints"] == expected
     assert signed["config"]["nvml_dat"]["safety"] == {
         "sample_executed": False,
         "stage_executed": False,
@@ -119,6 +120,14 @@ def test_nvml_dat_handlers_return_validated_static_configuration() -> None:
         "raw_stage_included": False,
         "raw_key_included": False,
     }
+
+
+def test_signed_handler_excludes_loopback_from_explicit_c2_role() -> None:
+    """全slotは保持しつつloopback既定値をC2 roleから除外する。"""
+
+    endpoints = ["127.0.0.1:80", "0.0.0.0:80", "c2.example:443"]
+
+    assert SIGNED_ANALYZER._control_endpoints(endpoints) == ["c2.example:443"]
 
 
 def test_nvml_worker_rehashes_and_retains_terminal_for_follow_on(

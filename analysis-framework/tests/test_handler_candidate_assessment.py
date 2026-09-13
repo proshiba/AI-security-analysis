@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import base64
 import hashlib
 import json
@@ -19,6 +20,7 @@ if str(COMMON_ROOT) not in sys.path:
 
 import bounded_process  # noqa: E402
 import handler_catalog as catalog  # noqa: E402
+from analysis_contract import handler_result_quality  # noqa: E402
 
 
 @pytest.fixture
@@ -76,6 +78,103 @@ def _source(result_expression: str, formats: tuple[str, ...] = ("data",)) -> str
     )
 
 
+def test_handler_discovery_streams_one_source_tree_and_clears_ast_cache(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """catalog発見は同一snapshotを共有し、全source ASTをprocessへ保持しない。"""
+
+    repository, malware_root = isolated_catalog
+    expected = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{'status': 'not_applicable'}"),
+    )
+    source_path = repository / expected.relative_path
+    extractor_path = catalog.EXTRACTORS_ROOT / "sharedfixture.py"
+    extractor_path.write_text(
+        'HANDLER_CONTRACT = {"input_formats": ["data"], '
+        '"minimum_evidence_score": 1}\n'
+        "def extract(data):\n"
+        "    return {'status': 'not_applicable'}\n",
+        encoding="utf-8",
+    )
+    tracked_paths = {source_path, extractor_path}
+    monkeypatch.setattr(
+        catalog,
+        "PROFILE_PATH",
+        repository / "missing-profiles.json",
+    )
+
+    cached_path = repository / "legacy-cache-fixture.py"
+    cached_path.write_text("value = 1\n", encoding="utf-8")
+    catalog._module_tree(cached_path)
+    assert catalog._module_tree.cache_info().currsize == 1
+
+    original_parse = catalog._parse_module_tree
+    original_shape = catalog._function_shape
+    original_contract = catalog._handler_contract
+    parsed_trees: dict[Path, list[ast.Module]] = {
+        path: [] for path in tracked_paths
+    }
+    shape_trees: dict[Path, list[ast.Module | None]] = {
+        path: [] for path in tracked_paths
+    }
+    contract_trees: dict[Path, list[ast.Module | None]] = {
+        path: [] for path in tracked_paths
+    }
+
+    def parse(path: Path) -> ast.Module:
+        tree = original_parse(path)
+        if path in tracked_paths:
+            parsed_trees[path].append(tree)
+        return tree
+
+    def shape(
+        path: Path,
+        callable_name: str,
+        *,
+        tree: ast.Module | None = None,
+    ) -> tuple[str, bool, str]:
+        if path in tracked_paths:
+            shape_trees[path].append(tree)
+        return original_shape(path, callable_name, tree=tree)
+
+    def contract(
+        path: Path,
+        callable_name: str,
+        invocation: str,
+        source: str,
+        *,
+        tree: ast.Module | None = None,
+    ) -> tuple[tuple[str, ...], str, int]:
+        if path in tracked_paths:
+            contract_trees[path].append(tree)
+        return original_contract(
+            path,
+            callable_name,
+            invocation,
+            source,
+            tree=tree,
+        )
+
+    monkeypatch.setattr(catalog, "_parse_module_tree", parse)
+    monkeypatch.setattr(catalog, "_function_shape", shape)
+    monkeypatch.setattr(catalog, "_handler_contract", contract)
+
+    discovered = catalog.discover_handlers()
+
+    assert [item.id for item in discovered] == [
+        "candidate_family:analysis.framework.malware.candidate.family.extract.config.py:extract_config",
+        "sharedfixture:extractors.sharedfixture.py:extract",
+    ]
+    assert all(len(parsed_trees[path]) == 1 for path in tracked_paths)
+    assert shape_trees == parsed_trees
+    assert contract_trees == parsed_trees
+    assert catalog._module_tree.cache_info().currsize == 0
+
+
 def _layer(data: bytes, name: str, parent: str | None = None) -> dict:
     return {
         "name": name,
@@ -96,6 +195,34 @@ def _structural_detector() -> dict:
             "observations": {"marker_hits": ["independent-family-marker"]},
         },
     }
+
+
+def _routing_detector(
+    supports_attribution: bool | None,
+    campaign_types: list[object],
+) -> dict:
+    """handler選択用のmatched detector評価を作る。"""
+
+    result = {
+        "known_outer_sha256": False,
+        "known_inner_sha256": False,
+        "known_routing_sha256": False,
+        "detector_matched": True,
+        "applicable": True,
+        "automatic_route_eligible": True,
+        "error": None,
+        "detection": {
+            "matched": True,
+            "observations": {"marker_hits": ["independent-family-marker"]},
+            "campaigns": [
+                ({"campaign_type": campaign_type} if isinstance(campaign_type, str) else campaign_type)
+                for campaign_type in campaign_types
+            ],
+        },
+    }
+    if supports_attribution is not None:
+        result["supports_family_attribution"] = supports_attribution
+    return result
 
 
 def _candidate(family: str, source: str = "metadata_hint") -> dict:
@@ -239,6 +366,621 @@ def test_family_wide_handler_runs_before_campaign_handlers(
     )
 
     assert calls == [shared.id, campaign.id]
+
+
+def test_external_metadata_uses_family_wide_then_bounded_campaign_fallback(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """未検証provider hintでもcampaignを代表層へ限定してcoverageを保つ。"""
+
+    repository, malware_root = isolated_catalog
+    base = _handler_spec(
+        repository,
+        malware_root,
+        "valleyrat",
+        _source("{}"),
+    )
+    shared = replace(
+        base,
+        id="valleyrat:shared",
+        source="shared_extractor",
+        campaign=None,
+    )
+    campaign = replace(
+        base,
+        id="valleyrat:campaign",
+        campaign="fixture",
+    )
+    calls: list[str] = []
+
+    def execute(handler, *_args, **_kwargs):
+        calls.append(handler.id)
+        return _mock_completed_handler_result()
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    result = catalog.assess_candidate_handlers(
+        [_candidate("valleyrat", source="external_metadata")],
+        [_layer(b"candidate payload", "payload.bin")],
+        specs=[campaign, shared],
+    )
+
+    assert calls == [shared.id, campaign.id]
+    assert result["planned_attempt_count"] == result["actual_attempt_count"] == 2
+    assert result["pair_planning"]["deferred_campaign_handler_count"] == 0
+    assert result["pair_planning"]["bounded_campaign_fallback_handler_count"] == 1
+    selection = result["families"][0]["handler_selection"]
+    assert selection == {
+        "mode": "family_wide_then_bounded_campaign_fallback_external_metadata",
+        "external_metadata_only": True,
+        "automatic_handler_count": 2,
+        "selected_handler_count": 2,
+        "primary_handler_count": 1,
+        "bounded_campaign_fallback_handler_count": 1,
+        "deferred_campaign_handler_count": 0,
+        "campaign_fallback_used": True,
+        "bounded_campaign_fallback_enabled": True,
+        "bounded_campaign_fallback_maximum_layers_per_handler": 2,
+        "bounded_campaign_fallback_selection_basis": ("root_then_format_transform_depth_diversity"),
+        "family_confirmation_affected": False,
+        "deferred_handlers_require_changed_evidence": False,
+        "detector_scope_status": "unknown",
+        "detector_scope_basis": "detector_evaluations_not_supplied",
+        "matched_detector_count": 0,
+        "attribution_supporting_detector_count": 0,
+        "route_only_detector_count": 0,
+        "route_only_campaign_types": [],
+        "matched_campaign_types": [],
+        "matched_campaign_handler_count": 0,
+        "campaign_selection_basis": ("external_metadata_family_wide_with_bounded_campaign_fallback"),
+        "detector_scope_used_for_handler_selection": False,
+        "detector_scope_used_for_family_confirmation": False,
+    }
+
+
+def test_external_metadata_without_family_wide_handler_keeps_campaign_fallback(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """共通extractorがないfamilyではmetadata候補でも既存coverageを維持する。"""
+
+    repository, malware_root = isolated_catalog
+    base = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{}"),
+    )
+    campaign = replace(base, id="candidate_family:campaign", campaign="fixture")
+    calls: list[str] = []
+
+    def execute(handler, *_args, **_kwargs):
+        calls.append(handler.id)
+        return _mock_completed_handler_result()
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    result = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family", source="external_metadata")],
+        [_layer(b"candidate payload", "payload.bin")],
+        specs=[campaign],
+    )
+
+    assert calls == [campaign.id]
+    selection = result["families"][0]["handler_selection"]
+    assert selection["mode"] == "bounded_campaign_fallback_external_metadata"
+    assert selection["campaign_fallback_used"] is True
+    assert selection["primary_handler_count"] == 0
+    assert selection["bounded_campaign_fallback_handler_count"] == 1
+    assert selection["deferred_campaign_handler_count"] == 0
+
+
+def test_detector_and_external_metadata_keeps_campaign_handlers(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """独立detectorを伴う候補はcampaign固有解析も従来どおり実行する。"""
+
+    repository, malware_root = isolated_catalog
+    base = _handler_spec(
+        repository,
+        malware_root,
+        "valleyrat",
+        _source("{}"),
+    )
+    shared = replace(
+        base,
+        id="valleyrat:shared",
+        source="shared_extractor",
+        campaign=None,
+    )
+    campaign = replace(base, id="valleyrat:campaign", campaign="fixture")
+    calls: list[str] = []
+
+    def execute(handler, *_args, **_kwargs):
+        calls.append(handler.id)
+        return _mock_completed_handler_result()
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    result = catalog.assess_candidate_handlers(
+        [_candidate("valleyrat", source="detector_and_external_metadata")],
+        [_layer(b"candidate payload", "payload.bin")],
+        specs=[campaign, shared],
+    )
+
+    assert calls == [shared.id, campaign.id]
+    selection = result["families"][0]["handler_selection"]
+    assert selection["mode"] == "all_automatic_handlers"
+    assert selection["external_metadata_only"] is False
+    assert selection["deferred_campaign_handler_count"] == 0
+
+
+def test_attribution_supporting_detector_keeps_all_automatic_handlers(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """帰属を支持するmatched detectorがあれば従来の全handler coverageを維持する。"""
+
+    repository, malware_root = isolated_catalog
+    base = _handler_spec(
+        repository,
+        malware_root,
+        "valleyrat",
+        _source("{}"),
+    )
+    shared = replace(base, id="valleyrat:shared", campaign=None)
+    matched = replace(
+        base,
+        id="valleyrat:matched",
+        campaign="matched_campaign",
+    )
+    other = replace(base, id="valleyrat:other", campaign="other_campaign")
+    calls: list[str] = []
+
+    def execute(handler, *_args, **_kwargs):
+        calls.append(handler.id)
+        return _mock_completed_handler_result()
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    route_only_layer = _layer(b"route-only payload", "route-only.bin")
+    attribution_layer = _layer(
+        b"attribution payload",
+        "attribution.bin",
+        route_only_layer["sha256"],
+    )
+    result = catalog.assess_candidate_handlers(
+        [_candidate("valleyrat", source="detector_and_external_metadata")],
+        [route_only_layer, attribution_layer],
+        specs=[other, matched, shared],
+        detector_evaluations={
+            "valleyrat": {
+                route_only_layer["sha256"]: _routing_detector(
+                    False,
+                    ["other_campaign"],
+                ),
+                attribution_layer["sha256"]: _routing_detector(
+                    True,
+                    ["matched_campaign"],
+                ),
+            }
+        },
+    )
+
+    assert calls == [
+        shared.id,
+        matched.id,
+        other.id,
+        shared.id,
+        matched.id,
+        other.id,
+    ]
+    selection = result["families"][0]["handler_selection"]
+    assert selection["mode"] == "all_automatic_handlers"
+    assert selection["detector_scope_status"] == "attribution_supporting"
+    assert selection["attribution_supporting_detector_count"] == 1
+    assert selection["route_only_detector_count"] == 1
+    assert selection["selected_handler_count"] == 3
+    assert selection["campaign_selection_basis"] == "not_applicable"
+    assert selection["detector_scope_used_for_handler_selection"] is False
+    assert selection["detector_scope_used_for_family_confirmation"] is False
+
+
+def test_route_only_detector_selects_family_wide_and_exact_campaign(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """route-only detectorでは共通handlerと完全一致campaignだけを実行する。"""
+
+    repository, malware_root = isolated_catalog
+    base = _handler_spec(
+        repository,
+        malware_root,
+        "valleyrat",
+        _source("{}"),
+    )
+    shared = replace(base, id="valleyrat:shared", campaign=None)
+    matched = replace(
+        base,
+        id="valleyrat:matched",
+        campaign="matched_campaign",
+    )
+    other = replace(base, id="valleyrat:other", campaign="other_campaign")
+    calls: list[str] = []
+
+    def execute(handler, *_args, **_kwargs):
+        calls.append(handler.id)
+        completed = _mock_completed_handler_result()
+        completed["execution"]["result"] = {"marker_hits": ["strong-route-handler-evidence"]}
+        return completed
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    layer = _layer(b"candidate payload", "payload.bin")
+    result = catalog.assess_candidate_handlers(
+        [_candidate("valleyrat", source="detector_and_external_metadata")],
+        [layer],
+        specs=[other, matched, shared],
+        detector_evaluations={
+            "valleyrat": {
+                layer["sha256"]: _routing_detector(
+                    False,
+                    ["matched_campaign"],
+                )
+            }
+        },
+    )
+
+    assert calls == [shared.id, matched.id, other.id]
+    selection = result["families"][0]["handler_selection"]
+    assert selection["mode"] == ("family_wide_and_exact_campaign_then_bounded_fallback_route_only_detector")
+    assert selection["detector_scope_status"] == "route_only"
+    assert selection["detector_scope_basis"] == ("all_matched_detectors_are_route_only")
+    assert selection["route_only_campaign_types"] == ["matched_campaign"]
+    assert selection["matched_campaign_types"] == ["matched_campaign"]
+    assert selection["matched_campaign_handler_count"] == 1
+    assert selection["campaign_selection_basis"] == ("exact_campaign_type_match_with_bounded_remaining_campaigns")
+    assert selection["selected_handler_count"] == 3
+    assert selection["primary_handler_count"] == 2
+    assert selection["bounded_campaign_fallback_handler_count"] == 1
+    assert selection["deferred_campaign_handler_count"] == 0
+    assert selection["detector_scope_used_for_handler_selection"] is True
+    assert selection["family_confirmation_affected"] is False
+    assert selection["detector_scope_used_for_family_confirmation"] is False
+    assert result["confirmed_families"] == []
+    assert result["families"][0]["status"] == ("handler_evidence_without_detector")
+
+
+def test_generic_route_only_profile_uses_bounded_campaign_fallback(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """一致campaignがなくてもcampaign固有wrapperを代表層で試す。"""
+
+    repository, malware_root = isolated_catalog
+    base = _handler_spec(
+        repository,
+        malware_root,
+        "valleyrat",
+        _source("{}"),
+    )
+    shared = replace(base, id="valleyrat:shared", campaign=None)
+    campaign = replace(
+        base,
+        id="valleyrat:campaign",
+        campaign="signed_proxy_sideload",
+    )
+    calls: list[str] = []
+
+    def execute(handler, *_args, **_kwargs):
+        calls.append(handler.id)
+        return _mock_completed_handler_result()
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    layer = _layer(b"candidate payload", "payload.bin")
+    result = catalog.assess_candidate_handlers(
+        [_candidate("valleyrat", source="detector_and_external_metadata")],
+        [layer],
+        specs=[campaign, shared],
+        detector_evaluations={
+            "valleyrat": {
+                layer["sha256"]: _routing_detector(
+                    False,
+                    ["bin_hell_resource_dropper"],
+                )
+            }
+        },
+    )
+
+    assert calls == [shared.id, campaign.id]
+    selection = result["families"][0]["handler_selection"]
+    assert selection["mode"] == ("family_wide_then_bounded_campaign_fallback_route_only_detector")
+    assert selection["route_only_campaign_types"] == ["bin_hell_resource_dropper"]
+    assert selection["matched_campaign_types"] == []
+    assert selection["matched_campaign_handler_count"] == 0
+    assert selection["campaign_selection_basis"] == ("no_exact_campaign_type_match_with_bounded_campaign_fallback")
+    assert selection["bounded_campaign_fallback_handler_count"] == 1
+    assert selection["deferred_campaign_handler_count"] == 0
+
+
+def test_campaign_fallback_selects_root_and_format_transform_depth_diversity(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """多数層でも各fallback handlerは決定論的な代表2層だけへ試行する。"""
+
+    repository, malware_root = isolated_catalog
+    base = _handler_spec(
+        repository,
+        malware_root,
+        "valleyrat",
+        _source("{}", ("data", "pe")),
+        input_formats=("data", "pe"),
+    )
+    shared = replace(base, id="valleyrat:shared", campaign=None)
+    campaign_a = replace(base, id="valleyrat:campaign_a", campaign="campaign_a")
+    campaign_b = replace(base, id="valleyrat:campaign_b", campaign="campaign_b")
+    root = _layer(b"root-data", "root.bin")
+    shallow = _layer(b"shallow-data", "shallow.bin", root["sha256"])
+    shallow["depth"] = 1
+    shallow["transform"] = "archive_member"
+    pe_shallow = _layer(b"MZ" + b"A" * 30, "shallow.exe", root["sha256"])
+    pe_shallow["depth"] = 2
+    pe_shallow["transform"] = "pe_resource"
+    pe_deep = _layer(b"MZ" + b"B" * 30, "deep.exe", root["sha256"])
+    pe_deep["depth"] = 4
+    pe_deep["transform"] = "pe_resource"
+    data_deepest = _layer(b"deepest-data", "deepest.bin", root["sha256"])
+    data_deepest["depth"] = 5
+    data_deepest["transform"] = "xor_decode"
+    layers = [root, shallow, pe_shallow, pe_deep, data_deepest]
+    calls: list[tuple[str, str]] = []
+
+    def execute(handler, _data, source_name, **_kwargs):
+        calls.append((handler.id, source_name))
+        return _mock_completed_handler_result()
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    result = catalog.assess_candidate_handlers(
+        [_candidate("valleyrat", source="external_metadata")],
+        layers,
+        specs=[campaign_b, shared, campaign_a],
+    )
+
+    assert result["considered_pair_count"] == 15
+    assert result["planned_attempt_count"] == result["actual_attempt_count"] == 9
+    assert result["skipped_pair_count"] == 6
+    assert result["format_incompatible_pair_count"] == 0
+    assert result["fallback_policy_skipped_pair_count"] == 6
+    planning = result["pair_planning"]
+    assert planning["bounded_campaign_fallback_handler_count"] == 2
+    assert planning["bounded_campaign_fallback_planned_attempt_count"] == 4
+    assert planning["fallback_policy_skipped_pair_count"] == 6
+    assert planning["worker_started_for_fallback_policy_skipped_pairs"] is False
+    assert [call for call in calls if call[0] != shared.id] == [
+        (campaign_a.id, root["name"]),
+        (campaign_b.id, root["name"]),
+        (campaign_a.id, pe_deep["name"]),
+        (campaign_b.id, pe_deep["name"]),
+    ]
+    plans = {plan["handler_id"]: plan for plan in result["families"][0]["handler_layer_plan"]}
+    for campaign in (campaign_a, campaign_b):
+        plan = plans[campaign.id]
+        assert plan["selection_role"] == "bounded_campaign_fallback"
+        assert plan["format_compatible_pair_count"] == 5
+        assert plan["compatible_layer_indexes"] == [0, 3]
+        assert plan["compatible_pair_count"] == 2
+        assert plan["fallback_policy_skipped_pair_count"] == 3
+    assert result["confirmed_families"] == []
+    assert result["metadata_hint_can_confirm"] is False
+
+
+def test_route_only_exact_campaign_keeps_all_layers_and_bounds_other_campaigns(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """route完全一致は全層、その他campaignは代表層だけへ計画する。"""
+
+    repository, malware_root = isolated_catalog
+    base = _handler_spec(
+        repository,
+        malware_root,
+        "valleyrat",
+        _source("{}", ("data", "pe")),
+        input_formats=("data", "pe"),
+    )
+    shared = replace(base, id="valleyrat:shared", campaign=None)
+    matched = replace(base, id="valleyrat:matched", campaign="matched_campaign")
+    other = replace(base, id="valleyrat:other", campaign="other_campaign")
+    root = _layer(b"root-data", "root.bin")
+    children = [_layer(f"child-{index}".encode(), f"child-{index}.bin", root["sha256"]) for index in range(4)]
+    for index, layer in enumerate(children, start=1):
+        layer["depth"] = index
+        layer["transform"] = f"transform_{index}"
+    layers = [root, *children]
+    calls: list[str] = []
+
+    def execute(handler, *_args, **_kwargs):
+        calls.append(handler.id)
+        return _mock_completed_handler_result()
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    result = catalog.assess_candidate_handlers(
+        [_candidate("valleyrat", source="detector_and_external_metadata")],
+        layers,
+        specs=[other, matched, shared],
+        detector_evaluations={"valleyrat": {root["sha256"]: _routing_detector(False, ["matched_campaign"])}},
+    )
+
+    assert calls.count(shared.id) == 5
+    assert calls.count(matched.id) == 5
+    assert calls.count(other.id) == 2
+    assert result["planned_attempt_count"] == 12
+    plans = {plan["handler_id"]: plan for plan in result["families"][0]["handler_layer_plan"]}
+    assert plans[matched.id]["selection_role"] == "primary"
+    assert plans[matched.id]["compatible_pair_count"] == 5
+    assert plans[other.id]["selection_role"] == "bounded_campaign_fallback"
+    assert plans[other.id]["compatible_layer_indexes"] == [0, 4]
+
+
+@pytest.mark.parametrize(
+    "evaluation, expected_basis",
+    [
+        (
+            _routing_detector(False, ["Not Strict"]),
+            "detector_campaign_identifier_invalid",
+        ),
+        (
+            _routing_detector(None, ["matched_campaign"]),
+            "supports_family_attribution_not_boolean",
+        ),
+        (
+            {
+                "known_outer_sha256": False,
+                "known_inner_sha256": False,
+                "known_routing_sha256": False,
+                "detector_matched": True,
+                "applicable": True,
+                "automatic_route_eligible": True,
+                "error": None,
+                "supports_family_attribution": False,
+                "detection": {"matched": True, "campaigns": "not-a-list"},
+            },
+            "detector_campaigns_not_list",
+        ),
+        (
+            {
+                **_routing_detector(False, ["matched_campaign"]),
+                "error": "DetectorError: fixture failure",
+            },
+            "detector_error_present",
+        ),
+        (
+            {
+                **_routing_detector(False, ["matched_campaign"]),
+                "automatic_route_eligible": False,
+            },
+            "automatic_route_eligible_not_true",
+        ),
+        (
+            {
+                **_routing_detector(False, ["matched_campaign"]),
+                "automatic_route_eligible": "yes",
+            },
+            "automatic_route_eligible_not_boolean",
+        ),
+        (
+            {
+                **_routing_detector(False, ["matched_campaign"]),
+                "applicable": False,
+            },
+            "detector_applicable_not_true",
+        ),
+        (
+            {
+                **_routing_detector(False, ["matched_campaign"]),
+                "known_routing_sha256": 1,
+            },
+            "detector_known_flags_not_boolean",
+        ),
+    ],
+    ids=[
+        "invalid-campaign-id",
+        "missing-attribution-scope",
+        "campaigns-not-list",
+        "detector-error",
+        "automatic-route-ineligible",
+        "automatic-route-nonboolean",
+        "not-applicable",
+        "known-flag-nonboolean",
+    ],
+)
+def test_unknown_or_malformed_detector_scope_keeps_all_handlers(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+    evaluation: dict,
+    expected_basis: str,
+) -> None:
+    """detector情報が不正・不明なら絞り込まず既存coverageを維持する。"""
+
+    repository, malware_root = isolated_catalog
+    base = _handler_spec(
+        repository,
+        malware_root,
+        "valleyrat",
+        _source("{}"),
+    )
+    shared = replace(base, id="valleyrat:shared", campaign=None)
+    first = replace(base, id="valleyrat:first", campaign="matched_campaign")
+    second = replace(base, id="valleyrat:second", campaign="other_campaign")
+    calls: list[str] = []
+
+    def execute(handler, *_args, **_kwargs):
+        calls.append(handler.id)
+        return _mock_completed_handler_result()
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    layer = _layer(b"candidate payload", "payload.bin")
+    result = catalog.assess_candidate_handlers(
+        [_candidate("valleyrat", source="detector_and_external_metadata")],
+        [layer],
+        specs=[second, shared, first],
+        detector_evaluations={"valleyrat": {layer["sha256"]: evaluation}},
+    )
+
+    assert calls == [shared.id, first.id, second.id]
+    selection = result["families"][0]["handler_selection"]
+    assert selection["mode"] == "all_automatic_handlers"
+    assert selection["detector_scope_status"] == "unknown"
+    assert selection["detector_scope_basis"] == expected_basis
+    assert selection["selected_handler_count"] == 3
+    assert selection["detector_scope_used_for_handler_selection"] is False
+    assert selection["route_only_campaign_types"] == []
+    assert selection["matched_campaign_types"] == []
+    assert selection["campaign_selection_basis"] == "not_applicable"
+
+
+def test_non_mapping_family_detector_value_keeps_coverage_without_confirmation(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """family detector値自体が不正でも全handlerを試し、帰属証拠には使わない。"""
+
+    repository, malware_root = isolated_catalog
+    base = _handler_spec(
+        repository,
+        malware_root,
+        "valleyrat",
+        _source("{}"),
+    )
+    shared = replace(base, id="valleyrat:shared", campaign=None)
+    campaign = replace(
+        base,
+        id="valleyrat:campaign",
+        campaign="matched_campaign",
+    )
+    calls: list[str] = []
+
+    def execute(handler, *_args, **_kwargs):
+        calls.append(handler.id)
+        completed = _mock_completed_handler_result()
+        completed["execution"]["result"] = {"marker_hits": ["strong-handler-evidence"]}
+        return completed
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    result = catalog.assess_candidate_handlers(
+        [_candidate("valleyrat", source="detector_and_external_metadata")],
+        [_layer(b"candidate payload", "payload.bin")],
+        specs=[campaign, shared],
+        detector_evaluations={"valleyrat": ["not", "a", "mapping"]},
+    )
+
+    assert calls == [shared.id, campaign.id]
+    selection = result["families"][0]["handler_selection"]
+    assert selection["mode"] == "all_automatic_handlers"
+    assert selection["detector_scope_status"] == "unknown"
+    assert selection["detector_scope_basis"] == ("family_detector_evaluations_not_mapping")
+    assert selection["detector_scope_used_for_handler_selection"] is False
+    assert selection["detector_scope_used_for_family_confirmation"] is False
+    assert result["confirmed_families"] == []
+    assert result["families"][0]["status"] == ("handler_evidence_without_detector")
 
 
 def test_deep_compatible_layer_runs_after_many_incompatible_layers_without_quota_use(
@@ -694,6 +1436,30 @@ def test_bounded_handler_without_destination_is_observed_only(
     assert execution["verified_binary_output_audit"]["follow_on_analysis_complete"] is False
 
 
+def test_yuanbao_unmatched_layer_is_no_evidence_not_worker_failure() -> None:
+    """Yuanbao固有証拠のないPE層はworker障害ではなく対象外として完了する。"""
+
+    spec = next(
+        item
+        for item in catalog.discover_handlers()
+        if item.relative_path.endswith("yuanbao_sideload/analyze_bundle.py")
+    )
+    bounded = catalog.execute_handler_bounded_for_assessment(
+        spec,
+        b"MZ" + bytes(64),
+        "synthetic.exe",
+        actual_format="pe",
+        timeout_seconds=30,
+    )
+
+    assert bounded["status"] == "completed"
+    result = bounded["execution"]["result"]
+    assert result["status"] == "not_applicable"
+    quality = handler_result_quality(result, minimum_score=spec.minimum_evidence_score)
+    assert quality["tier"] == 0
+    assert quality["sufficient"] is False
+
+
 def test_retention_rejects_repository_destination(
     isolated_catalog,
 ) -> None:
@@ -906,6 +1672,72 @@ def test_worker_rechecks_dependency_manifest_immediately_before_import(
     assert not touched.exists()
 
 
+def test_worker_rechecks_root_source_after_matching_preflight_snapshots(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A/Bが一致してもworker直前にrootが変わればimportせず拒否する。"""
+
+    repository, malware_root = isolated_catalog
+    original_source = _source("{'marker_hits': ['verified-root']}")
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        original_source,
+    )
+    source_path = repository / spec.relative_path
+    original_sha256 = hashlib.sha256(source_path.read_bytes()).hexdigest()
+    touched = malware_root / "candidate_family" / "worker-imported-mutated-root.txt"
+    original_run_bounded = bounded_process.run_bounded
+    captured_request: dict = {}
+
+    def mutate_after_parent_check(*args, **kwargs):
+        command = args[0]
+        token = command[-2]
+        padding = "=" * (-len(token) % 4)
+        captured_request.update(json.loads(base64.urlsafe_b64decode((token + padding).encode("ascii")).decode("utf-8")))
+        source_path.write_text(
+            (
+                "from pathlib import Path\n"
+                f'Path({str(touched)!r}).write_text("imported", encoding="utf-8")\n'
+                + _source("{'marker_hits': ['mutated-root']}")
+            ),
+            encoding="utf-8",
+        )
+        return original_run_bounded(*args, **kwargs)
+
+    monkeypatch.setattr(bounded_process, "run_bounded", mutate_after_parent_check)
+    result = catalog.execute_handler_bounded_for_assessment(
+        spec,
+        b"candidate payload",
+        "payload.bin",
+        actual_format="data",
+        timeout_seconds=5.0,
+    )
+
+    assert result["preflight"]["source_sha256"] == original_sha256
+    assert (
+        next(
+            record["sha256"]
+            for record in result["preflight"]["dependency_audit"]["files"]
+            if record["path"] == spec.relative_path
+        )
+        == original_sha256
+    )
+    assert (
+        next(
+            record["sha256"]
+            for record in captured_request["dependency_source_manifest"]
+            if record["path"] == spec.relative_path
+        )
+        == original_sha256
+    )
+    assert result["status"] == "failed"
+    assert result["error_type"] == "HandlerLoadError"
+    assert not touched.exists()
+
+
 def test_verified_source_snapshots_ignore_post_verification_path_replacement(
     isolated_catalog,
     monkeypatch: pytest.MonkeyPatch,
@@ -1077,6 +1909,74 @@ def test_attempt_limit_returns_partial_without_extra_handler_import(isolated_cat
     assert result["actual_attempt_count"] == 1
     assert result["unattempted_attempt_count"] == 1
     assert result["blockers"] == ["maximum_attempts_exhausted"]
+
+
+def test_worker_result_quota_isolated_to_attempt_and_remaining_layers_continue(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """公開result上限は当該証拠だけを破棄し、assessment全体を停止しない。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{}"),
+    )
+    calls = 0
+
+    def execute(*_args, **_kwargs) -> dict:
+        nonlocal calls
+        calls += 1
+        result = _mock_completed_handler_result()
+        if calls == 1:
+            result["execution"]["result"] = {"marker_hits": ["must-not-be-used-as-evidence"]}
+            result["execution"]["result_quota"] = {
+                "truncated": True,
+                "reasons": ["maximum_total_entries"],
+            }
+        return result
+
+    monkeypatch.setattr(
+        catalog,
+        "execute_handler_bounded_for_assessment",
+        execute,
+    )
+    result = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [
+            _layer(b"first candidate layer", "first.bin"),
+            _layer(b"second candidate layer", "second.bin"),
+        ],
+        specs=[spec],
+    )
+
+    assert calls == 2
+    assert result["status"] == "partial"
+    assert result["planned_attempt_count"] == 2
+    assert result["actual_attempt_count"] == 2
+    assert result["unattempted_attempt_count"] == 0
+    assert result["retained_attempt_detail_count"] == 2
+    assert result["omitted_attempt_detail_count"] == 0
+    assert result["partial_result_attempt_count"] == 1
+    assert result["partial_result_reason_counts"] == {"worker_result_structure_quota_exhausted": 1}
+    assert result["blockers"] == []
+    assert result["budget"]["exhausted"] is False
+    family = result["families"][0]
+    assert family["status"] == "partial_result_quota_exhausted"
+    assert family["partial_result_attempt_count"] == 1
+    assert [item["status"] for item in family["attempts"]] == [
+        "partial_result_quota_exhausted",
+        "no_evidence",
+    ]
+    partial = family["attempts"][0]
+    assert partial["result_quota"] == {
+        "truncated": True,
+        "reasons": ["maximum_total_entries"],
+    }
+    assert "result" not in partial
+    assert result["confirmed_families"] == []
 
 
 def test_claimed_layer_format_cannot_override_static_detection(isolated_catalog) -> None:
@@ -1291,6 +2191,585 @@ def _mock_completed_handler_result() -> dict:
     }
 
 
+def _mock_inner_handler_execution() -> dict:
+    """subprocessを起動しないcandidate assessment用worker結果を返す。"""
+
+    return {
+        "result": {},
+        "result_quota": {"truncated": False},
+        "verified_binary_output_audit": {"observed_output_count": 0},
+    }
+
+
+def test_assessment_reuses_invariant_preflight_once_per_handler_spec(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """同一handlerの再帰依存監査は複数layerでもassessment内で1回にする。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{}"),
+    )
+    recursive_audit = catalog._recursive_handler_side_effect_audit
+    audit_calls = 0
+    worker_calls = 0
+
+    def count_audit(path: Path, callable_name: str) -> dict:
+        nonlocal audit_calls
+        audit_calls += 1
+        return recursive_audit(path, callable_name)
+
+    def worker(*_args, **_kwargs) -> dict:
+        nonlocal worker_calls
+        worker_calls += 1
+        return _mock_inner_handler_execution()
+
+    monkeypatch.setattr(catalog, "_recursive_handler_side_effect_audit", count_audit)
+    monkeypatch.setattr(catalog, "_execute_handler_bounded", worker)
+    result = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [
+            _layer(b"first candidate layer", "first.bin"),
+            _layer(b"second candidate layer", "second.bin"),
+        ],
+        specs=[spec],
+    )
+
+    assert audit_calls == 1
+    assert worker_calls == 2
+    assert result["actual_attempt_count"] == 2
+    planning = result["pair_planning"]
+    assert planning["invariant_preflight_cache_scope"] == "assessment_call"
+    assert planning["invariant_preflight_evaluation_count"] == 1
+    assert planning["invariant_preflight_reuse_count"] == 1
+    assert planning["process_invariant_preflight_cache_scope"] == ("process_revalidated_once_per_assessment")
+    assert planning["process_invariant_preflight_cache_hit_count"] == 0
+    assert planning["process_invariant_preflight_cache_miss_count"] == 1
+    assert planning["process_invariant_preflight_cache_revalidation_count"] == 0
+
+
+def test_process_invariant_cache_revalidates_and_reuses_unchanged_audit(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """別assessmentでも全依存が同一なら高コスト監査結果を再利用する。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{}"),
+    )
+    recursive_audit = catalog._recursive_handler_side_effect_audit
+    audit_calls = 0
+
+    def count_audit(path: Path, callable_name: str) -> dict:
+        nonlocal audit_calls
+        audit_calls += 1
+        return recursive_audit(path, callable_name)
+
+    monkeypatch.setattr(catalog, "_recursive_handler_side_effect_audit", count_audit)
+    monkeypatch.setattr(
+        catalog,
+        "_execute_handler_bounded",
+        lambda *_args, **_kwargs: _mock_inner_handler_execution(),
+    )
+    layer = _layer(b"candidate layer", "candidate.bin")
+    first = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+    first["families"][0]["attempts"][0]["preflight"]["dependency_audit"]["files"].clear()
+    second = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+
+    assert audit_calls == 1
+    first_plan = first["pair_planning"]
+    second_plan = second["pair_planning"]
+    assert first_plan["process_invariant_preflight_cache_hit_count"] == 0
+    assert first_plan["process_invariant_preflight_cache_miss_count"] == 1
+    assert first_plan["process_invariant_preflight_cache_revalidation_count"] == 0
+    assert second_plan["process_invariant_preflight_cache_hit_count"] == 1
+    assert second_plan["process_invariant_preflight_cache_miss_count"] == 0
+    assert second_plan["process_invariant_preflight_cache_revalidation_count"] == 1
+    assert second["families"][0]["attempts"][0]["status"] == "no_evidence"
+
+
+def test_clear_handler_caches_discards_process_invariant_cache(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """明示的cache消去後はprocess監査cacheを再利用しない。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{}"),
+    )
+    recursive_audit = catalog._recursive_handler_side_effect_audit
+    audit_calls = 0
+
+    def count_audit(path: Path, callable_name: str) -> dict:
+        nonlocal audit_calls
+        audit_calls += 1
+        return recursive_audit(path, callable_name)
+
+    monkeypatch.setattr(catalog, "_recursive_handler_side_effect_audit", count_audit)
+    monkeypatch.setattr(
+        catalog,
+        "_execute_handler_bounded",
+        lambda *_args, **_kwargs: _mock_inner_handler_execution(),
+    )
+    layer = _layer(b"candidate layer", "candidate.bin")
+    first = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+    catalog.clear_handler_caches()
+    second = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+
+    assert audit_calls == 2
+    assert first["pair_planning"]["process_invariant_preflight_cache_miss_count"] == 1
+    assert second["pair_planning"]["process_invariant_preflight_cache_miss_count"] == 1
+    assert second["pair_planning"]["process_invariant_preflight_cache_hit_count"] == 0
+
+
+def test_process_invariant_cache_does_not_hide_unexpected_value_error(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """再検証境界の通常ValueErrorをcache missとして隠さない。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{}"),
+    )
+    monkeypatch.setattr(
+        catalog,
+        "_execute_handler_bounded",
+        lambda *_args, **_kwargs: _mock_inner_handler_execution(),
+    )
+    layer = _layer(b"candidate layer", "candidate.bin")
+    catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+
+    def fail_revalidation(*_args, **_kwargs) -> None:
+        raise ValueError("fixture revalidation failure")
+
+    monkeypatch.setattr(
+        catalog,
+        "_revalidate_cached_assessment_invariant",
+        fail_revalidation,
+    )
+    with pytest.raises(ValueError, match="fixture revalidation failure"):
+        catalog.assess_candidate_handlers(
+            [_candidate("candidate_family")],
+            [layer],
+            specs=[spec],
+        )
+
+
+def test_process_invariant_cache_revalidates_cached_data_manifest(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """cacheへ結合したdata fileが変わればhitせず監査をやり直す。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{}"),
+    )
+    monkeypatch.setattr(
+        catalog,
+        "_execute_handler_bounded",
+        lambda *_args, **_kwargs: _mock_inner_handler_execution(),
+    )
+    layer = _layer(b"candidate layer", "candidate.bin")
+    catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+    data_file = repository / "analysis-framework" / "reviewed.json"
+    data_file.write_text('{"version":1}', encoding="utf-8")
+    cached = catalog._ASSESSMENT_INVARIANT_PREFLIGHT_CACHE[spec]
+    audit = json.loads(json.dumps(cached.dependency_audit))
+    audit["data_files"] = [
+        {
+            "path": data_file.relative_to(repository).as_posix(),
+            "sha256": hashlib.sha256(data_file.read_bytes()).hexdigest(),
+            "reason": "fixture reviewed data",
+        }
+    ]
+    audit["data_files_inspected"] = 1
+    catalog._ASSESSMENT_INVARIANT_PREFLIGHT_CACHE[spec] = replace(
+        cached,
+        dependency_audit=audit,
+    )
+    data_file.write_text('{"version":2}', encoding="utf-8")
+
+    result = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+
+    planning = result["pair_planning"]
+    assert planning["process_invariant_preflight_cache_hit_count"] == 0
+    assert planning["process_invariant_preflight_cache_miss_count"] == 1
+    assert planning["process_invariant_preflight_cache_revalidation_count"] == 1
+
+
+def test_process_invariant_cache_revalidates_cached_module_manifest(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """module bindingがsource snapshotと不整合ならhitせず再監査する。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{}"),
+    )
+    monkeypatch.setattr(
+        catalog,
+        "_execute_handler_bounded",
+        lambda *_args, **_kwargs: _mock_inner_handler_execution(),
+    )
+    layer = _layer(b"candidate layer", "candidate.bin")
+    catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+    cached = catalog._ASSESSMENT_INVARIANT_PREFLIGHT_CACHE[spec]
+    audit = json.loads(json.dumps(cached.dependency_audit))
+    audit["module_bindings"] = [
+        {
+            "name": "fixture_missing_module",
+            "path": "analysis-framework/malware/missing.py",
+            "is_package": False,
+        }
+    ]
+    audit["module_bindings_inspected"] = 1
+    catalog._ASSESSMENT_INVARIANT_PREFLIGHT_CACHE[spec] = replace(
+        cached,
+        dependency_audit=audit,
+    )
+
+    result = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+
+    planning = result["pair_planning"]
+    assert planning["process_invariant_preflight_cache_hit_count"] == 0
+    assert planning["process_invariant_preflight_cache_miss_count"] == 1
+    assert planning["process_invariant_preflight_cache_revalidation_count"] == 1
+
+
+@pytest.mark.parametrize("invalid_kind", ["blocked", "spec_mismatch"])
+def test_process_invariant_cache_hits_only_exact_blocker_free_entries(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+    invalid_kind: str,
+) -> None:
+    """blocker付きまたは別specのentryはprocess cache hitにしない。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{}"),
+    )
+    monkeypatch.setattr(
+        catalog,
+        "_execute_handler_bounded",
+        lambda *_args, **_kwargs: _mock_inner_handler_execution(),
+    )
+    layer = _layer(b"candidate layer", "candidate.bin")
+    catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+    cached = catalog._ASSESSMENT_INVARIANT_PREFLIGHT_CACHE[spec]
+    replacement = (
+        replace(cached, blockers=("fixture_blocker",))
+        if invalid_kind == "blocked"
+        else replace(cached, spec=replace(spec, id="candidate_family:other"))
+    )
+    catalog._ASSESSMENT_INVARIANT_PREFLIGHT_CACHE[spec] = replacement
+
+    result = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+
+    planning = result["pair_planning"]
+    assert planning["process_invariant_preflight_cache_hit_count"] == 0
+    assert planning["process_invariant_preflight_cache_miss_count"] == 1
+    assert planning["process_invariant_preflight_cache_revalidation_count"] == 0
+
+
+def test_preflight_rejects_root_source_mutation_between_contract_and_audit(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """契約snapshot後・再帰監査root取得前の差替えをSHA不一致で拒否する。"""
+
+    repository, malware_root = isolated_catalog
+    original_source = _source("{}")
+    replacement_source = _source("{'marker_hits': ['mutated-between-preflight-snapshots']}")
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        original_source,
+    )
+    source_path = repository / spec.relative_path
+    original_sha256 = hashlib.sha256(source_path.read_bytes()).hexdigest()
+    original_audit = catalog._recursive_handler_side_effect_audit
+    audit_calls = 0
+    worker_calls = 0
+
+    def mutate_before_root_audit(path: Path, callable_name: str) -> dict:
+        nonlocal audit_calls
+        audit_calls += 1
+        source_path.write_text(replacement_source, encoding="utf-8")
+        return original_audit(path, callable_name)
+
+    def worker(*_args, **_kwargs) -> dict:
+        nonlocal worker_calls
+        worker_calls += 1
+        return _mock_inner_handler_execution()
+
+    monkeypatch.setattr(
+        catalog,
+        "_recursive_handler_side_effect_audit",
+        mutate_before_root_audit,
+    )
+    monkeypatch.setattr(catalog, "_execute_handler_bounded", worker)
+    result = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [
+            _layer(b"first candidate layer", "first.bin"),
+            _layer(b"second candidate layer", "second.bin"),
+        ],
+        specs=[spec],
+    )
+
+    assert audit_calls == 1
+    assert worker_calls == 0
+    attempts = result["families"][0]["attempts"]
+    assert [attempt["status"] for attempt in attempts] == [
+        "preflight_blocked",
+        "preflight_blocked",
+    ]
+    replacement_sha256 = hashlib.sha256(source_path.read_bytes()).hexdigest()
+    for attempt in attempts:
+        preflight = attempt["preflight"]
+        assert preflight["source_sha256"] == original_sha256
+        root_records = [
+            record for record in preflight["dependency_audit"]["files"] if record["path"] == spec.relative_path
+        ]
+        assert root_records == [{"path": spec.relative_path, "sha256": replacement_sha256}]
+        assert preflight["blockers"] == ["dependency_source_changed_during_preflight"]
+
+
+def test_cached_invariant_preflight_keeps_layer_format_and_size_blockers(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """不変監査を再利用してもformat計画・layer容量制約を省略しない。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{}", ("pe",)),
+        input_formats=("pe",),
+    )
+    worker_calls = 0
+
+    def worker(*_args, **_kwargs) -> dict:
+        nonlocal worker_calls
+        worker_calls += 1
+        return _mock_inner_handler_execution()
+
+    monkeypatch.setattr(catalog, "_execute_handler_bounded", worker)
+    result = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [
+            _layer(b"plain data", "plain.bin"),
+            _layer(b"MZsmall", "small.exe"),
+            _layer(b"MZ" + b"L" * 30, "large.exe"),
+        ],
+        specs=[spec],
+        maximum_layer_size=16,
+    )
+
+    assert worker_calls == 1
+    assert result["considered_pair_count"] == 3
+    assert result["planned_attempt_count"] == result["actual_attempt_count"] == 2
+    assert result["skipped_pair_count"] == 1
+    family = result["families"][0]
+    assert family["skipped_pairs"][0]["blockers"] == ["incompatible_input_format:data"]
+    assert [attempt["status"] for attempt in family["attempts"]] == [
+        "no_evidence",
+        "preflight_blocked",
+    ]
+    assert family["attempts"][0]["preflight"]["input_size"] == len(b"MZsmall")
+    assert family["attempts"][1]["preflight"]["blockers"] == ["input_size_limit_exceeded"]
+    assert result["pair_planning"]["layer_specific_preflight_checked_per_attempt"] is True
+
+
+def test_cached_preflight_rejects_source_mutation_before_next_worker(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """cache後にsourceが変われば、次のworker起動前のmanifest再検証で拒否する。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{}"),
+    )
+    source_path = repository / spec.relative_path
+    worker_calls = 0
+
+    def mutate_after_first_snapshot(*_args, **_kwargs) -> dict:
+        nonlocal worker_calls
+        worker_calls += 1
+        source_path.write_text(
+            _source("{'marker_hits': ['mutated']}"),
+            encoding="utf-8",
+        )
+        return _mock_inner_handler_execution()
+
+    monkeypatch.setattr(
+        catalog,
+        "_execute_handler_bounded",
+        mutate_after_first_snapshot,
+    )
+    result = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [
+            _layer(b"first candidate layer", "first.bin"),
+            _layer(b"second candidate layer", "second.bin"),
+        ],
+        specs=[spec],
+    )
+
+    assert worker_calls == 1
+    assert result["actual_attempt_count"] == 2
+    attempts = result["families"][0]["attempts"]
+    assert attempts[0]["status"] == "no_evidence"
+    assert attempts[1]["status"] == "preflight_blocked"
+    assert attempts[1]["preflight"]["eligible"] is False
+    assert attempts[1]["preflight"]["blockers"] == ["dependency_source_changed_after_preflight"]
+    assert result["pair_planning"]["dependency_manifests_revalidated_before_each_worker"] is True
+
+
+def test_process_invariant_cache_reaudits_changed_dependency(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """別assessment前に依存sourceが変わればcacheを破棄して再監査する。"""
+
+    repository, malware_root = isolated_catalog
+    family_root = malware_root / "candidate_family"
+    family_root.mkdir(parents=True, exist_ok=True)
+    helper = family_root / "helper_module.py"
+    helper.write_text(
+        "def transform(data):\n    return {}\n",
+        encoding="utf-8",
+    )
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        "from helper_module import transform\n"
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        "def extract_config(data):\n"
+        "    return transform(data)\n",
+    )
+    worker_calls = 0
+
+    def worker(*_args, **_kwargs) -> dict:
+        nonlocal worker_calls
+        worker_calls += 1
+        return _mock_inner_handler_execution()
+
+    monkeypatch.setattr(catalog, "_execute_handler_bounded", worker)
+    layer = _layer(b"candidate layer", "candidate.bin")
+    first = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+    touched = family_root / "touched.txt"
+    helper.write_text(
+        "from pathlib import Path\n"
+        'Path("touched.txt").write_text("bad", encoding="utf-8")\n'
+        "def transform(data):\n"
+        "    return {}\n",
+        encoding="utf-8",
+    )
+    second = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+
+    assert first["families"][0]["attempts"][0]["status"] == "no_evidence"
+    first_plan = first["pair_planning"]
+    assert first_plan["process_invariant_preflight_cache_miss_count"] == 1
+    assert first_plan["process_invariant_preflight_cache_revalidation_count"] == 0
+    second_attempt = second["families"][0]["attempts"][0]
+    assert second_attempt["status"] == "preflight_blocked"
+    assert any(blocker.startswith("import_time:") for blocker in second_attempt["preflight"]["blockers"])
+    assert worker_calls == 1
+    second_plan = second["pair_planning"]
+    assert second_plan["process_invariant_preflight_cache_hit_count"] == 0
+    assert second_plan["process_invariant_preflight_cache_miss_count"] == 1
+    assert second_plan["process_invariant_preflight_cache_revalidation_count"] == 1
+    assert not touched.exists()
+
+
 def test_2048_planned_attempts_stop_at_global_hard_cap(
     isolated_catalog,
     monkeypatch: pytest.MonkeyPatch,
@@ -1320,13 +2799,82 @@ def test_2048_planned_attempts_stop_at_global_hard_cap(
 
     assert result["considered_pair_count"] == 2_048
     assert result["planned_attempt_count"] == 2_048
-    assert result["actual_attempt_count"] == catalog.MAX_ASSESSMENT_ATTEMPTS == 64
+    assert result["actual_attempt_count"] == catalog.MAX_ASSESSMENT_ATTEMPTS == 96
     assert result["skipped_pair_count"] == 0
-    assert result["unattempted_attempt_count"] == 1_984
+    assert result["unattempted_attempt_count"] == 1_952
     assert result["status"] == "partial"
     assert result["blockers"] == ["maximum_attempts_exhausted"]
     assert result["pair_planning"]["compatible_pair_count"] == 2_048
     assert result["pair_planning"]["incompatible_pairs_consume_execution_quota"] is False
+
+
+def test_77_planned_attempts_complete_with_96_attempt_contract(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """実corpusで観測した77試行を明細省略なしで完走できる。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{}"),
+    )
+    layers = [_layer(f"layer-{index:02d}".encode(), f"{index:02d}.bin") for index in range(77)]
+    monkeypatch.setattr(
+        catalog,
+        "execute_handler_bounded_for_assessment",
+        lambda *_args, **_kwargs: _mock_completed_handler_result(),
+    )
+
+    result = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        layers,
+        specs=[spec],
+    )
+
+    assert catalog.MAX_ASSESSMENT_ATTEMPTS == 96
+    assert catalog.MAX_ASSESSMENT_RETAINED_ATTEMPT_DETAILS == 96
+    assert result["status"] == "no_confirmed_family"
+    assert result["planned_attempt_count"] == 77
+    assert result["actual_attempt_count"] == 77
+    assert result["retained_attempt_detail_count"] == 77
+    assert result["omitted_attempt_detail_count"] == 0
+    assert result["unattempted_attempt_count"] == 0
+    assert result["blockers"] == []
+    assert result["budget"]["exhausted"] is False
+
+
+def test_assessment_attempt_and_detail_limits_reject_values_above_96(
+    isolated_catalog,
+) -> None:
+    """拡張後もcallerがhard capを超えて試行数を解除できない。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("{}"),
+    )
+    candidates = [_candidate("candidate_family")]
+    layers = [_layer(b"candidate layer", "candidate.bin")]
+
+    with pytest.raises(ValueError, match="maximum_attemptsが不正"):
+        catalog.assess_candidate_handlers(
+            candidates,
+            layers,
+            specs=[spec],
+            maximum_attempts=97,
+        )
+    with pytest.raises(ValueError, match="maximum_retained_attempt_details is invalid"):
+        catalog.assess_candidate_handlers(
+            candidates,
+            layers,
+            specs=[spec],
+            maximum_retained_attempt_details=97,
+        )
 
 
 def test_candidate_execution_preserves_router_rank_before_global_quota(
@@ -1405,7 +2953,7 @@ def test_candidate_handlers_are_round_robin_before_global_attempt_limit(
     isolated_catalog,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """共有extractorが64枠を独占せず、campaignにも各roundで枠を渡す。"""
+    """共有extractorが96枠を独占せず、campaignにも各roundで枠を渡す。"""
 
     repository, malware_root = isolated_catalog
     base = _handler_spec(repository, malware_root, "valleyrat", _source("{}"))
@@ -1425,9 +2973,9 @@ def test_candidate_handlers_are_round_robin_before_global_attempt_limit(
         specs=[campaign, shared],
     )
 
-    assert calls == [shared.id, campaign.id] * 32
+    assert calls == [shared.id, campaign.id] * 48
     assert result["actual_attempt_count"] == catalog.MAX_ASSESSMENT_ATTEMPTS
-    assert result["unattempted_attempt_count"] == 64
+    assert result["unattempted_attempt_count"] == 32
     assert result["pair_planning"]["execution_order"] == ("candidate_rank_then_handler_round_robin")
     assert result["pair_planning"]["each_handler_first_attempt_before_second"] is True
 
@@ -2109,3 +3657,410 @@ def test_capstone_constructor_allowlist_does_not_allow_unknown_calls(
 
     assert preflight["eligible"] is False
     assert any("unapproved_external_call:capstone.Cs.unknown_operation" in blocker for blocker in preflight["blockers"])
+
+
+@pytest.mark.parametrize(
+    ("imports", "expression", "expected_blocker"),
+    [
+        ("import subprocess\n", "subprocess.run([])", "forbidden_call:subprocess.run"),
+        ("import socket\n", "socket.socket()", "forbidden_call:socket.socket"),
+        ("import requests\n", "requests.get('x')", "forbidden_call:requests.get"),
+        ("", "eval('1 + 1')", "forbidden_call:eval"),
+        ("", "exec('value = 1')", "forbidden_call:exec"),
+        ("", "open('secret.txt')", "forbidden_call:open"),
+        (
+            "from pathlib import Path\n",
+            "Path('result.txt').write_text('x')",
+            "forbidden_side_effect_method:",
+        ),
+    ],
+    ids=["subprocess", "socket", "requests", "eval", "exec", "open", "write"],
+)
+def test_static_lineage_source_allowlist_does_not_relax_dangerous_calls(
+    isolated_catalog,
+    imports: str,
+    expression: str,
+    expected_blocker: str,
+) -> None:
+    """静的decode用の局所許可後も外部副作用capabilityを拒否する。"""
+
+    repository, malware_root = isolated_catalog
+    source = (
+        imports
+        + 'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        + "def extract_config(data):\n"
+        + f"    {expression}\n"
+        + "    return {}\n"
+    )
+    spec = _handler_spec(repository, malware_root, "candidate_family", source)
+
+    preflight = catalog.preflight_handler_for_assessment(
+        spec,
+        actual_format="data",
+        input_size=16,
+    )
+
+    assert preflight["eligible"] is False
+    assert any(expected_blocker in blocker for blocker in preflight["blockers"])
+
+
+def test_static_lineage_source_allowlist_rejects_lookalike_module(
+    isolated_catalog,
+) -> None:
+    """同じqueue/call名でもreview済みpath以外へ局所許可を転用しない。"""
+
+    repository, malware_root = isolated_catalog
+    source = (
+        "import collections\n"
+        "def _decode_function(data):\n"
+        "    pending = collections.deque([data])\n"
+        "    return pending.popleft()\n"
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        "def extract_config(data):\n"
+        "    return {'value': _decode_function(data)}\n"
+    )
+    spec = _handler_spec(repository, malware_root, "candidate_family", source)
+
+    preflight = catalog.preflight_handler_for_assessment(
+        spec,
+        actual_format="data",
+        input_size=16,
+    )
+
+    assert preflight["eligible"] is False
+    assert any("unapproved_external_call:collections.deque" in blocker for blocker in preflight["blockers"])
+    assert any("unapproved_object_method:pending.popleft" in blocker for blocker in preflight["blockers"])
+
+
+@pytest.mark.parametrize(
+    ("source", "call_name", "expected_blocker"),
+    [
+        (
+            "def extract_config(data):\n    return {'value': getattr(data, '__globals__', None)}\n",
+            "getattr",
+            "reviewed_source_call_shape_rejected:getattr",
+        ),
+        (
+            "def extract_config(data):\n    archive = data\n    return {'value': archive.read(1)}\n",
+            "archive.read",
+            "reviewed_source_call_shape_rejected:archive.read",
+        ),
+        (
+            "import os\ndef extract_config(data):\n    os.remove('x')\n    return {}\n",
+            "os.remove",
+            "forbidden_call:os.remove",
+        ),
+    ],
+    ids=["dangerous-getattr", "unverified-read", "forbidden-side-effect"],
+)
+def test_reviewed_source_call_still_enforces_shape_and_forbidden_checks(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+    source: str,
+    call_name: str,
+    expected_blocker: str,
+) -> None:
+    """source限定許可は危険な引数・receiver・副作用を上書きしない。"""
+
+    repository, malware_root = isolated_catalog
+    contract = 'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        contract + source,
+    )
+    key = (spec.relative_path, "reachable:extract_config", call_name)
+    monkeypatch.setattr(
+        catalog,
+        "_REVIEWED_SOURCE_CALLS",
+        {**catalog._REVIEWED_SOURCE_CALLS, key: "test-only reviewed call"},
+    )
+    catalog.clear_handler_caches()
+    try:
+        preflight = catalog.preflight_handler_for_assessment(
+            spec,
+            actual_format="data",
+            input_size=16,
+        )
+    finally:
+        catalog.clear_handler_caches()
+
+    assert preflight["eligible"] is False
+    assert any(expected_blocker in blocker for blocker in preflight["blockers"])
+
+
+def _reviewed_shape_result(
+    source: str,
+    key: tuple[str, str, str],
+) -> bool:
+    tree = ast.parse(source)
+    function_name = key[1].removeprefix("reachable:")
+    scope = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == function_name
+    )
+    call = next(
+        node
+        for node in ast.walk(scope)
+        if isinstance(node, ast.Call) and catalog._ast_call_name(node.func) == key[2]
+    )
+    return catalog._reviewed_source_call_shape_allowed(
+        call,
+        key[2],
+        tree,
+        scope,
+        catalog._import_aliases(tree),
+        key=key,
+    )
+
+
+@pytest.mark.parametrize(
+    ("archive_expression", "member_expression", "mode", "expected"),
+    (
+        ("zipfile.ZipFile(io.BytesIO(data))", "member", '"r"', True),
+        ("data", "member", '"r"', False),
+        ("zipfile.ZipFile(io.BytesIO(data))", '"outside"', '"r"', False),
+        ("zipfile.ZipFile(io.BytesIO(data))", "member", '"w"', False),
+    ),
+    ids=("bounded", "rebound-archive", "unlisted-member", "write-mode"),
+)
+def test_acr_zip_member_open_review_requires_bytes_origin_and_read_mode(
+    archive_expression: str,
+    member_expression: str,
+    mode: str,
+    expected: bool,
+) -> None:
+    """ZIP open例外をpathやwrite modeへ差し替えられない。"""
+
+    source = (
+        "import io\nimport zipfile\n"
+        "def _recover_pumped_zip(data):\n"
+        f"    archive = {archive_expression}\n"
+        "    members = archive.infolist()\n"
+        "    for member in members:\n"
+        f"        with archive.open({member_expression}, {mode}) as stream:\n"
+        "            return stream.read(32 * 1024 * 1024)\n"
+    )
+    key = (
+        "extractors/acrstealer/extractor.py",
+        "reachable:_recover_pumped_zip",
+        "archive.open",
+    )
+
+    assert _reviewed_shape_result(source, key) is expected
+
+
+@pytest.mark.parametrize(
+    ("candidate_expression", "mode", "expected"),
+    (
+        ("root / relative_path", '"rb"', True),
+        ('Path("outside.json")', '"rb"', False),
+        ("root / relative_path", '"wb"', False),
+    ),
+    ids=("bounded", "outside-path", "write-mode"),
+)
+def test_remus_json_open_review_requires_repository_relative_candidate(
+    candidate_expression: str,
+    mode: str,
+    expected: bool,
+) -> None:
+    """JSON open例外をrepository外pathやwrite modeへ差し替えられない。"""
+
+    source = (
+        "import os\nfrom pathlib import Path\n"
+        "def _read_bounded_json(repository_root, relative_path):\n"
+        "    root = Path(os.path.abspath(os.fspath(repository_root)))\n"
+        f"    candidate = {candidate_expression}\n"
+        f"    with candidate.open({mode}) as stream:\n"
+        "        return stream.read(min(16 * 1024, maximum_bytes - total + 1))\n"
+    )
+    key = (
+        "analysis-framework/common/remus_profile_evidence.py",
+        "reachable:_read_bounded_json",
+        "candidate.open",
+    )
+
+    assert _reviewed_shape_result(source, key) is expected
+
+
+@pytest.mark.parametrize(
+    ("key", "source", "expected"),
+    (
+        (
+            (
+                "extractors/acrstealer/extractor.py",
+                "reachable:_recover_pumped_zip",
+                "stream.read",
+            ),
+            "import io\nimport zipfile\n"
+            "def _recover_pumped_zip(data):\n"
+            "    archive = zipfile.ZipFile(io.BytesIO(data))\n"
+            "    members = archive.infolist()\n"
+            "    for member in members:\n"
+            '        with archive.open(member, "r") as stream:\n'
+            "            return stream.read(32 * 1024 * 1024)\n",
+            True,
+        ),
+        (
+            (
+                "extractors/acrstealer/extractor.py",
+                "reachable:_recover_pumped_zip",
+                "stream.read",
+            ),
+            "import io\nimport zipfile\n"
+            "def _recover_pumped_zip(data):\n"
+            "    archive = zipfile.ZipFile(io.BytesIO(data))\n"
+            "    members = archive.infolist()\n"
+            "    for member in members:\n"
+            '        with archive.open(member, "r") as stream:\n'
+            "            return stream.read()\n",
+            False,
+        ),
+        (
+            (
+                "analysis-framework/common/remus_profile_evidence.py",
+                "reachable:_read_bounded_json",
+                "stream.read",
+            ),
+            "import os\nfrom pathlib import Path\n"
+            "def _read_bounded_json(repository_root, relative_path):\n"
+            "    root = Path(os.path.abspath(os.fspath(repository_root)))\n"
+            "    candidate = root / relative_path\n"
+            '    with candidate.open("rb") as stream:\n'
+            "        return stream.read(min(16 * 1024, maximum_bytes - total + 1))\n",
+            True,
+        ),
+        (
+            (
+                "analysis-framework/common/remus_profile_evidence.py",
+                "reachable:_read_bounded_json",
+                "stream.read",
+            ),
+            "import os\nfrom pathlib import Path\n"
+            "def _read_bounded_json(repository_root, relative_path):\n"
+            "    root = Path(os.path.abspath(os.fspath(repository_root)))\n"
+            "    candidate = root / relative_path\n"
+            '    with candidate.open("rb") as stream:\n'
+            "        return stream.read(maximum_bytes)\n",
+            False,
+        ),
+    ),
+    ids=("acr-bounded", "acr-unbounded", "remus-bounded", "remus-unbounded"),
+)
+def test_reviewed_stream_read_requires_fixed_limit_and_verified_origin(
+    key: tuple[str, str, str],
+    source: str,
+    expected: bool,
+) -> None:
+    """review済みstreamでも無制限・可変上限のreadへ拡張しない。"""
+
+    assert _reviewed_shape_result(source, key) is expected
+
+
+@pytest.mark.parametrize(
+    ("receiver", "input_expression", "count", "expected"),
+    (
+        ("disassembler", "code[:15]", "1", True),
+        ("disassembler", "code", "1", False),
+        ("disassembler", "code[:15]", "2", False),
+        ("code", "code[:15]", "1", False),
+    ),
+    ids=("bounded", "unbounded-input", "multiple-instructions", "wrong-receiver"),
+)
+def test_export_funnel_decode_review_requires_one_bounded_instruction(
+    receiver: str,
+    input_expression: str,
+    count: str,
+    expected: bool,
+) -> None:
+    """Capstone例外を15 byte超や複数命令decodeへ拡張できない。"""
+
+    source = (
+        "def _decode_one_x86(disassembler, code, address):\n"
+        f"    return tuple({receiver}.disasm({input_expression}, address, count={count}))\n"
+    )
+    key = (
+        "extractors/valleyrat/export_funnel.py",
+        "reachable:_decode_one_x86",
+        f"{receiver}.disasm",
+    )
+    reviewed_key = (
+        key[0],
+        key[1],
+        "disassembler.disasm",
+    )
+
+    tree = ast.parse(source)
+    scope = tree.body[0]
+    assert isinstance(scope, ast.FunctionDef)
+    call = next(
+        node
+        for node in ast.walk(scope)
+        if isinstance(node, ast.Call) and catalog._ast_call_name(node.func) == key[2]
+    )
+    actual = catalog._reviewed_source_call_shape_allowed(
+        call,
+        reviewed_key[2],
+        tree,
+        scope,
+        catalog._import_aliases(tree),
+        key=reviewed_key,
+    )
+
+    assert actual is expected
+
+
+def test_valleyrat_handler_dependency_preflight_accepts_reviewed_static_lineage_modules() -> None:
+    """共通ValleyRAT handlerの実dependency graphが隔離workerへ到達できる。"""
+
+    catalog.clear_handler_caches()
+    try:
+        specs = [
+            spec
+            for spec in catalog.discover_handlers()
+            if spec.id == "valleyrat:extractors.valleyrat.extractor.py:extract"
+        ]
+        assert len(specs) == 1
+        preflight = catalog.preflight_handler_for_assessment(
+            specs[0],
+            actual_format="pe",
+            input_size=1024 * 1024,
+        )
+    finally:
+        catalog.clear_handler_caches()
+
+    assert preflight["eligible"] is True
+    assert preflight["blockers"] == []
+    assert preflight["sample_execution_allowed"] is False
+    assert preflight["network_allowed"] is False
+    assert preflight["filesystem_write_allowed"] is False
+    assert preflight["dependency_audit"]["allowance_counts"]["reviewed_source_scoped_call"] >= 24
+
+
+def test_valleyrat_dotnet_il_handler_preflight_accepts_fixed_token_tables() -> None:
+    """.NET handlerは固定token table参照のまま隔離workerへ到達できる。"""
+
+    catalog.clear_handler_caches()
+    try:
+        specs = [
+            spec
+            for spec in catalog.discover_handlers()
+            if spec.id
+            == ("valleyrat:analysis.framework.malware.valleyrat.campaigns.single.pe.analyze.dotnet.il.py:analyze")
+        ]
+        assert len(specs) == 1
+        preflight = catalog.preflight_handler_for_assessment(
+            specs[0],
+            actual_format="pe",
+            input_size=1024 * 1024,
+        )
+    finally:
+        catalog.clear_handler_caches()
+
+    assert preflight["eligible"] is True
+    assert preflight["blockers"] == []
+    assert preflight["sample_execution_allowed"] is False
+    assert preflight["network_allowed"] is False
+    assert preflight["filesystem_write_allowed"] is False

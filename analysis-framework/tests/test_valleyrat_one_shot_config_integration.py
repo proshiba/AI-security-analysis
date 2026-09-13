@@ -630,12 +630,12 @@ def test_route_only_component_config_never_confirms_valleyrat_family(
     assert routing["verification_only_families"] == ["valleyrat"]
     assert routing["candidates"][0]["routing_eligibility"]["family_attribution"] is False
     assert assessment["confirmed_families"] == []
-    assert assessment["families"][0]["status"] == "handler_evidence_without_detector"
+    assert assessment["families"][0]["status"] == "handler_evidence_route_only"
     assert assessment["families"][0]["detector_layers"][digest]["basis"] == (
         "detector_route_does_not_support_family_attribution"
     )
     attempt = assessment["families"][0]["attempts"][0]
-    assert attempt["status"] == "handler_evidence_without_detector"
+    assert attempt["status"] == "handler_evidence_route_only"
     assert attempt["detector_corroboration"]["basis"] == (
         "no_corroborated_detector_in_lineage"
     )

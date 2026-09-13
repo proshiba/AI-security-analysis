@@ -5,10 +5,9 @@ from __future__ import annotations
 import base64
 import importlib.util
 import json
-from pathlib import Path
 import re
 import sys
-
+from pathlib import Path
 
 FRAMEWORK = Path(__file__).parents[1]
 COMMON = FRAMEWORK / "common"
@@ -20,7 +19,6 @@ for trusted in (COMMON, GULOADER):
 
 from analysis_contract import handler_result_quality  # noqa: E402
 from handler_catalog import clear_handler_caches, discover_handlers, load_handler  # noqa: E402
-
 
 SPEC = importlib.util.spec_from_file_location(
     "guloader_orchestration_facade_test_module",
@@ -96,7 +94,9 @@ def test_parent_and_carrier_are_structural_matches_but_do_not_claim_recovery() -
             result, FACADE.HANDLER_CONTRACT["minimum_evidence_score"]
         )
         assert quality["tier_name"] == "structural_corroboration"
-        assert quality["sufficient"] is True
+        assert quality["structural_groups"] == ["marker_hits"]
+        assert quality["score"] < quality["minimum_score"]
+        assert quality["sufficient"] is False
 
 
 def test_unrelated_base64_and_generic_pe_do_not_become_guloader() -> None:

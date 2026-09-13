@@ -6,8 +6,7 @@ import struct
 
 import pytest
 
-from unpackers import static_control_flow
-from unpackers import static_unpacker
+from unpackers import static_control_flow, static_unpacker
 from unpackers.bounded_pe_scan import (
     BoundedExtent,
     inspect_structural_pe_extent,
@@ -141,6 +140,44 @@ def test_many_false_mz_candidates_do_not_call_pefile(
     assert artifacts.scan_report["status"] == "complete"
     assert artifacts.scan_report["candidate_magic_count"] == 1023
     assert artifacts.scan_report["rejected_candidate_count"] == 1023
+
+
+def test_embedded_pe_fanout_scans_beyond_legacy_sixteen_result_cap() -> None:
+    """多層carrierでも64件枠内の全PEを先頭16件だけで打ち切らない。"""
+
+    payload = bytearray(b"X")
+    for index in range(20):
+        payload.extend(_minimal_pe(bytes((0x40 + index, 0xC3))))
+
+    artifacts = static_unpacker.carve_embedded_pes(bytes(payload))
+
+    assert len(artifacts) == 20
+    assert artifacts.scan_report["status"] == "complete"
+    assert artifacts.scan_report["recovered_candidate_count"] == 20
+    assert artifacts.scan_report["unique_artifact_count"] == 20
+    assert artifacts.scan_report["budgets"]["max_results"] == 64
+    assert artifacts.scan_report["lineage_status"] == "structural_carve_only"
+    assert artifacts.scan_report["terminal_promotion_eligible"] is False
+    assert artifacts.scan_report["family_attribution_allowed"] is False
+
+
+def test_pe_overlay_is_not_materialized_twice_by_whole_image_scan() -> None:
+    """PE overlayのchildはoverlay走査だけで保持し、後段はimage範囲に限定する。"""
+
+    child = _minimal_pe(b"\x90\xc3")
+    report, artifacts = static_unpacker.unpack_bytes(
+        _minimal_pe() + child,
+        "carrier.exe",
+    )
+
+    assert len(artifacts) == 1
+    assert artifacts[0][1] == child
+    assert report["pe"]["overlay_format"] == "pe"
+    assert report["embedded_pe_scan"]["recovered_candidate_count"] == 0
+    assert (
+        report["embedded_pe_scan"]["candidate_scope"]
+        == "pe_image_without_already_scanned_overlay"
+    )
 
 
 def test_pe_summary_and_cfg_use_explicit_directory_parse() -> None:

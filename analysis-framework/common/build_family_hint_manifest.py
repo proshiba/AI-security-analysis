@@ -40,9 +40,13 @@ def build_manifest(path: Path, *, source: str) -> dict[str, Any]:
 
 
 def _collection_items(document: dict[str, Any]) -> tuple[str, list[Any]]:
-    """公開collectionまたはprivate lookupから一意なitem列を取得する。"""
+    """公開collection、private lookup、固定corpusから一意なitem列を取得する。"""
 
-    fields = [field for field in ("acquisition_items", "items") if field in document]
+    fields = [
+        field
+        for field in ("acquisition_items", "items", "selected")
+        if field in document
+    ]
     if len(fields) != 1:
         raise ValueError("metadata manifest must contain exactly one item list")
     field = fields[0]
@@ -61,6 +65,7 @@ def _exact_item_sha256(item: dict[str, Any], metadata: dict[str, Any], *, locati
     for label, value in (
         ("sha256", item.get("sha256")),
         ("metadata.sha256_hash", metadata.get("sha256_hash")),
+        ("metadata.sha256", metadata.get("sha256")),
     ):
         if value is None:
             continue
@@ -175,7 +180,10 @@ def build_parser() -> argparse.ArgumentParser:
     inputs.add_argument(
         "--collection-manifest",
         type=Path,
-        help="取得時のacquisition_itemsまたはprivate lookup itemsを含むJSON。",
+        help=(
+            "取得時のacquisition_items、private lookup items、または固定corpusの"
+            "selectedを含むJSON。"
+        ),
     )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument(

@@ -670,6 +670,181 @@ def test_successful_sevenzip_cab_fallback_is_complete() -> None:
     assert issues == []
 
 
+def _complete_in_memory_cabarchive_cab_report(
+    *,
+    compression: str = "mszip",
+    status: str = "artifacts_recovered",
+) -> dict:
+    """通常cabarchive経路の完全なin-memory CAB公開契約を返す。"""
+
+    return {
+        "format": "cab",
+        "size": 128,
+        "sha256": "f" * 64,
+        "unpack_status": status,
+        "executed": False,
+        "network_contacted": False,
+        "cab": {
+            "status": status,
+            "parser": "cabarchive",
+            "backend": "in_memory_python",
+            "member_count": 2,
+            "extracted_total_size": 6,
+            "deterministic_member_order": True,
+            "inventory": [
+                {
+                    "name": "a/file.dat",
+                    "size": 4,
+                    "status": "extracted",
+                    "format": "data",
+                    "sha256": "0" * 64,
+                },
+                {
+                    "name": "B/file.dat",
+                    "size": 2,
+                    "status": "extracted",
+                    "format": "data",
+                    "sha256": "1" * 64,
+                },
+            ],
+            "preflight": {
+                "status": "passed",
+                "cabinet_size": 128,
+                "folder_count": 1,
+                "file_count": 2,
+                "data_block_count": 2,
+                "declared_file_total_size": 6,
+                "declared_folder_output_total_size": 6,
+                "compression": compression,
+                "lzx_window_bits": [],
+                "multi_volume": False,
+                "checksum_blocks_required": 0,
+                "checksum_blocks_verified": 1 if compression != "none" else 0,
+                "path_validation": "passed",
+                "bounds_validation": "passed",
+            },
+            "lzx_fallback_attempted": False,
+            "lzx_fallback_completed": False,
+            "executed": False,
+            "network_contacted": False,
+            "external_process_started": False,
+            "disk_written": False,
+        },
+    }
+
+
+@pytest.mark.parametrize(
+    ("compression", "status"),
+    [
+        ("mszip", "artifacts_recovered"),
+        ("none", "no_artifact_recovered"),
+        ("none_or_mszip", "no_artifact_recovered"),
+    ],
+)
+def test_complete_in_memory_cabarchive_cab_does_not_require_sevenzip(
+    compression: str,
+    status: str,
+) -> None:
+    """完全検証済みMSZIP／無圧縮CABは外部extractor不在blockerにしない。"""
+
+    report = _complete_in_memory_cabarchive_cab_report(
+        compression=compression,
+        status=status,
+    )
+
+    issues = one_shot._static_layer_issues(
+        {"steps": [{"status": "succeeded", "report": report}]}
+    )
+
+    assert issues == []
+
+
+@pytest.mark.parametrize(
+    "failure_kind",
+    [
+        "report_hash",
+        "cabinet_size",
+        "cab_status",
+        "parser",
+        "fallback",
+        "order_flag",
+        "order",
+        "inventory_hash",
+        "unsafe_path",
+        "duplicate_path",
+        "member_status",
+        "member_size",
+        "member_count",
+        "preflight_path",
+        "preflight_bounds",
+        "multi_volume",
+        "checksum_required",
+        "checksum_overflow",
+        "lzx_compression",
+        "lzx_window",
+        "safety",
+        "error",
+    ],
+)
+def test_in_memory_cabarchive_cab_contract_fails_closed(failure_kind: str) -> None:
+    """通常cabarchive成功もinventory・境界・checksumの不整合を完了扱いしない。"""
+
+    report = _complete_in_memory_cabarchive_cab_report()
+    cab = report["cab"]
+    preflight = cab["preflight"]
+    inventory = cab["inventory"]
+    if failure_kind == "report_hash":
+        report["sha256"] = "0" * 63
+    elif failure_kind == "cabinet_size":
+        preflight["cabinet_size"] += 1
+    elif failure_kind == "cab_status":
+        cab["status"] = "parse_failed"
+    elif failure_kind == "parser":
+        cab["parser"] = "unknown"
+    elif failure_kind == "fallback":
+        cab["lzx_fallback_attempted"] = True
+    elif failure_kind == "order_flag":
+        cab["deterministic_member_order"] = False
+    elif failure_kind == "order":
+        inventory.reverse()
+    elif failure_kind == "inventory_hash":
+        inventory[0]["sha256"] = "0" * 63
+    elif failure_kind == "unsafe_path":
+        inventory[0]["name"] = "../payload.bin"
+    elif failure_kind == "duplicate_path":
+        inventory[1]["name"] = inventory[0]["name"].upper()
+    elif failure_kind == "member_status":
+        inventory[0]["status"] = "size_blocked"
+    elif failure_kind == "member_size":
+        inventory[0]["size"] += 1
+    elif failure_kind == "member_count":
+        cab["member_count"] += 1
+    elif failure_kind == "preflight_path":
+        preflight["path_validation"] = "failed"
+    elif failure_kind == "preflight_bounds":
+        preflight["bounds_validation"] = "failed"
+    elif failure_kind == "multi_volume":
+        preflight["multi_volume"] = True
+    elif failure_kind == "checksum_required":
+        preflight["checksum_blocks_required"] = 1
+    elif failure_kind == "checksum_overflow":
+        preflight["checksum_blocks_verified"] = preflight["data_block_count"] + 1
+    elif failure_kind == "lzx_compression":
+        preflight["compression"] = "lzx"
+    elif failure_kind == "lzx_window":
+        preflight["lzx_window_bits"] = [15]
+    elif failure_kind == "safety":
+        cab["external_process_started"] = True
+    else:
+        cab["error"] = "synthetic failure"
+
+    issues = one_shot._static_layer_issues(
+        {"steps": [{"status": "succeeded", "report": report}]}
+    )
+
+    assert "steps[0].report:container_extractor_unavailable" in issues
+
+
 def _complete_in_memory_lzx_cab_report() -> dict:
     """pure-Python LZX CAB完了契約を満たす公開report fixtureを返す。"""
 
@@ -1232,6 +1407,77 @@ def test_negative_findings_do_not_become_positive_evidence() -> None:
     assert quality["candidate_groups"] == []
 
 
+def test_declarative_logic_is_not_handler_evidence() -> None:
+    """検体に依存しない解析手順の定型文だけを構造証拠へ昇格しない。"""
+
+    quality = handler_result_quality(
+        {
+            "family": "valleyrat",
+            "logic": [
+                "entrypointから到達する命令を復号する。",
+                "resource APIのdata-flowを確認する。",
+                "復元対象のresourceを選択する。",
+                "設定候補を静的に復号する。",
+                "全language leafを比較する。",
+                "相反する候補を拒否する。",
+            ],
+        }
+    )
+
+    assert quality["tier"] == 0
+    assert quality["tier_name"] == "no_evidence"
+    assert quality["score"] == 0
+    assert quality["sufficient"] is False
+    assert quality["structural_groups"] == []
+
+    declared = handler_result_quality(
+        {
+            "static_config_recovered": True,
+            "logic": ["解析手順の定型説明。"],
+        }
+    )
+    assert declared["tier_name"] == "no_evidence"
+    assert declared["sufficient"] is False
+
+    nested = handler_result_quality(
+        {
+            "logic": {
+                "marker_hits": ["説明文内の偽marker"],
+                "network_endpoints": ["not-an-observed-endpoint"],
+                "static_config_recovered": True,
+            }
+        }
+    )
+    assert nested["tier_name"] == "no_evidence"
+    assert nested["sufficient"] is False
+    assert nested["structural_groups"] == []
+    assert nested["candidate_groups"] == []
+
+
+def test_observed_structural_evidence_remains_sufficient_with_logic() -> None:
+    """logicを除外しても型付きの実観測は従来どおりtier 2へ評価する。"""
+
+    quality = handler_result_quality(
+        {
+            "family": "valleyrat",
+            "logic": ["解析手順の定型説明。"],
+            "marker_hits": ["family-marker-a", "family-marker-b"],
+            "matched_patterns": ["loader-data-flow"],
+            "observed_config_keys": ["host"],
+        }
+    )
+
+    assert quality["tier"] == 2
+    assert quality["tier_name"] == "structural_corroboration"
+    assert quality["score"] == 20_304
+    assert quality["sufficient"] is True
+    assert quality["structural_groups"] == [
+        "marker_hits",
+        "matched_patterns",
+        "observed_config_keys",
+    ]
+
+
 @pytest.mark.parametrize(
     ("flag", "payload"),
     [
@@ -1454,7 +1700,7 @@ def test_main_returns_twenty_when_any_case_is_partial(tmp_path: Path, monkeypatc
     """部分解析を含むbatchのCLI終了codeを成功の0にしない。"""
 
     monkeypatch.setattr(one_shot, "_interpreter_is_isolated", lambda: True)
-    monkeypatch.setattr(one_shot, "_runtime_preflight_main", lambda: 0)
+    monkeypatch.setattr(one_shot, "_runtime_dependency_preflight_main", lambda: 0)
     monkeypatch.setattr(
         one_shot,
         "run_batch",
@@ -1487,7 +1733,7 @@ def test_main_returns_twenty_when_any_case_is_triaged_unknown(
     """実行成功でも未分類caseを解析完了の終了code 0へ昇格しない。"""
 
     monkeypatch.setattr(one_shot, "_interpreter_is_isolated", lambda: True)
-    monkeypatch.setattr(one_shot, "_runtime_preflight_main", lambda: 0)
+    monkeypatch.setattr(one_shot, "_runtime_dependency_preflight_main", lambda: 0)
     monkeypatch.setattr(
         one_shot,
         "run_batch",

@@ -202,13 +202,22 @@ def test_n520_recovery_publishes_only_sanitized_network_values(
     )
     monkeypatch.setattr(
         n520,
+        "_method_bodies",
+        lambda _image, _data: {},
+    )
+    monkeypatch.setattr(
+        n520,
         "_recover_key",
-        lambda _image, _data: (
+        lambda _image, _data, **_kwargs: (
             key,
             {"method": "GetConfigKey", "raw_key_included": False},
         ),
     )
-    monkeypatch.setattr(n520, "_base64_values", lambda _image, _data: encrypted)
+    monkeypatch.setattr(
+        n520,
+        "_base64_values",
+        lambda _image, _data, **_kwargs: encrypted,
+    )
 
     recovery = n520.recover_config(b"MZ-fixture")
     summary = n520.public_recovery_summary(recovery)
@@ -686,14 +695,20 @@ def test_vvas_single_byte_xor_recovery_is_route_only_and_publish_safe(
 
 
 def test_vvas_inactive_plaintext_or_xor_embedded_in_pe_is_not_terminal() -> None:
-    """linkageがないPE設定はfamily確定せずroute-only候補に留める。"""
+    """sectionを検証できないMZ末尾文字列は設定候補にも採用しない。"""
 
     plaintext = b"odaktomk |944:1o|42.001.15.891:1p|"
     plaintext_outer = extractor.extract(_minimal_x86_pe(plaintext))
     assert plaintext_outer["config"]["static_config_recovered"] is False
     assert plaintext_outer["config"]["terminal_family_confirmed"] is False
-    assert plaintext_outer["config"]["candidate_config_recovered"] is True
-    assert plaintext_outer["config"]["endpoints"] == ["198.51.100.24:449"]
+    assert plaintext_outer["config"]["candidate_config_recovered"] is False
+    assert plaintext_outer["config"]["endpoints"] == []
+    assert plaintext_outer["config"]["vvas_recovery"]["status"] == (
+        "mapped_config_scan_incomplete_rejected"
+    )
+    assert plaintext_outer["config"]["vvas_recovery"]["mapped_config_scan"][
+        "status"
+    ] == "invalid_pe_sections"
 
     encrypted = bytes(value ^ 0x14 for value in plaintext)
     xor_outer = extractor.extract(_minimal_x86_pe(encrypted))
@@ -752,6 +767,23 @@ def test_xor_b1_downloader_needs_x86_pe_and_complete_api_cluster() -> None:
     partial = extractor.extract(_minimal_x86_pe(incomplete))
     assert partial["config"]["static_config_recovered"] is False
     assert partial["findings"] == []
+
+
+def test_xor_b1_downloader_skips_string_scan_without_wininet_marker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """必須markerのない一般x86 PEでは全文文字列列挙を開始しない。"""
+
+    monkeypatch.setattr(
+        extractor,
+        "_bounded_strings",
+        lambda _data: pytest.fail("WinINet marker不在で文字列走査してはいけません"),
+    )
+
+    assert extractor._extract_xor_b1_downloader(
+        _minimal_x86_pe(b"unrelated encrypted body"),
+        "sample.exe",
+    ) is None
 
 
 @pytest.mark.parametrize("width", [32, 40, 64])

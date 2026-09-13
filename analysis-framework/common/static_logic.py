@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import re
@@ -448,6 +449,7 @@ def build_static_logic_report(
     records: Iterable[Mapping[str, Any]] | None = None,
     processing_units: Iterable[Mapping[str, Any]] | None = None,
     program_evidence: Iterable[Mapping[str, Any]] | None = None,
+    automated_binary_analysis: Mapping[str, Any] | None = None,
     analysis_source: str = "one_shot_static_analysis",
 ) -> dict[str, Any]:
     """reviewed recordまたはscript構造からcase単位のロジック成果物を構築する。"""
@@ -475,6 +477,45 @@ def build_static_logic_report(
         for index, record in enumerate(program_evidence or [], start=1)
         if isinstance(record, Mapping)
     ]
+    normalized_binary_analysis: dict[str, Any] = {}
+    binary_counts: Mapping[str, Any] = {}
+    if automated_binary_analysis is not None:
+        if not isinstance(automated_binary_analysis, Mapping):
+            raise ValueError("automated_binary_analysis must be a mapping")
+        safety = automated_binary_analysis.get("safety")
+        completion_contract = automated_binary_analysis.get("completion_contract")
+        counts = automated_binary_analysis.get("counts")
+        required_false = (
+            "sample_executed",
+            "sample_emulated",
+            "network_contacted",
+            "raw_pseudocode_exported",
+            "raw_endpoint_or_config_exported",
+            "source_name_exported",
+        )
+        if (
+            not isinstance(safety, Mapping)
+            or any(safety.get(name) is not False for name in required_false)
+            or not isinstance(completion_contract, Mapping)
+            or completion_contract.get("satisfies_reviewed_function_analysis_gate") is not False
+            or completion_contract.get("blocker_must_be_retained_without_independent_reviewed_functions") is not True
+            or not isinstance(counts, Mapping)
+            or any(
+                isinstance(counts.get(name), bool)
+                or not isinstance(counts.get(name), int)
+                or int(counts[name]) < 0
+                for name in (
+                    "selected_pe_layer_count",
+                    "representative_function_candidate_count",
+                    "import_count",
+                    "call_site_count",
+                    "process_behavior_count",
+                )
+            )
+        ):
+            raise ValueError("automated_binary_analysis safety/completion contract is invalid")
+        normalized_binary_analysis = copy.deepcopy(dict(automated_binary_analysis))
+        binary_counts = counts
     aliases: dict[str, str] = {}
     for item in functions:
         for alias in (
@@ -564,6 +605,11 @@ def build_static_logic_report(
                 0,
                 "Ghidra MCPでprogram構造と関数hashを確認しましたが、関数の役割と処理順は未レビューです。",
             )
+        if binary_counts.get("representative_function_candidate_count", 0):
+            limitations.insert(
+                0,
+                "有界な自動disassemblyで代表関数候補を整理しましたが、独立した関数レビューの完了証跡ではありません。",
+            )
     elif automated:
         status = "automated_script_structure"
         limitations = [
@@ -592,12 +638,22 @@ def build_static_logic_report(
             "processing_unit_count": len(normalized_units),
             "ghidra_program_count": len(normalized_programs),
             "ghidra_function_hash_count": sum(len(item["function_hashes"]) for item in normalized_programs),
+            "automated_binary_program_count": int(binary_counts.get("selected_pe_layer_count", 0)),
+            "automated_representative_function_candidate_count": int(
+                binary_counts.get("representative_function_candidate_count", 0)
+            ),
+            "automated_import_count": int(binary_counts.get("import_count", 0)),
+            "automated_call_site_count": int(binary_counts.get("call_site_count", 0)),
+            "automated_process_behavior_count": int(
+                binary_counts.get("process_behavior_count", 0)
+            ),
             "function_bodies_reviewed": bool(functions and not automated and review_complete),
             "call_graph_recorded": bool(call_edges),
         },
         "functions": functions,
         "processing_units": normalized_units,
         "program_evidence": normalized_programs,
+        "automated_binary_analysis": normalized_binary_analysis,
         "call_edges": [{"caller": caller, "callee": callee} for caller, callee in call_edges],
         "limitations": limitations,
         "safety": {

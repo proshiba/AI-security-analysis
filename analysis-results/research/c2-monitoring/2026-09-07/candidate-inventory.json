@@ -75,7 +75,7 @@
     "non_dns_name_excluded": 10,
     "non_global_ip_excluded": 5,
     "onion_excluded_by_policy": 560,
-    "role_not_c2": 2491
+    "role_not_c2": 2487
   },
   "exclusions": [
     {
@@ -16771,42 +16771,6 @@
       "role": "c2_candidate_external_sandbox_config",
       "sample_sha256": "e18134f304e4b3964ebfae04b8c465fd4f8628ba66f19486d64980e936d6dca3",
       "source": "analysis-results/malware/valleyrat/versions/unknown/cases/e18134f304e4b3964ebfae04b8c465fd4f8628ba66f19486d64980e936d6dca3/iocs.json:network[0]"
-    },
-    {
-      "confidence": "confirmed_reported",
-      "container": "network",
-      "family": "valleyrat",
-      "reason": "role_not_c2",
-      "role": "delivery",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[0]"
-    },
-    {
-      "confidence": "confirmed_public_relation",
-      "container": "network",
-      "family": "valleyrat",
-      "reason": "role_not_c2",
-      "role": "contacted_domain",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[1]"
-    },
-    {
-      "confidence": "unverified_in_config",
-      "container": "network",
-      "family": "valleyrat",
-      "reason": "role_not_c2",
-      "role": "reported_infrastructure",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[2]"
-    },
-    {
-      "confidence": "context_only_not_c2",
-      "container": "network",
-      "family": "valleyrat",
-      "reason": "role_not_c2",
-      "role": "cloudflare_resolution",
-      "sample_sha256": "f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd",
-      "source": "analysis-results/malware/valleyrat/versions/unknown/cases/f543dcf4f178e464c7b4dc24b463272417d8ada2a7d3a832e177f37e64f10cbd/iocs.json:network[3]"
     },
     {
       "confidence": "high_hmac_verified_static_config",

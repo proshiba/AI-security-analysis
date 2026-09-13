@@ -3571,10 +3571,23 @@ def validate_recovery_contract(recovery: object) -> bool:
 def recover_config(data: bytes) -> Ca01SideloadRecovery | None:
     """一意なCA01外層lineageが成立する場合だけ設定を返す。"""
 
+    if (
+        not isinstance(data, bytes)
+        or len(data) > MAXIMUM_INPUT_SIZE
+        or not data.startswith(b"MZ")
+    ):
+        return None
     try:
+        # 両profileのexport名はPE export tableへ平文ASCIIで必ず存在する。
+        # marker不在の一般PEでpefile解析と二重のCFG復元を開始しない。
+        profile_recoveries = []
+        if _VULKAN_EXPORT in data:
+            profile_recoveries.append(_recover(data))
+        if all(marker in data for marker in _REQUIRED_CEF_EXPORTS):
+            profile_recoveries.append(_recover_cef(data))
         recoveries = [
             recovery
-            for recovery in (_recover(data), _recover_cef(data))
+            for recovery in profile_recoveries
             if recovery is not None and validate_recovery_contract(recovery)
         ]
         return recoveries[0] if len(recoveries) == 1 else None

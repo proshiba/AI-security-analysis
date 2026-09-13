@@ -2912,6 +2912,12 @@ def _resource_candidates(
 
     if not data.startswith(b"MZ") or len(data) > MAXIMUM_OUTER_SIZE:
         raise X86CodemarkResourceError("入力は上限内のPEではありません")
+    # このrouteが採用するresourceは、file-backed raw bytes内に平文の
+    # ``codemark`` headerを必ず含む。markerのない大容量PEをpefileへ渡すと、
+    # 無関係な巨大resource treeのmaterializeだけでworker上限へ達し得るため、
+    # 必要条件を先に確認して安価かつfail-closedに除外する。
+    if CODEMARK not in data:
+        raise X86CodemarkResourceError("codemark resource markerがありません")
     try:
         image = pefile.PE(data=data)
         resource_root = image.DIRECTORY_ENTRY_RESOURCE

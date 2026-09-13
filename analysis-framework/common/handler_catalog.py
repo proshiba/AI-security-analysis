@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ast
 import base64
+import copy
 import hashlib
 import importlib.abc
 import importlib.machinery
@@ -33,6 +34,7 @@ MALWARE_ROOT = FRAMEWORK_ROOT / "malware"
 EXTRACTORS_ROOT = REPOSITORY_ROOT / "extractors"
 PROFILE_PATH = EXTRACTORS_ROOT / "profiles" / "windows_family_profiles.json"
 FAMILY_ID = re.compile(r"^[a-z0-9_-]+$")
+CAMPAIGN_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,119}$")
 EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?![\w.-])")
 SECRET_ASSIGNMENT = re.compile(
     r"(?i)(?P<prefix>[\"']?(?:password|passwd|secret|token|api[_-]?key|auth[_-]?key|"
@@ -80,15 +82,19 @@ MAX_STRING_LENGTH = 65_536
 HANDLER_CONTRACT_NAME = "HANDLER_CONTRACT"
 DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE = 128 * 1024 * 1024
 DEFAULT_MAXIMUM_ASSESSMENT_TOTAL_SIZE = 256 * 1024 * 1024
-# classifier routerの有界候補集合と同じ上限。worker試行数は別途64で制限する。
+# classifier routerの有界候補集合と同じ上限。worker試行数は別途96で制限する。
 MAX_ASSESSMENT_CANDIDATES = 128
 MAX_ASSESSMENT_CANDIDATE_RANK = 128
 MAX_ASSESSMENT_LAYERS = 128
-MAX_ASSESSMENT_ATTEMPTS = 64
-MAX_ASSESSMENT_WALL_SECONDS = 300.0
+MAX_ASSESSMENT_ATTEMPTS = 96
+# 96試行へ拡張した候補集合を、実測上の安全な平均処理時間でも完走できる
+# 上限。個別handler timeout、process数、memory、response quotaは別途維持する。
+MAX_ASSESSMENT_WALL_SECONDS = 480.0
 MAX_ASSESSMENT_TOTAL_RESPONSE_BYTES = 16 * 1024 * 1024
-MAX_ASSESSMENT_RETAINED_ATTEMPT_DETAILS = 64
+MAX_ASSESSMENT_RETAINED_ATTEMPT_DETAILS = 96
 MAX_ASSESSMENT_VERIFIED_OUTPUTS = 4_096
+MAX_ASSESSMENT_DETECTOR_CAMPAIGNS = 256
+MAX_BOUNDED_CAMPAIGN_FALLBACK_LAYERS = 2
 MAX_ASSESSMENT_IMPORT_DEPTH = 12
 MAX_ASSESSMENT_IMPORT_FILES = 96
 MAX_ASSESSMENT_SOURCE_FILE_SIZE = 8 * 1024 * 1024
@@ -102,6 +108,15 @@ MAX_HANDLER_WORKER_OUTPUT_SIZE = 16 * 1024 * 1024
 MAX_PUBLIC_RESULT_ENTRIES = 4_096
 MAX_PUBLIC_RESULT_TOTAL_STRING_CHARS = 2 * 1024 * 1024
 MAX_PUBLIC_RESULT_TOTAL_BINARY_BYTES = 256 * 1024 * 1024
+PUBLIC_RESULT_QUOTA_REASONS = frozenset(
+    {
+        "maximum_depth",
+        "maximum_total_binary_bytes",
+        "maximum_total_entries",
+        "maximum_total_string_characters",
+        "non_finite_number",
+    }
+)
 VERIFIED_BINARY_KINDS = frozenset({"archive", "binary", "elf", "macho", "pe", "script"})
 KNOWN_INPUT_FORMATS = frozenset(
     {
@@ -148,6 +163,22 @@ class HandlerSpec:
         """機械可読な公開用メタデータへ変換する。"""
 
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class _AssessmentInvariantPreflight:
+    """再検証を条件にprocess内で再利用できるhandler固有の静的監査結果。"""
+
+    spec: HandlerSpec
+    blockers: tuple[str, ...]
+    source_sha256: str | None
+    dependency_audit: Mapping[str, Any]
+
+
+_ASSESSMENT_INVARIANT_PREFLIGHT_CACHE: dict[
+    HandlerSpec,
+    _AssessmentInvariantPreflight,
+] = {}
 
 
 @dataclass(frozen=True)
@@ -200,33 +231,50 @@ class HandlerNoEvidenceError(ValueError):
     """入力は解析できたが、対象variantの適用証拠がないことを表す。"""
 
 
-@cache
-def _module_tree(path: Path) -> ast.Module:
-    """同一ソースを繰り返し読まず、ASTをキャッシュして返す。"""
+def _parse_module_tree(path: Path) -> ast.Module:
+    """1つのsource snapshotをASTへ変換し、呼出側のscopeだけで保持する。"""
 
     return ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
 
 
-def _function_node(path: Path, callable_name: str) -> ast.FunctionDef | None:
+@cache
+def _module_tree(path: Path) -> ast.Module:
+    """legacy単体検査の同一sourceだけを再利用する。catalog発見では使わない。"""
+
+    return _parse_module_tree(path)
+
+
+def _function_node(
+    path: Path,
+    callable_name: str,
+    *,
+    tree: ast.Module | None = None,
+) -> ast.FunctionDef | None:
     """トップレベルの同期関数だけを返す。"""
 
+    module_tree = tree if tree is not None else _module_tree(path)
     return next(
-        (node for node in _module_tree(path).body if isinstance(node, ast.FunctionDef) and node.name == callable_name),
+        (node for node in module_tree.body if isinstance(node, ast.FunctionDef) and node.name == callable_name),
         None,
     )
 
 
-def _function_shape(path: Path, callable_name: str) -> tuple[str, bool, str]:
+def _function_shape(
+    path: Path,
+    callable_name: str,
+    *,
+    tree: ast.Module | None = None,
+) -> tuple[str, bool, str]:
     """ASTだけを読み、バイト列APIとして安全に呼べる関数か判定する。"""
 
     try:
-        tree = _module_tree(path)
+        module_tree = tree if tree is not None else _module_tree(path)
     except (OSError, SyntaxError, UnicodeError) as exc:
         return "unsupported", False, f"source_parse_error:{type(exc).__name__}"
     function = next(
         (
             node
-            for node in tree.body
+            for node in module_tree.body
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == callable_name
         ),
         None,
@@ -302,10 +350,15 @@ def _prefix_format(prefix: bytes) -> str | None:
     return None
 
 
-def _strict_guard_formats(path: Path, callable_name: str) -> tuple[str, ...]:
+def _strict_guard_formats(
+    path: Path,
+    callable_name: str,
+    *,
+    tree: ast.Module | None = None,
+) -> tuple[str, ...]:
     """先頭の否定magic guardから、拒否条件が明確な形式だけを推定する。"""
 
-    function = _function_node(path, callable_name)
+    function = _function_node(path, callable_name, tree=tree)
     if function is None:
         return ()
     positional = [*function.args.posonlyargs, *function.args.args]
@@ -342,10 +395,15 @@ def _strict_guard_formats(path: Path, callable_name: str) -> tuple[str, ...]:
     return tuple(sorted(required_formats))
 
 
-def _declared_handler_contract(path: Path) -> dict[str, Any] | None:
+def _declared_handler_contract(
+    path: Path,
+    *,
+    tree: ast.Module | None = None,
+) -> dict[str, Any] | None:
     """module定数の宣言だけを`literal_eval`で安全に読み取る。"""
 
-    for node in _module_tree(path).body:
+    module_tree = tree if tree is not None else _module_tree(path)
+    for node in module_tree.body:
         value_node: ast.AST | None = None
         if (
             isinstance(node, ast.Assign)
@@ -371,10 +429,12 @@ def _handler_contract(
     callable_name: str,
     invocation: str,
     source: str,
+    *,
+    tree: ast.Module | None = None,
 ) -> tuple[tuple[str, ...], str, int]:
     """宣言、厳格guard、呼出adapterの順に入力契約を決定する。"""
 
-    declared = _declared_handler_contract(path)
+    declared = _declared_handler_contract(path, tree=tree)
     if declared is not None:
         raw_formats = declared.get("input_formats")
         if (
@@ -387,7 +447,7 @@ def _handler_contract(
         if not isinstance(raw_score, int) or isinstance(raw_score, bool) or not 0 <= raw_score <= 100_000:
             raise ValueError("HANDLER_CONTRACT.minimum_evidence_scoreが不正です")
         return tuple(dict.fromkeys(raw_formats)), "module_declaration", raw_score
-    guarded = _strict_guard_formats(path, callable_name)
+    guarded = _strict_guard_formats(path, callable_name, tree=tree)
     if guarded:
         return guarded, "strict_magic_guard", 1
     if invocation == "bytes_pe_timestamp" or source == "profiled_shared_extractor":
@@ -422,7 +482,7 @@ def _malware_specs() -> list[HandlerSpec]:
             relative_family = path.relative_to(family_root)
             callables = []
             try:
-                tree = _module_tree(path)
+                tree = _parse_module_tree(path)
                 names = {node.name for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
                 callables = [
                     name for name in ("extract_config", "extract", "analyze", "extract_directory") if name in names
@@ -430,13 +490,18 @@ def _malware_specs() -> list[HandlerSpec]:
             except (OSError, SyntaxError, UnicodeError):
                 callables = []
             for callable_name in callables:
-                invocation, supported, shape_reason = _function_shape(path, callable_name)
+                invocation, supported, shape_reason = _function_shape(
+                    path,
+                    callable_name,
+                    tree=tree,
+                )
                 try:
                     input_formats, contract_source, evidence_score = _handler_contract(
                         path,
                         callable_name,
                         invocation,
                         "malware_family_script",
+                        tree=tree,
                     )
                 except (SyntaxError, ValueError) as exc:
                     input_formats, contract_source, evidence_score = ("any",), "invalid", 1
@@ -472,31 +537,40 @@ def _malware_specs() -> list[HandlerSpec]:
 
 def _extractor_specs() -> list[HandlerSpec]:
     specs: list[HandlerSpec] = []
-    paths = sorted(EXTRACTORS_ROOT.glob("*/extractor.py"))
-    for path in sorted(EXTRACTORS_ROOT.glob("*.py")):
+    paths = [
+        *sorted(EXTRACTORS_ROOT.glob("*/extractor.py")),
+        *sorted(EXTRACTORS_ROOT.glob("*.py")),
+    ]
+    nested = EXTRACTORS_ROOT / "unclassified" / "mx_go" / "extractor.py"
+    if nested.is_file():
+        paths.append(nested)
+    for path in paths:
         try:
-            tree = _module_tree(path)
+            tree = _parse_module_tree(path)
         except (OSError, SyntaxError, UnicodeError):
             continue
         if not any(
             isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "extract" for node in tree.body
         ):
             continue
-        paths.append(path)
-    nested = EXTRACTORS_ROOT / "unclassified" / "mx_go" / "extractor.py"
-    if nested.is_file():
-        paths.append(nested)
-    for path in paths:
         if path.parent == EXTRACTORS_ROOT:
             family = path.stem
         else:
             family = "mx-go" if path.parent.name == "mx_go" else path.parent.name
         if FAMILY_ID.fullmatch(family) is None:
             continue
-        invocation, supported, reason = _function_shape(path, "extract")
+        invocation, supported, reason = _function_shape(
+            path,
+            "extract",
+            tree=tree,
+        )
         try:
             input_formats, contract_source, evidence_score = _handler_contract(
-                path, "extract", invocation, "shared_extractor"
+                path,
+                "extract",
+                invocation,
+                "shared_extractor",
+                tree=tree,
             )
         except (SyntaxError, ValueError) as exc:
             input_formats, contract_source, evidence_score = ("any",), "invalid", 1
@@ -557,11 +631,17 @@ def _profiled_specs(existing_families: set[str]) -> list[HandlerSpec]:
 def discover_handlers() -> list[HandlerSpec]:
     """信頼済みディレクトリから既存解析関数を決定的に棚卸しする。"""
 
-    specs = [*_malware_specs(), *_extractor_specs()]
-    automatic_families = {item.family for item in specs if item.automatic}
-    specs.extend(_profiled_specs(automatic_families))
-    unique = {item.id: item for item in specs}
-    return [unique[key] for key in sorted(unique)]
+    # 過去の単体検査で残ったASTも発見開始前に破棄する。発見本体はsourceごとの
+    # local treeだけを使い、成功・失敗のどちらでもglobal ASTを残さない。
+    _module_tree.cache_clear()
+    try:
+        specs = [*_malware_specs(), *_extractor_specs()]
+        automatic_families = {item.family for item in specs if item.automatic}
+        specs.extend(_profiled_specs(automatic_families))
+        unique = {item.id: item for item in specs}
+        return [unique[key] for key in sorted(unique)]
+    finally:
+        _module_tree.cache_clear()
 
 
 def catalog_summary(specs: list[HandlerSpec]) -> dict[str, Any]:
@@ -697,10 +777,10 @@ def clear_handler_caches() -> None:
     """同一process内の次回batchが変更済みsourceを再読込できるようにする。"""
 
     _module_tree.cache_clear()
-    _recursive_handler_side_effect_audit.cache_clear()
     _relative_audit_path.cache_clear()
     _resolve_local_module_path.cache_clear()
     load_handler.cache_clear()
+    _ASSESSMENT_INVARIANT_PREFLIGHT_CACHE.clear()
     for module_name in tuple(_LOADED_HANDLER_MODULE_NAMES):
         sys.modules.pop(module_name, None)
     _LOADED_HANDLER_MODULE_NAMES.clear()
@@ -901,6 +981,22 @@ def sanitize_public_value(
     if value is None or isinstance(value, (bool, int, float)):
         return value
     return _sanitize_public_text(str(value)[:MAX_STRING_LENGTH])
+
+
+def _result_quota_diagnostic(value: object) -> dict[str, Any]:
+    """打ち切り済みworker結果から固定理由だけを公開診断へ残す。"""
+
+    reasons = value.get("reasons") if isinstance(value, Mapping) else None
+    supplied_reasons = reasons if isinstance(reasons, list) else []
+    recognized = sorted(
+        {reason for reason in supplied_reasons if isinstance(reason, str) and reason in PUBLIC_RESULT_QUOTA_REASONS}
+    )
+    if not recognized:
+        recognized = ["unrecognized_result_quota_reason"]
+    return {
+        "truncated": True,
+        "reasons": recognized,
+    }
 
 
 def _pe_timestamp(data: bytes) -> int:
@@ -1249,6 +1345,13 @@ def execute_handler(
             dependency_module_manifest=dependency_module_manifest,
         )
     except HandlerNoEvidenceError as exc:
+        result = {"status": "not_applicable", "reason": str(exc)}
+    except ValueError as exc:
+        # 隔離workerでは検証済みsnapshotからhandler_catalogが別moduleとして
+        # 読み込まれるため、同じ公開例外でもclass objectが一致しない。通常の
+        # ValueErrorは失敗のまま保ち、検証済みmodule由来の同名例外だけを扱う。
+        if type(exc).__module__ != "handler_catalog" or type(exc).__name__ != "HandlerNoEvidenceError":
+            raise
         result = {"status": "not_applicable", "reason": str(exc)}
     verified_outputs, verification_audit = _verified_binary_outputs(
         result,
@@ -2937,6 +3040,7 @@ _APPROVED_EXTERNAL_CALLS = frozenset(
         "cryptography.hazmat.primitives.padding.PKCS7",
         "cryptography.hazmat.primitives.serialization.pkcs12.load_key_and_certificates",
         "dataclasses.dataclass",
+        "dataclasses.field",
         "datetime.datetime.fromtimestamp",
         "dncil.cil.body.reader.read_method_body_from_bytes",
         "dnfile.dnPE",
@@ -3202,6 +3306,7 @@ _APPROVED_GETATTR_ATTRIBUTES = frozenset(
         "DIRECTORY_ENTRY_TLS",
         "DataOffset",
         "DataSectionOffset",
+        "address",
         "FILE_ATTRIBUTE_REPARSE_POINT",
         "FieldList",
         "FieldRva",
@@ -3210,8 +3315,10 @@ _APPROVED_GETATTR_ATTRIBUTES = frozenset(
         "Implementation",
         "Key",
         "ManifestResource",
+        "MemberRef",
         "MethodDef",
         "MethodList",
+        "MethodSpec",
         "Name",
         "O_BINARY",
         "ProtocolProfileError",
@@ -3227,8 +3334,10 @@ _APPROVED_GETATTR_ATTRIBUTES = frozenset(
         "dll",
         "entries",
         "file_offset",
+        "forwarder",
         "id",
         "instructions",
+        "imports",
         "mdtables",
         "metadata",
         "name",
@@ -3297,6 +3406,361 @@ _REVIEWED_REPOSITORY_DATA_READS = {
 }
 _REVIEWED_SOURCE_CALLS = {
     (
+        "extractors/valleyrat/native_loader_lineage.py",
+        "reachable:_register_name",
+        "instruction.reg_name",
+    ): "Capstone命令objectから固定register IDの正規名だけを取得する",
+    (
+        "extractors/valleyrat/native_loader_lineage.py",
+        "reachable:_merge_runtime_fragments",
+        "groups.setdefault",
+    ): "最大8,192件の検証済みruntime function断片をCFG rootごとにメモリ内集約する",
+    (
+        "extractors/valleyrat/native_loader_lineage.py",
+        "reachable:_load_context",
+        "collections.deque",
+    ): "最大8,192件のfile-backed runtime function到達性を重複排除して辿るqueueを構築する",
+    (
+        "extractors/valleyrat/native_loader_lineage.py",
+        "reachable:_load_context",
+        "decoder.disasm",
+    ): "32 MiB以下の入力PEで検証済みruntime function範囲だけを合計250,000命令上限で静的decodeする",
+    (
+        "extractors/valleyrat/native_loader_lineage.py",
+        "reachable:_load_context",
+        "pending.popleft",
+    ): "最大8,192 functionの有界到達性queue先頭だけを取り出す",
+    (
+        "extractors/valleyrat/native_loader_lineage.py",
+        "reachable:analyze_native_loader_lineage",
+        "collections.deque",
+    ): "最大32 component・深さ4の静的loader lineage queueを構築する",
+    (
+        "extractors/valleyrat/native_loader_lineage.py",
+        "reachable:analyze_native_loader_lineage",
+        "queue.popleft",
+    ): "最大32 component・深さ4の有界loader lineage queue先頭だけを取り出す",
+    (
+        "extractors/valleyrat/silverfox_loader_lineage.py",
+        "reachable:_register_name",
+        "instruction.reg_name",
+    ): "Capstone命令objectから固定register IDの正規名だけを取得する",
+    (
+        "extractors/valleyrat/silverfox_loader_lineage.py",
+        "reachable:_bounded_disassembly",
+        "decoder.disasm",
+    ): "caller指定上限+1命令だけをdecodeし、上限超過時は部分結果を破棄する",
+    (
+        "extractors/valleyrat/silverfox_loader_lineage.py",
+        "reachable:_copy_candidate",
+        "aliases.discard",
+    ): "局所register alias集合から上書き済みregisterだけを除外する",
+    (
+        "extractors/valleyrat/silverfox_loader_lineage.py",
+        "reachable:_outer_stage_candidates",
+        "decoder.disasm",
+    ): "最大64 VirtualAlloc siteごとの最大480 byte窓だけを静的decodeする",
+    (
+        "extractors/valleyrat/silverfox_loader_lineage.py",
+        "reachable:_patch_bootstrap",
+        "decoder.disasm",
+    ): "最大128 stepのbootstrapで現在位置の最大15 byteから1命令だけ静的decodeする",
+    (
+        "extractors/valleyrat/silverfox_loader_lineage.py",
+        "reachable:_patch_bootstrap",
+        "next",
+    ): "最大15 byteのCapstone iteratorから先頭1命令だけを取得する",
+    (
+        "extractors/valleyrat/silverfox_loader_lineage.py",
+        "reachable:_feedback_layer",
+        "decoder.disasm",
+    ): "最大256 stepのbootstrapで現在位置の最大15 byteから1命令だけ静的decodeする",
+    (
+        "extractors/valleyrat/silverfox_loader_lineage.py",
+        "reachable:_feedback_layer",
+        "next",
+    ): "最大15 byteのCapstone iteratorから先頭1命令だけを取得する",
+    (
+        "extractors/valleyrat/silverfox_loader_lineage.py",
+        "reachable:_xor_helper_proven",
+        "decoder.disasm",
+    ): "復元済みstageの指定位置から最大256 byteだけを静的decodeする",
+    (
+        "extractors/valleyrat/silverfox_loader_lineage.py",
+        "reachable:_component_layer",
+        "decoder.disasm",
+    ): "16 MiB以下の復元stageを最大20,000命令まで静的decodeする",
+    (
+        "extractors/valleyrat/export_funnel.py",
+        "reachable:_bounded_entropy",
+        "collections.Counter",
+    ): "入力bytesの最大3 MiB標本だけを数えるentropy計算用counterを構築する",
+    (
+        "extractors/valleyrat/export_funnel.py",
+        "reachable:_collect_resource_runtime_use",
+        "queued.discard",
+    ): "最大128 functionの有界resource call graphで投入済みaddress集合だけを更新する",
+    (
+        "extractors/valleyrat/export_funnel.py",
+        "reachable:_decode_one_x86",
+        "disassembler.disasm",
+    ): "入力bytes先頭15 byteだけをcount=1固定で静的decodeするCapstone wrapper",
+    (
+        "extractors/valleyrat/export_funnel.py",
+        "reachable:_resource_tag_ids",
+        "tag.removeprefix",
+    ): "局所resource taint文字列から検証済み固定prefixだけを除いて識別子を解析する",
+    (
+        "extractors/valleyrat/run_dll_native_terminal.py",
+        "reachable:_decode",
+        "decoder.disasm",
+    ): "file-backed x86実行sectionの最大32 KiBだけを最大12,000命令まで静的decodeする有界Capstone呼出し",
+    (
+        "extractors/valleyrat/run_dll_native_terminal.py",
+        "reachable:_read_u32",
+        "section.contains",
+    ): "検証済みfile-backed PE section内の4 byte読取り境界だけを比較する",
+    (
+        "extractors/valleyrat/run_dll_native_terminal.py",
+        "reachable:_runtime_config",
+        "copies.setdefault",
+    ): "最大512 direct target由来の固定幅config copy候補をhelper addressごとにメモリ内集約する",
+    (
+        "extractors/valleyrat/run_dll_native_terminal.py",
+        "reachable:_section_for_address",
+        "section.contains",
+    ): "仮想addressが検証済みfile-backed PE section内かを比較だけで判定する",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_analyze_lineage",
+        "cache.setdefault",
+    ): "最大4,096 export root由来の有界function解析結果をaddressごとにメモリ内cacheする",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_analyze_lineage",
+        "launcher.site_for_direct_call",
+    ): "復元済み最大8,192命令のdirect call siteをtarget一致だけで抽出する",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_closure",
+        "collections.deque",
+    ): "最大128 function・深さ6のcall closureを重複排除して辿るqueueを構築する",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_closure",
+        "cache.setdefault",
+    ): "最大128 functionの有界decode結果をaddressごとにメモリ内cacheする",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_closure",
+        "pending.popleft",
+    ): "最大128 function・深さ6の有界call closure queue先頭だけを取り出す",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_closure",
+        "queued.discard",
+    ): "有界call closure queueの投入済みaddress集合だけを更新する",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_decode_function",
+        "collections.deque",
+    ): "単一functionの最大8,192命令CFGを重複排除して辿るqueueを構築する",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_decode_function",
+        "pending.popleft",
+    ): "単一functionの最大8,192命令CFG queue先頭だけを取り出す",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_decode_function",
+        "queued.discard",
+    ): "有界function CFG queueの投入済みaddress集合だけを更新する",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_external_roots",
+        "getattr",
+    ): "pefileが構築したexport symbolの固定forwarder属性だけを既定値付きで参照する",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_mapped_instruction",
+        "disassembler.disasm",
+    ): "file-backed x86実行section由来の最大15 byteを1命令だけ静的decodeする有界Capstone呼出し",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_mapped_instruction",
+        "next",
+    ): "count=1に固定した有界Capstone iteratorから先頭命令だけを取得する",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_mapped_instruction",
+        "section.offset",
+    ): "検証済みfile-backed PE section内の仮想addressを入力bytes offsetへ変換する",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_previous_contiguous",
+        "result.reverse",
+    ): "最大128命令から切り出した局所listをaddress順へメモリ内反転する",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_read_vtable",
+        "section.contains_address",
+    ): "最大12 entryのvtableが検証済みfile-backed section内かを比較だけで判定する",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_read_vtable",
+        "section.offset",
+    ): "境界検証済みvtable addressを入力bytes offsetへ変換する",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_section_for_address",
+        "section.contains_address",
+    ): "仮想addressが検証済みfile-backed PE section内かを比較だけで判定する",
+    (
+        "extractors/valleyrat/wide_pipe_config.py",
+        "reachable:_wrapper_callbacks",
+        "cache.setdefault",
+    ): "有界direct call targetのwrapper decode結果をaddressごとにメモリ内cacheする",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_analyze_function",
+        "collections.deque",
+    ): "最大100,000 block-stateの予算内でPE制御フローを重複排除して辿るキューを構築する",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_analyze_function",
+        "disassembler.disasm",
+    ): "file-backed x86実行section由来の最大15 byteを1命令だけ静的decodeする有界Capstone呼出し",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_analyze_function",
+        "section.offset",
+    ): "検証済みfile-backed実行section内の仮想addressを入力bytes offsetへ変換する",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_analyze_function",
+        "state.clone",
+    ): "有界なregister・memory・stack抽象状態を分岐ごとにメモリ内複製する",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_analyze_function",
+        "state.fingerprint",
+    ): "有界な抽象状態を決定的tupleへ変換してblock-stateの重複を排除する",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_analyze_function",
+        "worklist.popleft",
+    ): "最大100,000 block-stateの有界解析キュー先頭だけを取り出す",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_analyze_function",
+        "next",
+    ): "count=1に固定した有界Capstone iteratorから先頭命令だけを取得する",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_constant_from_value",
+        "token.removeprefix",
+    ): "内部生成済みconstant tokenの固定prefixだけを除去して整数へ検証変換する",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_import_thunk",
+        "disassembler.disasm",
+    ): "file-backed x86実行section由来の最大15 byteを1命令だけ静的decodeする有界Capstone呼出し",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_import_thunk",
+        "section.offset",
+    ): "検証済みfile-backed実行section内のthunk addressを入力bytes offsetへ変換する",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_import_thunk",
+        "next",
+    ): "count=1に固定した有界Capstone iteratorからimport thunkの先頭命令だけを取得する",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_section_for_address",
+        "section.contains",
+    ): "仮想addressが検証済みfile-backed実行sectionの境界内かを比較だけで判定する",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_source_form_names",
+        "token.removeprefix",
+    ): "内部生成済みsource-form tokenの固定prefixだけを除去してsource名を照合する",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:_source_names",
+        "token.removeprefix",
+    ): "内部生成済みsource tokenの固定prefixだけを除去してsource名を照合する",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:analyze_x86_pe_dataflow",
+        "collections.deque",
+    ): "最大768 functionの予算内でdirect／callback到達先を重複排除して辿るキューを構築する",
+    (
+        "extractors/native_dataflow.py",
+        "reachable:analyze_x86_pe_dataflow",
+        "pending.popleft",
+    ): "最大768 functionの有界解析キュー先頭だけを取り出す",
+    (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:_read_archive_members",
+        "archive.read",
+    ): "入力bytes由来の境界検証済みZIP memberだけをメモリ上で読み取る",
+    (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:_parse_pe_member",
+        "getattr",
+    ): "pefileが構築した固定import／export属性だけを既定値付きで参照する",
+    (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:_iat_map",
+        "getattr",
+    ): "pefileが構築した固定import descriptor属性だけを既定値付きで参照する",
+    (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:_reachable_pe_evidence",
+        "collections.deque",
+    ): "最大16,384 blockの重複排除済みPE CFGキューを構築する",
+    (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:_reachable_pe_evidence",
+        "disassembler.disasm",
+    ): "file-backed x86実行section由来の最大16 byteを1命令ずつ静的decodeする有界Capstone呼出し",
+    (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:_reachable_pe_evidence",
+        "next",
+    ): "count=1に固定した有界Capstone iteratorから先頭命令だけを取得する",
+    (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:_reachable_pe_evidence",
+        "pending.popleft",
+    ): "最大16,384 blockの重複排除済みPE CFGキュー先頭だけを取り出す",
+    (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:_raw_x86_cfg",
+        "collections.deque",
+    ): "最大16,384 blockの重複排除済みraw shellcode CFGキューを構築する",
+    (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:_raw_x86_cfg",
+        "disassembler.disasm",
+    ): "carve済み最大4 MiB raw x86 stageの最大16 byteを1命令ずつ静的decodeする有界Capstone呼出し",
+    (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:_raw_x86_cfg",
+        "next",
+    ): "count=1に固定したraw shellcode Capstone iteratorから先頭命令だけを取得する",
+    (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:_raw_x86_cfg",
+        "pending.popleft",
+    ): "最大16,384 blockの重複排除済みraw shellcode CFGキュー先頭だけを取り出す",
+    (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:recover_zip_sideload_shellcode",
+        "by_parent.setdefault",
+    ): "検証済みZIP memberの正規化済み親directory keyごとにPE参照だけを集約する",
+    (
         "extractors/valleyrat/ca01_sideload.py",
         "reachable:_decode_instruction",
         "disassembler.disasm",
@@ -3310,7 +3774,9 @@ _REVIEWED_SOURCE_CALLS = {
         "extractors/valleyrat/run_dll_native_core.py",
         "reachable:_referenced_operand",
         "disassembler.disasm",
-    ): ("入力PEの実行section由来の最大15 byteを1命令だけ静的decodeし、固定幅config address operandを検証する有界Capstone呼出し"),
+    ): (
+        "入力PEの実行section由来の最大15 byteを1命令だけ静的decodeし、固定幅config address operandを検証する有界Capstone呼出し"
+    ),
     (
         "unpackers/bin101_nibble_rc4.py",
         "reachable:_parse_image",
@@ -3536,21 +4002,6 @@ _REVIEWED_SOURCE_CALLS = {
         "reachable:_read_bounded_json",
         "stream.read",
     ): "open成功時だけのsize上限付きread、bounded runtimeではmanifest外open拒否",
-    (
-        "analysis-framework/common/dotnet_resource_loader_evidence.py",
-        "reachable:_integer_field",
-        "getattr",
-    ): "全callerが監査済み固定metadata field名を渡す",
-    (
-        "analysis-framework/common/dotnet_resource_loader_evidence.py",
-        "reachable:_declared_table_rows",
-        "getattr",
-    ): "全callerが監査済み固定table名を渡す",
-    (
-        "analysis-framework/malware/valleyrat/campaigns/single_pe/analyze_dotnet_il.py",
-        "reachable:token_name",
-        "getattr",
-    ): "token table idを固定3名称へmapした後だけ参照する",
     (
         "unpackers/managed_il_triage.py",
         "reachable:_contained_parser_diagnostics",
@@ -4043,6 +4494,506 @@ def _forbidden_call_reason(node: ast.Call, aliases: Mapping[str, str]) -> str | 
     return None
 
 
+def _simple_name_origin(scope: ast.AST, name: str) -> ast.AST | None:
+    """単一の単純代入だけを名前の起点として受理する。"""
+
+    if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef)) and name in {
+        item.arg
+        for item in (
+            *scope.args.posonlyargs,
+            *scope.args.args,
+            *scope.args.kwonlyargs,
+        )
+    }:
+        return None
+    origins: list[ast.AST] = []
+    for item in _nodes_in_lexical_scope(scope):
+        if isinstance(item, (ast.Assign, ast.AnnAssign, ast.NamedExpr)):
+            targets = item.targets if isinstance(item, ast.Assign) else (item.target,)
+            if not any(name in _target_binding_paths(target) for target in targets):
+                continue
+            if len(targets) != 1 or not (
+                isinstance(targets[0], ast.Name) and targets[0].id == name
+            ):
+                return None
+            origins.append(item.value)
+        elif isinstance(item, (ast.AugAssign, ast.For, ast.AsyncFor, ast.comprehension)):
+            if name in _target_binding_paths(item.target):
+                return None
+        elif isinstance(item, (ast.With, ast.AsyncWith)):
+            if any(
+                entry.optional_vars is not None
+                and name in _target_binding_paths(entry.optional_vars)
+                for entry in item.items
+            ):
+                return None
+        elif isinstance(item, ast.ExceptHandler) and item.name == name:
+            return None
+        elif isinstance(item, ast.Delete) and any(
+            name in _target_binding_paths(target) for target in item.targets
+        ):
+            return None
+    return origins[0] if len(origins) == 1 else None
+
+
+def _parameter_is_not_rebound(scope: ast.AST, name: str) -> bool:
+    """関数引数がscope内で別の値へ差し替えられていないことを確認する。"""
+
+    if not isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        return False
+    parameters = {
+        item.arg
+        for item in (
+            *scope.args.posonlyargs,
+            *scope.args.args,
+            *scope.args.kwonlyargs,
+        )
+    }
+    if name not in parameters:
+        return False
+    for item in _nodes_in_lexical_scope(scope):
+        targets: tuple[ast.AST, ...] = ()
+        if isinstance(item, ast.Assign):
+            targets = tuple(item.targets)
+        elif isinstance(
+            item,
+            (
+                ast.AnnAssign,
+                ast.AugAssign,
+                ast.NamedExpr,
+                ast.For,
+                ast.AsyncFor,
+                ast.comprehension,
+            ),
+        ):
+            targets = (item.target,)
+        elif isinstance(item, (ast.With, ast.AsyncWith)):
+            targets = tuple(
+                entry.optional_vars
+                for entry in item.items
+                if entry.optional_vars is not None
+            )
+        elif isinstance(item, ast.Delete):
+            targets = tuple(item.targets)
+        if any(name in _target_binding_paths(target) for target in targets):
+            return False
+        if isinstance(item, ast.ExceptHandler) and item.name == name:
+            return False
+    return True
+
+
+def _approved_bytes_zipfile_expression(
+    node: ast.AST,
+    tree: ast.Module,
+    scope: ast.AST,
+    aliases: Mapping[str, str],
+) -> bool:
+    """handler入力bytesだけを包むread-only ZipFile constructorを確認する。"""
+
+    if not isinstance(node, ast.Call) or _expanded_call_name(node, aliases) != "zipfile.ZipFile":
+        return False
+    if len(node.args) != 1 or node.keywords or not _expression_binding_is_intact(
+        node.func,
+        tree,
+        scope,
+    ):
+        return False
+    reader = node.args[0]
+    return bool(
+        isinstance(reader, ast.Call)
+        and _expanded_call_name(reader, aliases) == "io.BytesIO"
+        and len(reader.args) == 1
+        and not reader.keywords
+        and isinstance(reader.args[0], ast.Name)
+        and reader.args[0].id == "data"
+        and _parameter_is_not_rebound(scope, "data")
+        and _expression_binding_is_intact(reader.func, tree, scope)
+    )
+
+
+def _approved_zip_member_open(
+    node: ast.Call,
+    tree: ast.Module,
+    scope: ast.AST,
+    aliases: Mapping[str, str],
+) -> bool:
+    """同じin-memory ZIPの列挙済みmemberをread-onlyで開く形だけを許可する。"""
+
+    if not (
+        isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and scope.name == "_recover_pumped_zip"
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "open"
+        and isinstance(node.func.value, ast.Name)
+        and len(node.args) == 2
+        and not node.keywords
+        and isinstance(node.args[0], ast.Name)
+        and isinstance(node.args[1], ast.Constant)
+        and node.args[1].value == "r"
+    ):
+        return False
+    archive_name = node.func.value.id
+    member_name = node.args[0].id
+    archive_origin = _simple_name_origin(scope, archive_name)
+    if archive_origin is None or not _approved_bytes_zipfile_expression(
+        archive_origin,
+        tree,
+        scope,
+        aliases,
+    ):
+        return False
+
+    loops = [
+        item
+        for item in _nodes_in_lexical_scope(scope)
+        if isinstance(item, (ast.For, ast.AsyncFor))
+        and isinstance(item.target, ast.Name)
+        and item.target.id == member_name
+        and isinstance(item.iter, ast.Name)
+    ]
+    if len(loops) != 1:
+        return False
+    members_name = loops[0].iter.id
+    members_origin = _simple_name_origin(scope, members_name)
+    return bool(
+        isinstance(members_origin, ast.Call)
+        and isinstance(members_origin.func, ast.Attribute)
+        and members_origin.func.attr == "infolist"
+        and isinstance(members_origin.func.value, ast.Name)
+        and members_origin.func.value.id == archive_name
+        and not members_origin.args
+        and not members_origin.keywords
+    )
+
+
+def _approved_repository_candidate_open(
+    node: ast.Call,
+    tree: ast.Module,
+    scope: ast.AST,
+    aliases: Mapping[str, str],
+) -> bool:
+    """repository rootと正規化済み相対pathから作った候補だけを開く。"""
+
+    if not (
+        isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and scope.name == "_read_bounded_json"
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "open"
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "candidate"
+        and len(node.args) == 1
+        and not node.keywords
+        and isinstance(node.args[0], ast.Constant)
+        and node.args[0].value == "rb"
+        and _parameter_is_not_rebound(scope, "repository_root")
+        and _parameter_is_not_rebound(scope, "relative_path")
+    ):
+        return False
+    candidate_origin = _simple_name_origin(scope, "candidate")
+    root_origin = _simple_name_origin(scope, "root")
+    if not (
+        isinstance(candidate_origin, ast.BinOp)
+        and isinstance(candidate_origin.op, ast.Div)
+        and isinstance(candidate_origin.left, ast.Name)
+        and candidate_origin.left.id == "root"
+        and isinstance(candidate_origin.right, ast.Name)
+        and candidate_origin.right.id == "relative_path"
+        and isinstance(root_origin, ast.Call)
+        and _expanded_call_name(root_origin, aliases) == "pathlib.Path"
+        and len(root_origin.args) == 1
+        and not root_origin.keywords
+        and _expression_binding_is_intact(root_origin.func, tree, scope)
+    ):
+        return False
+    absolute = root_origin.args[0]
+    return bool(
+        isinstance(absolute, ast.Call)
+        and _expanded_call_name(absolute, aliases) == "os.path.abspath"
+        and len(absolute.args) == 1
+        and not absolute.keywords
+        and _expression_binding_is_intact(absolute.func, tree, scope)
+        and isinstance(absolute.args[0], ast.Call)
+        and _expanded_call_name(absolute.args[0], aliases) == "os.fspath"
+        and len(absolute.args[0].args) == 1
+        and not absolute.args[0].keywords
+        and isinstance(absolute.args[0].args[0], ast.Name)
+        and absolute.args[0].args[0].id == "repository_root"
+        and _expression_binding_is_intact(absolute.args[0].func, tree, scope)
+    )
+
+
+def _with_stream_origin(
+    scope: ast.AST,
+    stream_name: str,
+) -> ast.Call | None:
+    """単一with-as以外で差し替えられていないstream起点を返す。"""
+
+    if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef)) and stream_name in {
+        item.arg
+        for item in (
+            *scope.args.posonlyargs,
+            *scope.args.args,
+            *scope.args.kwonlyargs,
+        )
+    }:
+        return None
+    origins: list[ast.Call] = []
+    for item in _nodes_in_lexical_scope(scope):
+        if isinstance(item, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.NamedExpr)):
+            targets = item.targets if isinstance(item, ast.Assign) else (item.target,)
+            if any(stream_name in _target_binding_paths(target) for target in targets):
+                return None
+        elif isinstance(item, (ast.For, ast.AsyncFor, ast.comprehension)):
+            if stream_name in _target_binding_paths(item.target):
+                return None
+        elif isinstance(item, (ast.With, ast.AsyncWith)):
+            for entry in item.items:
+                target = entry.optional_vars
+                if target is None or stream_name not in _target_binding_paths(target):
+                    continue
+                if not (
+                    isinstance(target, ast.Name)
+                    and target.id == stream_name
+                    and isinstance(entry.context_expr, ast.Call)
+                ):
+                    return None
+                origins.append(entry.context_expr)
+        elif isinstance(item, ast.ExceptHandler) and item.name == stream_name:
+            return None
+        elif isinstance(item, ast.Delete) and any(
+            stream_name in _target_binding_paths(target) for target in item.targets
+        ):
+            return None
+    return origins[0] if len(origins) == 1 else None
+
+
+def _approved_bounded_stream_read(
+    node: ast.Call,
+    key: tuple[str, str, str],
+    tree: ast.Module,
+    scope: ast.AST,
+    aliases: Mapping[str, str],
+) -> bool:
+    """review済みopenから得たstreamの固定上限readだけを許可する。"""
+
+    if not (
+        isinstance(node.func, ast.Attribute)
+        and node.func.attr == "read"
+        and isinstance(node.func.value, ast.Name)
+        and len(node.args) == 1
+        and not node.keywords
+    ):
+        return False
+    origin = _with_stream_origin(scope, node.func.value.id)
+    if origin is None:
+        return False
+    if key == (
+        "extractors/acrstealer/extractor.py",
+        "reachable:_recover_pumped_zip",
+        "stream.read",
+    ):
+        expected = ast.parse("32 * 1024 * 1024", mode="eval").body
+        return bool(
+            ast.dump(node.args[0], include_attributes=False)
+            == ast.dump(expected, include_attributes=False)
+            and _approved_zip_member_open(origin, tree, scope, aliases)
+        )
+    if key == (
+        "analysis-framework/common/remus_profile_evidence.py",
+        "reachable:_read_bounded_json",
+        "stream.read",
+    ):
+        expected = ast.parse(
+            "min(16 * 1024, maximum_bytes - total + 1)",
+            mode="eval",
+        ).body
+        return bool(
+            ast.dump(node.args[0], include_attributes=False)
+            == ast.dump(expected, include_attributes=False)
+            and _approved_repository_candidate_open(
+                origin,
+                tree,
+                scope,
+                aliases,
+            )
+        )
+    return False
+
+
+def _approved_export_funnel_decode(
+    node: ast.Call,
+    scope: ast.AST,
+) -> bool:
+    """export funnelの15 byte・1命令固定Capstone callを確認する。"""
+
+    if not (
+        isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and scope.name == "_decode_one_x86"
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "disasm"
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "disassembler"
+        and len(node.args) == 2
+        and isinstance(node.args[1], ast.Name)
+        and node.args[1].id == "address"
+        and len(node.keywords) == 1
+        and node.keywords[0].arg == "count"
+        and isinstance(node.keywords[0].value, ast.Constant)
+        and type(node.keywords[0].value.value) is int
+        and node.keywords[0].value.value == 1
+        and _parameter_is_not_rebound(scope, "disassembler")
+        and _parameter_is_not_rebound(scope, "code")
+        and _parameter_is_not_rebound(scope, "address")
+    ):
+        return False
+    bounded = node.args[0]
+    return bool(
+        isinstance(bounded, ast.Subscript)
+        and isinstance(bounded.value, ast.Name)
+        and bounded.value.id == "code"
+        and isinstance(bounded.slice, ast.Slice)
+        and bounded.slice.lower is None
+        and isinstance(bounded.slice.upper, ast.Constant)
+        and type(bounded.slice.upper.value) is int
+        and bounded.slice.upper.value == 15
+        and bounded.slice.step is None
+    )
+
+
+def _reviewed_source_call_shape_allowed(
+    node: ast.Call,
+    name: str,
+    tree: ast.Module,
+    scope: ast.AST,
+    aliases: Mapping[str, str],
+    *,
+    key: tuple[str, str, str] | None = None,
+) -> bool:
+    """source限定例外でもreceiverと引数の危険な差替えを拒否する。"""
+
+    if any(isinstance(argument, ast.Starred) for argument in node.args) or any(
+        keyword.arg is None for keyword in node.keywords
+    ):
+        return False
+    supplied_strings = {
+        value.value
+        for value in (*node.args, *(keyword.value for keyword in node.keywords))
+        if isinstance(value, ast.Constant) and isinstance(value.value, str)
+    }
+    if supplied_strings & _DANGEROUS_REFLECTION_ATTRIBUTES:
+        return False
+    if key == (
+        "extractors/valleyrat/export_funnel.py",
+        "reachable:_decode_one_x86",
+        "disassembler.disasm",
+    ):
+        return _approved_export_funnel_decode(node, scope)
+    if key == (
+        "extractors/acrstealer/extractor.py",
+        "reachable:_recover_pumped_zip",
+        "archive.open",
+    ):
+        return _approved_zip_member_open(node, tree, scope, aliases)
+    if key == (
+        "analysis-framework/common/remus_profile_evidence.py",
+        "reachable:_read_bounded_json",
+        "candidate.open",
+    ):
+        return _approved_repository_candidate_open(node, tree, scope, aliases)
+    if key in {
+        (
+            "extractors/acrstealer/extractor.py",
+            "reachable:_recover_pumped_zip",
+            "stream.read",
+        ),
+        (
+            "analysis-framework/common/remus_profile_evidence.py",
+            "reachable:_read_bounded_json",
+            "stream.read",
+        ),
+    }:
+        return _approved_bounded_stream_read(
+            node,
+            key,
+            tree,
+            scope,
+            aliases,
+        )
+    if name == "getattr":
+        return _approved_getattr_call(node)
+    if name == "next":
+        if _approved_higher_order_builtin(node, name, aliases):
+            return True
+        if not 1 <= len(node.args) <= 2 or node.keywords:
+            return False
+        if len(node.args) == 2 and not (isinstance(node.args[1], ast.Constant) and node.args[1].value is None):
+            return False
+        iterator = node.args[0]
+        if not isinstance(iterator, ast.Call):
+            return False
+        iterator_name = _expanded_call_name(iterator, aliases)
+        count_keywords = [keyword for keyword in iterator.keywords if keyword.arg == "count"]
+        return bool(
+            isinstance(iterator_name, str)
+            and iterator_name.endswith(".disasm")
+            and len(count_keywords) == 1
+            and len(iterator.keywords) == 1
+            and isinstance(count_keywords[0].value, ast.Constant)
+            and type(count_keywords[0].value.value) is int
+            and count_keywords[0].value.value == 1
+        )
+    if name == "archive.read":
+        return _approved_in_memory_read(node, tree, scope, aliases)
+    if name == "path.read_text":
+        return bool(
+            not node.args
+            and len(node.keywords) == 1
+            and node.keywords[0].arg == "encoding"
+            and isinstance(node.keywords[0].value, ast.Constant)
+            and node.keywords[0].value.value == "utf-8-sig"
+        )
+    return True
+
+
+def _reviewed_forbidden_source_call_allowed(
+    key: tuple[str, str, str],
+    node: ast.Call,
+    tree: ast.Module,
+    scope: ast.AST,
+    aliases: Mapping[str, str],
+) -> bool:
+    """既存の固定入口で必要なread-only例外だけを狭く維持する。"""
+
+    return bool(
+        key
+        in {
+            (
+                "analysis-framework/malware/traffmonetizer_deployer/extract_config.py",
+                "reachable:settings_summary",
+                "path.read_text",
+            ),
+            (
+                "extractors/acrstealer/extractor.py",
+                "reachable:_recover_pumped_zip",
+                "archive.open",
+            ),
+            (
+                "analysis-framework/common/remus_profile_evidence.py",
+                "reachable:_read_bounded_json",
+                "candidate.open",
+            ),
+        }
+        and _reviewed_source_call_shape_allowed(
+            node,
+            key[2],
+            tree,
+            scope,
+            aliases,
+            key=key,
+        )
+    )
+
+
 def _reachable_handler_functions(tree: ast.Module, callable_name: str) -> list[ast.FunctionDef]:
     """entryから名前で到達可能なmodule内関数を決定的に列挙する。"""
 
@@ -4479,12 +5430,12 @@ def _binding_local_call_target(
     return target, ".".join(remainder) or None, error
 
 
-@cache
 def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict[str, Any]:
     """reachable local helperをfile間で追跡し、importせず副作用callを監査する。"""
 
     issues: set[str] = set()
     files: dict[Path, str] = {}
+    trees: dict[Path, ast.Module] = {}
     data_files: dict[Path, tuple[str, str]] = {}
     module_bindings: dict[str, tuple[Path, bool]] = {}
     visited_imports: set[Path] = set()
@@ -4564,12 +5515,9 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
                 issues.add(f"dependency_parse_error:{relative}:{type(exc).__name__}")
                 return None
             files[resolved] = hashlib.sha256(content).hexdigest()
+            trees[resolved] = tree
             return tree
-        try:
-            return _module_tree(resolved)
-        except (OSError, SyntaxError, UnicodeError) as exc:
-            issues.add(f"dependency_parse_error:{relative}:{type(exc).__name__}")
-            return None
+        return trees.get(resolved)
 
     def dynamic_call_allowed(source: Path, name: str) -> bool:
         relative = _relative_audit_path(source)
@@ -4905,13 +5853,38 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
             data_files[resolved_data] = (digest, review_reason)
             allow("reviewed_repository_data_snapshot", name or "")
             return
-        reviewed_source_reason = _REVIEWED_SOURCE_CALLS.get((relative, context, name or ""))
-        if reviewed_source_reason is not None:
-            allow("reviewed_source_scoped_call", f"{name}:{reviewed_source_reason}")
-            return
+        reviewed_source_key = (relative, context, name or "")
+        reviewed_source_reason = _REVIEWED_SOURCE_CALLS.get(reviewed_source_key)
         reason = _forbidden_call_reason(call, module_aliases)
-        if reason:
+        if reason and not (
+            reviewed_source_reason is not None
+            and _reviewed_forbidden_source_call_allowed(
+                reviewed_source_key,
+                call,
+                tree,
+                scope,
+                module_aliases,
+            )
+        ):
             issues.add(f"{context}:{reason}")
+            return
+        if reviewed_source_reason is not None:
+            if not _reviewed_source_call_shape_allowed(
+                call,
+                reviewed_source_key[2],
+                tree,
+                scope,
+                module_aliases,
+                key=reviewed_source_key,
+            ):
+                issues.add(f"{context}:reviewed_source_call_shape_rejected:{name}")
+                return
+            if isinstance(call.func, ast.Attribute):
+                audit_local_class_capability(
+                    call.func.value,
+                    (call.func.attr,),
+                )
+            allow("reviewed_source_scoped_call", f"{name}:{reviewed_source_reason}")
             return
         if name in {"getattr", "iter", "next"}:
             if name == "getattr" and call.args:
@@ -5582,33 +6555,80 @@ def assessment_format_compatible(
     return not assessment_format_blockers(accepted_formats, actual_format)
 
 
-def preflight_handler_for_assessment(
-    spec: HandlerSpec,
+def _dependency_audit_root_source_sha256(
+    dependency_audit: Mapping[str, Any],
     *,
-    actual_format: str,
-    input_size: int,
-    maximum_input_size: int = DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
-) -> dict[str, Any]:
-    """候補試行前に契約、形式、容量、外部副作用をimportせず検証する。"""
+    root_relative_path: str,
+) -> str | None:
+    """再帰監査が実際に読んだroot sourceのSHA-256を厳格に取り出す。"""
+
+    records = dependency_audit.get("files")
+    if not isinstance(records, list):
+        return None
+    matches = [record for record in records if isinstance(record, Mapping) and record.get("path") == root_relative_path]
+    if len(matches) != 1 or set(matches[0]) != {"path", "sha256"}:
+        return None
+    digest = matches[0].get("sha256")
+    if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+        return None
+    return digest
+
+
+def _revalidate_cached_assessment_invariant(
+    spec: HandlerSpec,
+    cached: _AssessmentInvariantPreflight,
+) -> None:
+    """cache済み監査を全依存fileの現在のbytesとidentityへ再結合する。"""
+
+    if not isinstance(cached, _AssessmentInvariantPreflight) or cached.spec != spec or cached.blockers:
+        raise HandlerLoadError("cached assessment invariant is not reusable")
+    if (
+        not isinstance(cached.source_sha256, str)
+        or re.fullmatch(r"[0-9a-f]{64}", cached.source_sha256) is None
+        or not isinstance(cached.dependency_audit, Mapping)
+    ):
+        raise HandlerLoadError("cached assessment invariant is invalid")
+    audit = cached.dependency_audit
+    if audit.get("issues") != []:
+        raise HandlerLoadError("cached dependency audit is not blocker-free")
+
+    source_snapshots = _validated_dependency_source_snapshots(
+        audit.get("files"),
+        repository=REPOSITORY_ROOT,
+    )
+    data_snapshots = _validated_dependency_data_snapshots(
+        audit.get("data_files"),
+        repository=REPOSITORY_ROOT,
+    )
+    module_bindings = _validated_dependency_module_bindings(
+        audit.get("module_bindings"),
+        snapshots=source_snapshots,
+    )
+    for field, observed in (
+        ("files_inspected", len(source_snapshots)),
+        ("data_files_inspected", len(data_snapshots)),
+        ("module_bindings_inspected", len(module_bindings)),
+    ):
+        if audit.get(field) != observed:
+            raise HandlerLoadError("cached dependency audit count is invalid")
+
+    path = _resolve_handler_path(spec)
+    root_relative_path = _relative_audit_path(path)
+    root_snapshots = [snapshot for snapshot in source_snapshots if snapshot.relative_path == root_relative_path]
+    if len(root_snapshots) != 1 or root_snapshots[0].sha256 != cached.source_sha256:
+        raise HandlerLoadError("cached root dependency snapshot is invalid")
+
+
+def _preflight_handler_invariants_for_assessment(
+    spec: HandlerSpec,
+) -> _AssessmentInvariantPreflight:
+    """layerに依存しない契約・依存関係・副作用監査をimportせず実施する。"""
 
     blockers: list[str] = []
     if not spec.automatic:
         blockers.append("handler_not_automatic")
     if not spec.supported_interface:
         blockers.append(f"unsupported_interface:{spec.reason}")
-    blockers.extend(assessment_format_blockers(spec.input_formats, actual_format))
-    if not isinstance(input_size, int) or isinstance(input_size, bool) or input_size <= 0:
-        blockers.append("invalid_or_empty_input_size")
-    if (
-        not isinstance(maximum_input_size, int)
-        or isinstance(maximum_input_size, bool)
-        or maximum_input_size <= 0
-        or maximum_input_size > DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE
-    ):
-        blockers.append("invalid_maximum_input_size")
-    elif isinstance(input_size, int) and input_size > maximum_input_size:
-        blockers.append("input_size_limit_exceeded")
-
     source_sha256 = None
     dependency_audit: dict[str, Any] = {
         "issues": [],
@@ -5627,7 +6647,9 @@ def preflight_handler_for_assessment(
     }
     try:
         path = _resolve_handler_path(spec)
-        source_sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+        root_relative_path = _relative_audit_path(path)
+        source_bytes = path.read_bytes()
+        source_sha256 = hashlib.sha256(source_bytes).hexdigest()
         if spec.source == "profiled_shared_extractor":
             expected_profiled_path = (EXTRACTORS_ROOT / "profiled_family.py").resolve()
             if (
@@ -5638,7 +6660,15 @@ def preflight_handler_for_assessment(
             ):
                 blockers.append("profiled_handler_contract_changed")
         else:
-            invocation, supported, _reason = _function_shape(path, spec.callable_name)
+            source_tree = ast.parse(
+                source_bytes.decode("utf-8-sig"),
+                filename=str(path),
+            )
+            invocation, supported, _reason = _function_shape(
+                path,
+                spec.callable_name,
+                tree=source_tree,
+            )
             if not supported or invocation != spec.invocation:
                 blockers.append("callable_contract_changed")
             formats, source, evidence_score = _handler_contract(
@@ -5646,6 +6676,7 @@ def preflight_handler_for_assessment(
                 spec.callable_name,
                 invocation,
                 spec.source,
+                tree=source_tree,
             )
             if (
                 formats != spec.input_formats
@@ -5654,9 +6685,77 @@ def preflight_handler_for_assessment(
             ):
                 blockers.append("handler_contract_changed")
         dependency_audit = _recursive_handler_side_effect_audit(path, spec.callable_name)
+        audit_root_sha256 = _dependency_audit_root_source_sha256(
+            dependency_audit,
+            root_relative_path=root_relative_path,
+        )
+        if audit_root_sha256 != source_sha256:
+            blockers.append("dependency_source_changed_during_preflight")
         blockers.extend(dependency_audit["issues"])
     except Exception as exc:  # noqa: BLE001 - 解析不能もfail-closedにする
         blockers.append(str(sanitize_public_value(f"preflight_error:{type(exc).__name__}:{exc}")))
+
+    return _AssessmentInvariantPreflight(
+        spec=spec,
+        blockers=tuple(sorted(set(blockers))),
+        source_sha256=source_sha256,
+        dependency_audit=dependency_audit,
+    )
+
+
+def _cached_preflight_handler_invariants_for_assessment(
+    spec: HandlerSpec,
+) -> tuple[_AssessmentInvariantPreflight, bool, bool]:
+    """全依存の再検証に成功した監査だけをprocess cacheから返す。"""
+
+    cached = _ASSESSMENT_INVARIANT_PREFLIGHT_CACHE.get(spec)
+    revalidation_attempted = False
+    if cached is not None:
+        if cached.spec != spec or cached.blockers:
+            _ASSESSMENT_INVARIANT_PREFLIGHT_CACHE.pop(spec, None)
+        else:
+            revalidation_attempted = True
+            try:
+                _revalidate_cached_assessment_invariant(spec, cached)
+            except HandlerLoadError:
+                _ASSESSMENT_INVARIANT_PREFLIGHT_CACHE.pop(spec, None)
+            else:
+                return cached, True, True
+
+    invariant = _preflight_handler_invariants_for_assessment(spec)
+    if not invariant.blockers:
+        _ASSESSMENT_INVARIANT_PREFLIGHT_CACHE[spec] = invariant
+    else:
+        _ASSESSMENT_INVARIANT_PREFLIGHT_CACHE.pop(spec, None)
+    return invariant, False, revalidation_attempted
+
+
+def _preflight_handler_layer_for_assessment(
+    spec: HandlerSpec,
+    invariant: _AssessmentInvariantPreflight,
+    *,
+    actual_format: str,
+    input_size: int,
+    maximum_input_size: int,
+) -> dict[str, Any]:
+    """監査済みhandlerへlayer固有の形式・容量検査を毎回適用する。"""
+
+    if not isinstance(invariant, _AssessmentInvariantPreflight) or invariant.spec != spec:
+        raise HandlerLoadError("assessment invariant preflight does not match handler spec")
+    blockers = list(invariant.blockers)
+    blockers.extend(assessment_format_blockers(spec.input_formats, actual_format))
+    if not isinstance(input_size, int) or isinstance(input_size, bool) or input_size <= 0:
+        blockers.append("invalid_or_empty_input_size")
+    if (
+        not isinstance(maximum_input_size, int)
+        or isinstance(maximum_input_size, bool)
+        or maximum_input_size <= 0
+        or maximum_input_size > DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE
+    ):
+        blockers.append("invalid_maximum_input_size")
+    elif isinstance(input_size, int) and input_size > maximum_input_size:
+        blockers.append("input_size_limit_exceeded")
+
     return {
         "handler_id": spec.id,
         "eligible": not blockers,
@@ -5666,12 +6765,33 @@ def preflight_handler_for_assessment(
         "input_size": input_size,
         "maximum_input_size": maximum_input_size,
         "minimum_evidence_score": spec.minimum_evidence_score,
-        "source_sha256": source_sha256,
-        "dependency_audit": dependency_audit,
+        "source_sha256": invariant.source_sha256,
+        # process cacheの内部objectを公開結果へ共有しない。callerが返却値を
+        # 変更しても、次回の再検証対象manifestには影響させない。
+        "dependency_audit": copy.deepcopy(invariant.dependency_audit),
         "sample_execution_allowed": False,
         "network_allowed": False,
         "filesystem_write_allowed": False,
     }
+
+
+def preflight_handler_for_assessment(
+    spec: HandlerSpec,
+    *,
+    actual_format: str,
+    input_size: int,
+    maximum_input_size: int = DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
+) -> dict[str, Any]:
+    """候補試行前に契約、形式、容量、外部副作用をimportせず検証する。"""
+
+    invariant, _cache_hit, _revalidated = _cached_preflight_handler_invariants_for_assessment(spec)
+    return _preflight_handler_layer_for_assessment(
+        spec,
+        invariant,
+        actual_format=actual_format,
+        input_size=input_size,
+        maximum_input_size=maximum_input_size,
+    )
 
 
 def _mapping_value(value: Any, key: str, default: Any = None) -> Any:
@@ -5839,6 +6959,7 @@ def execute_handler_bounded_for_assessment(
     timeout_seconds: float = DEFAULT_HANDLER_TIMEOUT_SECONDS,
     artifact_directory: Path | None = None,
     artifact_path_prefix: str = "recovered-payloads",
+    _invariant_preflight: _AssessmentInvariantPreflight | None = None,
 ) -> dict[str, Any]:
     """事前検査済みhandlerを隔離processで実行し、安定した公開結果を返す。"""
 
@@ -5853,8 +6974,12 @@ def execute_handler_bounded_for_assessment(
     ):
         raise ValueError("timeout_secondsは0.1秒以上300秒以下で指定してください")
 
-    preflight = preflight_handler_for_assessment(
+    invariant_preflight = _invariant_preflight
+    if invariant_preflight is None:
+        invariant_preflight, _cache_hit, _revalidated = _cached_preflight_handler_invariants_for_assessment(spec)
+    preflight = _preflight_handler_layer_for_assessment(
         spec,
+        invariant_preflight,
         actual_format=actual_format,
         input_size=len(data),
         maximum_input_size=maximum_input_size,
@@ -6228,7 +7353,8 @@ def _detector_evidence_by_layer(
     ):
         return {str(layers[0]["sha256"]): detector_corroboration(supplied)}
     if not isinstance(supplied, Mapping):
-        raise TypeError(f"detector_evaluations[{family}]が不正です")
+        # Handler coverageは維持する一方、不正なdetector値をfamily確認には使わない。
+        return {}
     return {digest: detector_corroboration(value) for digest, value in supplied.items() if digest in layer_hashes}
 
 
@@ -6276,6 +7402,278 @@ def _best_detector_for_layer(
     }
 
 
+def _handler_family_attribution_disposition(value: Any) -> dict[str, Any]:
+    """handlerの明示的な帰属境界をfamily確認用にfail-closedで正規化する。"""
+
+    if not isinstance(value, Mapping):
+        return {
+            "supports_family_confirmation": True,
+            "route_only": False,
+            "explicit_contract": False,
+            "basis": "legacy_handler_without_explicit_attribution_contract",
+        }
+
+    records: list[tuple[str, Mapping[str, Any]]] = [("result", value)]
+    config = value.get("config")
+    if isinstance(config, Mapping):
+        records.append(("config", config))
+
+    supports_values: list[bool] = []
+    terminal_values: list[bool] = []
+    scopes: list[str] = []
+    explicit_contract = False
+    for location, record in records:
+        if "supports_family_attribution" in record:
+            explicit_contract = True
+            supports = record.get("supports_family_attribution")
+            if type(supports) is not bool:
+                return {
+                    "supports_family_confirmation": False,
+                    "route_only": False,
+                    "explicit_contract": True,
+                    "basis": f"{location}_supports_family_attribution_not_boolean",
+                }
+            supports_values.append(supports)
+        if "terminal_family_confirmed" in record:
+            explicit_contract = True
+            terminal = record.get("terminal_family_confirmed")
+            if type(terminal) is not bool:
+                return {
+                    "supports_family_confirmation": False,
+                    "route_only": False,
+                    "explicit_contract": True,
+                    "basis": f"{location}_terminal_family_confirmed_not_boolean",
+                }
+            terminal_values.append(terminal)
+        if "attribution_scope" in record:
+            explicit_contract = True
+            scope = record.get("attribution_scope")
+            if not isinstance(scope, str) or not scope or len(scope) > 256:
+                return {
+                    "supports_family_confirmation": False,
+                    "route_only": False,
+                    "explicit_contract": True,
+                    "basis": f"{location}_attribution_scope_invalid",
+                }
+            scopes.append(scope)
+
+    if len(set(supports_values)) > 1 or len(set(terminal_values)) > 1:
+        return {
+            "supports_family_confirmation": False,
+            "route_only": False,
+            "explicit_contract": True,
+            "basis": "handler_attribution_flags_conflict",
+        }
+    if "component_handler_route" in scopes and (
+        True in supports_values or True in terminal_values
+    ):
+        return {
+            "supports_family_confirmation": False,
+            "route_only": False,
+            "explicit_contract": True,
+            "basis": "route_only_scope_conflicts_with_terminal_attribution",
+        }
+    if (
+        False in supports_values
+        or False in terminal_values
+        or "component_handler_route" in scopes
+    ):
+        return {
+            "supports_family_confirmation": False,
+            "route_only": True,
+            "explicit_contract": True,
+            "basis": "handler_explicitly_limits_result_to_route_only",
+        }
+    return {
+        "supports_family_confirmation": True,
+        "route_only": False,
+        "explicit_contract": explicit_contract,
+        "basis": (
+            "handler_explicitly_supports_family_attribution"
+            if explicit_contract
+            else "legacy_handler_without_explicit_attribution_contract"
+        ),
+    }
+
+
+def _unknown_detector_handler_scope(basis: str) -> dict[str, Any]:
+    """不明または不正なdetector情報を、coverage維持の固定状態へ正規化する。"""
+
+    return {
+        "status": "unknown",
+        "basis": basis,
+        "matched_detector_count": 0,
+        "attribution_supporting_detector_count": 0,
+        "route_only_detector_count": 0,
+        "campaign_types": [],
+        "trusted_for_handler_narrowing": False,
+    }
+
+
+def _detector_handler_scope(
+    detector_evaluations: Mapping[str, Any] | None,
+    family: str,
+    layers: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """matched detectorの帰属scopeと厳格なcampaign IDだけをrouting用に導出する。"""
+
+    if detector_evaluations is None:
+        return _unknown_detector_handler_scope("detector_evaluations_not_supplied")
+    if not isinstance(detector_evaluations, Mapping):
+        return _unknown_detector_handler_scope("detector_evaluations_not_mapping")
+    supplied = detector_evaluations.get(family)
+    if supplied is None:
+        return _unknown_detector_handler_scope("family_detector_evaluations_absent")
+    if not isinstance(supplied, Mapping):
+        return _unknown_detector_handler_scope("family_detector_evaluations_not_mapping")
+
+    direct_fields = {
+        "matched",
+        "detector_matched",
+        "known_outer_sha256",
+        "known_inner_sha256",
+    }
+    if any(field in supplied for field in direct_fields):
+        records: list[Mapping[str, Any]] = [supplied]
+    else:
+        if len(supplied) > MAX_ASSESSMENT_LAYERS:
+            return _unknown_detector_handler_scope("detector_layer_record_limit")
+        layer_hashes = {str(layer["sha256"]) for layer in layers}
+        records = []
+        for digest, evaluation in supplied.items():
+            if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+                return _unknown_detector_handler_scope("detector_layer_digest_invalid")
+            if digest not in layer_hashes:
+                continue
+            if not isinstance(evaluation, Mapping):
+                return _unknown_detector_handler_scope("detector_evaluation_not_mapping")
+            records.append(evaluation)
+    if not records:
+        return _unknown_detector_handler_scope("relevant_detector_evaluations_absent")
+
+    matched_count = 0
+    attribution_count = 0
+    route_only_count = 0
+    campaign_types: set[str] = set()
+    campaign_record_count = 0
+    invalid_basis: str | None = None
+    for evaluation in records:
+        error = evaluation.get("error")
+        if "error" not in evaluation:
+            invalid_basis = invalid_basis or "detector_error_state_absent"
+            continue
+        if error is not None and (not isinstance(error, str) or bool(error)):
+            invalid_basis = invalid_basis or "detector_error_present"
+            continue
+        route_eligible = evaluation.get("automatic_route_eligible")
+        if not isinstance(route_eligible, bool):
+            invalid_basis = invalid_basis or "automatic_route_eligible_not_boolean"
+            continue
+        if route_eligible is not True:
+            invalid_basis = invalid_basis or "automatic_route_eligible_not_true"
+            continue
+        applicable = evaluation.get("applicable")
+        if not isinstance(applicable, bool):
+            invalid_basis = invalid_basis or "detector_applicable_not_boolean"
+            continue
+        if applicable is not True:
+            invalid_basis = invalid_basis or "detector_applicable_not_true"
+            continue
+        if any(
+            not isinstance(evaluation.get(field), bool)
+            for field in (
+                "known_outer_sha256",
+                "known_inner_sha256",
+                "known_routing_sha256",
+            )
+        ):
+            invalid_basis = invalid_basis or "detector_known_flags_not_boolean"
+            continue
+        outer_matched = evaluation.get("detector_matched")
+        if "detector_matched" in evaluation and not isinstance(outer_matched, bool):
+            invalid_basis = invalid_basis or "detector_matched_not_boolean"
+            continue
+        raw_detection = evaluation.get("detection")
+        detection = (
+            raw_detection
+            if isinstance(raw_detection, Mapping)
+            else evaluation
+            if "detection" not in evaluation
+            else None
+        )
+        if outer_matched is False:
+            if isinstance(detection, Mapping) and detection.get("matched") is True:
+                invalid_basis = invalid_basis or "detector_match_state_inconsistent"
+            continue
+        if not isinstance(detection, Mapping):
+            invalid_basis = invalid_basis or "detector_detection_not_mapping"
+            continue
+        detection_matched = detection.get("matched")
+        if not isinstance(detection_matched, bool):
+            invalid_basis = invalid_basis or "detection_matched_not_boolean"
+            continue
+        if outer_matched is True and detection_matched is not True:
+            invalid_basis = invalid_basis or "detector_match_state_inconsistent"
+            continue
+        if detection_matched is not True:
+            continue
+
+        supports_attribution = evaluation.get("supports_family_attribution")
+        if not isinstance(supports_attribution, bool):
+            invalid_basis = invalid_basis or "supports_family_attribution_not_boolean"
+            continue
+        raw_campaigns = detection.get("campaigns", [])
+        if not isinstance(raw_campaigns, list):
+            invalid_basis = invalid_basis or "detector_campaigns_not_list"
+            continue
+        campaign_record_count += len(raw_campaigns)
+        if campaign_record_count > MAX_ASSESSMENT_DETECTOR_CAMPAIGNS:
+            invalid_basis = invalid_basis or "detector_campaign_record_limit"
+            continue
+        parsed_campaigns: set[str] = set()
+        malformed_campaign = False
+        for campaign in raw_campaigns:
+            campaign_type = campaign.get("campaign_type") if isinstance(campaign, Mapping) else None
+            if not isinstance(campaign_type, str) or CAMPAIGN_ID.fullmatch(campaign_type) is None:
+                malformed_campaign = True
+                break
+            parsed_campaigns.add(campaign_type)
+        if malformed_campaign:
+            invalid_basis = invalid_basis or "detector_campaign_identifier_invalid"
+            continue
+
+        matched_count += 1
+        campaign_types.update(parsed_campaigns)
+        if supports_attribution:
+            attribution_count += 1
+        else:
+            route_only_count += 1
+
+    if invalid_basis is not None:
+        return _unknown_detector_handler_scope(invalid_basis)
+    if attribution_count:
+        return {
+            "status": "attribution_supporting",
+            "basis": "matched_detector_supports_family_attribution",
+            "matched_detector_count": matched_count,
+            "attribution_supporting_detector_count": attribution_count,
+            "route_only_detector_count": route_only_count,
+            "campaign_types": sorted(campaign_types),
+            "trusted_for_handler_narrowing": False,
+        }
+    if matched_count and route_only_count == matched_count:
+        return {
+            "status": "route_only",
+            "basis": "all_matched_detectors_are_route_only",
+            "matched_detector_count": matched_count,
+            "attribution_supporting_detector_count": 0,
+            "route_only_detector_count": route_only_count,
+            "campaign_types": sorted(campaign_types),
+            "trusted_for_handler_narrowing": True,
+        }
+    return _unknown_detector_handler_scope("matched_detector_evidence_absent")
+
+
 def _round_robin_candidate_pairs(
     candidates: Sequence[Mapping[str, Any]],
     pairs_by_family: Mapping[str, Sequence[tuple[HandlerSpec, dict[str, Any]]]],
@@ -6295,6 +7693,159 @@ def _round_robin_candidate_pairs(
         for family, pairs in queues
         if ordinal < len(pairs)
     ]
+
+
+def _bounded_campaign_fallback_layers(
+    compatible_layers: Sequence[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """campaign fallbackへroot寄りと形式・変換・深さが異なる代表層を返す。"""
+
+    if not compatible_layers:
+        return []
+    root_representative = min(
+        compatible_layers,
+        key=lambda layer: (
+            int(layer["depth"]),
+            layer.get("parent_sha256") is not None,
+            int(layer["index"]),
+        ),
+    )
+    selected = [root_representative]
+    remaining = [layer for layer in compatible_layers if int(layer["index"]) != int(root_representative["index"])]
+    if remaining and len(selected) < MAX_BOUNDED_CAMPAIGN_FALLBACK_LAYERS:
+        selected.append(
+            max(
+                remaining,
+                key=lambda layer: (
+                    str(layer["format"]) != str(root_representative["format"]),
+                    str(layer["transform"]) != str(root_representative["transform"]),
+                    int(layer["depth"]),
+                    layer.get("parent_sha256") is not None,
+                    -int(layer["index"]),
+                ),
+            )
+        )
+    return selected
+
+
+def _candidate_handler_specs(
+    candidate: Mapping[str, Any],
+    catalog: Sequence[HandlerSpec],
+    detector_scope: Mapping[str, Any],
+) -> tuple[list[HandlerSpec], dict[str, Any], frozenset[str]]:
+    """候補sourceに応じて自動handler集合を決定し、選定根拠を返す。
+
+    外部metadataだけの候補はfamily確定根拠にならない。family共通extractorと
+    route-only detectorの完全一致campaignを優先する一方、残るcampaign固有
+    handlerも恒久除外しない。残るhandlerは後段で少数の代表layerだけへ試し、
+    wrapper/config coverageと全layer総当たり回避を両立する。
+    """
+
+    family = str(candidate["family"])
+    automatic = sorted(
+        (spec for spec in catalog if (candidate["assessment_eligible"] and spec.family == family and spec.automatic)),
+        # family共通config extractorをcampaign固有の詳細解析より先に試す。
+        key=lambda item: (item.campaign is not None, item.id),
+    )
+    metadata_only = (
+        candidate.get("routing_mode") == "candidate_verification"
+        and candidate.get("sources") == ["external_metadata"]
+        and candidate.get("caller_selected_string") is False
+    )
+    family_wide = [spec for spec in automatic if spec.campaign is None]
+    route_only = (
+        not metadata_only
+        and detector_scope.get("status") == "route_only"
+        and detector_scope.get("trusted_for_handler_narrowing") is True
+    )
+    detector_campaign_types = set(detector_scope.get("campaign_types", [])) if route_only else set()
+    matching_campaign_handlers = [
+        spec for spec in automatic if spec.campaign is not None and spec.campaign in detector_campaign_types
+    ]
+    matched_campaign_types = sorted(
+        {str(spec.campaign) for spec in matching_campaign_handlers if spec.campaign is not None}
+    )
+    if metadata_only:
+        primary = family_wide
+    elif route_only:
+        primary = [*family_wide, *matching_campaign_handlers]
+    else:
+        primary = automatic
+    fallback = [spec for spec in automatic if spec not in primary and spec.campaign is not None]
+    selected = [*primary, *fallback]
+    if metadata_only and family_wide and fallback:
+        mode = "family_wide_then_bounded_campaign_fallback_external_metadata"
+    elif metadata_only and fallback:
+        mode = "bounded_campaign_fallback_external_metadata"
+    elif metadata_only:
+        mode = "family_wide_only_external_metadata"
+    elif route_only and matching_campaign_handlers and fallback:
+        mode = "family_wide_and_exact_campaign_then_bounded_fallback_route_only_detector"
+    elif route_only and matching_campaign_handlers:
+        mode = "family_wide_and_exact_campaign_route_only_detector"
+    elif route_only and fallback:
+        mode = "family_wide_then_bounded_campaign_fallback_route_only_detector"
+    elif route_only:
+        mode = "family_wide_only_route_only_detector"
+    else:
+        mode = "all_automatic_handlers"
+    return (
+        selected,
+        {
+            "mode": mode,
+            "external_metadata_only": metadata_only,
+            "automatic_handler_count": len(automatic),
+            "selected_handler_count": len(selected),
+            "primary_handler_count": len(primary),
+            "bounded_campaign_fallback_handler_count": len(fallback),
+            "deferred_campaign_handler_count": 0,
+            "campaign_fallback_used": bool(fallback),
+            "bounded_campaign_fallback_enabled": bool(fallback),
+            "bounded_campaign_fallback_maximum_layers_per_handler": (
+                MAX_BOUNDED_CAMPAIGN_FALLBACK_LAYERS if fallback else 0
+            ),
+            "bounded_campaign_fallback_selection_basis": (
+                "root_then_format_transform_depth_diversity" if fallback else "not_applicable"
+            ),
+            "family_confirmation_affected": False,
+            "deferred_handlers_require_changed_evidence": False,
+            "detector_scope_status": detector_scope.get("status"),
+            "detector_scope_basis": detector_scope.get("basis"),
+            "matched_detector_count": detector_scope.get(
+                "matched_detector_count",
+                0,
+            ),
+            "attribution_supporting_detector_count": detector_scope.get(
+                "attribution_supporting_detector_count",
+                0,
+            ),
+            "route_only_detector_count": detector_scope.get(
+                "route_only_detector_count",
+                0,
+            ),
+            "route_only_campaign_types": (sorted(detector_campaign_types) if route_only else []),
+            "matched_campaign_types": matched_campaign_types,
+            "matched_campaign_handler_count": len(matching_campaign_handlers),
+            "campaign_selection_basis": (
+                "exact_campaign_type_match_with_bounded_remaining_campaigns"
+                if route_only and matching_campaign_handlers and fallback
+                else "exact_campaign_type_match"
+                if route_only and matching_campaign_handlers
+                else "no_exact_campaign_type_match_with_bounded_campaign_fallback"
+                if route_only and fallback
+                else "no_exact_campaign_type_match"
+                if route_only
+                else "external_metadata_family_wide_with_bounded_campaign_fallback"
+                if metadata_only and family_wide and fallback
+                else "external_metadata_bounded_campaign_fallback"
+                if metadata_only and fallback
+                else "not_applicable"
+            ),
+            "detector_scope_used_for_handler_selection": route_only,
+            "detector_scope_used_for_family_confirmation": False,
+        },
+        frozenset(spec.id for spec in fallback),
+    )
 
 
 def assess_candidate_handlers(
@@ -6360,19 +7911,25 @@ def assess_candidate_handlers(
     )
     normalized_candidates = _candidate_records(candidates)
     catalog = list(specs) if specs is not None else discover_handlers()
-    by_family = {
-        candidate["family"]: sorted(
-            (
-                spec
-                for spec in catalog
-                if (candidate["assessment_eligible"] and spec.family == candidate["family"] and spec.automatic)
-            ),
-            # family共通config extractorをcampaign固有の詳細解析より先に試し、
-            # global quota到達前に広範な設定回収経路を必ず評価する。
-            key=lambda item: (item.campaign is not None, item.id),
+    detector_scope_by_family = {
+        str(candidate["family"]): _detector_handler_scope(
+            detector_evaluations,
+            str(candidate["family"]),
+            normalized_layers,
         )
         for candidate in normalized_candidates
     }
+    selected_by_family = {
+        str(candidate["family"]): _candidate_handler_specs(
+            candidate,
+            catalog,
+            detector_scope_by_family[str(candidate["family"])],
+        )
+        for candidate in normalized_candidates
+    }
+    by_family = {family: selected[0] for family, selected in selected_by_family.items()}
+    handler_selection_by_family = {family: selected[1] for family, selected in selected_by_family.items()}
+    fallback_handler_ids_by_family = {family: selected[2] for family, selected in selected_by_family.items()}
     public_layers = [
         {
             key: layer[key]
@@ -6397,13 +7954,16 @@ def assess_candidate_handlers(
     skipped_pairs_by_family: dict[str, list[dict[str, Any]]] = {}
     considered_pair_count = 0
     skipped_pair_count = 0
+    format_incompatible_pair_count = 0
+    fallback_policy_skipped_pair_count = 0
+    bounded_campaign_fallback_planned_attempt_count = 0
     for candidate in normalized_candidates:
         family = str(candidate["family"])
         execution_pairs: list[tuple[HandlerSpec, dict[str, Any]]] = []
         handler_plans: list[dict[str, Any]] = []
         skipped_pairs: list[dict[str, Any]] = []
         for spec in by_family[family]:
-            compatible_layer_indexes: list[int] = []
+            format_compatible_layers: list[dict[str, Any]] = []
             skipped_groups: dict[tuple[str, ...], list[int]] = {}
             for layer in normalized_layers:
                 considered_pair_count += 1
@@ -6413,9 +7973,40 @@ def assess_candidate_handlers(
                 )
                 if format_blockers:
                     skipped_pair_count += 1
+                    format_incompatible_pair_count += 1
                     skipped_groups.setdefault(format_blockers, []).append(int(layer["index"]))
                     continue
-                compatible_layer_indexes.append(int(layer["index"]))
+                format_compatible_layers.append(layer)
+            bounded_fallback = spec.id in fallback_handler_ids_by_family[family]
+            selected_layers = (
+                _bounded_campaign_fallback_layers(format_compatible_layers)
+                if bounded_fallback
+                else format_compatible_layers
+            )
+            selected_layer_indexes = {int(layer["index"]) for layer in selected_layers}
+            fallback_skipped_layers = [
+                layer for layer in format_compatible_layers if int(layer["index"]) not in selected_layer_indexes
+            ]
+            if bounded_fallback:
+                bounded_campaign_fallback_planned_attempt_count += len(selected_layers)
+            if fallback_skipped_layers:
+                fallback_policy_skipped_pair_count += len(fallback_skipped_layers)
+                skipped_pair_count += len(fallback_skipped_layers)
+                skipped_pairs.append(
+                    {
+                        "handler_id": spec.id,
+                        "family": family,
+                        "status": "skipped_by_bounded_campaign_fallback_policy",
+                        "blockers": ["bounded_campaign_fallback_layer_limit"],
+                        "layer_indexes": [int(layer["index"]) for layer in fallback_skipped_layers],
+                        "layer_sha256": [str(layer["sha256"]) for layer in fallback_skipped_layers],
+                        "execution_quota_consumed": False,
+                        "sample_execution_allowed": False,
+                        "network_allowed": False,
+                        "filesystem_write_allowed": False,
+                    }
+                )
+            for layer in selected_layers:
                 execution_pairs.append((spec, layer))
             for blockers, layer_indexes in sorted(skipped_groups.items()):
                 skipped_pairs.append(
@@ -6437,9 +8028,22 @@ def assess_candidate_handlers(
                     "handler_id": spec.id,
                     "family": family,
                     "accepted_formats": list(spec.input_formats),
-                    "compatible_layer_indexes": compatible_layer_indexes,
-                    "compatible_pair_count": len(compatible_layer_indexes),
-                    "skipped_pair_count": sum(len(indexes) for indexes in skipped_groups.values()),
+                    "selection_role": ("bounded_campaign_fallback" if bounded_fallback else "primary"),
+                    "format_compatible_layer_indexes": [int(layer["index"]) for layer in format_compatible_layers],
+                    "format_compatible_pair_count": len(format_compatible_layers),
+                    "compatible_layer_indexes": [int(layer["index"]) for layer in selected_layers],
+                    "compatible_pair_count": len(selected_layers),
+                    "format_incompatible_pair_count": sum(len(indexes) for indexes in skipped_groups.values()),
+                    "fallback_policy_skipped_pair_count": len(fallback_skipped_layers),
+                    "skipped_pair_count": (
+                        sum(len(indexes) for indexes in skipped_groups.values()) + len(fallback_skipped_layers)
+                    ),
+                    "bounded_campaign_fallback_maximum_layers": (
+                        MAX_BOUNDED_CAMPAIGN_FALLBACK_LAYERS if bounded_fallback else 0
+                    ),
+                    "bounded_campaign_fallback_selection_basis": (
+                        "root_then_format_transform_depth_diversity" if bounded_fallback else "not_applicable"
+                    ),
                     "format_compatibility_checked_before_execution_quota": True,
                     "incompatible_pairs_consume_execution_quota": False,
                     "sample_execution_allowed": False,
@@ -6457,6 +8061,7 @@ def assess_candidate_handlers(
     verified_output_count = 0
     budget_exhausted = False
     budget_blockers: set[str] = set()
+    partial_result_attempt_count = 0
 
     retained_attempt_details = 0
 
@@ -6491,6 +8096,16 @@ def assess_candidate_handlers(
         normalized_candidates,
         execution_pairs_by_family,
     )
+    # 同一assessment内は直接再利用し、最初の参照時だけprocess cacheを全依存へ
+    # 再結合する。layer形式・容量検査とworker直前manifest再検証は各試行で行う。
+    invariant_preflight_by_spec: dict[
+        HandlerSpec,
+        _AssessmentInvariantPreflight,
+    ] = {}
+    invariant_preflight_reuse_count = 0
+    process_invariant_cache_hit_count = 0
+    process_invariant_cache_miss_count = 0
+    process_invariant_cache_revalidation_count = 0
     for family, spec, layer in execution_schedule:
         if budget_exhausted:
             break
@@ -6505,6 +8120,22 @@ def assess_candidate_handlers(
             break
         remaining_seconds = max(0.1, float(maximum_wall_seconds) - elapsed)
         public_layer = public_layers[int(layer["index"])]
+        invariant_preflight = invariant_preflight_by_spec.get(spec)
+        if invariant_preflight is None:
+            (
+                invariant_preflight,
+                process_cache_hit,
+                process_cache_revalidated,
+            ) = _cached_preflight_handler_invariants_for_assessment(spec)
+            invariant_preflight_by_spec[spec] = invariant_preflight
+            if process_cache_hit:
+                process_invariant_cache_hit_count += 1
+            else:
+                process_invariant_cache_miss_count += 1
+            if process_cache_revalidated:
+                process_invariant_cache_revalidation_count += 1
+        else:
+            invariant_preflight_reuse_count += 1
         bounded = execute_handler_bounded_for_assessment(
             spec,
             layer["data"],
@@ -6514,6 +8145,7 @@ def assess_candidate_handlers(
             timeout_seconds=min(float(handler_timeout_seconds), remaining_seconds),
             artifact_directory=artifact_directory,
             artifact_path_prefix=artifact_path_prefix,
+            _invariant_preflight=invariant_preflight,
         )
         actual_attempt_count += 1
         if time.monotonic() - started >= float(maximum_wall_seconds):
@@ -6552,14 +8184,7 @@ def assess_candidate_handlers(
             continue
         executed = bounded["execution"]
         result_quota = executed.get("result_quota")
-        if isinstance(result_quota, Mapping) and result_quota.get("truncated") is True:
-            budget_blockers.add("worker_result_structure_quota_exhausted")
-            budget_exhausted = True
-            retain_attempt(
-                attempts_by_family[family],
-                {**attempt, "status": "partial_result_quota_exhausted"},
-            )
-            break
+        result_quota_truncated = bool(isinstance(result_quota, Mapping) and result_quota.get("truncated") is True)
         output_audit = executed.get("verified_binary_output_audit")
         observed_outputs = output_audit.get("observed_output_count", 0) if isinstance(output_audit, Mapping) else 0
         if not isinstance(observed_outputs, int) or observed_outputs < 0:
@@ -6567,8 +8192,31 @@ def assess_candidate_handlers(
         if verified_output_count + observed_outputs > maximum_verified_outputs:
             budget_blockers.add("maximum_verified_outputs_exhausted")
             budget_exhausted = True
+            if result_quota_truncated:
+                partial_result_attempt_count += 1
+                retain_attempt(
+                    attempts_by_family[family],
+                    {
+                        **attempt,
+                        "status": "partial_result_quota_exhausted",
+                        "result_quota": _result_quota_diagnostic(result_quota),
+                    },
+                )
             break
         verified_output_count += observed_outputs
+        if result_quota_truncated:
+            # worker-localの公開結果上限は当該resultだけを不完全にする。raw resultを
+            # 証拠へ渡さず、後続handler/layerはassessment全体の独立上限まで継続する。
+            partial_result_attempt_count += 1
+            retain_attempt(
+                attempts_by_family[family],
+                {
+                    **attempt,
+                    "status": "partial_result_quota_exhausted",
+                    "result_quota": _result_quota_diagnostic(result_quota),
+                },
+            )
+            continue
         quality = handler_result_quality(
             executed.get("result"),
             minimum_score=spec.minimum_evidence_score,
@@ -6578,8 +8226,15 @@ def assess_candidate_handlers(
             evidence_by_family[family],
             parents,
         )
+        attribution = _handler_family_attribution_disposition(
+            executed.get("result")
+        )
         if not quality["sufficient"]:
             status = "no_evidence"
+        elif attribution["route_only"]:
+            status = "handler_evidence_route_only"
+        elif not attribution["supports_family_confirmation"]:
+            status = "handler_attribution_contract_invalid"
         elif detector["corroborated"]:
             status = "corroborated"
         else:
@@ -6590,6 +8245,7 @@ def assess_candidate_handlers(
                 **attempt,
                 "status": status,
                 "handler_evidence": quality,
+                "handler_family_attribution": attribution,
                 "detector_corroboration": detector,
                 "result": executed,
             },
@@ -6611,6 +8267,12 @@ def assess_candidate_handlers(
                 confirmed_families.append(family)
             elif budget_exhausted:
                 family_status = "partial_budget_exhausted"
+            elif "partial_result_quota_exhausted" in statuses:
+                family_status = "partial_result_quota_exhausted"
+            elif "handler_evidence_route_only" in statuses:
+                family_status = "handler_evidence_route_only"
+            elif "handler_attribution_contract_invalid" in statuses:
+                family_status = "handler_attribution_contract_invalid"
             elif "handler_evidence_without_detector" in statuses:
                 family_status = "handler_evidence_without_detector"
             elif detector_available:
@@ -6630,19 +8292,26 @@ def assess_candidate_handlers(
                 **candidate,
                 "status": family_status,
                 "confirmed": family_status == "confirmed",
+                "partial_result_attempt_count": sum(
+                    item.get("status") == "partial_result_quota_exhausted" for item in attempts
+                ),
                 "detector_layers": {digest: evidence for digest, evidence in sorted(evidence_by_layer.items())},
                 "attempts": attempts,
                 "handler_layer_plan": handler_plans_by_family[family],
                 "skipped_pairs": skipped_pairs_by_family[family],
+                "handler_selection": handler_selection_by_family[family],
             }
         )
     elapsed_seconds = time.monotonic() - started
     if elapsed_seconds >= float(maximum_wall_seconds):
         budget_blockers.add("maximum_wall_seconds_exhausted")
         budget_exhausted = True
+    assessment_incomplete = bool(budget_exhausted or partial_result_attempt_count)
     return {
         "schema_version": 1,
-        "status": ("partial" if budget_exhausted else "confirmed" if confirmed_families else "no_confirmed_family"),
+        "status": (
+            "partial" if assessment_incomplete else "confirmed" if confirmed_families else "no_confirmed_family"
+        ),
         "confirmed_families": sorted(confirmed_families),
         "candidate_count": len(normalized_candidates),
         "blocked_candidate_count": sum(not item["assessment_eligible"] for item in normalized_candidates),
@@ -6651,7 +8320,15 @@ def assess_candidate_handlers(
         "planned_attempt_count": planned_attempts,
         "actual_attempt_count": actual_attempt_count,
         "skipped_pair_count": skipped_pair_count,
+        "format_incompatible_pair_count": format_incompatible_pair_count,
+        "fallback_policy_skipped_pair_count": (fallback_policy_skipped_pair_count),
         "retained_attempt_detail_count": retained_attempt_details,
+        "partial_result_attempt_count": partial_result_attempt_count,
+        "partial_result_reason_counts": (
+            {"worker_result_structure_quota_exhausted": partial_result_attempt_count}
+            if partial_result_attempt_count
+            else {}
+        ),
         "omitted_attempt_detail_count": max(
             0,
             actual_attempt_count - retained_attempt_details,
@@ -6663,11 +8340,35 @@ def assess_candidate_handlers(
             "format_compatibility_checked_before_execution_quota": True,
             "incompatible_pairs_consume_execution_quota": False,
             "worker_started_for_incompatible_pairs": False,
+            "fallback_policy_skipped_pairs_consume_execution_quota": False,
+            "worker_started_for_fallback_policy_skipped_pairs": False,
             "execution_order": "candidate_rank_then_handler_round_robin",
             "each_handler_first_attempt_before_second": True,
             "considered_pair_count": considered_pair_count,
             "compatible_pair_count": planned_attempts,
             "skipped_pair_count": skipped_pair_count,
+            "format_incompatible_pair_count": format_incompatible_pair_count,
+            "fallback_policy_skipped_pair_count": (fallback_policy_skipped_pair_count),
+            "deferred_campaign_handler_count": sum(
+                value["deferred_campaign_handler_count"] for value in handler_selection_by_family.values()
+            ),
+            "bounded_campaign_fallback_handler_count": sum(
+                value["bounded_campaign_fallback_handler_count"] for value in handler_selection_by_family.values()
+            ),
+            "bounded_campaign_fallback_planned_attempt_count": (bounded_campaign_fallback_planned_attempt_count),
+            "bounded_campaign_fallback_maximum_layers_per_handler": (MAX_BOUNDED_CAMPAIGN_FALLBACK_LAYERS),
+            "bounded_campaign_fallback_selection_basis": ("root_then_format_transform_depth_diversity"),
+            "all_automatic_campaign_handlers_considered": True,
+            "external_metadata_family_wide_first": True,
+            "invariant_preflight_cache_scope": "assessment_call",
+            "invariant_preflight_evaluation_count": len(invariant_preflight_by_spec),
+            "invariant_preflight_reuse_count": invariant_preflight_reuse_count,
+            "process_invariant_preflight_cache_scope": ("process_revalidated_once_per_assessment"),
+            "process_invariant_preflight_cache_hit_count": (process_invariant_cache_hit_count),
+            "process_invariant_preflight_cache_miss_count": (process_invariant_cache_miss_count),
+            "process_invariant_preflight_cache_revalidation_count": (process_invariant_cache_revalidation_count),
+            "layer_specific_preflight_checked_per_attempt": True,
+            "dependency_manifests_revalidated_before_each_worker": True,
             "lineage_layers": public_layers,
             "executed_sample": False,
             "network_contacted": False,

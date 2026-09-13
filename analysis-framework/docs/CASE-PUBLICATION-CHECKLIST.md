@@ -38,6 +38,20 @@ py -3.13 .\analysis-framework\common\refresh_case_inventory.py --repository . --
 
 LinuxまたはGitHub Actionsでは`python3`を使用できます。一括反映は、metadata identity、catalog、README件数、IOC、関数コード類似性、全体ロジック類似性、checksum、UI、portal indexの順で更新し、同じ範囲を自動で再検証します。類似pairはendpoint別の有界候補として保持し、checksumはfile全体をメモリへ載せず逐次hashします。検体の読込み、実行、外部通信は行いません。
 
+既存caseの削除は通常の`--write`では拒否されます。非公開情報の削除など、意図したcase削除だけを反映する場合は、対象SHA-256をargv、環境変数、公開対象fileへ残さず、1行1件でstdinから明示します。承認集合と実際に消えるcatalog entryが完全一致しない場合は、metadataを含む一切の書込み前に失敗します。metadata同期によってレイアウト計画を再構築した場合も、catalog書込み前に同じ承認集合を再検証します。
+
+```powershell
+$approvedRemoval = Read-Host '削除を承認するcaseのSHA-256'
+$approvedRemoval | py -3.13 .\analysis-framework\common\refresh_case_inventory.py --repository . --write --allow-removed-case-stdin
+Remove-Variable approvedRemoval
+```
+
+`analysis-results/catalog/cases.json`が存在しない場合も、通常処理はfail closedで停止します。新規repositoryでcatalogを初回作成する場合だけ、次のwrite専用オプションで明示承認します。既存catalogに対する指定、削除承認との同時指定、dry-runまたはcheckでの指定は拒否されます。
+
+```powershell
+py -3.13 .\analysis-framework\common\refresh_case_inventory.py --repository . --write --bootstrap-missing-catalog
+```
+
 5. 独立したcheckを再実行します。
 
 ```powershell
@@ -56,6 +70,8 @@ py -3.13 .\analysis-framework\common\refresh_case_inventory.py --repository . --
 - collection manifestとcase metadataのmembershipが一致しない。
 - UIがfilesystem走査でcatalog不足を補完している。
 - README、IOC、関数コード類似性、全体ロジック類似性、checksum、UI、portal indexのいずれかが古い。
+- 既存caseが消えるのに、stdinで明示した削除承認集合と完全一致しない。
+- catalogが欠落しているのに初回作成を明示承認していない、または既存catalogや削除承認に対して初回作成オプションを指定している。
 - `partial`を隠すためにcatalogから除外している、またはcatalog登録を根拠に`complete`と記載している。
 
 ## PR記載事項

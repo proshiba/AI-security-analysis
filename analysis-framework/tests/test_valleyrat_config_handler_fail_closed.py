@@ -75,13 +75,15 @@ def test_integrated_extractor_passes_source_scoped_capstone_preflight() -> None:
     )
 
     assert handler.automatic is True
-    assert result["eligible"] is True
+    assert result["eligible"] is True, result["blockers"]
     assert result["blockers"] == []
     assert result["dependency_audit"]["issues"] == []
     dependency_paths = {
         item["path"] for item in result["dependency_audit"]["files"]
     }
     assert "extractors/valleyrat/ca01_sideload.py" in dependency_paths
+    assert "extractors/valleyrat/native_loader_lineage.py" in dependency_paths
+    assert "extractors/valleyrat/silverfox_loader_lineage.py" in dependency_paths
     assert result["sample_execution_allowed"] is False
     assert result["network_allowed"] is False
     assert result["filesystem_write_allowed"] is False

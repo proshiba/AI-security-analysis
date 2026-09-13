@@ -6,13 +6,12 @@ import base64
 import hashlib
 import importlib.util
 import json
-from pathlib import Path
-from types import SimpleNamespace
 import sys
 import zlib
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
-
 
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
 COMMON_ROOT = FRAMEWORK_ROOT / "common"
@@ -38,6 +37,38 @@ def _load_module(path: Path, name: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def test_metadata_helpers_accept_only_fixed_fields_and_tables() -> None:
+    """可変field名をreflectionへ渡さず、明示したmetadata項目だけを読む。"""
+
+    fields = SimpleNamespace(
+        cb=0x48,
+        Signature=0x424A5342,
+        MetaDataRva=0x1000,
+        MetaDataSize=0x200,
+        Offset=0x40,
+        Size=0x80,
+        ResourcesRva=0x2000,
+        ResourcesSize=0x400,
+        Dangerous=123,
+    )
+    assert evidence._integer_field(fields, "cb") == 0x48
+    assert evidence._integer_field(fields, "ResourcesSize") == 0x400
+    assert evidence._integer_field(fields, "Dangerous") == 0
+    assert evidence._integer_field(SimpleNamespace(), "cb") == 0
+
+    tables = SimpleNamespace(
+        Module=SimpleNamespace(num_rows=1),
+        TypeDef=SimpleNamespace(num_rows=2),
+        MethodDef=SimpleNamespace(num_rows=3),
+        ManifestResource=SimpleNamespace(num_rows=4),
+        Dangerous=SimpleNamespace(num_rows=999),
+    )
+    assert evidence._declared_table_rows(tables, "Module") == 1
+    assert evidence._declared_table_rows(tables, "ManifestResource") == 4
+    assert evidence._declared_table_rows(tables, "Dangerous") == 0
+    assert evidence._declared_table_rows(SimpleNamespace(), "Module") == 0
 
 
 def _minimal_pe(*, managed: bool, markers: bytes = b"") -> bytes:

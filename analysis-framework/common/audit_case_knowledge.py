@@ -4,13 +4,65 @@
 from __future__ import annotations
 
 import argparse
-from collections import Counter, defaultdict
 import json
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
 from case_features import build_case_profile, discover_case_directories
 from generate_case_features import _history_by_sha
+
+_REQUIRED_PROFILE_FIELDS = frozenset({"sha256", "family", "campaign_type"})
+_REQUIRED_ASSESSMENT_FIELDS = frozenset(
+    {"status", "score", "maximum_score", "missing", "unresolved", "next_actions"}
+)
+_ASSESSMENT_STATUSES = frozenset({"complete", "partial", "insufficient"})
+_ASSESSMENT_STRING_LIST_FIELDS = ("missing", "unresolved", "next_actions")
+
+
+def _is_auditable_profile(profile: object, expected_sha256: str) -> bool:
+    """監査に必要な旧来契約が完全な場合だけキャッシュ済み特徴を採用する。"""
+
+    if not isinstance(profile, dict) or not _REQUIRED_PROFILE_FIELDS.issubset(profile):
+        return False
+    if (
+        profile.get("sha256") != expected_sha256
+        or not isinstance(profile.get("family"), str)
+        or not profile["family"]
+        or not isinstance(profile.get("campaign_type"), str)
+        or not profile["campaign_type"]
+    ):
+        return False
+    assessment = profile.get("analysis_assessment")
+    if not isinstance(assessment, dict) or not _REQUIRED_ASSESSMENT_FIELDS.issubset(assessment):
+        return False
+    score = assessment["score"]
+    maximum_score = assessment["maximum_score"]
+    return (
+        isinstance(assessment["status"], str)
+        and assessment["status"] in _ASSESSMENT_STATUSES
+        and isinstance(score, int)
+        and not isinstance(score, bool)
+        and isinstance(maximum_score, int)
+        and not isinstance(maximum_score, bool)
+        and maximum_score > 0
+        and 0 <= score <= maximum_score
+        and all(
+            isinstance(assessment[key], list)
+            and all(isinstance(item, str) for item in assessment[key])
+            for key in _ASSESSMENT_STRING_LIST_FIELDS
+        )
+    )
+
+
+def _load_cached_profile(profile_path: Path, expected_sha256: str) -> dict[str, Any] | None:
+    """意味的に妥当なキャッシュだけを返し、それ以外は再構築対象にする。"""
+
+    try:
+        profile = json.loads(profile_path.read_text(encoding="utf-8-sig"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    return profile if _is_auditable_profile(profile, expected_sha256) else None
 
 
 def audit(repository: Path) -> dict[str, Any]:
@@ -24,9 +76,8 @@ def audit(repository: Path) -> dict[str, Any]:
     family_statuses: dict[str, Counter[str]] = defaultdict(Counter)
     for case_dir in discover_case_directories(repository / "analysis-results"):
         profile_path = case_dir / "features.json"
-        if profile_path.is_file():
-            profile = json.loads(profile_path.read_text(encoding="utf-8-sig"))
-        else:
+        profile = _load_cached_profile(profile_path, case_dir.name.lower()) if profile_path.is_file() else None
+        if profile is None:
             profile = build_case_profile(case_dir, history.get(case_dir.name.lower()))
         assessment = profile["analysis_assessment"]
         status = str(assessment["status"])

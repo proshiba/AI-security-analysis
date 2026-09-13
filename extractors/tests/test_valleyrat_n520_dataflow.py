@@ -259,3 +259,48 @@ def test_n520_data_flow_scan_enforces_total_instruction_limit(
 
     with pytest.raises(n520.N520ConfigError, match="総数"):
         n520._base64_values(image, b"MZ")
+
+
+def test_n520_recovery_reuses_one_method_body_inventory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """完全復号の鍵探索と暗号文探索で同じCIL inventoryを共有する。"""
+
+    image = object()
+    bodies = {0x06000001: [_instruction("ret")]}
+    scans = 0
+    consumers: list[dict[int, list[object]] | None] = []
+
+    def method_bodies(_image, _data):
+        nonlocal scans
+        scans += 1
+        return bodies
+
+    def recover_key(_image, _data, *, method_bodies=None):
+        consumers.append(method_bodies)
+        return b"K" * 16, {"raw_key_included": False}
+
+    def base64_values(_image, _data, *, method_bodies=None):
+        consumers.append(method_bodies)
+        return ["fixture-ciphertext"]
+
+    monkeypatch.setattr(n520, "_open_managed_image", lambda _data: image)
+    monkeypatch.setattr(
+        n520,
+        "_structural_evidence_from_image",
+        lambda _image: {"matched": True, "managed_metadata_validated": True},
+    )
+    monkeypatch.setattr(n520, "_method_bodies", method_bodies)
+    monkeypatch.setattr(n520, "_recover_key", recover_key)
+    monkeypatch.setattr(n520, "_base64_values", base64_values)
+    monkeypatch.setattr(
+        n520,
+        "_decrypt_value",
+        lambda _candidate, _key: "https://config.example/stage.bin",
+    )
+
+    recovery = n520.recover_config(b"MZ-fixture")
+
+    assert scans == 1
+    assert consumers == [bodies, bodies]
+    assert recovery.urls == ("https://config.example/stage.bin",)

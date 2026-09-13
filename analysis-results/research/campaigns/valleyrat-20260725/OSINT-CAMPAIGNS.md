@@ -7,7 +7,7 @@ hash完全一致を最優先しました。network、lure、配布方式だけ�
 | `proofpoint-2023-chinese-invoice-resume` / 2023年 中国語請求書・履歴書メールcampaign | 2023-03から2023-06 | 未帰属 | 0 |
 | `zscaler-2024-multistage` / 2024年 ThreatLabz多段loader campaign | 2024 | 中国拠点の脅威group（報告表現） | 0 |
 | `fortinet-2024-chinese-speaker` / 2024年 中国語話者標的多段campaign | 2024 | Silver Fox（Fortinetによる疑い） | 0 |
-| `itochuci-2025q4-2026q1-japanese-malspam` / 2025年Q4から2026年Q1 日本語malspam campaign群 | 2025-12から2026-03 | 未帰属 | 0 |
+| `itochuci-2025q4-2026q1-japanese-malspam` / 2025年Q4から2026年Q1 日本語malspam campaign群 | 2025-12から2026-03 | 未帰属 | 1 |
 | `darklab-2025-2026-dual-pronged` / Silver Fox二方向配布campaign | 2025から2026 | Silver Fox（Dark Labによる帰属） | 0 |
 | `k7-2026-fake-teams` / 2026年 偽Microsoft Teams NSIS campaign | 2026 | Silver Fox（K7による帰属） | 0 |
 | `c1bas-2026-whatsapp-india` / 2026年 WhatsApp・インド組織標的campaign | 2026-03 | Silver Foxの疑い（C1BASによる評価） | 0 |

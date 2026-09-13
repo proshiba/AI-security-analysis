@@ -272,6 +272,30 @@ def test_network_structural_labels_are_not_parsed_as_endpoints() -> None:
     assert [item["host"] for item in outputs["network_endpoints"]] == ["example.test"]
 
 
+def test_static_config_c2_endpoint_key_is_qualified_as_control() -> None:
+    """明示的なC2 config keyだけをcontrol endpointとして相関する。"""
+
+    outputs = summarize_handler_outputs(
+        [
+            _record(
+                "valleyrat",
+                {
+                    "config": {
+                        "static_config_recovered": True,
+                        "c2_endpoints": ["198.51.100.24:443"],
+                    }
+                },
+            )
+        ]
+    )
+
+    assert outputs["config_recovered"] is True
+    assert len(outputs["qualified_network_endpoints"]) == 1
+    endpoint = outputs["qualified_network_endpoints"][0]
+    assert endpoint["role"] == "c2"
+    assert endpoint["evidence_basis"] == ["static_config_correlation"]
+
+
 def test_evidence_walk_terminates_on_cycle_and_huge_sequence() -> None:
     cycle: dict[str, object] = {}
     cycle["self"] = cycle

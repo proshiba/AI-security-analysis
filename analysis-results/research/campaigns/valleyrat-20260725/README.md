@@ -2,17 +2,17 @@
 
 ## 結論
 
-canonical case `68`件を公開OSINTと照合しました。 公開campaignのhash完全一致は`0`件です。
+canonical case `174`件を公開OSINTと照合しました。 公開campaignのhash完全一致は`1`件です。
 完全一致しない検体を既知actorへ押し込まず、ローカルで親子関係または固有構成が確認済みのものだけをcampaign候補へ分けました。
 
 ## 分類結果
 
 | 状態 | 件数 | 意味 |
 |---|---:|---|
-| 公開campaign完全一致 | 0 | 公開SHA-256またはMD5との完全一致 |
-| ローカルcampaign候補 | 6 | 親子hashまたは固有の配布chainをレビュー済み |
+| 公開campaign完全一致 | 1 | 公開SHA-256またはMD5との完全一致 |
+| ローカルcampaign候補 | 8 | 親子hashまたは固有の配布chainをレビュー済み |
 | コードcluster候補のみ | 9 | imphash完全一致。campaign確定ではない |
-| 未解決 | 53 | 帰属に足る強い共有証拠なし |
+| 未解決 | 156 | 帰属に足る強い共有証拠なし |
 
 詳細は[全case一覧](CASES.md)、[公開OSINT campaign照合](OSINT-CAMPAIGNS.md)、[判定規則](rules/README.md)を参照してください。
 
@@ -28,6 +28,7 @@ canonical case `68`件を公開OSINTと照合しました。 公開campaignのha
 - [偽Yuanbao side-loading chain](local-candidates/local-valleyrat-yuanbao-sideload/README.md): 2件、確度`高`
 - [税務通知ISO・NVML side-loading chain](local-candidates/local-valleyrat-tax-iso-nvml/README.md): 2件、確度`高`
 - [MSI・LZX CAB・保護PE配布cluster](local-candidates/local-valleyrat-msi-lzx-protected-pe/README.md): 2件、確度`中`
+- [NVML APC・Winos日本語malspam cluster](local-candidates/local-valleyrat-nvml-apc-winos/README.md): 2件、確度`高`
 
 ## 安全性
 

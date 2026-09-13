@@ -6,12 +6,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
 import io
 import re
 import struct
 import zipfile
+from dataclasses import dataclass
 
 import pefile
 
@@ -177,8 +177,8 @@ def _recover_pumped_zip(data: bytes) -> tuple[list[RecoveredArtifact], list[dict
             "compression_ratio": round(ratio, 2),
         }
         try:
-            with archive.open(member) as stream:
-                prefix = stream.read(MAX_PREFIX_BYTES)
+            with archive.open(member, "r") as stream:
+                prefix = stream.read(32 * 1024 * 1024)
         except (RuntimeError, OSError, zipfile.BadZipFile) as exc:
             record.update({"status": "read_error", "error": type(exc).__name__})
             observations.append(record)
