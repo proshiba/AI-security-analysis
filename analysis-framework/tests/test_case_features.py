@@ -135,6 +135,68 @@ def test_profile_records_screenconnect_remote_command_capability(tmp_path: Path)
     assert "悪性利用そのもの" not in serialized
 
 
+def test_profile_preserves_provider_boundary_and_process_creation_status(tmp_path: Path) -> None:
+    """Ghidra後の再投影でもprovider境界とprocess creationの未確定状態を失わない。"""
+
+    case = _case(tmp_path)
+    analysis = json.loads((case / "analysis.json").read_text(encoding="utf-8"))
+    analysis["family_attribution"] = {
+        "status": "provider_reported_not_statically_confirmed",
+        "supports_attribution": False,
+        "statically_confirmed_family": None,
+        "provider_reported_label": "FixtureProviderLabel",
+        "note_ja": "提供元報告であり、内部静的確認済みファミリーではありません。",
+    }
+    (case / "analysis.json").write_text(json.dumps(analysis), encoding="utf-8")
+    (case / "static-logic.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "functions": [
+                    {
+                        "function_id": "native:00401000",
+                        "name": "sub_401000",
+                        "role": "process_or_memory_operation",
+                        "api_calls": ["CreateProcessW"],
+                        "callees": [],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    profile = build_case_profile(case)
+    rendered = render_features_markdown(profile)
+
+    assert profile["family_attribution"]["supports_attribution"] is False
+    assert profile["process_creation_assessment"]["fixed_command_recovery_status"] == (
+        "not_recovered_from_published_static_evidence"
+    )
+    assert "提供元報告ラベル: `FixtureProviderLabel`" in rendered
+    assert "内部静的確認済みファミリー: `なし`" in rendered
+    assert "実行経路:" in rendered
+    assert "固定コマンドの復元状態:" in rendered
+
+
+def test_profile_records_process_creation_import_hint_without_function_record(tmp_path: Path) -> None:
+    """import能力ヒントだけでも実行経路と固定commandの未確定状態を投影する。"""
+
+    case = _case(tmp_path)
+    analysis = json.loads((case / "analysis.json").read_text(encoding="utf-8"))
+    analysis["capability_hints"] = [
+        {"capability": "process_creation", "imports": ["ShellExecuteW"]}
+    ]
+    (case / "analysis.json").write_text(json.dumps(analysis), encoding="utf-8")
+
+    profile = build_case_profile(case)
+    rendered = render_features_markdown(profile)
+
+    assert profile["process_creation_assessment"]["import_or_capability_hint_present"] is True
+    assert "実行経路:" in rendered
+    assert "固定コマンドの復元状態:" in rendered
+
+
 def test_profile_records_in_memory_processing_behavior(tmp_path: Path) -> None:
     """network機能がない計算programも実挙動を空欄にしない。"""
 

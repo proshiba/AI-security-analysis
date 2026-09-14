@@ -61,6 +61,12 @@ DOMAIN_ENDPOINT_VALUE_RE = re.compile(
     r"(?i)\b(?:[a-z0-9-]+\.)+[a-z]{2,63}:\d{1,5}\b"
 )
 SHA256_VALUE_RE = re.compile(r"(?i)(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])")
+PROCESS_CREATION_MARKERS = (
+    "createprocess",
+    "shellexecute",
+    "winexec",
+    "system.diagnostics.process.start",
+)
 
 
 @dataclass(frozen=True)
@@ -562,9 +568,11 @@ def build_case_profile(
     metadata_value, metadata_error = _read_json(case_dir / "metadata.json")
     analysis_value, analysis_error = _read_json(case_dir / "analysis.json")
     report_value, report_error = _read_json(case_dir / "report.json")
+    static_logic_value, static_logic_error = _read_json(case_dir / "static-logic.json")
     metadata = metadata_value if isinstance(metadata_value, Mapping) else {}
     analysis = analysis_value if isinstance(analysis_value, Mapping) else {}
     report = report_value if isinstance(report_value, Mapping) else {}
+    static_logic = static_logic_value if isinstance(static_logic_value, Mapping) else {}
     if not analysis and isinstance(report_value, Mapping):
         analysis = report_value
     readme = case_dir / "README.md"
@@ -601,7 +609,9 @@ def build_case_profile(
     behaviors = _match_vocabulary(behavior_lines, BEHAVIOR_VOCABULARY, "README.md")
     campaign, campaign_source = _campaign_type(analysis, history_entry, markdown)
     parse_errors = [
-        error for error in (metadata_error, analysis_error, report_error) if error is not None
+        error
+        for error in (metadata_error, analysis_error, report_error, static_logic_error)
+        if error is not None
     ]
     assessment = _assessment(
         case_dir=case_dir,
@@ -613,7 +623,7 @@ def build_case_profile(
         behaviors=behaviors,
         parse_errors=parse_errors,
     )
-    return {
+    profile = {
         "schema_version": SCHEMA_VERSION,
         "case_id": str(metadata.get("case_id") or f"sha256:{digest}"),
         "sha256": digest,
@@ -637,12 +647,84 @@ def build_case_profile(
             "source_scope": "public_repository_artifacts_only",
         },
     }
+    family_attribution = analysis.get("family_attribution")
+    if isinstance(family_attribution, Mapping):
+        profile["family_attribution"] = dict(family_attribution)
+
+    process_hint_present = any(
+        isinstance(hint, Mapping) and hint.get("capability") == "process_creation"
+        for hint in analysis.get("capability_hints") or []
+    )
+    process_functions = []
+    for function in static_logic.get("functions") or []:
+        if not isinstance(function, Mapping):
+            continue
+        values = [
+            function.get("name"),
+            function.get("role"),
+            *(function.get("api_calls") or []),
+            *(function.get("callees") or []),
+        ]
+        if any(
+            marker in str(value or "").casefold()
+            for value in values
+            for marker in PROCESS_CREATION_MARKERS
+        ):
+            process_functions.append(str(function.get("function_id") or function.get("name") or "unknown"))
+    if process_hint_present or process_functions:
+        profile["process_creation_assessment"] = {
+            "status": "static_process_creation_evidence_present",
+            "execution_route_status": "entry_to_process_creation_route_not_fully_recovered",
+            "fixed_command_recovery_status": "not_recovered_from_published_static_evidence",
+            "function_ids": sorted(set(process_functions)),
+            "import_or_capability_hint_present": process_hint_present,
+            "note_ja": (
+                "process creation APIまたは関数は静的に確認しましたが、入口からの完全な実行経路と"
+                "固定コマンドは公開静的証拠から復元できていません。"
+            ),
+        }
+    return profile
 
 
 def render_features_markdown(profile: Mapping[str, Any]) -> str:
     """profileをIOC／YARA／Sigmaを含まない日本語Markdownへ描画する。"""
 
     assessment = profile["analysis_assessment"]
+    target_lines = []
+    attribution = profile.get("family_attribution")
+    if isinstance(attribution, Mapping):
+        status = str(attribution.get("status") or "unresolved")
+        if status == "statically_confirmed":
+            target_lines.extend(
+                [
+                    f"- 整理先ラベル: `{profile['family']}`",
+                    f"- 内部静的確認済みファミリー: `{profile['family']}`",
+                    "- ファミリー帰属状態: `statically_confirmed`",
+                ]
+            )
+        elif status == "provider_reported_not_statically_confirmed":
+            provider_label = attribution.get("provider_reported_label") or profile["family"]
+            target_lines.extend(
+                [
+                    f"- 整理先ラベル: `{profile['family']}`（提供元報告に基づく）",
+                    f"- 提供元報告ラベル: `{provider_label}`",
+                    "- 内部静的確認済みファミリー: `なし`",
+                    "- ファミリー帰属状態: `provider_reported_not_statically_confirmed`",
+                    f"- 注意: {attribution.get('note_ja') or '提供元報告であり、内部静的確認済みファミリーではありません。'}",
+                ]
+            )
+        else:
+            target_lines.extend(
+                [
+                    f"- 整理先ラベル: `{profile['family']}`",
+                    "- 内部静的確認済みファミリー: `なし`",
+                    f"- ファミリー帰属状態: `{status}`",
+                    f"- 注意: {attribution.get('note_ja') or '内部静的証拠ではファミリーを解決できていません。'}",
+                ]
+            )
+    else:
+        target_lines.append(f"- ファミリー: `{profile['family']}`")
+
     lines = [
         f"# 挙動・検体特徴：{profile['sha256']}",
         "",
@@ -651,7 +733,7 @@ def render_features_markdown(profile: Mapping[str, Any]) -> str:
         "",
         "## 対象",
         "",
-        f"- ファミリー: `{profile['family']}`",
+        *target_lines,
         f"- SHA-256: `{profile['sha256']}`",
         f"- 配布・解析パターン: `{profile['campaign_type']}`",
         f"- 解析充足度: `{assessment['status']}`（{assessment['score']}/{assessment['maximum_score']}）",
@@ -699,6 +781,17 @@ def render_features_markdown(profile: Mapping[str, Any]) -> str:
     if assessment["next_actions"]:
         lines.extend(["", "## 推奨する追加確認", ""])
         lines.extend(f"- {item}" for item in assessment["next_actions"])
+    process_creation = profile.get("process_creation_assessment")
+    if isinstance(process_creation, Mapping):
+        lines.extend(
+            [
+                "",
+                "## プロセス生成の静的確認状態",
+                "",
+                "- 実行経路: process creation APIまたは関数への静的到達性は確認しましたが、入口からの完全な経路は未確定です。",
+                "- 固定コマンドの復元状態: 公開静的証拠からは復元できておらず、追加追跡が必要です。",
+            ]
+        )
     lines.extend(
         [
             "",

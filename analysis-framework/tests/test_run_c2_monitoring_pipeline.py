@@ -198,3 +198,71 @@ def test_daily_handoff_is_bound_to_result_without_network() -> None:
     }
     with pytest.raises(ValueError, match="実効C2 target集合"):
         validate_daily_handoff_plan(wrong_source_count)
+
+
+def test_daily_handoff_accepts_canonical_policy_excluded_onion_hosts() -> None:
+    from build_all_c2_monitoring_targets import daily_effective_target_commitment
+    from run_c2_monitoring_pipeline import (
+        attach_daily_handoff_result_bindings,
+        validate_daily_handoff_plan,
+    )
+
+    source_date = "2026-08-24"
+    target = {
+        "target_id": "daily-onion-fixture",
+        "host": "c2.example",
+        "port": 443,
+        "protocol": "tcp",
+        "transport": "direct",
+        "method": "tcp_connect",
+        "daily_source_dates": [source_date],
+    }
+    effective_sha256, effective_count, _hosts = daily_effective_target_commitment(
+        [target], source_date
+    )
+    record = {
+        "schema_version": 1,
+        "source_date": source_date,
+        "source_target_commitment_sha256": "b" * 64,
+        "source_target_count": 3,
+        "effective_target_commitment_sha256": effective_sha256,
+        "effective_target_count": effective_count,
+        "policy_excluded_onion_hosts": [
+            "first-hidden-service.onion",
+            "second-hidden-service.onion",
+        ],
+    }
+    plan = {"targets": [target], "daily_source_handoffs": [record]}
+    result = {
+        "results": [
+            {
+                "target_id": target["target_id"],
+                "host": target["host"],
+                "port": target["port"],
+                "protocol": target["protocol"],
+                "transport": target["transport"],
+                "method": target["method"],
+            }
+        ]
+    }
+
+    handoffs = validate_daily_handoff_plan(plan)
+    attach_daily_handoff_result_bindings(result, plan, handoffs)
+
+    assert result["daily_source_handoffs"][0]["policy_excluded_onion_hosts"] == record[
+        "policy_excluded_onion_hosts"
+    ]
+    for invalid_hosts in (
+        ["NOT-CANONICAL.onion"],
+        ["not-an-onion.example"],
+        ["duplicate.onion", "duplicate.onion"],
+        ["z.onion", "a.onion"],
+    ):
+        invalid = {
+            **plan,
+            "daily_source_handoffs": [
+                {**record, "policy_excluded_onion_hosts": invalid_hosts}
+            ],
+        }
+        with pytest.raises(ValueError, match="型またはcommitment"):
+            validate_daily_handoff_plan(invalid)

@@ -13,6 +13,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -549,35 +550,38 @@ def load_request(path: Path) -> DailyRequest:
     return validate_request_object(document)
 
 
+DAILY_IMPLEMENTATION_FILES = (
+    "daily_analysis_orchestrator.py",
+    "daily_news_malware_intake.py",
+    "malwarebazaar_batch.py",
+    "analyze_sample.py",
+    "analysis_job_runner.py",
+    "analysis_contract.py",
+    "bounded_process.py",
+    "batch_error_contract.py",
+    "job_artifact_schemas.py",
+    "orchestration_outcome.py",
+    "runtime_contract.py",
+    "terminal_payload_acquisition.py",
+    "follow_on_commitment.py",
+    "publish_one_shot_collection.py",
+    "ghidra_function_batch.py",
+    "sync_collection_publication.py",
+    "collection_followup_planner.py",
+    "build_all_c2_monitoring_targets.py",
+    "run_c2_monitoring_pipeline.py",
+    "validate_daily_analysis.py",
+    "stage_case_analysis_datastore.py",
+    "archive_analysis_datastore.py",
+)
+
+
 def _implementation_sha256() -> str:
     """control planeと固定adapterの実装をresume契約へ束縛する。"""
 
     root = Path(__file__).resolve().parent
-    names = (
-        "daily_analysis_orchestrator.py",
-        "daily_news_malware_intake.py",
-        "malwarebazaar_batch.py",
-        "analysis_job_runner.py",
-        "analysis_contract.py",
-        "bounded_process.py",
-        "batch_error_contract.py",
-        "job_artifact_schemas.py",
-        "orchestration_outcome.py",
-        "runtime_contract.py",
-        "terminal_payload_acquisition.py",
-        "follow_on_commitment.py",
-        "publish_one_shot_collection.py",
-        "ghidra_function_batch.py",
-        "sync_collection_publication.py",
-        "collection_followup_planner.py",
-        "build_all_c2_monitoring_targets.py",
-        "run_c2_monitoring_pipeline.py",
-        "validate_daily_analysis.py",
-        "stage_case_analysis_datastore.py",
-        "archive_analysis_datastore.py",
-    )
     records = []
-    for name in names:
+    for name in DAILY_IMPLEMENTATION_FILES:
         path = root / name
         records.append({"name": name, "sha256": _sha256_file(path), "size": path.stat().st_size})
     return _sha256_value(records)
@@ -2018,15 +2022,55 @@ def migrate_run_implementation(
             deferred_c2["status"] = "partial"
             deferred_c2["attempts"] = 0
             deferred_c2["error"] = None
-            if state["status"] != "running":
-                statuses = [state["stages"][name]["status"] for name in STAGES]
-                state["status"] = (
-                    "failed"
-                    if "failed" in statuses
-                    else "partial"
-                    if any(value in {"pending", "running", "partial"} for value in statuses)
-                    else "complete"
+
+        # 修正前実装でretry上限まで到達したstageは、そのままでは新実装へ
+        # 移行しても再実行されない。実装変更を明示pinしたmigrationの範囲だけで
+        # attemptを戻し、元の失敗情報を中間checkpointへ残す。
+        for name in STAGES:
+            record = state["stages"][name]
+            normalization = f"retryable_stage_attempt_exhaustion_reset:{name}"
+            already_reset = (
+                record["status"] == "partial"
+                and record["attempts"] == 0
+                and record["retryable"] is True
+                and record["error"] is None
+                and record["result"].get("status") == "implementation_migration_retry_reset"
+            )
+            exhausted = (
+                record["status"] in {"failed", "partial"}
+                and record["attempts"] >= MAX_STAGE_ATTEMPTS.get(name, MAX_ATTEMPTS)
+                and record["retryable"] is True
+            )
+            if exhausted or already_reset:
+                state_normalizations.append(normalization)
+            if exhausted:
+                previous = {
+                    "status": record["status"],
+                    "attempts": record["attempts"],
+                    "error": record["error"],
+                }
+                record.update(
+                    status="partial",
+                    attempts=0,
+                    retryable=True,
+                    result={
+                        "status": "implementation_migration_retry_reset",
+                        "previous": previous,
+                        "sample_executed": False,
+                        "network_contacted": False,
+                    },
+                    error=None,
                 )
+
+        if state["status"] != "running":
+            statuses = [state["stages"][name]["status"] for name in STAGES]
+            state["status"] = (
+                "failed"
+                if "failed" in statuses
+                else "partial"
+                if any(value in {"pending", "running", "partial"} for value in statuses)
+                else "complete"
+            )
         if state["status"] == "complete":
             raise DailyOrchestrationError(
                 "implementation_migration_not_required",
@@ -3406,10 +3450,25 @@ def _production_static_analysis(context: DailyContext) -> StageOutcome:
 def _analysis_contract_sha256(job_analysis: Path) -> str:
     cases = job_analysis / "cases"
     fingerprints: set[str] = set()
-    try:
-        case_roots = sorted(path for path in cases.iterdir() if path.is_dir())
-    except OSError as exc:
-        raise DailyOrchestrationError("static_cases_invalid", "静的解析caseを列挙できません") from exc
+    case_roots: list[Path] | None = None
+    last_error: OSError | None = None
+    # Windowsでは大きなcase treeを直前のpublisher／scannerが閉じた直後に
+    # directory列挙が一時失敗することがある。待機は短く有界にし、永続的な
+    # permission・filesystem異常は元のfail-closed状態へ戻す。
+    for attempt in range(3):
+        try:
+            case_roots = sorted(path for path in cases.iterdir() if path.is_dir())
+            break
+        except OSError as exc:
+            last_error = exc
+            if attempt < 2:
+                time.sleep(0.1 * (attempt + 1))
+    if case_roots is None:
+        detail = f" ({type(last_error).__name__}: {last_error})" if last_error is not None else ""
+        raise DailyOrchestrationError(
+            "static_cases_invalid",
+            f"静的解析caseを列挙できません{detail}",
+        ) from last_error
     for case in case_roots:
         try:
             report = analysis_job_runner.load_json_object_strict(
@@ -3434,8 +3493,8 @@ def _analysis_contract_sha256(job_analysis: Path) -> str:
 def _production_publication(context: DailyContext) -> StageOutcome:
     import publish_one_shot_collection
 
-    request, _identity = _static_request(context)
-    job_analysis = context.jobs_root / request.job_id / "analysis"
+    static_job_id, _static_result = _downstream_static_job(context)
+    job_analysis = context.jobs_root / static_job_id / "analysis"
     contract_sha256 = _analysis_contract_sha256(job_analysis)
     result = publish_one_shot_collection.publish(
         context.repository,
@@ -4097,16 +4156,19 @@ def _archive_analysis_cases(
             ) from exc
     archived: list[dict[str, Any]] = []
     for digest in sorted(selected):
+        archive_digest = digest
+        if isinstance(ghidra_session, stage_case_analysis_datastore.CaseStagingSession):
+            archive_digest = ghidra_session.requested_to_actual_case_sha256.get(digest, digest)
         try:
             expected_target = stage_case_analysis_datastore._datastore_target(
                 context.collection_id,
-                digest,
+                archive_digest,
             )
             if os.path.lexists(staging_root / expected_target):
                 staged = stage_case_analysis_datastore.reuse_case_staging(
                     output_root=staging_root,
                     collection_id=context.collection_id,
-                    case_sha256=digest,
+                    case_sha256=archive_digest,
                 )
             else:
                 if context.request.stages["ghidra"]:
@@ -4148,7 +4210,7 @@ def _archive_analysis_cases(
         target = case.get("target")
         source_value = case.get("source_path")
         if (
-            case.get("case_sha256") != digest
+            case.get("case_sha256") != archive_digest
             or not isinstance(target, str)
             or _bounded_datastore_target(target) != target
             or not isinstance(source_value, str)
@@ -4176,7 +4238,7 @@ def _archive_analysis_cases(
                 output_root=staging_root,
                 source_path=source,
                 collection_id=context.collection_id,
-                case_sha256=digest,
+                case_sha256=archive_digest,
                 archive_result=archive_result,
             )
         except stage_case_analysis_datastore.CaseStagingError as exc:
@@ -4187,7 +4249,8 @@ def _archive_analysis_cases(
         archived.append(
             {
                 **archive_result,
-                "case_sha256": digest,
+                "case_sha256": archive_digest,
+                "provider_requested_sha256": digest if digest != archive_digest else None,
                 "case_separated": True,
                 "owned_staging_removed": cleanup.get("removed") is True,
                 "local_source_deleted": False,

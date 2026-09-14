@@ -366,6 +366,16 @@ class _ArchiveManifestEntry:
     expected_zip_size: int | None
 
 
+@dataclass(frozen=True)
+class _CollectionArchiveAlias:
+    """provider要求hashと公開case実測hashを結ぶ検証済みarchive alias。"""
+
+    provider_requested_sha256: str
+    member_name: str
+    archive_sha256: str
+    archive_size: int
+
+
 def _json_bytes(value: Any) -> bytes:
     """決定的JSONをatomic writeへ渡せるUTF-8 bytesにする。"""
 
@@ -1339,6 +1349,67 @@ def _archive_manifest_index(
     return output
 
 
+def _collection_archive_aliases(
+    document: Mapping[str, Any],
+) -> dict[str, _CollectionArchiveAlias]:
+    """公開collectionのprovider hash不一致をarchive bindingへ限定して読む。"""
+
+    raw_items = document.get("acquisition_items")
+    if raw_items is None:
+        return {}
+    if not isinstance(raw_items, list):
+        raise ValueError("collection acquisition_itemsがlistではありません")
+    aliases: dict[str, _CollectionArchiveAlias] = {}
+    for index, raw_item in enumerate(raw_items):
+        if not isinstance(raw_item, Mapping):
+            raise ValueError(f"collection acquisition itemがobjectではありません: {index}")
+        actual_digest = raw_item.get("sha256")
+        if not isinstance(actual_digest, str) or SHA256_RE.fullmatch(actual_digest) is None:
+            raise ValueError(f"collection acquisition itemのSHA-256が不正です: {index}")
+        provider_digest = raw_item.get("provider_requested_sha256")
+        if provider_digest is None:
+            continue
+        integrity = raw_item.get("source_integrity")
+        metadata = raw_item.get("metadata")
+        reported = raw_item.get("provider_reported_metadata")
+        archive_digest = raw_item.get("zip_sha256")
+        archive_size = raw_item.get("zip_size")
+        member_name = integrity.get("member_name") if isinstance(integrity, Mapping) else None
+        if (
+            not isinstance(provider_digest, str)
+            or SHA256_RE.fullmatch(provider_digest) is None
+            or provider_digest == actual_digest
+            or not isinstance(integrity, Mapping)
+            or integrity.get("status") != "provider_requested_sha256_mismatch"
+            or integrity.get("provider_requested_sha256") != provider_digest
+            or integrity.get("analyzed_member_sha256") != actual_digest
+            or integrity.get("archive_sha256") != archive_digest
+            or integrity.get("archive_size") != archive_size
+            or integrity.get("provider_metadata_used_for_family_attribution") is not False
+            or not isinstance(member_name, str)
+            or "/" in member_name.replace("\\", "/")
+            or not isinstance(metadata, Mapping)
+            or metadata.get("sha256_hash") != actual_digest
+            or not isinstance(reported, Mapping)
+            or reported.get("sha256_hash") != provider_digest
+            or not isinstance(archive_digest, str)
+            or SHA256_RE.fullmatch(archive_digest) is None
+            or isinstance(archive_size, bool)
+            or not isinstance(archive_size, int)
+            or archive_size <= 0
+        ):
+            raise ValueError(f"collectionのprovider hash不一致bindingが不正です: {actual_digest}")
+        if actual_digest in aliases:
+            raise ValueError(f"collectionのarchive aliasが重複しています: {actual_digest}")
+        aliases[actual_digest] = _CollectionArchiveAlias(
+            provider_requested_sha256=provider_digest,
+            member_name=member_name,
+            archive_sha256=archive_digest,
+            archive_size=archive_size,
+        )
+    return aliases
+
+
 def _read_manifest_archive(
     entry: _ArchiveManifestEntry,
 ) -> tuple[Any, _RegularFileSnapshot]:
@@ -1790,6 +1861,7 @@ def prepare_inputs(
     collection = collection_snapshot.document
     acquisition = acquisition_snapshot.document
     archive_by_sha = _archive_manifest_index(sample_root, acquisition)
+    archive_aliases = _collection_archive_aliases(collection)
     case_paths = _case_index(repository)
     raw_cases = collection.get("cases")
     if not isinstance(raw_cases, list):
@@ -1814,9 +1886,20 @@ def prepare_inputs(
     cache_storage_role = "prepared_input_root" if cache_root != sample_root else "sample_root"
 
     for case_number, case_sha in enumerate(requested, start=1):
-        archive_entry = archive_by_sha.get(case_sha)
+        archive_alias = archive_aliases.get(case_sha)
+        archive_lookup_sha = (
+            archive_alias.provider_requested_sha256
+            if archive_alias is not None
+            else case_sha
+        )
+        archive_entry = archive_by_sha.get(archive_lookup_sha)
         if archive_entry is None:
             raise FileNotFoundError(f"archiveが見つかりません: {case_sha}")
+        if archive_alias is not None and (
+            archive_entry.expected_zip_sha256 != archive_alias.archive_sha256
+            or archive_entry.expected_zip_size != archive_alias.archive_size
+        ):
+            raise ValueError(f"provider hash不一致caseのarchive契約が一致しません: {case_sha}")
         case_dir = case_paths.get(case_sha)
         if case_dir is None:
             raise FileNotFoundError(f"公開caseが見つかりません: {case_sha}")
@@ -1830,6 +1913,8 @@ def prepare_inputs(
         unit, archive_snapshot = _read_manifest_archive(archive_entry)
         if hashlib.sha256(unit.data).hexdigest() != case_sha:
             raise ValueError(f"root検体hashが一致しません: {case_sha}")
+        if archive_alias is not None and unit.source_name != archive_alias.member_name:
+            raise ValueError(f"provider hash不一致caseのmember名が一致しません: {case_sha}")
         authenticated_root = (
             case_sha,
             len(unit.data),
@@ -9214,6 +9299,68 @@ def _enrich_shadow_behavior_documents(case_dir: Path) -> None:
                 "- 固定operator command: launcherの正確なtemplateは上記のとおり復元しましたが、command body自体は実行時に管理側から与えられるため、この検体の静的解析では復元していません。",
                 "- 通信の意味: 双用途ScreenConnect管理clientと埋め込み管理endpointは確認済みです。`no_c2_capability_verified`は、これとは別個のmalware C2を静的に確認していない、という限定的な意味です。遠隔コマンド能力や悪性利用の有無を否定するものではありません。",
                 "- 帰属上の制約: 配布経路、導入権限、侵害telemetryがないため、悪性利用そのものは未確認です。",
+            ],
+        )
+
+    process_markers = (
+        "createprocess",
+        "shellexecute",
+        "winexec",
+        "system.diagnostics.process.start",
+    )
+    process_functions = [
+        item
+        for item in functions
+        if any(
+            marker in str(value or "").casefold()
+            for value in [
+                item.get("name"),
+                item.get("role"),
+                *(item.get("api_calls") or []),
+                *(item.get("callees") or []),
+            ]
+            for marker in process_markers
+        )
+    ]
+    process_hint_present = any(
+        isinstance(hint, Mapping) and hint.get("capability") == "process_creation"
+        for hint in analysis.get("capability_hints") or []
+    )
+    if process_hint_present or process_functions:
+        behavior = analysis.get("ghidra_behavior_evidence")
+        process_evidence = behavior.get("process_creation") if isinstance(behavior, Mapping) else None
+        remote_capability = analysis.get("case", {}).get("remote_command_execution_capability")
+        if isinstance(process_evidence, Mapping) and process_evidence.get("command_line_recovery_status") == "confirmed_null":
+            fixed_command_line = (
+                "- 固定コマンドラインの復元状態: `lpCommandLine=NULL`を静的に確認しました。"
+                "実行対象pathは同節のGhidra静的挙動証拠を参照してください。"
+            )
+        elif isinstance(remote_capability, Mapping) and remote_capability.get("fixed_operator_command_recovered") is False:
+            fixed_command_line = (
+                "- 固定operator commandの復元状態: command bodyは実行時入力のため静的には復元できません。"
+            )
+        else:
+            fixed_command_line = (
+                "- 固定コマンドの復元状態: 公開静的証拠からは復元できておらず、追加追跡が必要です。"
+            )
+        function_ids = sorted(
+            {
+                str(item.get("function_id") or item.get("name") or "unknown")
+                for item in process_functions
+            }
+        )
+        readme = _replace_markdown_section(
+            readme,
+            "プロセス生成の静的確認状態",
+            [
+                "- 実行経路: process creation APIまたは関数への静的到達性は確認しましたが、入口からの完全な経路は未確定です。",
+                fixed_command_line,
+                (
+                    f"- 根拠関数: `{len(function_ids)}`件（識別子は`static-logic.json`を参照）。"
+                    if function_ids
+                    else "- 根拠: import／能力ヒントでprocess creation APIを確認し、関数経路は未復元です。"
+                ),
+                "- 安全性: 検体や復元payloadは実行していません。",
             ],
         )
     _atomic_replace_bytes(

@@ -445,6 +445,49 @@ def test_complete_three_lane_daily_analysis_passes(tmp_path: Path) -> None:
     result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
 
     assert result["complete"] is True
+
+
+def test_daily_handoff_accepts_canonical_policy_excluded_onion_host(tmp_path: Path) -> None:
+    """C2 laneで安全方針により除外したonion hostもsource集合へ厳密に結合する。"""
+
+    repository = _complete_repository(tmp_path)
+    news = repository / "analysis-results" / "research" / "daily-news-malware" / ANALYSIS_DATE
+    ioc_path = news / "ioc-summary.json"
+    ioc = json.loads(ioc_path.read_text(encoding="utf-8"))
+    onion = "examplehiddenservice.onion"
+    ioc["items"].append(
+        {
+            "ioc_type": "domain",
+            "ioc_value": onion,
+            "category": "c2",
+            "malware": "Fixture",
+            "valid": True,
+        }
+    )
+    _write_json(ioc_path, ioc)
+    source_sha256, source_count = target._daily_infrastructure_target_commitment(
+        ioc["items"], ANALYSIS_DATE
+    )
+    infrastructure_path = news / "infrastructure-summary.json"
+    infrastructure = json.loads(infrastructure_path.read_text(encoding="utf-8"))
+    infrastructure["target_commitment_sha256"] = source_sha256
+    infrastructure["target_count"] = source_count
+    _write_json(infrastructure_path, infrastructure)
+
+    c2 = repository / "analysis-results" / "research" / "c2-monitoring" / ANALYSIS_DATE
+    for name in ("effective-targets.json", "monitoring-results.json"):
+        path = c2 / name
+        document = json.loads(path.read_text(encoding="utf-8"))
+        binding = document["daily_source_handoffs"][0]
+        binding["source_target_commitment_sha256"] = source_sha256
+        binding["source_target_count"] = source_count
+        binding["policy_excluded_onion_hosts"] = [onion]
+        _write_json(path, document)
+
+    result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
+
+    assert result["complete"] is True
+    assert result["finding_count"] == 0
     assert result["finding_count"] == 0
     assert [lane["name"] for lane in result["lanes"]] == [
         "daily_news",

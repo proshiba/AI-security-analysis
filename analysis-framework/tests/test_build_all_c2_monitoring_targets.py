@@ -355,6 +355,32 @@ def test_explicit_daily_source_rejects_policy_excluded_current_target(tmp_path: 
         )
 
 
+def test_explicit_daily_source_records_onion_as_policy_excluded(tmp_path: Path) -> None:
+    results = tmp_path / "analysis-results"
+    source_date = "2026-08-24"
+    _write_daily_summary(
+        results,
+        source_date,
+        [
+            _daily_c2_item("current-c2.example"),
+            _daily_c2_item("hiddenserviceexample.onion"),
+        ],
+    )
+
+    plan, inventory = build_inventory(
+        results,
+        generated_date=source_date,
+        daily_source_date=source_date,
+    )
+
+    handoff = plan["daily_source_handoffs"][0]
+    assert handoff["source_target_count"] == 2
+    assert handoff["effective_target_count"] == 1
+    assert handoff["policy_excluded_onion_hosts"] == ["hiddenserviceexample.onion"]
+    assert inventory["exclusion_reason_counts"]["onion_excluded_by_policy"] == 1
+    assert not any(item["host"].endswith(".onion") for item in plan["targets"])
+
+
 def test_explicit_daily_source_must_be_canonical_and_present(tmp_path: Path) -> None:
     results = tmp_path / "analysis-results"
 

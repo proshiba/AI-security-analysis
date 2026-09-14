@@ -2402,11 +2402,21 @@ def _trusted_tool_paths(
 def _expected_trusted_tool_identities(
     bundle: TrustedToolBundle | None,
 ) -> dict[str, dict[str, Any] | None]:
-    """契約へ封印すべきUPX・7zz・DIEC identityを返す。"""
+    """解析契約へ封印される全static tool identityを返す。"""
 
     if bundle is None:
-        return {"upx": None, "sevenzip": None, "diec": None}
-    return bundle.identities()
+        identities: dict[str, dict[str, Any] | None] = {
+            "upx": None,
+            "sevenzip": None,
+            "diec": None,
+        }
+    else:
+        identities = bundle.identities()
+    # innounpは現在operator manifest対象外だが、analyze_sampleの解析契約は
+    # 利用有無を常に明示する。照合側にも未指定を含め、tool追加時に正しい
+    # fail-closed結果をschema差だけで拒否しない。
+    identities["innounp"] = None
+    return identities
 
 
 def verify_analysis_contract_trusted_tools(

@@ -244,12 +244,35 @@ def _validate_infrastructure_c2_binding(
         "result_target_commitment_sha256",
         "result_target_count",
     }
-    if set(plan_record) != plan_required or set(result_record) != result_required:
+    optional = {"policy_excluded_onion_hosts"}
+    if (
+        not plan_required <= set(plan_record) <= plan_required | optional
+        or not result_required <= set(result_record) <= result_required | optional
+    ):
         _finding(
             findings,
             "daily_infrastructure_c2_binding_schema",
             path,
             "C2 handoff bindingのfield集合が正規schemaと一致しません。",
+        )
+        return
+    excluded_hosts = plan_record.get("policy_excluded_onion_hosts", [])
+    if (
+        not isinstance(excluded_hosts, list)
+        or any(
+            not isinstance(host, str)
+            or host != host.casefold().rstrip(".")
+            or not host.endswith(".onion")
+            for host in excluded_hosts
+        )
+        or excluded_hosts != sorted(set(excluded_hosts))
+        or result_record.get("policy_excluded_onion_hosts", []) != excluded_hosts
+    ):
+        _finding(
+            findings,
+            "daily_infrastructure_c2_policy_exclusion_invalid",
+            path,
+            "policy除外onion hostの集合またはresult継承が不正です。",
         )
         return
     if (
@@ -300,8 +323,10 @@ def _validate_infrastructure_c2_binding(
         or result_count != result_record.get("result_target_count")
         or result_sha256 != effective_sha256
         or result_count != effective_count
-        or set(effective_hosts) != expected_hosts
-        or set(result_hosts) != expected_hosts
+        or set(effective_hosts) & set(excluded_hosts)
+        or set(result_hosts) & set(excluded_hosts)
+        or set(effective_hosts) | set(excluded_hosts) != expected_hosts
+        or set(result_hosts) | set(excluded_hosts) != expected_hosts
     ):
         _finding(
             findings,

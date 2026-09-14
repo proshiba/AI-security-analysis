@@ -331,6 +331,22 @@ def test_provider_only_attribution_is_not_static_confirmation(
     assert attribution["supports_attribution"] is False
 
 
+def test_unsupported_provider_signature_keeps_provider_only_boundary() -> None:
+    """未知のprovider署名もunclassified整理先と内部静的帰属を混同しない。"""
+
+    attribution = publisher.build_family_attribution(
+        "unclassified",
+        "unsupported_reported_signature",
+        {"signature": "NewFamily", "tags": ["exe"]},
+    )
+
+    assert attribution["status"] == "provider_reported_not_statically_confirmed"
+    assert attribution["catalog_family_role"] == "provider_reported_grouping"
+    assert attribution["provider_reported_label"] == "NewFamily"
+    assert attribution["statically_confirmed_family"] is None
+    assert attribution["supports_attribution"] is False
+
+
 def test_choose_family_keeps_triaged_unknown_unclassified() -> None:
     """内部静的解析がunknownで閉じたcaseをprovider署名だけで再分類しない。"""
     source_report = report()
@@ -779,6 +795,7 @@ def test_legacy_vidar_refresh_removes_only_exact_structural_network_label() -> N
     handler_id = "vidar:fixture:extract"
     payload = {
         "version": "3.2",
+        "sample_sha256": digest,
         "findings": [
             {"kind": "network.url", "value": "https://example.test/bootstrap"},
             {"kind": "network.url", "value": "https://t.me/example"},
@@ -795,6 +812,7 @@ def test_legacy_vidar_refresh_removes_only_exact_structural_network_label() -> N
     artifact = {
         "handler": {"id": handler_id, "family": "vidar"},
         "result": payload,
+        "selected_layer": {"sha256": digest},
         "selected_evidence": quality,
         "executed_sample": False,
         "network_contacted": False,
@@ -1075,6 +1093,95 @@ def test_find_case_source_prefers_explicit_family_followup(tmp_path: Path) -> No
         encoding="utf-8",
     )
     assert publisher.find_case_source([tmp_path / "generic", tmp_path / "forced"], digest) == forced
+
+
+def test_resolve_acquisition_case_source_binds_provider_hash_mismatch_to_archive(
+    tmp_path: Path,
+) -> None:
+    """provider要求hashと実測hashが違っても、外装とmemberを一意に束縛する。"""
+
+    requested = "a" * 64
+    actual = "b" * 64
+    archive = "c" * 64
+    source = tmp_path / "one-shot" / "cases" / actual
+    source.mkdir(parents=True)
+    publisher.write_json(
+        source / "report.json",
+        {
+            "sample": {
+                "sha256": actual,
+                "size": 123,
+                "source_name": f"{requested}.exe",
+                "member_name": f"{requested}.exe",
+                "input_kind": "authenticated_single_member_zip",
+                "outer_sha256": archive,
+                "outer_size": 456,
+            }
+        },
+    )
+    item = {
+        "sha256": requested,
+        "zip_sha256": archive,
+        "zip_size": 456,
+        "metadata": {"sha256_hash": requested, "signature": "ValleyRAT"},
+    }
+
+    resolved_source, resolved = publisher.resolve_acquisition_case_source(
+        [tmp_path / "one-shot"], item
+    )
+
+    assert resolved_source == source
+    assert resolved["sha256"] == actual
+    assert resolved["metadata"] == {
+        "sha256_hash": actual,
+        "file_name": f"{requested}.exe",
+        "file_size": 123,
+    }
+    assert resolved["provider_reported_metadata"]["signature"] == "ValleyRAT"
+    assert resolved["source_integrity"] == {
+        "status": "provider_requested_sha256_mismatch",
+        "provider_requested_sha256": requested,
+        "analyzed_member_sha256": actual,
+        "archive_sha256": archive,
+        "archive_size": 456,
+        "member_name": f"{requested}.exe",
+        "provider_metadata_used_for_family_attribution": False,
+    }
+
+
+def test_resolve_acquisition_case_source_rejects_unbound_provider_hash_mismatch(
+    tmp_path: Path,
+) -> None:
+    """member名だけが一致しても、外装hashが違うcaseは採用しない。"""
+
+    requested = "a" * 64
+    actual = "b" * 64
+    source = tmp_path / "one-shot" / "cases" / actual
+    source.mkdir(parents=True)
+    publisher.write_json(
+        source / "report.json",
+        {
+            "sample": {
+                "sha256": actual,
+                "source_name": f"{requested}.exe",
+                "member_name": f"{requested}.exe",
+                "input_kind": "authenticated_single_member_zip",
+                "outer_sha256": "d" * 64,
+                "outer_size": 456,
+            }
+        },
+    )
+
+    with pytest.raises(ValueError, match="実測候補0件"):
+        publisher.resolve_acquisition_case_source(
+            [tmp_path / "one-shot"],
+            {
+                "sha256": requested,
+                "zip_sha256": "c" * 64,
+                "zip_size": 456,
+                "metadata": {},
+            },
+        )
 
 
 def test_choose_family_does_not_mislabel_explicit_selection_as_detector() -> None:

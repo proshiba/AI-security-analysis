@@ -398,11 +398,17 @@ def _validate_provider_boundary(
     classification = report.get("classification")
     selected = classification.get("selected_families") if isinstance(classification, Mapping) else None
     support_flags = _walk_boolean(routing, "supports_attribution")
-    provider_only = selected == [] and (False in support_flags or record.get("attribution_basis") in {
-        "malwarebazaar_reported_signature",
-        "unsupported_reported_signature",
-        "provider_reported_signature",
-    })
+    attribution_basis = str(record.get("attribution_basis") or "").casefold()
+    provider_basis = (
+        attribution_basis in {
+            "malwarebazaar_reported_signature",
+            "malwarebazaar_direct_tag",
+            "unsupported_reported_signature",
+            "provider_reported_signature",
+        }
+        or "provider" in attribution_basis
+    )
+    provider_only = selected == [] and provider_basis
     if not provider_only:
         return False
 

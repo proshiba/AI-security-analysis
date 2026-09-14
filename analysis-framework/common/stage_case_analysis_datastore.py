@@ -125,6 +125,7 @@ class CaseInputs:
     """1 caseへ帰属が固定された入力集合。"""
 
     case_sha256: str
+    source_requested_sha256: str
     source_directory: Path
     one_shot_directory: Path
     relationships: tuple[dict[str, Any], ...]
@@ -157,6 +158,7 @@ class CaseStagingSession:
     """全体検証を1回だけ行い、case copyを逐次再照合するsession。"""
 
     inputs: ValidatedInputs
+    requested_to_actual_case_sha256: Mapping[str, str]
     commitments: Mapping[str, SourceCommitment]
     projected_case_bytes: Mapping[str, int]
     observed_free_bytes_before_staging: int
@@ -756,6 +758,91 @@ def _validate_source_manifest(
     return manifest, manifest_sha256, case_directories
 
 
+def _validated_case_source_bindings(
+    *,
+    repository: Path,
+    collection_id: str,
+    source_manifest: Mapping[str, Any],
+    source_cases: Mapping[str, Path],
+    one_shot_cases: Mapping[str, Path],
+) -> dict[str, str]:
+    """取得時のprovider要求hashと実測case hashを公開済み証拠へ束縛する。"""
+
+    bindings = {digest: digest for digest in set(source_cases) & set(one_shot_cases)}
+    source_only = set(source_cases) - set(one_shot_cases)
+    one_shot_only = set(one_shot_cases) - set(source_cases)
+    if not source_only and not one_shot_only:
+        return bindings
+    public, _digest = _read_json(
+        repository / "analysis-results" / "collections" / collection_id / "manifest.json",
+        label="公開collection manifest",
+    )
+    items = public.get("acquisition_items")
+    if public.get("collection_id") != collection_id or not isinstance(items, list):
+        raise CaseStagingError("provider hash不一致の公開collection bindingがありません")
+    private_items = {
+        item["sha256"]: item
+        for item in source_manifest["items"]
+        if isinstance(item, Mapping)
+    }
+    for item in items:
+        if not isinstance(item, Mapping):
+            raise CaseStagingError("公開collection acquisition itemが不正です")
+        actual = item.get("sha256")
+        requested = item.get("provider_requested_sha256")
+        if requested not in source_only or actual not in one_shot_only:
+            continue
+        integrity = item.get("source_integrity")
+        metadata = item.get("metadata")
+        reported = item.get("provider_reported_metadata")
+        private = private_items.get(requested)
+        if (
+            not isinstance(actual, str)
+            or SHA256_RE.fullmatch(actual) is None
+            or not isinstance(requested, str)
+            or SHA256_RE.fullmatch(requested) is None
+            or not isinstance(integrity, Mapping)
+            or integrity.get("status") != "provider_requested_sha256_mismatch"
+            or integrity.get("provider_requested_sha256") != requested
+            or integrity.get("analyzed_member_sha256") != actual
+            or integrity.get("archive_sha256") != item.get("zip_sha256")
+            or integrity.get("archive_size") != item.get("zip_size")
+            or integrity.get("provider_metadata_used_for_family_attribution") is not False
+            or not isinstance(metadata, Mapping)
+            or metadata.get("sha256_hash") != actual
+            or not isinstance(reported, Mapping)
+            or reported.get("sha256_hash") != requested
+            or not isinstance(private, Mapping)
+            or private.get("zip_sha256") != item.get("zip_sha256")
+            or private.get("zip_size") != item.get("zip_size")
+            or not isinstance(private.get("metadata"), Mapping)
+            or private["metadata"].get("sha256_hash") != requested
+        ):
+            raise CaseStagingError("provider hash不一致のarchive bindingが不正です")
+        report, _report_digest = _read_json(
+            one_shot_cases[actual] / "report.json",
+            label="provider hash不一致のone-shot report",
+        )
+        sample = report.get("sample")
+        if (
+            not isinstance(sample, Mapping)
+            or sample.get("sha256") != actual
+            or sample.get("input_kind") != "authenticated_single_member_zip"
+            or sample.get("outer_sha256") != item.get("zip_sha256")
+            or sample.get("outer_size") != item.get("zip_size")
+            or sample.get("member_name") != integrity.get("member_name")
+            or not isinstance(sample.get("member_name"), str)
+            or "/" in sample["member_name"].replace("\\", "/")
+        ):
+            raise CaseStagingError("provider hash不一致のone-shot証拠が不整合です")
+        if actual in bindings:
+            raise CaseStagingError("provider hash不一致のcase bindingが重複しています")
+        bindings[actual] = requested
+    if set(bindings) != set(one_shot_cases) or set(bindings.values()) != set(source_cases):
+        raise CaseStagingError("sourceとone-shotのcase集合が一致しません")
+    return bindings
+
+
 def _validate_one_shot_report_identity(case_directory: Path, *, digest: str) -> None:
     """one-shot report内の全case identity表現を対象directoryへ束縛する。"""
 
@@ -1247,9 +1334,14 @@ def _validate_inputs(
         ),
         label="one-shot cases root",
     )
-    expected_cases = set(source_cases)
-    if set(one_shot_cases) != expected_cases:
-        raise CaseStagingError("sourceとone-shotのcase集合が一致しません")
+    source_bindings = _validated_case_source_bindings(
+        repository=repository,
+        collection_id=collection_id,
+        source_manifest=source_manifest,
+        source_cases=source_cases,
+        one_shot_cases=one_shot_cases,
+    )
+    expected_cases = set(source_bindings)
     (
         relationships_manifest,
         relationships_manifest_sha256,
@@ -1279,7 +1371,10 @@ def _validate_inputs(
         expected_pe_sha256s=all_pe_sha256s,
         object_directories=object_directories,
     )
-    if any(value not in expected_cases for value in requested):
+    requested = [value if value in expected_cases else next(
+        (actual for actual, provider in source_bindings.items() if provider == value), value
+    ) for value in requested]
+    if any(value not in expected_cases for value in requested) or len(set(requested)) != len(requested):
         raise CaseStagingError("指定caseが検証済みsource集合にありません")
     selected_cases: dict[str, CaseInputs] = {}
     for digest in sorted(requested):
@@ -1289,7 +1384,8 @@ def _validate_inputs(
             raise CaseStagingError("PE objectがないcaseはこのhelperで保管できません")
         selected_cases[digest] = CaseInputs(
             case_sha256=digest,
-            source_directory=source_cases[digest],
+            source_requested_sha256=source_bindings[digest],
+            source_directory=source_cases[source_bindings[digest]],
             one_shot_directory=one_shot_cases[digest],
             relationships=case_rows,
             pe_sha256s=pe_sha256s,
@@ -1330,18 +1426,20 @@ def _source_case_document_from_manifest(
     source_manifest_sha256: str,
     collection_id: str,
     case_sha256: str,
+    source_requested_sha256: str | None = None,
 ) -> dict[str, Any]:
+    requested = source_requested_sha256 or case_sha256
     items = source_manifest["items"]
     selected_metadata = source_manifest["selected_metadata"]
     item = next(
-        (value for value in items if isinstance(value, Mapping) and value.get("sha256") == case_sha256),
+        (value for value in items if isinstance(value, Mapping) and value.get("sha256") == requested),
         None,
     )
     metadata = next(
         (
             value
             for value in selected_metadata
-            if isinstance(value, Mapping) and value.get("sha256_hash") == case_sha256
+            if isinstance(value, Mapping) and value.get("sha256_hash") == requested
         ),
         None,
     )
@@ -1351,13 +1449,14 @@ def _source_case_document_from_manifest(
         "schema_version": ACQUISITION_SCHEMA_VERSION,
         "collection_id": collection_id,
         "case_sha256": case_sha256,
+        "provider_requested_sha256": requested if requested != case_sha256 else None,
         "source_manifest_sha256": source_manifest_sha256,
         "selection_commitment_sha256": source_manifest.get("selection_commitment_sha256"),
         "source": source_manifest.get("source"),
         "selection_mode": source_manifest.get("selection_mode"),
         "selected_at": source_manifest.get("selected_at"),
         "archive": {
-            "path": f"source/{case_sha256}.zip",
+            "path": f"source/{requested}.zip",
             "size": item.get("zip_size"),
             "sha256": item.get("zip_sha256"),
             "remains_encrypted": True,
@@ -1378,6 +1477,7 @@ def _source_case_document(inputs: ValidatedInputs, case: CaseInputs) -> dict[str
         source_manifest_sha256=inputs.source_manifest_sha256,
         collection_id=inputs.collection_id,
         case_sha256=case.case_sha256,
+        source_requested_sha256=case.source_requested_sha256,
     )
 
 
@@ -1875,6 +1975,10 @@ def prepare_case_staging_session(
         )
     return CaseStagingSession(
         inputs=inputs,
+        requested_to_actual_case_sha256={
+            case.source_requested_sha256: case.case_sha256
+            for case in inputs.cases.values()
+        },
         commitments=commitments,
         projected_case_bytes=projected,
         observed_free_bytes_before_staging=free,
@@ -1888,7 +1992,8 @@ def stage_case_from_session(
 ) -> dict[str, Any]:
     """固定sessionから1 caseだけをcopy時再照合してstagingする。"""
 
-    digest = _validate_sha256(case_sha256, label="case SHA-256")
+    requested_digest = _validate_sha256(case_sha256, label="case SHA-256")
+    digest = session.requested_to_actual_case_sha256.get(requested_digest, requested_digest)
     case = session.inputs.cases.get(digest)
     if case is None:
         raise CaseStagingError("case staging sessionに指定caseがありません")

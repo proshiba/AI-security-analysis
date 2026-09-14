@@ -610,6 +610,17 @@ def test_provider_only_positive_fixture_keeps_attribution_boundary(tmp_path: Pat
     assert result["provider_only_cases"] == 1
 
 
+def test_unresolved_without_provider_label_is_not_provider_only(tmp_path: Path) -> None:
+    """negative detectorだけの未分類caseへ存在しないprovider境界を要求しない。"""
+
+    repository, collection, _case_dir = _fixture(tmp_path, mode="unknown")
+
+    result = validator.validate_collection(repository, collection)
+
+    assert result["complete"] is True
+    assert result["provider_only_cases"] == 0
+
+
 def test_report_artifact_tamper_is_rejected(tmp_path: Path) -> None:
     repository, collection, case_dir = _fixture(tmp_path)
     features = json.loads((case_dir / "features.json").read_text(encoding="utf-8"))

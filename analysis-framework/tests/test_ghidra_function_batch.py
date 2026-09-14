@@ -2926,6 +2926,45 @@ def test_archive_manifest_index_rejects_reparse_archive(tmp_path: Path) -> None:
         )
 
 
+def test_collection_archive_aliases_accepts_only_complete_provider_mismatch_binding() -> None:
+    """公開実測hashからprivate provider要求archiveへのaliasを厳密に検証する。"""
+
+    actual = "a" * 64
+    provider = "b" * 64
+    archive = "c" * 64
+    item = {
+        "sha256": actual,
+        "provider_requested_sha256": provider,
+        "zip_sha256": archive,
+        "zip_size": 123,
+        "metadata": {"sha256_hash": actual},
+        "provider_reported_metadata": {"sha256_hash": provider},
+        "source_integrity": {
+            "status": "provider_requested_sha256_mismatch",
+            "provider_requested_sha256": provider,
+            "analyzed_member_sha256": actual,
+            "archive_sha256": archive,
+            "archive_size": 123,
+            "member_name": f"{provider}.exe",
+            "provider_metadata_used_for_family_attribution": False,
+        },
+    }
+
+    assert target._collection_archive_aliases({"acquisition_items": [item]}) == {
+        actual: target._CollectionArchiveAlias(
+            provider_requested_sha256=provider,
+            member_name=f"{provider}.exe",
+            archive_sha256=archive,
+            archive_size=123,
+        )
+    }
+
+    tampered = json.loads(json.dumps(item))
+    tampered["source_integrity"]["archive_size"] = 124
+    with pytest.raises(ValueError, match="bindingが不正"):
+        target._collection_archive_aliases({"acquisition_items": [tampered]})
+
+
 def test_manifest_snapshot_rejects_hardlink_and_oversize(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
