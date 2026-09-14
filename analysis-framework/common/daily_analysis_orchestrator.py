@@ -550,35 +550,38 @@ def load_request(path: Path) -> DailyRequest:
     return validate_request_object(document)
 
 
+DAILY_IMPLEMENTATION_FILES = (
+    "daily_analysis_orchestrator.py",
+    "daily_news_malware_intake.py",
+    "malwarebazaar_batch.py",
+    "analyze_sample.py",
+    "analysis_job_runner.py",
+    "analysis_contract.py",
+    "bounded_process.py",
+    "batch_error_contract.py",
+    "job_artifact_schemas.py",
+    "orchestration_outcome.py",
+    "runtime_contract.py",
+    "terminal_payload_acquisition.py",
+    "follow_on_commitment.py",
+    "publish_one_shot_collection.py",
+    "ghidra_function_batch.py",
+    "sync_collection_publication.py",
+    "collection_followup_planner.py",
+    "build_all_c2_monitoring_targets.py",
+    "run_c2_monitoring_pipeline.py",
+    "validate_daily_analysis.py",
+    "stage_case_analysis_datastore.py",
+    "archive_analysis_datastore.py",
+)
+
+
 def _implementation_sha256() -> str:
     """control planeと固定adapterの実装をresume契約へ束縛する。"""
 
     root = Path(__file__).resolve().parent
-    names = (
-        "daily_analysis_orchestrator.py",
-        "daily_news_malware_intake.py",
-        "malwarebazaar_batch.py",
-        "analysis_job_runner.py",
-        "analysis_contract.py",
-        "bounded_process.py",
-        "batch_error_contract.py",
-        "job_artifact_schemas.py",
-        "orchestration_outcome.py",
-        "runtime_contract.py",
-        "terminal_payload_acquisition.py",
-        "follow_on_commitment.py",
-        "publish_one_shot_collection.py",
-        "ghidra_function_batch.py",
-        "sync_collection_publication.py",
-        "collection_followup_planner.py",
-        "build_all_c2_monitoring_targets.py",
-        "run_c2_monitoring_pipeline.py",
-        "validate_daily_analysis.py",
-        "stage_case_analysis_datastore.py",
-        "archive_analysis_datastore.py",
-    )
     records = []
-    for name in names:
+    for name in DAILY_IMPLEMENTATION_FILES:
         path = root / name
         records.append({"name": name, "sha256": _sha256_file(path), "size": path.stat().st_size})
     return _sha256_value(records)

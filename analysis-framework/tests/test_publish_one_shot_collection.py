@@ -331,6 +331,22 @@ def test_provider_only_attribution_is_not_static_confirmation(
     assert attribution["supports_attribution"] is False
 
 
+def test_unsupported_provider_signature_keeps_provider_only_boundary() -> None:
+    """未知のprovider署名もunclassified整理先と内部静的帰属を混同しない。"""
+
+    attribution = publisher.build_family_attribution(
+        "unclassified",
+        "unsupported_reported_signature",
+        {"signature": "NewFamily", "tags": ["exe"]},
+    )
+
+    assert attribution["status"] == "provider_reported_not_statically_confirmed"
+    assert attribution["catalog_family_role"] == "provider_reported_grouping"
+    assert attribution["provider_reported_label"] == "NewFamily"
+    assert attribution["statically_confirmed_family"] is None
+    assert attribution["supports_attribution"] is False
+
+
 def test_choose_family_keeps_triaged_unknown_unclassified() -> None:
     """内部静的解析がunknownで閉じたcaseをprovider署名だけで再分類しない。"""
     source_report = report()

@@ -80,6 +80,8 @@ PROVIDER_FAMILY_ATTRIBUTION_BASES = frozenset(
     {
         "malwarebazaar_reported_signature",
         "malwarebazaar_direct_tag",
+        "provider_reported_signature",
+        "unsupported_reported_signature",
     }
 )
 COLLECTION_RE = re.compile(r"[a-z0-9][a-z0-9-]{2,79}")
@@ -391,14 +393,6 @@ def render_published_features_markdown(profile: dict[str, Any]) -> str:
     """FEATURESの整理先familyへ帰属状態を併記する。"""
 
     rendered = render_features_markdown(profile)
-    attribution = profile.get("family_attribution")
-    if not isinstance(attribution, dict):
-        return rendered
-    original = f"- ファミリー: `{profile['family']}`"
-    replacement = "\n".join(_family_attribution_readme_lines(attribution))
-    if rendered.count(original) != 1:
-        raise ValueError("FEATURES.mdのfamily表示位置を一意に特定できません")
-    rendered = rendered.replace(original, replacement)
     management = profile.get("screenconnect_management_assessment")
     if not isinstance(management, dict):
         return rendered

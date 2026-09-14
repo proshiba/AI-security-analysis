@@ -9301,6 +9301,68 @@ def _enrich_shadow_behavior_documents(case_dir: Path) -> None:
                 "- 帰属上の制約: 配布経路、導入権限、侵害telemetryがないため、悪性利用そのものは未確認です。",
             ],
         )
+
+    process_markers = (
+        "createprocess",
+        "shellexecute",
+        "winexec",
+        "system.diagnostics.process.start",
+    )
+    process_functions = [
+        item
+        for item in functions
+        if any(
+            marker in str(value or "").casefold()
+            for value in [
+                item.get("name"),
+                item.get("role"),
+                *(item.get("api_calls") or []),
+                *(item.get("callees") or []),
+            ]
+            for marker in process_markers
+        )
+    ]
+    process_hint_present = any(
+        isinstance(hint, Mapping) and hint.get("capability") == "process_creation"
+        for hint in analysis.get("capability_hints") or []
+    )
+    if process_hint_present or process_functions:
+        behavior = analysis.get("ghidra_behavior_evidence")
+        process_evidence = behavior.get("process_creation") if isinstance(behavior, Mapping) else None
+        remote_capability = analysis.get("case", {}).get("remote_command_execution_capability")
+        if isinstance(process_evidence, Mapping) and process_evidence.get("command_line_recovery_status") == "confirmed_null":
+            fixed_command_line = (
+                "- 固定コマンドラインの復元状態: `lpCommandLine=NULL`を静的に確認しました。"
+                "実行対象pathは同節のGhidra静的挙動証拠を参照してください。"
+            )
+        elif isinstance(remote_capability, Mapping) and remote_capability.get("fixed_operator_command_recovered") is False:
+            fixed_command_line = (
+                "- 固定operator commandの復元状態: command bodyは実行時入力のため静的には復元できません。"
+            )
+        else:
+            fixed_command_line = (
+                "- 固定コマンドの復元状態: 公開静的証拠からは復元できておらず、追加追跡が必要です。"
+            )
+        function_ids = sorted(
+            {
+                str(item.get("function_id") or item.get("name") or "unknown")
+                for item in process_functions
+            }
+        )
+        readme = _replace_markdown_section(
+            readme,
+            "プロセス生成の静的確認状態",
+            [
+                "- 実行経路: process creation APIまたは関数への静的到達性は確認しましたが、入口からの完全な経路は未確定です。",
+                fixed_command_line,
+                (
+                    f"- 根拠関数: `{len(function_ids)}`件（識別子は`static-logic.json`を参照）。"
+                    if function_ids
+                    else "- 根拠: import／能力ヒントでprocess creation APIを確認し、関数経路は未復元です。"
+                ),
+                "- 安全性: 検体や復元payloadは実行していません。",
+            ],
+        )
     _atomic_replace_bytes(
         analysis_snapshot.path,
         _json_bytes(analysis),

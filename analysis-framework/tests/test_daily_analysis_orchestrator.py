@@ -532,6 +532,12 @@ def ready_capacity(
     }
 
 
+def test_daily_implementation_pin_includes_static_analyzer() -> None:
+    """静的解析本体の修正を日次checkpoint migrationで検知する。"""
+
+    assert "analyze_sample.py" in target.DAILY_IMPLEMENTATION_FILES
+
+
 def test_request_schema_is_exact_and_blocks_unbound_network() -> None:
     valid = request_document()
     parsed = target.validate_request_object(valid)

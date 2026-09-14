@@ -341,14 +341,16 @@ def validate_daily_handoff_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
         "effective_target_commitment_sha256",
         "effective_target_count",
     }
+    optional = {"policy_excluded_onion_hosts"}
     normalized: list[dict[str, Any]] = []
     dates: list[str] = []
     for record in records:
-        if set(record) != required:
+        if not required.issubset(record) or set(record) - required - optional:
             raise ValueError("daily source handoffのfield集合が正規schemaと一致しません")
         source_date = record.get("source_date")
         source_count = record.get("source_target_count")
         effective_count = record.get("effective_target_count")
+        excluded_hosts = record.get("policy_excluded_onion_hosts", [])
         if (
             record.get("schema_version") != DAILY_HANDOFF_SCHEMA_VERSION
             or not isinstance(source_date, str)
@@ -360,6 +362,15 @@ def validate_daily_handoff_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
             or effective_count < 0
             or not _is_sha256(record.get("source_target_commitment_sha256"))
             or not _is_sha256(record.get("effective_target_commitment_sha256"))
+            or not isinstance(excluded_hosts, list)
+            or any(
+                not isinstance(host, str)
+                or not host
+                or host != host.casefold()
+                or not host.endswith(".onion")
+                for host in excluded_hosts
+            )
+            or excluded_hosts != sorted(set(excluded_hosts))
         ):
             raise ValueError("daily source handoffの型またはcommitmentが不正です")
         effective_sha256, observed_count, observed_hosts = daily_effective_target_commitment(
@@ -369,7 +380,8 @@ def validate_daily_handoff_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
         if (
             effective_sha256 != record["effective_target_commitment_sha256"]
             or observed_count != effective_count
-            or len(observed_hosts) != source_count
+            or len(observed_hosts) + len(excluded_hosts) != source_count
+            or bool(set(observed_hosts) & set(excluded_hosts))
         ):
             raise ValueError("daily source handoffと実効C2 target集合が一致しません")
         dates.append(source_date)
@@ -430,6 +442,7 @@ def attach_daily_handoff_result_bindings(
     result_records: list[dict[str, Any]] = []
     for handoff in handoffs:
         source_date = handoff["source_date"]
+        excluded_hosts = handoff.get("policy_excluded_onion_hosts", [])
         result_sha256, result_count, result_hosts = daily_effective_target_commitment(
             result_targets,
             source_date,
@@ -437,7 +450,8 @@ def attach_daily_handoff_result_bindings(
         if (
             result_sha256 != handoff["effective_target_commitment_sha256"]
             or result_count != handoff["effective_target_count"]
-            or len(result_hosts) != handoff["source_target_count"]
+            or len(result_hosts) + len(excluded_hosts) != handoff["source_target_count"]
+            or bool(set(result_hosts) & set(excluded_hosts))
         ):
             raise ValueError("daily source handoffとC2 result集合が一致しません")
         result_records.append(

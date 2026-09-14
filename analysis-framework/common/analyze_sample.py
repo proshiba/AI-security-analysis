@@ -476,6 +476,21 @@ def _selected_family(
     return str(family), str(classification.get("attribution_basis", "detector"))
 
 
+def _sanitize_public_classification(classification: Mapping[str, Any]) -> dict[str, Any]:
+    """全体quota到達後も検証必須のone-shot選択境界を保持する。"""
+
+    sanitized = sanitize_public_value(classification)
+    if not isinstance(sanitized, dict):
+        raise ValueError("公開classificationがobjectではありません")
+    selection = classification.get("one_shot_selection")
+    if isinstance(selection, Mapping):
+        sanitized_selection = sanitize_public_value(dict(selection))
+        if not isinstance(sanitized_selection, dict):
+            raise ValueError("公開one-shot selectionがobjectではありません")
+        sanitized["one_shot_selection"] = sanitized_selection
+    return sanitized
+
+
 def assess_handlers(
     specs: list[HandlerSpec],
     layer_selections: list[dict[str, Any]],
@@ -2525,12 +2540,12 @@ def analyze_unit(
         public_classifications.append(
             {
                 "layer": layer.public(),
-                "classification": sanitize_public_value(classification),
+                "classification": _sanitize_public_classification(classification),
             }
         )
 
     root_selection = layer_selections[0]
-    root_classification = sanitize_public_value(root_selection["classification"])
+    root_classification = _sanitize_public_classification(root_selection["classification"])
     selected_families = sorted(
         {item["selected_family"] for item in layer_selections if item["selected_family"] is not None}
     )

@@ -57,6 +57,24 @@ def test_cli_string_scan_limit_is_positive_and_defaults_compatibly() -> None:
         parser.parse_args([*required, "--string-scan-limit", "0"])
 
 
+def test_public_classification_preserves_selection_after_total_entry_limit() -> None:
+    """巨大分類証拠を切り詰めてもreport照合用の選択境界を失わない。"""
+
+    classification = {
+        "observations": {f"entry-{index}": index for index in range(5_000)},
+        "one_shot_selection": {
+            "family": None,
+            "basis": "no_unique_detection_above_threshold",
+            "forced_family_registered": None,
+        },
+    }
+
+    sanitized = one_shot._sanitize_public_classification(classification)
+
+    assert sanitized["one_shot_selection"] == classification["one_shot_selection"]
+    assert "maximum_total_entries" in json.dumps(sanitized["observations"], sort_keys=True)
+
+
 def test_catalog_covers_legacy_scripts_and_marks_nonstandard_interfaces() -> None:
     """既存解析関数を広く棚卸しし、特殊引数を自動実行しない。"""
 
