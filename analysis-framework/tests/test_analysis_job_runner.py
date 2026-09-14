@@ -3842,7 +3842,7 @@ def test_production_workers_receive_only_job_private_snapshots(
     ) -> tuple[dict[str, Any], dict[str, Any], list[runner.ExpectedInputUnit]]:
         captured["bundle"] = list(inputs)
         digest = hashlib.sha256(inputs[0].read_bytes()).hexdigest()
-        static_tools = {"upx": None, "sevenzip": None, "diec": None}
+        static_tools = {"upx": None, "sevenzip": None, "diec": None, "innounp": None}
         return (
             {
                 "schema_version": 1,

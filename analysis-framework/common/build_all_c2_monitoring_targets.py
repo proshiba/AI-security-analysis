@@ -377,6 +377,7 @@ def build_inventory(
     seen_evidence: dict[tuple[object, ...], str] = {}
     daily_source_handoffs: dict[str, dict[str, Any]] = {}
     daily_expected_hosts: dict[str, set[str]] = {}
+    daily_policy_excluded_hosts: dict[str, set[str]] = defaultdict(set)
     daily_input_paths = (
         {
             path
@@ -481,6 +482,8 @@ def build_inventory(
                 daily_expected_hosts[record_daily_source_date].add(host)
             allowed, host_kind = _host_classification(host)
             if not allowed:
+                if isinstance(record_daily_source_date, str) and host_kind == "onion_excluded_by_policy":
+                    daily_policy_excluded_hosts[record_daily_source_date].add(host)
                 exclusions.append({**evidence, "host": host, "port": port, "reason": host_kind})
                 continue
             if port is not None and not 1 <= port <= 65535:
@@ -622,11 +625,12 @@ def build_inventory(
             targets,
             source_date,
         )
-        if set(effective_hosts) != daily_expected_hosts[source_date]:
+        excluded_hosts = daily_policy_excluded_hosts[source_date]
+        if set(effective_hosts) & excluded_hosts or set(effective_hosts) | excluded_hosts != daily_expected_hosts[source_date]:
             raise ValueError(
                 f"daily source対象が実効C2 targetへ完全に結合されていません: {source_date}"
             )
-        if len(effective_hosts) != handoff["source_target_count"]:
+        if len(effective_hosts) + len(excluded_hosts) != handoff["source_target_count"]:
             raise ValueError(
                 f"daily source対象件数と実効C2 host件数が一致しません: {source_date}"
             )
@@ -634,6 +638,7 @@ def build_inventory(
             {
                 "effective_target_commitment_sha256": effective_commitment,
                 "effective_target_count": effective_count,
+                "policy_excluded_onion_hosts": sorted(excluded_hosts),
             }
         )
     reason_counts = Counter(item["reason"] for item in exclusions)

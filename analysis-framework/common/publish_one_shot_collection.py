@@ -1867,8 +1867,11 @@ def publish_case(
         "malware_version": version,
         "source": {
             "provider": "MalwareBazaar Community API",
-            "sample_url": f"https://bazaar.abuse.ch/sample/{digest}/",
-            "reported_metadata": metadata,
+            "sample_url": (
+                "https://bazaar.abuse.ch/sample/"
+                f"{item.get('provider_requested_sha256') or digest}/"
+            ),
+            "reported_metadata": item.get("provider_reported_metadata") or metadata,
         },
         "attribution": {
             **family_attribution,
@@ -1877,6 +1880,9 @@ def publish_case(
         },
         "safety": {"sample_executed": False, "network_contacted": False},
     }
+    if isinstance(item.get("source_integrity"), dict):
+        metadata_document["source"]["integrity"] = item["source_integrity"]
+        metadata_document["source"]["analysis_metadata"] = metadata
     write_json(destination / "metadata.json", metadata_document)
     handler_ids = [
         str(execution.get("handler_id"))
@@ -2053,14 +2059,20 @@ def initialize_collection(
     root = _destination or results / "collections" / collection_id
     public_items = []
     for item in manifest.get("items") or []:
-        public_items.append(
-            {
-                "sha256": item.get("sha256"),
-                "zip_sha256": item.get("zip_sha256"),
-                "zip_size": item.get("zip_size"),
-                "metadata": safe_metadata(item),
-            }
-        )
+        public_item = {
+            "sha256": item.get("sha256"),
+            "zip_sha256": item.get("zip_sha256"),
+            "zip_size": item.get("zip_size"),
+            "metadata": safe_metadata(item),
+        }
+        for name in (
+            "provider_requested_sha256",
+            "provider_reported_metadata",
+            "source_integrity",
+        ):
+            if name in item:
+                public_item[name] = item[name]
+        public_items.append(public_item)
     display = collection_display_metadata(
         manifest,
         [item for item in manifest.get("items") or [] if isinstance(item, dict)],
@@ -2131,6 +2143,96 @@ def find_case_source(one_shots: list[Path], digest: str) -> Path:
     )
 
 
+def resolve_acquisition_case_source(
+    one_shots: list[Path],
+    item: dict[str, Any],
+) -> tuple[Path, dict[str, Any]]:
+    """取得hashまたはarchiveへ厳密に束縛した実測hashのcaseを返す。
+
+    MalwareBazaarが要求SHA-256名の単一memberへ別byte列を格納する場合がある。
+    通常caseがない場合に限り、外装ZIPのSHA-256・size・member名・report内の
+    実測SHA-256がすべて一意に一致したcaseを採用する。provider metadataは
+    実測byte列へ帰属できないため、family判定用metadataからは除外する。
+    """
+
+    requested_digest = normalize_sha256_digest(item.get("sha256"))
+    direct = [
+        root / "cases" / requested_digest
+        for root in one_shots
+        if (root / "cases" / requested_digest / "report.json").is_file()
+    ]
+    if direct:
+        return find_case_source(one_shots, requested_digest), dict(item)
+
+    archive_digest = normalize_sha256_digest(item.get("zip_sha256"))
+    archive_size = item.get("zip_size")
+    if isinstance(archive_size, bool) or not isinstance(archive_size, int) or archive_size <= 0:
+        raise ValueError(f"取得archive sizeが不正です: {requested_digest}")
+    member_pattern = re.compile(
+        rf"{re.escape(requested_digest)}(?:\.[A-Za-z0-9_-]{{1,32}})?",
+        re.IGNORECASE,
+    )
+    matches: list[tuple[Path, dict[str, Any], str]] = []
+    for root in one_shots:
+        cases_root = root / "cases"
+        if not cases_root.is_dir():
+            continue
+        ensure_no_reparse_components(cases_root)
+        for candidate in cases_root.iterdir():
+            report_path = candidate / "report.json"
+            if not candidate.is_dir() or not report_path.is_file():
+                continue
+            ensure_no_reparse_components(candidate)
+            report = load_json(report_path)
+            sample = report.get("sample")
+            if not isinstance(sample, dict):
+                continue
+            member_name = sample.get("member_name")
+            source_name = sample.get("source_name")
+            if (
+                sample.get("input_kind") != "authenticated_single_member_zip"
+                or sample.get("outer_sha256") != archive_digest
+                or sample.get("outer_size") != archive_size
+                or not isinstance(member_name, str)
+                or member_name != source_name
+                or "/" in member_name.replace("\\", "/")
+                or member_pattern.fullmatch(member_name) is None
+            ):
+                continue
+            actual_digest = normalize_sha256_digest(sample.get("sha256"))
+            if candidate.name != actual_digest or actual_digest == requested_digest:
+                continue
+            matches.append((candidate, report, actual_digest))
+    if len(matches) != 1:
+        raise ValueError(
+            "取得hashまたはarchive束縛済み実測hashの完了caseが一意ではありません: "
+            f"{requested_digest} (実測候補{len(matches)}件)"
+        )
+
+    source, report, actual_digest = matches[0]
+    sample = report["sample"]
+    reported_metadata = safe_metadata(item)
+    resolved_item = dict(item)
+    resolved_item["sha256"] = actual_digest
+    resolved_item["provider_requested_sha256"] = requested_digest
+    resolved_item["provider_reported_metadata"] = reported_metadata
+    resolved_item["metadata"] = {
+        "sha256_hash": actual_digest,
+        "file_name": sample["member_name"],
+        "file_size": sample.get("size"),
+    }
+    resolved_item["source_integrity"] = {
+        "status": "provider_requested_sha256_mismatch",
+        "provider_requested_sha256": requested_digest,
+        "analyzed_member_sha256": actual_digest,
+        "archive_sha256": archive_digest,
+        "archive_size": archive_size,
+        "member_name": sample["member_name"],
+        "provider_metadata_used_for_family_attribution": False,
+    }
+    return source, resolved_item
+
+
 def _validate_acquisition_manifest_count(manifest: dict[str, Any]) -> tuple[int, list[Any]]:
     """取得manifestの要求件数と完了件数を検証する。
 
@@ -2180,14 +2282,20 @@ def _publish_from_snapshots(
         raise ValueError("post_analysis_resource_failuresにはresource scan観測数も必要です")
     validated_sources = {}
     source_stages: dict[str, str] = {}
+    publication_items: list[dict[str, Any]] = []
+    requested_digests: set[str] = set()
     baseline_contract: dict[str, Any] | None = None
     for index, item in enumerate(items):
         if not isinstance(item, dict):
             raise ValueError(f"取得manifest itemがobjectではありません: {index}")
-        digest = normalize_sha256_digest(item.get("sha256"))
+        requested_digest = normalize_sha256_digest(item.get("sha256"))
+        if requested_digest in requested_digests:
+            raise ValueError(f"取得manifestに重複SHA-256があります: {requested_digest}")
+        requested_digests.add(requested_digest)
+        source, publication_item = resolve_acquisition_case_source(one_shots, item)
+        digest = normalize_sha256_digest(publication_item.get("sha256"))
         if digest in validated_sources:
-            raise ValueError(f"取得manifestに重複SHA-256があります: {digest}")
-        source = find_case_source(one_shots, digest)
+            raise ValueError(f"公開対象の実測SHA-256が重複しています: {digest}")
         report, stage = load_validated_source_report(
             source,
             digest,
@@ -2207,6 +2315,7 @@ def _publish_from_snapshots(
             baseline_contract = dict(contract)
         validated_sources[digest] = source
         source_stages[digest] = stage
+        publication_items.append(publication_item)
 
     if baseline_contract is None:
         raise ValueError("検証済みanalysis contractがありません")
@@ -2224,10 +2333,12 @@ def _publish_from_snapshots(
     collection_staging_container = canonical_collection.parent / f"{collection_token}.staging"
     collection_staging_container_io = _publication_io_path(collection_staging_container)
     collection_staging_container_io.mkdir()
+    publication_manifest = dict(manifest)
+    publication_manifest["items"] = publication_items
     collection = initialize_collection(
         results,
         collection_id,
-        manifest,
+        publication_manifest,
         publication_stage=publication_stage,
         _destination=collection_staging_container_io / collection_id,
     )
@@ -2235,7 +2346,7 @@ def _publish_from_snapshots(
     existing_families.add("unclassified")
     by_family: dict[str, list[Path]] = defaultdict(list)
     summaries = []
-    for item in items:
+    for item in publication_items:
         digest = normalize_sha256_digest(item.get("sha256"))
         source = validated_sources[digest]
         family, destination, summary = publish_case(
@@ -2308,7 +2419,7 @@ def _publish_from_snapshots(
     static_config_count = sum(bool(item["static_config_recovered"]) for item in summaries)
     confirmed_c2_count = sum(item["confirmed_static_c2_observations"] for item in summaries)
     confirmed_network_count = sum(item["confirmed_static_network_observations"] for item in summaries)
-    display = collection_display_metadata(manifest, items)
+    display = collection_display_metadata(publication_manifest, publication_items)
     lines = [
         f"# MalwareBazaar Windows検体{requested_count}件（{display['selected_date']}）",
         "",

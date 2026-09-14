@@ -400,6 +400,118 @@ def test_collection_session_validates_once_and_stages_one_case(
     assert result["safety"]["case_separated"] is True
 
 
+def test_collection_session_accepts_strict_provider_hash_alias(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    actual = fixture["cases"][0]
+    requested = hashlib.sha256(b"provider-requested-identity").hexdigest()
+    source = fixture["source"]
+    source_case = source / actual
+    requested_case = source / requested
+    source_case.rename(requested_case)
+    (requested_case / f"{actual}.zip").rename(requested_case / f"{requested}.zip")
+    source_document = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
+    source_document["selected_hashes"][0] = requested
+    source_document["selected_metadata"][0]["sha256_hash"] = requested
+    source_item = source_document["items"][0]
+    source_item["sha256"] = requested
+    source_item["metadata"]["sha256_hash"] = requested
+    source_item["zip_path"] = str((requested_case / f"{requested}.zip").resolve())
+    _json(source / "manifest.json", source_document)
+
+    one_shot_report = fixture["one_shot"] / "cases" / actual / "report.json"
+    _json(
+        one_shot_report,
+        {
+            "sample": {
+                "sha256": actual,
+                "input_kind": "authenticated_single_member_zip",
+                "outer_sha256": source_item["zip_sha256"],
+                "outer_size": source_item["zip_size"],
+                "member_name": f"{requested}.exe",
+            }
+        },
+    )
+    _json(
+        fixture["repository"]
+        / "analysis-results"
+        / "collections"
+        / "daily-fixture"
+        / "manifest.json",
+        {
+            "collection_id": "daily-fixture",
+            "acquisition_items": [
+                {
+                    "sha256": actual,
+                    "provider_requested_sha256": requested,
+                    "zip_sha256": source_item["zip_sha256"],
+                    "zip_size": source_item["zip_size"],
+                    "metadata": {"sha256_hash": actual},
+                    "provider_reported_metadata": {"sha256_hash": requested},
+                    "source_integrity": {
+                        "status": "provider_requested_sha256_mismatch",
+                        "provider_requested_sha256": requested,
+                        "analyzed_member_sha256": actual,
+                        "archive_sha256": source_item["zip_sha256"],
+                        "archive_size": source_item["zip_size"],
+                        "member_name": f"{requested}.exe",
+                        "provider_metadata_used_for_family_attribution": False,
+                    },
+                }
+            ],
+        },
+    )
+
+    session = target.prepare_case_staging_session(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        source_root=source,
+        one_shot_root=fixture["one_shot"],
+        ghidra_root=fixture["ghidra"],
+        output_root=fixture["output"],
+        case_sha256s=[requested, fixture["cases"][1]],
+    )
+    result = target.stage_case_from_session(session, case_sha256=requested)
+
+    assert set(session.inputs.cases) == set(fixture["cases"])
+    assert session.inputs.cases[actual].source_requested_sha256 == requested
+    staged = Path(result["cases"][0]["source_path"])
+    assert archive._extended_length_path(staged / "source" / f"{requested}.zip").is_file()
+    provenance = json.loads(
+        (staged / "derived" / "source-acquisition.case.json").read_text(encoding="utf-8")
+    )
+    assert provenance["case_sha256"] == actual
+    assert provenance["provider_requested_sha256"] == requested
+
+
+def test_collection_session_rejects_tampered_provider_hash_alias(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    actual = fixture["cases"][0]
+    requested = hashlib.sha256(b"provider-requested-identity").hexdigest()
+    source = fixture["source"]
+    (source / actual).rename(source / requested)
+    (source / requested / f"{actual}.zip").rename(source / requested / f"{requested}.zip")
+    source_document = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
+    source_document["selected_hashes"][0] = requested
+    source_document["selected_metadata"][0]["sha256_hash"] = requested
+    source_document["items"][0]["sha256"] = requested
+    source_document["items"][0]["metadata"]["sha256_hash"] = requested
+    source_document["items"][0]["zip_path"] = str(
+        (source / requested / f"{requested}.zip").resolve()
+    )
+    _json(source / "manifest.json", source_document)
+
+    with pytest.raises(target.CaseStagingError, match="公開collection"):
+        target.prepare_case_staging_session(
+            repository=fixture["repository"],
+            collection_id="daily-fixture",
+            source_root=source,
+            one_shot_root=fixture["one_shot"],
+            ghidra_root=fixture["ghidra"],
+            output_root=fixture["output"],
+            case_sha256s=[requested, fixture["cases"][1]],
+        )
+
+
 def test_collection_session_rejects_case_tree_changed_after_preflight(
     tmp_path: Path,
 ) -> None:

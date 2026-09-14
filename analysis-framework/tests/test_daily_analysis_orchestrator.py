@@ -872,6 +872,65 @@ def test_production_ghidra_reuses_state_bound_job_after_implementation_change(
     assert set(verified_job_ids) == {recorded_job_id}
 
 
+def test_production_publication_reuses_state_bound_job_after_implementation_change(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """公開再開もstate固定jobを使い、現在のcache keyへ逸れない。"""
+
+    import publish_one_shot_collection
+
+    daily_context = context(tmp_path)
+    recorded_job_id = "recorded-publication-job"
+    state = target._new_state(daily_context)
+    state["status"] = "partial"
+    state["stages"]["static_analysis"] = {
+        "status": "partial",
+        "attempts": 1,
+        "retryable": False,
+        "result": {"job_id": recorded_job_id},
+        "error": None,
+    }
+    daily_context.state_root.mkdir(parents=True)
+    target._atomic_json(
+        daily_context.state_root / "request.json",
+        daily_context.request.public(),
+    )
+    target._write_state(daily_context, state)
+    verified_job_ids: list[str] = []
+    monkeypatch.setattr(
+        target,
+        "_static_job_result_for_id",
+        lambda _context, job_id: verified_job_ids.append(job_id) or {},
+    )
+    monkeypatch.setattr(
+        target,
+        "_static_request",
+        lambda _context: pytest.fail("現在の実装cache keyからjob IDを再計算してはいけません"),
+    )
+    monkeypatch.setattr(target, "_analysis_contract_sha256", lambda _path: "a" * 64)
+    captured: dict[str, object] = {}
+
+    def fake_publish(_repository, _manifest, one_shots, _collection_id, **options):
+        captured["one_shots"] = one_shots
+        captured["options"] = options
+        return {"cases": 50, "publication_stage": "analysis_followup_pending"}
+
+    monkeypatch.setattr(publish_one_shot_collection, "publish", fake_publish)
+
+    outcome = target._production_publication(daily_context)
+
+    assert outcome.status == "complete"
+    assert verified_job_ids == [recorded_job_id]
+    assert captured["one_shots"] == [
+        daily_context.jobs_root / recorded_job_id / "analysis"
+    ]
+    assert captured["options"] == {
+        "allow_function_staging": True,
+        "expected_contract_sha256": "a" * 64,
+    }
+
+
 def test_production_ghidra_generates_static_followup_plan(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1888,6 +1947,55 @@ def test_run_implementation_migration_normalizes_only_legacy_deferred_c2_failure
     assert c2_record["retryable"] is True
     assert c2_record["error"] is None
     assert c2_record["result"]["network_contacted"] is False
+
+
+def test_run_implementation_migration_resets_retryable_exhausted_stages(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """旧実装で上限到達したstageを監査記録付きで新実装へ再開可能にする。"""
+
+    daily_context = context(tmp_path)
+    old_implementation = "d" * 64
+    new_implementation = "e" * 64
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: old_implementation)
+    fake_actions, _calls = actions(
+        {"ghidra": target.StageOutcome("partial", {}, retryable=True)}
+    )
+    target.run_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
+    state_path = daily_context.state_root / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    publication = state["stages"]["publication"]
+    publication.update(
+        status="failed",
+        attempts=target.MAX_STAGE_ATTEMPTS.get("publication", target.MAX_ATTEMPTS),
+        retryable=True,
+        result={},
+        error={"code": "old_implementation_failure", "message": "fixture"},
+    )
+    state["status"] = "failed"
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: new_implementation)
+
+    migrated = target.migrate_run_implementation(
+        daily_context,
+        expected_old_implementation_sha256=old_implementation,
+    )
+    repeated = target.migrate_run_implementation(
+        daily_context,
+        expected_old_implementation_sha256=old_implementation,
+    )
+
+    normalized = json.loads(state_path.read_text(encoding="utf-8"))
+    publication = normalized["stages"]["publication"]
+    assert repeated == migrated
+    assert "retryable_stage_attempt_exhaustion_reset:publication" in migrated["state_normalizations"]
+    assert publication["status"] == "partial"
+    assert publication["attempts"] == 0
+    assert publication["retryable"] is True
+    assert publication["error"] is None
+    assert publication["result"]["status"] == "implementation_migration_retry_reset"
+    assert publication["result"]["previous"]["error"]["code"] == "old_implementation_failure"
 
 
 def test_run_implementation_migration_rejects_nonimplementation_binding_change(
