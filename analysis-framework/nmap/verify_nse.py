@@ -196,6 +196,15 @@ def _n520_handler(context: ssl.SSLContext) -> Handler:
     return handler
 
 
+def _tls_timeout_marker_handler(context: ssl.SSLContext) -> Handler:
+    def handler(connection: socket.socket) -> None:
+        with context.wrap_socket(connection, server_side=True) as tls:
+            tls.sendall(b"TIMEOUT")
+            time.sleep(0.2)
+
+    return handler
+
+
 def _pack_string(value: str) -> bytes:
     raw = value.encode("utf-8")
     if len(raw) > 31:
@@ -657,7 +666,7 @@ def _exercise_multi(
 
 
 def verify_all(nmap_value: str | None = None) -> dict[str, object]:
-    """39 caseでWinos echo拒否と経路差分probeを含むNSEを外部networkなしで検証する。"""
+    """41 caseでWinos echo拒否と経路差分probeを含むNSEを外部networkなしで検証する。"""
 
     nmap_exe = _resolve_nmap(nmap_value)
     key = b"loopback-rc4-key"
@@ -700,6 +709,18 @@ def verify_all(nmap_value: str | None = None) -> dict[str, object]:
             (_no_application_data_handler, "c2-transport-observe.nse", "c2-transport.mode=tcp-open", "tcp_open_only"),
             (_transport_banner_handler, "c2-transport-observe.nse", "c2-transport.mode=server-first,c2-transport.max-response=64", "server_first_banner_observed"),
             (_transport_tls_handler(context), "c2-transport-observe.nse", "c2-transport.mode=tls", "tls_handshake_observed"),
+            (
+                _n520_handler(context),
+                "c2-transport-observe.nse",
+                "c2-transport.mode=tls,c2-transport.observe-n520-server-first=true",
+                "n520_server_first_handshake_match",
+            ),
+            (
+                _tls_timeout_marker_handler(context),
+                "c2-transport-observe.nse",
+                "c2-transport.mode=tls,c2-transport.observe-n520-server-first=true",
+                "tls_server_first_timeout_marker",
+            ),
             (
                 _transport_http_handler,
                 "c2-transport-observe.nse",

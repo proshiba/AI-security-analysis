@@ -8,7 +8,7 @@ C2候補へ接触する機能は、すべて[`nmap_c2_detector.py`](../nmap/nmap
 
 - `dns_observe`：Nmapが解決したA／AAAAだけを記録し、serviceへ接続しません。
 - `tcp_connect`／`passive_banner`：TCP openまたは上限付きserver-first bannerを観測します。application dataは送信しません。
-- `tls_handshake`：application dataを送らず、TLS version、cipher、証明書SHA-256を観測します。
+- `tls_handshake`：application dataを送らず、TLS handshakeと証明書SHA-1／SHA-256を観測します。`--observe-n520-server-first`を明示した場合だけ、TLS後に受信を開始し、ValleyRAT N520型44-byte frameのmagic／CRC32または固定`TIMEOUT` markerを判定します。client側application dataは送信しません。
 - `http_get`／`https_get`：redirectを追跡せず、指定pathへGETを1回だけ送信します。
 - malware固有method：[`c2_protocol_probe_profiles.json`](c2_protocol_probe_profiles.json)と[`nmap/profiles.json`](../nmap/profiles.json)の完全一致bindingだけを使用します。
 
@@ -42,6 +42,19 @@ python .\analysis-framework\nmap\nmap_c2_detector.py `
 ```
 
 送信byte列、expected stage、SNI pin、証明書pinなどをCLIから自由入力することはできません。これらは中央profileから解決し、NSEへは権限制限した一時`--script-args-file`で渡します。結果にはraw banner、cookie、task本文、token、資格情報、private key、復号済みpayloadを含めません。
+
+検体とendpointの完全一致profileがないTLS候補でも、N520型server-first応答だけは送信ゼロで調査できます。44 byteのmagic／CRC32一致は`probable_c2=true`までとし、汎用観測から`c2_confirmed=true`へ昇格しません。7 byteの`TIMEOUT`は同一serviceのcluster化には使えますが、ValleyRAT固有markerと確認できていないためfamily判定には使いません。
+
+```powershell
+python .\analysis-framework\nmap\nmap_c2_detector.py `
+  192.0.2.10 443 `
+  --protocol tls `
+  --family valleyrat `
+  --observe-n520-server-first `
+  --allow-network `
+  --nmap C:\Tools\Nmap\nmap.exe `
+  --output .\c2-passive-n520-observation.json
+```
 
 ## workflowへの統合
 

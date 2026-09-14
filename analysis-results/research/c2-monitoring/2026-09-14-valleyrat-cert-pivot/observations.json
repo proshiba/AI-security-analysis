@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "observation_kind": "valleyrat_certificate_pivot",
+  "collected_at_utc": "2026-09-14T12:26:31Z",
+  "target_count": 8,
+  "shared_tls_hypothesis": {
+    "certificate_sha1": "7f1ed4a13d8a2ba6e690ecaf66a9dfa42dd8d9d1",
+    "observed_certificate_sha256": "ff887bedc2a83426ee1febcafe193f6601f263aca1f8fb137033173af00dc7c0",
+    "observed_matching_host_count": 5,
+    "server_first_marker": "TIMEOUT",
+    "server_first_length": 7,
+    "server_first_sha256": "ab5b50c3846ccfef52997e6e153b187022cde34b543019aa4feaf1f732feff50"
+  },
+  "threatfox": [
+    {
+      "endpoint": "185.9.17.250:443",
+      "ioc_id": "1892367",
+      "malware": "ValleyRAT",
+      "confidence_level": 75,
+      "first_seen": "2026-09-01 07:27:30 UTC",
+      "reporter": "whoamix302",
+      "tags": ["ValleyRAT", "winos"],
+      "reference": null,
+      "malware_sample_count": 0
+    },
+    {
+      "endpoint": "43.154.230.182:443",
+      "ioc_id": "1892371",
+      "malware": "ValleyRAT",
+      "confidence_level": 75,
+      "first_seen": "2026-09-01 07:27:28 UTC",
+      "reporter": "whoamix302",
+      "tags": ["ValleyRAT", "winos"],
+      "reference": null,
+      "malware_sample_count": 0
+    }
+  ],
+  "observations": [
+    {
+      "endpoint": "107.155.109.150:443",
+      "timestamp_utc": "2026-09-14T12:26:07.044564+00:00",
+      "port_state": "open",
+      "tls_certificate_match": true,
+      "server_first_status": "tls_server_first_timeout_marker",
+      "received_bytes": 7,
+      "n520_handshake_match": false
+    },
+    {
+      "endpoint": "110.173.48.35:443",
+      "timestamp_utc": "2026-09-14T12:26:11.226722+00:00",
+      "port_state": "open",
+      "tls_certificate_match": true,
+      "server_first_status": "tls_server_first_timeout_marker",
+      "received_bytes": 7,
+      "n520_handshake_match": false
+    },
+    {
+      "endpoint": "110.173.48.36:443",
+      "timestamp_utc": "2026-09-14T12:26:15.391166+00:00",
+      "port_state": "open",
+      "tls_certificate_match": true,
+      "server_first_status": "tls_server_first_timeout_marker",
+      "received_bytes": 7,
+      "n520_handshake_match": false
+    },
+    {
+      "endpoint": "110.173.48.37:443",
+      "timestamp_utc": "2026-09-14T12:26:19.557602+00:00",
+      "port_state": "open",
+      "tls_certificate_match": true,
+      "server_first_status": "tls_server_first_timeout_marker",
+      "received_bytes": 7,
+      "n520_handshake_match": false
+    },
+    {
+      "endpoint": "110.173.48.38:443",
+      "timestamp_utc": "2026-09-14T12:26:23.666341+00:00",
+      "port_state": "open",
+      "tls_certificate_match": true,
+      "server_first_status": "tls_server_first_timeout_marker",
+      "received_bytes": 7,
+      "n520_handshake_match": false
+    },
+    {
+      "endpoint": "45.64.52.195:443",
+      "timestamp_utc": "2026-09-14T12:15:50.915126+00:00",
+      "port_state": "closed",
+      "tls_certificate_match": null,
+      "server_first_status": "not_observed",
+      "received_bytes": 0,
+      "n520_handshake_match": null
+    },
+    {
+      "endpoint": "43.154.230.182:443",
+      "timestamp_utc": "2026-09-14T12:15:53.433287+00:00",
+      "port_state": "filtered",
+      "tls_certificate_match": null,
+      "server_first_status": "not_observed",
+      "received_bytes": 0,
+      "n520_handshake_match": null
+    },
+    {
+      "endpoint": "185.9.17.250:443",
+      "timestamp_utc": "2026-09-14T12:15:55.969876+00:00",
+      "port_state": "filtered",
+      "tls_certificate_match": null,
+      "server_first_status": "not_observed",
+      "received_bytes": 0,
+      "n520_handshake_match": null
+    }
+  ],
+  "assessment": {
+    "shared_service_cluster_confirmed_for_observed_hosts": true,
+    "valleyrat_family_confirmed": false,
+    "valleyrat_n520_protocol_confirmed": false,
+    "sample_backed_attribution_available": false,
+    "reason": "5台はTLS証明書と固定TIMEOUT応答が一致するが、ThreatFoxレコードに検体・referenceがなく、既知N520 44-byte handshakeにも一致しない"
+  },
+  "safety": {
+    "sample_executed": false,
+    "sample_downloaded": false,
+    "external_targets_contacted": true,
+    "application_data_sent": false,
+    "sent_bytes": 0,
+    "registration_attempted": false,
+    "authentication_attempted": false,
+    "task_poll_attempted": false,
+    "command_sent": false,
+    "payload_download_attempted": false,
+    "raw_request_published": false,
+    "raw_response_published": false
+  }
+}

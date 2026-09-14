@@ -214,5 +214,5 @@ def test_nmap_loopback_protocol_validation() -> None:
         pytest.skip("Nmap executableがないためloopback統合試験を省略します")
     report = _load_validator().verify_all(executable)
     assert report["external_network_used"] is False
-    assert report["case_count"] == 39
-    assert report["passed_count"] == 39
+    assert report["case_count"] == 41
+    assert report["passed_count"] == 41

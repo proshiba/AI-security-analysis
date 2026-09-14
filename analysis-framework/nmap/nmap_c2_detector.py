@@ -31,6 +31,7 @@ from c2_protocol_probe_profiles import (  # noqa: E402
 SCRIPT_ROOT = NMAP_ROOT / "scripts"
 SAFE_ARGUMENT_KEY = re.compile(r"[a-z0-9][a-z0-9_.-]{0,63}")
 SAFE_SHA256 = re.compile(r"[0-9a-f]{64}")
+SAFE_SHA1 = re.compile(r"[0-9a-f]{40}")
 MAXIMUM_ARGUMENT_BYTES = 4096
 GENERIC_PROTOCOL_METHODS = {
     "http": "http_get",
@@ -127,6 +128,7 @@ BOOLEAN_FIELDS = {
     "payload_download_attempted",
     "plaintext_prelude_sent",
     "probable_c2",
+    "response_printable_ascii",
     "redirect_followed",
     "registration_attempted",
     "stage_downloaded",
@@ -137,6 +139,7 @@ BOOLEAN_FIELDS = {
     "task_executed",
     "task_poll_attempted",
     "tls_version_enforced_by_nse",
+    "timeout_marker_matches",
     "victim_metadata_sent",
 }
 INTEGER_FIELDS = {
@@ -155,6 +158,7 @@ INTEGER_FIELDS = {
 }
 FLOAT_FIELDS = {"confidence"}
 ALLOWED_SCRIPT_FIELDS = BOOLEAN_FIELDS | INTEGER_FIELDS | FLOAT_FIELDS | {
+    "certificate_sha1",
     "certificate_sha256",
     "family",
     "note",
@@ -162,6 +166,7 @@ ALLOWED_SCRIPT_FIELDS = BOOLEAN_FIELDS | INTEGER_FIELDS | FLOAT_FIELDS | {
     "resolved_ip",
     "response_command",
     "response_packet",
+    "response_sha256",
     "session_id",
     "status",
     "variant",
@@ -401,6 +406,8 @@ def _profile_arguments(
         "darkcomet_server_first_idtype": "darkcomet.timeout",
     }.get(method, "c2-transport.timeout")
     arguments[arguments_key] = int(timeout * 1000)
+    if method == "tls_handshake" and target.get("observe_n520_server_first") is True:
+        arguments["c2-transport.observe-n520-server-first"] = "true"
     if method in {"passive_banner", "http_get"}:
         arguments["c2-transport.max-response"] = int(target.get("maximum_response_bytes", 256))
     if method == "http_get":
@@ -612,11 +619,27 @@ def _normalize_result(
     if result.get("http_status") is not None:
         result["http"] = {"status": int(result["http_status"])}
     certificate = result.get("certificate_sha256")
-    if isinstance(certificate, str) and SAFE_SHA256.fullmatch(certificate.casefold()):
+    certificate_sha1 = result.get("certificate_sha1")
+    valid_sha256 = (
+        certificate.casefold()
+        if isinstance(certificate, str) and SAFE_SHA256.fullmatch(certificate.casefold())
+        else None
+    )
+    valid_sha1 = (
+        certificate_sha1.casefold()
+        if isinstance(certificate_sha1, str) and SAFE_SHA1.fullmatch(certificate_sha1.casefold())
+        else None
+    )
+    if certificate is not None and valid_sha256 is None:
+        result.pop("certificate_sha256", None)
+    if certificate_sha1 is not None and valid_sha1 is None:
+        result.pop("certificate_sha1", None)
+    if valid_sha256 is not None or valid_sha1 is not None:
         result["tls"] = {
             "handshake": True,
             "certificate": {
-                "observed_sha256": certificate.casefold(),
+                "observed_sha1": valid_sha1,
+                "observed_sha256": valid_sha256,
                 "expected_sha256": profile.get("expected_certificate_sha256"),
                 "exact_match": result.get("certificate_exact_match"),
                 "state": (
@@ -627,6 +650,14 @@ def _normalize_result(
                 "certificate_mismatch_excludes_c2": False,
             },
         }
+    response_sha256 = result.get("response_sha256")
+    if response_sha256 is not None:
+        if not isinstance(response_sha256, str) or SAFE_SHA256.fullmatch(
+            response_sha256.casefold()
+        ) is None:
+            result.pop("response_sha256", None)
+        else:
+            result["response_sha256"] = response_sha256.casefold()
     if not binding.confirmation_allowed and result.get("c2_confirmed"):
         result["nse_reported_match"] = True
         result["c2_confirmed"] = False
@@ -873,6 +904,17 @@ def normalize_legacy_target(
     if method == "http_get":
         result["http_host"] = target.get("http_host") or host
         result["http_path"] = target.get("http_path") or "/"
+    observe_n520 = target.get("observe_n520_server_first", False)
+    if not isinstance(observe_n520, bool):
+        raise NmapC2Error("N520 server-first観測指定が不正です")
+    if observe_n520:
+        if method != "tls_handshake":
+            raise NmapC2Error("N520 server-first観測はTLSだけで使用できます")
+        result["observe_n520_server_first"] = True
+        result["maximum_response_bytes"] = 44
+        result["selection_basis"] = (
+            "汎用TLS handshakeと送信ゼロのValleyRAT N520型44-byte server-first frame観測"
+        )
     return result
 
 
@@ -895,6 +937,11 @@ def main() -> int:
     parser.add_argument("--sample-sha256")
     parser.add_argument("--http-host")
     parser.add_argument("--http-path", default="/")
+    parser.add_argument(
+        "--observe-n520-server-first",
+        action="store_true",
+        help="TLS後に送信ゼロでValleyRAT N520型44-byte server-first frameを検証する",
+    )
     parser.add_argument("--timeout", type=float, default=3.0)
     parser.add_argument("--nmap")
     parser.add_argument("--allow-network", action="store_true")
@@ -915,6 +962,7 @@ def main() -> int:
         "family": args.family,
         "http_host": args.http_host,
         "http_path": args.http_path,
+        "observe_n520_server_first": args.observe_n520_server_first,
         "timeout_seconds": args.timeout,
     }
     try:

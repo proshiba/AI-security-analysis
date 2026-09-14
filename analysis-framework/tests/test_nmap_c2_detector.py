@@ -108,6 +108,164 @@ def test_formbook_reviewed_route_requires_application_probe_gate() -> None:
     assert called is False
 
 
+def test_generic_tls_observation_preserves_valid_sha1_and_sha256() -> None:
+    sha1 = "7f1ed4a13d8a2ba6e690ecaf66a9dfa42dd8d9d1"
+    sha256 = "a" * 64
+
+    def fake_executor(command, **_kwargs):
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            _xml(
+                "c2-transport-observe.nse",
+                {
+                    "family": "unclassified",
+                    "protocol": "tls_transport_only",
+                    "status": "tls_handshake_observed",
+                    "certificate_sha1": sha1.upper(),
+                    "certificate_sha256": sha256.upper(),
+                    "target_connection_established": True,
+                    "application_data_sent": False,
+                },
+            ),
+            b"",
+        )
+
+    result = detector.probe_target_with_nmap(
+        _target("tls_handshake"),
+        allow_network=True,
+        nmap_executable=sys.executable,
+        executor=fake_executor,
+    )
+    assert result["tls"]["certificate"]["observed_sha1"] == sha1
+    assert result["tls"]["certificate"]["observed_sha256"] == sha256
+    assert result["application_data_sent"] is False
+    assert result["c2_confirmed"] is False
+
+
+def test_generic_tls_can_passively_validate_n520_without_application_data() -> None:
+    captured: dict[str, object] = {}
+
+    def fake_executor(command, **_kwargs):
+        captured["command"] = command
+        args_path = Path(command[command.index("--script-args-file") + 1])
+        captured["args"] = args_path.read_text(encoding="utf-8")
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            _xml(
+                "c2-transport-observe.nse",
+                {
+                    "family": "valleyrat",
+                    "protocol": "tls_transport_only",
+                    "status": "n520_server_first_handshake_match",
+                    "probable_c2": True,
+                    "c2_confirmed": False,
+                    "confidence": "0.90",
+                    "received_bytes": 44,
+                    "sent_bytes": 0,
+                    "request_count": 0,
+                    "magic_matches": True,
+                    "crc_matches": True,
+                    "response_printable_ascii": False,
+                    "response_sha256": "b" * 64,
+                    "application_data_sent": False,
+                },
+            ),
+            b"",
+        )
+
+    legacy = {
+        "host": "127.0.0.1",
+        "port": 443,
+        "protocol": "tls",
+        "family": "valleyrat",
+        "observe_n520_server_first": True,
+        "timeout_seconds": 1.0,
+    }
+    target = detector.normalize_legacy_target(legacy)
+    result = detector.probe_target_with_nmap(
+        target,
+        allow_network=True,
+        nmap_executable=sys.executable,
+        executor=fake_executor,
+    )
+    assert 'c2-transport.observe-n520-server-first="true"' in str(captured["args"])
+    assert result["status"] == "n520_server_first_handshake_match"
+    assert result["probable_c2"] is True
+    assert result["c2_confirmed"] is False
+    assert result["application_data_sent"] is False
+    assert result["sent_bytes"] == 0
+    assert result["request_count"] == 0
+    assert result["response_sha256"] == "b" * 64
+
+
+def test_n520_server_first_generic_observation_rejects_non_tls() -> None:
+    with pytest.raises(detector.NmapC2Error):
+        detector.normalize_legacy_target(
+            {
+                "host": "127.0.0.1",
+                "port": 80,
+                "protocol": "tcp",
+                "observe_n520_server_first": True,
+            }
+        )
+
+
+def test_invalid_response_sha256_is_not_published() -> None:
+    def fake_executor(command, **_kwargs):
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            _xml(
+                "c2-transport-observe.nse",
+                {
+                    "status": "tls_server_first_timeout_marker",
+                    "response_sha256": "not-a-sha256",
+                    "received_bytes": 7,
+                    "application_data_sent": False,
+                },
+            ),
+            b"",
+        )
+
+    result = detector.probe_target_with_nmap(
+        _target("tls_handshake"),
+        allow_network=True,
+        nmap_executable=sys.executable,
+        executor=fake_executor,
+    )
+    assert "response_sha256" not in result
+
+
+def test_generic_tls_observation_drops_invalid_certificate_digests() -> None:
+    def fake_executor(command, **_kwargs):
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            _xml(
+                "c2-transport-observe.nse",
+                {
+                    "family": "unclassified",
+                    "status": "tls_handshake_observed",
+                    "certificate_sha1": "not-a-sha1",
+                    "certificate_sha256": "not-a-sha256",
+                },
+            ),
+            b"",
+        )
+
+    result = detector.probe_target_with_nmap(
+        _target("tls_handshake"),
+        allow_network=True,
+        nmap_executable=sys.executable,
+        executor=fake_executor,
+    )
+    assert "certificate_sha1" not in result
+    assert "certificate_sha256" not in result
+    assert "tls" not in result
+
+
 def test_executor_receives_only_args_file_path_not_ftp_secret(tmp_path: Path) -> None:
     profile_id = "agenttesla-ftp-auth-3f091457-vilimorin"
     target = {
