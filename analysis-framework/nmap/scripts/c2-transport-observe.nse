@@ -1,10 +1,13 @@
 local nmap = require "nmap"
+local openssl = require "openssl"
 local stdnse = require "stdnse"
+local zlib = require "zlib"
 
 description = [[
 中央profile未登録のC2候補を、TCP open、server-first banner、TLS handshake、または
-単一HTTP GETのいずれかで限定観測します。malware固有応答を検証しないため、
-c2_confirmedとprobable_c2は常にfalseです。redirectや認証、登録、task取得は行いません。
+単一HTTP GETのいずれかで限定観測します。TLS modeでは明示指定時に、clientから
+application dataを送らずValleyRAT N520型44-byte server-first frameだけを検証できます。
+汎用観測であるためc2_confirmedは常にfalseです。redirect、認証、登録、task取得は行いません。
 ]]
 
 author = "AI-security-analysis"
@@ -77,7 +80,20 @@ local function tls(host, port)
   local ok, err = socket:connect(host.ip, port.number, "ssl")
   if not ok then socket:close(); return stdnse.format_output(false, err) end
   local certificate = socket:get_ssl_certificate()
+  local digest_sha1 = certificate and stdnse.tohex(certificate:digest("sha1")) or nil
   local digest = certificate and stdnse.tohex(certificate:digest("sha256")) or nil
+  local observe_n520 = stdnse.get_script_args("c2-transport.observe-n520-server-first") == "true"
+  local received, response = false, nil
+  if observe_n520 then
+    received, response = socket:receive_bytes(7)
+    if response and response ~= "TIMEOUT" and #response < 44 then
+      local remaining_received, remaining = socket:receive_bytes(44 - #response)
+      if remaining then
+        response = response .. remaining
+        received = received and remaining_received
+      end
+    end
+  end
   socket:close()
   local result = base("tls_handshake_observed")
   result.protocol = "tls_transport_only"
@@ -86,9 +102,40 @@ local function tls(host, port)
   result.application_data_sent = false
   result.sent_bytes = 0
   result.request_count = 0
+  result.certificate_sha1 = digest_sha1
   result.certificate_sha256 = digest
   result.tls_version_enforced_by_nse = false
   result.certificate_mismatch_excludes_c2 = false
+  if observe_n520 then
+    result.received_bytes = response and #response or 0
+    if response then
+      result.response_sha256 = stdnse.tohex(openssl.digest("sha256", response))
+      result.response_printable_ascii = not response:find("[^%g ]")
+    end
+    if response == "TIMEOUT" then
+      result.status = "tls_server_first_timeout_marker"
+      result.timeout_marker_matches = true
+      result.confidence = 0.45
+    elseif response and #response == 44 then
+      local session_id, received_magic = string.unpack("<I4I4", response)
+      local mixed = (((session_id >> 16) ~ (session_id & 0xffff)) | 0xa5a50000) & 0xffffffff
+      local expected_magic = (session_id ~ mixed) & 0xffffffff
+      local stored_crc = string.unpack("<I4", response, 41)
+      local calculated_crc = zlib.crc32(zlib.crc32(), response:sub(1, 40)) & 0xffffffff
+      local matched = received_magic == expected_magic and stored_crc == calculated_crc
+      result.family = matched and "valleyrat" or "unclassified"
+      result.probable_c2 = matched
+      result.confidence = matched and 0.90 or 0.35
+      result.status = matched and "n520_server_first_handshake_match" or "n520_handshake_mismatch"
+      result.session_id = string.format("0x%08x", session_id)
+      result.magic_matches = received_magic == expected_magic
+      result.crc_matches = stored_crc == calculated_crc
+    elseif not response or #response == 0 then
+      result.status = "n520_server_first_handshake_missing"
+    else
+      result.status = "n520_server_first_handshake_length_mismatch"
+    end
+  end
   return result
 end
 
