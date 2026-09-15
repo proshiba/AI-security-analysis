@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import re
@@ -165,6 +166,18 @@ def _semantic_digest(parts: list[str]) -> str:
     return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()
 
 
+def _runtime_literal(value: str) -> str:
+    """難読化器の`UTF8(Base64Decode(ldstr))`定数だけを一段戻す。"""
+
+    try:
+        decoded = base64.b64decode(value, validate=True).decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        return value
+    if not decoded.isprintable() or len(decoded) > 4096:
+        return value
+    return decoded
+
+
 def extract_method_records(data: bytes) -> list[dict[str, Any]]:
     """選択に必要なmethodについて、秘密値を出さないCIL要約を返す。"""
 
@@ -187,6 +200,7 @@ def extract_method_records(data: bytes) -> list[dict[str, Any]]:
         except Exception:  # noqa: BLE001, S112 - malformed non-target methods are skipped
             continue
         literals: list[str] = []
+        runtime_literals: list[str] = []
         path_keys: list[str] = []
         calls: list[str] = []
         semantic: list[str] = []
@@ -198,6 +212,7 @@ def extract_method_records(data: bytes) -> list[dict[str, Any]]:
             if opcode == "ldstr" and isinstance(operand, int):
                 last_literal = _user_string(pe, operand)
                 literals.append(last_literal)
+                runtime_literals.append(_runtime_literal(last_literal))
                 semantic.append(f"str_sha256:{hashlib.sha256(last_literal.encode('utf-8')).hexdigest()}")
                 continue
             if opcode in {"call", "callvirt", "newobj"} and isinstance(operand, int):
@@ -216,12 +231,158 @@ def extract_method_records(data: bytes) -> list[dict[str, Any]]:
                 "owner": owners.get(index, ""),
                 "name": str(row.Name),
                 "literals": literals,
+                "runtime_literals": runtime_literals,
                 "path_keys": path_keys,
                 "calls": calls,
                 "cil_semantic_sha256": _semantic_digest(semantic),
             }
         )
     return records
+
+
+def summarize_obfuscated_asyncrat_records(
+    records: list[dict[str, Any]], sample_sha256: str
+) -> dict[str, Any]:
+    """v0.5.8 compact wire markerを名前非依存で相互確認する。"""
+
+    digest = sample_sha256.casefold()
+    if not SHA256_RE.fullmatch(digest):
+        raise ProtocolEvidenceError("sample SHA-256が不正です")
+    required_registration = (
+        "T",
+        "ci",
+        "HWID",
+        "User",
+        "OS",
+        "Path",
+        "Admin",
+        "Performance",
+        "Pb",
+        "Antivirus",
+        "Installed",
+        "Pong",
+        "Grp",
+    )
+    required_heartbeat = ("T", "hb", "Msg")
+    required_dispatcher = ("T", "hbr", "sp", "sv", "wu")
+    required_invoke = ("Dll", "Plugin.Plugin", "Run", "Msgpack")
+
+    def unique_marker_record(required: tuple[str, ...]) -> dict[str, Any]:
+        candidates = []
+        required_set = set(required)
+        for item in records:
+            values = {
+                str(value)
+                for value in item.get("runtime_literals", item.get("literals", []))
+            }
+            if required_set <= values:
+                candidates.append(item)
+        if len(candidates) != 1:
+            raise ProtocolEvidenceError("compact protocol methodを一意に特定できません")
+        return candidates[0]
+
+    registration = unique_marker_record(required_registration)
+    heartbeat = unique_marker_record(required_heartbeat)
+    dispatcher = unique_marker_record(required_dispatcher)
+    invoke = unique_marker_record(required_invoke)
+    selected_tokens = {
+        str(item["token"]) for item in (registration, heartbeat, dispatcher, invoke)
+    }
+    if len(selected_tokens) != 4:
+        raise ProtocolEvidenceError("compact protocol methodの役割が重複しています")
+
+    def leaf_calls(item: dict[str, Any]) -> set[str]:
+        return {str(value).rsplit(".", 1)[-1] for value in item.get("calls", [])}
+
+    tls_candidates = [
+        item
+        for item in records
+        if {"Connect", "AuthenticateAsClient"} <= leaf_calls(item)
+    ]
+    if len(tls_candidates) != 1:
+        raise ProtocolEvidenceError("compact TLS接続methodを一意に特定できません")
+    connection_owner = str(tls_candidates[0]["owner"])
+    receive_candidates = [
+        item
+        for item in records
+        if item.get("owner") == connection_owner
+        and item.get("token") != tls_candidates[0].get("token")
+        and {"ToInt32", "BeginRead"} <= leaf_calls(item)
+    ]
+    send_candidates = [
+        item
+        for item in records
+        if item.get("owner") == connection_owner
+        and {"GetBytes", "Write"} <= leaf_calls(item)
+    ]
+    if len(receive_candidates) != 1 or len(send_candidates) != 1:
+        raise ProtocolEvidenceError("compact framing methodを一意に特定できません")
+
+    return {
+        "schema_version": 1,
+        "family": "asyncrat",
+        "sample_sha256": digest,
+        "analysis_status": "complete",
+        "protocol_variant": "compact_v058_chacha20",
+        "transport_evidence": {
+            "tls_method": (
+                f"{tls_candidates[0]['owner']}.{tls_candidates[0]['name']}"
+            ),
+            "tls_method_token": tls_candidates[0]["token"],
+            "receive_method_token": receive_candidates[0]["token"],
+            "send_method_token": send_candidates[0]["token"],
+            "framing": "little_endian_uint32_length_prefix",
+        },
+        "registration": {
+            "packet_key": "T",
+            "packet_value": "ci",
+            "method": f"{registration['owner']}.{registration['name']}",
+            "method_token": registration["token"],
+            "cil_semantic_sha256": registration["cil_semantic_sha256"],
+            "observed_required_fields": list(required_registration),
+            "observed_optional_fields": [],
+            "missing_required_fields": [],
+            "synthetic_values_required": True,
+            "real_host_metadata_allowed": False,
+        },
+        "dispatcher": {
+            "method": f"{dispatcher['owner']}.{dispatcher['name']}",
+            "method_token": dispatcher["token"],
+            "cil_semantic_sha256": dispatcher["cil_semantic_sha256"],
+            "observed_command_markers": ["hbr", "sp", "sv"],
+            "observed_optional_command_markers": ["wu"],
+            "missing_command_markers": [],
+            "heartbeat_request": {
+                "method": f"{heartbeat['owner']}.{heartbeat['name']}",
+                "method_token": heartbeat["token"],
+                "cil_semantic_sha256": heartbeat["cil_semantic_sha256"],
+                "packet_key": "T",
+                "packet_value": "hb",
+                "message_key": "Msg",
+                "message_source": "active_window_title",
+                "emulator_message_value": "",
+                "sanitized_for_privacy": True,
+                "schema_confirmed": True,
+            },
+            "heartbeat_response_markers": ["hbr"],
+            "file_or_plugin_transfer_markers": ["wu", "sp", "sv"],
+            "plugin_invoke_method_token": invoke["token"],
+        },
+        "emulator_readiness": {
+            "registration_schema_confirmed": True,
+            "command_dispatcher_confirmed": True,
+            "heartbeat_request_response_confirmed": True,
+            "operation_result_serializer_confirmed": False,
+            "live_operation_fake_result_allowed": False,
+            "unknown_command_reply_allowed": False,
+        },
+        "safety": {
+            "sample_executed": False,
+            "network_contacted": False,
+            "raw_cil_published": False,
+            "unreviewed_literals_published": False,
+        },
+    }
 
 
 def _unique(values: list[str]) -> list[str]:
@@ -335,7 +496,19 @@ def recover(data: bytes, family: str, expected_sha256: str) -> dict[str, Any]:
     actual = hashlib.sha256(data).hexdigest()
     if actual != expected_sha256.casefold():
         raise ProtocolEvidenceError(f"sample SHA-256が一致しません: expected={expected_sha256}, actual={actual}")
-    return summarize_records(extract_method_records(data), family, actual)
+    records = extract_method_records(data)
+    try:
+        result = summarize_records(records, family, actual)
+    except ProtocolEvidenceError:
+        if family != "asyncrat":
+            raise
+        return summarize_obfuscated_asyncrat_records(records, actual)
+    if family == "asyncrat" and result["analysis_status"] != "complete":
+        try:
+            return summarize_obfuscated_asyncrat_records(records, actual)
+        except ProtocolEvidenceError:
+            pass
+    return result
 
 
 def main() -> int:

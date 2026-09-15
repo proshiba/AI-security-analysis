@@ -602,6 +602,14 @@ def test_candidate_status_and_binary_requirement_are_preserved() -> None:
     )
     assert review_pending[0]["requirements"]["function_analysis_required"] is True
 
+    reviewed = one_shot._outcome_candidates(
+        {"candidates": [{"family": "valleyrat", "routing_eligible": True}]},
+        [layer],
+        {"status": "reviewed_function_logic", "functions": [{"name": "Main"}]},
+        one_shot._load_family_analysis_requirements(),
+    )
+    assert reviewed[0]["requirements"]["function_analysis_required"] is True
+
 
 def test_manifest_routes_only_exact_root_and_does_not_resume_unresolved_case(
     tmp_path: Path,

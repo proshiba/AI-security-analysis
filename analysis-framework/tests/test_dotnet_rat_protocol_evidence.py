@@ -130,3 +130,86 @@ def test_invalid_family_and_hash_are_rejected() -> None:
         MODULE.summarize_records(_records("asyncrat"), "unknown", "d" * 64)
     with pytest.raises(MODULE.ProtocolEvidenceError, match="SHA-256"):
         MODULE.summarize_records(_records("asyncrat"), "asyncrat", "bad")
+
+
+def test_obfuscated_compact_v058_protocol_is_selected_without_symbol_names() -> None:
+    def record(
+        token: str,
+        owner: str,
+        literals: list[str],
+        calls: list[str] | None = None,
+    ) -> dict:
+        return {
+            "token": token,
+            "owner": owner,
+            "name": f"obfuscated_{token}",
+            "literals": [],
+            "runtime_literals": literals,
+            "path_keys": [],
+            "calls": calls or [],
+            "cil_semantic_sha256": token[-1] * 64,
+        }
+
+    connection_owner = "obfuscated.connection"
+    records = [
+        record(
+            "0x06000001",
+            "obfuscated.registration",
+            [
+                "T",
+                "ci",
+                "HWID",
+                "User",
+                "OS",
+                "Path",
+                "Admin",
+                "Performance",
+                "Pb",
+                "Antivirus",
+                "Installed",
+                "Pong",
+                "Grp",
+            ],
+        ),
+        record("0x06000002", connection_owner, ["T", "hb", "Msg"]),
+        record(
+            "0x06000003",
+            "obfuscated.dispatcher",
+            ["T", "hbr", "sp", "sv", "wu"],
+        ),
+        record(
+            "0x06000004",
+            "obfuscated.dispatcher",
+            ["Dll", "Plugin.Plugin", "Run", "Msgpack"],
+        ),
+        record(
+            "0x06000005",
+            connection_owner,
+            [],
+            ["Connect", "AuthenticateAsClient"],
+        ),
+        record(
+            "0x06000006",
+            connection_owner,
+            [],
+            ["ToInt32", "BeginRead"],
+        ),
+        record("0x06000007", connection_owner, [], ["GetBytes", "Write"]),
+    ]
+
+    result = MODULE.summarize_obfuscated_asyncrat_records(records, "e" * 64)
+
+    assert result["analysis_status"] == "complete"
+    assert result["protocol_variant"] == "compact_v058_chacha20"
+    assert result["registration"]["packet_key"] == "T"
+    assert result["registration"]["packet_value"] == "ci"
+    assert result["dispatcher"]["heartbeat_request"]["packet_value"] == "hb"
+    assert result["dispatcher"]["heartbeat_response_markers"] == ["hbr"]
+    assert result["transport_evidence"]["framing"] == (
+        "little_endian_uint32_length_prefix"
+    )
+
+
+def test_obfuscated_compact_protocol_rejects_missing_marker() -> None:
+    with pytest.raises(MODULE.ProtocolEvidenceError, match="一意に特定"):
+        MODULE.summarize_obfuscated_asyncrat_records([], "f" * 64)

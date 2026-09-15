@@ -463,6 +463,47 @@ def test_render_readme_replaces_unreadable_provider_filename() -> None:
     assert "???" not in rendered
 
 
+def test_render_readme_includes_confirmed_static_configuration_and_function_status() -> None:
+    rendered = publisher.render_readme(
+        "a" * 64,
+        "asyncrat",
+        "one_shot_static_detector",
+        {"signature": "AsyncRAT", "tags": []},
+        {"type": "pe", "size": 4096},
+        [],
+        {"status": "characteristic_function_static_analysis_complete"},
+        1,
+        1,
+        static_configuration={
+            "version": "0.5.7B",
+            "group": "Debug",
+            "install": "false",
+            "anti_analysis": "false",
+            "config_mode": "plaintext_static_v057b",
+            "tls_certificate_validation": "accept_all",
+            "endpoints": [{"host": "c2.example.test", "port": 443}],
+            "protocol": {
+                "transport": "tls",
+                "framing": "little_endian_uint32_length_prefix",
+                "serialization": "messagepack",
+                "live_verified": False,
+            },
+            "emulator_readiness": {
+                "registration_schema_confirmed": True,
+                "command_dispatcher_confirmed": True,
+                "heartbeat_request_response_confirmed": True,
+            },
+        },
+    )
+
+    assert "代表関数と全関数inventoryの静的解析は完了" in rendered
+    assert "## 静的設定・通信詳細" in rendered
+    assert "`c2.example.test:443`" in rendered
+    assert "plaintext_static_v057b" in rendered
+    assert "little_endian_uint32_length_prefix" in rendered
+    assert "ライブ確認: `False`" in rendered
+
+
 def test_screenconnect_internal_family_maps_to_existing_public_family() -> None:
     assert publisher.public_family_id("screenconnect_rmm") == "screenconnect-rmm"
 
@@ -2888,12 +2929,17 @@ def test_publish_case_reflects_confirmed_static_c2_and_keeps_report_integrity(
     assert analysis["artifacts"]["c2_analysis"] == "c2-analysis.json"
 
     published_report = publisher.load_json(destination / "report.json")
+    assert published_report["case_state"]["status"] == "partial"
+    assert published_report["case_state"]["complete"] is False
+    assert published_report["case_state"]["resumable"] is False
+    assert published_report["case_state"]["blockers"] == ["c2_analysis_unresolved"]
+    assert summary["publication_stage"] == "analysis_followup_pending"
     assert (
         analysis_contract.case_integrity_errors(
             destination,
             published_report,
             expected_digest=digest,
-            require_resumable=True,
+            require_resumable=False,
         )
         == []
     )

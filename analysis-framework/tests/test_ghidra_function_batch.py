@@ -1199,6 +1199,30 @@ def test_classify_role_uses_symbol_and_api_boundaries(
     assert target._classify_role(name, calls, "") == expected
 
 
+def test_update_case_readme_static_logic_accepts_crlf() -> None:
+    """WindowsのCRLF READMEでも完了状態と詳細参照を一意に更新する。"""
+
+    readme = (
+        "# fixture\r\n"
+        "\r\n"
+        "- 静的ロジック状態: `function_analysis_required`\r\n"
+        "\r\n"
+        "詳細は[STATIC-LOGIC.md](STATIC-LOGIC.md)を参照してください。\r\n"
+    )
+
+    updated = target._update_case_readme_static_logic(
+        readme,
+        "characteristic_function_static_analysis_complete",
+    )
+
+    assert "\r" not in updated
+    assert (
+        "- 静的ロジック状態: `characteristic_function_static_analysis_complete`"
+        in updated
+    )
+    assert "[OVERALL-LOGIC.md](OVERALL-LOGIC.md)" in updated
+
+
 def test_7cea_behavior_projection_records_exact_drop_and_process_values(
     tmp_path: Path,
 ) -> None:

@@ -2137,11 +2137,9 @@ def _outcome_candidates(
     logic_report: dict[str, Any],
     requirements_policy: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """binaryの未完了関数解析を候補familyの必須gateへ反映する。"""
+    """binaryの関数解析を完了済みか否かにかかわらず必須gateへ反映する。"""
 
-    function_required = not function_analysis_is_available(logic_report) and any(
-        detect_format(layer.data, layer.name) in BINARY_FORMATS for layer in layers
-    )
+    function_required = any(detect_format(layer.data, layer.name) in BINARY_FORMATS for layer in layers)
     candidates = []
     for supplied in routing.get("candidates") or []:
         if not isinstance(supplied, dict):
