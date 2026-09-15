@@ -54,6 +54,40 @@ def test_structural_route_requires_settings_and_protocol(monkeypatch: pytest.Mon
     assert integrated.structural_evidence(data)["matched"] is False
 
 
+def test_structural_route_accepts_strict_obfuscated_config_protocol_pair(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        integrated,
+        "_managed_structure",
+        lambda _data: {
+            "settings_fields": [],
+            "settings_fields_complete": False,
+            "missing_types": ["Client.Settings"],
+            "missing_methods": {},
+            "methods_complete": False,
+        },
+    )
+    monkeypatch.setattr(
+        integrated,
+        "_validated_recovery",
+        lambda _data: {"config_mode": "chacha20_obfuscated_v058"},
+    )
+    monkeypatch.setattr(
+        integrated,
+        "_validated_protocol",
+        lambda _data, _digest: {
+            "protocol_variant": "compact_v058_chacha20"
+        },
+    )
+
+    result = integrated.structural_evidence(b"MZ\0BSJB\0obfuscated")
+
+    assert result["matched"] is True
+    assert result["obfuscated_profile_confirmed"] is True
+    assert result["rule"] == "asyncrat_obfuscated_chacha20_compact_v058"
+
+
 def test_handler_result_reaches_validated_static_configuration(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -72,6 +106,7 @@ def test_handler_result_reaches_validated_static_configuration(
         integrated,
         "_validated_recovery",
         lambda _data: {
+            "config_mode": "hmac_encrypted",
             "version": "0.5.8",
             "install": "true",
             "group": "Default",
@@ -81,12 +116,14 @@ def test_handler_result_reaches_validated_static_configuration(
             "certificate": {
                 "sha256": "9" * 64,
                 "size": 1_270,
+                "validation": "embedded_certificate_present",
                 "certificate_mismatch_excludes_c2": False,
             },
             "crypto_profile": {
                 "salt_source": "reviewed_family_profile",
                 "salt_published": False,
             },
+            "static_shape_evidence": None,
         },
     )
     monkeypatch.setattr(
@@ -123,6 +160,138 @@ def test_handler_result_reaches_validated_static_configuration(
     assert result["network_contacted"] is False
 
 
+def test_plaintext_handler_result_preserves_accept_all_tls_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        integrated,
+        "_managed_structure",
+        lambda _data: {
+            "settings_fields": sorted(integrated._SETTINGS),
+            "settings_fields_complete": True,
+            "missing_types": [],
+            "missing_methods": {},
+            "methods_complete": True,
+        },
+    )
+    monkeypatch.setattr(
+        integrated,
+        "_validated_recovery",
+        lambda _data: {
+            "config_mode": "plaintext_static_v057b",
+            "version": "0.5.7B",
+            "install": "false",
+            "group": "Debug",
+            "anti_analysis": "false",
+            "endpoints": [{"host": "c2.example.test", "port": 443}],
+            "dynamic_config_present": False,
+            "certificate": {
+                "sha256": None,
+                "size": None,
+                "validation": "accept_all",
+                "certificate_mismatch_excludes_c2": False,
+            },
+            "crypto_profile": {
+                "settings_storage": "plaintext",
+                "salt_source": "not_applicable",
+                "salt_published": False,
+            },
+            "static_shape_evidence": {
+                "settings_initializer": "trivial_return_true",
+                "tls_certificate_validation": "accept_all",
+                "placeholder_fields_validated": True,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        integrated,
+        "_validated_protocol",
+        lambda _data, _digest: {
+            "analysis_status": "complete",
+            "registration": {"missing_required_fields": []},
+            "dispatcher": {"missing_command_markers": []},
+        },
+    )
+    monkeypatch.setattr(integrated, "_managed_inventory", lambda *_args: [])
+
+    result = integrated.extract(_structural_fixture(), "fixture.exe")
+
+    assert result["config"]["recovery_status"] == "recovered_plaintext_and_protocol_verified"
+    assert result["config_endpoints"][0]["evidence"]["kind"] == "reviewed_plaintext_dotnet_settings"
+    assert result["static_evidence"]["config_mode"] == "plaintext_static_v057b"
+    assert result["static_evidence"]["authentication"] == "not_applicable"
+    assert result["static_evidence"]["tls_certificate_validation"] == "accept_all"
+    assert all(item["kind"] != "certificate.sha256" for item in result["findings"])
+
+
+def test_obfuscated_chacha_handler_recovers_after_name_based_route_miss(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        integrated,
+        "structural_evidence",
+        lambda _data: {
+            "matched": False,
+            "managed_pe": True,
+            "rule": "name_based_rule_missed",
+        },
+    )
+    monkeypatch.setattr(
+        integrated,
+        "_validated_recovery",
+        lambda _data: {
+            "config_mode": "chacha20_obfuscated_v058",
+            "version": "0.5.8",
+            "install": "false",
+            "group": "Default",
+            "anti_analysis": "false",
+            "endpoints": [{"host": "c2.example.test", "port": 1533}],
+            "dynamic_config_present": False,
+            "certificate": {
+                "sha256": "8" * 64,
+                "size": 1_252,
+                "validation": "embedded_certificate_present",
+                "certificate_mismatch_excludes_c2": False,
+            },
+            "crypto_profile": {
+                "settings_storage": "encrypted",
+                "key_derivation": "reviewed_xor_add_32_byte_mixing",
+                "authentication": "none_per_setting",
+                "cipher": "ChaCha20-IETF",
+                "nonce_size": 12,
+                "initial_counter": 1,
+                "salt_source": "not_applicable",
+                "salt_published": False,
+            },
+            "static_shape_evidence": {"chacha_core_token": "0x0600007d"},
+        },
+    )
+    monkeypatch.setattr(
+        integrated,
+        "_validated_protocol",
+        lambda _data, _digest: {
+            "analysis_status": "complete",
+            "protocol_variant": "compact_v058_chacha20",
+        },
+    )
+    monkeypatch.setattr(integrated, "_managed_inventory", lambda *_args: [])
+
+    result = integrated.extract(b"MZ\0BSJB\0fixture", "fixture.exe")
+
+    assert result["config"]["recovery_status"] == (
+        "recovered_chacha20_and_protocol_verified"
+    )
+    assert result["config"]["structural_assessment"]["matched"] is True
+    assert result["config"]["structural_assessment"][
+        "obfuscated_profile_confirmed"
+    ] is True
+    assert result["config_endpoints"][0]["evidence"]["kind"] == (
+        "reviewed_chacha20_dotnet_settings"
+    )
+    assert result["static_evidence"]["authentication"] == "none_per_setting"
+    assert result["static_evidence"]["decryption"] == "chacha20_ietf"
+
+
 def test_exact_review_has_meaningful_functions() -> None:
     functions = integrated._reviewed_functions(REVIEWED_SHA256)
     assert len(functions) == 12
@@ -140,6 +309,64 @@ def test_exact_review_has_meaningful_functions() -> None:
 
 def test_unreviewed_hash_does_not_receive_reviewed_function_claims() -> None:
     assert integrated._reviewed_functions("a" * 64) == []
+
+
+def test_chacha_review_requires_exact_hash_mode_and_data(monkeypatch) -> None:
+    expected = [{"role": "config_decoder"}]
+    monkeypatch.setattr(
+        integrated,
+        "_reviewed_chacha_functions",
+        lambda _digest, _data: expected,
+    )
+
+    assert (
+        integrated._reviewed_functions(
+            integrated._CHACHA_REVIEWED_SHA256,
+            data=b"managed-fixture",
+            config_mode="chacha20_obfuscated_v058",
+        )
+        is expected
+    )
+    assert (
+        integrated._reviewed_functions(
+            integrated._CHACHA_REVIEWED_SHA256,
+            data=b"managed-fixture",
+            config_mode="hmac_encrypted",
+        )
+        == []
+    )
+
+
+def test_plaintext_profile_receives_mode_specific_function_claims(monkeypatch) -> None:
+    monkeypatch.setattr(integrated, "_plaintext_v057b_profile_matches", lambda _data: True)
+
+    functions = integrated._reviewed_functions(
+        "a" * 64,
+        data=b"managed-fixture",
+        config_mode="plaintext_static_v057b",
+    )
+
+    assert len(functions) == 12
+    assert all(item["confidence"] == "confirmed_static_profile_match" for item in functions)
+    initialize = next(item for item in functions if item["name"] == "Client.Settings.InitializeSettings")
+    assert initialize["callees"] == []
+    assert initialize["api_calls"] == []
+    assert "追加復号を行わず" in initialize["summary_ja"]
+    connection = next(item for item in functions if item["name"].endswith("InitializeClient"))
+    assert "常にtrueを返す検証callback" in connection["logic_steps_ja"][1]
+
+
+def test_plaintext_profile_requires_exact_structural_match(monkeypatch) -> None:
+    monkeypatch.setattr(integrated, "_plaintext_v057b_profile_matches", lambda _data: False)
+
+    assert (
+        integrated._reviewed_functions(
+            "a" * 64,
+            data=b"managed-fixture",
+            config_mode="plaintext_static_v057b",
+        )
+        == []
+    )
 
 
 def test_async_protocol_accepts_variant_without_optional_winupdate() -> None:

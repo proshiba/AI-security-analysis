@@ -672,6 +672,63 @@ def render_iocs(
     return render_submitted_iocs(digest, network_iocs or [])
 
 
+def _static_configuration_summary(
+    trusted_results: list[tuple[dict[str, Any], dict[str, Any]]],
+) -> dict[str, Any] | None:
+    """handlerが確認した公開可能な設定・protocolだけをREADME用に正規化する。"""
+
+    for _execution, artifact in trusted_results:
+        payload = artifact.get("result") if isinstance(artifact, dict) else None
+        if not isinstance(payload, dict) or payload.get("static_config_recovered") is not True:
+            continue
+        config = payload.get("config")
+        evidence = payload.get("static_evidence")
+        protocol = payload.get("static_protocol")
+        readiness = payload.get("protocol_evidence", {}).get("emulator_readiness")
+        endpoints = []
+        for item in payload.get("config_endpoints") or []:
+            if not isinstance(item, dict):
+                continue
+            host = item.get("host")
+            port = item.get("port")
+            if (
+                isinstance(host, str)
+                and 1 <= len(host) <= 253
+                and isinstance(port, int)
+                and not isinstance(port, bool)
+                and 1 <= port <= 65_535
+            ):
+                endpoints.append({"host": host, "port": port})
+        if not endpoints:
+            continue
+        return {
+            "version": config.get("version") if isinstance(config, dict) else None,
+            "group": config.get("group") if isinstance(config, dict) else None,
+            "install": config.get("install") if isinstance(config, dict) else None,
+            "anti_analysis": config.get("anti_analysis") if isinstance(config, dict) else None,
+            "config_mode": evidence.get("config_mode") if isinstance(evidence, dict) else None,
+            "tls_certificate_validation": (
+                evidence.get("tls_certificate_validation") if isinstance(evidence, dict) else None
+            ),
+            "endpoints": endpoints[:64],
+            "protocol": {
+                key: protocol.get(key)
+                for key in ("status", "transport", "framing", "serialization", "live_verified")
+                if isinstance(protocol, dict) and key in protocol
+            },
+            "emulator_readiness": {
+                key: readiness.get(key)
+                for key in (
+                    "registration_schema_confirmed",
+                    "command_dispatcher_confirmed",
+                    "heartbeat_request_response_confirmed",
+                )
+                if isinstance(readiness, dict) and type(readiness.get(key)) is bool
+            },
+        }
+    return None
+
+
 def _human_readable_provider_filename(value: Any) -> str:
     """Provider側で文字化けした名前を人間向け文書へそのまま出さない。"""
 
@@ -697,6 +754,7 @@ def render_readme(
     confirmed_network_count: int | None = None,
     confirmed_management_count: int = 0,
     family_attribution: dict[str, Any] | None = None,
+    static_configuration: dict[str, Any] | None = None,
 ) -> str:
     if confirmed_network_count is None:
         confirmed_network_count = confirmed_c2_count
@@ -775,6 +833,18 @@ def render_readme(
         if capabilities
         else "特徴的なimport相関なし"
     )
+    logic_status = str(logic.get("status") or "unknown")
+    if logic_status in {"reviewed_function_logic", "characteristic_function_static_analysis_complete"}:
+        logic_assessment = (
+            "代表関数と全関数inventoryの静的解析は完了しています。"
+            "詳細は[STATIC-LOGIC.md](STATIC-LOGIC.md)を参照してください。"
+        )
+    else:
+        logic_assessment = (
+            "関数境界・call graph・逆コンパイルが未記録のbinaryは"
+            "`function_analysis_required`のままです。"
+            "詳細は[STATIC-LOGIC.md](STATIC-LOGIC.md)を参照してください。"
+        )
     lines.extend(
         [
             "",
@@ -786,7 +856,7 @@ def render_readme(
             "",
             "## 静的ロジック",
             "",
-            "関数境界・call graph・逆コンパイルが未記録のbinaryは`function_analysis_required`のままです。詳細は[STATIC-LOGIC.md](STATIC-LOGIC.md)を参照してください。",
+            logic_assessment,
             "",
             "## ファイルIOC",
             "",
@@ -797,6 +867,39 @@ def render_readme(
             "",
             c2_assessment,
             "公開可能な通信IOCは[IOC-LIST.md](IOC-LIST.md)を参照してください。",
+        ]
+    )
+    if static_configuration is not None:
+        endpoint_text = "、".join(
+            f"`{item['host']}:{item['port']}`" for item in static_configuration.get("endpoints", [])
+        )
+        protocol = static_configuration.get("protocol") or {}
+        readiness = static_configuration.get("emulator_readiness") or {}
+        lines.extend(
+            [
+                "",
+                "## 静的設定・通信詳細",
+                "",
+                f"- 設定形式: `{static_configuration.get('config_mode') or 'unknown'}`",
+                f"- version: `{static_configuration.get('version') or 'unknown'}`",
+                f"- group: `{static_configuration.get('group') or 'unknown'}`",
+                f"- install: `{static_configuration.get('install') or 'unknown'}`",
+                f"- anti-analysis設定: `{static_configuration.get('anti_analysis') or 'unknown'}`",
+                f"- 設定済みendpoint: {endpoint_text}",
+                f"- TLS証明書検証: `{static_configuration.get('tls_certificate_validation') or 'unknown'}`",
+                "- wire protocol: "
+                f"transport=`{protocol.get('transport') or 'unknown'}`、"
+                f"framing=`{protocol.get('framing') or 'unknown'}`、"
+                f"serialization=`{protocol.get('serialization') or 'unknown'}`",
+                "- 静的protocol確認: "
+                f"登録schema=`{readiness.get('registration_schema_confirmed')}`、"
+                f"command dispatcher=`{readiness.get('command_dispatcher_confirmed')}`、"
+                f"heartbeat request/response=`{readiness.get('heartbeat_request_response_confirmed')}`",
+                f"- ライブ確認: `{protocol.get('live_verified') is True}`（本解析では外部接続なし）",
+            ]
+        )
+    lines.extend(
+        [
             "",
             "## Sigma／YARA材料",
             "",
@@ -1809,6 +1912,7 @@ def publish_case(
         if json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")) not in management_identities
     ]
     config_recovered = static_config_recovered(trusted_handler_results, network_iocs)
+    static_configuration = _static_configuration_summary(trusted_handler_results)
     orchestration_path = destination / "orchestration.json"
     orchestration_document: dict[str, Any] | None = None
     if orchestration_path.is_file():
@@ -1841,6 +1945,13 @@ def publish_case(
     generic = documents["generic-triage.json"]
     pe = pe_summary(generic)
     capabilities = capability_notes(pe)
+    recovered_version = (
+        static_configuration.get("version") if isinstance(static_configuration, dict) else None
+    )
+    # malware_version participates in the canonical-case identity. A handler
+    # may recover an operator-controlled build string without proving that it
+    # is a stable family-version discriminator, so retain the existing identity
+    # here and expose the recovered value through analysis.static_configuration.
     version = existing_version or {
         "status": "unknown",
         "reported": None,
@@ -1904,6 +2015,22 @@ def publish_case(
         c2_analysis = build_unresolved_contract(digest, family, handlers=handler_ids)
     c2_validation = validate_c2_contract(c2_analysis, digest, repository=repository)
     write_json(destination / "c2-analysis.json", c2_analysis)
+    case_state = report.get("case_state")
+    if c2_validation.get("complete") is not True and isinstance(case_state, dict):
+        blockers = case_state.get("blockers")
+        if case_state.get("status") != "triaged_unknown" and isinstance(blockers, list):
+            if "c2_analysis_unresolved" not in blockers:
+                blockers.append("c2_analysis_unresolved")
+                blockers.sort()
+            case_state.update(
+                {
+                    "status": "partial",
+                    "complete": False,
+                    "resumable": False,
+                    "blockers": blockers,
+                }
+            )
+            publication_stage = "analysis_followup_pending"
     screenconnect_management_assessment = None
     if family == "screenconnect-rmm":
         screenconnect_management_assessment = {
@@ -1922,7 +2049,7 @@ def publish_case(
             "family_attribution_status": family_attribution["status"],
             "statically_confirmed_family": statically_confirmed_family,
             "provider_reported_family": family_attribution["provider_reported_family"],
-            "version": "unknown",
+            "version": recovered_version or "unknown",
             "format": pe.get("type") or metadata.get("file_type") or "unknown",
             "packing_suspected": bool((pe.get("entropy") or 0) >= 7.2),
             "unpack_status": "bounded_static_layers_recorded",
@@ -1964,6 +2091,8 @@ def publish_case(
     }
     if screenconnect_management_assessment is not None:
         analysis["screenconnect_management_assessment"] = screenconnect_management_assessment
+    if static_configuration is not None:
+        analysis["static_configuration"] = static_configuration
     write_json(destination / "analysis.json", analysis)
     write_json(
         destination / "iocs.json",
@@ -1997,6 +2126,7 @@ def publish_case(
             confirmed_network_count=len(network_iocs),
             confirmed_management_count=len(management_iocs),
             family_attribution=family_attribution,
+            static_configuration=static_configuration,
         ),
         encoding="utf-8",
     )

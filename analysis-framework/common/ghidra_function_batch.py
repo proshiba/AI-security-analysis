@@ -9716,6 +9716,34 @@ def _publish_shadow_case_transaction(
         )
 
 
+def _update_case_readme_static_logic(readme: str, status: str) -> str:
+    """改行形式に依存せず、case READMEの静的ロジック状態と参照文を更新する。"""
+
+    readme = readme.replace("\r\n", "\n").replace("\r", "\n")
+    readme, replacement_count = re.subn(
+        r"(?m)^- 静的ロジック状態: `[^`]+`$",
+        f"- 静的ロジック状態: `{status}`",
+        readme,
+    )
+    if replacement_count != 1:
+        raise ValueError(
+            "case READMEの静的ロジック状態を一意に更新できません: "
+            f"replacement_count={replacement_count}"
+        )
+    detail_line = (
+        "特徴的な代表関数の選定理由・処理内容は[STATIC-LOGIC.md](STATIC-LOGIC.md)、"
+        "検体全体の処理段階とcall関係は[OVERALL-LOGIC.md](OVERALL-LOGIC.md)を参照してください。"
+    )
+    readme = re.sub(
+        r"(?m)^.*\[STATIC-LOGIC\.md\]\(STATIC-LOGIC\.md\)を参照してください。$",
+        detail_line,
+        readme,
+    )
+    if "[OVERALL-LOGIC.md](OVERALL-LOGIC.md)" not in readme:
+        readme = readme.rstrip() + "\n\n" + detail_line + "\n"
+    return readme
+
+
 def publish_cases(
     repository: Path,
     collection_dir: Path,
@@ -9957,22 +9985,7 @@ def publish_cases(
 
         readme_path = case_dir / "README.md"
         readme = _bounded_content_snapshot(readme_path).data.decode("utf-8-sig")
-        readme = re.sub(
-            r"(?m)^- 静的ロジック状態: `[^`]+`$",
-            f"- 静的ロジック状態: `{report['status']}`",
-            readme,
-        )
-        detail_line = (
-            "特徴的な代表関数の選定理由・処理内容は[STATIC-LOGIC.md](STATIC-LOGIC.md)、"
-            "検体全体の処理段階とcall関係は[OVERALL-LOGIC.md](OVERALL-LOGIC.md)を参照してください。"
-        )
-        readme = re.sub(
-            r"(?m)^.*\[STATIC-LOGIC\.md\]\(STATIC-LOGIC\.md\)を参照してください。$",
-            detail_line,
-            readme,
-        )
-        if "[OVERALL-LOGIC.md](OVERALL-LOGIC.md)" not in readme:
-            readme = readme.rstrip() + "\n\n" + detail_line + "\n"
+        readme = _update_case_readme_static_logic(readme, report["status"])
         planned_updates = {
             "static-logic.json": _json_bytes(report),
             "STATIC-LOGIC.md": _render_markdown(report).encode("utf-8"),
