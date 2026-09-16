@@ -173,6 +173,32 @@ class FakeClient:
         }
 
 
+def test_function_inventory_identity_ignores_display_metadata_changes() -> None:
+    """同一関数境界の再取得でname等が変わっても不一致へ昇格しない。"""
+
+    before = [
+        {
+            "address": "0x401000",
+            "name": "entry",
+            "isExternal": False,
+            "isThunk": False,
+        }
+    ]
+    after = [
+        {
+            "address": "401000",
+            "name": "FUN_00401000",
+            "isExternal": False,
+            "isThunk": False,
+            "size": 32,
+        }
+    ]
+
+    assert target._function_inventory_identity(before) == target._function_inventory_identity(after)
+    after[0]["isThunk"] = True
+    assert target._function_inventory_identity(before) != target._function_inventory_identity(after)
+
+
 def test_managed_cil_parser_diagnostics_do_not_leak(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -242,6 +268,259 @@ def test_bounded_managed_cil_raw_instructions_preserves_count() -> None:
     assert result["instructions_truncated"] is True
     assert len(result["instructions"]) == target.MAX_MANAGED_CIL_RAW_INSTRUCTIONS_PER_METHOD
     assert result["instructions"] == instructions[:-1]
+
+
+def test_cil_method_body_bounds_rejects_invalid_or_truncated_headers() -> None:
+    """tiny/fat headerだけを受理し、宣言値をparser実行前に取得する。"""
+
+    assert target._cil_method_body_bounds(bytes([0x06]), 0) == (1, 1)
+    fat = bytearray(12 + 16)
+    fat[0:2] = (0x3003).to_bytes(2, "little")
+    fat[4:8] = (16).to_bytes(4, "little")
+    assert target._cil_method_body_bounds(bytes(fat), 0) == (12, 16)
+    assert target._cil_method_body_bounds(b"MZ", 0) is None
+    assert target._cil_method_body_bounds(bytes([0x03]), 0) is None
+
+
+def test_cil_method_body_end_includes_bounded_extra_sections() -> None:
+    """MoreSects付きfat methodはalignmentとextra sectionを含む終端を返す。"""
+
+    body = bytearray(20)
+    body[0:2] = (0x300B).to_bytes(2, "little")
+    body[4:8] = (1).to_bytes(4, "little")
+    body[12] = 0x2A
+    body[16:20] = bytes([0x01, 0x04, 0x00, 0x00])
+
+    assert target._cil_method_body_end(bytes(body), 0, 12, 1) == 20
+    assert target._cil_method_body_end(bytes(body[:19]), 0, 12, 1) is None
+
+
+def test_managed_cil_parser_caches_token_names_and_reports_progress(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    """同じcall tokenを繰り返し解決せず、長時間処理の進捗を可視化する。"""
+
+    methods = [
+        SimpleNamespace(Name=f"Method{index}", Rva=index + 1)
+        for index in range(2)
+    ]
+    metadata = SimpleNamespace(
+        MethodDef=SimpleNamespace(rows=methods),
+        TypeDef=SimpleNamespace(rows=[]),
+    )
+    fake_pe = SimpleNamespace(
+        net=SimpleNamespace(mdtables=metadata),
+        get_offset_from_rva=lambda _rva: 0,
+    )
+    instruction = SimpleNamespace(
+        opcode=SimpleNamespace(name="call"),
+        operand=0x0A000001,
+        offset=0,
+    )
+    token_calls: list[int] = []
+
+    monkeypatch.setattr(target.dnfile, "dnPE", lambda **_kwargs: fake_pe)
+    monkeypatch.setattr(
+        target,
+        "read_method_body_from_bytes",
+        lambda _data: SimpleNamespace(instructions=[instruction]),
+    )
+    monkeypatch.setattr(
+        target,
+        "_token_name",
+        lambda _pe, token: token_calls.append(token) or "System.Net.Socket.Connect",
+    )
+    monkeypatch.setattr(target, "MANAGED_CIL_PROGRESS_INTERVAL_METHODS", 1)
+
+    records = target._managed_cil_records(
+        bytes([0x06, 0x2A]),
+        tmp_path / "cil-instructions.raw.jsonl",
+        "a" * 64,
+    )
+
+    assert len(records) == 2
+    assert token_calls == [0x0A000001]
+    events = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert events[0]["state"] == "start"
+    assert events[-1]["state"] == "complete"
+    assert events[-1]["completed_methods"] == 2
+    assert events[-1]["token_name_cache_entries"] == 1
+
+
+def test_managed_cil_parser_retains_inventory_after_body_budget(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    """本文予算後もMethodDef inventoryを欠落させず、保留境界を明示する。"""
+
+    methods = [
+        SimpleNamespace(Name=f"Method{index}", Rva=index + 1)
+        for index in range(3)
+    ]
+    metadata = SimpleNamespace(
+        MethodDef=SimpleNamespace(rows=methods),
+        TypeDef=SimpleNamespace(rows=[]),
+    )
+    fake_pe = SimpleNamespace(
+        net=SimpleNamespace(mdtables=metadata),
+        get_offset_from_rva=lambda _rva: 0,
+    )
+    instruction = SimpleNamespace(
+        opcode=SimpleNamespace(name="ret"),
+        operand=None,
+        offset=0,
+    )
+    body_reads: list[bool] = []
+
+    monkeypatch.setattr(target.dnfile, "dnPE", lambda **_kwargs: fake_pe)
+    monkeypatch.setattr(
+        target,
+        "read_method_body_from_bytes",
+        lambda _data: body_reads.append(True) or SimpleNamespace(instructions=[instruction]),
+    )
+    monkeypatch.setattr(target, "MAX_MANAGED_CIL_BODY_METHODS", 1)
+    monkeypatch.setattr(target, "MANAGED_CIL_PROGRESS_INTERVAL_METHODS", 1)
+
+    records = target._managed_cil_records(
+        bytes([0x06, 0x2A]),
+        tmp_path / "cil-instructions.raw.jsonl",
+        "b" * 64,
+    )
+
+    assert len(records) == 3
+    assert len(body_reads) == 1
+    assert records[0]["decompilation_status"] == "succeeded"
+    assert [record["decompilation_status"] for record in records[1:]] == [
+        "deferred_resource_budget",
+        "deferred_resource_budget",
+    ]
+    events = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert events[-1]["state"] == "complete"
+    assert events[-1]["analyzed_body_methods"] == 1
+    assert events[-1]["deferred_body_methods"] == 2
+
+
+def test_managed_cil_parser_skips_declared_body_outside_file(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """巨大またはfile外を指す宣言bodyをdncilへ渡さない。"""
+
+    method = SimpleNamespace(Name="Malformed", Rva=1)
+    metadata = SimpleNamespace(
+        MethodDef=SimpleNamespace(rows=[method]),
+        TypeDef=SimpleNamespace(rows=[]),
+    )
+    fake_pe = SimpleNamespace(
+        net=SimpleNamespace(mdtables=metadata),
+        get_offset_from_rva=lambda _rva: 0,
+    )
+    fat = bytearray(12)
+    fat[0:2] = (0x3003).to_bytes(2, "little")
+    fat[4:8] = (0xFFFF_FFFF).to_bytes(4, "little")
+
+    monkeypatch.setattr(target.dnfile, "dnPE", lambda **_kwargs: fake_pe)
+    monkeypatch.setattr(
+        target,
+        "read_method_body_from_bytes",
+        lambda _data: pytest.fail("境界外bodyをdncilへ渡してはいけません"),
+    )
+
+    records = target._managed_cil_records(
+        bytes(fat),
+        tmp_path / "cil-instructions.raw.jsonl",
+        "c" * 64,
+    )
+
+    assert len(records) == 1
+    assert records[0]["decompilation_status"] == "failed_malformed_cil"
+    assert records[0]["decompilation_error"] == "CilMethodBodyBoundsExceeded"
+
+
+def test_managed_cil_parser_passes_only_declared_method_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """dncilへ別methodやfile末尾を渡さず、宣言method境界だけを渡す。"""
+
+    method = SimpleNamespace(Name="Bounded", Rva=1)
+    metadata = SimpleNamespace(
+        MethodDef=SimpleNamespace(rows=[method]),
+        TypeDef=SimpleNamespace(rows=[]),
+    )
+    fake_pe = SimpleNamespace(
+        net=SimpleNamespace(mdtables=metadata),
+        get_offset_from_rva=lambda _rva: 0,
+    )
+    observed: list[bytes] = []
+    instruction = SimpleNamespace(
+        opcode=SimpleNamespace(name="ret"),
+        operand=None,
+        offset=0,
+    )
+
+    monkeypatch.setattr(target.dnfile, "dnPE", lambda **_kwargs: fake_pe)
+    monkeypatch.setattr(
+        target,
+        "read_method_body_from_bytes",
+        lambda data: observed.append(data) or SimpleNamespace(instructions=[instruction]),
+    )
+
+    records = target._managed_cil_records(
+        bytes([0x06, 0x2A]) + b"TRAILING_BYTES",
+        tmp_path / "cil-instructions.raw.jsonl",
+        "d" * 64,
+    )
+
+    assert records[0]["decompilation_status"] == "succeeded"
+    assert observed == [bytes([0x06, 0x2A])]
+
+
+def test_managed_cil_parser_passes_declared_extra_sections(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """try/catch付きmethodは宣言extra sectionまでをdncilへ渡す。"""
+
+    method = SimpleNamespace(Name="WithExceptionHandler", Rva=1)
+    metadata = SimpleNamespace(
+        MethodDef=SimpleNamespace(rows=[method]),
+        TypeDef=SimpleNamespace(rows=[]),
+    )
+    fake_pe = SimpleNamespace(
+        net=SimpleNamespace(mdtables=metadata),
+        get_offset_from_rva=lambda _rva: 0,
+    )
+    body = bytearray(20)
+    body[0:2] = (0x300B).to_bytes(2, "little")
+    body[4:8] = (1).to_bytes(4, "little")
+    body[12] = 0x2A
+    body[16:20] = bytes([0x01, 0x04, 0x00, 0x00])
+    observed: list[bytes] = []
+    instruction = SimpleNamespace(
+        opcode=SimpleNamespace(name="ret"),
+        operand=None,
+        offset=0,
+    )
+
+    monkeypatch.setattr(target.dnfile, "dnPE", lambda **_kwargs: fake_pe)
+    monkeypatch.setattr(
+        target,
+        "read_method_body_from_bytes",
+        lambda data: observed.append(data) or SimpleNamespace(instructions=[instruction]),
+    )
+
+    records = target._managed_cil_records(
+        bytes(body) + b"NEXT_METHOD",
+        tmp_path / "cil-instructions.raw.jsonl",
+        "e" * 64,
+    )
+
+    assert records[0]["decompilation_status"] == "succeeded"
+    assert observed == [bytes(body)]
 
 
 def test_program_result_externalizes_and_hydrates_function_shards(

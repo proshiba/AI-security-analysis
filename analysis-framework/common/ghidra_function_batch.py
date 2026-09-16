@@ -114,6 +114,10 @@ BATCH_DECOMPILE_FUNCTION_TIMEOUT_SECONDS = 30
 DECOMPILE_TRANSPORT_MARGIN_SECONDS = 60
 MAX_CHARACTERISTIC_FUNCTIONS_PER_PROGRAM = 32
 MAX_MANAGED_CIL_RAW_INSTRUCTIONS_PER_METHOD = 8
+MAX_MANAGED_CIL_BODY_METHODS = 512
+MAX_MANAGED_CIL_METHOD_CODE_BYTES = 1024 * 1024
+MAX_MANAGED_CIL_METHOD_EXTRA_SECTION_BYTES = 1024 * 1024
+MANAGED_CIL_PROGRESS_INTERVAL_METHODS = 128
 FUNCTION_ANALYSIS_BLOCKER = "representative_function_analysis_required"
 C2_ANALYSIS_UNRESOLVED_BLOCKER = "c2_analysis_unresolved"
 ORCHESTRATION_FUNCTION_ANALYSIS_BLOCKER = "orchestration:function_analysis"
@@ -3125,6 +3129,24 @@ def _recover_unique_entry_point_function(
     return recovered, evidence, private_evidence
 
 
+def _function_inventory_identity(
+    functions: Iterable[Mapping[str, Any]],
+) -> tuple[tuple[bool, int, bool, bool], ...]:
+    """再取得で変動し得る表示metadataを除き、関数境界の同一性を比較する。"""
+
+    return tuple(
+        sorted(
+            (
+                (address := _strict_pe_address(function.get("address"))) is None,
+                address or 0,
+                bool(function.get("isExternal")),
+                bool(function.get("isThunk")),
+            )
+            for function in functions
+        )
+    )
+
+
 def _call_graph_degrees(call_graph: Mapping[str, Any]) -> tuple[Counter[str], Counter[str], dict[str, list[str]]]:
     """call graphから入次数、出次数、callee名をaddress単位で集計する。"""
 
@@ -4188,6 +4210,64 @@ def _bounded_managed_cil_raw_instructions(
     }
 
 
+def _cil_method_body_bounds(data: bytes, offset: int) -> tuple[int, int] | None:
+    """CIL method headerからheader sizeと宣言code sizeを有界に取得する。"""
+
+    if offset < 0 or offset >= len(data):
+        return None
+    first = data[offset]
+    header_format = first & 0x03
+    if header_format == 0x02:
+        return 1, first >> 2
+    if header_format != 0x03 or offset + 12 > len(data):
+        return None
+    flags_and_size = int.from_bytes(data[offset : offset + 2], "little")
+    header_size = ((flags_and_size >> 12) & 0x0F) * 4
+    if header_size < 12 or offset + header_size > len(data):
+        return None
+    code_size = int.from_bytes(data[offset + 4 : offset + 8], "little")
+    return header_size, code_size
+
+
+def _cil_method_body_end(
+    data: bytes,
+    offset: int,
+    header_size: int,
+    code_size: int,
+) -> int | None:
+    """CIL codeと後続extra sectionを含むmethod body終端を有界に返す。"""
+
+    code_end = offset + header_size + code_size
+    if code_end > len(data):
+        return None
+    if header_size < 12:
+        return code_end
+    flags_and_size = int.from_bytes(data[offset : offset + 2], "little")
+    if not flags_and_size & 0x0008:
+        return code_end
+
+    section_offset = (code_end + 3) & ~3
+    while True:
+        if section_offset + 4 > len(data):
+            return None
+        section_kind = data[section_offset]
+        if section_kind & 0x40:
+            section_size = int.from_bytes(data[section_offset + 1 : section_offset + 4], "little")
+        else:
+            section_size = data[section_offset + 1]
+        if section_size < 4:
+            return None
+        section_end = section_offset + section_size
+        if (
+            section_end > len(data)
+            or section_end - code_end > MAX_MANAGED_CIL_METHOD_EXTRA_SECTION_BYTES
+        ):
+            return None
+        if not section_kind & 0x80:
+            return section_end
+        section_offset = (section_end + 3) & ~3
+
+
 def _method_owner_map(pe: dnfile.dnPE) -> dict[int, str]:
     owners: dict[int, str] = {}
     table = getattr(getattr(pe.net, "mdtables", None), "TypeDef", None)
@@ -4241,6 +4321,50 @@ def _managed_cil_records(data: bytes, raw_path: Path, layer_sha256: str) -> list
     owners = _method_owner_map(pe)
     records = []
     raw_rows = []
+    token_name_cache: dict[int, str] = {}
+    total_methods = len(rows)
+    analyzed_body_methods = 0
+    deferred_body_methods = 0
+
+    def emit_progress(completed_methods: int) -> None:
+        if (
+            completed_methods % MANAGED_CIL_PROGRESS_INTERVAL_METHODS != 0
+            and completed_methods != total_methods
+        ):
+            return
+        print(
+            json.dumps(
+                {
+                    "phase": "managed_cil",
+                    "state": "progress" if completed_methods < total_methods else "complete",
+                    "sha256": layer_sha256,
+                    "completed_methods": completed_methods,
+                    "total_methods": total_methods,
+                    "analyzed_body_methods": analyzed_body_methods,
+                    "deferred_body_methods": deferred_body_methods,
+                    "token_name_cache_entries": len(token_name_cache),
+                    "executed": False,
+                },
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
+
+    print(
+        json.dumps(
+            {
+                "phase": "managed_cil",
+                "state": "start",
+                "sha256": layer_sha256,
+                "completed_methods": 0,
+                "total_methods": total_methods,
+                "body_method_budget": MAX_MANAGED_CIL_BODY_METHODS,
+                "executed": False,
+            },
+            ensure_ascii=False,
+        ),
+        flush=True,
+    )
     for index, row in enumerate(rows, start=1):
         token = 0x06000000 | index
         token_text = f"0x{token:08x}"
@@ -4269,40 +4393,116 @@ def _managed_cil_records(data: bytes, raw_path: Path, layer_sha256: str) -> list
                     "source_program_sha256": layer_sha256,
                 }
             )
+            emit_progress(index)
             continue
+        if analyzed_body_methods >= MAX_MANAGED_CIL_BODY_METHODS:
+            deferred_body_methods += 1
+            role = _classify_role(f"{owner}.{name}", [], "")
+            records.append(
+                {
+                    "function_id": function_id,
+                    "name": f"{owner}.{name}".strip("."),
+                    "token": token_text,
+                    "role": role,
+                    "summary_ja": SUMMARY_BY_ROLE[role],
+                    "logic_steps_ja": [
+                        "CLR metadataのMethodDefとCIL本体の存在を確認しました。",
+                        "日次解析の決定論的なmethod body上限に達したため、本文解析を保留しました。",
+                    ],
+                    "callees": [],
+                    "api_calls": [],
+                    "source": "dnfile/dncil",
+                    "tool": "bounded_managed_cil_static_parser",
+                    "program_selector": f"sha256:{layer_sha256}",
+                    "confidence": "confirmed_metadata_inventory_body_deferred",
+                    "decompilation_status": "deferred_resource_budget",
+                    "decompilation_error": None,
+                    "analysis_kind": "managed_cil",
+                    "source_program_sha256": layer_sha256,
+                    "instruction_count": None,
+                    "next_analysis": (
+                        "特徴関数候補として必要な場合は、method tokenを指定して追加の静的CIL解析を行います。"
+                    ),
+                }
+            )
+            raw_rows.append(
+                {
+                    "function_id": function_id,
+                    "token": token_text,
+                    "owner": owner,
+                    "name": name,
+                    "rva": hex(rva),
+                    "status": "deferred_resource_budget",
+                    "error": None,
+                    "instructions": [],
+                    "instruction_count": None,
+                    "instructions_truncated": False,
+                    "executed": False,
+                    "emulated": False,
+                }
+            )
+            emit_progress(index)
+            continue
+        analyzed_body_methods += 1
         instructions = []
         calls = []
         normalized = []
         error_name = None
         try:
             offset = int(pe.get_offset_from_rva(rva))
-            body = read_method_body_from_bytes(data[offset:])
-            for instruction in list(getattr(body, "instructions", ()) or ()):
-                opcode = str(getattr(getattr(instruction, "opcode", None), "name", "unknown"))
-                operand = _token_value(getattr(instruction, "operand", None))
-                rendered_operand: Any = operand
-                if opcode.casefold() == "ldstr":
-                    rendered_operand = "<str>"
-                elif opcode.casefold() in {"call", "callvirt", "newobj"} and isinstance(operand, int):
-                    rendered_operand = _token_name(pe, operand)
-                    calls.append(rendered_operand)
-                elif isinstance(operand, (int, float)):
-                    rendered_operand = "<num>"
-                elif isinstance(operand, list):
-                    rendered_operand = ["<target>" for _ in operand]
-                instructions.append(
-                    {
-                        "offset": str(getattr(instruction, "offset", "")),
-                        "opcode": opcode,
-                        "operand": operand,
-                    }
-                )
-                normalized.append(f"{opcode} {rendered_operand}" if rendered_operand is not None else opcode)
+            bounds = _cil_method_body_bounds(data, offset)
+            if bounds is None:
+                error_name = "InvalidCilMethodHeader"
+            else:
+                header_size, declared_code_size = bounds
+                if (
+                    declared_code_size > MAX_MANAGED_CIL_METHOD_CODE_BYTES
+                    or offset + header_size + declared_code_size > len(data)
+                ):
+                    error_name = "CilMethodBodyBoundsExceeded"
+                else:
+                    method_end = _cil_method_body_end(
+                        data,
+                        offset,
+                        header_size,
+                        declared_code_size,
+                    )
+                    if method_end is None:
+                        error_name = "CilMethodExtraSectionsBoundsExceeded"
+                    else:
+                        body = read_method_body_from_bytes(data[offset:method_end])
+                        for instruction in list(getattr(body, "instructions", ()) or ()):
+                            opcode = str(getattr(getattr(instruction, "opcode", None), "name", "unknown"))
+                            operand = _token_value(getattr(instruction, "operand", None))
+                            rendered_operand: Any = operand
+                            if opcode.casefold() == "ldstr":
+                                rendered_operand = "<str>"
+                            elif opcode.casefold() in {"call", "callvirt", "newobj"} and isinstance(operand, int):
+                                rendered_operand = token_name_cache.get(operand)
+                                if rendered_operand is None:
+                                    rendered_operand = _token_name(pe, operand)
+                                    token_name_cache[operand] = rendered_operand
+                                calls.append(rendered_operand)
+                            elif isinstance(operand, (int, float)):
+                                rendered_operand = "<num>"
+                            elif isinstance(operand, list):
+                                rendered_operand = ["<target>" for _ in operand]
+                            instructions.append(
+                                {
+                                    "offset": str(getattr(instruction, "offset", "")),
+                                    "opcode": opcode,
+                                    "operand": operand,
+                                }
+                            )
+                            normalized.append(
+                                f"{opcode} {rendered_operand}" if rendered_operand is not None else opcode
+                            )
         except Exception as error:
             error_name = type(error).__name__
         status = "succeeded" if error_name is None else "failed_malformed_cil"
-        role = _classify_role(f"{owner}.{name}", calls, "\n".join(normalized))
-        steps = _logic_steps("\n".join(normalized), calls, status, analysis_kind="managed_cil")
+        normalized_text = "\n".join(normalized)
+        role = _classify_role(f"{owner}.{name}", calls, normalized_text)
+        steps = _logic_steps(normalized_text, calls, status, analysis_kind="managed_cil")
         records.append(
             {
                 "function_id": function_id,
@@ -4311,7 +4511,7 @@ def _managed_cil_records(data: bytes, raw_path: Path, layer_sha256: str) -> list
                 "role": role,
                 "summary_ja": SUMMARY_BY_ROLE[role],
                 "logic_steps_ja": steps,
-                "pseudocode": "\n".join(normalized),
+                "pseudocode": normalized_text,
                 "callees": sorted(set(calls)),
                 "api_calls": sorted(set(calls)),
                 "source": "dnfile/dncil",
@@ -4348,6 +4548,7 @@ def _managed_cil_records(data: bytes, raw_path: Path, layer_sha256: str) -> list
                 "emulated": False,
             }
         )
+        emit_progress(index)
     _replace_jsonl(raw_path, raw_rows)
     return records
 
@@ -5172,10 +5373,13 @@ def analyze_program(
                 client,
                 program,
             )
-            if recovered_functions != functions:
+            if _function_inventory_identity(recovered_functions) != _function_inventory_identity(functions):
                 raise GhidraMcpError(
                     "entry point関数復元後の再取得inventoryが一致しません"
                 )
+            if recovered_functions != functions:
+                entry_function_recovery["inventory_refresh_metadata_changed"] = True
+                entry_function_recovery_raw["inventory_refresh_metadata_changed"] = True
             metadata_before_entry_point_function_recovery = metadata_raw
             metadata_raw = _program_get("/get_metadata")
             _bind_function_metadata_coverage(
