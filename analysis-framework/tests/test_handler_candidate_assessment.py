@@ -3947,6 +3947,89 @@ def _reviewed_shape_result(
 
 
 @pytest.mark.parametrize(
+    ("loader_argument", "call_arguments", "extra_binding", "expected"),
+    (
+        ('"dotnet_rat_config"', "data, pe, rva", "", True),
+        ('"dotnet_rat_protocol_evidence"', "data, pe, rva", "", False),
+        ('"dotnet_rat_config"', "data, rva, pe", "", False),
+        ('"dotnet_rat_config"', "data, pe, False", "", False),
+        (
+            '"dotnet_rat_config"',
+            "data, pe, rva",
+            "    module = object()\n",
+            False,
+        ),
+    ),
+    ids=("exact", "wrong-module", "reordered", "literal-rva", "rebound-module"),
+)
+def test_asyncrat_bounded_method_reader_review_requires_exact_loader_and_arguments(
+    loader_argument: str,
+    call_arguments: str,
+    extra_binding: str,
+    expected: bool,
+) -> None:
+    source = (
+        "def _read_bounded_method_body(data, pe, rva):\n"
+        f"    module = _load_common_module({loader_argument})\n"
+        f"{extra_binding}"
+        f"    return module.read_bounded_method_body({call_arguments})\n"
+    )
+    key = (
+        "extractors/asyncrat/integrated.py",
+        "reachable:_read_bounded_method_body",
+        "module.read_bounded_method_body",
+    )
+
+    assert _reviewed_shape_result(source, key) is expected
+
+
+def test_asyncrat_bounded_method_reader_review_is_source_scoped() -> None:
+    key = (
+        "extractors/asyncrat/integrated.py",
+        "reachable:_read_bounded_method_body",
+        "module.read_bounded_method_body",
+    )
+
+    assert key in catalog._REVIEWED_SOURCE_CALLS
+    assert (
+        "extractors/venomrat/integrated.py",
+        key[1],
+        key[2],
+    ) not in catalog._REVIEWED_SOURCE_CALLS
+    assert key[2] not in catalog._APPROVED_EXTERNAL_CALLS
+
+
+def test_asyncrat_handler_preflight_accepts_reviewed_bounded_cil_reader() -> None:
+    catalog.clear_handler_caches()
+    try:
+        specs = [
+            spec
+            for spec in catalog.discover_handlers()
+            if spec.id == "asyncrat:extractors.asyncrat.extractor.py:extract"
+        ]
+        assert len(specs) == 1
+        preflight = catalog.preflight_handler_for_assessment(
+            specs[0],
+            actual_format="pe",
+            input_size=1024 * 1024,
+        )
+    finally:
+        catalog.clear_handler_caches()
+
+    assert preflight["eligible"] is True
+    assert preflight["blockers"] == []
+    assert preflight["sample_execution_allowed"] is False
+    assert preflight["network_allowed"] is False
+    assert preflight["filesystem_write_allowed"] is False
+    assert (
+        preflight["dependency_audit"]["allowance_counts"][
+            "reviewed_source_scoped_call"
+        ]
+        >= 1
+    )
+
+
+@pytest.mark.parametrize(
     ("archive_expression", "member_expression", "mode", "expected"),
     (
         ("zipfile.ZipFile(io.BytesIO(data))", "member", '"r"', True),
