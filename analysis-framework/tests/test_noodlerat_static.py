@@ -207,6 +207,57 @@ def test_detector_and_passive_hunt_do_not_contact_network() -> None:
     assert hunt["targets"][0]["active_probe_performed"] is False
     assert hunt["protocol_profile"]["transport"] == "tcp_or_http_variant"
     assert hunt["protocol_profile"]["active_confirmation_default"] == "disabled"
+    assert hunt["host_wide_sibling_service_pivots"] == []
+
+
+def test_passive_hunt_adds_host_wide_sibling_port_marker_pivot() -> None:
+    sample = build_elf(
+        b"124.230.195.242:8888;|1;1;1;1;1;1;1;|00-24;|10"
+    )
+    hunt = c2_hunt.passive_hunt(noodle.extract_config(sample))
+    assert hunt["host_wide_sibling_service_pivots"] == [
+        {
+            "host": "124.230.195.242",
+            "configured_ports": [8888],
+            "host_wide_passive_queries": ["ip:124.230.195.242"],
+            "cross_family_marker_queries": [
+                'ip:124.230.195.242 "NIMABIJIAN"'
+            ],
+            "purpose": "sibling_port_and_cross_family_banner_review",
+            "supports_noodlerat_attribution": False,
+            "supports_c2_confirmation": False,
+            "active_probe_performed": False,
+        }
+    ]
+    assert hunt["network_contacted"] is False
+
+
+def test_cross_family_marker_is_observed_without_affecting_attribution() -> None:
+    result = noodle.extract_config(build_elf() + b"NIMABIJIAN")
+    observations = result["protocol_observations"]
+    marker = observations["cross_family_protocol_marker_checks"][0]
+    assert marker == {
+        "marker": "NIMABIJIAN",
+        "present": True,
+        "occurrence_count": 1,
+        "reported_family": "gh0st_rat_variant",
+        "role": "packet_marker_candidate",
+        "evidence_confidence": "single_public_report",
+        "public_reference": "https://www.ctfiot.com/2674.html",
+        "supports_noodlerat_attribution": False,
+        "supports_c2_confirmation": False,
+    }
+    assert observations["cross_family_markers_used_for_attribution"] is False
+    assert observations["cross_family_markers_used_for_c2_confirmation"] is False
+    assert result["terminal_family_confirmed"] is True
+
+
+def test_cross_family_marker_absence_is_recorded() -> None:
+    result = noodle.extract_config(build_elf())
+    marker = result["protocol_observations"]["cross_family_protocol_marker_checks"][0]
+    assert marker["marker"] == "NIMABIJIAN"
+    assert marker["present"] is False
+    assert marker["occurrence_count"] == 0
 
 
 def test_handler_result_meets_decoded_configuration_quality_gate() -> None:
