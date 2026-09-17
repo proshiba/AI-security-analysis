@@ -1439,7 +1439,7 @@ def test_client_rejects_nonpositive_or_nonfinite_transport_timeout(
 
     client._opener = NoCallsOpener()
     with pytest.raises(ValueError, match="有限の正数"):
-        client.get("/analysis_status", transport_timeout=timeout)  # type: ignore[arg-type]
+        client.get("/test_read", transport_timeout=timeout)  # type: ignore[arg-type]
 
 
 def test_client_uses_proxy_free_opener_and_preserves_timeout(
@@ -1515,16 +1515,21 @@ def test_client_rejects_mcp_error_object(
             return self.chunks.pop(0)
 
     class Opener:
+        calls = 0
+
         def open(self, _request: Request, *, timeout: int) -> Response:
-            assert timeout == 180
+            self.calls += 1
+            assert timeout == 60
             return Response()
 
-    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    opener = Opener()
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: opener)
     with pytest.raises(target.GhidraMcpError):
         target.GhidraMcpClient("http://127.0.0.1:8089").get(
             "/analysis_status",
             program="/Malware/Test/missing",
         )
+    assert opener.calls == 1
 
 
 @pytest.mark.parametrize(
@@ -1607,7 +1612,7 @@ def test_client_rejects_oversize_response_before_decode(
 
     monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
     with pytest.raises(target.GhidraMcpError, match="bytes上限"):
-        target.GhidraMcpClient("http://127.0.0.1:8089").get("/analysis_status")
+        target.GhidraMcpClient("http://127.0.0.1:8089").get("/test_read")
 
 
 @pytest.mark.parametrize(
@@ -1655,7 +1660,7 @@ def test_client_bounded_body_reader_preserves_empty_json_and_text(
 
     monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
     client = target.GhidraMcpClient("http://127.0.0.1:8089", timeout=3)
-    assert client.get("/analysis_status") == expected
+    assert client.get("/test_read") == expected
     assert response.timeouts
     assert all(0 < value <= 3 for value in response.timeouts)
 
@@ -1710,7 +1715,7 @@ def test_client_does_not_reset_timeout_after_content_length_is_drained(
 
     monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
     assert target.GhidraMcpClient("http://127.0.0.1:8089", timeout=3).get(
-        "/analysis_status"
+        "/test_read"
     ) == {"ok": True}
     assert socket_object.timeout_updates == 1
 
@@ -1755,7 +1760,7 @@ def test_client_rejects_content_length_truncation(
     monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
     with pytest.raises(target.GhidraMcpError, match="OSError") as captured:
         target.GhidraMcpClient("http://127.0.0.1:8089", timeout=3).get(
-            "/analysis_status"
+            "/test_read"
         )
     assert isinstance(captured.value.__cause__, OSError)
 
@@ -1797,7 +1802,7 @@ def test_client_total_deadline_stops_trickle_response(
     monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
     client = target.GhidraMcpClient("http://127.0.0.1:8089", timeout=1)
     with pytest.raises(target.GhidraMcpError, match="response deadline exceeded") as captured:
-        client.get("/analysis_status")
+        client.get("/test_read")
     assert isinstance(captured.value.__cause__, TimeoutError)
     assert target._request_transport_failure_kind(captured.value) == "timeout"
     assert response.read_count == 3
@@ -1835,7 +1840,7 @@ def test_client_rejects_deadline_exceeded_while_opening_response(
     monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
     with pytest.raises(target.GhidraMcpError, match="response deadline exceeded") as captured:
         target.GhidraMcpClient("http://127.0.0.1:8089", timeout=1).get(
-            "/analysis_status"
+            "/test_read"
         )
     assert isinstance(captured.value.__cause__, TimeoutError)
     assert target._request_transport_failure_kind(captured.value) == "timeout"
@@ -1868,17 +1873,23 @@ def test_client_http_error_remains_semantic_without_publishing_body(
     )
 
     class Opener:
+        calls = 0
+
         def open(self, _request: Request, *, timeout: int) -> object:
+            self.calls += 1
             assert timeout == 2
             raise error
 
-    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    opener = Opener()
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: opener)
     with pytest.raises(target.GhidraMcpError, match="HTTP 503") as captured:
         target.GhidraMcpClient("http://127.0.0.1:8089", timeout=2).get(
-            "/analysis_status"
+            "/analysis_status",
+            program="/Malware/Test/sample",
         )
     assert captured.value.__cause__ is error
     assert target._request_transport_failure_kind(captured.value) is None
+    assert opener.calls == 1
     assert "PRIVATE_GHIDRA_DIAGNOSTIC" not in str(captured.value)
     assert poison_body.close_called is True
 
@@ -1909,7 +1920,7 @@ def test_client_normalizes_http_body_protocol_failure_to_transport_error(
     monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
     with pytest.raises(target.GhidraMcpError, match="OSError") as captured:
         target.GhidraMcpClient("http://127.0.0.1:8089", timeout=2).get(
-            "/analysis_status"
+            "/test_read"
         )
     assert isinstance(captured.value.__cause__, OSError)
     assert isinstance(captured.value.__cause__.__cause__, target.HTTPException)
@@ -1940,9 +1951,126 @@ def test_client_rejects_unknown_urllib_socket_shape(
     monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
     with pytest.raises(target.GhidraMcpError, match="OSError") as captured:
         target.GhidraMcpClient("http://127.0.0.1:8089", timeout=2).get(
-            "/analysis_status"
+            "/test_read"
         )
     assert isinstance(captured.value.__cause__, OSError)
+
+
+def test_quick_read_only_get_retries_one_header_timeout_on_new_request(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """安全なGETだけを60秒に束縛し、通信timeout後は新しいrequestで1回再試行する。"""
+
+    requests: list[Request] = []
+    timeouts: list[float] = []
+
+    class Response:
+        def __init__(self) -> None:
+            self.chunks = [b'{"segments":[]}', b""]
+
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def settimeout(self, _value: float) -> None:
+            pass
+
+        def read1(self, _amount: int) -> bytes:
+            return self.chunks.pop(0)
+
+    class Opener:
+        def open(self, request: Request, *, timeout: float) -> Response:
+            requests.append(request)
+            timeouts.append(timeout)
+            if len(requests) == 1:
+                raise TimeoutError("PRIVATE_HEADER_STALL")
+            return Response()
+
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    client = target.GhidraMcpClient("http://127.0.0.1:8089", timeout=3600)
+    assert client.get("/list_segments", program="/Malware/Test/sample") == {"segments": []}
+    assert len(requests) == 2
+    assert requests[0] is not requests[1]
+    assert all(request.data is None for request in requests)
+    assert all("program=%2FMalware%2FTest%2Fsample" in request.full_url for request in requests)
+    assert timeouts == [60.0, 60.0]
+    evidence = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert [(item["state"], item["attempt"]) for item in evidence] == [
+        ("request", 1),
+        ("retry", 1),
+        ("request", 2),
+        ("complete", 2),
+    ]
+    assert all(item["endpoint"] == "/list_segments" for item in evidence)
+    assert all(item["program_selector"] == "/Malware/Test/sample" for item in evidence)
+    assert all("body" not in item and "error" not in item and "url" not in item for item in evidence)
+
+
+def test_quick_read_only_get_stops_after_two_transport_timeouts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """2回とも通信timeoutなら3回目を開始せず、timeout causeを保持して失敗する。"""
+
+    requests: list[Request] = []
+
+    class Opener:
+        def open(self, request: Request, *, timeout: float) -> object:
+            requests.append(request)
+            assert timeout == 10
+            raise TimeoutError("PRIVATE_HEADER_STALL")
+
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    client = target.GhidraMcpClient("http://127.0.0.1:8089", timeout=3600)
+    with pytest.raises(target.GhidraMcpError) as captured:
+        client.get(
+            "/list_exports",
+            program="/Malware/Test/sample",
+            transport_timeout=10,
+        )
+    assert len(requests) == 2
+    assert target._request_transport_failure_kind(captured.value) == "timeout"
+    assert "PRIVATE_HEADER_STALL" not in str(captured.value)
+
+
+def test_quick_read_only_get_requires_explicit_normalized_selector(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """安全GETのretry対象は明示・正規化済みprogram selectorへ限定する。"""
+
+    class NoCallsOpener:
+        def open(self, *_args: object, **_kwargs: object) -> object:
+            raise AssertionError("selector検証失敗時にrequestを開始してはならない")
+
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: NoCallsOpener())
+    client = target.GhidraMcpClient("http://127.0.0.1:8089")
+    with pytest.raises(ValueError, match="明示program selector"):
+        client.get("/list_segments")
+    with pytest.raises(ValueError, match="正規化済み"):
+        client.get("/list_segments", program="Malware/Test/sample")
+
+
+def test_state_changing_get_is_not_retried(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET形状でもopen/save等の状態変更endpointへ自動retryを適用しない。"""
+
+    calls = 0
+
+    class Opener:
+        def open(self, _request: Request, *, timeout: float) -> object:
+            nonlocal calls
+            calls += 1
+            assert timeout == 3600
+            raise TimeoutError("PRIVATE_OPEN_STALL")
+
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    client = target.GhidraMcpClient("http://127.0.0.1:8089", timeout=3600)
+    with pytest.raises(target.GhidraMcpError):
+        client.get("/open_program", path="/Malware/Test/sample", auto_analyze=False)
+    assert calls == 1
 
 
 def test_decompile_status_preserves_limits() -> None:

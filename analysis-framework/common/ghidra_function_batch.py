@@ -117,6 +117,24 @@ ZERO_FUNCTION_OPCODE_HASH_LIMIT = (
     "bulk_function_hashes_endpoint_skipped_after_independent_zero_count_confirmation"
 )
 INITIAL_ANALYSIS_STATUS_TIMEOUT_SECONDS = 60
+QUICK_READ_ONLY_GET_TIMEOUT_SECONDS = 60
+QUICK_READ_ONLY_GET_MAX_ATTEMPTS = 2
+QUICK_READ_ONLY_GET_ENDPOINTS = frozenset(
+    {
+        "/analysis_status",
+        "/get_metadata",
+        "/list_functions_enhanced",
+        "/list_imports",
+        "/list_exports",
+        "/list_strings",
+        "/list_segments",
+        "/get_entry_points",
+        "/get_full_call_graph",
+        "/find_anti_analysis_techniques",
+        "/analyze_api_call_chains",
+        "/get_bulk_function_hashes",
+    }
+)
 LIMITED_EXPORT_TIMEOUT_SECONDS = 10
 STATUS_UNAVAILABLE_ANALYSIS_MODE = "native_ghidra_limited_status_unavailable"
 STATUS_UNAVAILABLE_LIMIT = (
@@ -1723,7 +1741,66 @@ class GhidraMcpClient:
         return value
 
     def get(self, endpoint: str, *, transport_timeout: float | None = None, **query: Any) -> Any:
-        return self._request("GET", endpoint, query=query, body=None, timeout=transport_timeout)
+        if endpoint not in QUICK_READ_ONLY_GET_ENDPOINTS:
+            return self._request("GET", endpoint, query=query, body=None, timeout=transport_timeout)
+
+        selector = query.get("program")
+        if not isinstance(selector, str) or not selector.strip():
+            raise ValueError(f"quick read-only GETには明示program selectorが必要です: {endpoint}")
+        if _safe_project_path(selector) != selector:
+            raise ValueError(f"quick read-only GETのprogram selectorが正規化済みではありません: {endpoint}")
+        requested_timeout = self.timeout if transport_timeout is None else transport_timeout
+        if (
+            isinstance(requested_timeout, bool)
+            or not isinstance(requested_timeout, (int, float))
+            or not math.isfinite(float(requested_timeout))
+            or requested_timeout <= 0
+        ):
+            raise ValueError("quick read-only GETのtransport timeoutは有限の正数で指定してください")
+        attempt_timeout = min(
+            float(self.timeout),
+            float(requested_timeout),
+            float(QUICK_READ_ONLY_GET_TIMEOUT_SECONDS),
+        )
+        for attempt in range(1, QUICK_READ_ONLY_GET_MAX_ATTEMPTS + 1):
+            evidence = {
+                "phase": "ghidra_quick_read_only_get",
+                "endpoint": endpoint,
+                "program_selector": selector,
+                "attempt": attempt,
+                "maximum_attempts": QUICK_READ_ONLY_GET_MAX_ATTEMPTS,
+                "transport_timeout_seconds": attempt_timeout,
+            }
+            print(json.dumps({**evidence, "state": "request"}, ensure_ascii=False), flush=True)
+            try:
+                response = self._request(
+                    "GET",
+                    endpoint,
+                    query=query,
+                    body=None,
+                    timeout=attempt_timeout,
+                )
+            except GhidraMcpError as error:
+                transport_kind = _request_transport_failure_kind(error)
+                retrying = transport_kind is not None and attempt < QUICK_READ_ONLY_GET_MAX_ATTEMPTS
+                print(
+                    json.dumps(
+                        {
+                            **evidence,
+                            "state": "retry" if retrying else "failed",
+                            "transport_failure_kind": transport_kind,
+                            "retryable_transport_failure": retrying,
+                        },
+                        ensure_ascii=False,
+                    ),
+                    flush=True,
+                )
+                if retrying:
+                    continue
+                raise
+            print(json.dumps({**evidence, "state": "complete"}, ensure_ascii=False), flush=True)
+            return response
+        raise AssertionError("quick read-only GET retry loopが終端しませんでした")
 
     def post(
         self,

@@ -159,6 +159,8 @@ native programで`list_functions_enhanced`だけが応答不能になる場合�
 
 MCP HTTP clientはrequest開始時にmonotonic deadlineを固定し、header受領直後と各body readの前後で期限を確認します。bodyは64 KiB以下のchunkで読み、各read直前に残時間を実socketへ設定するため、通常の非chunked bodyが少量ずつ返るtrickle responseでも総上限を延長しません。`urllib`内部で行われるstatus/header読取とchunked metadataの単一内部readはsocketの無通信timeoutに依存し、その呼出し中の厳密なhard wall-clock遮断までは主張しません。呼出しが戻った時点でdeadline超過を失敗へ固定し、未知のurllib socket構造、Content-Length途中切断、期限超過はfail-closedにします。HTTP errorはtransport timeoutへ誤分類せず、error response本文は例外や成果物へ含めず、応答をcloseします。64 MiBのresponse上限、empty response、JSON、textの既存正規化契約は維持します。
 
+`analysis_status`、metadata、関数・構造・文字列・entry point・call graph・anti-analysis・API chain・opcode hashの取得は、副作用のないquick read-only GETとして明示program selectorを必須にし、各通信試行を60秒以下へ制限します。timeout、接続切断、socket／HTTP body transport failureに限り、同じselectorを持つ新しいHTTP requestで最大1回だけ再試行します。HTTP status error、redirect、MCP error object、schema不正、response上限超過はsemantic failureとして再試行しません。標準出力へ残す証跡はendpoint、selector、試行番号、timeout、通信失敗分類だけで、response本文や例外本文を含めません。`open_program`、import、`run_analysis`、`save_program`、`close_program`、関数作成、decompileは状態変更または長時間処理なので、この自動再試行と60秒上限の対象外です。
+
 ## Ghidra関数解析後の品質ゲート再整合
 
 `ghidra_function_batch.py`がcaseの関数解析をfinalizeするときは、代表関数解析成果物を独立validatorで検証した後、既存`orchestration.json`の`function_analysis` gateだけを自動再整合します。gateが`required_missing`で検証済み関数解析が揃った場合は`required_missing`から`satisfied`へ変更し、対応する`function_analysis` blockerと同じ位置のnext actionだけを除去して、残余blockerからorchestration状態を再計算します。
