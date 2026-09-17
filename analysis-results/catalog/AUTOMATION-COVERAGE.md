@@ -3,19 +3,19 @@
 本表はdetector、静的handler、品質policyの実装構造、format別AST監査、検体を渡さない隔離runtime import確認から自動生成しています。検体実行、外部通信、生成AIは使用しません。
 この割合は実検体を解析して測定した成功率ではなく、解析完了率、config／C2抽出成功率、終端payload到達率、誤検知率を示しません。
 
-- 対象family: 89件
-- detector＋AST監査＋runtime import確認済みhandler＋品質policyが揃う構造: 79件（88.76%）
+- 対象family: 90件
+- detector＋AST監査＋runtime import確認済みhandler＋品質policyが揃う構造: 80件（88.89%）
 - 代表fixtureで自動解析完了を実証済み: 0件
-- detector＋安全handlerでfamily自動選択可能: 79件
-- automatic宣言済みfamily: 87件（97.75%）
-- AST監査＋runtime import確認済みscript-only handler: 87件（97.75%）
-- 品質policy宣言済み: 87件 / 安全handler＋品質policy: 87件
+- detector＋安全handlerでfamily自動選択可能: 80件
+- automatic宣言済みfamily: 88件（97.78%）
+- AST監査＋runtime import確認済みscript-only handler: 88件（97.78%）
+- 品質policy宣言済み: 88件 / 安全handler＋品質policy: 88件
 - 安全handlerはあるが品質policy未宣言: 0件
-- handler実装: 宣言100件 / AST監査通過100件 / runtime import確認済み100件 / 停止0件
+- handler実装: 宣言101件 / AST監査通過101件 / runtime import確認済み101件 / 停止0件
 - automatic handlerがAST監査またはruntime importで停止: 0件
 - handlerによる候補検証のみ: 8件
-- 実行したformat別preflight: 1043件（上限2048件）
-- 実行した検体なしruntime import確認: 100件（計画100件）
+- 実行したformat別preflight: 1042件（上限2048件）
+- 実行した検体なしruntime import確認: 101件（計画101件）
 
 | family | 状態 | detector | 品質policy | 宣言handler | 安全handler | blocker |
 |---|---|---:|---:|---:|---:|---|
@@ -67,6 +67,7 @@
 | mx-go | fully_routable | あり | あり | 1 | 1 | なし |
 | nanocore | fully_routable | あり | あり | 1 | 1 | なし |
 | njrat | fully_routable | あり | あり | 1 | 1 | なし |
+| noodlerat | fully_routable | あり | あり | 1 | 1 | なし |
 | npm_supply_chain | fully_routable | あり | あり | 1 | 1 | なし |
 | nsis_obfuscated_loader | fully_routable | あり | あり | 1 | 1 | なし |
 | owareaper | fully_routable | あり | あり | 1 | 1 | なし |
