@@ -772,9 +772,25 @@ def test_native_zero_function_program_uses_independent_counts_without_listing(
     assert validation["complete"] is True
     assert all(call[1] != "/list_functions_enhanced" for call in client.calls)
     assert all(call[1] != "/create_function" for call in client.calls)
+    assert all(call[1] != "/get_bulk_function_hashes" for call in client.calls)
 
     raw_path = private_output / "objects" / digest / "ghidra-raw-index.json"
-    forged_raw = target.load_json_object_strict(raw_path)
+    original_raw = target.load_json_object_strict(raw_path)
+    forged_raw = json.loads(json.dumps(original_raw))
+    forged_raw["opcode_hashes"]["endpoint_invoked"] = True
+    target._json_dump(raw_path, forged_raw)
+    forged_opcode_validation = target.validate_private_artifacts(
+        {digest: result},
+        private_output,
+        expected_program_count=1,
+    )
+    assert forged_opcode_validation["complete"] is False
+    assert any(
+        "0関数証跡のopcode hash" in error
+        for error in forged_opcode_validation["programs"][0]["errors"]
+    )
+
+    forged_raw = json.loads(json.dumps(original_raw))
     forged_raw["analysis_status"]["function_count"] = 1
     target._json_dump(raw_path, forged_raw)
     forged_validation = target.validate_private_artifacts(
@@ -1336,6 +1352,111 @@ def test_opcode_hash_inventory_records_unavailable_functions() -> None:
     assert completed["functions"][1]["hash_status"] == "unavailable_recorded"
     assert completed["functions"][1]["program_selector"] == selector
     assert completed["unmatched_response_rows"][0]["address"] == "orphan"
+
+
+def test_opcode_hash_endpoint_is_skipped_only_for_strict_zero_inventory() -> None:
+    """strict 0件だけbulk endpointを省略し、metadata不一致では通常呼出しする。"""
+
+    selector = "/Malware/Test/zero"
+    status = {"analyzed": True, "analyzing": False, "function_count": 0}
+    coverage = target._independent_zero_function_coverage(
+        status,
+        "Function Count: 0\n",
+        selector,
+    )
+    assert coverage is not None
+
+    class Client:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, dict[str, object]]] = []
+
+        def get(self, endpoint: str, **query: object) -> object:
+            self.calls.append((endpoint, query))
+            return {"functions": [], "total_matching": 0}
+
+    strict_client = Client()
+    skipped = target._opcode_hashes_for_function_inventory(
+        strict_client,
+        selector,
+        [],
+        status=status,
+        metadata_value="Function Count: 0\n",
+        function_coverage=coverage,
+    )
+    assert strict_client.calls == []
+    assert skipped["endpoint"] == "/get_bulk_function_hashes"
+    assert skipped["program_selector"] == selector
+    assert skipped["endpoint_invoked"] is False
+    assert skipped["source"] == target.ZERO_FUNCTION_INVENTORY_SOURCE
+    assert skipped["endpoint_returned"] == 0
+
+    mismatch_client = Client()
+    invoked = target._opcode_hashes_for_function_inventory(
+        mismatch_client,
+        selector,
+        [],
+        status=status,
+        metadata_value="Function Count: 1\n",
+        function_coverage=coverage,
+    )
+    assert [call[0] for call in mismatch_client.calls] == ["/get_bulk_function_hashes"]
+    assert invoked["endpoint_invoked"] is True
+    assert invoked["source"] == "ghidra_mcp"
+
+
+def test_strict_zero_opcode_hash_skip_evidence_rejects_forgery() -> None:
+    """0関数opcode省略claimのselector・source・exact count偽装を拒否する。"""
+
+    selector = "/Malware/Test/zero"
+    status = {"analyzed": True, "analyzing": False, "function_count": 0}
+    function_coverage = target._independent_zero_function_coverage(
+        status,
+        "Function Count: 0\n",
+        selector,
+    )
+    assert function_coverage is not None
+    opcode_hashes = target._complete_opcode_hash_inventory(
+        {
+            "program": selector,
+            "program_selector": selector,
+            "endpoint": "/get_bulk_function_hashes",
+            "functions": [],
+            "endpoint_returned": 0,
+            "endpoint_invoked": False,
+            "source": target.ZERO_FUNCTION_INVENTORY_SOURCE,
+            "documented_limit": target.ZERO_FUNCTION_OPCODE_HASH_LIMIT,
+        },
+        [],
+        selector,
+    )
+    result = {
+        "program_selector": selector,
+        "analysis_mode": "native_ghidra_with_optional_cil",
+        "analysis_status": status,
+        "metadata": {"function_count": "0"},
+        "ghidra_function_inventory_count": 0,
+        "retrieval_coverage": {"functions": function_coverage},
+        "opcode_hashes": opcode_hashes,
+    }
+    assert target._opcode_hash_inventory_coverage_complete(result) is True
+    assert target._zero_function_opcode_hash_cache_compatible(result) is True
+
+    mutations = (
+        ("endpoint", "/forged"),
+        ("program_selector", "/Malware/Test/other"),
+        ("endpoint_invoked", True),
+        ("source", "forged"),
+        ("endpoint_returned", False),
+        ("returned", False),
+        ("total_matching", False),
+        ("available_hashes", False),
+        ("documented_limit", None),
+    )
+    for key, value in mutations:
+        forged = json.loads(json.dumps(result))
+        forged["opcode_hashes"][key] = value
+        assert target._opcode_hash_inventory_coverage_complete(forged) is False
+        assert target._zero_function_opcode_hash_cache_compatible(forged) is False
 
 
 def test_decompile_all_respects_server_batch_limit_and_records_every_function(

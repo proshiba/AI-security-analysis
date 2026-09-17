@@ -111,6 +111,9 @@ ZERO_FUNCTION_INVENTORY_SOURCE = "ghidra_analysis_status_and_metadata_zero"
 ZERO_FUNCTION_INVENTORY_LIMIT = (
     "list_functions_endpoint_skipped_after_independent_zero_count_confirmation"
 )
+ZERO_FUNCTION_OPCODE_HASH_LIMIT = (
+    "bulk_function_hashes_endpoint_skipped_after_independent_zero_count_confirmation"
+)
 STRUCTURE_PAGE_SIZE = 1_000
 DECOMPILE_BATCH_SIZE = 20
 DECOMPILE_WORKERS = 3
@@ -2794,8 +2797,13 @@ def _all_opcode_hashes(
     return _complete_opcode_hash_inventory(
         {
             "program": program,
+            "program_selector": program,
+            "endpoint": "/get_bulk_function_hashes",
             "functions": functions,
             "endpoint_returned": len(functions),
+            "endpoint_invoked": True,
+            "source": "ghidra_mcp",
+            "documented_limit": None,
         },
         function_inventory,
         program,
@@ -2809,7 +2817,11 @@ def _complete_opcode_hash_inventory(
 ) -> dict[str, Any]:
     """hash取得不能な関数も理由付きrecordとして全件inventory化する。"""
 
-    raw_rows = [dict(item) for item in (value or {}).get("functions", []) if isinstance(item, Mapping)]
+    source = value or {}
+    raw_rows = [dict(item) for item in source.get("functions", []) if isinstance(item, Mapping)]
+    endpoint_returned = source.get("endpoint_returned", len(raw_rows))
+    if type(endpoint_returned) is not int or endpoint_returned < 0:
+        raise GhidraMcpError("opcode hashのendpoint_returnedが非負整数ではありません")
     rows_by_address: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in raw_rows:
         rows_by_address[str(row.get("address") or "")].append(row)
@@ -2829,18 +2841,142 @@ def _complete_opcode_hash_inventory(
         )
         row["program_selector"] = program
         completed.append(row)
-    unmatched = [dict(item) for item in (value or {}).get("unmatched_response_rows", []) if isinstance(item, Mapping)]
+    unmatched = [dict(item) for item in source.get("unmatched_response_rows", []) if isinstance(item, Mapping)]
     unmatched.extend(row for rows in rows_by_address.values() for row in rows)
-    return {
+    completed_inventory = {
         "program": program,
         "functions": completed,
         "returned": len(completed),
-        "endpoint_returned": int((value or {}).get("endpoint_returned") or len(raw_rows)),
+        "endpoint_returned": endpoint_returned,
         "total_matching": len(completed),
         "available_hashes": sum(row["hash_status"] == "available" for row in completed),
         "all_functions_recorded": True,
         "unmatched_response_rows": unmatched,
     }
+    for key in (
+        "program_selector",
+        "endpoint",
+        "endpoint_invoked",
+        "source",
+        "documented_limit",
+    ):
+        if key in source:
+            completed_inventory[key] = source[key]
+    return completed_inventory
+
+
+def _opcode_hashes_for_function_inventory(
+    client: GhidraMcpClient,
+    program: str,
+    function_inventory: list[dict[str, Any]],
+    *,
+    status: Any,
+    metadata_value: Any,
+    function_coverage: Mapping[str, Any],
+) -> dict[str, Any]:
+    """strict 0関数証拠時だけbulk hash endpointを省略する。"""
+
+    zero_coverage = _independent_zero_function_coverage(
+        status,
+        metadata_value,
+        program,
+    )
+    if not function_inventory and zero_coverage is not None and dict(function_coverage) == zero_coverage:
+        return _complete_opcode_hash_inventory(
+            {
+                "program": program,
+                "program_selector": program,
+                "endpoint": "/get_bulk_function_hashes",
+                "functions": [],
+                "endpoint_returned": 0,
+                "endpoint_invoked": False,
+                "source": ZERO_FUNCTION_INVENTORY_SOURCE,
+                "documented_limit": ZERO_FUNCTION_OPCODE_HASH_LIMIT,
+            },
+            [],
+            program,
+        )
+    return _all_opcode_hashes(client, program, function_inventory)
+
+
+def _opcode_hash_inventory_coverage_complete(result: Mapping[str, Any]) -> bool:
+    """opcode hash inventoryとstrict 0件endpoint省略証拠を検証する。"""
+
+    value = result.get("opcode_hashes")
+    if not isinstance(value, Mapping):
+        return False
+    functions = value.get("functions")
+    unmatched = value.get("unmatched_response_rows")
+    inventory_count = result.get("ghidra_function_inventory_count")
+    def exact_int(item: Any) -> bool:
+        return type(item) is int
+
+    if (
+        not isinstance(functions, list)
+        or any(not isinstance(item, Mapping) for item in functions)
+        or not isinstance(unmatched, list)
+        or any(not isinstance(item, Mapping) for item in unmatched)
+        or not exact_int(inventory_count)
+        or inventory_count < 0
+        or not exact_int(value.get("returned"))
+        or value.get("returned") != len(functions)
+        or not exact_int(value.get("endpoint_returned"))
+        or value.get("endpoint_returned") < 0
+        or not exact_int(value.get("total_matching"))
+        or value.get("total_matching") != inventory_count
+        or len(functions) != inventory_count
+        or not exact_int(value.get("available_hashes"))
+        or value.get("available_hashes") < 0
+        or value.get("available_hashes") > len(functions)
+        or value.get("all_functions_recorded") is not True
+        or value.get("program") != result.get("program_selector")
+    ):
+        return False
+    function_coverage = result.get("retrieval_coverage")
+    function_evidence = (
+        function_coverage.get("functions")
+        if isinstance(function_coverage, Mapping)
+        else None
+    )
+    strict_zero_inventory = bool(
+        isinstance(function_evidence, Mapping)
+        and function_evidence.get("source") == ZERO_FUNCTION_INVENTORY_SOURCE
+    )
+    if strict_zero_inventory:
+        return bool(
+            _independent_zero_function_coverage_complete(result, function_evidence)
+            and value.get("program_selector") == result.get("program_selector")
+            and value.get("endpoint") == "/get_bulk_function_hashes"
+            and value.get("endpoint_invoked") is False
+            and value.get("source") == ZERO_FUNCTION_INVENTORY_SOURCE
+            and value.get("documented_limit") == ZERO_FUNCTION_OPCODE_HASH_LIMIT
+            and value.get("endpoint_returned") == 0
+            and value.get("returned") == 0
+            and value.get("total_matching") == 0
+            and value.get("available_hashes") == 0
+            and functions == []
+            and unmatched == []
+        )
+    if value.get("endpoint_invoked") is False:
+        return False
+    if value.get("endpoint_invoked") is True:
+        return bool(
+            value.get("program_selector") == result.get("program_selector")
+            and value.get("endpoint") == "/get_bulk_function_hashes"
+            and value.get("source") == "ghidra_mcp"
+            and value.get("documented_limit") is None
+        )
+    return "endpoint_invoked" not in value
+
+
+def _zero_function_opcode_hash_cache_compatible(result: Mapping[str, Any]) -> bool:
+    """新しいstrict 0関数cacheだけにopcode hash省略証拠を要求する。"""
+
+    coverage = result.get("retrieval_coverage")
+    functions = coverage.get("functions") if isinstance(coverage, Mapping) else None
+    if not isinstance(functions, Mapping) or functions.get("source") != ZERO_FUNCTION_INVENTORY_SOURCE:
+        return True
+    return _opcode_hash_inventory_coverage_complete(result)
 
 
 def _page_values(page: Any, endpoint: str) -> list[Any]:
@@ -5228,7 +5364,10 @@ def analyze_program(
             return cached
         legacy_complete = bool(cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True)
         cached_complete = bool(
-            legacy_complete and _function_inventory_coverage_complete(cached) and call_graph_complete
+            legacy_complete
+            and _function_inventory_coverage_complete(cached)
+            and _zero_function_opcode_hash_cache_compatible(cached)
+            and call_graph_complete
         )
         native_zero_recovery_pending = _native_zero_function_recovery_pending(cached)
         if legacy_complete and native_zero_recovery_pending and item.input_snapshot is None:
@@ -5525,7 +5664,14 @@ def analyze_program(
         call_graph = dict(ghidra_call_graph)
         anti_analysis = client.get("/find_anti_analysis_techniques", program=program)
         api_chains = client.get("/analyze_api_call_chains", program=program)
-        opcode_hashes = _all_opcode_hashes(client, program, functions)
+        opcode_hashes = _opcode_hashes_for_function_inventory(
+            client,
+            program,
+            functions,
+            status=status,
+            metadata_value=metadata_raw,
+            function_coverage=function_coverage,
+        )
         selected_native = select_characteristic_functions(
             functions,
             call_graph if isinstance(call_graph, Mapping) else {},
@@ -6246,6 +6392,11 @@ def validate_private_artifacts(
                 zero_function_evidence,
             ):
                 errors.append("raw indexの独立0関数確認が厳密な代替取得契約を満たしません")
+            if result.get("opcode_hashes") != raw_index.get("opcode_hashes"):
+                errors.append("0関数証跡のopcode hashがraw indexとprogram-resultで一致しません")
+            raw_bound_result["opcode_hashes"] = raw_index.get("opcode_hashes")
+            if not _opcode_hash_inventory_coverage_complete(raw_bound_result):
+                errors.append("raw indexのopcode hash省略証跡がstrict 0関数契約を満たしません")
         if raw_index.get("all_static_analysis_content_retained") is not True:
             errors.append("raw indexに全静的解析内容の保持証跡がありません")
         if not isinstance(retrieval_coverage, Mapping):
@@ -6370,6 +6521,8 @@ def validate_private_artifacts(
         if not isinstance(opcode_hashes, Mapping):
             errors.append("opcode hash成果物がJSON objectではありません")
         else:
+            if opcode_hashes.get("endpoint_invoked") is False and not _opcode_hash_inventory_coverage_complete(result):
+                errors.append("opcode hash endpoint省略証跡が許可されたstrict 0関数契約ではありません")
             opcode_functions = [item for item in opcode_hashes.get("functions", []) if isinstance(item, Mapping)]
             if int(opcode_hashes.get("returned") or 0) != len(opcode_functions):
                 errors.append("opcode hashのreturned件数と保存件数が一致しません")
@@ -10663,6 +10816,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if result_path.is_file():
             cached, cached_snapshot = _load_program_result(result_path)
             cached_complete = bool(cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True)
+            if cached_complete and not _zero_function_opcode_hash_cache_compatible(cached):
+                cached_complete = False
             native_zero_recovery_pending = _native_zero_function_recovery_pending(cached)
             if cached_complete and native_zero_recovery_pending and item.input_snapshot is None:
                 cached = _terminalize_unavailable_native_zero_function_recovery(
