@@ -22,6 +22,20 @@ import daily_analysis_orchestrator as target
 import daily_news_malware_intake as news_intake
 
 
+def test_ghidra_mcp_url_is_numeric_loopback_only_and_canonical() -> None:
+    assert target._normalize_ghidra_mcp_url("http://127.0.0.1:18089/") == "http://127.0.0.1:18089"
+    assert target._normalize_ghidra_mcp_url("http://[::1]:18089") == "http://[::1]:18089"
+    for value in (
+        "http://0.0.0.0:18089",
+        "http://localhost:18089",
+        "https://127.0.0.1:18089",
+        "http://127.0.0.1:18089/mcp",
+        "http://user@127.0.0.1:18089",
+    ):
+        with pytest.raises(target.DailyOrchestrationError):
+            target._normalize_ghidra_mcp_url(value)
+
+
 def test_reused_archive_is_reverified_with_remote_head(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2243,6 +2257,44 @@ def test_interrupted_run_implementation_migration_is_audited_and_idempotent(
         "authorized",
         "completed",
     }
+
+
+def test_legacy_state_migration_binds_operator_selected_relay_url(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    daily_context = context(tmp_path)
+    old_implementation = "a" * 64
+    new_implementation = "b" * 64
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: old_implementation)
+    fake_actions, _calls = actions(
+        {"ghidra": target.StageOutcome("partial", {}, retryable=True)}
+    )
+    target.run_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
+
+    state_path = daily_context.state_root / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state.pop("operator_pins")
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    binding_path = daily_context.collection_root / "collection-binding.json"
+    binding = json.loads(binding_path.read_text(encoding="utf-8"))
+    binding.pop("operator_pins_sha256")
+    binding_path.write_text(json.dumps(binding), encoding="utf-8")
+
+    relay_context = replace(daily_context, ghidra_mcp_url="http://127.0.0.1:18089")
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: new_implementation)
+    migrated = target.migrate_run_implementation(
+        relay_context,
+        expected_old_implementation_sha256=old_implementation,
+    )
+    migrated_state = json.loads(state_path.read_text(encoding="utf-8"))
+    migrated_binding = json.loads(binding_path.read_text(encoding="utf-8"))
+
+    assert migrated["status"] == "complete"
+    assert migrated_state["operator_pins"]["ghidra_mcp_url"] == "http://127.0.0.1:18089"
+    assert migrated_binding["operator_pins_sha256"] == target._sha256_value(
+        target._operator_pins(relay_context)
+    )
 
 
 def test_run_implementation_migration_rejects_wrong_old_pin(

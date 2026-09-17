@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import ipaddress
 import json
 import os
 import re
@@ -20,6 +21,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
+from urllib.parse import urlsplit
 
 import analysis_job_runner
 
@@ -31,6 +33,7 @@ STATE_KEYS = frozenset(
         "run_id",
         "request_sha256",
         "implementation_sha256",
+        "operator_pins",
         "status",
         "created_at_utc",
         "updated_at_utc",
@@ -39,6 +42,7 @@ STATE_KEYS = frozenset(
         "safety",
     }
 )
+LEGACY_STATE_KEYS = STATE_KEYS - {"operator_pins"}
 RUN_ID_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}\Z")
 SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
 MAX_STATE_BYTES = 4 * 1024 * 1024
@@ -121,6 +125,7 @@ MAX_SOURCE_DISCOVERY_FILES = 20_000
 MAX_SOURCE_DISCOVERY_DEPTH = 8
 MAX_DATASTORE_TARGET_LENGTH = 128
 MAX_DRIVE_CYCLES = 1024
+DEFAULT_GHIDRA_MCP_URL = "http://127.0.0.1:8089"
 CAPACITY_STOP_REASONS = frozenset(
     {
         "minimum_free_space_not_met",
@@ -204,6 +209,7 @@ class DailyContext:
     ghidra_project_store: Path
     request: DailyRequest
     allow_live_c2: bool
+    ghidra_mcp_url: str = DEFAULT_GHIDRA_MCP_URL
     trusted_tool_configuration: analysis_job_runner.TrustedToolConfiguration | None = field(
         default=None,
         repr=False,
@@ -563,6 +569,7 @@ def load_request(path: Path) -> DailyRequest:
 
 DAILY_IMPLEMENTATION_FILES = (
     "daily_analysis_orchestrator.py",
+    "ghidra_mcp_uds_relay.py",
     "daily_news_malware_intake.py",
     "malwarebazaar_batch.py",
     "analyze_sample.py",
@@ -849,6 +856,59 @@ def verify_news_source_date(tech_memo: Path, source_date: str) -> dict[str, Any]
     }
 
 
+def _normalize_ghidra_mcp_url(value: str) -> str:
+    """operator指定MCP URLをnumeric loopback HTTPへ限定して正規化する。"""
+
+    if not isinstance(value, str) or not value or value != value.strip():
+        raise DailyOrchestrationError(
+            "ghidra_mcp_url_invalid",
+            "Ghidra MCP URLは空白を含まない文字列で指定してください",
+        )
+    parsed = urlsplit(value)
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise DailyOrchestrationError(
+            "ghidra_mcp_url_invalid",
+            "Ghidra MCP URLのportが不正です",
+        ) from exc
+    try:
+        address = ipaddress.ip_address(parsed.hostname or "")
+    except ValueError as exc:
+        raise DailyOrchestrationError(
+            "ghidra_mcp_url_not_loopback",
+            "Ghidra MCP URLはnumeric loopback addressに限定します",
+        ) from exc
+    if (
+        parsed.scheme != "http"
+        or not address.is_loopback
+        or port is None
+        or not 1 <= port <= 65535
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+        or parsed.path not in {"", "/"}
+    ):
+        raise DailyOrchestrationError(
+            "ghidra_mcp_url_invalid",
+            "Ghidra MCP URLは資格情報・path・queryを持たないnumeric loopback HTTP endpointに限定します",
+        )
+    host = f"[{address.compressed}]" if address.version == 6 else address.compressed
+    return f"http://{host}:{port}"
+
+
+def _operator_pins(context: DailyContext) -> dict[str, Any]:
+    """公開可能なoperator実行pinを監査用の正規形で返す。"""
+
+    normalized = _normalize_ghidra_mcp_url(context.ghidra_mcp_url)
+    return {
+        "schema_version": 1,
+        "ghidra_mcp_url": normalized,
+        "ghidra_mcp_url_sha256": hashlib.sha256(normalized.encode("utf-8")).hexdigest(),
+    }
+
+
 def _validate_context(
     request: DailyRequest,
     *,
@@ -859,8 +919,10 @@ def _validate_context(
     ghidra_project_store: Path,
     allow_live_c2: bool,
     create_roots: bool,
+    ghidra_mcp_url: str = DEFAULT_GHIDRA_MCP_URL,
     trusted_tool_configuration: analysis_job_runner.TrustedToolConfiguration | None = None,
 ) -> DailyContext:
+    ghidra_mcp_url = _normalize_ghidra_mcp_url(ghidra_mcp_url)
     repository = _absolute(repository)
     intelligence_root = _absolute(intelligence_root)
     private_root = _absolute(private_root)
@@ -937,6 +999,7 @@ def _validate_context(
         ghidra_project_store=ghidra_project_store,
         request=request,
         allow_live_c2=allow_live_c2,
+        ghidra_mcp_url=ghidra_mcp_url,
         trusted_tool_configuration=trusted_tool_configuration,
     )
     _validate_context_derived_paths(context)
@@ -1450,6 +1513,7 @@ def _new_state(context: DailyContext) -> dict[str, Any]:
         "run_id": context.request.run_id,
         "request_sha256": _sha256_value(context.request.public()),
         "implementation_sha256": _implementation_sha256(),
+        "operator_pins": _operator_pins(context),
         "status": "running",
         "created_at_utc": now,
         "updated_at_utc": now,
@@ -1528,6 +1592,7 @@ def _load_state(
     *,
     expected_implementation_sha256: str | None = None,
     recover_running: bool = True,
+    allow_legacy_operator_pins: bool = False,
 ) -> dict[str, Any]:
     path = context.state_root / "state.json"
     expected_implementation = (
@@ -1542,8 +1607,14 @@ def _load_state(
         state = analysis_job_runner.load_json_object_strict(path, max_bytes=MAX_STATE_BYTES)
     except (analysis_job_runner.JobContractError, OSError) as exc:
         raise DailyOrchestrationError("state_invalid", "保存済み日次stateを安全に読めません") from exc
+    state_keys = set(state)
+    legacy_operator_pins = allow_legacy_operator_pins and state_keys == LEGACY_STATE_KEYS
     if (
-        set(state) != STATE_KEYS
+        (state_keys != STATE_KEYS and not legacy_operator_pins)
+        or (
+            not legacy_operator_pins
+            and state.get("operator_pins") != _operator_pins(context)
+        )
         or state.get("schema_version") != STATE_SCHEMA_VERSION
         or state.get("run_id") != context.request.run_id
         or state.get("request_sha256") != _sha256_value(context.request.public())
@@ -1553,7 +1624,7 @@ def _load_state(
     ):
         raise DailyOrchestrationError(
             "state_contract_changed",
-            "保存済み日次stateとrequestまたは実装契約が一致しません",
+            "保存済み日次stateとrequest、operator pin、実装契約が一致しません",
         )
     try:
         saved_request = analysis_job_runner.load_json_object_strict(
@@ -1828,6 +1899,7 @@ def _collection_binding(context: DailyContext) -> dict[str, Any]:
         "run_id": context.request.run_id,
         "request_sha256": _sha256_value(context.request.public()),
         "implementation_sha256": _implementation_sha256(),
+        "operator_pins_sha256": _sha256_value(_operator_pins(context)),
         "source_manifest_sha256": context.request.source_manifest_sha256,
         "automatic_source_deletion": False,
     }
@@ -1903,6 +1975,7 @@ def _migration_receipt_base(
         "source_manifest_sha256": context.request.source_manifest_sha256,
         "from_implementation_sha256": old_implementation_sha256,
         "to_implementation_sha256": new_implementation_sha256,
+        "operator_pins_sha256": _sha256_value(_operator_pins(context)),
         "safety": {
             "sample_executed": False,
             "network_contacted": False,
@@ -2394,6 +2467,7 @@ def migrate_run_implementation(
             context,
             expected_implementation_sha256=observed_state_implementation,
             recover_running=False,
+            allow_legacy_operator_pins=True,
         )
         state_normalizations: list[str] = []
         deferred_c2 = state["stages"]["c2_monitoring"]
@@ -2495,7 +2569,9 @@ def migrate_run_implementation(
         current_binding = _collection_binding(context)
         old_binding = dict(current_binding)
         old_binding["implementation_sha256"] = old_implementation
-        if binding != old_binding and binding != current_binding:
+        legacy_old_binding = dict(old_binding)
+        legacy_old_binding.pop("operator_pins_sha256")
+        if binding != old_binding and binding != current_binding and binding != legacy_old_binding:
             raise DailyOrchestrationError(
                 "implementation_migration_binding_mismatch",
                 "collection bindingのrun・request・source・安全境界が一致しません",
@@ -2546,10 +2622,11 @@ def migrate_run_implementation(
             _atomic_json(authorization_path, authorization)
         authorization_sha256 = _sha256_file(authorization_path)
 
-        if binding == old_binding:
+        if binding == old_binding or binding == legacy_old_binding:
             _atomic_json(binding_path, current_binding)
         if observed_state_implementation == old_implementation or legacy_failure:
             state["implementation_sha256"] = new_implementation
+            state["operator_pins"] = _operator_pins(context)
             _write_state(context, state)
 
         verified_state = _load_state(context, recover_running=False)
@@ -3948,7 +4025,7 @@ def _production_ghidra(context: DailyContext) -> StageOutcome:
         "--private-output",
         os.fspath(context.ghidra_private_output),
         "--mcp-url",
-        "http://127.0.0.1:8089",
+        context.ghidra_mcp_url,
         "--project-root",
         f"/daily/{context.collection_id}",
         "--minimum-free-bytes",
@@ -4056,6 +4133,7 @@ def _production_ghidra(context: DailyContext) -> StageOutcome:
             "sample_executed": False,
             "network_contacted": False,
             "arbitrary_ghidra_scripts_enabled": False,
+            "ghidra_mcp_url_sha256": _operator_pins(context)["ghidra_mcp_url_sha256"],
             "collection_publication_projection": publication_projection,
             "static_followup_plan": followup,
         },
@@ -4929,6 +5007,11 @@ def _add_context_arguments(parser: argparse.ArgumentParser, *, request_required:
         help="request側のnetwork.c2_monitoring=trueに加え、現在の実行で限定ライブ監視を明示許可します",
     )
     parser.add_argument(
+        "--ghidra-mcp-url",
+        default=DEFAULT_GHIDRA_MCP_URL,
+        help="operatorが固定したnumeric-loopback Ghidra MCP HTTP endpoint（既定: 127.0.0.1:8089）",
+    )
+    parser.add_argument(
         "--trusted-tools-manifest",
         type=Path,
         help="operator管理の信頼済みUPX／7zz manifest。request JSONからは指定できません",
@@ -5119,6 +5202,7 @@ def main(argv: list[str] | None = None) -> int:
                 "migrate-run-implementation",
                 "repair-news-intake",
             },
+            ghidra_mcp_url=args.ghidra_mcp_url,
             trusted_tool_configuration=trusted_tool_configuration,
         )
         if args.command == "plan":
