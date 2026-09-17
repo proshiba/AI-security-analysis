@@ -1425,6 +1425,23 @@ def test_client_accepts_only_numeric_loopback_plain_http() -> None:
             target.GhidraMcpClient(value)
 
 
+@pytest.mark.parametrize("timeout", [0, -1, float("nan"), float("inf"), True])
+def test_client_rejects_nonpositive_or_nonfinite_transport_timeout(
+    timeout: object,
+) -> None:
+    """総deadlineを作れないtimeout値ではHTTP requestを開始しない。"""
+
+    client = target.GhidraMcpClient("http://127.0.0.1:8089")
+
+    class NoCallsOpener:
+        def open(self, *_args: object, **_kwargs: object) -> object:
+            raise AssertionError("不正timeoutでHTTP requestを開始してはならない")
+
+    client._opener = NoCallsOpener()
+    with pytest.raises(ValueError, match="有限の正数"):
+        client.get("/analysis_status", transport_timeout=timeout)  # type: ignore[arg-type]
+
+
 def test_client_uses_proxy_free_opener_and_preserves_timeout(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1436,15 +1453,22 @@ def test_client_uses_proxy_free_opener_and_preserves_timeout(
     opened: list[tuple[Request, int]] = []
 
     class Response:
+        def __init__(self) -> None:
+            self.chunks = [b'{"ok":true}', b""]
+            self.socket_timeouts: list[float] = []
+
         def __enter__(self) -> Response:
             return self
 
         def __exit__(self, *args: object) -> None:
             return None
 
+        def settimeout(self, value: float) -> None:
+            self.socket_timeouts.append(value)
+
         def read(self, amount: int = -1) -> bytes:
-            assert amount == target.MAX_MCP_RESPONSE_BYTES + 1
-            return b'{"ok":true}'
+            assert 0 < amount <= target.MCP_RESPONSE_READ_CHUNK_BYTES
+            return self.chunks.pop(0)
 
     class Opener:
         def open(self, request: Request, *, timeout: int) -> Response:
@@ -1475,14 +1499,20 @@ def test_client_rejects_mcp_error_object(
     """HTTP 200内のMCP error objectを成功扱いしない。"""
 
     class Response:
+        def __init__(self) -> None:
+            self.chunks = [b'{"error":"Program not found"}', b""]
+
         def __enter__(self) -> Response:
             return self
 
         def __exit__(self, *args: object) -> None:
             return None
 
+        def settimeout(self, _value: float) -> None:
+            pass
+
         def read(self, _amount: int = -1) -> bytes:
-            return b'{"error":"Program not found"}'
+            return self.chunks.pop(0)
 
     class Opener:
         def open(self, _request: Request, *, timeout: int) -> Response:
@@ -1563,6 +1593,9 @@ def test_client_rejects_oversize_response_before_decode(
         def __exit__(self, *args: object) -> None:
             return None
 
+        def settimeout(self, _value: float) -> None:
+            pass
+
         def read(self, amount: int = -1) -> bytes:
             assert amount == 17
             return b"{" + b"x" * 16
@@ -1575,6 +1608,341 @@ def test_client_rejects_oversize_response_before_decode(
     monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
     with pytest.raises(target.GhidraMcpError, match="bytes上限"):
         target.GhidraMcpClient("http://127.0.0.1:8089").get("/analysis_status")
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        (b"", None),
+        (b'{"ok":true}', {"ok": True}),
+        (b"plain text", "plain text"),
+    ],
+)
+def test_client_bounded_body_reader_preserves_empty_json_and_text(
+    monkeypatch: pytest.MonkeyPatch,
+    payload: bytes,
+    expected: object,
+) -> None:
+    """chunk reader後もempty、JSON、textの既存decode契約を維持する。"""
+
+    class Response:
+        def __init__(self) -> None:
+            self.chunks = [payload, b""] if payload else [b""]
+            self.timeouts: list[float] = []
+
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def settimeout(self, value: float) -> None:
+            self.timeouts.append(value)
+
+        def read1(self, amount: int) -> bytes:
+            assert 0 < amount <= target.MCP_RESPONSE_READ_CHUNK_BYTES
+            return self.chunks.pop(0)
+
+        def read(self, _amount: int) -> bytes:
+            raise AssertionError("read1があるresponseでreadへfallbackしてはならない")
+
+    response = Response()
+
+    class Opener:
+        def open(self, _request: Request, *, timeout: int) -> Response:
+            assert timeout == 3
+            return response
+
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    client = target.GhidraMcpClient("http://127.0.0.1:8089", timeout=3)
+    assert client.get("/analysis_status") == expected
+    assert response.timeouts
+    assert all(0 < value <= 3 for value in response.timeouts)
+
+
+def test_client_does_not_reset_timeout_after_content_length_is_drained(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTPResponseが既知length読了時にsocketを閉じても次readを試みない。"""
+
+    payload = b'{"ok":true}'
+
+    class Socket:
+        def __init__(self) -> None:
+            self.closed = False
+            self.timeout_updates = 0
+
+        def settimeout(self, _value: float) -> None:
+            if self.closed:
+                raise OSError("closed socket")
+            self.timeout_updates += 1
+
+    socket_object = Socket()
+
+    class Response:
+        def __init__(self) -> None:
+            self.length = len(payload)
+            self.closed = False
+            self.fp = SimpleNamespace(raw=SimpleNamespace(_sock=socket_object))
+
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def read1(self, _amount: int) -> bytes:
+            self.length = 0
+            self.closed = True
+            socket_object.closed = True
+            self.fp = None
+            return payload
+
+        def isclosed(self) -> bool:
+            return self.closed
+
+    response = Response()
+
+    class Opener:
+        def open(self, _request: Request, *, timeout: int) -> Response:
+            assert timeout == 3
+            return response
+
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    assert target.GhidraMcpClient("http://127.0.0.1:8089", timeout=3).get(
+        "/analysis_status"
+    ) == {"ok": True}
+    assert socket_object.timeout_updates == 1
+
+
+def test_client_rejects_content_length_truncation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """socket close時にContent-Lengthが残れば正常EOFへ昇格しない。"""
+
+    class Response:
+        length = 10
+
+        def __init__(self) -> None:
+            self.closed = False
+            self.read_count = 0
+
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def settimeout(self, _value: float) -> None:
+            pass
+
+        def read1(self, _amount: int) -> bytes:
+            self.read_count += 1
+            if self.read_count == 1:
+                self.length = 8
+                return b"{}"
+            self.closed = True
+            return b""
+
+        def isclosed(self) -> bool:
+            return self.closed
+
+    class Opener:
+        def open(self, _request: Request, *, timeout: int) -> Response:
+            assert timeout == 3
+            return Response()
+
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    with pytest.raises(target.GhidraMcpError, match="OSError") as captured:
+        target.GhidraMcpClient("http://127.0.0.1:8089", timeout=3).get(
+            "/analysis_status"
+        )
+    assert isinstance(captured.value.__cause__, OSError)
+
+
+def test_client_total_deadline_stops_trickle_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """各readが応答しても総壁時計deadlineを超えるtrickle bodyを停止する。"""
+
+    clock = [0.0]
+
+    class Response:
+        def __init__(self) -> None:
+            self.timeouts: list[float] = []
+            self.read_count = 0
+
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def settimeout(self, value: float) -> None:
+            self.timeouts.append(value)
+
+        def read1(self, _amount: int) -> bytes:
+            self.read_count += 1
+            clock[0] += 0.4
+            return b"S"
+
+    response = Response()
+
+    class Opener:
+        def open(self, _request: Request, *, timeout: int) -> Response:
+            assert timeout == 1
+            return response
+
+    monkeypatch.setattr(target.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    client = target.GhidraMcpClient("http://127.0.0.1:8089", timeout=1)
+    with pytest.raises(target.GhidraMcpError, match="response deadline exceeded") as captured:
+        client.get("/analysis_status")
+    assert isinstance(captured.value.__cause__, TimeoutError)
+    assert target._request_transport_failure_kind(captured.value) == "timeout"
+    assert response.read_count == 3
+    assert response.timeouts == pytest.approx([1.0, 0.6, 0.2])
+    assert "SSS" not in str(captured.value)
+
+
+def test_client_rejects_deadline_exceeded_while_opening_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """header受領後にdeadline超過を確認し、body読取へ進めない。"""
+
+    clock = [0.0]
+
+    class Response:
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def settimeout(self, _value: float) -> None:
+            raise AssertionError("deadline超過後にsocketを更新してはならない")
+
+        def read1(self, _amount: int) -> bytes:
+            raise AssertionError("deadline超過後にbodyを読んではならない")
+
+    class Opener:
+        def open(self, _request: Request, *, timeout: int) -> Response:
+            assert timeout == 1
+            clock[0] = 1.1
+            return Response()
+
+    monkeypatch.setattr(target.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    with pytest.raises(target.GhidraMcpError, match="response deadline exceeded") as captured:
+        target.GhidraMcpClient("http://127.0.0.1:8089", timeout=1).get(
+            "/analysis_status"
+        )
+    assert isinstance(captured.value.__cause__, TimeoutError)
+    assert target._request_transport_failure_kind(captured.value) == "timeout"
+
+
+def test_client_http_error_remains_semantic_without_publishing_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP errorはtransport deadlineへ誤分類せず、response本文を例外へ含めない。"""
+
+    class PoisonBody(io.BytesIO):
+        def __init__(self, value: bytes) -> None:
+            super().__init__(value)
+            self.close_called = False
+
+        def read(self, *_args: object, **_kwargs: object) -> bytes:
+            raise AssertionError("HTTP error本文を読み出してはならない")
+
+        def close(self) -> None:
+            self.close_called = True
+            super().close()
+
+    poison_body = PoisonBody(b"PRIVATE_GHIDRA_DIAGNOSTIC")
+    error = target.HTTPError(
+        "http://127.0.0.1:8089/analysis_status",
+        503,
+        "unavailable",
+        {},
+        poison_body,
+    )
+
+    class Opener:
+        def open(self, _request: Request, *, timeout: int) -> object:
+            assert timeout == 2
+            raise error
+
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    with pytest.raises(target.GhidraMcpError, match="HTTP 503") as captured:
+        target.GhidraMcpClient("http://127.0.0.1:8089", timeout=2).get(
+            "/analysis_status"
+        )
+    assert captured.value.__cause__ is error
+    assert target._request_transport_failure_kind(captured.value) is None
+    assert "PRIVATE_GHIDRA_DIAGNOSTIC" not in str(captured.value)
+    assert poison_body.close_called is True
+
+
+def test_client_normalizes_http_body_protocol_failure_to_transport_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """malformed chunk等のHTTPExceptionをraw例外で漏らさずtransport causeへ固定する。"""
+
+    class Response:
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def settimeout(self, _value: float) -> None:
+            pass
+
+        def read1(self, _amount: int) -> bytes:
+            raise target.HTTPException("PRIVATE_CHUNK_DIAGNOSTIC")
+
+    class Opener:
+        def open(self, _request: Request, *, timeout: int) -> Response:
+            assert timeout == 2
+            return Response()
+
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    with pytest.raises(target.GhidraMcpError, match="OSError") as captured:
+        target.GhidraMcpClient("http://127.0.0.1:8089", timeout=2).get(
+            "/analysis_status"
+        )
+    assert isinstance(captured.value.__cause__, OSError)
+    assert isinstance(captured.value.__cause__.__cause__, target.HTTPException)
+    assert target._request_transport_failure_kind(captured.value) == "os_error"
+    assert "PRIVATE_CHUNK_DIAGNOSTIC" not in str(captured.value)
+
+
+def test_client_rejects_unknown_urllib_socket_shape(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """socket timeoutを更新できないurllib response構造は無期限readへfallbackしない。"""
+
+    class Response:
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def read(self, _amount: int) -> bytes:
+            raise AssertionError("socket deadline設定前にbodyを読んではならない")
+
+    class Opener:
+        def open(self, _request: Request, *, timeout: int) -> Response:
+            assert timeout == 2
+            return Response()
+
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    with pytest.raises(target.GhidraMcpError, match="OSError") as captured:
+        target.GhidraMcpClient("http://127.0.0.1:8089", timeout=2).get(
+            "/analysis_status"
+        )
+    assert isinstance(captured.value.__cause__, OSError)
 
 
 def test_decompile_status_preserves_limits() -> None:

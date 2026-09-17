@@ -27,7 +27,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from http.client import RemoteDisconnected
+from http.client import HTTPException, RemoteDisconnected
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -100,6 +100,7 @@ DEFAULT_COLLECTION_ID = "malwarebazaar-windows-20260723-0100"
 DEFAULT_MCP_URL = "http://127.0.0.1:8089"
 DEFAULT_PROJECT_ROOT = "/Malware/MalwareBazaarWindows/20260723"
 MAX_MCP_RESPONSE_BYTES = 64 * 1024 * 1024
+MCP_RESPONSE_READ_CHUNK_BYTES = 64 * 1024
 FUNCTION_PAGE_SIZE = 500
 MAX_FUNCTION_INVENTORY_ITEMS = 100_000
 MAX_FUNCTION_INVENTORY_PAGES = 10_000
@@ -339,6 +340,8 @@ def _request_transport_failure_kind(error: BaseException) -> str | None:
                 return "connection_error"
         if isinstance(current, ConnectionError):
             return "connection_error"
+        if isinstance(current, OSError):
+            return "os_error"
     return None
 
 
@@ -1675,19 +1678,39 @@ class GhidraMcpClient:
             data = json.dumps(body).encode("utf-8")
             headers["Content-Type"] = "application/json"
         request = Request(url, data=data, headers=headers, method=method)
+        effective_timeout = self.timeout if timeout is None else timeout
+        if (
+            isinstance(effective_timeout, bool)
+            or not isinstance(effective_timeout, (int, float))
+            or not math.isfinite(float(effective_timeout))
+            or effective_timeout <= 0
+        ):
+            raise ValueError("Ghidra MCP transport timeoutは有限の正数で指定してください")
+        deadline = time.monotonic() + float(effective_timeout)
         try:
-            effective_timeout = self.timeout if timeout is None else timeout
             with self._opener.open(request, timeout=effective_timeout) as response:
-                raw = response.read(MAX_MCP_RESPONSE_BYTES + 1)
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("Ghidra MCP response deadline exceeded after headers")
+                raw = _read_mcp_response_body(response, deadline=deadline)
         except HTTPError as error:
-            detail = error.read(1001).decode("utf-8", errors="replace")
-            raise GhidraMcpError(f"{method} {path} failed: HTTP {error.code}: {detail[:1000]}") from error
+            status_code = error.code
+            try:
+                error.close()
+            except OSError:
+                pass
+            raise GhidraMcpError(f"{method} {path} failed: HTTP {status_code}") from error
         except GhidraMcpError:
             raise
+        except TimeoutError as error:
+            raise GhidraMcpError(
+                f"{method} {path} failed: response deadline exceeded"
+            ) from error
+        except HTTPException as error:
+            transport_error = OSError("Ghidra MCP HTTP body transport failed")
+            transport_error.__cause__ = error
+            raise GhidraMcpError(f"{method} {path} failed: OSError") from transport_error
         except (OSError, URLError) as error:
             raise GhidraMcpError(f"{method} {path} failed: {type(error).__name__}") from error
-        if len(raw) > MAX_MCP_RESPONSE_BYTES:
-            raise GhidraMcpError(f"{method} {path} failed: MCP responseがbytes上限を超えています")
         if not raw:
             return None
         text = raw.decode("utf-8", errors="replace")
@@ -2288,6 +2311,73 @@ def _independent_zero_function_coverage_complete(
     )
 
 
+def _mcp_response_socket(response: Any) -> Any:
+    """urllib/http.client responseからtimeout設定可能な実socketを限定取得する。"""
+
+    fp = getattr(response, "fp", None)
+    raw = getattr(fp, "raw", None)
+    response_raw = getattr(response, "raw", None)
+    candidates = (
+        getattr(raw, "_sock", None),
+        getattr(fp, "_sock", None),
+        getattr(response_raw, "_sock", None),
+        getattr(response, "_sock", None),
+        response,
+    )
+    for candidate in candidates:
+        if candidate is not None and callable(getattr(candidate, "settimeout", None)):
+            return candidate
+    raise OSError("Ghidra MCP response socket timeout control is unavailable")
+
+
+def _read_mcp_response_body(response: Any, *, deadline: float) -> bytes:
+    """各body read前後に総deadlineを検査し、小さいchunkで上限付き取得する。"""
+
+    socket_object = _mcp_response_socket(response)
+    reader = getattr(response, "read1", None)
+    if not callable(reader):
+        reader = getattr(response, "read", None)
+    if not callable(reader):
+        raise OSError("Ghidra MCP response body reader is unavailable")
+    raw = bytearray()
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Ghidra MCP response deadline exceeded")
+        try:
+            socket_object.settimeout(remaining)
+        except (OSError, TypeError, ValueError) as error:
+            raise OSError("Ghidra MCP response socket timeout update failed") from error
+        read_size = min(
+            MCP_RESPONSE_READ_CHUNK_BYTES,
+            MAX_MCP_RESPONSE_BYTES + 1 - len(raw),
+        )
+        if read_size <= 0:
+            raise GhidraMcpError("Ghidra MCP responseがbytes上限を超えています")
+        chunk = reader(read_size)
+        if time.monotonic() >= deadline:
+            raise TimeoutError("Ghidra MCP response deadline exceeded")
+        if not isinstance(chunk, bytes):
+            raise OSError("Ghidra MCP response body reader returned non-bytes")
+        raw.extend(chunk)
+        if len(raw) > MAX_MCP_RESPONSE_BYTES:
+            raise GhidraMcpError("Ghidra MCP responseがbytes上限を超えています")
+        remaining_length = getattr(response, "length", None)
+        if not chunk:
+            if type(remaining_length) is int and remaining_length > 0:
+                raise OSError(
+                    "Ghidra MCP response closed before Content-Length was satisfied"
+                )
+            return bytes(raw)
+        if type(remaining_length) is int and remaining_length == 0:
+            return bytes(raw)
+        is_closed = getattr(response, "isclosed", None)
+        if callable(is_closed) and is_closed():
+            if remaining_length is None:
+                return bytes(raw)
+            raise OSError("Ghidra MCP response closed before Content-Length was satisfied")
+
+
 def _bind_function_metadata_coverage(
     evidence: dict[str, Any],
     metadata_value: Any,
@@ -2449,7 +2539,7 @@ def _limited_endpoint_coverage_complete(
             and evidence.get("response_available") is False
             and evidence.get("transport_failure") is True
             and evidence.get("transport_failure_kind")
-            in {"timeout", "remote_disconnected", "connection_error"}
+            in {"timeout", "remote_disconnected", "connection_error", "os_error"}
             and evidence.get("local_parser") == "pefile"
             and evidence.get("export_directory_present") is False
             and type(evidence.get("export_directory_virtual_address")) is int
@@ -2528,7 +2618,7 @@ def _limited_status_unavailable_complete(result: Mapping[str, Any]) -> bool:
         or status.get("response_available") is not False
         or status.get("transport_failure") is not True
         or status.get("transport_failure_kind")
-        not in {"timeout", "remote_disconnected", "connection_error"}
+        not in {"timeout", "remote_disconnected", "connection_error", "os_error"}
         or status.get("analysis_status_response_valid") is not False
         or status.get("auto_analysis_completion_confirmed") is not False
         or status.get("limited_static_retrieval_terminal") is not True
