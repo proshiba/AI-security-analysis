@@ -7526,6 +7526,36 @@ def _unknown_detector_handler_scope(basis: str) -> dict[str, Any]:
     }
 
 
+def _well_formed_unmatched_detector_evaluation(
+    evaluation: Mapping[str, Any],
+) -> bool:
+    """正規化済みの完全な非一致だけをhandler scope計算から除外する。"""
+
+    if evaluation.get("error") is not None:
+        return False
+    if any(
+        evaluation.get(field) is not False
+        for field in (
+            "automatic_route_eligible",
+            "applicable",
+            "known_outer_sha256",
+            "known_inner_sha256",
+            "known_routing_sha256",
+            "detector_matched",
+        )
+    ):
+        return False
+    if not isinstance(evaluation.get("supports_family_attribution"), bool):
+        return False
+    detection = evaluation.get("detection")
+    return bool(
+        isinstance(detection, Mapping)
+        and detection.get("matched") is False
+        and isinstance(detection.get("observations"), Mapping)
+        and detection.get("campaigns") == []
+    )
+
+
 def _detector_handler_scope(
     detector_evaluations: Mapping[str, Any] | None,
     family: str,
@@ -7580,6 +7610,8 @@ def _detector_handler_scope(
             continue
         if error is not None and (not isinstance(error, str) or bool(error)):
             invalid_basis = invalid_basis or "detector_error_present"
+            continue
+        if _well_formed_unmatched_detector_evaluation(evaluation):
             continue
         route_eligible = evaluation.get("automatic_route_eligible")
         if not isinstance(route_eligible, bool):
