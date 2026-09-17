@@ -2991,7 +2991,7 @@ _LEGACY_DYNAMIC_LOCAL_DEPENDENCIES: dict[
     "extractors/asyncrat/integrated.py": (
         (
             "analysis-framework/common/dotnet_rat_config.py",
-            ("read_bounded_method_body", "recover"),
+            ("recover",),
             "validated_common_module_loader",
         ),
         (
@@ -3410,6 +3410,11 @@ _REVIEWED_SOURCE_CALLS = {
         "reachable:decrypt_setting",
         "cryptography.hazmat.primitives.ciphers.modes.ECB",
     ): "XWorm設定復号で引数なしAES ECB mode objectだけを構築する",
+    (
+        "analysis-framework/malware/noodlerat/extract_config.py",
+        "reachable:_collect_instructions",
+        "decoder.disasm",
+    ): "合計4 MiB以下の実行可能PT_LOADから最大64設定窓・4,096即値候補を選び、最大250,000命令で静的decodeする",
     (
         "extractors/valleyrat/native_loader_lineage.py",
         "reachable:_register_name",
@@ -3972,11 +3977,6 @@ _REVIEWED_SOURCE_CALLS = {
         "reachable:_validated_protocol",
         "module.recover",
     ): "hash検証済みdotnet_rat_protocol_evidenceのDCRat protocol復元",
-    (
-        "extractors/asyncrat/integrated.py",
-        "reachable:_read_bounded_method_body",
-        "module.read_bounded_method_body",
-    ): "hash検証済みdotnet_rat_configの有界CIL method body解析",
     (
         "extractors/asyncrat/integrated.py",
         "reachable:_validated_recovery",

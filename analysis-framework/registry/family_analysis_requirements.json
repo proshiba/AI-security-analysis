@@ -49,6 +49,7 @@
     "mx-go": {"category": "bot", "config_required": true, "network_required": true, "terminal_payload_required": false},
     "nanocore": {"category": "rat", "config_required": true, "network_required": true, "terminal_payload_required": false},
     "njrat": {"category": "rat", "config_required": true, "network_required": true, "terminal_payload_required": false},
+    "noodlerat": {"category": "rat", "config_required": true, "network_required": true, "terminal_payload_required": false},
     "npm_supply_chain": {"category": "downloader", "config_required": true, "network_required": true, "terminal_payload_required": true},
     "nsis_obfuscated_loader": {"category": "loader", "config_required": false, "network_required": false, "terminal_payload_required": true},
     "owareaper": {"category": "backdoor", "config_required": true, "network_required": true, "terminal_payload_required": false},
