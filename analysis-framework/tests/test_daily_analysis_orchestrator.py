@@ -1311,6 +1311,121 @@ def test_news_requeue_is_audited_scoped_and_idempotent(tmp_path: Path) -> None:
     assert (receipt_root / "completion.json").is_file()
 
 
+def _set_requeue_fixture_stage_failed(state_path: Path) -> tuple[str, str]:
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["stages"]["malwarebazaar_acquisition"].update(
+        status="failed",
+        attempts=1,
+        retryable=True,
+        result={},
+        error={"code": "fixture_failure", "message": "fixture failure"},
+    )
+    state["status"] = "failed"
+    target._atomic_json(state_path, state)
+    return (
+        hashlib.sha256(state_path.read_bytes()).hexdigest(),
+        target._sha256_value(state["stages"]["news_intake"]),
+    )
+
+
+def test_news_requeue_preserves_failed_overall_status(tmp_path: Path) -> None:
+    daily_context, state_path, _state, _state_pin, _news_pin = _make_news_requeue_fixture(
+        tmp_path
+    )
+    state_pin, news_pin = _set_requeue_fixture_stage_failed(state_path)
+
+    target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=state_pin,
+        expected_news_record_sha256=news_pin,
+    )
+
+    after = json.loads(state_path.read_text(encoding="utf-8"))
+    assert after["status"] == "failed"
+    assert target._stage_aggregate_status(after) == "failed"
+
+
+def test_migration_normalizes_audited_legacy_news_requeue_status(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    old_implementation = "a" * 64
+    new_implementation = "b" * 64
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: old_implementation)
+    daily_context, state_path, _state, _state_pin, _news_pin = _make_news_requeue_fixture(
+        tmp_path
+    )
+    state_pin, news_pin = _set_requeue_fixture_stage_failed(state_path)
+    target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=state_pin,
+        expected_news_record_sha256=news_pin,
+    )
+    legacy = json.loads(state_path.read_text(encoding="utf-8"))
+    legacy["status"] = "partial"
+    target._atomic_json(state_path, legacy)
+    completion_path = (
+        daily_context.state_root
+        / "repair-receipts"
+        / "news-intake-requeue"
+        / "completion.json"
+    )
+    completion = json.loads(completion_path.read_text(encoding="utf-8"))
+    completion["state_sha256_after"] = hashlib.sha256(state_path.read_bytes()).hexdigest()
+    target._atomic_json(completion_path, completion)
+
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: new_implementation)
+    migrated = target.migrate_run_implementation(
+        daily_context,
+        expected_old_implementation_sha256=old_implementation,
+    )
+
+    assert "audited_news_requeue_overall_status_to_stage_aggregate" in migrated[
+        "state_normalizations"
+    ]
+    migrated_state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert migrated_state["status"] == "failed"
+    assert migrated_state["implementation_sha256"] == new_implementation
+
+
+def test_migration_rejects_tampered_legacy_news_requeue_marker(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    old_implementation = "c" * 64
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: old_implementation)
+    daily_context, state_path, _state, _state_pin, _news_pin = _make_news_requeue_fixture(
+        tmp_path
+    )
+    state_pin, news_pin = _set_requeue_fixture_stage_failed(state_path)
+    target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=state_pin,
+        expected_news_record_sha256=news_pin,
+    )
+    tampered = json.loads(state_path.read_text(encoding="utf-8"))
+    tampered["status"] = "partial"
+    tampered["stages"]["news_intake"]["result"]["authorization_receipt_sha256"] = "0" * 64
+    target._atomic_json(state_path, tampered)
+    completion_path = (
+        daily_context.state_root
+        / "repair-receipts"
+        / "news-intake-requeue"
+        / "completion.json"
+    )
+    completion = json.loads(completion_path.read_text(encoding="utf-8"))
+    completion["state_sha256_after"] = hashlib.sha256(state_path.read_bytes()).hexdigest()
+    target._atomic_json(completion_path, completion)
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: "d" * 64)
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.migrate_run_implementation(
+            daily_context,
+            expected_old_implementation_sha256=old_implementation,
+        )
+    assert captured.value.code == "state_status_mismatch"
+
+
 @pytest.mark.parametrize(
     ("mutation", "expected_code"),
     [

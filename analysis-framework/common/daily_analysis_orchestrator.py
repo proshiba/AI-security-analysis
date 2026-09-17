@@ -1587,6 +1587,22 @@ def _write_state(context: DailyContext, state: dict[str, Any]) -> None:
     _atomic_json(context.state_root / "state.json", state)
 
 
+def _stage_aggregate_status(state: Mapping[str, Any]) -> str:
+    """stage状態だけからquiescent checkpointの全体状態を決定する。"""
+
+    stages = state.get("stages")
+    if not isinstance(stages, Mapping):
+        raise DailyOrchestrationError("state_invalid", "日次stateにstage一覧がありません")
+    statuses = [stages[name]["status"] for name in STAGES]
+    return (
+        "failed"
+        if "failed" in statuses
+        else "partial"
+        if any(value in {"pending", "running", "partial"} for value in statuses)
+        else "complete"
+    )
+
+
 def _load_state(
     context: DailyContext,
     *,
@@ -1706,15 +1722,10 @@ def _load_state(
         if recover_running and record["status"] == "running":
             record["status"] = "pending"
             record["retryable"] = True
-    statuses = [state["stages"][name]["status"] for name in STAGES]
     expected_status = (
         "running"
         if state["status"] == "running"
-        else "failed"
-        if "failed" in statuses
-        else "partial"
-        if any(value in {"pending", "running", "partial"} for value in statuses)
-        else "complete"
+        else _stage_aggregate_status(state)
     )
     if state["status"] != expected_status:
         raise DailyOrchestrationError(
@@ -2175,6 +2186,169 @@ def _load_news_requeue_receipt(
     return receipt
 
 
+def _legacy_news_requeue_status_mismatch_is_authorized(
+    context: DailyContext,
+    state: Mapping[str, Any],
+    state_path: Path,
+) -> bool:
+    """旧requeueが残したpartial/failed不一致を既存receiptだけで厳格確認する。"""
+
+    if (
+        state.get("status") != "partial"
+        or _stage_aggregate_status(state) != "failed"
+        or any(record.get("status") == "running" for record in state["stages"].values())
+    ):
+        return False
+    receipt_root = context.state_root / "repair-receipts" / "news-intake-requeue"
+    authorization_path = receipt_root / "authorization.json"
+    completion_path = receipt_root / "completion.json"
+    try:
+        authorization_raw = analysis_job_runner.load_json_object_strict(
+            authorization_path,
+            max_bytes=analysis_job_runner.MAX_REQUEST_BYTES,
+        )
+    except (analysis_job_runner.JobContractError, OSError):
+        return False
+    authorization_variable = {"status", "recorded_at_utc", "collection_binding_sha256"}
+    base = {
+        key: value
+        for key, value in authorization_raw.items()
+        if key not in authorization_variable
+    }
+    expected_base_keys = {
+        "schema_version",
+        "operation",
+        "run_id",
+        "collection_id",
+        "request_sha256",
+        "source_manifest_sha256",
+        "implementation_sha256",
+        "state_sha256_before",
+        "news_record_sha256_before",
+        "trusted_tool_profile_id",
+        "trusted_tool_manifest_sha256",
+        "trusted_tool_identities_sha256",
+        "public_snapshot_before",
+        "staging_snapshot_before",
+        "transition_contract",
+        "safety",
+    }
+    if set(base) != expected_base_keys:
+        return False
+    try:
+        authorization = _load_news_requeue_receipt(
+            authorization_path,
+            base,
+            status="authorized",
+        )
+        completion = _load_news_requeue_receipt(
+            completion_path,
+            base,
+            status="completed",
+        )
+        trusted_policy = _load_context_trusted_tool_policy(context)
+    except DailyOrchestrationError:
+        return False
+    if trusted_policy is None:
+        return False
+    digest_keys = {
+        "state_sha256_before",
+        "news_record_sha256_before",
+        "trusted_tool_manifest_sha256",
+        "trusted_tool_identities_sha256",
+    }
+    if any(
+        not isinstance(base.get(key), str) or SHA256_RE.fullmatch(base[key]) is None
+        for key in digest_keys
+    ):
+        return False
+    expected_safety = {
+        "sample_executed": False,
+        "network_contacted": False,
+        "automatic_source_deletion": False,
+        "existing_public_output_modified": False,
+    }
+    expected_identity = {
+        "schema_version": 1,
+        "operation": "daily_news_intake_requeue",
+        "run_id": context.request.run_id,
+        "collection_id": context.collection_id,
+        "request_sha256": _sha256_value(context.request.public()),
+        "source_manifest_sha256": context.request.source_manifest_sha256,
+        "implementation_sha256": state.get("implementation_sha256"),
+        "trusted_tool_profile_id": trusted_policy.profile_id,
+        "trusted_tool_manifest_sha256": trusted_policy.operator_manifest_sha256,
+        "trusted_tool_identities_sha256": _sha256_value(trusted_policy.identities()),
+        "safety": expected_safety,
+    }
+    if any(base.get(key) != value for key, value in expected_identity.items()):
+        return False
+    authorization_sha256 = _sha256_file(authorization_path)
+    binding_path = context.collection_root / "collection-binding.json"
+    if (
+        authorization.get("collection_binding_sha256") != _sha256_file(binding_path)
+        or completion.get("authorization_receipt_sha256") != authorization_sha256
+        or completion.get("state_sha256_after") != _sha256_file(state_path)
+        or base.get("public_snapshot_before") != _news_public_snapshot(context)
+        or base.get("staging_snapshot_before")
+        != _news_public_snapshot_at(
+            context.state_root / "news-public-staging" / context.request.news_source_date,
+            label="daily news public staging",
+        )
+    ):
+        return False
+    downstream_names = ("c2_monitoring", "validation", "private_archive")
+    expected_invalidated = [
+        name for name in downstream_names if state["stages"][name]["status"] != "skipped"
+    ]
+    if completion.get("invalidated_stages") != expected_invalidated:
+        return False
+    transition = base.get("transition_contract")
+    expected_transition = {
+        "preserved_stages_sha256": _sha256_value(
+            {
+                name: state["stages"][name]
+                for name in STAGES
+                if name not in {"news_intake", *downstream_names}
+            }
+        ),
+        "news_attempts_before": state["stages"]["news_intake"]["attempts"],
+        "downstream_attempts_before": {
+            name: state["stages"][name]["attempts"] for name in downstream_names
+        },
+    }
+    if transition != expected_transition:
+        return False
+    news_record = state["stages"]["news_intake"]
+    if (
+        news_record.get("status") != "pending"
+        or news_record.get("retryable") is not True
+        or news_record.get("error") is not None
+        or news_record.get("result")
+        != _news_requeue_marker(
+            authorization_sha256=authorization_sha256,
+            previous_sha256=base["news_record_sha256_before"],
+        )
+    ):
+        return False
+    for name in expected_invalidated:
+        record = state["stages"][name]
+        if (
+            record.get("status") != "pending"
+            or record.get("retryable") is not True
+            or record.get("error") is not None
+            or record.get("result")
+            != {
+                "status": "invalidated_by_news_requeue",
+                "authorization_receipt_sha256": authorization_sha256,
+                "sample_executed": False,
+                "network_contacted": False,
+            }
+        ):
+            return False
+    return True
+
+
 def _validate_legacy_news_partial(
     context: DailyContext,
     record: Mapping[str, Any],
@@ -2390,7 +2564,7 @@ def requeue_news_intake(
             if not downstream_already_mutated:
                 record.update(status="pending", retryable=True, result=downstream_marker, error=None)
             invalidated.append(name)
-        state["status"] = "partial"
+        state["status"] = _stage_aggregate_status(state)
         _write_state(context, state)
         if (
             _news_public_snapshot(context) != public_before
@@ -2463,13 +2637,39 @@ def migrate_run_implementation(
                 "implementation_migration_source_mismatch",
                 "日次checkpointのimplementation SHA-256が移行元pinと一致しません",
             )
-        state = _load_state(
-            context,
-            expected_implementation_sha256=observed_state_implementation,
-            recover_running=False,
-            allow_legacy_operator_pins=True,
-        )
         state_normalizations: list[str] = []
+        try:
+            state = _load_state(
+                context,
+                expected_implementation_sha256=observed_state_implementation,
+                recover_running=False,
+                allow_legacy_operator_pins=True,
+            )
+        except DailyOrchestrationError as exc:
+            normalization = "audited_news_requeue_overall_status_to_stage_aggregate"
+            if (
+                exc.code != "state_status_mismatch"
+                or not _legacy_news_requeue_status_mismatch_is_authorized(
+                    context,
+                    observed_state,
+                    state_path,
+                )
+            ):
+                raise
+            state = observed_state
+            state_normalizations.append(normalization)
+            static_record = state["stages"]["static_analysis"]
+            if context.trusted_tool_configuration is not None and static_record["status"] in {
+                "complete",
+                "partial",
+            }:
+                job_id = static_record["result"].get("job_id")
+                if not isinstance(job_id, str) or analysis_job_runner.JOB_ID_RE.fullmatch(job_id) is None:
+                    raise DailyOrchestrationError(
+                        "static_trusted_tool_mismatch",
+                        "保存済み静的解析stageに検証可能なjob IDがありません",
+                    )
+                _static_job_result_for_id(context, job_id)
         deferred_c2 = state["stages"]["c2_monitoring"]
         deferred_without_contact = (
             deferred_c2["result"].get("status") == "targets_built_live_monitoring_deferred"
@@ -2541,14 +2741,7 @@ def migrate_run_implementation(
                 )
 
         if state["status"] != "running":
-            statuses = [state["stages"][name]["status"] for name in STAGES]
-            state["status"] = (
-                "failed"
-                if "failed" in statuses
-                else "partial"
-                if any(value in {"pending", "running", "partial"} for value in statuses)
-                else "complete"
-            )
+            state["status"] = _stage_aggregate_status(state)
         if state["status"] == "complete":
             raise DailyOrchestrationError(
                 "implementation_migration_not_required",
@@ -2867,14 +3060,7 @@ def _execute(context: DailyContext, state: dict[str, Any], actions: DailyActions
             break
         _validate_context_derived_paths(context)
         _write_state(context, state)
-    statuses = [state["stages"][name]["status"] for name in STAGES]
-    state["status"] = (
-        "failed"
-        if "failed" in statuses
-        else "partial"
-        if any(value in {"pending", "running", "partial"} for value in statuses)
-        else "complete"
-    )
+    state["status"] = _stage_aggregate_status(state)
     _write_state(context, state)
     return state
 
