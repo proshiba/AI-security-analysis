@@ -668,6 +668,333 @@ def test_managed_program_uses_cil_primary_without_auto_analysis(
     assert all(call[1] != "/save_program" for call in client.calls)
 
 
+def test_status_transport_failure_uses_corroborated_existing_program_without_reimport(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """status不能でも同一programと非空inventoryを独立確認できれば静的取得を継続する。"""
+
+    class LimitedStatusClient:
+        timeout = 3600
+
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, dict[str, object]]] = []
+
+        def get(self, endpoint: str, **query: object) -> object:
+            self.calls.append(("get", endpoint, query))
+            if endpoint in {"/open_program", "/save_program"}:
+                raise AssertionError(f"限定modeで{endpoint}を呼んではならない")
+            if endpoint == "/analysis_status":
+                assert query["transport_timeout"] == 60.0
+                try:
+                    raise target.RemoteDisconnected("localhost relay disconnected")
+                except target.RemoteDisconnected as error:
+                    raise target.GhidraMcpError("GET /analysis_status failed") from error
+            if endpoint == "/get_metadata":
+                assert query["transport_timeout"] == 60.0
+                return {
+                    "Program Name": input_snapshot.path.name,
+                    "Function Count": "2",
+                }
+            if endpoint == "/list_functions_enhanced":
+                return {
+                    "functions": [
+                        {
+                            "address": "0x401000",
+                            "name": "entry",
+                            "isExternal": False,
+                            "isThunk": False,
+                        }
+                    ],
+                    "total_matching": 1,
+                }
+            if endpoint in {"/list_imports", "/list_strings", "/list_segments"}:
+                return []
+            if endpoint == "/list_exports":
+                assert query["transport_timeout"] == 10.0
+                try:
+                    raise target.RemoteDisconnected("localhost relay disconnected")
+                except target.RemoteDisconnected as error:
+                    raise target.GhidraMcpError("GET /list_exports failed") from error
+            if endpoint == "/get_entry_points":
+                return []
+            if endpoint == "/get_full_call_graph":
+                return {"edges": [], "edge_count": 0}
+            if endpoint in {"/find_anti_analysis_techniques", "/analyze_api_call_chains"}:
+                return {}
+            if endpoint == "/get_bulk_function_hashes":
+                return {"functions": [], "total_matching": 1}
+            if endpoint == "/batch_decompile":
+                return {"0x401000": "void entry(void) { return; }"}
+            raise AssertionError(f"予期しないGET endpoint: {endpoint}")
+
+        def post(
+            self,
+            endpoint: str,
+            _body: dict[str, object],
+            **_query: object,
+        ) -> object:
+            self.calls.append(("post", endpoint, {}))
+            if endpoint in {"/import_file", "/run_analysis", "/close_program"}:
+                raise AssertionError(f"限定modeで{endpoint}を呼んではならない")
+            raise AssertionError(f"予期しないPOST endpoint: {endpoint}")
+
+    data = _minimal_pe(b"limited-status")
+    digest = hashlib.sha256(data).hexdigest()
+    private_output = tmp_path / "private"
+    input_snapshot = target._immutable_staging_snapshot(private_output, digest, data)
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=input_snapshot.path,
+        size=len(data),
+        relationships=[{"case_sha256": digest, "depth": 0, "transform": "root"}],
+        input_snapshot=input_snapshot,
+    )
+    monkeypatch.setattr(target, "_is_managed_pe", lambda _data: False)
+    monkeypatch.setattr(target, "_managed_cil_records", lambda *_args: [])
+    client = LimitedStatusClient()
+
+    result = target.analyze_program(
+        client,
+        item,
+        private_output,
+        "/Malware/Test",
+        analysis_timeout=1,
+    )
+
+    assert result["analysis_mode"] == target.STATUS_UNAVAILABLE_ANALYSIS_MODE
+    assert result["import_mode"] == "preexisting_program_status_unavailable_corroborated"
+    assert result["analysis_status"]["analysis_status_response_valid"] is False
+    assert result["analysis_status"]["auto_analysis_completion_confirmed"] is False
+    assert result["analysis_status"]["limited_static_retrieval_terminal"] is True
+    assert result["analysis_status"]["run_analysis_invoked"] is False
+    assert result["analysis_status"]["independent_corroboration"][
+        "derived_external_function_count"
+    ] == 1
+    exports_coverage = result["retrieval_coverage"]["exports"]
+    assert exports_coverage["source"] == target.STATUS_UNAVAILABLE_EXPORT_SOURCE
+    assert exports_coverage["sample_sha256"] == digest
+    assert result["functions"][0]["decompilation_status"] == "succeeded"
+    assert target._limited_status_unavailable_complete(result) is True
+    forged_mode = json.loads(json.dumps(result))
+    forged_mode["analysis_mode"] = "native_ghidra_with_optional_cil"
+    assert target._limited_status_unavailable_complete(forged_mode) is False
+    forged_import_mode = json.loads(json.dumps(result))
+    forged_import_mode["import_mode"] = "preexisting_program"
+    assert target._limited_status_unavailable_complete(forged_import_mode) is False
+    assert sum(call[1] == "/analysis_status" for call in client.calls) == 1
+    assert sum(call[1] == "/get_metadata" for call in client.calls) == 1
+    assert sum(call[1] == "/list_functions_enhanced" for call in client.calls) == 1
+    assert not any(
+        call[1] in {"/open_program", "/import_file", "/run_analysis", "/save_program", "/close_program"}
+        for call in client.calls
+    )
+
+    calls_before_refresh = list(client.calls)
+    target.refresh_complete_program_artifacts(client, {digest: result}, private_output)
+    assert client.calls == calls_before_refresh
+    assert result["retrieval_coverage"]["exports"] == exports_coverage
+    target.augment_private_call_graphs({digest: result}, private_output)
+    validation = target.validate_private_artifacts(
+        {digest: result},
+        private_output,
+        expected_program_count=1,
+    )
+    assert validation["complete"] is True
+
+    result_path = private_output / "objects" / digest / "program-result.json"
+    forged_cache, _snapshot = target._load_program_result(result_path)
+    forged_cache["analysis_status"]["limited_static_retrieval_terminal"] = False
+    target._persist_program_result(result_path, forged_cache)
+
+    class StopsAfterCacheCheck:
+        def get(self, endpoint: str, **_query: object) -> object:
+            raise RuntimeError(f"forged cache was bypassed: {endpoint}")
+
+    with pytest.raises(RuntimeError, match="forged cache was bypassed: /analysis_status"):
+        target.analyze_program(
+            StopsAfterCacheCheck(),
+            item,
+            private_output,
+            "/Malware/Test",
+            analysis_timeout=1,
+        )
+    target._persist_program_result(result_path, result)
+
+    raw_path = private_output / "objects" / digest / "ghidra-raw-index.json"
+    original_raw = target.load_json_object_strict(raw_path)
+    forged_function_raw = json.loads(json.dumps(original_raw))
+    forged_function_raw["functions"][0]["address"] = "0x402000"
+    target._json_dump(raw_path, forged_function_raw)
+    calls_before_forged_refresh = list(client.calls)
+    with pytest.raises(target.GhidraMcpError, match="result/raw限定静的取得証拠"):
+        target.refresh_complete_program_artifacts(client, {digest: result}, private_output)
+    assert client.calls == calls_before_forged_refresh
+    target._json_dump(raw_path, original_raw)
+
+    forged_attribute_raw = json.loads(json.dumps(original_raw))
+    forged_attribute_raw["functions"][0]["isThunk"] = True
+    target._json_dump(raw_path, forged_attribute_raw)
+    with pytest.raises(target.GhidraMcpError, match="result/raw限定静的取得証拠"):
+        target.refresh_complete_program_artifacts(client, {digest: result}, private_output)
+    assert client.calls == calls_before_forged_refresh
+    target._json_dump(raw_path, original_raw)
+
+    forged_raw = json.loads(json.dumps(original_raw))
+    forged_raw["analysis_status"]["transport_failure_kind"] = "timeout"
+    target._json_dump(raw_path, forged_raw)
+    calls_before_forged_refresh = list(client.calls)
+    with pytest.raises(target.GhidraMcpError, match="result/raw限定静的取得証拠"):
+        target.refresh_complete_program_artifacts(client, {digest: result}, private_output)
+    assert client.calls == calls_before_forged_refresh
+    forged_validation = target.validate_private_artifacts(
+        {digest: result},
+        private_output,
+        expected_program_count=1,
+    )
+    assert forged_validation["complete"] is False
+    assert any(
+        "status取得不能証拠のanalysis_status" in error
+        for error in forged_validation["programs"][0]["errors"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("metadata", "functions"),
+    [
+        ({"Program Name": "expected.bin", "Function Count": "0"}, []),
+        (
+            {"Program Name": "other.bin", "Function Count": "1"},
+            [{"address": "0x1", "isExternal": False, "isThunk": False}],
+        ),
+        (
+            {"Program Name": "expected.bin", "Function Count": "1"},
+            [
+                {"address": "0x1", "isExternal": False, "isThunk": False},
+                {"address": "0x2", "isExternal": False, "isThunk": False},
+            ],
+        ),
+        (
+            {"Program Name": "expected.bin", "Function Count": "1"},
+            [{"address": "0x1", "isExternal": True, "isThunk": False}],
+        ),
+    ],
+)
+def test_status_transport_failure_without_strict_corroboration_is_retryable(
+    metadata: dict[str, str],
+    functions: list[dict[str, str]],
+) -> None:
+    """0件、program不一致、inventory超過ではopen/importせずretryableにする。"""
+
+    class Client:
+        timeout = 3600
+
+        def get(self, endpoint: str, **_query: object) -> object:
+            if endpoint == "/get_metadata":
+                return metadata
+            if endpoint == "/list_functions_enhanced":
+                return {"functions": functions}
+            raise AssertionError(endpoint)
+
+    try:
+        raise TimeoutError("analysis_status timeout")
+    except TimeoutError as cause:
+        status_error = target.GhidraMcpError("GET /analysis_status failed")
+        status_error.__cause__ = cause
+    with pytest.raises(TimeoutError, match="安全に確認"):
+        target._corroborate_existing_program_without_status(
+            Client(),
+            "/Malware/Test/expected.bin",
+            status_error,
+        )
+
+
+def test_status_corroboration_rejects_incomplete_reported_function_total() -> None:
+    """短いpageでもreported total未達なら限定modeへ昇格しない。"""
+
+    class Client:
+        timeout = 3600
+
+        def get(self, endpoint: str, **_query: object) -> object:
+            if endpoint == "/get_metadata":
+                return {"Program Name": "expected.bin", "Function Count": "1000"}
+            if endpoint == "/list_functions_enhanced":
+                return {
+                    "functions": [
+                        {
+                            "address": "0x1",
+                            "isExternal": False,
+                            "isThunk": False,
+                        }
+                    ],
+                    "total_matching": 1000,
+                }
+            raise AssertionError(endpoint)
+
+    try:
+        raise TimeoutError("analysis_status timeout")
+    except TimeoutError as cause:
+        status_error = target.GhidraMcpError("GET /analysis_status failed")
+        status_error.__cause__ = cause
+    with pytest.raises(TimeoutError, match="安全に確認"):
+        target._corroborate_existing_program_without_status(
+            Client(),
+            "/Malware/Test/expected.bin",
+            status_error,
+        )
+
+
+def test_transport_classifier_rejects_http_error_anywhere_in_chain() -> None:
+    """外側timeoutでも例外chainにHTTP errorがあればtransport fallbackしない。"""
+
+    http_error = target.HTTPError("http://127.0.0.1", 500, "error", {}, None)
+    outer = TimeoutError("outer timeout")
+    outer.__cause__ = http_error
+    wrapped = target.GhidraMcpError("request failed")
+    wrapped.__cause__ = outer
+    assert target._request_transport_failure_kind(wrapped) is None
+
+    timeout_branch = TimeoutError("cause timeout")
+    http_context = target.HTTPError("http://127.0.0.1", 404, "missing", {}, None)
+    branched = target.GhidraMcpError("request failed")
+    branched.__cause__ = timeout_branch
+    branched.__context__ = http_context
+    assert target._request_transport_failure_kind(branched) is None
+
+
+@pytest.mark.parametrize("case", ["export_directory", "invalid_pe", "http_error"])
+def test_limited_exports_rejects_unproven_empty_inventory(case: str) -> None:
+    """export存在、parse失敗、semantic HTTPでは空exports代替を作らない。"""
+
+    class Client:
+        timeout = 3600
+
+        def get(self, endpoint: str, **_query: object) -> object:
+            assert endpoint == "/list_exports"
+            try:
+                if case == "http_error":
+                    raise target.HTTPError("http://127.0.0.1", 500, "error", {}, None)
+                raise TimeoutError("list_exports timeout")
+            except (TimeoutError, target.HTTPError) as error:
+                raise target.GhidraMcpError("GET /list_exports failed") from error
+
+    data = bytearray(_minimal_pe(b"exports-negative"))
+    if case == "export_directory":
+        export_directory = 0x80 + 24 + 96
+        data[export_directory : export_directory + 4] = (0x1000).to_bytes(4, "little")
+        data[export_directory + 4 : export_directory + 8] = (1).to_bytes(4, "little")
+    elif case == "invalid_pe":
+        data = bytearray(b"MZinvalid")
+
+    with pytest.raises(TimeoutError, match="限定静的取得"):
+        target._limited_exports_with_coverage(
+            Client(),
+            "/Malware/Test/sample.bin",
+            bytes(data),
+            hashlib.sha256(data).hexdigest(),
+        )
+
+
 def test_native_zero_function_program_uses_independent_counts_without_listing(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
