@@ -140,6 +140,17 @@ NEWS_PUBLIC_FILES = frozenset(
         "DETECTION.md",
     }
 )
+NEWS_REQUEUE_RESULT_KEYS = frozenset(
+    {
+        "source_date",
+        "analysis_date",
+        "exit_code",
+        "provider_lookups",
+        "sample_download",
+        "public_promotion",
+        "sample_executed",
+    }
+)
 
 
 class DailyOrchestrationError(RuntimeError):
@@ -1943,6 +1954,399 @@ def _load_migration_receipt(
             "実装移行receiptの契約が一致しません",
         )
     return receipt
+
+
+def _news_public_snapshot_at(root: Path, *, label: str) -> dict[str, Any]:
+    """固定8 file directoryを変更せずcommitmentへ固定する。"""
+
+    _reject_reparse_components(root, label=label)
+    if not root.exists():
+        return {"status": "absent", "file_count": 0, "commitment_sha256": None}
+    if not root.is_dir():
+        raise DailyOrchestrationError(
+            "news_requeue_public_output_invalid",
+            "既存のnews公開先が通常directoryではありません",
+        )
+    try:
+        children = sorted(root.iterdir(), key=lambda path: path.name.casefold())
+    except OSError as exc:
+        raise DailyOrchestrationError(
+            "news_requeue_public_output_invalid",
+            "既存のnews公開成果物を列挙できません",
+        ) from exc
+    if {path.name for path in children} != NEWS_PUBLIC_FILES:
+        raise DailyOrchestrationError(
+            "news_requeue_public_output_invalid",
+            "既存のnews公開成果物が固定8 file契約と一致しません",
+        )
+    records: list[dict[str, Any]] = []
+    for path in children:
+        try:
+            raw = analysis_job_runner._read_regular_file_once(path, max_bytes=64 * MIB)
+        except (analysis_job_runner.JobContractError, OSError) as exc:
+            raise DailyOrchestrationError(
+                "news_requeue_public_output_invalid",
+                "既存のnews公開成果物を安全なsnapshotへ固定できません",
+            ) from exc
+        records.append(
+            {"name": path.name, "size": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+        )
+    return {
+        "status": "fixed_eight_files_verified",
+        "file_count": len(records),
+        "commitment_sha256": _sha256_value(records),
+    }
+
+
+def _news_public_snapshot(context: DailyContext) -> dict[str, Any]:
+    """既存のcanonical news公開成果物を固定8 file commitmentへ固定する。"""
+
+    return _news_public_snapshot_at(
+        context.repository
+        / "analysis-results"
+        / "research"
+        / "daily-news-malware"
+        / context.request.news_source_date,
+        label="daily news public output",
+    )
+
+
+def _news_requeue_receipt_base(
+    context: DailyContext,
+    *,
+    state_sha256_before: str,
+    news_record_sha256_before: str,
+    trusted_policy: analysis_job_runner.TrustedToolPolicy,
+    public_snapshot: Mapping[str, Any],
+    staging_snapshot: Mapping[str, Any],
+    transition_contract: Mapping[str, Any],
+) -> dict[str, Any]:
+    """news再queue authorization/completionで共有する識別fieldを返す。"""
+
+    return {
+        "schema_version": 1,
+        "operation": "daily_news_intake_requeue",
+        "run_id": context.request.run_id,
+        "collection_id": context.collection_id,
+        "request_sha256": _sha256_value(context.request.public()),
+        "source_manifest_sha256": context.request.source_manifest_sha256,
+        "implementation_sha256": _implementation_sha256(),
+        "state_sha256_before": state_sha256_before,
+        "news_record_sha256_before": news_record_sha256_before,
+        "trusted_tool_profile_id": trusted_policy.profile_id,
+        "trusted_tool_manifest_sha256": trusted_policy.operator_manifest_sha256,
+        "trusted_tool_identities_sha256": _sha256_value(trusted_policy.identities()),
+        "public_snapshot_before": dict(public_snapshot),
+        "staging_snapshot_before": dict(staging_snapshot),
+        "transition_contract": dict(transition_contract),
+        "safety": {
+            "sample_executed": False,
+            "network_contacted": False,
+            "automatic_source_deletion": False,
+            "existing_public_output_modified": False,
+        },
+    }
+
+
+def _load_news_requeue_receipt(
+    path: Path,
+    expected: Mapping[str, Any],
+    *,
+    status: str,
+) -> dict[str, Any]:
+    try:
+        receipt = analysis_job_runner.load_json_object_strict(
+            path,
+            max_bytes=analysis_job_runner.MAX_REQUEST_BYTES,
+        )
+    except (analysis_job_runner.JobContractError, OSError) as exc:
+        raise DailyOrchestrationError(
+            "news_requeue_receipt_invalid",
+            "news再queue receiptを安全に読み取れません",
+        ) from exc
+    variable = (
+        {"status", "recorded_at_utc", "collection_binding_sha256"}
+        if status == "authorized"
+        else {
+            "status",
+            "recorded_at_utc",
+            "authorization_receipt_sha256",
+            "state_sha256_after",
+            "invalidated_stages",
+        }
+    )
+    digest_fields = variable - {"status", "recorded_at_utc", "invalidated_stages"}
+    invalidated = receipt.get("invalidated_stages")
+    if (
+        set(receipt) != set(expected) | variable
+        or any(receipt.get(key) != value for key, value in expected.items())
+        or receipt.get("status") != status
+        or not isinstance(receipt.get("recorded_at_utc"), str)
+        or any(
+            not isinstance(receipt.get(key), str) or SHA256_RE.fullmatch(receipt[key]) is None
+            for key in digest_fields
+        )
+        or (
+            status == "completed"
+            and (
+                not isinstance(invalidated, list)
+                or any(name not in {"c2_monitoring", "validation", "private_archive"} for name in invalidated)
+                or len(invalidated) != len(set(invalidated))
+            )
+        )
+    ):
+        raise DailyOrchestrationError(
+            "news_requeue_receipt_invalid",
+            "news再queue receiptの契約が一致しません",
+        )
+    return receipt
+
+
+def _validate_legacy_news_partial(
+    context: DailyContext,
+    record: Mapping[str, Any],
+) -> None:
+    result = record.get("result")
+    if (
+        set(record) != {"status", "attempts", "retryable", "result", "error"}
+        or record.get("status") != "partial"
+        or type(record.get("attempts")) is not int
+        or not 1 <= record["attempts"] < MAX_STAGE_ATTEMPTS.get("news_intake", MAX_ATTEMPTS)
+        or record.get("retryable") is not False
+        or record.get("error") is not None
+        or not isinstance(result, Mapping)
+        or set(result) != NEWS_REQUEUE_RESULT_KEYS
+        or result.get("source_date") != context.request.news_source_date
+        or result.get("analysis_date") != context.request.analysis_date
+        or result.get("exit_code") != 20
+        or result.get("provider_lookups") is not context.request.network["provider_lookups"]
+        or result.get("sample_download") is not context.request.network["sample_download"]
+        or result.get("sample_download") is not True
+        or result.get("public_promotion") is not None
+        or result.get("sample_executed") is not False
+    ):
+        raise DailyOrchestrationError(
+            "news_requeue_source_not_eligible",
+            "news stageは既知の旧non-retryable partial契約と完全一致しません",
+        )
+
+
+def _news_requeue_marker(*, authorization_sha256: str, previous_sha256: str) -> dict[str, Any]:
+    return {
+        "status": "operator_authorized_news_requeue",
+        "authorization_receipt_sha256": authorization_sha256,
+        "previous_record_sha256": previous_sha256,
+        "sample_executed": False,
+        "network_contacted": False,
+    }
+
+
+def requeue_news_intake(
+    context: DailyContext,
+    *,
+    expected_state_sha256: str,
+    expected_news_record_sha256: str,
+) -> dict[str, Any]:
+    """既知の旧news partialだけを監査receipt付きで通常resume経路へ戻す。"""
+
+    expected_state = _sha256_string(expected_state_sha256, label="再queue元state SHA-256")
+    expected_news = _sha256_string(
+        expected_news_record_sha256,
+        label="再queue元news record SHA-256",
+    )
+    if context.trusted_tool_configuration is None:
+        raise DailyOrchestrationError(
+            "news_requeue_trusted_tools_required",
+            "news再queueにはoperator固定trusted tool manifestとSHA-256 pinが必要です",
+        )
+    with _run_lock(context):
+        _validate_context_derived_paths(context)
+        state = _load_state(context, recover_running=False)
+        if state["status"] == "complete":
+            raise DailyOrchestrationError(
+                "news_requeue_completed_run",
+                "完了済みrunはnews再queueできません",
+            )
+        if state["status"] == "running" or any(
+            record["status"] == "running" for record in state["stages"].values()
+        ):
+            raise DailyOrchestrationError(
+                "news_requeue_run_not_quiescent",
+                "実行中stageがあるrunはnews再queueできません",
+            )
+        _ensure_collection_binding(context, create=False)
+        _verify_context_news_source(context)
+        trusted_policy = _load_context_trusted_tool_policy(context)
+        assert trusted_policy is not None
+        public_before = _news_public_snapshot(context)
+        if public_before["status"] != "absent":
+            raise DailyOrchestrationError(
+                "news_requeue_public_output_exists",
+                "既存のnews公開成果物を再queueで上書きしません",
+            )
+        staging_before = _news_public_snapshot_at(
+            context.state_root / "news-public-staging" / context.request.news_source_date,
+            label="daily news public staging",
+        )
+        state_path = context.state_root / "state.json"
+        observed_state_sha256 = _sha256_file(state_path)
+        news_record = state["stages"]["news_intake"]
+        observed_news_sha256 = _sha256_value(news_record)
+        downstream_names = ("c2_monitoring", "validation", "private_archive")
+        transition_contract = {
+            "preserved_stages_sha256": _sha256_value(
+                {
+                    name: state["stages"][name]
+                    for name in STAGES
+                    if name not in {"news_intake", *downstream_names}
+                }
+            ),
+            "news_attempts_before": news_record["attempts"],
+            "downstream_attempts_before": {
+                name: state["stages"][name]["attempts"] for name in downstream_names
+            },
+        }
+        receipt_root = context.state_root / "repair-receipts" / "news-intake-requeue"
+        authorization_path = receipt_root / "authorization.json"
+        completion_path = receipt_root / "completion.json"
+        base = _news_requeue_receipt_base(
+            context,
+            state_sha256_before=expected_state,
+            news_record_sha256_before=expected_news,
+            trusted_policy=trusted_policy,
+            public_snapshot=public_before,
+            staging_snapshot=staging_before,
+            transition_contract=transition_contract,
+        )
+        if completion_path.is_file():
+            authorization = _load_news_requeue_receipt(
+                authorization_path,
+                base,
+                status="authorized",
+            )
+            completion = _load_news_requeue_receipt(completion_path, base, status="completed")
+            authorization_sha256 = _sha256_file(authorization_path)
+            if (
+                completion["authorization_receipt_sha256"] != authorization_sha256
+                or authorization["collection_binding_sha256"]
+                != _sha256_file(context.collection_root / "collection-binding.json")
+                or completion["state_sha256_after"] != observed_state_sha256
+            ):
+                raise DailyOrchestrationError(
+                    "news_requeue_receipt_invalid",
+                    "news再queue completion、binding、post-stateの監査値が一致しません",
+                )
+            return {
+                "status": "already_completed",
+                "authorization_receipt_sha256": authorization_sha256,
+                "completion_receipt_sha256": _sha256_file(completion_path),
+                "invalidated_stages": completion["invalidated_stages"],
+                "sample_executed": False,
+                "network_contacted": False,
+            }
+        authorization_sha256: str
+        if authorization_path.is_file():
+            authorization = _load_news_requeue_receipt(authorization_path, base, status="authorized")
+            if authorization["collection_binding_sha256"] != _sha256_file(
+                context.collection_root / "collection-binding.json"
+            ):
+                raise DailyOrchestrationError(
+                    "news_requeue_receipt_invalid",
+                    "authorizationのcollection bindingが変化しました",
+                )
+            authorization_sha256 = _sha256_file(authorization_path)
+        else:
+            if observed_state_sha256 != expected_state or observed_news_sha256 != expected_news:
+                raise DailyOrchestrationError(
+                    "news_requeue_source_mismatch",
+                    "保存済みstateまたはnews recordがoperator pinと一致しません",
+                )
+            _validate_legacy_news_partial(context, news_record)
+            binding_path = context.collection_root / "collection-binding.json"
+            authorization = {
+                **base,
+                "status": "authorized",
+                "recorded_at_utc": _utc_now(),
+                "collection_binding_sha256": _sha256_file(binding_path),
+            }
+            _reject_reparse_components(receipt_root, label="news requeue receipt root")
+            receipt_root.mkdir(parents=True, exist_ok=True)
+            _reject_reparse_components(receipt_root, label="news requeue receipt root")
+            _atomic_json(authorization_path, authorization)
+            authorization_sha256 = _sha256_file(authorization_path)
+        marker = _news_requeue_marker(
+            authorization_sha256=authorization_sha256,
+            previous_sha256=expected_news,
+        )
+        already_mutated = (
+            news_record.get("status") == "pending"
+            and news_record.get("retryable") is True
+            and news_record.get("error") is None
+            and news_record.get("result") == marker
+        )
+        if not already_mutated:
+            if observed_state_sha256 != expected_state or observed_news_sha256 != expected_news:
+                raise DailyOrchestrationError(
+                    "news_requeue_source_mismatch",
+                    "authorization後のstateが再queue元または中断checkpointと一致しません",
+                )
+            _validate_legacy_news_partial(context, news_record)
+            news_record.update(status="pending", retryable=True, result=marker, error=None)
+        invalidated: list[str] = []
+        for name in downstream_names:
+            record = state["stages"][name]
+            if record["status"] == "skipped":
+                continue
+            downstream_marker = {
+                "status": "invalidated_by_news_requeue",
+                "authorization_receipt_sha256": authorization_sha256,
+                "sample_executed": False,
+                "network_contacted": False,
+            }
+            downstream_already_mutated = (
+                record.get("status") == "pending"
+                and record.get("retryable") is True
+                and record.get("result") == downstream_marker
+                and record.get("error") is None
+            )
+            if already_mutated and not downstream_already_mutated:
+                raise DailyOrchestrationError(
+                    "news_requeue_interrupted_state_invalid",
+                    "authorization後のdownstream stateが期待する中断checkpointと一致しません",
+                )
+            if not downstream_already_mutated:
+                record.update(status="pending", retryable=True, result=downstream_marker, error=None)
+            invalidated.append(name)
+        state["status"] = "partial"
+        _write_state(context, state)
+        if (
+            _news_public_snapshot(context) != public_before
+            or _news_public_snapshot_at(
+                context.state_root / "news-public-staging" / context.request.news_source_date,
+                label="daily news public staging",
+            ) != staging_before
+        ):
+            raise DailyOrchestrationError(
+                "news_requeue_public_output_changed",
+                "再queue中に既存news公開成果物が変化しました",
+            )
+        completion = {
+            **base,
+            "status": "completed",
+            "recorded_at_utc": _utc_now(),
+            "authorization_receipt_sha256": authorization_sha256,
+            "state_sha256_after": _sha256_file(state_path),
+            "invalidated_stages": invalidated,
+        }
+        _atomic_json(completion_path, completion)
+        return {
+            "status": "requeued",
+            "authorization_receipt_sha256": authorization_sha256,
+            "completion_receipt_sha256": _sha256_file(completion_path),
+            "invalidated_stages": invalidated,
+            "sample_executed": False,
+            "network_contacted": False,
+        }
 
 
 def migrate_run_implementation(
@@ -4605,6 +5009,21 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="移行元checkpointへ記録されたimplementation SHA-256 pin",
     )
+    requeue_news = commands.add_parser(
+        "repair-news-intake",
+        help="既知の旧news partialを監査receipt付きで通常resumeへ戻します",
+    )
+    _add_context_arguments(requeue_news, request_required=True)
+    requeue_news.add_argument(
+        "--expected-state-sha256",
+        required=True,
+        help="変更前state.json raw bytesの小文字SHA-256 pin",
+    )
+    requeue_news.add_argument(
+        "--expected-news-record-sha256",
+        required=True,
+        help="変更前news_intake record正規JSONの小文字SHA-256 pin",
+    )
     verify = commands.add_parser("verify", help="保存済みstateと実装契約をread-only検証します")
     _add_context_arguments(verify, request_required=True)
     status = commands.add_parser("status", help="保存済み日次stateを表示します")
@@ -4698,6 +5117,7 @@ def main(argv: list[str] | None = None) -> int:
                 "resume",
                 "drive",
                 "migrate-run-implementation",
+                "repair-news-intake",
             },
             trusted_tool_configuration=trusted_tool_configuration,
         )
@@ -4733,6 +5153,14 @@ def main(argv: list[str] | None = None) -> int:
             result = migrate_run_implementation(
                 context,
                 expected_old_implementation_sha256=args.expected_old_implementation_sha256,
+            )
+            _print_json(result)
+            return 0
+        if args.command == "repair-news-intake":
+            result = requeue_news_intake(
+                context,
+                expected_state_sha256=args.expected_state_sha256,
+                expected_news_record_sha256=args.expected_news_record_sha256,
             )
             _print_json(result)
             return 0
