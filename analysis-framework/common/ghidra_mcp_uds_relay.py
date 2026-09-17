@@ -11,6 +11,7 @@ import os
 import socket
 import sys
 import threading
+import time
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any
@@ -25,6 +26,7 @@ DEFAULT_MAX_RESPONSE_BYTES = 64 * 1024 * 1024
 MAX_CONNECTIONS = 32
 MAX_DIRECTION_BYTES = 256 * 1024 * 1024
 BUFFER_SIZE = 64 * 1024
+PEER_EOF_DRAIN_TIMEOUT = 1.0
 WINDOWS_AF_UNIX = 1
 WINDOWS_SOCK_STREAM = 1
 WINDOWS_SOCKET_ERROR = -1
@@ -204,7 +206,11 @@ def _copy_bounded(
     *,
     maximum_bytes: int,
     stop: threading.Event,
+    completed: threading.Event | None = None,
+    failed: threading.Event | None = None,
 ) -> None:
+    """1方向を中継し、終了理由を接続管理側へ通知する。"""
+
     transferred = 0
     try:
         while not stop.is_set():
@@ -217,9 +223,14 @@ def _copy_bounded(
                 raise RelayLimitExceeded("relay方向別byte上限を超過しました")
             destination.sendall(chunk)
     except (OSError, RelayLimitExceeded):
+        if failed is not None:
+            failed.set()
         stop.set()
         _shutdown(source, socket.SHUT_RDWR)
         _shutdown(destination, socket.SHUT_RDWR)
+    finally:
+        if completed is not None:
+            completed.set()
 
 
 def relay_connection(client: socket.socket, config: RelayConfiguration) -> None:
@@ -227,6 +238,9 @@ def relay_connection(client: socket.socket, config: RelayConfiguration) -> None:
 
     upstream: socket.socket | None = None
     stop = threading.Event()
+    request_completed = threading.Event()
+    response_completed = threading.Event()
+    failed = threading.Event()
     try:
         client.settimeout(config.idle_timeout)
         upstream = connect_uds(config.uds_path, config.connect_timeout)
@@ -234,34 +248,97 @@ def relay_connection(client: socket.socket, config: RelayConfiguration) -> None:
         request_thread = threading.Thread(
             target=_copy_bounded,
             args=(client, upstream),
-            kwargs={"maximum_bytes": config.max_request_bytes, "stop": stop},
+            kwargs={
+                "maximum_bytes": config.max_request_bytes,
+                "stop": stop,
+                "completed": request_completed,
+                "failed": failed,
+            },
             name="ghidra-mcp-request-relay",
             daemon=True,
         )
         response_thread = threading.Thread(
             target=_copy_bounded,
             args=(upstream, client),
-            kwargs={"maximum_bytes": config.max_response_bytes, "stop": stop},
+            kwargs={
+                "maximum_bytes": config.max_response_bytes,
+                "stop": stop,
+                "completed": response_completed,
+                "failed": failed,
+            },
             name="ghidra-mcp-response-relay",
             daemon=True,
         )
+        relay_threads = (request_thread, response_thread)
         request_thread.start()
         response_thread.start()
-        request_thread.join(config.idle_timeout + 1.0)
-        response_thread.join(config.idle_timeout + 1.0)
-        if request_thread.is_alive() or response_thread.is_alive():
+
+        # 各threadへidle_timeoutを丸ごと与えず、接続単位の共通deadlineを
+        # 共有する。request EOF後も短い猶予だけresponseをdrainし、正当な
+        # half-closeを保ちつつ、応答不能upstreamがpermitを保持し続けるのを防ぐ。
+        deadline = time.monotonic() + config.idle_timeout
+        request_eof_deadline: float | None = None
+        while any(relay_thread.is_alive() for relay_thread in relay_threads):
+            now = time.monotonic()
+            if failed.is_set() or now >= deadline:
+                break
+            if request_completed.is_set() and not response_completed.is_set():
+                if request_eof_deadline is None:
+                    request_eof_deadline = now + min(
+                        PEER_EOF_DRAIN_TIMEOUT,
+                        config.idle_timeout,
+                    )
+                elif now >= request_eof_deadline:
+                    break
+            request_thread.join(min(0.05, max(0.0, deadline - now)))
+            response_thread.join(0)
+        if any(relay_thread.is_alive() for relay_thread in relay_threads):
             stop.set()
             _shutdown(client, socket.SHUT_RDWR)
             _shutdown(upstream, socket.SHUT_RDWR)
-            request_thread.join(1.0)
-            response_thread.join(1.0)
+            cleanup_deadline = time.monotonic() + 1.0
+            for relay_thread in relay_threads:
+                relay_thread.join(max(0.0, cleanup_deadline - time.monotonic()))
     except OSError:
+        stop.set()
         _shutdown(client, socket.SHUT_RDWR)
+        if upstream is not None:
+            _shutdown(upstream, socket.SHUT_RDWR)
     finally:
         stop.set()
+        _shutdown(client, socket.SHUT_RDWR)
         if upstream is not None:
+            _shutdown(upstream, socket.SHUT_RDWR)
             upstream.close()
         client.close()
+
+
+def _submit_relay_connection(
+    executor: ThreadPoolExecutor,
+    client: socket.socket,
+    config: RelayConfiguration,
+    permits: threading.BoundedSemaphore,
+    futures: set[Future[None]],
+) -> Future[None]:
+    """取得済みpermitを、submit失敗時を含めて必ず返却する。"""
+
+    try:
+        future = executor.submit(relay_connection, client, config)
+    except BaseException:
+        permits.release()
+        _shutdown(client, socket.SHUT_RDWR)
+        client.close()
+        raise
+    futures.add(future)
+
+    def completed(completed_future: Future[None]) -> None:
+        try:
+            futures.discard(completed_future)
+        finally:
+            permits.release()
+
+    future.add_done_callback(completed)
+    return future
 
 
 def serve(config: RelayConfiguration) -> None:
@@ -275,10 +352,6 @@ def serve(config: RelayConfiguration) -> None:
     listener.settimeout(1.0)
     permits = threading.BoundedSemaphore(config.max_connections)
     futures: set[Future[None]] = set()
-
-    def completed(future: Future[None]) -> None:
-        futures.discard(future)
-        permits.release()
 
     print(
         json.dumps(
@@ -313,9 +386,7 @@ def serve(config: RelayConfiguration) -> None:
                 if not peer_address.is_loopback or not permits.acquire(blocking=False):
                     client.close()
                     continue
-                future = executor.submit(relay_connection, client, config)
-                futures.add(future)
-                future.add_done_callback(completed)
+                _submit_relay_connection(executor, client, config, permits, futures)
     except KeyboardInterrupt:
         return
     finally:

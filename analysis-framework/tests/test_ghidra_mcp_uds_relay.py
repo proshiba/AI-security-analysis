@@ -3,6 +3,8 @@ from __future__ import annotations
 import socket
 import sys
 import threading
+import time
+from concurrent.futures import Future
 from pathlib import Path
 
 import pytest
@@ -98,3 +100,148 @@ def test_copy_bounded_closes_connection_after_limit() -> None:
     finally:
         for item in (source_reader, source_writer, destination_reader, destination_writer):
             item.close()
+
+
+def test_relay_connection_preserves_fast_response_after_request_half_close(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client_relay, client_peer = socket.socketpair()
+    upstream_relay, upstream_peer = socket.socketpair()
+    monkeypatch.setattr(target, "connect_uds", lambda _path, _timeout: upstream_relay)
+    worker = threading.Thread(
+        target=target.relay_connection,
+        args=(client_relay, configuration(connect_timeout=0.1, idle_timeout=2.0)),
+    )
+    response = b"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 2\r\n\r\n{}"
+
+    def upstream_server() -> None:
+        observed = bytearray()
+        while True:
+            chunk = upstream_peer.recv(4096)
+            if not chunk:
+                break
+            observed.extend(chunk)
+        assert bytes(observed) == b"GET / HTTP/1.1\r\n\r\n"
+        upstream_peer.sendall(response)
+        upstream_peer.shutdown(socket.SHUT_WR)
+
+    server = threading.Thread(target=upstream_server)
+    try:
+        worker.start()
+        server.start()
+        client_peer.sendall(b"GET / HTTP/1.1\r\n\r\n")
+        client_peer.shutdown(socket.SHUT_WR)
+        observed_response = bytearray()
+        while True:
+            chunk = client_peer.recv(4096)
+            if not chunk:
+                break
+            observed_response.extend(chunk)
+        worker.join(2.0)
+        server.join(2.0)
+        assert not worker.is_alive()
+        assert not server.is_alive()
+        assert bytes(observed_response) == response
+    finally:
+        for item in (client_relay, client_peer, upstream_relay, upstream_peer):
+            item.close()
+
+
+def test_relay_connection_releases_after_client_leaves_without_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client_relay, client_peer = socket.socketpair()
+    upstream_relay, upstream_peer = socket.socketpair()
+    monkeypatch.setattr(target, "connect_uds", lambda _path, _timeout: upstream_relay)
+    worker = threading.Thread(
+        target=target.relay_connection,
+        args=(client_relay, configuration(connect_timeout=0.1, idle_timeout=10.0)),
+    )
+    started = time.monotonic()
+    try:
+        worker.start()
+        client_peer.sendall(b"GET /stalled HTTP/1.1\r\n\r\n")
+        client_peer.close()
+        worker.join(target.PEER_EOF_DRAIN_TIMEOUT + 2.0)
+        assert not worker.is_alive()
+        assert time.monotonic() - started < target.PEER_EOF_DRAIN_TIMEOUT + 1.5
+    finally:
+        for item in (client_relay, upstream_relay, upstream_peer):
+            item.close()
+
+
+def test_relay_connection_uses_one_common_idle_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client_relay, client_peer = socket.socketpair()
+    upstream_relay, upstream_peer = socket.socketpair()
+    monkeypatch.setattr(target, "connect_uds", lambda _path, _timeout: upstream_relay)
+    worker = threading.Thread(
+        target=target.relay_connection,
+        args=(client_relay, configuration(connect_timeout=0.1, idle_timeout=0.1)),
+    )
+    started = time.monotonic()
+    try:
+        worker.start()
+        worker.join(2.0)
+        elapsed = time.monotonic() - started
+        assert not worker.is_alive()
+        assert elapsed < 1.6
+    finally:
+        for item in (client_relay, client_peer, upstream_relay, upstream_peer):
+            item.close()
+
+
+def test_submit_failure_releases_acquired_permit_and_closes_client() -> None:
+    client_relay, client_peer = socket.socketpair()
+    permits = threading.BoundedSemaphore(1)
+    assert permits.acquire(blocking=False)
+
+    class FailedExecutor:
+        def submit(self, *_args: object, **_kwargs: object) -> Future[None]:
+            raise RuntimeError("synthetic submit failure")
+
+    try:
+        with pytest.raises(RuntimeError, match="synthetic submit failure"):
+            target._submit_relay_connection(
+                FailedExecutor(),
+                client_relay,
+                configuration(),
+                permits,
+                set(),
+            )
+        assert permits.acquire(blocking=False)
+        assert client_peer.recv(1) == b""
+    finally:
+        client_relay.close()
+        client_peer.close()
+
+
+def test_completed_future_releases_acquired_permit_exactly_once() -> None:
+    client_relay, client_peer = socket.socketpair()
+    permits = threading.BoundedSemaphore(1)
+    assert permits.acquire(blocking=False)
+    future: Future[None] = Future()
+    futures: set[Future[None]] = set()
+
+    class SuccessfulExecutor:
+        def submit(self, *_args: object, **_kwargs: object) -> Future[None]:
+            return future
+
+    try:
+        returned = target._submit_relay_connection(
+            SuccessfulExecutor(),
+            client_relay,
+            configuration(),
+            permits,
+            futures,
+        )
+        assert returned is future
+        assert future in futures
+        future.set_result(None)
+        assert future not in futures
+        assert permits.acquire(blocking=False)
+        assert permits.acquire(blocking=False) is False
+    finally:
+        client_relay.close()
+        client_peer.close()

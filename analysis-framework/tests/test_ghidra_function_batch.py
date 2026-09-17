@@ -1995,6 +1995,7 @@ def test_quick_read_only_get_retries_one_header_timeout_on_new_request(
     assert len(requests) == 2
     assert requests[0] is not requests[1]
     assert all(request.data is None for request in requests)
+    assert all(request.get_header("Connection") == "close" for request in requests)
     assert all("program=%2FMalware%2FTest%2Fsample" in request.full_url for request in requests)
     assert timeouts == [60.0, 60.0]
     evidence = [json.loads(line) for line in capsys.readouterr().out.splitlines()]

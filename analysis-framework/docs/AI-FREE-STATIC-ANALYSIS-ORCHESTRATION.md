@@ -161,6 +161,8 @@ MCP HTTP clientはrequest開始時にmonotonic deadlineを固定し、header受�
 
 `analysis_status`、metadata、関数・構造・文字列・entry point・call graph・anti-analysis・API chain・opcode hashの取得は、副作用のないquick read-only GETとして明示program selectorを必須にし、各通信試行を60秒以下へ制限します。timeout、接続切断、socket／HTTP body transport failureに限り、同じselectorを持つ新しいHTTP requestで最大1回だけ再試行します。HTTP status error、redirect、MCP error object、schema不正、response上限超過はsemantic failureとして再試行しません。標準出力へ残す証跡はendpoint、selector、試行番号、timeout、通信失敗分類だけで、response本文や例外本文を含めません。`open_program`、import、`run_analysis`、`save_program`、`close_program`、関数作成、decompileは状態変更または長時間処理なので、この自動再試行と60秒上限の対象外です。
 
+Windows AF_UNIXから`127.0.0.1`へのMCP relayは、接続単位で1つのidle deadlineを共有し、client側EOF後は1秒だけ正当なhalf-close応答をdrainしてから両socketを閉じます。これにより、client timeout後もupstreamが応答しない接続がworkerとpermitを長時間保持することを防ぎます。HTTP clientも`Connection: close`を明示し、正常応答時の接続解放を確定させます。submit失敗とfuture完了の各経路でpermitは1回だけ返却し、relayは引き続きnumeric loopbackだけへbindし、HTTP bytesを変更しません。
+
 ## Ghidra関数解析後の品質ゲート再整合
 
 `ghidra_function_batch.py`がcaseの関数解析をfinalizeするときは、代表関数解析成果物を独立validatorで検証した後、既存`orchestration.json`の`function_analysis` gateだけを自動再整合します。gateが`required_missing`で検証済み関数解析が揃った場合は`required_missing`から`satisfied`へ変更し、対応する`function_analysis` blockerと同じ位置のnext actionだけを除去して、残余blockerからorchestration状態を再計算します。

@@ -1691,7 +1691,10 @@ class GhidraMcpClient:
         if clean_query:
             url += "?" + urlencode(clean_query)
         data = None
-        headers = {"Accept": "application/json"}
+        headers = {
+            "Accept": "application/json",
+            "Connection": "close",
+        }
         if body is not None:
             data = json.dumps(body).encode("utf-8")
             headers["Content-Type"] = "application/json"
