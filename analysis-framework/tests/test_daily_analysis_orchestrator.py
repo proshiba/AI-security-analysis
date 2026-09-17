@@ -2878,6 +2878,36 @@ def test_news_adapter_converts_system_exit_to_checkpointable_error(
     assert captured.value.code == "news_intake_failed"
 
 
+def test_news_adapter_forwards_operator_trusted_tool_pair(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """orchestratorのoperator-only pairをintake CLIへそのまま渡す。"""
+
+    configuration, manifest, _sevenzip = trusted_tool_configuration(tmp_path)
+    daily_context = context(
+        tmp_path,
+        trusted_tool_configuration=configuration,
+    )
+    captured: dict[str, list[str]] = {}
+
+    def partial(arguments: list[str]) -> int:
+        captured["arguments"] = arguments
+        return 20
+
+    monkeypatch.setattr(news_intake, "main", partial)
+    outcome = target._production_news_intake(daily_context)
+
+    arguments = captured["arguments"]
+    assert outcome.status == "partial"
+    assert Path(arguments[arguments.index("--trusted-tools-manifest") + 1]) == manifest
+    assert arguments[arguments.index("--trusted-tools-manifest-sha256") + 1] == (
+        configuration.manifest_sha256
+    )
+    assert "trusted_tools_manifest" not in daily_context.request.public()
+    assert str(manifest) not in json.dumps(daily_context.request.public())
+
+
 def test_news_source_change_does_not_promote_staged_public_results(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

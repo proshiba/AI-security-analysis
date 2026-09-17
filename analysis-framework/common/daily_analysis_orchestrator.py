@@ -2997,6 +2997,16 @@ def _production_news_intake(context: DailyContext) -> StageOutcome:
         arguments.append("--allow-provider-lookups")
     if context.request.network["sample_download"]:
         arguments.extend(("--allow-sample-download", "--run-static-analysis"))
+    if context.trusted_tool_configuration is not None:
+        _load_context_trusted_tool_policy(context)
+        arguments.extend(
+            (
+                "--trusted-tools-manifest",
+                os.fspath(context.trusted_tool_configuration.manifest_path),
+                "--trusted-tools-manifest-sha256",
+                context.trusted_tool_configuration.manifest_sha256,
+            )
+        )
     try:
         exit_code = daily_news_malware_intake.main(arguments)
     except SystemExit as exc:
