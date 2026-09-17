@@ -165,7 +165,9 @@ def _verify_structure(
     for index, row in enumerate(pe.net.mdtables.MethodDef.rows, 1):
         owner = method_owners.get(index, "")
         if owner in REQUIRED_METHODS:
-            observed.setdefault(owner, set()).add(str(row.Name))
+            if owner not in observed:
+                observed[owner] = set()
+            observed[owner].add(str(row.Name))
             tokens[f"{owner}.{row.Name}"] = f"0x0600{index:04x}"
     if any(required - observed.get(owner, set()) for owner, required in REQUIRED_METHODS.items()):
         raise XwormRecoveryError("XWorm必須method集合が一致しません")
@@ -260,11 +262,15 @@ def recover_config(data: bytes) -> dict[str, object]:
     hosts = sorted(
         {
             host.strip().casefold().rstrip(".")
-            for host in re.split(r"[,;]", decrypted["Hosts"])
+            for host in decrypted["Hosts"].replace(";", ",").split(",")
             if host.strip()
         }
     )
-    ports_text = [value.strip() for value in re.split(r"[,;]", decrypted["Port"]) if value.strip()]
+    ports_text = [
+        value.strip()
+        for value in decrypted["Port"].replace(";", ",").split(",")
+        if value.strip()
+    ]
     if not hosts or any(not valid_host(host) for host in hosts):
         raise XwormRecoveryError("XWorm hostが不正です")
     if not ports_text or any(not value.isdigit() for value in ports_text):

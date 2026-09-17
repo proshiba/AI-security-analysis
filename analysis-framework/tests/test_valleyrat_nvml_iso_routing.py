@@ -156,10 +156,12 @@ def test_hash_independent_iso_structure_recovers_two_c2(
     result = DETECT.detect(image, Path("unknown.img"))
 
     assert result["matched"] is True
+    assert result["supports_family_attribution"] is True
     campaign = result["campaigns"][0]
     assert campaign["campaign_type"] == "signed_proxy_sideload"
     assert campaign["confidence"] == "high"
     assert campaign["attribution_scope"] == "validated_terminal_component_structure"
+    assert campaign["supports_family_attribution"] is True
     assert campaign["terminal_family_confirmed"] is True
     assert result["observations"]["nvml_dat"]["summary"]["codemark_config"]["endpoints"] == [
         "192.0.2.10:6666",
@@ -248,9 +250,11 @@ def test_raw_dat_and_compact_proxy_layers_route_to_valleyrat(
 
     dat_result = DETECT.detect(_nvml_dat(), Path("NVML.DAT"))
     assert dat_result["matched"] is True
+    assert dat_result["supports_family_attribution"] is True
     dat_campaign = dat_result["campaigns"][0]
     assert dat_campaign["confidence"] == "high"
     assert dat_campaign["attribution_scope"] == "validated_terminal_component_structure"
+    assert dat_campaign["supports_family_attribution"] is True
     assert dat_campaign["terminal_family_confirmed"] is True
 
     monkeypatch.setattr(DETECT, "analyze_signed_proxy_sideload", lambda *_args: _proxy_result())

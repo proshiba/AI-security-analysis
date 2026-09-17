@@ -4195,7 +4195,9 @@ def _attach_final_payloads(
             or not raw
         ):
             continue
-        unique.setdefault(hashlib.sha256(raw).digest(), payload)
+        digest = hashlib.sha256(raw).digest()
+        if digest not in unique:
+            unique[digest] = payload
     retained = list(unique.values())
     if len(retained) == 1:
         result["final_payload"] = retained[0]

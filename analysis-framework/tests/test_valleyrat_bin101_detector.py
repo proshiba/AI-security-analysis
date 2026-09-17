@@ -111,10 +111,12 @@ def test_bin101_outer_requires_recovered_codemark_correlation(
     result = DETECT.detect(b"MZ synthetic outer", Path("sample.exe"))
 
     assert result["matched"] is True
+    assert result["supports_family_attribution"] is True
     campaign = result["campaigns"][0]
     assert campaign["campaign_type"] == "bin101_nibble_rc4_loader"
     assert campaign["confidence"] == "high"
     assert campaign["attribution_scope"] == "validated_terminal_component_structure"
+    assert campaign["supports_family_attribution"] is True
     assert campaign["terminal_family_confirmed"] is True
     observation = result["observations"]["recovered_codemark_stage"]
     assert observation["config"] == {

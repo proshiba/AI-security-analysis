@@ -80,6 +80,10 @@ FAMILY_ALIASES = {
     "medusastealer": "medusastealer",
     "nyxstealer": "nyxstealer",
     "pysilon": "pysilon",
+    "purehvnc": "purehvnc",
+    "pure hvnc": "purehvnc",
+    "purerat": "purehvnc",
+    "pure rat": "purehvnc",
     "remcos": "remcosrat",
     "remcosrat": "remcosrat",
     "remus": "remusstealer",
@@ -319,6 +323,60 @@ def sanitize_ip_candidate(value: str) -> str | None:
             return None
         return f"{address}:{int(port)}"
     return str(address)
+
+
+def sanitize_domain_candidate(value: str) -> str | None:
+    """DNS名だけを小文字へ正規化し、IP・単一label・制御文字を拒否する。"""
+
+    if not isinstance(value, str) or not 1 <= len(value) <= 253:
+        return None
+    host = value.casefold().rstrip(".")
+    if any(ord(character) < 0x21 for character in host):
+        return None
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        labels = host.split(".")
+        if len(labels) < 2 or any(
+            re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label) is None
+            for label in labels
+        ):
+            return None
+        return host
+    return None
+
+
+def sanitize_endpoint_candidate(value: str) -> str | None:
+    """公開IPまたはDNS名とTCP portの組だけを正規化する。"""
+
+    if not isinstance(value, str) or not 3 <= len(value) <= 512:
+        return None
+    try:
+        parsed = urlsplit(f"tcp://{value}")
+        if (
+            parsed.username is not None
+            or parsed.password is not None
+            or parsed.hostname is None
+            or parsed.port is None
+            or parsed.path not in {"", "/"}
+            or parsed.query
+            or parsed.fragment
+        ):
+            return None
+    except ValueError:
+        return None
+    host = parsed.hostname.casefold().rstrip(".")
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        normalized_host = sanitize_domain_candidate(host)
+        if normalized_host is None:
+            return None
+    else:
+        if not address.is_global or address.is_unspecified or address.is_multicast:
+            return None
+        normalized_host = f"[{address}]" if address.version == 6 else str(address)
+    return f"{normalized_host}:{parsed.port}"
 
 
 def extract_iocs(strings: list[str]) -> dict:
@@ -719,8 +777,20 @@ def safe_config_findings(family: str, blobs: list[tuple[str, bytes]]) -> list[di
             continue
         for item in result.get("findings") or []:
             kind, value = str(item.get("kind") or ""), str(item.get("value") or "")
+            kind = {
+                "network.url": "url",
+                "network.domain": "domain",
+                "network.ip": "ip",
+                "network.endpoint": "endpoint",
+            }.get(kind, kind)
             if kind == "url":
                 value = sanitize_url(value) or ""
+            elif kind == "domain":
+                value = sanitize_domain_candidate(value) or ""
+            elif kind == "ip":
+                value = sanitize_ip_candidate(value) or ""
+            elif kind == "endpoint":
+                value = sanitize_endpoint_candidate(value) or ""
             if kind not in {"url", "domain", "ip", "endpoint"} or not value:
                 continue
             key = kind, value

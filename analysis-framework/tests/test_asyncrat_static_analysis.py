@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -290,6 +291,114 @@ def test_obfuscated_chacha_handler_recovers_after_name_based_route_miss(
     )
     assert result["static_evidence"]["authentication"] == "none_per_setting"
     assert result["static_evidence"]["decryption"] == "chacha20_ietf"
+
+
+def test_protocol_rejection_does_not_publish_recovered_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        integrated,
+        "structural_evidence",
+        lambda _data: {"matched": True, "managed_pe": True, "rule": "fixture"},
+    )
+    monkeypatch.setattr(
+        integrated,
+        "_validated_recovery",
+        lambda _data: {
+            "config_mode": "hmac_encrypted",
+            "endpoints": [{"host": "c2.example.test", "port": 443}],
+            "certificate": {
+                "sha256": "8" * 64,
+                "validation": "embedded_certificate_present",
+            },
+        },
+    )
+
+    def reject_protocol(*_args: object) -> dict[str, object]:
+        raise ValueError("raw parser detail")
+
+    monkeypatch.setattr(integrated, "_validated_protocol", reject_protocol)
+
+    result = integrated.extract(b"MZ\0BSJB\0fixture", "fixture.exe")
+
+    assert result["static_config_recovered"] is False
+    assert result["config_endpoints"] == []
+    assert result["protocol_evidence"] is None
+    assert result["config"]["recovery_status"] == "rejected_or_not_recovered"
+    assert result["config"]["recovery_diagnostics"] == {
+        "stage": "protocol_evidence",
+        "error_type": "ValueError",
+        "exception_message_published": False,
+    }
+    assert "raw parser detail" not in repr(result)
+
+
+def test_plaintext_recovery_miss_uses_mode_specific_structural_rule(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        integrated,
+        "structural_evidence",
+        lambda _data: {"matched": False, "managed_pe": True, "rule": "name_miss"},
+    )
+    monkeypatch.setattr(
+        integrated,
+        "_validated_recovery",
+        lambda _data: {
+            "config_mode": "plaintext_static_v057b",
+            "version": "0.5.7B",
+            "install": "false",
+            "group": "Debug",
+            "anti_analysis": "false",
+            "endpoints": [{"host": "c2.example.test", "port": 443}],
+            "dynamic_config_present": False,
+            "certificate": {"sha256": None, "validation": "accept_all"},
+            "crypto_profile": {},
+            "static_shape_evidence": {},
+        },
+    )
+    monkeypatch.setattr(
+        integrated,
+        "_validated_protocol",
+        lambda *_args: {"analysis_status": "complete"},
+    )
+    monkeypatch.setattr(integrated, "_managed_inventory", lambda *_args: [])
+    monkeypatch.setattr(
+        integrated, "_reviewed_functions", lambda *_args, **_kwargs: []
+    )
+
+    result = integrated.extract(b"MZ\0BSJB\0fixture", "fixture.exe")
+    evidence = result["config"]["structural_assessment"]
+
+    assert evidence["matched"] is True
+    assert evidence["recovered_profile_confirmed"] is True
+    assert evidence["plaintext_profile_confirmed"] is True
+    assert "obfuscated_profile_confirmed" not in evidence
+    assert evidence["rule"] == "asyncrat_plaintext_v057b_protocol_verified"
+
+
+def test_managed_inventory_records_unrelated_malformed_body_without_losing_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    method = SimpleNamespace(Rva=1, Name="Main")
+    metadata = SimpleNamespace(
+        MethodDef=SimpleNamespace(rows=[method]),
+        TypeDef=SimpleNamespace(rows=[SimpleNamespace()]),
+    )
+    pe = SimpleNamespace(net=SimpleNamespace(mdtables=metadata))
+    monkeypatch.setattr(integrated.dnfile, "dnPE", lambda **_kwargs: pe)
+    monkeypatch.setattr(
+        integrated,
+        "_read_bounded_method_body",
+        lambda *_args: (_ for _ in ()).throw(ValueError("malformed")),
+    )
+
+    result = integrated._managed_inventory(b"MZfixture", "a" * 64)
+    coverage = result[0]["retrieval_coverage"]
+
+    assert coverage["malformed_method_bodies"] == 1
+    assert coverage["inventory_complete"] is False
+    assert result[0]["confidence"] == "partial_program_structure_inventory"
 
 
 def test_exact_review_has_meaningful_functions() -> None:

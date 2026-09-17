@@ -249,6 +249,16 @@ def test_dispatcher_functions(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     assert normalize_family(" Remcos ") == "remcosrat"
+    assert normalize_family("PureRAT") == "purehvnc"
+    assert normalize_family("Pure RAT") == "purehvnc"
+    assert normalize_family("Pure_RAT") == "purehvnc"
+    assert normalize_family("Pure-HVNC") == "purehvnc"
+    assert normalize_family("Pure HVNC") == "purehvnc"
+    assert normalize_family("Pure_HVNC") == "purehvnc"
+    assert normalize_family("Async RAT") == "asyncrat"
+    assert normalize_family("Async_RAT") == "asyncrat"
+    assert normalize_family("Valley-RAT") == "valleyrat"
+    assert normalize_family("Valley RAT") == "valleyrat"
     assert callable(get_extractor("venom"))
     with pytest.raises(ValueError, match="unsupported"):
         get_extractor("missing")
