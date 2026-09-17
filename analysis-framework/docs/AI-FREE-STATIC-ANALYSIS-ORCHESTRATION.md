@@ -153,6 +153,8 @@ completionが`partial`のworkflowは`same_workflow_resume_allowed=false`で保�
 
 auto-analysis待機またはMCP通信のtimeoutは、`program_timeout`としてpending checkpointを直ちに保存し、他programを継続します。timeoutもchunkの試行上限へ算入し、次回は前回未試行のprogramを先に処理します。privateの`program-timeouts.raw.jsonl`には固定理由・時刻・検体とinventoryのSHA-256を残し、例外本文は含めません。待機pollの通信timeoutとsleepは残時間以下へ縮めますが、HTTP応答全体の厳密な実時間遮断とは区別します。整合性違反などtimeout以外の失敗は停止し、保留programは完了へ昇格しません。日次入口の依存待ちと再検証は[日次解析オーケストレータ](DAILY-ANALYSIS-ORCHESTRATOR.md)を参照してください。
 
+native programで`list_functions_enhanced`だけが応答不能になる場合でも、解析完了後の`analysis_status.function_count`と`get_metadata`の関数数が型を含めてともに0で一致するときに限り、0関数inventoryをterminal証拠として保存します。どちらかが欠落、不一致、解析中、または非整数なら通常の関数列挙を省略しません。省略証拠はprogram selector、2つの件数source、endpoint未呼出し、0件scopeへ拘束し、後処理とprivate validatorでも同じ条件を再検証するため、timeout endpointを再呼び出しせず、0件を架空の関数へ置き換えません。
+
 ## Ghidra関数解析後の品質ゲート再整合
 
 `ghidra_function_batch.py`がcaseの関数解析をfinalizeするときは、代表関数解析成果物を独立validatorで検証した後、既存`orchestration.json`の`function_analysis` gateだけを自動再整合します。gateが`required_missing`で検証済み関数解析が揃った場合は`required_missing`から`satisfied`へ変更し、対応する`function_analysis` blockerと同じ位置のnext actionだけを除去して、残余blockerからorchestration状態を再計算します。

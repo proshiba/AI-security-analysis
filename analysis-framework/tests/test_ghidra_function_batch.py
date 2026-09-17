@@ -668,6 +668,127 @@ def test_managed_program_uses_cil_primary_without_auto_analysis(
     assert all(call[1] != "/save_program" for call in client.calls)
 
 
+def test_native_zero_function_program_uses_independent_counts_without_listing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """独立2 APIが0件を示すnative programはtimeoutする関数列挙なしで完了する。"""
+
+    class ZeroFunctionClient:
+        timeout = 1
+
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, dict[str, object]]] = []
+
+        def get(self, endpoint: str, **query: object) -> object:
+            self.calls.append(("get", endpoint, query))
+            if endpoint == "/list_functions_enhanced":
+                raise AssertionError("独立0件確認後にlist_functionsを呼んではならない")
+            if endpoint == "/analysis_status":
+                return {
+                    "analyzed": True,
+                    "analyzing": False,
+                    "should_ask_to_analyze": False,
+                    "function_count": 0,
+                }
+            if endpoint == "/get_metadata":
+                return "Function Count: 0\n"
+            if endpoint in {
+                "/list_imports",
+                "/list_exports",
+                "/list_strings",
+                "/list_segments",
+            }:
+                return []
+            if endpoint == "/get_entry_points":
+                return "entry @ 00000000 [external entry]"
+            if endpoint == "/get_full_call_graph":
+                return {"edges": [], "edge_count": 0}
+            if endpoint in {
+                "/find_anti_analysis_techniques",
+                "/analyze_api_call_chains",
+                "/save_program",
+            }:
+                return {}
+            if endpoint == "/get_bulk_function_hashes":
+                return {"functions": [], "total_matching": 0}
+            raise AssertionError(f"予期しないGET endpoint: {endpoint}")
+
+        def post(
+            self,
+            endpoint: str,
+            body: dict[str, object],
+            **query: object,
+        ) -> object:
+            self.calls.append(("post", endpoint, {**query, "body": body}))
+            if endpoint == "/close_program":
+                return {}
+            raise AssertionError(f"予期しないPOST endpoint: {endpoint}")
+
+    data = b"MZ" + b"\x00" * 510
+    digest = hashlib.sha256(data).hexdigest()
+    private_output = tmp_path / "private"
+    snapshot = target._immutable_staging_snapshot(private_output, digest, data)
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=snapshot.path,
+        size=len(data),
+        relationships=[{"case_sha256": digest, "depth": 0, "transform": "root"}],
+        input_snapshot=snapshot,
+    )
+    monkeypatch.setattr(target, "_is_managed_pe", lambda _data: False)
+    monkeypatch.setattr(target, "_managed_cil_records", lambda *_args: [])
+    client = ZeroFunctionClient()
+
+    result = target.analyze_program(
+        client,
+        item,
+        private_output,
+        "/Malware/Test",
+        analysis_timeout=1,
+    )
+    coverage = result["retrieval_coverage"]["functions"]
+    assert result["status"] == "complete"
+    assert result["ghidra_function_inventory_count"] == 0
+    assert result["entry_point_function_recovery"]["reason"] == "pe_header_parse_failed"
+    assert coverage["source"] == target.ZERO_FUNCTION_INVENTORY_SOURCE
+    assert coverage["endpoint_invoked"] is False
+    assert target._function_inventory_coverage_complete(result) is True
+
+    target.refresh_complete_program_artifacts(
+        client,
+        {digest: result},
+        private_output,
+    )
+    refreshed = result["retrieval_coverage"]["functions"]
+    assert refreshed["source"] == target.ZERO_FUNCTION_INVENTORY_SOURCE
+    assert refreshed["endpoint_invoked"] is False
+    target.augment_private_call_graphs({digest: result}, private_output)
+    validation = target.validate_private_artifacts(
+        {digest: result},
+        private_output,
+        expected_program_count=1,
+    )
+    assert validation["complete"] is True
+    assert all(call[1] != "/list_functions_enhanced" for call in client.calls)
+    assert all(call[1] != "/create_function" for call in client.calls)
+
+    raw_path = private_output / "objects" / digest / "ghidra-raw-index.json"
+    forged_raw = target.load_json_object_strict(raw_path)
+    forged_raw["analysis_status"]["function_count"] = 1
+    target._json_dump(raw_path, forged_raw)
+    forged_validation = target.validate_private_artifacts(
+        {digest: result},
+        private_output,
+        expected_program_count=1,
+    )
+    assert forged_validation["complete"] is False
+    assert any(
+        "0関数証跡のanalysis_status" in error
+        for error in forged_validation["programs"][0]["errors"]
+    )
+
+
 def test_import_timeout_does_not_trigger_duplicate_raw_fallback(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -2131,6 +2252,68 @@ def test_managed_function_inventory_alternative_is_strict() -> None:
         else:
             forged["retrieval_coverage"]["functions"][key] = value
         assert target._function_inventory_coverage_complete(forged) is False
+
+
+def test_native_zero_function_inventory_alternative_is_strict() -> None:
+    """native 0件の列挙省略は解析完了statusとmetadataの完全一致へ拘束する。"""
+
+    selector = "/Malware/Test/zero"
+    status = {
+        "analyzed": True,
+        "analyzing": False,
+        "function_count": 0,
+    }
+    evidence = target._independent_zero_function_coverage(
+        status,
+        "Function Count: 0\n",
+        selector,
+    )
+    assert evidence is not None
+    result = {
+        "program_selector": selector,
+        "analysis_mode": "native_ghidra_with_optional_cil",
+        "analysis_status": status,
+        "metadata": {"function_count": "0"},
+        "ghidra_function_inventory_count": 0,
+        "retrieval_coverage": {"functions": evidence},
+    }
+    assert target._function_inventory_coverage_complete(result) is True
+
+    mutations = (
+        ("result", "analysis_status", {**status, "function_count": 1}),
+        ("result", "metadata", {"function_count": "1"}),
+        ("result", "ghidra_function_inventory_count", 1),
+        ("result", "ghidra_function_inventory_count", False),
+        ("evidence", "endpoint_invoked", True),
+        ("evidence", "source", "forged"),
+        ("evidence", "analysis_status_function_count", 1),
+        ("evidence", "analysis_status_function_count", False),
+        ("evidence", "metadata_function_count", 1),
+        ("evidence", "metadata_function_count", False),
+        ("evidence", "page_count", False),
+        ("evidence", "item_count", False),
+        ("evidence", "derived_external_function_count", False),
+        ("evidence", "independent_count_sources", ["metadata"]),
+        ("evidence", "program_selector", "/Malware/Test/other"),
+    )
+    for scope, key, value in mutations:
+        forged = json.loads(json.dumps(result))
+        if scope == "result":
+            forged[key] = value
+        else:
+            forged["retrieval_coverage"]["functions"][key] = value
+        assert target._function_inventory_coverage_complete(forged) is False
+
+    assert target._independent_zero_function_coverage(
+        {**status, "function_count": 1},
+        "Function Count: 0\n",
+        selector,
+    ) is None
+    assert target._independent_zero_function_coverage(
+        status,
+        "Function Count: 1\n",
+        selector,
+    ) is None
 
 
 @pytest.mark.parametrize(

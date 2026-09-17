@@ -107,6 +107,10 @@ CALL_GRAPH_REQUEST_FORMAT = "json_edges"
 CALL_GRAPH_REQUEST_LIMIT = 0
 CALL_GRAPH_MANAGED_LIMIT = "native_call_graph_not_applicable_managed_cil_primary"
 CALL_GRAPH_LEGACY_LIMIT = "legacy_call_graph_retrieval_evidence_unavailable"
+ZERO_FUNCTION_INVENTORY_SOURCE = "ghidra_analysis_status_and_metadata_zero"
+ZERO_FUNCTION_INVENTORY_LIMIT = (
+    "list_functions_endpoint_skipped_after_independent_zero_count_confirmation"
+)
 STRUCTURE_PAGE_SIZE = 1_000
 DECOMPILE_BATCH_SIZE = 20
 DECOMPILE_WORKERS = 3
@@ -2133,6 +2137,105 @@ def _metadata_function_count(value: Any) -> int | None:
     return count
 
 
+def _analysis_status_function_count(value: Any) -> int | None:
+    """analysis_statusの関数数を型変換せず検証する。"""
+
+    if not isinstance(value, Mapping) or "function_count" not in value:
+        return None
+    count = value.get("function_count")
+    if type(count) is not int or count < 0:
+        raise GhidraMcpError("analysis_statusのfunction_countが非負整数ではありません")
+    if count > MAX_FUNCTION_INVENTORY_ITEMS:
+        raise GhidraMcpError("analysis_statusのfunction_countが安全なinventory上限を超えました")
+    return count
+
+
+def _independent_zero_function_coverage(
+    status: Any,
+    metadata_value: Any,
+    program: str,
+) -> dict[str, Any] | None:
+    """解析完了後の独立2 APIが厳密に0件を示す場合だけ列挙省略証跡を返す。"""
+
+    if (
+        not isinstance(status, Mapping)
+        or status.get("analyzed") is not True
+        or status.get("analyzing") is not False
+    ):
+        return None
+    status_count = _analysis_status_function_count(status)
+    metadata_count = _metadata_function_count(metadata_value)
+    if status_count != 0 or metadata_count != 0:
+        return None
+    return {
+        "endpoint": "/list_functions_enhanced",
+        "program_selector": program,
+        "page_size": 0,
+        "page_count": 0,
+        "item_count": 0,
+        "terminal_short_page_observed": False,
+        "complete": True,
+        "endpoint_invoked": False,
+        "source": ZERO_FUNCTION_INVENTORY_SOURCE,
+        "inventory_scope": "non_external_functions",
+        "analysis_status_function_count": 0,
+        "analysis_status_function_count_scope": "all_functions_including_external",
+        "metadata_function_count": 0,
+        "metadata_function_count_scope": "all_functions_including_external",
+        "count_matches_metadata": True,
+        "derived_external_function_count": 0,
+        "independent_count_sources": ["analysis_status", "metadata"],
+        "documented_limit": ZERO_FUNCTION_INVENTORY_LIMIT,
+    }
+
+
+def _independent_zero_function_coverage_complete(
+    result: Mapping[str, Any],
+    evidence: Mapping[str, Any],
+) -> bool:
+    """0件列挙省略claimを保存済みstatus・metadataへ再拘束する。"""
+
+    try:
+        status_count = _analysis_status_function_count(result.get("analysis_status"))
+        metadata_count = _metadata_function_count(result.get("metadata"))
+    except GhidraMcpError:
+        return False
+    status = result.get("analysis_status")
+    def exact_zero(value: Any) -> bool:
+        return type(value) is int and value == 0
+
+    return bool(
+        result.get("analysis_mode") == "native_ghidra_with_optional_cil"
+        and exact_zero(result.get("ghidra_function_inventory_count"))
+        and isinstance(status, Mapping)
+        and status.get("analyzed") is True
+        and status.get("analyzing") is False
+        and exact_zero(status_count)
+        and exact_zero(metadata_count)
+        and evidence.get("endpoint") == "/list_functions_enhanced"
+        and evidence.get("program_selector") == result.get("program_selector")
+        and exact_zero(evidence.get("page_size"))
+        and exact_zero(evidence.get("page_count"))
+        and exact_zero(evidence.get("item_count"))
+        and evidence.get("terminal_short_page_observed") is False
+        and evidence.get("complete") is True
+        and evidence.get("endpoint_invoked") is False
+        and evidence.get("source") == ZERO_FUNCTION_INVENTORY_SOURCE
+        and evidence.get("inventory_scope") == "non_external_functions"
+        and exact_zero(evidence.get("analysis_status_function_count"))
+        and evidence.get("analysis_status_function_count_scope")
+        == "all_functions_including_external"
+        and exact_zero(evidence.get("metadata_function_count"))
+        and evidence.get("metadata_function_count_scope")
+        == "all_functions_including_external"
+        and evidence.get("count_matches_metadata") is True
+        and exact_zero(evidence.get("derived_external_function_count"))
+        and evidence.get("independent_count_sources")
+        == ["analysis_status", "metadata"]
+        and evidence.get("documented_limit") == ZERO_FUNCTION_INVENTORY_LIMIT
+    )
+
+
 def _bind_function_metadata_coverage(
     evidence: dict[str, Any],
     metadata_value: Any,
@@ -2192,6 +2295,8 @@ def _function_inventory_coverage_complete(result: Mapping[str, Any]) -> bool:
             and evidence.get("item_count") == 0
             and inventory_count == 0
         )
+    if isinstance(evidence, Mapping) and evidence.get("source") == ZERO_FUNCTION_INVENTORY_SOURCE:
+        return _independent_zero_function_coverage_complete(result, evidence)
     if (
         not isinstance(evidence, Mapping)
         or evidence.get("complete") is not True
@@ -5291,6 +5396,7 @@ def analyze_program(
                 timeout_seconds=analysis_timeout,
             )
         analysis_mode = "native_ghidra_with_optional_cil"
+    metadata_raw = _program_get("/get_metadata")
     if managed_cil_primary:
         functions = []
         function_coverage = {
@@ -5306,11 +5412,19 @@ def analyze_program(
             "documented_limit": "native_function_inventory_not_applicable",
         }
     else:
-        functions, function_coverage = _all_functions_with_coverage(
-            client,
+        zero_function_coverage = _independent_zero_function_coverage(
+            status,
+            metadata_raw,
             program,
         )
-    metadata_raw = _program_get("/get_metadata")
+        if zero_function_coverage is not None:
+            functions = []
+            function_coverage = zero_function_coverage
+        else:
+            functions, function_coverage = _all_functions_with_coverage(
+                client,
+                program,
+            )
     metadata_before_entry_point_function_recovery: Any = None
     if not managed_cil_primary:
         _bind_function_metadata_coverage(
@@ -5502,6 +5616,7 @@ def analyze_program(
         "size": item.size,
         "program_selector": program,
         "metadata": _parse_metadata(metadata_raw),
+        "analysis_status": status,
         "analysis_mode": analysis_mode,
         "import_mode": import_mode,
         "relationships": item.relationships,
@@ -5632,7 +5747,24 @@ def refresh_complete_program_artifacts(
             managed_alternative = result.get(
                 "analysis_mode"
             ) == "managed_cil_primary_with_ghidra_structure" and name in {"functions", "strings"}
-            if managed_alternative:
+            existing_coverage = raw_index.get("retrieval_coverage")
+            existing_function_coverage = (
+                existing_coverage.get("functions")
+                if isinstance(existing_coverage, Mapping)
+                else None
+            )
+            zero_function_alternative = bool(
+                name == "functions"
+                and isinstance(existing_function_coverage, Mapping)
+                and _independent_zero_function_coverage_complete(
+                    result,
+                    existing_function_coverage,
+                )
+            )
+            if zero_function_alternative:
+                items = []
+                endpoint_coverage = dict(existing_function_coverage)
+            elif managed_alternative:
                 items = []
                 endpoint_coverage = {
                     "endpoint": endpoint,
@@ -5651,10 +5783,9 @@ def refresh_complete_program_artifacts(
             elif open_error is not None:
                 items = _page_values(raw_index.get(name), endpoint)
                 page_size = initial_limits[name]
-                existing_coverage = raw_index.get("retrieval_coverage")
                 existing_endpoint_coverage = (
-                    existing_coverage.get("functions")
-                    if name == "functions" and isinstance(existing_coverage, Mapping)
+                    existing_function_coverage
+                    if name == "functions"
                     else None
                 )
                 if name == "functions" and isinstance(
@@ -6094,6 +6225,27 @@ def validate_private_artifacts(
         retrieval_coverage = raw_index.get("retrieval_coverage", {})
         if result.get("retrieval_coverage") != retrieval_coverage:
             errors.append("raw indexとprogram-resultのページング取得証跡が一致しません")
+        zero_function_evidence = (
+            retrieval_coverage.get("functions")
+            if isinstance(retrieval_coverage, Mapping)
+            else None
+        )
+        if (
+            isinstance(zero_function_evidence, Mapping)
+            and zero_function_evidence.get("source") == ZERO_FUNCTION_INVENTORY_SOURCE
+        ):
+            if result.get("analysis_status") != raw_index.get("analysis_status"):
+                errors.append("0関数証跡のanalysis_statusがraw indexとprogram-resultで一致しません")
+            if result.get("metadata") != _parse_metadata(raw_index.get("metadata")):
+                errors.append("0関数証跡のmetadataがraw indexとprogram-resultで一致しません")
+            raw_bound_result = dict(result)
+            raw_bound_result["analysis_status"] = raw_index.get("analysis_status")
+            raw_bound_result["metadata"] = _parse_metadata(raw_index.get("metadata"))
+            if not _independent_zero_function_coverage_complete(
+                raw_bound_result,
+                zero_function_evidence,
+            ):
+                errors.append("raw indexの独立0関数確認が厳密な代替取得契約を満たしません")
         if raw_index.get("all_static_analysis_content_retained") is not True:
             errors.append("raw indexに全静的解析内容の保持証跡がありません")
         if not isinstance(retrieval_coverage, Mapping):
@@ -6114,7 +6266,12 @@ def validate_private_artifacts(
                 and result.get("analysis_mode") == "managed_cil_primary_with_ghidra_structure"
                 and evidence.get("source") == "managed_cil_primary"
             )
-            if endpoint_skipped and not managed_cil_alternative:
+            zero_function_alternative = bool(
+                endpoint_skipped
+                and name == "functions"
+                and _independent_zero_function_coverage_complete(result, evidence)
+            )
+            if endpoint_skipped and not managed_cil_alternative and not zero_function_alternative:
                 errors.append(f"{name}: 未許可のendpoint省略証跡です")
             if not endpoint_skipped and evidence.get("terminal_short_page_observed") is not True:
                 errors.append(f"{name}: 終端までの完全取得証跡がありません")
