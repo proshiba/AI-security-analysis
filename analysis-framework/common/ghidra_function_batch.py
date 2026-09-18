@@ -118,7 +118,12 @@ ZERO_FUNCTION_OPCODE_HASH_LIMIT = (
 )
 INITIAL_ANALYSIS_STATUS_TIMEOUT_SECONDS = 60
 QUICK_READ_ONLY_GET_TIMEOUT_SECONDS = 60
-QUICK_READ_ONLY_GET_MAX_ATTEMPTS = 2
+QUICK_READ_ONLY_GET_MAX_ATTEMPTS = 3
+FAST_QUICK_GET_TIMEOUT_SECONDS = 15
+FAST_QUICK_GET_MAX_ATTEMPTS = 5
+FAST_QUICK_GET_ENDPOINTS = frozenset(
+    {"/analysis_status", "/get_metadata", "/list_functions_enhanced", "/list_imports"}
+)
 QUICK_READ_ONLY_GET_ENDPOINTS = frozenset(
     {
         "/analysis_status",
@@ -306,6 +311,10 @@ SUMMARY_BY_ROLE = {
 
 class GhidraMcpError(RuntimeError):
     """Ghidra MCP requestの失敗を表す。"""
+
+
+class GhidraMcpProgramNotFound(GhidraMcpError):
+    """指定programがGhidra projectに存在しない明示的な応答。"""
 
 
 def _request_timed_out(error: BaseException) -> bool:
@@ -1708,6 +1717,18 @@ class GhidraMcpClient:
         ):
             raise ValueError("Ghidra MCP transport timeoutは有限の正数で指定してください")
         deadline = time.monotonic() + float(effective_timeout)
+        lifecycle_endpoint = path in {
+            "/open_program", "/import_file", "/run_analysis",
+            "/save_program", "/close_program", "/create_function",
+        }
+        if lifecycle_endpoint:
+            print(json.dumps({
+                "phase": "ghidra_program_lifecycle",
+                "endpoint": path,
+                "method": method,
+                "state": "request",
+                "transport_timeout_seconds": float(effective_timeout),
+            }, ensure_ascii=False), flush=True)
         try:
             with self._opener.open(request, timeout=effective_timeout) as response:
                 if time.monotonic() >= deadline:
@@ -1732,6 +1753,13 @@ class GhidraMcpClient:
             raise GhidraMcpError(f"{method} {path} failed: OSError") from transport_error
         except (OSError, URLError) as error:
             raise GhidraMcpError(f"{method} {path} failed: {type(error).__name__}") from error
+        if lifecycle_endpoint:
+            print(json.dumps({
+                "phase": "ghidra_program_lifecycle",
+                "endpoint": path,
+                "method": method,
+                "state": "complete",
+            }, ensure_ascii=False), flush=True)
         if not raw:
             return None
         text = raw.decode("utf-8", errors="replace")
@@ -1740,6 +1768,28 @@ class GhidraMcpClient:
         except json.JSONDecodeError:
             return text
         if isinstance(value, Mapping) and value.get("error"):
+            reported_error = value.get("error")
+            selector_key = "path" if path == "/open_program" else "program"
+            selector = clean_query.get(selector_key)
+            expected_prefix = (
+                "File not found in project: " if path == "/open_program"
+                else "Program not found: " if path == "/analysis_status"
+                else None
+            )
+            if (
+                method == "GET"
+                and expected_prefix is not None
+                and isinstance(selector, str)
+                and reported_error == expected_prefix + selector
+            ):
+                raise GhidraMcpProgramNotFound(f"{method} {path}: program not found")
+            if (
+                method == "GET"
+                and path == "/analysis_status"
+                and isinstance(selector, str)
+                and reported_error == "No programs are currently open"
+            ):
+                raise GhidraMcpProgramNotFound("GET /analysis_status: no programs open")
             raise GhidraMcpError(f"{method} {path} returned an MCP error object")
         return value
 
@@ -1760,18 +1810,25 @@ class GhidraMcpClient:
             or requested_timeout <= 0
         ):
             raise ValueError("quick read-only GETのtransport timeoutは有限の正数で指定してください")
+        fast_endpoint = endpoint in FAST_QUICK_GET_ENDPOINTS
+        maximum_attempts = (
+            FAST_QUICK_GET_MAX_ATTEMPTS if fast_endpoint else QUICK_READ_ONLY_GET_MAX_ATTEMPTS
+        )
         attempt_timeout = min(
             float(self.timeout),
             float(requested_timeout),
-            float(QUICK_READ_ONLY_GET_TIMEOUT_SECONDS),
+            float(
+                FAST_QUICK_GET_TIMEOUT_SECONDS
+                if fast_endpoint else QUICK_READ_ONLY_GET_TIMEOUT_SECONDS
+            ),
         )
-        for attempt in range(1, QUICK_READ_ONLY_GET_MAX_ATTEMPTS + 1):
+        for attempt in range(1, maximum_attempts + 1):
             evidence = {
                 "phase": "ghidra_quick_read_only_get",
                 "endpoint": endpoint,
                 "program_selector": selector,
                 "attempt": attempt,
-                "maximum_attempts": QUICK_READ_ONLY_GET_MAX_ATTEMPTS,
+                "maximum_attempts": maximum_attempts,
                 "transport_timeout_seconds": attempt_timeout,
             }
             print(json.dumps({**evidence, "state": "request"}, ensure_ascii=False), flush=True)
@@ -1785,7 +1842,7 @@ class GhidraMcpClient:
                 )
             except GhidraMcpError as error:
                 transport_kind = _request_transport_failure_kind(error)
-                retrying = transport_kind is not None and attempt < QUICK_READ_ONLY_GET_MAX_ATTEMPTS
+                retrying = transport_kind is not None and attempt < maximum_attempts
                 print(
                     json.dumps(
                         {
@@ -1809,9 +1866,11 @@ class GhidraMcpClient:
         self,
         endpoint: str,
         body: Mapping[str, Any],
+        *,
+        transport_timeout: float | None = None,
         **query: Any,
     ) -> Any:
-        return self._request("POST", endpoint, query=query, body=body)
+        return self._request("POST", endpoint, query=query, body=body, timeout=transport_timeout)
 
 
 @dataclass
@@ -6040,6 +6099,35 @@ def _terminalize_unavailable_call_graph_retrieval(
     return cached
 
 
+def _cleanup_retryable_program_failure(
+    client: GhidraMcpClient,
+    item: ProgramObject,
+    project_root: str,
+) -> str:
+    """通信障害後も開いたままのprogramを、保存成功時だけ閉じる。"""
+
+    if not item.relationships or not callable(getattr(client, "get", None)) or not callable(getattr(client, "post", None)):
+        return "not_applicable"
+    primary = item.primary
+    case_sha = str(primary["case_sha256"])
+    folder = (
+        _safe_project_path(f"{project_root}/{case_sha[:8]}")
+        if int(primary["depth"]) == 0
+        else _safe_project_path(f"{project_root}/{case_sha[:8]}/layers/{item.sha256[:8]}")
+    )
+    selector = _safe_project_path(f"{folder}/{item.input_path.name}")
+    try:
+        saved = client.get("/save_program", program=selector, transport_timeout=30)
+        if not isinstance(saved, Mapping) or saved.get("success") is not True or saved.get("program") != item.input_path.name:
+            return "save_not_confirmed"
+        closed = client.post("/close_program", {"name": selector}, transport_timeout=30)
+        if not isinstance(closed, Mapping) or closed.get("success") is not True or closed.get("name") != selector:
+            return "close_not_confirmed"
+    except (GhidraMcpError, TimeoutError, OSError):
+        return "cleanup_request_failed"
+    return "saved_and_closed"
+
+
 def analyze_program(
     client: GhidraMcpClient,
     item: ProgramObject,
@@ -6135,6 +6223,8 @@ def analyze_program(
             transport_timeout=initial_status_timeout,
         )
         program = expected_program
+    except GhidraMcpProgramNotFound:
+        pass
     except GhidraMcpError as status_error:
         if _request_transport_failure_kind(status_error) is not None:
             if managed_cil_primary:
@@ -6151,12 +6241,14 @@ def analyze_program(
             )
             program = expected_program
             import_mode = "preexisting_program_status_unavailable_corroborated"
+        else:
+            raise
     if program is None:
         try:
             opened = client.get("/open_program", path=expected_program, auto_analyze=False)
             program = str((opened or {}).get("path") or expected_program)
             import_mode = "opened_existing_program"
-        except GhidraMcpError:
+        except GhidraMcpProgramNotFound:
             import_body: dict[str, Any] = {
                 "file_path": str(item.input_path.resolve()),
                 "project_folder": folder,
@@ -6167,10 +6259,10 @@ def analyze_program(
                     imported = client.post("/import_file", import_body)
                 import_mode = "automatic_loader"
             except GhidraMcpError as automatic_error:
-                # import処理は応答タイムアウト後もGhidra側で完了し得る。ここで
+                # import処理は通信切断後もGhidra側で完了し得る。ここで
                 # raw importへ切り替えると、同じ検体が「.0」付きで重複登録される。
-                # 通信タイムアウトは再実行時の既存program検出に委ねる。
-                if _request_timed_out(automatic_error):
+                # 通信障害は再実行時の既存program検出に委ねる。
+                if _request_transport_failure_kind(automatic_error) is not None:
                     _assert_regular_snapshot_unchanged(
                         staging_snapshot,
                         context="Ghidra MCP import失敗後",
@@ -6571,9 +6663,9 @@ def analyze_program(
     _persist_program_result(result_path, result)
     try:
         if not managed_cil_primary and analysis_mode != STATUS_UNAVAILABLE_ANALYSIS_MODE:
-            client.get("/save_program", program=program)
+            client.get("/save_program", program=program, transport_timeout=30.0)
         if analysis_mode != STATUS_UNAVAILABLE_ANALYSIS_MODE:
-            client.post("/close_program", {"name": program})
+            client.post("/close_program", {"name": program}, transport_timeout=30.0)
     except GhidraMcpError:
         pass
     return result
@@ -6856,7 +6948,11 @@ def refresh_complete_program_artifacts(
         _persist_program_result(object_dir / "program-result.json", result)
         if opened_program is not None:
             try:
-                client.post("/close_program", {"name": opened_program})
+                client.post(
+                    "/close_program",
+                    {"name": opened_program},
+                    transport_timeout=30.0,
+                )
             except GhidraMcpError:
                 pass
         totals["programs"] += 1
@@ -11715,8 +11811,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 skip_auto_analysis=item.sha256 in args.skip_auto_analysis_sha256,
             )
         except (TimeoutError, GhidraMcpError) as exc:
-            if not _request_timed_out(exc):
+            transport_kind = _request_transport_failure_kind(exc)
+            if not _request_timed_out(exc) and transport_kind is None:
                 raise
+            cleanup_status = _cleanup_retryable_program_failure(
+                client, item, args.project_root,
+            )
             timed_out_programs.append(item.sha256)
             _append_jsonl(
                 private_output / "program-timeouts.raw.jsonl",
@@ -11726,11 +11826,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "prepared_inventory_sha256": prepared_inventory_sha256,
                     "observed_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                     "reason": (
-                        "analysis_wait_timeout" if isinstance(exc, TimeoutError) else "mcp_transport_timeout"
+                        "analysis_wait_timeout" if isinstance(exc, TimeoutError)
+                        else "mcp_transport_timeout" if _request_timed_out(exc)
+                        else "mcp_transport_failure"
                     ),
+                    "transport_failure_kind": transport_kind,
                     "analysis_timeout_seconds": args.analysis_timeout,
                     "request_timeout_seconds": args.request_timeout,
                     "retryable": True,
+                    "cleanup_status": cleanup_status,
                     "sample_executed": False,
                     "network_contacted": False,
                 }],
