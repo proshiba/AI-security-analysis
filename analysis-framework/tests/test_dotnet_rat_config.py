@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import struct
 import sys
 from pathlib import Path
 
@@ -16,6 +17,40 @@ if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
 import dotnet_rat_config  # noqa: E402
+
+
+class _OffsetPE:
+    def __init__(self, offset: int = 0) -> None:
+        self.offset = offset
+
+    def get_offset_from_rva(self, _rva: int) -> int:
+        return self.offset
+
+
+def test_bounded_method_body_uses_declared_tiny_extent() -> None:
+    data = bytes([0x06, 0x2A]) + b"unrelated-file-tail"
+
+    assert dotnet_rat_config._bounded_method_body_data(data, _OffsetPE(), 1) == data[:2]
+
+
+def test_bounded_method_body_rejects_oversized_fat_code_before_dncil() -> None:
+    header = bytearray(12)
+    struct.pack_into("<H", header, 0, 0x3003)
+    struct.pack_into(
+        "<I", header, 4, dotnet_rat_config.MAX_METHOD_BODY_BYTES + 1
+    )
+
+    with pytest.raises(dotnet_rat_config.ConfigRecoveryError, match="上限"):
+        dotnet_rat_config._bounded_method_body_data(bytes(header), _OffsetPE(), 1)
+
+
+def test_bounded_method_body_rejects_out_of_range_fat_code() -> None:
+    header = bytearray(12)
+    struct.pack_into("<H", header, 0, 0x3003)
+    struct.pack_into("<I", header, 4, 4)
+
+    with pytest.raises(dotnet_rat_config.ConfigRecoveryError, match="入力範囲外"):
+        dotnet_rat_config._bounded_method_body_data(bytes(header), _OffsetPE(), 1)
 
 
 def encrypt_fixture(value: str, master_key: str, salt: bytes) -> str:

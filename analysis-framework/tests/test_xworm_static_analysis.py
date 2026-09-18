@@ -16,6 +16,7 @@ for candidate in (REPOSITORY, COMMON):
         sys.path.insert(0, str(candidate))
 
 from extractors.xworm import integrated  # noqa: E402
+import handler_catalog as catalog  # noqa: E402
 
 
 DETECT_SPEC = importlib.util.spec_from_file_location(
@@ -40,6 +41,40 @@ def test_xworm_aes_setting_round_trip_matches_reviewed_key_layout() -> None:
     ).decode()
 
     assert integrated.decrypt_setting(encoded, mutex) == plaintext.decode()
+
+
+def test_xworm_automatic_handler_passes_bounded_preflight() -> None:
+    """XWormの局所ECB許可を含む依存関係を隔離workerへ接続できる。"""
+
+    catalog.clear_handler_caches()
+    specs = [
+        item
+        for item in catalog.discover_handlers()
+        if item.automatic and item.family == "xworm"
+    ]
+
+    assert specs
+    for spec in specs:
+        actual_format = next(
+            (item for item in spec.input_formats if item != "any"),
+            "data",
+        )
+        preflight = catalog.preflight_handler_for_assessment(
+            spec,
+            actual_format=actual_format,
+            input_size=4_096,
+        )
+        assert preflight["eligible"] is True, preflight["blockers"]
+        assert preflight["blockers"] == []
+        assert preflight["sample_execution_allowed"] is False
+        assert preflight["network_allowed"] is False
+        assert preflight["filesystem_write_allowed"] is False
+        assert (
+            preflight["dependency_audit"]["allowance_counts"][
+                "reviewed_source_scoped_call"
+            ]
+            >= 1
+        )
 
 
 def test_xworm_structural_evidence_requires_successful_config_recovery(

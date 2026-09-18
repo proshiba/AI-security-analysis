@@ -2991,7 +2991,7 @@ _LEGACY_DYNAMIC_LOCAL_DEPENDENCIES: dict[
     "extractors/asyncrat/integrated.py": (
         (
             "analysis-framework/common/dotnet_rat_config.py",
-            ("recover",),
+            ("read_bounded_method_body", "recover"),
             "validated_common_module_loader",
         ),
         (
@@ -3405,6 +3405,16 @@ _REVIEWED_REPOSITORY_DATA_READS = {
     ),
 }
 _REVIEWED_SOURCE_CALLS = {
+    (
+        "extractors/xworm/integrated.py",
+        "reachable:decrypt_setting",
+        "cryptography.hazmat.primitives.ciphers.modes.ECB",
+    ): "XWorm設定復号で引数なしAES ECB mode objectだけを構築する",
+    (
+        "analysis-framework/malware/noodlerat/extract_config.py",
+        "reachable:_collect_instructions",
+        "decoder.disasm",
+    ): "合計4 MiB以下の実行可能PT_LOADから最大64設定窓・4,096即値候補を選び、最大250,000命令で静的decodeする",
     (
         "extractors/valleyrat/native_loader_lineage.py",
         "reachable:_register_name",
@@ -3967,6 +3977,11 @@ _REVIEWED_SOURCE_CALLS = {
         "reachable:_validated_protocol",
         "module.recover",
     ): "hash検証済みdotnet_rat_protocol_evidenceのDCRat protocol復元",
+    (
+        "extractors/asyncrat/integrated.py",
+        "reachable:_read_bounded_method_body",
+        "module.read_bounded_method_body",
+    ): "hash検証済みdotnet_rat_configの有界CIL method body解析",
     (
         "extractors/asyncrat/integrated.py",
         "reachable:_validated_recovery",
@@ -4882,6 +4897,43 @@ def _reviewed_source_call_shape_allowed(
     }
     if supplied_strings & _DANGEROUS_REFLECTION_ATTRIBUTES:
         return False
+    if key == (
+        "extractors/xworm/integrated.py",
+        "reachable:decrypt_setting",
+        "cryptography.hazmat.primitives.ciphers.modes.ECB",
+    ):
+        return not node.args and not node.keywords
+    if key == (
+        "extractors/asyncrat/integrated.py",
+        "reachable:_read_bounded_method_body",
+        "module.read_bounded_method_body",
+    ):
+        if (
+            not isinstance(node.func, ast.Attribute)
+            or not isinstance(node.func.value, ast.Name)
+            or node.func.value.id != "module"
+            or node.func.attr != "read_bounded_method_body"
+            or node.keywords
+            or len(node.args) != 3
+            or [item.id for item in node.args if isinstance(item, ast.Name)]
+            != ["data", "pe", "rva"]
+            or not all(isinstance(item, ast.Name) for item in node.args)
+            or not all(
+                _parameter_is_not_rebound(scope, parameter)
+                for parameter in ("data", "pe", "rva")
+            )
+        ):
+            return False
+        origin = _simple_name_origin(scope, "module")
+        return bool(
+            isinstance(origin, ast.Call)
+            and isinstance(origin.func, ast.Name)
+            and origin.func.id == "_load_common_module"
+            and len(origin.args) == 1
+            and isinstance(origin.args[0], ast.Constant)
+            and origin.args[0].value == "dotnet_rat_config"
+            and not origin.keywords
+        )
     if key == (
         "extractors/valleyrat/export_funnel.py",
         "reachable:_decode_one_x86",
@@ -7510,6 +7562,36 @@ def _unknown_detector_handler_scope(basis: str) -> dict[str, Any]:
     }
 
 
+def _well_formed_unmatched_detector_evaluation(
+    evaluation: Mapping[str, Any],
+) -> bool:
+    """正規化済みの完全な非一致だけをhandler scope計算から除外する。"""
+
+    if evaluation.get("error") is not None:
+        return False
+    if any(
+        evaluation.get(field) is not False
+        for field in (
+            "automatic_route_eligible",
+            "applicable",
+            "known_outer_sha256",
+            "known_inner_sha256",
+            "known_routing_sha256",
+            "detector_matched",
+        )
+    ):
+        return False
+    if not isinstance(evaluation.get("supports_family_attribution"), bool):
+        return False
+    detection = evaluation.get("detection")
+    return bool(
+        isinstance(detection, Mapping)
+        and detection.get("matched") is False
+        and isinstance(detection.get("observations"), Mapping)
+        and detection.get("campaigns") == []
+    )
+
+
 def _detector_handler_scope(
     detector_evaluations: Mapping[str, Any] | None,
     family: str,
@@ -7564,6 +7646,8 @@ def _detector_handler_scope(
             continue
         if error is not None and (not isinstance(error, str) or bool(error)):
             invalid_basis = invalid_basis or "detector_error_present"
+            continue
+        if _well_formed_unmatched_detector_evaluation(evaluation):
             continue
         route_eligible = evaluation.get("automatic_route_eligible")
         if not isinstance(route_eligible, bool):

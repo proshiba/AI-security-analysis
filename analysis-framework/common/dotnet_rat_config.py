@@ -21,6 +21,7 @@ from cryptography.hazmat.primitives.padding import PKCS7
 
 
 MAX_INPUT_BYTES = 32 * 1024 * 1024
+MAX_METHOD_BODY_BYTES = 1024 * 1024
 PROFILES = {
     "asyncrat": {
         "settings_type": "Client.Settings",
@@ -72,6 +73,66 @@ class ConfigRecoveryError(ValueError):
     """設定metadata、暗号形式、または認証tagが期待形状と一致しない。"""
 
 
+def _bounded_method_body_data(data: bytes, pe: dnfile.dnPE, rva: int) -> bytes:
+    """宣言されたCIL code範囲を検証し、有界なmethod bodyだけを返す。"""
+
+    if not isinstance(rva, int) or isinstance(rva, bool) or rva <= 0:
+        raise ConfigRecoveryError("CIL method RVAが不正です")
+    try:
+        offset = pe.get_offset_from_rva(rva)
+    except Exception as exc:
+        raise ConfigRecoveryError("CIL method RVAをfile offsetへ変換できません") from exc
+    if (
+        not isinstance(offset, int)
+        or isinstance(offset, bool)
+        or not 0 <= offset < len(data)
+    ):
+        raise ConfigRecoveryError("CIL method offsetが入力範囲外です")
+
+    first = data[offset]
+    header_kind = first & 0x03
+    if header_kind == 0x02:  # ECMA-335 tiny format
+        header_size = 1
+        code_size = first >> 2
+        more_sections = False
+    elif header_kind == 0x03:  # ECMA-335 fat format
+        if offset + 12 > len(data):
+            raise ConfigRecoveryError("fat CIL method headerが入力範囲外です")
+        flags_and_size = struct.unpack_from("<H", data, offset)[0]
+        header_size = ((flags_and_size >> 12) & 0x0F) * 4
+        if not 12 <= header_size <= 60 or offset + header_size > len(data):
+            raise ConfigRecoveryError("fat CIL method header sizeが不正です")
+        code_size = struct.unpack_from("<I", data, offset + 4)[0]
+        more_sections = bool(flags_and_size & 0x08)
+    else:
+        raise ConfigRecoveryError("CIL method header形式が不正です")
+
+    if code_size > MAX_METHOD_BODY_BYTES:
+        raise ConfigRecoveryError("CIL method code sizeが上限を超えています")
+    code_end = offset + header_size + code_size
+    if code_end > len(data):
+        raise ConfigRecoveryError("CIL method codeが入力範囲外です")
+    if not more_sections:
+        return data[offset:code_end]
+
+    # 例外処理sectionはdncilに解析させるが、入力末尾全体は渡さない。
+    bounded_end = min(len(data), offset + MAX_METHOD_BODY_BYTES)
+    if bounded_end < code_end:
+        raise ConfigRecoveryError("CIL method bodyが解析上限を超えています")
+    return data[offset:bounded_end]
+
+
+def read_bounded_method_body(data: bytes, pe: dnfile.dnPE, rva: int) -> object:
+    """不正な巨大code sizeをdncilへ渡さずmethod bodyを解析する。"""
+
+    try:
+        return read_method_body_from_bytes(_bounded_method_body_data(data, pe, rva))
+    except ConfigRecoveryError:
+        raise
+    except Exception as exc:
+        raise ConfigRecoveryError("CIL method bodyを解析できません") from exc
+
+
 _DOMAIN_LABEL = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\Z")
 _BUILD_PLACEHOLDER = re.compile(r"(?:%[A-Za-z][A-Za-z0-9_]*%|<[A-Za-z0-9_]+>)\Z")
 _CHACHA_CONSTANTS = (1634760805, 857760878, 2036477234, 1797285236)
@@ -108,7 +169,7 @@ def settings_literals(data: bytes, settings_type: str = "Client.Settings") -> di
     for index, row in enumerate(pe.net.mdtables.MethodDef.rows, 1):
         if str(row.Name) != ".cctor" or _method_owner(pe, index) != settings_type:
             continue
-        body = read_method_body_from_bytes(data[pe.get_offset_from_rva(row.Rva) :])
+        body = read_bounded_method_body(data, pe, row.Rva)
         pending: str | None = None
         for instruction in body.instructions:
             operand = getattr(instruction.operand, "value", instruction.operand)
@@ -168,7 +229,7 @@ def static_salt(data: bytes, initializer_type: str) -> bytes:
         if str(row.Name) != ".cctor" or method_owners.get(index) != initializer_type:
             continue
         initializer_count += 1
-        body = read_method_body_from_bytes(data[pe.get_offset_from_rva(row.Rva) :])
+        body = read_bounded_method_body(data, pe, row.Rva)
         literal: str | None = None
         ascii_encoding = False
         encoded_literal: str | None = None
@@ -376,9 +437,7 @@ def _obfuscated_chacha_profile(
             if not row.Rva:
                 raise ConfigRecoveryError("review対象methodにCIL bodyがありません")
             try:
-                bodies[index] = read_method_body_from_bytes(
-                    data[pe.get_offset_from_rva(row.Rva) :]
-                )
+                bodies[index] = read_bounded_method_body(data, pe, row.Rva)
             except Exception as exc:
                 raise ConfigRecoveryError("review対象CILを解析できません") from exc
         return bodies[index]
@@ -699,8 +758,7 @@ def _method_opcode_shape(
         if str(row.Name) != name or _method_owner(pe, index) != owner or not row.Rva:
             continue
         try:
-            offset = pe.get_offset_from_rva(row.Rva)
-            body = read_method_body_from_bytes(data[offset:])
+            body = read_bounded_method_body(data, pe, row.Rva)
         except Exception as exc:
             raise ConfigRecoveryError(f"{owner}.{name}のCILを解析できません") from exc
         candidates.append(

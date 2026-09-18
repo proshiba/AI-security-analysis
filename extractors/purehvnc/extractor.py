@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import base64
-import gzip
+import binascii
 import ipaddress
 import re
+import zlib
 from collections import defaultdict
 from collections.abc import Iterator
 from typing import Any
@@ -21,6 +22,18 @@ class _ManagedMetadataError(ValueError):
     def __init__(self, reason: str) -> None:
         self.reason = reason
         super().__init__(reason)
+
+
+MAX_CONFIG_BASE64_CHARS = 8 * 1024 * 1024
+MAX_CONFIG_COMPRESSED_BYTES = 6 * 1024 * 1024
+MAX_CONFIG_CLEAR_BYTES = 4 * 1024 * 1024
+MAX_CONFIG_PROTOBUF_FIELDS = 4_096
+MAX_CONFIG_NESTING = 3
+MAX_CONFIG_MESSAGE_CANDIDATES = 128
+MAX_CONFIG_DECODE_CANDIDATES = 64
+MAX_MANAGED_TERMINAL_BYTES = 16 * 1024 * 1024
+MAX_MANAGED_USER_STRINGS = 16_384
+MAX_FALLBACK_STRINGS = 16_384
 
 
 def read_varint(data: bytes, offset: int) -> tuple[int, int]:
@@ -39,9 +52,15 @@ def read_varint(data: bytes, offset: int) -> tuple[int, int]:
 
 def parse_protobuf(data: bytes) -> dict[int, list[Any]]:
     """Parse protobuf wire types used by the reviewed PureRAT configuration."""
+    if not isinstance(data, bytes) or len(data) > MAX_CONFIG_CLEAR_BYTES:
+        raise ValueError("protobuf input exceeds the static-analysis limit")
     fields: dict[int, list[Any]] = defaultdict(list)
     offset = 0
+    field_count = 0
     while offset < len(data):
+        field_count += 1
+        if field_count > MAX_CONFIG_PROTOBUF_FIELDS:
+            raise ValueError("protobuf field count exceeds the static-analysis limit")
         key, offset = read_varint(data, offset)
         number, wire = key >> 3, key & 7
         if number == 0:
@@ -65,6 +84,170 @@ def parse_protobuf(data: bytes) -> dict[int, list[Any]]:
             raise ValueError(f"unsupported protobuf wire type: {wire}")
         fields[number].append(value)
     return dict(fields)
+
+
+def _bounded_gzip_decompress(data: bytes) -> bytes:
+    """単一GZip memberだけを固定上限内で展開する。"""
+
+    if not data or len(data) > MAX_CONFIG_COMPRESSED_BYTES:
+        raise ValueError("managed PureRAT compressed config exceeds the input limit")
+    inflater = zlib.decompressobj(16 + zlib.MAX_WBITS)
+    try:
+        clear = inflater.decompress(data, MAX_CONFIG_CLEAR_BYTES + 1)
+    except zlib.error as error:
+        raise ValueError("managed PureRAT config is not valid GZip") from error
+    if (
+        len(clear) > MAX_CONFIG_CLEAR_BYTES
+        or not inflater.eof
+        or inflater.unused_data
+        or inflater.unconsumed_tail
+    ):
+        raise ValueError("managed PureRAT GZip config violates output boundaries")
+    return clear
+
+
+def _decode_base64_gzip(value: str) -> bytes:
+    """Convert.FromBase64String互換の空白を除去し、GZipを有界展開する。"""
+
+    if not isinstance(value, str) or len(value) > MAX_CONFIG_BASE64_CHARS:
+        raise ValueError("managed PureRAT Base64 config exceeds the input limit")
+    compact = "".join(value.split())
+    if not compact or len(compact) > MAX_CONFIG_BASE64_CHARS:
+        raise ValueError("managed PureRAT Base64 config is empty or oversized")
+    try:
+        compressed = base64.b64decode(compact, validate=True)
+    except (binascii.Error, ValueError) as error:
+        raise ValueError("managed PureRAT config is not canonical Base64") from error
+    return _bounded_gzip_decompress(compressed)
+
+
+def _looks_like_base64_gzip(value: str) -> bool:
+    """GZip magicをBase64化したprefixを安価に確認する。"""
+
+    if not isinstance(value, str) or not 4 <= len(value) <= MAX_CONFIG_BASE64_CHARS:
+        return False
+    prefix: list[str] = []
+    for character in value:
+        if character.isspace():
+            continue
+        prefix.append(character)
+        if len(prefix) == 4:
+            break
+    return "".join(prefix) == "H4sI"
+
+
+def _packed_varints(value: bytes) -> list[int]:
+    """protobuf-netのpacked repeated integerを終端まで厳格に読む。"""
+
+    values: list[int] = []
+    offset = 0
+    while offset < len(value):
+        item, offset = read_varint(value, offset)
+        values.append(item)
+        if len(values) > 32:
+            raise ValueError("packed port list exceeds the static-analysis limit")
+    return values
+
+
+def _normalise_config_fields(fields: dict[int, list[Any]]) -> dict[int, list[Any]]:
+    """field 2のpacked／unpacked表現を同じport列へ正規化する。"""
+
+    if 2 not in fields:
+        return fields
+    ports: list[int] = []
+    for item in fields[2]:
+        if isinstance(item, int) and not isinstance(item, bool):
+            ports.append(item)
+        elif isinstance(item, bytes):
+            ports.extend(_packed_varints(item))
+        else:
+            raise ValueError("managed PureRAT port field has an unsupported type")
+    normalized = dict(fields)
+    normalized[2] = ports
+    return normalized
+
+
+def _valid_config_fields(fields: dict[int, list[Any]]) -> bool:
+    """hostとportの構文を満たすmessageだけを設定候補にする。"""
+
+    if not fields.get(1) or not fields.get(2):
+        return False
+    host_value = fields[1][0]
+    if not isinstance(host_value, bytes):
+        return False
+    try:
+        host = host_value.decode("utf-8").casefold().rstrip(".")
+    except UnicodeDecodeError:
+        return False
+    if not host or len(host) > 253:
+        return False
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        labels = host.split(".")
+        if len(labels) < 2 or any(
+            not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label)
+            for label in labels
+        ):
+            return False
+    else:
+        if address.is_unspecified or address.is_multicast:
+            return False
+    ports = fields[2]
+    return (
+        1 <= len(ports) <= 8
+        and len(set(ports)) == len(ports)
+        and all(isinstance(port, int) and not isinstance(port, bool) and 1 <= port <= 65535 for port in ports)
+    )
+
+
+def _iter_nested_messages(data: bytes) -> Iterator[tuple[bytes, dict[int, list[Any]]]]:
+    """外包みfield番号に依存せず、境界付きで入れ子messageを探索する。"""
+
+    pending: list[tuple[bytes, int]] = [(data, 0)]
+    seen: set[str] = set()
+    count = 0
+    while pending:
+        raw, depth = pending.pop(0)
+        digest = sha256_bytes(raw)
+        if digest in seen:
+            continue
+        seen.add(digest)
+        try:
+            parsed = parse_protobuf(raw)
+        except ValueError:
+            continue
+        try:
+            fields = _normalise_config_fields(parsed)
+        except ValueError:
+            fields = parsed
+        count += 1
+        if count > MAX_CONFIG_MESSAGE_CANDIDATES:
+            raise ValueError("managed PureRAT nested message candidate limit exceeded")
+        yield raw, fields
+        if depth >= MAX_CONFIG_NESTING:
+            continue
+        for values in parsed.values():
+            for value in values:
+                if isinstance(value, bytes) and 2 <= len(value) <= MAX_CONFIG_CLEAR_BYTES:
+                    pending.append((value, depth + 1))
+
+
+def _config_identity(fields: dict[int, list[Any]]) -> tuple[Any, ...]:
+    """field順序に依存せず、同じ設定messageを一意に比較する。"""
+
+    normalized: list[tuple[int, tuple[tuple[str, Any], ...]]] = []
+    for number in sorted(fields):
+        values: list[tuple[str, Any]] = []
+        for value in fields[number]:
+            if isinstance(value, bytes):
+                values.append(("bytes_sha256", sha256_bytes(value)))
+            elif isinstance(value, int) and not isinstance(value, bool):
+                values.append(("integer", value))
+            else:
+                raise ValueError("managed PureRAT config identity has an invalid value")
+        normalized.append((number, tuple(values)))
+    return tuple(normalized)
 
 
 def iter_dotnet_user_strings(data: bytes) -> Iterator[str]:
@@ -97,29 +280,52 @@ def iter_dotnet_user_strings(data: bytes) -> Iterator[str]:
         offset += item.raw_size
 
 
+def _iter_bounded_embedded_strings(data: bytes) -> Iterator[str]:
+    """raw resource候補のASCII／UTF-16LE文字列を件数上限付きで列挙する。"""
+
+    patterns = (
+        (re.compile(rb"[\x20-\x7e]{24,}"), "ascii"),
+        (re.compile(rb"(?:[\x20-\x7e]\x00){24,}"), "utf-16le"),
+    )
+    seen: set[str] = set()
+    observed = 0
+    for pattern, encoding in patterns:
+        for match in pattern.finditer(data):
+            observed += 1
+            if observed > MAX_FALLBACK_STRINGS:
+                raise _ManagedMetadataError("managed_embedded_string_count_exceeded")
+            value = match.group().decode(encoding, errors="ignore")
+            if value and value not in seen:
+                seen.add(value)
+                yield value
+
+
 def decode_config_blob(strings: list[str]) -> tuple[bytes, dict[int, list[Any]]]:
     """Locate Base64/GZip protobuf data and return its nested PureRAT message."""
-    candidates: list[bytes] = []
+    configurations: dict[
+        tuple[Any, ...],
+        tuple[bytes, dict[int, list[Any]]],
+    ] = {}
+    decoded_candidate_count = 0
     for value in strings:
-        try:
-            candidates.append(gzip.decompress(base64.b64decode(value, validate=True)))
-        except (ValueError, OSError):
+        if not _looks_like_base64_gzip(value):
             continue
-    for clear in sorted(candidates, key=len, reverse=True):
+        decoded_candidate_count += 1
+        if decoded_candidate_count > MAX_CONFIG_DECODE_CANDIDATES:
+            raise ValueError("managed PureRAT Base64/GZip candidate limit exceeded")
         try:
-            outer = parse_protobuf(clear)
+            clear = _decode_base64_gzip(value)
         except ValueError:
             continue
-        for nested in outer.get(38, []):
-            if isinstance(nested, bytes):
-                try:
-                    fields = parse_protobuf(nested)
-                except ValueError:
-                    continue
-                if 1 in fields and 2 in fields:
-                    return nested, fields
-        if 1 in outer and 2 in outer:
-            return clear, outer
+        for raw, fields in _iter_nested_messages(clear):
+            if _valid_config_fields(fields):
+                identity = _config_identity(fields)
+                if identity not in configurations:
+                    configurations[identity] = (raw, fields)
+    if len(configurations) > 1:
+        raise ValueError("conflicting managed PureRAT configurations were found")
+    if configurations:
+        return next(iter(configurations.values()))
     raise ValueError("managed PureRAT Base64/GZip protobuf config was not found")
 
 
@@ -152,10 +358,32 @@ def certificate_metadata(value: str) -> dict[str, Any]:
 
 def extract_managed_config(data: bytes) -> dict[str, Any]:
     """Extract the managed PureRAT protobuf config and certificate fingerprints."""
-    strings = list(iter_dotnet_user_strings(data))
+    if len(data) > MAX_MANAGED_TERMINAL_BYTES:
+        raise _ManagedMetadataError("managed_input_size_exceeded")
+    metadata_error: _ManagedMetadataError | None = None
+    try:
+        strings = []
+        for value in iter_dotnet_user_strings(data):
+            strings.append(value)
+            if len(strings) > MAX_MANAGED_USER_STRINGS:
+                raise _ManagedMetadataError("managed_user_string_count_exceeded")
+    except _ManagedMetadataError as error:
+        metadata_error = error
+        strings = []
+    # 一部のprotectorは設定文字列を#USではなくmanifest resourceへ移す。
+    # CLR構造が妥当な場合だけ、raw resource内の連続ASCII／UTF-16文字列を
+    # 同じ厳格なBase64/GZip/protobuf検証へ渡す。
+    if has_clr_metadata(data):
+        fallback = list(_iter_bounded_embedded_strings(data))
+        strings = list(dict.fromkeys([*strings, *fallback]))
     if not strings:
-        raise _ManagedMetadataError("managed_user_strings_unavailable")
-    _blob, fields = decode_config_blob(strings)
+        raise metadata_error or _ManagedMetadataError("managed_user_strings_unavailable")
+    try:
+        _blob, fields = decode_config_blob(strings)
+    except ValueError:
+        if metadata_error is not None:
+            raise metadata_error
+        raise
     host = _text(fields[1][0]).lower().rstrip(".")
     ports = [int(item) for item in fields[2] if isinstance(item, int)]
     config: dict[str, Any] = {

@@ -1,44 +1,44 @@
 {
   "ai_used": false,
   "counts": {
-    "ast_preflight_eligible_handlers": 100,
-    "automated_analysis_completion_possible": 79,
+    "ast_preflight_eligible_handlers": 101,
+    "automated_analysis_completion_possible": 80,
     "automated_analysis_completion_verified": 0,
-    "automatic_family_selection_possible": 79,
+    "automatic_family_selection_possible": 80,
     "automatic_handler_blocked": 0,
     "blocked_automatic_handlers": 0,
     "by_status": {
       "automatic_handler_blocked": 0,
       "candidate_verification_only": 8,
       "classification_only": 0,
-      "fully_routable": 79,
+      "fully_routable": 80,
       "manual_handler_only": 0,
       "manual_only_without_detector": 2,
       "quality_policy_missing": 0,
       "unsupported": 0
     },
     "candidate_verification_only": 8,
-    "declared_automatic_handlers": 100,
-    "declared_script_only_handler_available": 87,
-    "declared_script_only_handler_percent": 97.75,
-    "detector_registered": 79,
-    "executed_preflight_count": 1043,
-    "executed_runtime_import_count": 100,
-    "families": 89,
-    "fully_routable": 79,
-    "fully_routable_percent": 88.76,
-    "planned_preflight_count": 1043,
-    "planned_runtime_import_count": 100,
+    "declared_automatic_handlers": 101,
+    "declared_script_only_handler_available": 88,
+    "declared_script_only_handler_percent": 97.78,
+    "detector_registered": 80,
+    "executed_preflight_count": 1042,
+    "executed_runtime_import_count": 101,
+    "families": 90,
+    "fully_routable": 80,
+    "fully_routable_percent": 88.89,
+    "planned_preflight_count": 1042,
+    "planned_runtime_import_count": 101,
     "preflight_limit": 2048,
-    "quality_gated_script_only_handler_available": 87,
-    "quality_policy_declared": 87,
+    "quality_gated_script_only_handler_available": 88,
+    "quality_policy_declared": 88,
     "quality_policy_missing": 0,
-    "runtime_import_verified_handlers": 100,
-    "runtime_import_verified_structure": 79,
-    "safe_automatic_handlers": 100,
-    "script_only_handler_available": 87,
-    "script_only_handler_percent": 97.75,
-    "structurally_routable": 79
+    "runtime_import_verified_handlers": 101,
+    "runtime_import_verified_structure": 80,
+    "safe_automatic_handlers": 101,
+    "script_only_handler_available": 88,
+    "script_only_handler_percent": 97.78,
+    "structurally_routable": 80
   },
   "executed_sample": false,
   "families": [
@@ -78,7 +78,7 @@
             "zip"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "ed7a0425c64557c314a21ac3ba60c546eb125f4140c297a0b6839bf58f32e613",
+          "dependency_fingerprint_sha256": "acfe363e344803f0cbf7c7d4542456666db532c5e26ad7d4a8c620c2a7c24c9c",
           "eligible": true,
           "eligible_formats": [
             "autoit-a3x",
@@ -193,7 +193,7 @@
             "script"
           ],
           "dependency_file_count": 40,
-          "dependency_fingerprint_sha256": "1e9fe1a21eb42df8f6b7b515a98d71208f1541e0a592677dedba850ae26317b4",
+          "dependency_fingerprint_sha256": "4a81a81c43ea3710fd17826dd887d491ca4218b95c159ad5bc2b6b4c1764222d",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -695,7 +695,7 @@
             "pe"
           ],
           "dependency_file_count": 7,
-          "dependency_fingerprint_sha256": "75d01be69da4a360a2732808f403fa5e3408820c5f0d86a0cebe48304db6fffa",
+          "dependency_fingerprint_sha256": "1c5b039a7abf34f2ca10b9d10ce0c92f78fc400959bce86b974959218ce2b26a",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -2134,7 +2134,7 @@
             "pe"
           ],
           "dependency_file_count": 7,
-          "dependency_fingerprint_sha256": "605c7ac2faca868047d30dc34fbeeb1c29103347f2e883ee9c843fc34635d3df",
+          "dependency_fingerprint_sha256": "2a7893a3eea3c5b10b89482a24736e802379fb99bad40bd3f5848cfdf3709809",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -2263,7 +2263,7 @@
             "zip"
           ],
           "dependency_file_count": 39,
-          "dependency_fingerprint_sha256": "c20241fd24c16b72ae870dba5b8968459246aaeff4a912744fcc1a8179a8253f",
+          "dependency_fingerprint_sha256": "2a67f8f430483926a620b6b4e32b260ab3387e7b33023402f2469fc4343d8590",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -2377,7 +2377,7 @@
             "pe"
           ],
           "dependency_file_count": 38,
-          "dependency_fingerprint_sha256": "7f1df894297c8adeb680c2735fef81188d688df27c80d7c03815cac09e97b28f",
+          "dependency_fingerprint_sha256": "1589eda621740d56f589d87cb77af259518979246ab15a2b247b6bd85bcc6027",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -2466,7 +2466,7 @@
             "elf"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "f807aec3e1f696aeae2285ab62b3cd6c68dad7ccb56b72531e173fe559b96ee5",
+          "dependency_fingerprint_sha256": "4358bd60ea9397549b2390e1823c281cbf613b5b01ed4c8985dc10cba20a6ead",
           "eligible": true,
           "eligible_formats": [
             "elf"
@@ -2709,7 +2709,7 @@
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "e04c8340aeb5225c8915cf91ae454ad2f82638034754df45bfcb1f60d7932e54",
+          "dependency_fingerprint_sha256": "0442504a7740e3ab62005bfd131059cf8a14bbf9fe47d440420c927af7e1afe5",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -3158,7 +3158,7 @@
             "zip"
           ],
           "dependency_file_count": 36,
-          "dependency_fingerprint_sha256": "e8c1babd39c637ef194a57151960df963693de0b5525ea09c1c19ee14ae62246",
+          "dependency_fingerprint_sha256": "af612dba51d093a186ca6fd8d1090af274cdb9ca220985680180d8ff7718d36e",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -4403,7 +4403,7 @@
             "zip"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "abd59bd6c3de5c542362a4ea19560a5a4931ee086d286a01aee65ca765f49c84",
+          "dependency_fingerprint_sha256": "a4d2c19d21903ab8a4d63131554a36c0f68d3d28c09bf32495b23cee47a42aad",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -4837,7 +4837,7 @@
             "script"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "2e0245e9e83c948b64e176f7c7e34e1709902e985e25a7caee631547c912a674",
+          "dependency_fingerprint_sha256": "613d6057c1660bbe3ee66f15e9b6db8f49eb14ea68d82c31561c30688ae701b3",
           "eligible": true,
           "eligible_formats": [
             "script"
@@ -4966,7 +4966,7 @@
             "zip"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "aa02082f1cfc814ab054d77fb004c1e0fcb5a593d724de53e1eac705b5c96f56",
+          "dependency_fingerprint_sha256": "ad8f634d920ee8a60c3f31133cb73f4e05e7176c23bf672e25d445cef5acbe14",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -6672,6 +6672,90 @@
       "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "njrat:extractors.njrat.extractor.py:extract"
+      ],
+      "script_only_handler_available": true,
+      "status": "fully_routable",
+      "structurally_routable": true
+    },
+    {
+      "accepted_formats": [
+        "elf"
+      ],
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
+      "automatic_handler_preflights": [
+        {
+          "ast_eligible_formats": [
+            "elf"
+          ],
+          "ast_preflight_eligible": true,
+          "blocked_formats": [],
+          "blockers": [],
+          "declared_formats": [
+            "elf"
+          ],
+          "dependency_file_count": 2,
+          "dependency_fingerprint_sha256": "026617af2a80065eec8aeb6057cbd773775c011d8e4ffce4203ce7df0fcaf4bd",
+          "eligible": true,
+          "eligible_formats": [
+            "elf"
+          ],
+          "handler_id": "noodlerat:analysis.framework.malware.noodlerat.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "noodlerat:analysis.framework.malware.noodlerat.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
+        }
+      ],
+      "automatic_handlers": [
+        "noodlerat:analysis.framework.malware.noodlerat.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocked_automatic_handlers": [],
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
+      "declared_accepted_formats": [
+        "elf"
+      ],
+      "declared_automatic_handlers": [
+        "noodlerat:analysis.framework.malware.noodlerat.extract.config.py:extract_config"
+      ],
+      "declared_script_only_handler_available": true,
+      "detector_registered": true,
+      "family": "noodlerat",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "rat",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
+      "safe_automatic_handlers": [
+        "noodlerat:analysis.framework.malware.noodlerat.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
       "status": "fully_routable",
@@ -8547,7 +8631,7 @@
             "pe"
           ],
           "dependency_file_count": 8,
-          "dependency_fingerprint_sha256": "23877b900795156f20b1fdc3ce68485d7285df29fa28cab9037c2492d7e67ca9",
+          "dependency_fingerprint_sha256": "214f42ab2c361215f15cbccd6ec1d5ca817ec2cc09b952a8a02c4b3e4c68d520",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -8608,7 +8692,7 @@
             "zip"
           ],
           "dependency_file_count": 6,
-          "dependency_fingerprint_sha256": "ee57c61fd772a167346d1f66e1a3a640ea34542dc1214b71b72d0dffc85e7f19",
+          "dependency_fingerprint_sha256": "5707d27dddfdae030800a50132b1277ed1e15c2a654ac40e5e32ac8ab8274b92",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -9088,7 +9172,7 @@
             "zip"
           ],
           "dependency_file_count": 38,
-          "dependency_fingerprint_sha256": "c37724efde26ad6ce6e8aba72a8f7a2d762fa2f6b0842cd4d81809759029e1d2",
+          "dependency_fingerprint_sha256": "7d40e6497f7181bda7c15b291db85d6673b3620fd168daad7629c83051f2fec7",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -9205,7 +9289,7 @@
             "elf"
           ],
           "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "ea3b251f0995889fe70975739fae0b4c2572f564676019994aec0afc521051f8",
+          "dependency_fingerprint_sha256": "8d07f4cbaf18d1ed778ab3e2cbf1a757de72ad6aedac6d5dcf10e3bf1747ead1",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -10032,7 +10116,7 @@
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "4fb79d0e32a1ebae92dc0bf95ad95088f50c7371b1d6aa7ef1d63c8c0e7e4e9f",
+          "dependency_fingerprint_sha256": "19eeb6c9261a1c6cc4ddcf214572e42f87c018846bdc30281bcedfd2a6b7041f",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -10122,7 +10206,7 @@
             "script"
           ],
           "dependency_file_count": 39,
-          "dependency_fingerprint_sha256": "e201b400be38c4d64769c521ba5d5674054959946dd39ae6ab560a54ddfd691b",
+          "dependency_fingerprint_sha256": "42e69e63a5efd0efc6eb624afb91d4aefce662a1942da48d8d169d5dc2786f38",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -10574,7 +10658,7 @@
             "zip"
           ],
           "dependency_file_count": 37,
-          "dependency_fingerprint_sha256": "cf8e32c7ce9691d83bc39452895dc4c7f742e66d1475c5b081b1e37dcc9d5661",
+          "dependency_fingerprint_sha256": "963c92f090aecc05758a99f927bd9e5dc23021887818349a718d36b3902659d8",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -11330,7 +11414,7 @@
             "pe"
           ],
           "dependency_file_count": 51,
-          "dependency_fingerprint_sha256": "bd6601819de6f0dc61a8853b9d56622f7b2486c4d63167ed9e5c3bd6ae1da452",
+          "dependency_fingerprint_sha256": "b4f2c6769fd92c30bbf4a81717cfbe698fca649f2c85db2d84b586b701646a6c",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11392,7 +11476,7 @@
             "pe"
           ],
           "dependency_file_count": 38,
-          "dependency_fingerprint_sha256": "ca73192eaf53e1cd4dca74d64213ece3d0cce1c3fcb91f2d2736fc15763cf81a",
+          "dependency_fingerprint_sha256": "64f8c412fb0b2aed34d8b0b46c9b1b940ece1b24a0b12725c6e65626ff39724a",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11423,7 +11507,7 @@
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "679bed6df0bb5ecd262067b059c0356529767f3c218a09b4748b8504480cd551",
+          "dependency_fingerprint_sha256": "7d1c07aa4549547178909d76886aa74716b460a9bb15954c9906d23f03aac448",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11456,7 +11540,7 @@
             "pe"
           ],
           "dependency_file_count": 54,
-          "dependency_fingerprint_sha256": "510b3fee621ad9742bdd85de875bd136951a6d516406a8649f2f79c5265e2a45",
+          "dependency_fingerprint_sha256": "5ef67884221f25a89edc58699087e66317f27906c5f6d980519a3eb2b8577044",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -11488,7 +11572,7 @@
             "pe"
           ],
           "dependency_file_count": 1,
-          "dependency_fingerprint_sha256": "de13eb913c6ff1272b7e7ba1376ec7b2fdb5be285a9e054acb9a8856101b4b17",
+          "dependency_fingerprint_sha256": "fa4156414059e317586db372a5b3a9b2ebc6ab53717ad71b024c81e9c0a866e2",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11550,7 +11634,7 @@
             "pe"
           ],
           "dependency_file_count": 51,
-          "dependency_fingerprint_sha256": "017a1545d041cd50c1c4d40025e79cf47b7a3b7efa99446d3ba01503ffdc2fc4",
+          "dependency_fingerprint_sha256": "fa747c966311ca706a7616e7c404337c04a57075db0e616c8500700a3aebb9ee",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11587,7 +11671,7 @@
             "png"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "b9c9b39fae322f82953cd811f46d45537f237108077e204aad3c4020756d87a1",
+          "dependency_fingerprint_sha256": "cfe606289b46dd7bc79d679021484426b5f60e89e1308c7e2b021d689f74ee35",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -11621,7 +11705,7 @@
             "zip"
           ],
           "dependency_file_count": 52,
-          "dependency_fingerprint_sha256": "afc3e7eaa6d8b29eb14e66e4ff90702472203c84d1a1b8d5f05905a63a3b2bf4",
+          "dependency_fingerprint_sha256": "c707be3b83476990cd81d19a4a2ffacbb3468a4b874a18cb68994d0e9c7ce650",
           "eligible": true,
           "eligible_formats": [
             "zip"
@@ -11654,7 +11738,7 @@
             "pe"
           ],
           "dependency_file_count": 50,
-          "dependency_fingerprint_sha256": "7afa3b8a9406b40e01db57617e2c5289eba041e3378d16dd8da8f37aedb8019e",
+          "dependency_fingerprint_sha256": "2a009bcb7555a0c1fa9013b3f4f5ec1650e97d55ab86a93fad015f84b8106177",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -11778,7 +11862,7 @@
             "pe"
           ],
           "dependency_file_count": 6,
-          "dependency_fingerprint_sha256": "cb147014f5d5db068b7963614f63e52d13a37ab0bae874890aeb9961e765f73b",
+          "dependency_fingerprint_sha256": "1514a40316285a576af145613448059b265692ccb9c8208ac1399359110189a6",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11909,7 +11993,7 @@
             "zip"
           ],
           "dependency_file_count": 40,
-          "dependency_fingerprint_sha256": "025c552b88da575fb884c7e0d68b0390d2659520b1961fb1e8466ba8dfe3e823",
+          "dependency_fingerprint_sha256": "d556df920cfda2ab3bd2245251d46d4531800c503f4591225b5bba752918e193",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -12491,42 +12575,34 @@
     },
     {
       "accepted_formats": [
-        "data",
-        "pe",
-        "script"
+        "pe"
       ],
       "automated_analysis_completion_possible": true,
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "ast_eligible_formats": [
-            "data",
-            "pe",
-            "script"
+            "pe"
           ],
           "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
-            "data",
-            "pe",
-            "script"
+            "pe"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "003fb6a3be8a2496c519ce878d703436f7ff194cd13b58000ec23f2add5d33c9",
+          "dependency_file_count": 5,
+          "dependency_fingerprint_sha256": "805caae64a13281c6233782a4a09ec30d9416af73b09b80829c6ffac8d850cc3",
           "eligible": true,
           "eligible_formats": [
-            "data",
-            "pe",
-            "script"
+            "pe"
           ],
-          "handler_id": "xworm:extractors.profiled_family:extractor_for",
+          "handler_id": "xworm:extractors.xworm.extractor.py:extract",
           "runtime_import": {
             "attempted": true,
             "blockers": [],
             "eligible": true,
             "filesystem_write_allowed": false,
-            "handler_id": "xworm:extractors.profiled_family:extractor_for",
+            "handler_id": "xworm:extractors.xworm.extractor.py:extract",
             "handler_imported": true,
             "invocation": "bytes_name",
             "isolated_process": true,
@@ -12537,7 +12613,7 @@
         }
       ],
       "automatic_handlers": [
-        "xworm:extractors.profiled_family:extractor_for"
+        "xworm:extractors.xworm.extractor.py:extract"
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
@@ -12556,12 +12632,10 @@
         "status": "not_verified"
       },
       "declared_accepted_formats": [
-        "data",
-        "pe",
-        "script"
+        "pe"
       ],
       "declared_automatic_handlers": [
-        "xworm:extractors.profiled_family:extractor_for"
+        "xworm:extractors.xworm.extractor.py:extract"
       ],
       "declared_script_only_handler_available": true,
       "detector_registered": true,
@@ -12577,7 +12651,7 @@
       "quality_policy_declared": true,
       "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
-        "xworm:extractors.profiled_family:extractor_for"
+        "xworm:extractors.xworm.extractor.py:extract"
       ],
       "script_only_handler_available": true,
       "status": "fully_routable",

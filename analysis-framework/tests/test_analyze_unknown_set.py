@@ -17,6 +17,9 @@ from analyze_unknown_set import (
     family_from_text,
     normalize_case_iocs,
     resolve_attribution,
+    safe_config_findings,
+    sanitize_domain_candidate,
+    sanitize_endpoint_candidate,
     sanitize_ip_candidate,
     sanitize_url,
 )
@@ -25,6 +28,9 @@ from analyze_unknown_set import (
 def test_family_tokens_and_external_evidence() -> None:
     """Accept specific family tokens while ignoring generic stealer labels."""
     assert family_from_text("GenesisStealer_Installer_NSIS_MaaS_Template") == "genesisstealer"
+    assert family_from_text("PureRAT") == "purehvnc"
+    assert family_from_text("Pure HVNC") == "purehvnc"
+    assert family_from_text("PureHVNC_Agent") == "purehvnc"
     assert family_from_text("infostealer") is None
     evidence = external_evidence({
         "tags": ["infostealer", "Vidar"],
@@ -61,6 +67,10 @@ def test_sanitize_url_and_cluster_determinism() -> None:
     assert sanitize_ip_candidate("127.0.0.1") is None
     assert sanitize_ip_candidate("999.1.1.1") is None
     assert sanitize_ip_candidate("4.0.0.0") is None
+    assert sanitize_domain_candidate("C2.Example.TEST.") == "c2.example.test"
+    assert sanitize_domain_candidate("localhost") is None
+    assert sanitize_endpoint_candidate("C2.Example.TEST:0443") == "c2.example.test:443"
+    assert sanitize_endpoint_candidate("127.0.0.1:443") is None
     normalized = normalize_case_iocs({
         "source": {"file_type": "exe"},
         "iocs": {"urls": [], "ips": ["13.3.3.7", "216.126.225.243:8085"]},
@@ -74,6 +84,43 @@ def test_sanitize_url_and_cluster_determinism() -> None:
         "root_unpack": {"format": "pe"},
     }]
     assert cluster_cases(cases) == {"family:vidar:medium": ["a" * 64]}
+
+
+def test_safe_config_findings_normalizes_standard_network_kinds(monkeypatch) -> None:
+    """標準network kindを捨てず、値を再検証して公開形へ縮約する。"""
+
+    def extractor(_data: bytes, _name: str) -> dict:
+        return {
+            "findings": [
+                {
+                    "kind": "network.endpoint",
+                    "value": "C2.Example.TEST:0443",
+                    "role": "configured_c2",
+                },
+                {
+                    "kind": "network.url",
+                    "value": "https://user:secret@stage.example.test/p?q=secret#fragment",
+                    "role": "configured_c2",
+                },
+                {"kind": "network.ip", "value": "127.0.0.1:443"},
+                {"kind": "process.command", "value": "ignored"},
+            ]
+        }
+
+    monkeypatch.setitem(unknown.EXTRACTORS, "asyncrat", extractor)
+
+    assert safe_config_findings("asyncrat", [("sample.exe", b"fixture")]) == [
+        {
+            "kind": "endpoint",
+            "value": "c2.example.test:443",
+            "role": "configured_c2",
+        },
+        {
+            "kind": "url",
+            "value": "https://stage.example.test/p",
+            "role": "configured_c2",
+        },
+    ]
 
 
 def test_format_sensitive_attribution_and_irahook_shape() -> None:

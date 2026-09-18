@@ -138,6 +138,44 @@ py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py migrate-r
 
 この操作は中断checkpointだけを対象とし、完了済みrunは移行しません。保存request、run ID、collection ID、source commitment、安全値、collection bindingの全fieldが一致し、相違点がoperator指定の旧implementation SHA-256だけである場合に限ってstateとbindingを現在の実装へ更新します。旧実装がライブC2許可待ちを5回の失敗として記録していても、resultが`targets_built_live_monitoring_deferred`、`network_contacted=false`、`sample_executed=false`の固定契約へ完全一致する場合だけ、attemptsを0へ戻した再試行可能partialへ正規化します。この正規化もreceiptへ明記します。更新前・更新後のSHA-256を含むauthorization／completion receiptはprivate collectionの`im` directoryへ保存します。途中停止時は同じ旧pinで再実行でき、片側だけが更新済みでも事前receiptが完全一致する場合に限って完了させます。検体実行、network接触、source削除、公開成果物の変更は行いません。移行後は同じ引数でresumeまたはdriveを実行します。一般的な別解析への転用やrequest変更には新しいrun_idを使用します。
 
+## 旧news partialの監査付き再queue
+
+trusted tool伝播修正前に作成された`news_intake`が、`exit_code=20`の
+non-retryable partialで停止した場合だけ、固定subcommand
+`repair-news-intake`で通常の`resume`経路へ戻せます。任意stage名や任意の
+変更理由は受け付けません。
+
+実行前に`state.json` raw bytesと`news_intake` recordの正規JSONをそれぞれ
+SHA-256へ固定し、CLIへ小文字64桁で指定します。通常のcontext引数と、
+operator管理のtrusted tool manifest／SHA-256 pinも必須です。
+
+~~~powershell
+py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py repair-news-intake `
+  --request C:\analysis-lab\daily-request.json `
+  --repository C:\analysis-lab\repository `
+  --intelligence-root C:\analysis-lab\intelligence `
+  --private-root C:\analysis-lab\private `
+  --work-root C:\analysis-lab\work `
+  --ghidra-project-store C:\analysis-lab\ghidra-projects `
+  --trusted-tools-manifest C:\operator\trusted-tools.json `
+  --trusted-tools-manifest-sha256 <manifest-sha256> `
+  --expected-state-sha256 <state-json-raw-sha256> `
+  --expected-news-record-sha256 <news-record-canonical-sha256>
+~~~
+
+このsubcommand自体はprovider照会、sample download、静的解析、C2通信、公開昇格を
+行いません。global run lock内でrunのquiescence、request／source／collection binding／
+実装／trusted tool pin、旧news stageの完全なshape、既存公開先と旧stagingの固定8成果物を
+検証します。完了runまたは既存canonical公開先があるrunは拒否します。
+
+成功時は`news_intake`をattempt回数を保持したまま`pending/retryable`へ戻し、
+`c2_monitoring`、`validation`、`private_archive`だけを無効化します。authorization／
+completion receiptは`daily-orchestrations/<run-id>/repair-receipts/news-intake-requeue/`へ
+保存します。その後、同じtrusted tool pairを渡して通常の`resume`を実行します。
+newsが完全に成功したときだけ、既存のsource再検証と固定8成果物のatomic file promotionが
+動作します。receiptが揃った同一操作の再実行はidempotentです。receiptの欠損、改変、
+pin不一致、中断後stateの想定外変更はfail-closedで拒否します。
+
 news laneの公開成果物はrun固有のwork stagingへ8種類すべてを書き、consumer終了後にsource commitmentを再検証してから、固定file集合だけをrepositoryへfile単位でatomic昇格します。埋込みCLIのSystemExitもstage failureへ変換するため、stateをrunningのまま残しません。固定Python subprocessのstdout／stderrはpipeで有界captureし、大量logを直接diskへ流しません。実装更新後のGhidra再開とcase別保管は、現在の実装cache keyから別job IDを再計算せず、stateへ記録済みで完全再検証できるone-shot job IDだけを使用します。
 
 news laneが`partial`の場合、8成果物は公開先へ昇格しません。ただし、同じrunのstagingにある`ioc-summary.json`は、source commitment、日付、path、通常file境界を再検証したうえで、当日のC2 handoff入力に限って使用できます。C2 target builderはこの入力を正規の論理source pathへ固定し、stagingの絶対pathを公開成果物へ記録しません。

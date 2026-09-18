@@ -11,7 +11,6 @@ from pathlib import Path
 from types import ModuleType
 
 import dnfile
-from dncil.cil.body.reader import read_method_body_from_bytes
 
 from extractors.common import build_result, extract_strings, valid_host
 
@@ -369,6 +368,13 @@ def _validated_protocol(data: bytes, digest: str) -> dict[str, object]:
     return result
 
 
+def _read_bounded_method_body(data: bytes, pe: dnfile.dnPE, rva: int) -> object:
+    """共通のCIL header／code size境界検証後にmethod bodyを読む。"""
+
+    module = _load_common_module("dotnet_rat_config")
+    return module.read_bounded_method_body(data, pe, rva)
+
+
 def _record(
     digest: str,
     token: str,
@@ -441,7 +447,7 @@ def _plaintext_v057b_profile_matches(data: bytes) -> bool:
                 continue
             if not row.Rva:
                 return False
-            body = read_method_body_from_bytes(data[pe.get_offset_from_rva(row.Rva) :])
+            body = _read_bounded_method_body(data, pe, row.Rva)
             if len(body.instructions) > MAX_METHOD_BODY_BYTES:
                 return False
             semantic: list[str] = []
@@ -922,20 +928,9 @@ def _managed_inventory(
             continue
         with_body += 1
         try:
-            offset = pe.get_offset_from_rva(row.Rva)
-            if (
-                isinstance(offset, bool)
-                or not isinstance(offset, int)
-                or not 0 <= offset < len(data)
-            ):
-                raise ValueError("method offsetが不正です")
-            read_method_body_from_bytes(
-                data[offset : min(len(data), offset + MAX_METHOD_BODY_BYTES)]
-            )
+            _read_bounded_method_body(data, pe, row.Rva)
         except (IndexError, TypeError, ValueError):
             malformed += 1
-    if malformed:
-        raise ValueError("malformed managed methodがあります")
     entry_token = "0x06000002" if config_mode == "chacha20_obfuscated_v058" else "0x06000001"
     entry_name = (
         f"{_method_owners(pe).get(2, '')}.{method_rows[1].Name}".strip(".")
@@ -970,9 +965,14 @@ def _managed_inventory(
                 "managed_methods_with_body": with_body,
                 "managed_methods_without_body": without_body,
                 "malformed_method_bodies": malformed,
+                "inventory_complete": malformed == 0,
                 "ghidra_native_decompilation_used_for_cil_semantics": False,
             },
-            "confidence": "confirmed_program_structure",
+            "confidence": (
+                "confirmed_program_structure"
+                if malformed == 0
+                else "partial_program_structure_inventory"
+            ),
         }
     ]
 
@@ -984,32 +984,69 @@ def extract(data: bytes, name: str = "sample") -> dict:
     structural = structural_evidence(data)
     recovery = None
     protocol = None
+    recovery_diagnostics = None
     status = "not_attempted_structural_mismatch"
     if (
         structural.get("managed_pe") is True
         and 1 <= len(data) <= MAX_INPUT_BYTES
     ):
         try:
-            recovery = _validated_recovery(data)
-            protocol = _validated_protocol(data, digest)
-            status_by_mode = {
-                "hmac_encrypted": "recovered_hmac_and_protocol_verified",
-                "plaintext_static_v057b": "recovered_plaintext_and_protocol_verified",
-                "chacha20_obfuscated_v058": (
-                    "recovered_chacha20_and_protocol_verified"
-                ),
+            candidate_recovery = _validated_recovery(data)
+        except (ImportError, OSError, ValueError) as error:
+            recovery_diagnostics = {
+                "stage": "config_recovery",
+                "error_type": type(error).__name__,
+                "exception_message_published": False,
             }
-            status = status_by_mode[recovery["config_mode"]]
-            if structural["matched"] is not True:
-                structural.update(
-                    {
-                        "matched": True,
-                        "obfuscated_profile_confirmed": True,
-                        "rule": "asyncrat_obfuscated_chacha20_compact_v058",
-                    }
-                )
-        except (ImportError, OSError, ValueError):
             status = "rejected_or_not_recovered"
+        else:
+            try:
+                candidate_protocol = _validated_protocol(data, digest)
+            except (ImportError, OSError, ValueError) as error:
+                recovery_diagnostics = {
+                    "stage": "protocol_evidence",
+                    "error_type": type(error).__name__,
+                    "exception_message_published": False,
+                }
+                status = "rejected_or_not_recovered"
+            else:
+                # configとprotocolが双方の安全契約を満たした後にだけ公開状態へ移す。
+                recovery = candidate_recovery
+                protocol = candidate_protocol
+                recovery_diagnostics = {
+                    "stage": "complete",
+                    "error_type": None,
+                    "exception_message_published": False,
+                }
+                status_by_mode = {
+                    "hmac_encrypted": "recovered_hmac_and_protocol_verified",
+                    "plaintext_static_v057b": (
+                        "recovered_plaintext_and_protocol_verified"
+                    ),
+                    "chacha20_obfuscated_v058": (
+                        "recovered_chacha20_and_protocol_verified"
+                    ),
+                }
+                status = status_by_mode[recovery["config_mode"]]
+                if structural["matched"] is not True:
+                    mode = recovery["config_mode"]
+                    structural["matched"] = True
+                    structural["recovered_profile_confirmed"] = True
+                    if mode == "chacha20_obfuscated_v058":
+                        structural["obfuscated_profile_confirmed"] = True
+                        structural["rule"] = (
+                            "asyncrat_obfuscated_chacha20_compact_v058"
+                        )
+                    elif mode == "plaintext_static_v057b":
+                        structural["plaintext_profile_confirmed"] = True
+                        structural["rule"] = (
+                            "asyncrat_plaintext_v057b_protocol_verified"
+                        )
+                    else:
+                        structural["authenticated_profile_confirmed"] = True
+                        structural["rule"] = (
+                            "asyncrat_hmac_settings_protocol_verified"
+                        )
     findings = []
     if recovery is not None:
         evidence_source = (
@@ -1046,6 +1083,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
         "structural_assessment": structural,
         "marker_hits": [structural] if structural["matched"] is True else [],
         "recovery_status": status,
+        "recovery_diagnostics": recovery_diagnostics,
         "terminal_managed_client": recovery is not None,
         "static_config_recovered": recovery is not None,
         "c2_protocol_recovered": protocol is not None,

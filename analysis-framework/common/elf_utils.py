@@ -14,6 +14,7 @@ class LoadSegment:
     virtual_address: int
     file_size: int
     memory_size: int
+    flags: int = 0
 
 
 @dataclass(frozen=True)
@@ -75,16 +76,18 @@ def parse_elf_layout(data: bytes) -> ElfLayout:
         if values[0] != 1:
             continue
         if elf_class == 1:
-            file_offset, virtual_address, file_size, memory_size = (
-                values[1], values[2], values[4], values[5]
+            file_offset, virtual_address, file_size, memory_size, flags = (
+                values[1], values[2], values[4], values[5], values[6]
             )
         else:
-            file_offset, virtual_address, file_size, memory_size = (
-                values[2], values[3], values[5], values[6]
+            file_offset, virtual_address, file_size, memory_size, flags = (
+                values[2], values[3], values[5], values[6], values[1]
             )
         if file_offset + file_size > len(data):
             raise ValueError("PT_LOADがファイル終端を越えています")
-        segments.append(LoadSegment(file_offset, virtual_address, file_size, memory_size))
+        segments.append(
+            LoadSegment(file_offset, virtual_address, file_size, memory_size, flags)
+        )
 
     return ElfLayout(
         bits=32 if elf_class == 1 else 64,

@@ -61,6 +61,21 @@ def protocol_profile(family: str | None) -> dict | None:
     """登録済みファミリーのオフライン確認条件とエミュレータ案内を返す。"""
     if not family:
         return None
+    if family.casefold() == "noodlerat":
+        return {
+            "category": "rat",
+            "transport": "tcp_or_http_variant",
+            "endpoint_role": "configured_c2",
+            "confirmation_requirements": [
+                "strict_rc4_config_grammar",
+                "config_code_lineage",
+                "complete_dispatcher_command_cluster_or_reviewed_sha256",
+            ],
+            "active_confirmation_default": "disabled",
+            "emulator": None,
+            "passive_hunt": "analysis-framework/malware/noodlerat/c2_hunt.py",
+            "protocol_completion": "registration_and_response_derivation_incomplete",
+        }
     try:
         profile = profile_for(family)
     except ValueError:

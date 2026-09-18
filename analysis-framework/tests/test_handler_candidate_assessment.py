@@ -225,6 +225,26 @@ def _routing_detector(
     return result
 
 
+def _unmatched_detector() -> dict:
+    """正規化済みの正常なdetector非一致評価を作る。"""
+
+    return {
+        "known_outer_sha256": False,
+        "known_inner_sha256": False,
+        "known_routing_sha256": False,
+        "detector_matched": False,
+        "applicable": False,
+        "automatic_route_eligible": False,
+        "error": None,
+        "supports_family_attribution": False,
+        "detection": {
+            "matched": False,
+            "observations": {},
+            "campaigns": [],
+        },
+    }
+
+
 def _candidate(family: str, source: str = "metadata_hint") -> dict:
     return {
         "family": family,
@@ -646,6 +666,116 @@ def test_route_only_detector_selects_family_wide_and_exact_campaign(
     assert selection["detector_scope_used_for_family_confirmation"] is False
     assert result["confirmed_families"] == []
     assert result["families"][0]["status"] == ("handler_evidence_without_detector")
+
+
+def test_detector_scope_ignores_well_formed_unmatched_layers() -> None:
+    """正常な非一致layerは別layerのroute-only scopeを無効化しない。"""
+
+    matched = _layer(b"matched payload", "matched.bin")
+    unmatched = _layer(b"unmatched payload", "unmatched.bin")
+
+    scope = catalog._detector_handler_scope(
+        {
+            "valleyrat": {
+                matched["sha256"]: _routing_detector(False, ["matched_campaign"]),
+                unmatched["sha256"]: _unmatched_detector(),
+            }
+        },
+        "valleyrat",
+        [matched, unmatched],
+    )
+
+    assert scope == {
+        "status": "route_only",
+        "basis": "all_matched_detectors_are_route_only",
+        "matched_detector_count": 1,
+        "attribution_supporting_detector_count": 0,
+        "route_only_detector_count": 1,
+        "campaign_types": ["matched_campaign"],
+        "trusted_for_handler_narrowing": True,
+    }
+
+
+def test_route_only_detector_with_unmatched_layers_bounds_campaign_fallback(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """全layer分類経路でも正常非一致を除外し、campaign総当たりを防ぐ。"""
+
+    repository, malware_root = isolated_catalog
+    base = _handler_spec(
+        repository,
+        malware_root,
+        "valleyrat",
+        _source("{}"),
+    )
+    shared = replace(base, id="valleyrat:shared", campaign=None)
+    matched_handler = replace(
+        base,
+        id="valleyrat:matched",
+        campaign="matched_campaign",
+    )
+    fallback = replace(base, id="valleyrat:fallback", campaign="other_campaign")
+
+    root = _layer(b"root payload", "root.bin")
+    children = [
+        _layer(f"child-{index}".encode(), f"child-{index}.bin", root["sha256"])
+        for index in range(4)
+    ]
+    for index, layer in enumerate(children, start=1):
+        layer["depth"] = index
+        layer["transform"] = f"transform_{index}"
+    layers = [root, *children]
+    detector_evaluations = catalog.collect_detector_evaluations(
+        [
+            {
+                "layer": layer,
+                "classification": {
+                    "detector_evaluations": [
+                        {
+                            "malware_type": "valleyrat",
+                            **(
+                                _routing_detector(False, ["matched_campaign"])
+                                if index == 2
+                                else _unmatched_detector()
+                            ),
+                        }
+                    ]
+                },
+            }
+            for index, layer in enumerate(layers)
+        ]
+    )
+    calls: list[str] = []
+
+    def execute(handler, *_args, **_kwargs):
+        calls.append(handler.id)
+        return _mock_completed_handler_result()
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    result = catalog.assess_candidate_handlers(
+        [_candidate("valleyrat", source="detector_and_external_metadata")],
+        layers,
+        specs=[fallback, matched_handler, shared],
+        detector_evaluations=detector_evaluations,
+    )
+
+    selection = result["families"][0]["handler_selection"]
+    assert selection["detector_scope_status"] == "route_only"
+    assert selection["mode"] == (
+        "family_wide_and_exact_campaign_then_bounded_fallback_route_only_detector"
+    )
+    assert calls.count(shared.id) == len(layers)
+    assert calls.count(matched_handler.id) == len(layers)
+    assert calls.count(fallback.id) == 2
+    assert result["planned_attempt_count"] == result["actual_attempt_count"] == 12
+    assert result["budget"]["exhausted"] is False
+    plans = {
+        plan["handler_id"]: plan
+        for plan in result["families"][0]["handler_layer_plan"]
+    }
+    assert plans[fallback.id]["selection_role"] == "bounded_campaign_fallback"
+    assert plans[fallback.id]["compatible_layer_indexes"] == [0, 4]
 
 
 def test_generic_route_only_profile_uses_bounded_campaign_fallback(
@@ -3813,6 +3943,89 @@ def _reviewed_shape_result(
         scope,
         catalog._import_aliases(tree),
         key=key,
+    )
+
+
+@pytest.mark.parametrize(
+    ("loader_argument", "call_arguments", "extra_binding", "expected"),
+    (
+        ('"dotnet_rat_config"', "data, pe, rva", "", True),
+        ('"dotnet_rat_protocol_evidence"', "data, pe, rva", "", False),
+        ('"dotnet_rat_config"', "data, rva, pe", "", False),
+        ('"dotnet_rat_config"', "data, pe, False", "", False),
+        (
+            '"dotnet_rat_config"',
+            "data, pe, rva",
+            "    module = object()\n",
+            False,
+        ),
+    ),
+    ids=("exact", "wrong-module", "reordered", "literal-rva", "rebound-module"),
+)
+def test_asyncrat_bounded_method_reader_review_requires_exact_loader_and_arguments(
+    loader_argument: str,
+    call_arguments: str,
+    extra_binding: str,
+    expected: bool,
+) -> None:
+    source = (
+        "def _read_bounded_method_body(data, pe, rva):\n"
+        f"    module = _load_common_module({loader_argument})\n"
+        f"{extra_binding}"
+        f"    return module.read_bounded_method_body({call_arguments})\n"
+    )
+    key = (
+        "extractors/asyncrat/integrated.py",
+        "reachable:_read_bounded_method_body",
+        "module.read_bounded_method_body",
+    )
+
+    assert _reviewed_shape_result(source, key) is expected
+
+
+def test_asyncrat_bounded_method_reader_review_is_source_scoped() -> None:
+    key = (
+        "extractors/asyncrat/integrated.py",
+        "reachable:_read_bounded_method_body",
+        "module.read_bounded_method_body",
+    )
+
+    assert key in catalog._REVIEWED_SOURCE_CALLS
+    assert (
+        "extractors/venomrat/integrated.py",
+        key[1],
+        key[2],
+    ) not in catalog._REVIEWED_SOURCE_CALLS
+    assert key[2] not in catalog._APPROVED_EXTERNAL_CALLS
+
+
+def test_asyncrat_handler_preflight_accepts_reviewed_bounded_cil_reader() -> None:
+    catalog.clear_handler_caches()
+    try:
+        specs = [
+            spec
+            for spec in catalog.discover_handlers()
+            if spec.id == "asyncrat:extractors.asyncrat.extractor.py:extract"
+        ]
+        assert len(specs) == 1
+        preflight = catalog.preflight_handler_for_assessment(
+            specs[0],
+            actual_format="pe",
+            input_size=1024 * 1024,
+        )
+    finally:
+        catalog.clear_handler_caches()
+
+    assert preflight["eligible"] is True
+    assert preflight["blockers"] == []
+    assert preflight["sample_execution_allowed"] is False
+    assert preflight["network_allowed"] is False
+    assert preflight["filesystem_write_allowed"] is False
+    assert (
+        preflight["dependency_audit"]["allowance_counts"][
+            "reviewed_source_scoped_call"
+        ]
+        >= 1
     )
 
 

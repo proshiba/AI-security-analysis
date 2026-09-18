@@ -27,6 +27,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from http.client import HTTPException, RemoteDisconnected
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -99,6 +100,7 @@ DEFAULT_COLLECTION_ID = "malwarebazaar-windows-20260723-0100"
 DEFAULT_MCP_URL = "http://127.0.0.1:8089"
 DEFAULT_PROJECT_ROOT = "/Malware/MalwareBazaarWindows/20260723"
 MAX_MCP_RESPONSE_BYTES = 64 * 1024 * 1024
+MCP_RESPONSE_READ_CHUNK_BYTES = 64 * 1024
 FUNCTION_PAGE_SIZE = 500
 MAX_FUNCTION_INVENTORY_ITEMS = 100_000
 MAX_FUNCTION_INVENTORY_PAGES = 10_000
@@ -107,6 +109,41 @@ CALL_GRAPH_REQUEST_FORMAT = "json_edges"
 CALL_GRAPH_REQUEST_LIMIT = 0
 CALL_GRAPH_MANAGED_LIMIT = "native_call_graph_not_applicable_managed_cil_primary"
 CALL_GRAPH_LEGACY_LIMIT = "legacy_call_graph_retrieval_evidence_unavailable"
+ZERO_FUNCTION_INVENTORY_SOURCE = "ghidra_analysis_status_and_metadata_zero"
+ZERO_FUNCTION_INVENTORY_LIMIT = (
+    "list_functions_endpoint_skipped_after_independent_zero_count_confirmation"
+)
+ZERO_FUNCTION_OPCODE_HASH_LIMIT = (
+    "bulk_function_hashes_endpoint_skipped_after_independent_zero_count_confirmation"
+)
+INITIAL_ANALYSIS_STATUS_TIMEOUT_SECONDS = 60
+QUICK_READ_ONLY_GET_TIMEOUT_SECONDS = 60
+QUICK_READ_ONLY_GET_MAX_ATTEMPTS = 2
+QUICK_READ_ONLY_GET_ENDPOINTS = frozenset(
+    {
+        "/analysis_status",
+        "/get_metadata",
+        "/list_functions_enhanced",
+        "/list_imports",
+        "/list_exports",
+        "/list_strings",
+        "/list_segments",
+        "/get_entry_points",
+        "/get_full_call_graph",
+        "/find_anti_analysis_techniques",
+        "/analyze_api_call_chains",
+        "/get_bulk_function_hashes",
+    }
+)
+LIMITED_EXPORT_TIMEOUT_SECONDS = 10
+STATUS_UNAVAILABLE_ANALYSIS_MODE = "native_ghidra_limited_status_unavailable"
+STATUS_UNAVAILABLE_LIMIT = (
+    "analysis_status_transport_unavailable_existing_program_independently_corroborated"
+)
+STATUS_UNAVAILABLE_EXPORT_SOURCE = "pefile_no_export_directory"
+STATUS_UNAVAILABLE_EXPORT_LIMIT = (
+    "list_exports_transport_unavailable_no_pe_export_directory_independently_confirmed"
+)
 STRUCTURE_PAGE_SIZE = 1_000
 DECOMPILE_BATCH_SIZE = 20
 DECOMPILE_WORKERS = 3
@@ -284,6 +321,46 @@ def _request_timed_out(error: BaseException) -> bool:
             return True
         current = current.__cause__ or current.__context__
     return False
+
+
+def _request_transport_failure_kind(error: BaseException) -> str | None:
+    """HTTP/MCP semantic errorを除外し、通信causeだけを分類する。"""
+
+    chain: list[BaseException] = []
+    pending: list[BaseException] = [error]
+    visited: set[int] = set()
+    while pending:
+        current = pending.pop()
+        if id(current) in visited:
+            continue
+        visited.add(id(current))
+        chain.append(current)
+        if current.__cause__ is not None:
+            pending.append(current.__cause__)
+        if current.__context__ is not None:
+            pending.append(current.__context__)
+    if any(isinstance(item, HTTPError) for item in chain):
+        return None
+    for current in chain:
+        if isinstance(current, RemoteDisconnected):
+            return "remote_disconnected"
+        if isinstance(current, TimeoutError):
+            return "timeout"
+        if isinstance(current, URLError):
+            reason = current.reason
+            if isinstance(reason, HTTPError):
+                return None
+            if isinstance(reason, RemoteDisconnected):
+                return "remote_disconnected"
+            if isinstance(reason, TimeoutError):
+                return "timeout"
+            if isinstance(reason, ConnectionError):
+                return "connection_error"
+        if isinstance(current, ConnectionError):
+            return "connection_error"
+        if isinstance(current, OSError):
+            return "os_error"
+    return None
 
 
 def _json_dump(path: Path, value: Any) -> None:
@@ -1614,24 +1691,47 @@ class GhidraMcpClient:
         if clean_query:
             url += "?" + urlencode(clean_query)
         data = None
-        headers = {"Accept": "application/json"}
+        headers = {
+            "Accept": "application/json",
+            "Connection": "close",
+        }
         if body is not None:
             data = json.dumps(body).encode("utf-8")
             headers["Content-Type"] = "application/json"
         request = Request(url, data=data, headers=headers, method=method)
+        effective_timeout = self.timeout if timeout is None else timeout
+        if (
+            isinstance(effective_timeout, bool)
+            or not isinstance(effective_timeout, (int, float))
+            or not math.isfinite(float(effective_timeout))
+            or effective_timeout <= 0
+        ):
+            raise ValueError("Ghidra MCP transport timeoutは有限の正数で指定してください")
+        deadline = time.monotonic() + float(effective_timeout)
         try:
-            effective_timeout = self.timeout if timeout is None else timeout
             with self._opener.open(request, timeout=effective_timeout) as response:
-                raw = response.read(MAX_MCP_RESPONSE_BYTES + 1)
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("Ghidra MCP response deadline exceeded after headers")
+                raw = _read_mcp_response_body(response, deadline=deadline)
         except HTTPError as error:
-            detail = error.read(1001).decode("utf-8", errors="replace")
-            raise GhidraMcpError(f"{method} {path} failed: HTTP {error.code}: {detail[:1000]}") from error
+            status_code = error.code
+            try:
+                error.close()
+            except OSError:
+                pass
+            raise GhidraMcpError(f"{method} {path} failed: HTTP {status_code}") from error
         except GhidraMcpError:
             raise
+        except TimeoutError as error:
+            raise GhidraMcpError(
+                f"{method} {path} failed: response deadline exceeded"
+            ) from error
+        except HTTPException as error:
+            transport_error = OSError("Ghidra MCP HTTP body transport failed")
+            transport_error.__cause__ = error
+            raise GhidraMcpError(f"{method} {path} failed: OSError") from transport_error
         except (OSError, URLError) as error:
             raise GhidraMcpError(f"{method} {path} failed: {type(error).__name__}") from error
-        if len(raw) > MAX_MCP_RESPONSE_BYTES:
-            raise GhidraMcpError(f"{method} {path} failed: MCP responseがbytes上限を超えています")
         if not raw:
             return None
         text = raw.decode("utf-8", errors="replace")
@@ -1644,7 +1744,66 @@ class GhidraMcpClient:
         return value
 
     def get(self, endpoint: str, *, transport_timeout: float | None = None, **query: Any) -> Any:
-        return self._request("GET", endpoint, query=query, body=None, timeout=transport_timeout)
+        if endpoint not in QUICK_READ_ONLY_GET_ENDPOINTS:
+            return self._request("GET", endpoint, query=query, body=None, timeout=transport_timeout)
+
+        selector = query.get("program")
+        if not isinstance(selector, str) or not selector.strip():
+            raise ValueError(f"quick read-only GETには明示program selectorが必要です: {endpoint}")
+        if _safe_project_path(selector) != selector:
+            raise ValueError(f"quick read-only GETのprogram selectorが正規化済みではありません: {endpoint}")
+        requested_timeout = self.timeout if transport_timeout is None else transport_timeout
+        if (
+            isinstance(requested_timeout, bool)
+            or not isinstance(requested_timeout, (int, float))
+            or not math.isfinite(float(requested_timeout))
+            or requested_timeout <= 0
+        ):
+            raise ValueError("quick read-only GETのtransport timeoutは有限の正数で指定してください")
+        attempt_timeout = min(
+            float(self.timeout),
+            float(requested_timeout),
+            float(QUICK_READ_ONLY_GET_TIMEOUT_SECONDS),
+        )
+        for attempt in range(1, QUICK_READ_ONLY_GET_MAX_ATTEMPTS + 1):
+            evidence = {
+                "phase": "ghidra_quick_read_only_get",
+                "endpoint": endpoint,
+                "program_selector": selector,
+                "attempt": attempt,
+                "maximum_attempts": QUICK_READ_ONLY_GET_MAX_ATTEMPTS,
+                "transport_timeout_seconds": attempt_timeout,
+            }
+            print(json.dumps({**evidence, "state": "request"}, ensure_ascii=False), flush=True)
+            try:
+                response = self._request(
+                    "GET",
+                    endpoint,
+                    query=query,
+                    body=None,
+                    timeout=attempt_timeout,
+                )
+            except GhidraMcpError as error:
+                transport_kind = _request_transport_failure_kind(error)
+                retrying = transport_kind is not None and attempt < QUICK_READ_ONLY_GET_MAX_ATTEMPTS
+                print(
+                    json.dumps(
+                        {
+                            **evidence,
+                            "state": "retry" if retrying else "failed",
+                            "transport_failure_kind": transport_kind,
+                            "retryable_transport_failure": retrying,
+                        },
+                        ensure_ascii=False,
+                    ),
+                    flush=True,
+                )
+                if retrying:
+                    continue
+                raise
+            print(json.dumps({**evidence, "state": "complete"}, ensure_ascii=False), flush=True)
+            return response
+        raise AssertionError("quick read-only GET retry loopが終端しませんでした")
 
     def post(
         self,
@@ -2133,6 +2292,172 @@ def _metadata_function_count(value: Any) -> int | None:
     return count
 
 
+def _analysis_status_function_count(value: Any) -> int | None:
+    """analysis_statusの関数数を型変換せず検証する。"""
+
+    if not isinstance(value, Mapping) or "function_count" not in value:
+        return None
+    count = value.get("function_count")
+    if type(count) is not int or count < 0:
+        raise GhidraMcpError("analysis_statusのfunction_countが非負整数ではありません")
+    if count > MAX_FUNCTION_INVENTORY_ITEMS:
+        raise GhidraMcpError("analysis_statusのfunction_countが安全なinventory上限を超えました")
+    return count
+
+
+def _independent_zero_function_coverage(
+    status: Any,
+    metadata_value: Any,
+    program: str,
+) -> dict[str, Any] | None:
+    """解析完了後の独立2 APIが厳密に0件を示す場合だけ列挙省略証跡を返す。"""
+
+    if (
+        not isinstance(status, Mapping)
+        or status.get("analyzed") is not True
+        or status.get("analyzing") is not False
+    ):
+        return None
+    status_count = _analysis_status_function_count(status)
+    metadata_count = _metadata_function_count(metadata_value)
+    if status_count != 0 or metadata_count != 0:
+        return None
+    return {
+        "endpoint": "/list_functions_enhanced",
+        "program_selector": program,
+        "page_size": 0,
+        "page_count": 0,
+        "item_count": 0,
+        "terminal_short_page_observed": False,
+        "complete": True,
+        "endpoint_invoked": False,
+        "source": ZERO_FUNCTION_INVENTORY_SOURCE,
+        "inventory_scope": "non_external_functions",
+        "analysis_status_function_count": 0,
+        "analysis_status_function_count_scope": "all_functions_including_external",
+        "metadata_function_count": 0,
+        "metadata_function_count_scope": "all_functions_including_external",
+        "count_matches_metadata": True,
+        "derived_external_function_count": 0,
+        "independent_count_sources": ["analysis_status", "metadata"],
+        "documented_limit": ZERO_FUNCTION_INVENTORY_LIMIT,
+    }
+
+
+def _independent_zero_function_coverage_complete(
+    result: Mapping[str, Any],
+    evidence: Mapping[str, Any],
+) -> bool:
+    """0件列挙省略claimを保存済みstatus・metadataへ再拘束する。"""
+
+    try:
+        status_count = _analysis_status_function_count(result.get("analysis_status"))
+        metadata_count = _metadata_function_count(result.get("metadata"))
+    except GhidraMcpError:
+        return False
+    status = result.get("analysis_status")
+    def exact_zero(value: Any) -> bool:
+        return type(value) is int and value == 0
+
+    return bool(
+        result.get("analysis_mode") == "native_ghidra_with_optional_cil"
+        and exact_zero(result.get("ghidra_function_inventory_count"))
+        and isinstance(status, Mapping)
+        and status.get("analyzed") is True
+        and status.get("analyzing") is False
+        and exact_zero(status_count)
+        and exact_zero(metadata_count)
+        and evidence.get("endpoint") == "/list_functions_enhanced"
+        and evidence.get("program_selector") == result.get("program_selector")
+        and exact_zero(evidence.get("page_size"))
+        and exact_zero(evidence.get("page_count"))
+        and exact_zero(evidence.get("item_count"))
+        and evidence.get("terminal_short_page_observed") is False
+        and evidence.get("complete") is True
+        and evidence.get("endpoint_invoked") is False
+        and evidence.get("source") == ZERO_FUNCTION_INVENTORY_SOURCE
+        and evidence.get("inventory_scope") == "non_external_functions"
+        and exact_zero(evidence.get("analysis_status_function_count"))
+        and evidence.get("analysis_status_function_count_scope")
+        == "all_functions_including_external"
+        and exact_zero(evidence.get("metadata_function_count"))
+        and evidence.get("metadata_function_count_scope")
+        == "all_functions_including_external"
+        and evidence.get("count_matches_metadata") is True
+        and exact_zero(evidence.get("derived_external_function_count"))
+        and evidence.get("independent_count_sources")
+        == ["analysis_status", "metadata"]
+        and evidence.get("documented_limit") == ZERO_FUNCTION_INVENTORY_LIMIT
+    )
+
+
+def _mcp_response_socket(response: Any) -> Any:
+    """urllib/http.client responseからtimeout設定可能な実socketを限定取得する。"""
+
+    fp = getattr(response, "fp", None)
+    raw = getattr(fp, "raw", None)
+    response_raw = getattr(response, "raw", None)
+    candidates = (
+        getattr(raw, "_sock", None),
+        getattr(fp, "_sock", None),
+        getattr(response_raw, "_sock", None),
+        getattr(response, "_sock", None),
+        response,
+    )
+    for candidate in candidates:
+        if candidate is not None and callable(getattr(candidate, "settimeout", None)):
+            return candidate
+    raise OSError("Ghidra MCP response socket timeout control is unavailable")
+
+
+def _read_mcp_response_body(response: Any, *, deadline: float) -> bytes:
+    """各body read前後に総deadlineを検査し、小さいchunkで上限付き取得する。"""
+
+    socket_object = _mcp_response_socket(response)
+    reader = getattr(response, "read1", None)
+    if not callable(reader):
+        reader = getattr(response, "read", None)
+    if not callable(reader):
+        raise OSError("Ghidra MCP response body reader is unavailable")
+    raw = bytearray()
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Ghidra MCP response deadline exceeded")
+        try:
+            socket_object.settimeout(remaining)
+        except (OSError, TypeError, ValueError) as error:
+            raise OSError("Ghidra MCP response socket timeout update failed") from error
+        read_size = min(
+            MCP_RESPONSE_READ_CHUNK_BYTES,
+            MAX_MCP_RESPONSE_BYTES + 1 - len(raw),
+        )
+        if read_size <= 0:
+            raise GhidraMcpError("Ghidra MCP responseがbytes上限を超えています")
+        chunk = reader(read_size)
+        if time.monotonic() >= deadline:
+            raise TimeoutError("Ghidra MCP response deadline exceeded")
+        if not isinstance(chunk, bytes):
+            raise OSError("Ghidra MCP response body reader returned non-bytes")
+        raw.extend(chunk)
+        if len(raw) > MAX_MCP_RESPONSE_BYTES:
+            raise GhidraMcpError("Ghidra MCP responseがbytes上限を超えています")
+        remaining_length = getattr(response, "length", None)
+        if not chunk:
+            if type(remaining_length) is int and remaining_length > 0:
+                raise OSError(
+                    "Ghidra MCP response closed before Content-Length was satisfied"
+                )
+            return bytes(raw)
+        if type(remaining_length) is int and remaining_length == 0:
+            return bytes(raw)
+        is_closed = getattr(response, "isclosed", None)
+        if callable(is_closed) and is_closed():
+            if remaining_length is None:
+                return bytes(raw)
+            raise OSError("Ghidra MCP response closed before Content-Length was satisfied")
+
+
 def _bind_function_metadata_coverage(
     evidence: dict[str, Any],
     metadata_value: Any,
@@ -2192,6 +2517,8 @@ def _function_inventory_coverage_complete(result: Mapping[str, Any]) -> bool:
             and evidence.get("item_count") == 0
             and inventory_count == 0
         )
+    if isinstance(evidence, Mapping) and evidence.get("source") == ZERO_FUNCTION_INVENTORY_SOURCE:
+        return _independent_zero_function_coverage_complete(result, evidence)
     if (
         not isinstance(evidence, Mapping)
         or evidence.get("complete") is not True
@@ -2224,6 +2551,265 @@ def _function_inventory_coverage_complete(result: Mapping[str, Any]) -> bool:
         and evidence.get("documented_limit")
         == "metadata_includes_external_functions_inventory_non_external_only"
     )
+
+
+def _limited_endpoint_coverage_complete(
+    result: Mapping[str, Any],
+    name: str,
+) -> bool:
+    """status取得不能modeの初回構造取得が再呼出し不要の終端証拠か返す。"""
+
+    coverage = result.get("retrieval_coverage")
+    evidence = coverage.get(name) if isinstance(coverage, Mapping) else None
+    if not isinstance(evidence, Mapping):
+        return False
+    item_count = evidence.get("item_count")
+    if (
+        evidence.get("program_selector") != result.get("program_selector")
+        or evidence.get("complete") is not True
+        or evidence.get("endpoint_invoked") is not True
+        or type(item_count) is not int
+        or item_count < 0
+    ):
+        return False
+    expected_endpoint = {
+        "functions": "/list_functions_enhanced",
+        "imports": "/list_imports",
+        "exports": "/list_exports",
+        "strings": "/list_strings",
+        "segments": "/list_segments",
+    }.get(name)
+    if evidence.get("endpoint") != expected_endpoint:
+        return False
+    if name == "functions":
+        reported_total_available = evidence.get("reported_total_available")
+        reported_total_contract = bool(
+            (
+                reported_total_available is True
+                and type(evidence.get("reported_total")) is int
+                and evidence.get("reported_total") == item_count
+                and evidence.get("reported_total_matches_inventory") is True
+            )
+            or (
+                reported_total_available is False
+                and evidence.get("reported_total") is None
+                and evidence.get("reported_total_matches_inventory") is None
+            )
+        )
+        return bool(
+            evidence.get("source") == "ghidra_mcp"
+            and evidence.get("response_available") is True
+            and type(evidence.get("page_size")) is int
+            and evidence.get("page_size") == FUNCTION_PAGE_SIZE
+            and type(evidence.get("page_count")) is int
+            and evidence.get("page_count") > 0
+            and evidence.get("terminal_short_page_observed") is True
+            and reported_total_contract
+            and type(evidence.get("non_external_non_thunk_function_count")) is int
+            and evidence.get("non_external_non_thunk_function_count") > 0
+            and _function_inventory_coverage_complete(result)
+        )
+    if name == "exports" and evidence.get("source") == STATUS_UNAVAILABLE_EXPORT_SOURCE:
+        return bool(
+            item_count == 0
+            and evidence.get("page_size") == 10_000
+            and type(evidence.get("page_count")) is int
+            and evidence.get("page_count") == 0
+            and evidence.get("terminal_short_page_observed") is False
+            and evidence.get("response_available") is False
+            and evidence.get("transport_failure") is True
+            and evidence.get("transport_failure_kind")
+            in {"timeout", "remote_disconnected", "connection_error", "os_error"}
+            and evidence.get("local_parser") == "pefile"
+            and evidence.get("export_directory_present") is False
+            and type(evidence.get("export_directory_virtual_address")) is int
+            and evidence.get("export_directory_virtual_address") == 0
+            and type(evidence.get("export_directory_size")) is int
+            and evidence.get("export_directory_size") == 0
+            and evidence.get("sample_sha256") == result.get("sha256")
+            and evidence.get("documented_limit") == STATUS_UNAVAILABLE_EXPORT_LIMIT
+        )
+    return bool(
+        evidence.get("source") == "ghidra_mcp"
+        and evidence.get("response_available") is True
+        and type(evidence.get("page_size")) is int
+        and evidence.get("page_size") > 0
+        and type(evidence.get("page_count")) is int
+        and evidence.get("page_count") > 0
+        and evidence.get("terminal_short_page_observed") is True
+    )
+
+
+def _limited_status_unavailable_complete(result: Mapping[str, Any]) -> bool:
+    """status応答不能でも独立根拠で完了した限定静的取得をfail-closed検証する。"""
+
+    status_candidate = result.get("analysis_status")
+    coverage_candidate = result.get("retrieval_coverage")
+    export_candidate = (
+        coverage_candidate.get("exports")
+        if isinstance(coverage_candidate, Mapping)
+        else None
+    )
+    limited_marker_present = bool(
+        result.get("import_mode") == "preexisting_program_status_unavailable_corroborated"
+        or (
+            isinstance(status_candidate, Mapping)
+            and (
+                status_candidate.get("documented_limit") == STATUS_UNAVAILABLE_LIMIT
+                or status_candidate.get("analysis_status_response_valid") is False
+            )
+        )
+        or (
+            isinstance(export_candidate, Mapping)
+            and export_candidate.get("source") == STATUS_UNAVAILABLE_EXPORT_SOURCE
+        )
+    )
+    if result.get("analysis_mode") != STATUS_UNAVAILABLE_ANALYSIS_MODE:
+        return not limited_marker_present
+    status = result.get("analysis_status")
+    metadata = result.get("metadata")
+    selector = result.get("program_selector")
+    function_evidence = (
+        coverage_candidate.get("functions")
+        if isinstance(coverage_candidate, Mapping)
+        else None
+    )
+    if (
+        not isinstance(status, Mapping)
+        or not isinstance(metadata, Mapping)
+        or not isinstance(selector, str)
+        or not selector
+        or result.get("import_mode")
+        != "preexisting_program_status_unavailable_corroborated"
+        or "analyzed" in status
+        or "analyzing" in status
+    ):
+        return False
+    try:
+        metadata_count = _metadata_function_count(metadata)
+    except GhidraMcpError:
+        return False
+    inventory_count = result.get("ghidra_function_inventory_count")
+    corroboration = status.get("independent_corroboration")
+    expected_name = selector.rsplit("/", 1)[-1]
+    if (
+        status.get("endpoint") != "/analysis_status"
+        or status.get("endpoint_invoked") is not True
+        or status.get("response_available") is not False
+        or status.get("transport_failure") is not True
+        or status.get("transport_failure_kind")
+        not in {"timeout", "remote_disconnected", "connection_error", "os_error"}
+        or status.get("analysis_status_response_valid") is not False
+        or status.get("auto_analysis_completion_confirmed") is not False
+        or status.get("limited_static_retrieval_terminal") is not True
+        or status.get("run_analysis_invoked") is not False
+        or status.get("program_selector") != selector
+        or status.get("documented_limit") != STATUS_UNAVAILABLE_LIMIT
+        or type(metadata_count) is not int
+        or metadata_count <= 0
+        or type(inventory_count) is not int
+        or inventory_count <= 0
+        or metadata_count < inventory_count
+        or metadata.get("program_name") != expected_name
+        or not isinstance(corroboration, Mapping)
+        or corroboration.get("metadata_endpoint") != "/get_metadata"
+        or corroboration.get("metadata_program_name") != expected_name
+        or corroboration.get("expected_program_name") != expected_name
+        or corroboration.get("program_name_exact_match") is not True
+        or corroboration.get("metadata_function_count") != metadata_count
+        or corroboration.get("function_inventory_endpoint") != "/list_functions_enhanced"
+        or corroboration.get("function_inventory_count") != inventory_count
+        or corroboration.get("function_inventory_complete") is not True
+        or not isinstance(function_evidence, Mapping)
+        or corroboration.get("non_external_non_thunk_function_count")
+        != function_evidence.get("non_external_non_thunk_function_count")
+        or type(corroboration.get("non_external_non_thunk_function_count")) is not int
+        or corroboration.get("non_external_non_thunk_function_count") <= 0
+        or corroboration.get("derived_external_function_count")
+        != metadata_count - inventory_count
+        or not _function_inventory_coverage_complete(result)
+        or not _call_graph_retrieval_coverage_complete(result)
+    ):
+        return False
+    return all(
+        _limited_endpoint_coverage_complete(result, name)
+        for name in ("functions", "imports", "exports", "strings", "segments")
+    )
+
+
+def _limited_status_raw_binding_complete(
+    result: Mapping[str, Any],
+    raw_index: Mapping[str, Any],
+) -> bool:
+    """限定modeのresultとprivate rawが同じ取得証拠・内容へ拘束されるか返す。"""
+
+    if result.get("analysis_mode") != STATUS_UNAVAILABLE_ANALYSIS_MODE:
+        return _limited_status_unavailable_complete(result)
+    if (
+        raw_index.get("analysis_mode") != result.get("analysis_mode")
+        or raw_index.get("import_mode") != result.get("import_mode")
+        or raw_index.get("program_selector") != result.get("program_selector")
+        or raw_index.get("sha256") != result.get("sha256")
+        or raw_index.get("analysis_status") != result.get("analysis_status")
+        or _parse_metadata(raw_index.get("metadata")) != result.get("metadata")
+        or raw_index.get("retrieval_coverage") != result.get("retrieval_coverage")
+        or raw_index.get("ghidra_call_graph") != result.get("ghidra_call_graph")
+    ):
+        return False
+    raw_bound_result = dict(result)
+    raw_bound_result["analysis_status"] = raw_index.get("analysis_status")
+    raw_bound_result["metadata"] = _parse_metadata(raw_index.get("metadata"))
+    raw_bound_result["retrieval_coverage"] = raw_index.get("retrieval_coverage")
+    raw_bound_result["ghidra_call_graph"] = raw_index.get("ghidra_call_graph")
+    if not _limited_status_unavailable_complete(raw_bound_result):
+        return False
+    raw_functions = raw_index.get("functions")
+    function_coverage = (
+        raw_index.get("retrieval_coverage", {}).get("functions")
+        if isinstance(raw_index.get("retrieval_coverage"), Mapping)
+        else None
+    )
+    native_records = [
+        item
+        for item in result.get("functions", [])
+        if isinstance(item, Mapping)
+        and item.get("analysis_kind") == "ghidra_native_or_loader_view"
+    ]
+    if (
+        not isinstance(raw_functions, list)
+        or any(not isinstance(item, Mapping) for item in raw_functions)
+        or any(item.get("isExternal") is not False for item in raw_functions)
+        or len(raw_functions) != result.get("ghidra_function_inventory_count")
+        or not isinstance(function_coverage, Mapping)
+        or type(function_coverage.get("non_external_non_thunk_function_count")) is not int
+        or function_coverage.get("non_external_non_thunk_function_count")
+        != sum(item.get("isThunk") is False for item in raw_functions)
+        or sorted(
+            (str(item.get("address") or ""), str(item.get("name") or ""))
+            for item in raw_functions
+        )
+        != sorted(
+            (str(item.get("address") or ""), str(item.get("name") or ""))
+            for item in native_records
+        )
+    ):
+        return False
+    coverage = raw_index.get("retrieval_coverage")
+    if not isinstance(coverage, Mapping):
+        return False
+    for name in ("functions", "imports", "exports", "strings", "segments"):
+        values = raw_index.get(name)
+        evidence = coverage.get(name)
+        if (
+            not isinstance(values, list)
+            or not isinstance(evidence, Mapping)
+            or type(evidence.get("item_count")) is not int
+            or evidence.get("item_count") != len(values)
+        ):
+            return False
+        if name in {"imports", "exports", "segments"} and result.get(name) != values:
+            return False
+    return True
 
 
 def _call_graph_schema_valid(value: Any) -> bool:
@@ -2521,6 +3107,7 @@ def load_prepared_inputs(
             cached = result_snapshot.document if result_snapshot is not None else {}
             if result_snapshot is None or not (
                 cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True
+                and _limited_status_unavailable_complete(cached)
             ):
                 raise FileNotFoundError(f"再開用PE cacheがありません: {digest}")
             _assert_snapshot_unchanged(
@@ -2608,6 +3195,8 @@ def _all_functions_with_coverage(
     seen_cursors: set[str] = set()
     seen_page_hashes: set[str] = set()
     page_count = 0
+    reported_total: int | None = None
+    reported_total_availability: bool | None = None
     while True:
         query: dict[str, Any] = {
             "limit": FUNCTION_PAGE_SIZE,
@@ -2632,6 +3221,28 @@ def _all_functions_with_coverage(
         next_cursor = None
         if isinstance(page, Mapping):
             next_cursor = page.get("next_cursor", page.get("nextCursor"))
+            total_value = next(
+                (
+                    page[key]
+                    for key in ("total_matching", "totalMatching", "total")
+                    if key in page
+                ),
+                None,
+            )
+            page_reports_total = total_value is not None
+            if reported_total_availability is None:
+                reported_total_availability = page_reports_total
+            elif reported_total_availability is not page_reports_total:
+                raise GhidraMcpError("list_functionsのreported total有無がページ間で一致しません")
+            if page_reports_total:
+                if type(total_value) is not int or total_value < 0:
+                    raise GhidraMcpError("list_functionsのreported totalが非負整数ではありません")
+                if reported_total is None:
+                    reported_total = total_value
+                elif reported_total != total_value:
+                    raise GhidraMcpError("list_functionsのreported totalがページ間で一致しません")
+                if reported_total < len(functions):
+                    raise GhidraMcpError("list_functionsのreported totalが取得済み件数を下回っています")
         if next_cursor not in (None, ""):
             cursor_key = str(next_cursor)
             if cursor_key in seen_cursors:
@@ -2643,6 +3254,10 @@ def _all_functions_with_coverage(
         cursor = None
         if len(values) < FUNCTION_PAGE_SIZE:
             break
+    if reported_total is not None and reported_total != len(functions):
+        raise GhidraMcpError(
+            "list_functionsのreported totalと終端inventory件数が一致しません"
+        )
     addresses = [str(item.get("address") or "").strip() for item in functions]
     if any(not address for address in addresses) or len(set(addresses)) != len(addresses):
         raise GhidraMcpError("list_functionsのaddress identityが欠落または重複しています")
@@ -2654,6 +3269,14 @@ def _all_functions_with_coverage(
         "item_count": len(functions),
         "terminal_short_page_observed": True,
         "complete": True,
+        "endpoint_invoked": True,
+        "response_available": True,
+        "source": "ghidra_mcp",
+        "reported_total_available": reported_total is not None,
+        "reported_total": reported_total,
+        "reported_total_matches_inventory": (
+            reported_total == len(functions) if reported_total is not None else None
+        ),
         "maximum_items": MAX_FUNCTION_INVENTORY_ITEMS,
         "maximum_pages": MAX_FUNCTION_INVENTORY_PAGES,
         "pagination": "cursor_or_offset",
@@ -2663,6 +3286,93 @@ def _all_functions_with_coverage(
 def _all_functions(client: GhidraMcpClient, program: str) -> list[dict[str, Any]]:
     functions, _coverage = _all_functions_with_coverage(client, program)
     return functions
+
+
+def _retryable_status_transport_failure(error: GhidraMcpError) -> None:
+    """既存program確認を安全に完了できないstatus通信障害をretryable化する。"""
+
+    raise TimeoutError(
+        "Ghidra analysis_statusの通信障害後に既存programを安全に確認できません"
+    ) from error
+
+
+def _corroborate_existing_program_without_status(
+    client: GhidraMcpClient,
+    expected_program: str,
+    status_error: GhidraMcpError,
+) -> tuple[Any, list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
+    """status通信障害時、metadataと全関数inventoryで既存programを厳密確認する。"""
+
+    transport_kind = _request_transport_failure_kind(status_error)
+    if transport_kind is None:
+        raise ValueError("analysis_statusの非通信エラーをcorroborationへ渡せません")
+    timeout = min(
+        float(INITIAL_ANALYSIS_STATUS_TIMEOUT_SECONDS),
+        float(getattr(client, "timeout", INITIAL_ANALYSIS_STATUS_TIMEOUT_SECONDS)),
+    )
+    try:
+        metadata_raw = client.get(
+            "/get_metadata",
+            program=expected_program,
+            transport_timeout=timeout,
+        )
+        metadata = _parse_metadata(metadata_raw)
+        expected_name = expected_program.rsplit("/", 1)[-1]
+        observed_name = metadata.get("program_name")
+        metadata_count = _metadata_function_count(metadata_raw)
+        if observed_name != expected_name or type(metadata_count) is not int or metadata_count <= 0:
+            _retryable_status_transport_failure(status_error)
+        functions, function_coverage = _all_functions_with_coverage(
+            client,
+            expected_program,
+        )
+        _bind_function_metadata_coverage(
+            function_coverage,
+            metadata_raw,
+            len(functions),
+        )
+        internal_body_count = sum(
+            item.get("isExternal") is False and item.get("isThunk") is False
+            for item in functions
+        )
+        if (
+            not functions
+            or any(item.get("isExternal") is not False for item in functions)
+            or internal_body_count <= 0
+            or metadata_count < len(functions)
+        ):
+            _retryable_status_transport_failure(status_error)
+        function_coverage["non_external_non_thunk_function_count"] = internal_body_count
+    except TimeoutError:
+        raise
+    except (GhidraMcpError, TypeError, ValueError):
+        _retryable_status_transport_failure(status_error)
+    status_evidence = {
+        "endpoint": "/analysis_status",
+        "endpoint_invoked": True,
+        "response_available": False,
+        "transport_failure": True,
+        "transport_failure_kind": transport_kind,
+        "analysis_status_response_valid": False,
+        "auto_analysis_completion_confirmed": False,
+        "limited_static_retrieval_terminal": False,
+        "run_analysis_invoked": False,
+        "program_selector": expected_program,
+        "independent_corroboration": {
+            "metadata_endpoint": "/get_metadata",
+            "metadata_program_name": observed_name,
+            "expected_program_name": expected_name,
+            "program_name_exact_match": True,
+            "metadata_function_count": metadata_count,
+            "function_inventory_endpoint": "/list_functions_enhanced",
+            "function_inventory_count": len(functions),
+            "function_inventory_complete": True,
+            "non_external_non_thunk_function_count": internal_body_count,
+            "derived_external_function_count": metadata_count - len(functions),
+        },
+        "documented_limit": STATUS_UNAVAILABLE_LIMIT,
+    }
+    return metadata_raw, functions, function_coverage, status_evidence
 
 
 def _all_opcode_hashes(
@@ -2689,8 +3399,13 @@ def _all_opcode_hashes(
     return _complete_opcode_hash_inventory(
         {
             "program": program,
+            "program_selector": program,
+            "endpoint": "/get_bulk_function_hashes",
             "functions": functions,
             "endpoint_returned": len(functions),
+            "endpoint_invoked": True,
+            "source": "ghidra_mcp",
+            "documented_limit": None,
         },
         function_inventory,
         program,
@@ -2704,7 +3419,11 @@ def _complete_opcode_hash_inventory(
 ) -> dict[str, Any]:
     """hash取得不能な関数も理由付きrecordとして全件inventory化する。"""
 
-    raw_rows = [dict(item) for item in (value or {}).get("functions", []) if isinstance(item, Mapping)]
+    source = value or {}
+    raw_rows = [dict(item) for item in source.get("functions", []) if isinstance(item, Mapping)]
+    endpoint_returned = source.get("endpoint_returned", len(raw_rows))
+    if type(endpoint_returned) is not int or endpoint_returned < 0:
+        raise GhidraMcpError("opcode hashのendpoint_returnedが非負整数ではありません")
     rows_by_address: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in raw_rows:
         rows_by_address[str(row.get("address") or "")].append(row)
@@ -2724,18 +3443,142 @@ def _complete_opcode_hash_inventory(
         )
         row["program_selector"] = program
         completed.append(row)
-    unmatched = [dict(item) for item in (value or {}).get("unmatched_response_rows", []) if isinstance(item, Mapping)]
+    unmatched = [dict(item) for item in source.get("unmatched_response_rows", []) if isinstance(item, Mapping)]
     unmatched.extend(row for rows in rows_by_address.values() for row in rows)
-    return {
+    completed_inventory = {
         "program": program,
         "functions": completed,
         "returned": len(completed),
-        "endpoint_returned": int((value or {}).get("endpoint_returned") or len(raw_rows)),
+        "endpoint_returned": endpoint_returned,
         "total_matching": len(completed),
         "available_hashes": sum(row["hash_status"] == "available" for row in completed),
         "all_functions_recorded": True,
         "unmatched_response_rows": unmatched,
     }
+    for key in (
+        "program_selector",
+        "endpoint",
+        "endpoint_invoked",
+        "source",
+        "documented_limit",
+    ):
+        if key in source:
+            completed_inventory[key] = source[key]
+    return completed_inventory
+
+
+def _opcode_hashes_for_function_inventory(
+    client: GhidraMcpClient,
+    program: str,
+    function_inventory: list[dict[str, Any]],
+    *,
+    status: Any,
+    metadata_value: Any,
+    function_coverage: Mapping[str, Any],
+) -> dict[str, Any]:
+    """strict 0関数証拠時だけbulk hash endpointを省略する。"""
+
+    zero_coverage = _independent_zero_function_coverage(
+        status,
+        metadata_value,
+        program,
+    )
+    if not function_inventory and zero_coverage is not None and dict(function_coverage) == zero_coverage:
+        return _complete_opcode_hash_inventory(
+            {
+                "program": program,
+                "program_selector": program,
+                "endpoint": "/get_bulk_function_hashes",
+                "functions": [],
+                "endpoint_returned": 0,
+                "endpoint_invoked": False,
+                "source": ZERO_FUNCTION_INVENTORY_SOURCE,
+                "documented_limit": ZERO_FUNCTION_OPCODE_HASH_LIMIT,
+            },
+            [],
+            program,
+        )
+    return _all_opcode_hashes(client, program, function_inventory)
+
+
+def _opcode_hash_inventory_coverage_complete(result: Mapping[str, Any]) -> bool:
+    """opcode hash inventoryとstrict 0件endpoint省略証拠を検証する。"""
+
+    value = result.get("opcode_hashes")
+    if not isinstance(value, Mapping):
+        return False
+    functions = value.get("functions")
+    unmatched = value.get("unmatched_response_rows")
+    inventory_count = result.get("ghidra_function_inventory_count")
+    def exact_int(item: Any) -> bool:
+        return type(item) is int
+
+    if (
+        not isinstance(functions, list)
+        or any(not isinstance(item, Mapping) for item in functions)
+        or not isinstance(unmatched, list)
+        or any(not isinstance(item, Mapping) for item in unmatched)
+        or not exact_int(inventory_count)
+        or inventory_count < 0
+        or not exact_int(value.get("returned"))
+        or value.get("returned") != len(functions)
+        or not exact_int(value.get("endpoint_returned"))
+        or value.get("endpoint_returned") < 0
+        or not exact_int(value.get("total_matching"))
+        or value.get("total_matching") != inventory_count
+        or len(functions) != inventory_count
+        or not exact_int(value.get("available_hashes"))
+        or value.get("available_hashes") < 0
+        or value.get("available_hashes") > len(functions)
+        or value.get("all_functions_recorded") is not True
+        or value.get("program") != result.get("program_selector")
+    ):
+        return False
+    function_coverage = result.get("retrieval_coverage")
+    function_evidence = (
+        function_coverage.get("functions")
+        if isinstance(function_coverage, Mapping)
+        else None
+    )
+    strict_zero_inventory = bool(
+        isinstance(function_evidence, Mapping)
+        and function_evidence.get("source") == ZERO_FUNCTION_INVENTORY_SOURCE
+    )
+    if strict_zero_inventory:
+        return bool(
+            _independent_zero_function_coverage_complete(result, function_evidence)
+            and value.get("program_selector") == result.get("program_selector")
+            and value.get("endpoint") == "/get_bulk_function_hashes"
+            and value.get("endpoint_invoked") is False
+            and value.get("source") == ZERO_FUNCTION_INVENTORY_SOURCE
+            and value.get("documented_limit") == ZERO_FUNCTION_OPCODE_HASH_LIMIT
+            and value.get("endpoint_returned") == 0
+            and value.get("returned") == 0
+            and value.get("total_matching") == 0
+            and value.get("available_hashes") == 0
+            and functions == []
+            and unmatched == []
+        )
+    if value.get("endpoint_invoked") is False:
+        return False
+    if value.get("endpoint_invoked") is True:
+        return bool(
+            value.get("program_selector") == result.get("program_selector")
+            and value.get("endpoint") == "/get_bulk_function_hashes"
+            and value.get("source") == "ghidra_mcp"
+            and value.get("documented_limit") is None
+        )
+    return "endpoint_invoked" not in value
+
+
+def _zero_function_opcode_hash_cache_compatible(result: Mapping[str, Any]) -> bool:
+    """新しいstrict 0関数cacheだけにopcode hash省略証拠を要求する。"""
+
+    coverage = result.get("retrieval_coverage")
+    functions = coverage.get("functions") if isinstance(coverage, Mapping) else None
+    if not isinstance(functions, Mapping) or functions.get("source") != ZERO_FUNCTION_INVENTORY_SOURCE:
+        return True
+    return _opcode_hash_inventory_coverage_complete(result)
 
 
 def _page_values(page: Any, endpoint: str) -> list[Any]:
@@ -2779,6 +3622,7 @@ def _all_endpoint_items(
     program: str,
     *,
     page_size: int = STRUCTURE_PAGE_SIZE,
+    transport_timeout: float | None = None,
 ) -> tuple[list[Any], dict[str, Any]]:
     """offset/limit型endpointを空ページまで取得し、完全取得証跡を返す。"""
 
@@ -2792,6 +3636,7 @@ def _all_endpoint_items(
             offset=offset,
             limit=page_size,
             program=program,
+            transport_timeout=transport_timeout,
         )
         page_values = _page_values(page, endpoint)
         page_count += 1
@@ -2813,7 +3658,103 @@ def _all_endpoint_items(
         "item_count": len(values),
         "terminal_short_page_observed": True,
         "complete": True,
+        "endpoint_invoked": True,
+        "response_available": True,
+        "source": "ghidra_mcp",
     }
+
+
+def _retryable_limited_static_retrieval_failure(
+    endpoint: str,
+    error: BaseException,
+) -> None:
+    """限定modeの代替根拠を確立できない取得失敗をretryable化する。"""
+
+    raise TimeoutError(
+        f"status取得不能programの限定静的取得を安全に完了できません: {endpoint}"
+    ) from error
+
+
+def _limited_exports_with_coverage(
+    client: GhidraMcpClient,
+    program: str,
+    data: bytes,
+    sample_sha256: str,
+) -> tuple[list[Any], dict[str, Any]]:
+    """exports timeout時だけPE export directory不存在を代替終端証拠にする。"""
+
+    timeout = min(
+        float(LIMITED_EXPORT_TIMEOUT_SECONDS),
+        float(getattr(client, "timeout", LIMITED_EXPORT_TIMEOUT_SECONDS)),
+    )
+    try:
+        return _all_endpoint_items(
+            client,
+            "/list_exports",
+            program,
+            page_size=10_000,
+            transport_timeout=timeout,
+        )
+    except GhidraMcpError as export_error:
+        transport_kind = _request_transport_failure_kind(export_error)
+        if transport_kind is None:
+            _retryable_limited_static_retrieval_failure(
+                "/list_exports",
+                export_error,
+            )
+        pe: pefile.PE | None = None
+        try:
+            pe = pefile.PE(data=data, fast_load=True)
+            export_index = pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXPORT"]
+            directories = pe.OPTIONAL_HEADER.DATA_DIRECTORY
+            if export_index >= len(directories):
+                _retryable_limited_static_retrieval_failure(
+                    "/list_exports",
+                    export_error,
+                )
+            export_directory = directories[export_index]
+            virtual_address = export_directory.VirtualAddress
+            directory_size = export_directory.Size
+            if (
+                type(virtual_address) is not int
+                or type(directory_size) is not int
+                or virtual_address != 0
+                or directory_size != 0
+            ):
+                _retryable_limited_static_retrieval_failure(
+                    "/list_exports",
+                    export_error,
+                )
+        except TimeoutError:
+            raise
+        except (AttributeError, IndexError, KeyError, pefile.PEFormatError, TypeError, ValueError) as parse_error:
+            _retryable_limited_static_retrieval_failure(
+                "/list_exports",
+                parse_error,
+            )
+        finally:
+            if pe is not None:
+                pe.close()
+        return [], {
+            "endpoint": "/list_exports",
+            "program_selector": program,
+            "page_size": 10_000,
+            "page_count": 0,
+            "item_count": 0,
+            "terminal_short_page_observed": False,
+            "complete": True,
+            "endpoint_invoked": True,
+            "response_available": False,
+            "transport_failure": True,
+            "transport_failure_kind": transport_kind,
+            "source": STATUS_UNAVAILABLE_EXPORT_SOURCE,
+            "local_parser": "pefile",
+            "export_directory_present": False,
+            "export_directory_virtual_address": 0,
+            "export_directory_size": 0,
+            "sample_sha256": sample_sha256,
+            "documented_limit": STATUS_UNAVAILABLE_EXPORT_LIMIT,
+        }
 
 
 CHARACTERISTIC_PHASES = (
@@ -5123,7 +6064,11 @@ def analyze_program(
             return cached
         legacy_complete = bool(cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True)
         cached_complete = bool(
-            legacy_complete and _function_inventory_coverage_complete(cached) and call_graph_complete
+            legacy_complete
+            and _function_inventory_coverage_complete(cached)
+            and _zero_function_opcode_hash_cache_compatible(cached)
+            and call_graph_complete
+            and _limited_status_unavailable_complete(cached)
         )
         native_zero_recovery_pending = _native_zero_function_recovery_pending(cached)
         if legacy_complete and native_zero_recovery_pending and item.input_snapshot is None:
@@ -5175,11 +6120,37 @@ def analyze_program(
     program: str | None = None
     import_mode = "preexisting_program"
     preopened_status_raw: Any = None
+    prefetched_metadata_raw: Any = None
+    prefetched_functions: list[dict[str, Any]] | None = None
+    prefetched_function_coverage: dict[str, Any] | None = None
+    limited_status_evidence: dict[str, Any] | None = None
+    initial_status_timeout = min(
+        float(INITIAL_ANALYSIS_STATUS_TIMEOUT_SECONDS),
+        float(getattr(client, "timeout", INITIAL_ANALYSIS_STATUS_TIMEOUT_SECONDS)),
+    )
     try:
-        preopened_status_raw = client.get("/analysis_status", program=expected_program)
+        preopened_status_raw = client.get(
+            "/analysis_status",
+            program=expected_program,
+            transport_timeout=initial_status_timeout,
+        )
         program = expected_program
-    except GhidraMcpError:
-        pass
+    except GhidraMcpError as status_error:
+        if _request_transport_failure_kind(status_error) is not None:
+            if managed_cil_primary:
+                _retryable_status_transport_failure(status_error)
+            (
+                prefetched_metadata_raw,
+                prefetched_functions,
+                prefetched_function_coverage,
+                limited_status_evidence,
+            ) = _corroborate_existing_program_without_status(
+                client,
+                expected_program,
+                status_error,
+            )
+            program = expected_program
+            import_mode = "preexisting_program_status_unavailable_corroborated"
     if program is None:
         try:
             opened = client.get("/open_program", path=expected_program, auto_analyze=False)
@@ -5268,7 +6239,10 @@ def analyze_program(
             )
         return response
 
-    if managed_cil_primary:
+    if limited_status_evidence is not None:
+        status = dict(limited_status_evidence)
+        analysis_mode = STATUS_UNAVAILABLE_ANALYSIS_MODE
+    elif managed_cil_primary:
         raw_status = preopened_status_raw if preopened_status_raw is not None else _program_get("/analysis_status")
         status = dict(raw_status) if isinstance(raw_status, Mapping) else {}
         analysis_mode = "managed_cil_primary_with_ghidra_structure"
@@ -5291,6 +6265,11 @@ def analyze_program(
                 timeout_seconds=analysis_timeout,
             )
         analysis_mode = "native_ghidra_with_optional_cil"
+    metadata_raw = (
+        prefetched_metadata_raw
+        if prefetched_metadata_raw is not None
+        else _program_get("/get_metadata")
+    )
     if managed_cil_primary:
         functions = []
         function_coverage = {
@@ -5305,12 +6284,25 @@ def analyze_program(
             "source": "managed_cil_primary",
             "documented_limit": "native_function_inventory_not_applicable",
         }
+    elif limited_status_evidence is not None:
+        if prefetched_functions is None or prefetched_function_coverage is None:
+            raise GhidraMcpError("status取得不能modeの事前関数inventoryがありません")
+        functions = prefetched_functions
+        function_coverage = prefetched_function_coverage
     else:
-        functions, function_coverage = _all_functions_with_coverage(
-            client,
+        zero_function_coverage = _independent_zero_function_coverage(
+            status,
+            metadata_raw,
             program,
         )
-    metadata_raw = _program_get("/get_metadata")
+        if zero_function_coverage is not None:
+            functions = []
+            function_coverage = zero_function_coverage
+        else:
+            functions, function_coverage = _all_functions_with_coverage(
+                client,
+                program,
+            )
     metadata_before_entry_point_function_recovery: Any = None
     if not managed_cil_primary:
         _bind_function_metadata_coverage(
@@ -5318,10 +6310,41 @@ def analyze_program(
             metadata_raw,
             len(functions),
         )
-    imports = _program_get("/list_imports", offset=0, limit=10000)
-    exports = _program_get("/list_exports", offset=0, limit=10000)
-    strings = [] if managed_cil_primary else client.get("/list_strings", offset=0, limit=100000, program=program)
-    segments = _program_get("/list_segments", offset=0, limit=10000)
+    initial_structure_coverage: dict[str, dict[str, Any]] = {}
+    if limited_status_evidence is not None:
+        imports, initial_structure_coverage["imports"] = _all_endpoint_items(
+            client,
+            "/list_imports",
+            program,
+            page_size=10_000,
+        )
+        exports, initial_structure_coverage["exports"] = _limited_exports_with_coverage(
+            client,
+            program,
+            data,
+            item.sha256,
+        )
+        strings, initial_structure_coverage["strings"] = _all_endpoint_items(
+            client,
+            "/list_strings",
+            program,
+            page_size=100_000,
+        )
+        segments, initial_structure_coverage["segments"] = _all_endpoint_items(
+            client,
+            "/list_segments",
+            program,
+            page_size=10_000,
+        )
+    else:
+        imports = _program_get("/list_imports", offset=0, limit=10000)
+        exports = _program_get("/list_exports", offset=0, limit=10000)
+        strings = (
+            []
+            if managed_cil_primary
+            else client.get("/list_strings", offset=0, limit=100000, program=program)
+        )
+        segments = _program_get("/list_segments", offset=0, limit=10000)
     entry_points = [] if managed_cil_primary else client.get("/get_entry_points", program=program)
     if managed_cil_primary:
         entry_function_recovery = {
@@ -5411,13 +6434,22 @@ def analyze_program(
         call_graph = dict(ghidra_call_graph)
         anti_analysis = client.get("/find_anti_analysis_techniques", program=program)
         api_chains = client.get("/analyze_api_call_chains", program=program)
-        opcode_hashes = _all_opcode_hashes(client, program, functions)
+        opcode_hashes = _opcode_hashes_for_function_inventory(
+            client,
+            program,
+            functions,
+            status=status,
+            metadata_value=metadata_raw,
+            function_coverage=function_coverage,
+        )
         selected_native = select_characteristic_functions(
             functions,
             call_graph if isinstance(call_graph, Mapping) else {},
             entry_points,
             opcode_hashes if isinstance(opcode_hashes, Mapping) else {},
         )
+    if limited_status_evidence is not None:
+        status["limited_static_retrieval_terminal"] = True
     selection_by_address = {str(item["address"]): item for item in selected_native if item.get("address")}
     decompilations = (
         {}
@@ -5470,6 +6502,7 @@ def analyze_program(
         "characteristic_function_ids": selected_ids,
         "characteristic_function_count": len(selected_ids),
         "retrieval_coverage": {
+            **initial_structure_coverage,
             "functions": function_coverage,
             "call_graph": call_graph_coverage,
         },
@@ -5502,6 +6535,7 @@ def analyze_program(
         "size": item.size,
         "program_selector": program,
         "metadata": _parse_metadata(metadata_raw),
+        "analysis_status": status,
         "analysis_mode": analysis_mode,
         "import_mode": import_mode,
         "relationships": item.relationships,
@@ -5522,6 +6556,7 @@ def analyze_program(
         "api_call_chains": api_chains,
         "opcode_hashes": opcode_hashes,
         "retrieval_coverage": {
+            **initial_structure_coverage,
             "functions": function_coverage,
             "call_graph": call_graph_coverage,
         },
@@ -5535,9 +6570,10 @@ def analyze_program(
     ensure_characteristic_selection(result)
     _persist_program_result(result_path, result)
     try:
-        if not managed_cil_primary:
+        if not managed_cil_primary and analysis_mode != STATUS_UNAVAILABLE_ANALYSIS_MODE:
             client.get("/save_program", program=program)
-        client.post("/close_program", {"name": program})
+        if analysis_mode != STATUS_UNAVAILABLE_ANALYSIS_MODE:
+            client.post("/close_program", {"name": program})
     except GhidraMcpError:
         pass
     return result
@@ -5570,6 +6606,14 @@ def refresh_complete_program_artifacts(
         object_dir = private_output / "objects" / digest
         raw_index_path = object_dir / "ghidra-raw-index.json"
         raw_index = _bounded_json_snapshot(raw_index_path).document
+        limited_status_mode = result.get("analysis_mode") == STATUS_UNAVAILABLE_ANALYSIS_MODE
+        if limited_status_mode and not _limited_status_raw_binding_complete(
+            result,
+            raw_index,
+        ):
+            raise GhidraMcpError(
+                "status取得不能modeの保存済みresult/raw限定静的取得証拠が不完全です"
+            )
         opened_program: str | None = None
         open_error: GhidraMcpError | None = None
         cached_functions = _page_values(
@@ -5608,10 +6652,13 @@ def refresh_complete_program_artifacts(
             or result.get("analysis_mode") == "managed_cil_primary_with_ghidra_structure"
         )
         initial_cache_terminal = (
-            paging_cache_terminal
-            and call_graph_cache_terminal
-            and not metadata_refresh_required
-            and not recovered_function_coverage_refresh_required
+            limited_status_mode
+            or (
+                paging_cache_terminal
+                and call_graph_cache_terminal
+                and not metadata_refresh_required
+                and not recovered_function_coverage_refresh_required
+            )
         )
         if initial_cache_terminal:
             open_error = GhidraMcpError("初回MCP応答で全ページング対象の終端到達を確認済みです")
@@ -5632,7 +6679,37 @@ def refresh_complete_program_artifacts(
             managed_alternative = result.get(
                 "analysis_mode"
             ) == "managed_cil_primary_with_ghidra_structure" and name in {"functions", "strings"}
-            if managed_alternative:
+            existing_coverage = raw_index.get("retrieval_coverage")
+            existing_function_coverage = (
+                existing_coverage.get("functions")
+                if isinstance(existing_coverage, Mapping)
+                else None
+            )
+            existing_endpoint_coverage = (
+                existing_coverage.get(name)
+                if isinstance(existing_coverage, Mapping)
+                else None
+            )
+            limited_status_alternative = bool(
+                limited_status_mode
+                and isinstance(existing_endpoint_coverage, Mapping)
+                and _limited_endpoint_coverage_complete(result, name)
+            )
+            zero_function_alternative = bool(
+                name == "functions"
+                and isinstance(existing_function_coverage, Mapping)
+                and _independent_zero_function_coverage_complete(
+                    result,
+                    existing_function_coverage,
+                )
+            )
+            if limited_status_alternative:
+                items = _page_values(raw_index.get(name), endpoint)
+                endpoint_coverage = dict(existing_endpoint_coverage)
+            elif zero_function_alternative:
+                items = []
+                endpoint_coverage = dict(existing_function_coverage)
+            elif managed_alternative:
                 items = []
                 endpoint_coverage = {
                     "endpoint": endpoint,
@@ -5651,17 +6728,16 @@ def refresh_complete_program_artifacts(
             elif open_error is not None:
                 items = _page_values(raw_index.get(name), endpoint)
                 page_size = initial_limits[name]
-                existing_coverage = raw_index.get("retrieval_coverage")
-                existing_endpoint_coverage = (
-                    existing_coverage.get("functions")
-                    if name == "functions" and isinstance(existing_coverage, Mapping)
+                cached_function_coverage = (
+                    existing_function_coverage
+                    if name == "functions"
                     else None
                 )
                 if name == "functions" and isinstance(
-                    existing_endpoint_coverage,
+                    cached_function_coverage,
                     Mapping,
                 ):
-                    endpoint_coverage = dict(existing_endpoint_coverage)
+                    endpoint_coverage = dict(cached_function_coverage)
                     endpoint_coverage["source"] = "authenticated_complete_function_inventory_cache"
                     endpoint_coverage["endpoint_invoked"] = True
                 elif len(items) >= page_size:
@@ -6094,6 +7170,48 @@ def validate_private_artifacts(
         retrieval_coverage = raw_index.get("retrieval_coverage", {})
         if result.get("retrieval_coverage") != retrieval_coverage:
             errors.append("raw indexとprogram-resultのページング取得証跡が一致しません")
+        if result.get("analysis_mode") == STATUS_UNAVAILABLE_ANALYSIS_MODE:
+            if result.get("analysis_status") != raw_index.get("analysis_status"):
+                errors.append("status取得不能証拠のanalysis_statusがraw indexとprogram-resultで一致しません")
+            if result.get("metadata") != _parse_metadata(raw_index.get("metadata")):
+                errors.append("status取得不能証拠のmetadataがraw indexとprogram-resultで一致しません")
+            if not _limited_status_unavailable_complete(result):
+                errors.append("program-resultのstatus取得不能限定静的取得証拠が不正です")
+            raw_bound_result = dict(result)
+            raw_bound_result["analysis_status"] = raw_index.get("analysis_status")
+            raw_bound_result["metadata"] = _parse_metadata(raw_index.get("metadata"))
+            raw_bound_result["retrieval_coverage"] = retrieval_coverage
+            raw_bound_result["ghidra_call_graph"] = raw_index.get("ghidra_call_graph")
+            if not _limited_status_unavailable_complete(raw_bound_result):
+                errors.append("raw indexのstatus取得不能限定静的取得証拠が不正です")
+            if not _limited_status_raw_binding_complete(result, raw_index):
+                errors.append("status取得不能限定静的取得のresult/raw相互拘束が不正です")
+        zero_function_evidence = (
+            retrieval_coverage.get("functions")
+            if isinstance(retrieval_coverage, Mapping)
+            else None
+        )
+        if (
+            isinstance(zero_function_evidence, Mapping)
+            and zero_function_evidence.get("source") == ZERO_FUNCTION_INVENTORY_SOURCE
+        ):
+            if result.get("analysis_status") != raw_index.get("analysis_status"):
+                errors.append("0関数証跡のanalysis_statusがraw indexとprogram-resultで一致しません")
+            if result.get("metadata") != _parse_metadata(raw_index.get("metadata")):
+                errors.append("0関数証跡のmetadataがraw indexとprogram-resultで一致しません")
+            raw_bound_result = dict(result)
+            raw_bound_result["analysis_status"] = raw_index.get("analysis_status")
+            raw_bound_result["metadata"] = _parse_metadata(raw_index.get("metadata"))
+            if not _independent_zero_function_coverage_complete(
+                raw_bound_result,
+                zero_function_evidence,
+            ):
+                errors.append("raw indexの独立0関数確認が厳密な代替取得契約を満たしません")
+            if result.get("opcode_hashes") != raw_index.get("opcode_hashes"):
+                errors.append("0関数証跡のopcode hashがraw indexとprogram-resultで一致しません")
+            raw_bound_result["opcode_hashes"] = raw_index.get("opcode_hashes")
+            if not _opcode_hash_inventory_coverage_complete(raw_bound_result):
+                errors.append("raw indexのopcode hash省略証跡がstrict 0関数契約を満たしません")
         if raw_index.get("all_static_analysis_content_retained") is not True:
             errors.append("raw indexに全静的解析内容の保持証跡がありません")
         if not isinstance(retrieval_coverage, Mapping):
@@ -6114,15 +7232,32 @@ def validate_private_artifacts(
                 and result.get("analysis_mode") == "managed_cil_primary_with_ghidra_structure"
                 and evidence.get("source") == "managed_cil_primary"
             )
-            if endpoint_skipped and not managed_cil_alternative:
+            zero_function_alternative = bool(
+                endpoint_skipped
+                and name == "functions"
+                and _independent_zero_function_coverage_complete(result, evidence)
+            )
+            limited_export_alternative = bool(
+                name == "exports"
+                and result.get("analysis_mode") == STATUS_UNAVAILABLE_ANALYSIS_MODE
+                and _limited_endpoint_coverage_complete(result, name)
+            )
+            if endpoint_skipped and not managed_cil_alternative and not zero_function_alternative:
                 errors.append(f"{name}: 未許可のendpoint省略証跡です")
-            if not endpoint_skipped and evidence.get("terminal_short_page_observed") is not True:
+            if (
+                not endpoint_skipped
+                and evidence.get("terminal_short_page_observed") is not True
+                and not limited_export_alternative
+            ):
                 errors.append(f"{name}: 終端までの完全取得証跡がありません")
             if evidence.get("program_selector") != result.get("program_selector"):
                 errors.append(f"{name}: ページング取得時のprogram selectorが一致しません")
             if not isinstance(values, list):
                 errors.append(f"{name}: raw内容がlistではありません")
-            elif int(evidence.get("item_count") or 0) != len(values):
+            elif (
+                type(evidence.get("item_count")) is not int
+                or evidence.get("item_count") != len(values)
+            ):
                 errors.append(f"{name}: 取得件数と保存件数が一致しません")
             totals[f"{name}_items"] += len(values) if isinstance(values, list) else 0
             if name not in {"functions", "strings"} and result.get(name) != values:
@@ -6213,6 +7348,8 @@ def validate_private_artifacts(
         if not isinstance(opcode_hashes, Mapping):
             errors.append("opcode hash成果物がJSON objectではありません")
         else:
+            if opcode_hashes.get("endpoint_invoked") is False and not _opcode_hash_inventory_coverage_complete(result):
+                errors.append("opcode hash endpoint省略証跡が許可されたstrict 0関数契約ではありません")
             opcode_functions = [item for item in opcode_hashes.get("functions", []) if isinstance(item, Mapping)]
             if int(opcode_hashes.get("returned") or 0) != len(opcode_functions):
                 errors.append("opcode hashのreturned件数と保存件数が一致しません")
@@ -10506,6 +11643,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if result_path.is_file():
             cached, cached_snapshot = _load_program_result(result_path)
             cached_complete = bool(cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True)
+            if cached_complete and not _zero_function_opcode_hash_cache_compatible(cached):
+                cached_complete = False
+            if cached_complete and not _limited_status_unavailable_complete(cached):
+                cached_complete = False
             native_zero_recovery_pending = _native_zero_function_recovery_pending(cached)
             if cached_complete and native_zero_recovery_pending and item.input_snapshot is None:
                 cached = _terminalize_unavailable_native_zero_function_recovery(

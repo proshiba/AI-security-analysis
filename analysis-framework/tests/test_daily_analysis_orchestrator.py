@@ -22,6 +22,20 @@ import daily_analysis_orchestrator as target
 import daily_news_malware_intake as news_intake
 
 
+def test_ghidra_mcp_url_is_numeric_loopback_only_and_canonical() -> None:
+    assert target._normalize_ghidra_mcp_url("http://127.0.0.1:18089/") == "http://127.0.0.1:18089"
+    assert target._normalize_ghidra_mcp_url("http://[::1]:18089") == "http://[::1]:18089"
+    for value in (
+        "http://0.0.0.0:18089",
+        "http://localhost:18089",
+        "https://127.0.0.1:18089",
+        "http://127.0.0.1:18089/mcp",
+        "http://user@127.0.0.1:18089",
+    ):
+        with pytest.raises(target.DailyOrchestrationError):
+            target._normalize_ghidra_mcp_url(value)
+
+
 def test_reused_archive_is_reverified_with_remote_head(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -269,6 +283,36 @@ def test_migration_command_requires_explicit_old_implementation_pin() -> None:
     ]
     parsed = target.build_parser().parse_args(arguments)
     assert parsed.expected_old_implementation_sha256 == "d" * 64
+
+
+def test_news_repair_command_requires_exact_source_pins_and_trusted_tools() -> None:
+    arguments = [
+        "repair-news-intake",
+        "--request",
+        "request.json",
+        "--repository",
+        "repository",
+        "--intelligence-root",
+        "intelligence",
+        "--private-root",
+        "private",
+        "--work-root",
+        "work",
+        "--ghidra-project-store",
+        "ghidra",
+        "--expected-state-sha256",
+        "a" * 64,
+        "--expected-news-record-sha256",
+        "b" * 64,
+        "--trusted-tools-manifest",
+        "C:/operator/tools.json",
+        "--trusted-tools-manifest-sha256",
+        "c" * 64,
+    ]
+    parsed = target.build_parser().parse_args(arguments)
+    assert parsed.expected_state_sha256 == "a" * 64
+    assert parsed.expected_news_record_sha256 == "b" * 64
+    assert parsed.trusted_tools_manifest_sha256 == "c" * 64
 
 
 def test_trusted_tool_preflight_validates_pin_without_disclosing_paths(
@@ -1183,6 +1227,466 @@ def test_non_retryable_partial_is_not_reexecuted(tmp_path: Path) -> None:
     assert calls["static_analysis"] == 1
 
 
+def _make_news_requeue_fixture(
+    tmp_path: Path,
+) -> tuple[target.DailyContext, Path, dict, str, str]:
+    document = request_document()
+    document["network"]["sample_download"] = True
+    document["stages"]["static_analysis"] = False
+    document["stages"]["publication"] = False
+    document["stages"]["ghidra"] = False
+    configuration, _manifest, _sevenzip = trusted_tool_configuration(tmp_path)
+    daily_context = context(
+        tmp_path,
+        document,
+        trusted_tool_configuration=configuration,
+    )
+    fake_actions, _calls = actions(
+        {
+            "news_intake": target.StageOutcome(
+                "partial",
+                {
+                    "source_date": daily_context.request.news_source_date,
+                    "analysis_date": daily_context.request.analysis_date,
+                    "exit_code": 20,
+                    "provider_lookups": daily_context.request.network["provider_lookups"],
+                    "sample_download": True,
+                    "public_promotion": None,
+                    "sample_executed": False,
+                },
+                retryable=False,
+            ),
+        }
+    )
+    target.run_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
+    state_path = daily_context.state_root / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["stages"]["private_archive"].update(
+        status="partial",
+        retryable=True,
+        result={"status": "checkpoint"},
+        error=None,
+    )
+    state["status"] = "partial"
+    target._atomic_json(state_path, state)
+    return (
+        daily_context,
+        state_path,
+        state,
+        hashlib.sha256(state_path.read_bytes()).hexdigest(),
+        target._sha256_value(state["stages"]["news_intake"]),
+    )
+
+
+def test_news_requeue_is_audited_scoped_and_idempotent(tmp_path: Path) -> None:
+    daily_context, state_path, before, state_pin, news_pin = _make_news_requeue_fixture(tmp_path)
+
+    result = target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=state_pin,
+        expected_news_record_sha256=news_pin,
+    )
+    repeated = target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=state_pin,
+        expected_news_record_sha256=news_pin,
+    )
+
+    assert result["status"] == "requeued"
+    assert repeated["status"] == "already_completed"
+    assert repeated["completion_receipt_sha256"] == result["completion_receipt_sha256"]
+    after = json.loads(state_path.read_text(encoding="utf-8"))
+    news = after["stages"]["news_intake"]
+    assert news["status"] == "pending"
+    assert news["attempts"] == before["stages"]["news_intake"]["attempts"]
+    assert news["retryable"] is True
+    assert news["result"]["status"] == "operator_authorized_news_requeue"
+    for name in ("c2_monitoring", "validation", "private_archive"):
+        assert after["stages"][name]["status"] == "pending"
+        assert after["stages"][name]["result"]["status"] == "invalidated_by_news_requeue"
+    for name in ("malwarebazaar_acquisition", "static_analysis", "publication", "ghidra"):
+        assert after["stages"][name] == before["stages"][name]
+    receipt_root = daily_context.state_root / "repair-receipts" / "news-intake-requeue"
+    assert (receipt_root / "authorization.json").is_file()
+    assert (receipt_root / "completion.json").is_file()
+
+
+def _set_requeue_fixture_stage_failed(state_path: Path) -> tuple[str, str]:
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["stages"]["malwarebazaar_acquisition"].update(
+        status="failed",
+        attempts=1,
+        retryable=True,
+        result={},
+        error={"code": "fixture_failure", "message": "fixture failure"},
+    )
+    state["status"] = "failed"
+    target._atomic_json(state_path, state)
+    return (
+        hashlib.sha256(state_path.read_bytes()).hexdigest(),
+        target._sha256_value(state["stages"]["news_intake"]),
+    )
+
+
+def test_news_requeue_preserves_failed_overall_status(tmp_path: Path) -> None:
+    daily_context, state_path, _state, _state_pin, _news_pin = _make_news_requeue_fixture(
+        tmp_path
+    )
+    state_pin, news_pin = _set_requeue_fixture_stage_failed(state_path)
+
+    target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=state_pin,
+        expected_news_record_sha256=news_pin,
+    )
+
+    after = json.loads(state_path.read_text(encoding="utf-8"))
+    assert after["status"] == "failed"
+    assert target._stage_aggregate_status(after) == "failed"
+
+
+def test_migration_normalizes_audited_legacy_news_requeue_status(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    old_implementation = "a" * 64
+    new_implementation = "b" * 64
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: old_implementation)
+    daily_context, state_path, _state, _state_pin, _news_pin = _make_news_requeue_fixture(
+        tmp_path
+    )
+    state_pin, news_pin = _set_requeue_fixture_stage_failed(state_path)
+    target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=state_pin,
+        expected_news_record_sha256=news_pin,
+    )
+    legacy = json.loads(state_path.read_text(encoding="utf-8"))
+    legacy["status"] = "partial"
+    target._atomic_json(state_path, legacy)
+    completion_path = (
+        daily_context.state_root
+        / "repair-receipts"
+        / "news-intake-requeue"
+        / "completion.json"
+    )
+    completion = json.loads(completion_path.read_text(encoding="utf-8"))
+    completion["state_sha256_after"] = hashlib.sha256(state_path.read_bytes()).hexdigest()
+    target._atomic_json(completion_path, completion)
+
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: new_implementation)
+    migrated = target.migrate_run_implementation(
+        daily_context,
+        expected_old_implementation_sha256=old_implementation,
+    )
+
+    assert "audited_news_requeue_overall_status_to_stage_aggregate" in migrated[
+        "state_normalizations"
+    ]
+    migrated_state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert migrated_state["status"] == "failed"
+    assert migrated_state["implementation_sha256"] == new_implementation
+
+
+def test_migration_rejects_tampered_legacy_news_requeue_marker(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    old_implementation = "c" * 64
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: old_implementation)
+    daily_context, state_path, _state, _state_pin, _news_pin = _make_news_requeue_fixture(
+        tmp_path
+    )
+    state_pin, news_pin = _set_requeue_fixture_stage_failed(state_path)
+    target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=state_pin,
+        expected_news_record_sha256=news_pin,
+    )
+    tampered = json.loads(state_path.read_text(encoding="utf-8"))
+    tampered["status"] = "partial"
+    tampered["stages"]["news_intake"]["result"]["authorization_receipt_sha256"] = "0" * 64
+    target._atomic_json(state_path, tampered)
+    completion_path = (
+        daily_context.state_root
+        / "repair-receipts"
+        / "news-intake-requeue"
+        / "completion.json"
+    )
+    completion = json.loads(completion_path.read_text(encoding="utf-8"))
+    completion["state_sha256_after"] = hashlib.sha256(state_path.read_bytes()).hexdigest()
+    target._atomic_json(completion_path, completion)
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: "d" * 64)
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.migrate_run_implementation(
+            daily_context,
+            expected_old_implementation_sha256=old_implementation,
+        )
+    assert captured.value.code == "state_status_mismatch"
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_code"),
+    [
+        (lambda state: state.update(status="complete"), "state_status_mismatch"),
+            (
+                lambda state: state["stages"]["private_archive"].update(status="running"),
+                "news_requeue_run_not_quiescent",
+            ),
+        (
+            lambda state: state["stages"]["news_intake"]["result"].update(exit_code=0),
+            "news_requeue_source_not_eligible",
+        ),
+        (
+            lambda state: state["stages"]["news_intake"]["result"].update(sample_executed=True),
+            "news_requeue_source_not_eligible",
+        ),
+        (
+            lambda state: state["stages"]["news_intake"]["result"].update(extra=True),
+            "news_requeue_source_not_eligible",
+        ),
+    ],
+)
+def test_news_requeue_rejects_ineligible_or_nonquiescent_state(
+    tmp_path: Path,
+    mutation,
+    expected_code: str,
+) -> None:
+    daily_context, state_path, state, _state_pin, _news_pin = _make_news_requeue_fixture(tmp_path)
+    mutation(state)
+    if state["status"] != "complete":
+        state["status"] = "running" if any(
+            record["status"] == "running" for record in state["stages"].values()
+        ) else "partial"
+    target._atomic_json(state_path, state)
+    state_pin = hashlib.sha256(state_path.read_bytes()).hexdigest()
+    news_pin = target._sha256_value(state["stages"]["news_intake"])
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.requeue_news_intake(
+            daily_context,
+            expected_state_sha256=state_pin,
+            expected_news_record_sha256=news_pin,
+        )
+    assert captured.value.code == expected_code
+
+
+def test_news_requeue_rejects_wrong_pins_and_missing_trusted_tools(tmp_path: Path) -> None:
+    daily_context, state_path, _state, state_pin, news_pin = _make_news_requeue_fixture(tmp_path)
+    before = state_path.read_bytes()
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.requeue_news_intake(
+            daily_context,
+            expected_state_sha256="0" * 64,
+            expected_news_record_sha256=news_pin,
+        )
+    assert captured.value.code == "news_requeue_source_mismatch"
+    assert state_path.read_bytes() == before
+
+    without_tools = replace(daily_context, trusted_tool_configuration=None)
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.requeue_news_intake(
+            without_tools,
+            expected_state_sha256=state_pin,
+            expected_news_record_sha256=news_pin,
+        )
+    assert captured.value.code == "news_requeue_trusted_tools_required"
+    assert state_path.read_bytes() == before
+
+
+def test_news_requeue_rejects_existing_canonical_publication(tmp_path: Path) -> None:
+    daily_context, state_path, _state, state_pin, news_pin = _make_news_requeue_fixture(tmp_path)
+    public = (
+        daily_context.repository
+        / "analysis-results"
+        / "research"
+        / "daily-news-malware"
+        / daily_context.request.news_source_date
+    )
+    public.mkdir(parents=True)
+    for name in target.NEWS_PUBLIC_FILES:
+        (public / name).write_text("fixture\n", encoding="utf-8")
+    before = state_path.read_bytes()
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.requeue_news_intake(
+            daily_context,
+            expected_state_sha256=state_pin,
+            expected_news_record_sha256=news_pin,
+        )
+    assert captured.value.code == "news_requeue_public_output_exists"
+    assert state_path.read_bytes() == before
+
+
+def test_news_requeue_rejects_valid_completed_run(tmp_path: Path) -> None:
+    daily_context, state_path, state, _state_pin, _news_pin = _make_news_requeue_fixture(tmp_path)
+    state["stages"]["news_intake"].update(
+        status="complete",
+        retryable=False,
+        result={"status": "complete"},
+        error=None,
+    )
+    for name, record in state["stages"].items():
+        if record["status"] != "skipped":
+            record.update(status="complete", retryable=False, error=None)
+    state["status"] = "complete"
+    target._atomic_json(state_path, state)
+    state_pin = hashlib.sha256(state_path.read_bytes()).hexdigest()
+    news_pin = target._sha256_value(state["stages"]["news_intake"])
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.requeue_news_intake(
+            daily_context,
+            expected_state_sha256=state_pin,
+            expected_news_record_sha256=news_pin,
+        )
+    assert captured.value.code == "news_requeue_completed_run"
+
+
+def test_news_requeue_rejects_tampered_completion_or_post_state(tmp_path: Path) -> None:
+    daily_context, state_path, _state, state_pin, news_pin = _make_news_requeue_fixture(tmp_path)
+    target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=state_pin,
+        expected_news_record_sha256=news_pin,
+    )
+    completed_state = json.loads(state_path.read_text(encoding="utf-8"))
+    completed_state["capacity_remediation"] = {
+        "automatic_source_deletion": False,
+        "source_deletion_supported": False,
+        "user_approval_required_for_material_deletion": True,
+    }
+    target._atomic_json(state_path, completed_state)
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.requeue_news_intake(
+            daily_context,
+            expected_state_sha256=state_pin,
+            expected_news_record_sha256=news_pin,
+        )
+    assert captured.value.code == "news_requeue_receipt_invalid"
+
+    second_root = tmp_path / "receipt-tamper"
+    second_root.mkdir()
+    daily_context, _state_path, _state, state_pin, news_pin = _make_news_requeue_fixture(
+        second_root
+    )
+    target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=state_pin,
+        expected_news_record_sha256=news_pin,
+    )
+    completion_path = (
+        daily_context.state_root
+        / "repair-receipts"
+        / "news-intake-requeue"
+        / "completion.json"
+    )
+    completion = json.loads(completion_path.read_text(encoding="utf-8"))
+    completion["authorization_receipt_sha256"] = "0" * 64
+    target._atomic_json(completion_path, completion)
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.requeue_news_intake(
+            daily_context,
+            expected_state_sha256=state_pin,
+            expected_news_record_sha256=news_pin,
+        )
+    assert captured.value.code == "news_requeue_receipt_invalid"
+
+
+def test_news_requeue_rejects_source_or_binding_drift(tmp_path: Path) -> None:
+    daily_context, state_path, _state, state_pin, news_pin = _make_news_requeue_fixture(tmp_path)
+    source = next(
+        (daily_context.repository / "tech-memo" / "daily-news" / "news").rglob("*.md")
+    )
+    source.write_text("changed\n", encoding="utf-8")
+    before = state_path.read_bytes()
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.requeue_news_intake(
+            daily_context,
+            expected_state_sha256=state_pin,
+            expected_news_record_sha256=news_pin,
+        )
+    assert captured.value.code == "news_source_changed"
+    assert state_path.read_bytes() == before
+
+    source.write_text("news\n", encoding="utf-8")
+    binding_path = daily_context.collection_root / "collection-binding.json"
+    binding = json.loads(binding_path.read_text(encoding="utf-8"))
+    binding["run_id"] = "different-run"
+    target._atomic_json(binding_path, binding)
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target.requeue_news_intake(
+            daily_context,
+            expected_state_sha256=state_pin,
+            expected_news_record_sha256=news_pin,
+        )
+    assert captured.value.code == "collection_owned_by_other_run"
+    assert state_path.read_bytes() == before
+
+
+def test_news_requeue_recovers_after_authorization_only_interruption(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    daily_context, state_path, _state, state_pin, news_pin = _make_news_requeue_fixture(tmp_path)
+    real_write_state = target._write_state
+
+    def interrupt_after_authorization(_context, _state):
+        raise OSError("fixture interruption")
+
+    monkeypatch.setattr(target, "_write_state", interrupt_after_authorization)
+    with pytest.raises(OSError):
+        target.requeue_news_intake(
+            daily_context,
+            expected_state_sha256=state_pin,
+            expected_news_record_sha256=news_pin,
+        )
+    receipt_root = daily_context.state_root / "repair-receipts" / "news-intake-requeue"
+    assert (receipt_root / "authorization.json").is_file()
+    assert not (receipt_root / "completion.json").exists()
+    assert hashlib.sha256(state_path.read_bytes()).hexdigest() == state_pin
+
+    monkeypatch.setattr(target, "_write_state", real_write_state)
+    result = target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=state_pin,
+        expected_news_record_sha256=news_pin,
+    )
+    assert result["status"] == "requeued"
+
+
+def test_news_requeue_recovers_after_state_write_interruption(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    daily_context, state_path, _state, state_pin, news_pin = _make_news_requeue_fixture(tmp_path)
+    real_atomic = target._atomic_json
+
+    def interrupt_completion(path: Path, value) -> None:
+        if path.name == "completion.json":
+            raise OSError("fixture interruption")
+        real_atomic(path, value)
+
+    monkeypatch.setattr(target, "_atomic_json", interrupt_completion)
+    with pytest.raises(OSError):
+        target.requeue_news_intake(
+            daily_context,
+            expected_state_sha256=state_pin,
+            expected_news_record_sha256=news_pin,
+        )
+    interrupted = json.loads(state_path.read_text(encoding="utf-8"))
+    assert interrupted["stages"]["news_intake"]["status"] == "pending"
+
+    monkeypatch.setattr(target, "_atomic_json", real_atomic)
+    result = target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=state_pin,
+        expected_news_record_sha256=news_pin,
+    )
+    assert result["status"] == "requeued"
+
+
 def test_ghidra_chunks_can_make_progress_beyond_default_attempt_limit(tmp_path: Path) -> None:
     daily_context = context(tmp_path)
 
@@ -1868,6 +2372,44 @@ def test_interrupted_run_implementation_migration_is_audited_and_idempotent(
         "authorized",
         "completed",
     }
+
+
+def test_legacy_state_migration_binds_operator_selected_relay_url(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    daily_context = context(tmp_path)
+    old_implementation = "a" * 64
+    new_implementation = "b" * 64
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: old_implementation)
+    fake_actions, _calls = actions(
+        {"ghidra": target.StageOutcome("partial", {}, retryable=True)}
+    )
+    target.run_daily(daily_context, actions=fake_actions, capacity_probe=ready_capacity)
+
+    state_path = daily_context.state_root / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state.pop("operator_pins")
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    binding_path = daily_context.collection_root / "collection-binding.json"
+    binding = json.loads(binding_path.read_text(encoding="utf-8"))
+    binding.pop("operator_pins_sha256")
+    binding_path.write_text(json.dumps(binding), encoding="utf-8")
+
+    relay_context = replace(daily_context, ghidra_mcp_url="http://127.0.0.1:18089")
+    monkeypatch.setattr(target, "_implementation_sha256", lambda: new_implementation)
+    migrated = target.migrate_run_implementation(
+        relay_context,
+        expected_old_implementation_sha256=old_implementation,
+    )
+    migrated_state = json.loads(state_path.read_text(encoding="utf-8"))
+    migrated_binding = json.loads(binding_path.read_text(encoding="utf-8"))
+
+    assert migrated["status"] == "complete"
+    assert migrated_state["operator_pins"]["ghidra_mcp_url"] == "http://127.0.0.1:18089"
+    assert migrated_binding["operator_pins_sha256"] == target._sha256_value(
+        target._operator_pins(relay_context)
+    )
 
 
 def test_run_implementation_migration_rejects_wrong_old_pin(
@@ -2876,6 +3418,36 @@ def test_news_adapter_converts_system_exit_to_checkpointable_error(
     with pytest.raises(target.DailyOrchestrationError) as captured:
         target._production_news_intake(daily_context)
     assert captured.value.code == "news_intake_failed"
+
+
+def test_news_adapter_forwards_operator_trusted_tool_pair(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """orchestratorのoperator-only pairをintake CLIへそのまま渡す。"""
+
+    configuration, manifest, _sevenzip = trusted_tool_configuration(tmp_path)
+    daily_context = context(
+        tmp_path,
+        trusted_tool_configuration=configuration,
+    )
+    captured: dict[str, list[str]] = {}
+
+    def partial(arguments: list[str]) -> int:
+        captured["arguments"] = arguments
+        return 20
+
+    monkeypatch.setattr(news_intake, "main", partial)
+    outcome = target._production_news_intake(daily_context)
+
+    arguments = captured["arguments"]
+    assert outcome.status == "partial"
+    assert Path(arguments[arguments.index("--trusted-tools-manifest") + 1]) == manifest
+    assert arguments[arguments.index("--trusted-tools-manifest-sha256") + 1] == (
+        configuration.manifest_sha256
+    )
+    assert "trusted_tools_manifest" not in daily_context.request.public()
+    assert str(manifest) not in json.dumps(daily_context.request.public())
 
 
 def test_news_source_change_does_not_promote_staged_public_results(
