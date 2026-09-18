@@ -374,6 +374,46 @@ def test_vvas_pe_accepts_mapped_reachable_config_and_empty_backups(
     assert result["config"]["source_name"] == "terminal.exe"
 
 
+def test_vvas_pe_accepts_complete_tilde_delimited_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """新しい波線区切りも完全境界・parser/network経路が揃う場合だけ採用する。"""
+
+    config = "~p1:198.51.100.24~o1:2828~t1:1~p2:198.51.100.24~o2:2828~t2:1~p3:198.51.100.24~o3:2828~t3:1~"
+    sample = _fixture(monkeypatch, config=config)
+    probe = extractor.probe_vvas_config(sample, input_format="pe")
+    assert probe["matched"] is True
+    result = extractor.extract(sample, "tilde-terminal.exe")
+    assert result["config"]["static_config_recovered"] is True
+    assert result["config"]["endpoints"] == ["198.51.100.24:2828"]
+
+
+def test_vvas_pe_rejects_mixed_tilde_pipe_delimiters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """区切りの混在や中途切断を設定として受理しない。"""
+
+    mixed = "~p1:198.51.100.24|o1:2828~t1:1~"
+    sample = _fixture(monkeypatch, config=mixed)
+    assert extractor.probe_vvas_config(sample, input_format="pe")["matched"] is False
+
+
+def test_tilde_config_without_parser_path_remains_route_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """設定が一意でもparser到達性が欠ければfamilyは確定しない。"""
+
+    config = "~p1:198.51.100.24~o1:2828~t1:1~p2:198.51.100.24~o2:2828~t2:1~p3:198.51.100.24~o3:2828~t3:1~"
+    sample = _fixture(monkeypatch, config=config, parser_reachable=False)
+    assert extractor.probe_vvas_config(sample, input_format="pe")["matched"] is False
+    result = extractor.extract(sample, "tilde-route.exe")
+    assert result["config"]["variant"] == "vvas_reversed_config_pe_candidate"
+    assert result["config"]["candidate_config_recovered"] is True
+    assert result["config"]["static_config_recovered"] is False
+    assert result["config"]["terminal_family_confirmed"] is False
+    assert result["config"]["endpoints"] == ["198.51.100.24:2828"]
+
+
 def test_vvas_marker_first_scan_ignores_global_string_quota(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

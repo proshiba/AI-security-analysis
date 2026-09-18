@@ -1884,7 +1884,19 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
             ):
                 issues.append(f"steps[{index}].report:container_extractor_unavailable")
             pe_report = report.get("pe")
-            if isinstance(pe_report, dict) and pe_report.get("containerized") is True:
+            inno_report = report.get("inno")
+            inno_extraction_complete = (
+                isinstance(inno_report, dict)
+                and inno_report.get("candidate") is True
+                and inno_report.get("inventory_complete") is True
+                and inno_report.get("extraction_complete") is True
+                and inno_report.get("status") == "artifacts_recovered"
+            )
+            if (
+                isinstance(pe_report, dict)
+                and pe_report.get("containerized") is True
+                and not inno_extraction_complete
+            ):
                 issues.append(f"steps[{index}].report:pe_container_extractor_unavailable")
     return sorted(set(issues))
 

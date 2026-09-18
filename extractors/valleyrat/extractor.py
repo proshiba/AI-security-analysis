@@ -167,6 +167,7 @@ _XOR_B1_WININET_MARKER = re.compile(
     re.IGNORECASE,
 )
 _VVAS_FIELD = re.compile(r"(?:^|\|)([pot][123]):([^|]{0,255})(?=\||$)", re.IGNORECASE)
+_VVAS_TILDE_FIELD = re.compile(r"(?:^|~)([pot][123]):([^~]{0,255})(?=~|$)", re.IGNORECASE)
 _SENSITIVE_URL_PATH = re.compile(
     r"(?i)(?:^|/)(?:access[_-]?token|token|secret|password|passwd|"
     r"api[_-]?key|auth(?:orization)?)(?:[=/:_-]|$)"
@@ -396,10 +397,18 @@ def _parse_vvas_reversed_value(
     """
 
     folded = value.casefold()
-    if len(value) > MAXIMUM_STRING_LENGTH or ":1p" not in folded or ":1o" not in folded:
+    if (
+        len(value) > MAXIMUM_STRING_LENGTH
+        or not value
+        or value[0] not in {"|", "~"}
+        or value[-1] != value[0]
+        or ":1p" not in folded
+        or ":1o" not in folded
+    ):
         return None
+    field_pattern = _VVAS_FIELD if value[0] == "|" else _VVAS_TILDE_FIELD
     fields: dict[str, str] = {}
-    for match in _VVAS_FIELD.finditer(value[::-1]):
+    for match in field_pattern.finditer(value[::-1]):
         key, raw = match.group(1).casefold(), match.group(2).strip()
         previous = fields.get(key)
         if previous is not None and previous != raw:
@@ -1047,7 +1056,7 @@ def _vvas_mapped_config_candidates(
         # mapped PEではNUL等で区切られた文字列全体が設定そのものであることを
         # 要求する。printable prefix/suffixやsection端で切れた部分設定から、
         # 内部のfield substringだけを採用しない。
-        if not value.startswith("|") or not value.endswith("|"):
+        if not value or value[0] not in {"|", "~"} or value[-1] != value[0]:
             rejected_hits += 1
             continue
         parsed = _parse_vvas_reversed_value(value)

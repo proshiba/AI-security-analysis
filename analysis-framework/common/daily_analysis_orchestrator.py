@@ -4192,6 +4192,24 @@ def _production_publication(context: DailyContext) -> StageOutcome:
     )
 
 
+def _ghidra_system_curl_path() -> Path | None:
+    """Windowsが返すSystem directory内のcurlだけをMCP代替transportに使う。"""
+
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+
+        buffer = ctypes.create_unicode_buffer(32768)
+        length = ctypes.windll.kernel32.GetSystemWindowsDirectoryW(buffer, len(buffer))
+        if not 0 < length < len(buffer):
+            return None
+        candidate = Path(buffer.value) / "System32" / "curl.exe"
+        return candidate if candidate.is_file() else None
+    except (AttributeError, OSError, ValueError):
+        return None
+
+
 def _production_ghidra(context: DailyContext) -> StageOutcome:
     import collection_followup_planner
     import ghidra_function_batch
@@ -4219,6 +4237,9 @@ def _production_ghidra(context: DailyContext) -> StageOutcome:
         "--disk-guard-path",
         os.fspath(context.ghidra_project_store),
     ]
+    system_curl = _ghidra_system_curl_path()
+    if system_curl is not None:
+        arguments.extend(("--mcp-transport", "curl", "--mcp-curl-path", os.fspath(system_curl)))
     if context.trusted_tool_configuration is not None:
         static_job_id, static_result = _downstream_static_job(context)
         artifacts = static_result.get("artifacts")

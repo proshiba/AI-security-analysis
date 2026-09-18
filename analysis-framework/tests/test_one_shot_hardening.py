@@ -1266,6 +1266,28 @@ def test_external_container_without_extractor_is_always_partial() -> None:
     assert any("container_extractor_unavailable" in item for item in archive_issues)
     assert any("pe_container_extractor_unavailable" in item for item in pe_issues)
 
+    inno_complete_issues = one_shot._static_layer_issues(
+        {
+            "steps": [
+                {
+                    "status": "succeeded",
+                    "report": {
+                        "format": "pe",
+                        "unpack_status": "artifacts_recovered",
+                        "pe": {"containerized": True},
+                        "inno": {
+                            "candidate": True,
+                            "inventory_complete": True,
+                            "extraction_complete": True,
+                            "status": "artifacts_recovered",
+                        },
+                    },
+                }
+            ]
+        }
+    )
+    assert not any("pe_container_extractor_unavailable" in item for item in inno_complete_issues)
+
 
 def test_static_layers_recover_payload_at_shared_depth_four() -> None:
     """generic側と同じ深度4までnested ZIP内payloadを層として到達可能にする。"""

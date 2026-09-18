@@ -186,6 +186,8 @@ news laneが`partial`の場合、8成果物は公開先へ昇格しません。�
 
 ## statusとverify
 
+Windowsの日次Ghidra段階は、OSが返すWindows system directory内の`curl.exe`が存在する場合、numeric-loopback MCPに対して設定・proxy・redirectを無効化したcurl transportを使用します。`PATH`から実行ファイルを探索せず、検体や外部C2への通信経路には転用しません。存在しない環境では従来のurllib transportを維持します。
+
 ~~~powershell
 py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py status --work-root C:\analysis-lab\work --run-id daily-20260829
 

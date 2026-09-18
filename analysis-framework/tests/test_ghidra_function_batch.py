@@ -575,10 +575,10 @@ def test_managed_program_uses_cil_primary_without_auto_analysis(
         def get(self, endpoint: str, **query: object) -> object:
             self.calls.append(("get", endpoint, query))
             if endpoint == "/open_program":
-                raise target.GhidraMcpError("not imported")
+                raise target.GhidraMcpProgramNotFound("not imported")
             if endpoint == "/analysis_status":
                 if not self.imported:
-                    raise target.GhidraMcpError("not imported")
+                    raise target.GhidraMcpProgramNotFound("not imported")
                 return {
                     "analyzing": False,
                     "analyzed": False,
@@ -1132,11 +1132,13 @@ def test_native_zero_function_program_uses_independent_counts_without_listing(
     )
 
 
-def test_import_timeout_does_not_trigger_duplicate_raw_fallback(
+@pytest.mark.parametrize("failure_type", [TimeoutError, ConnectionResetError])
+def test_import_transport_failure_does_not_trigger_duplicate_raw_fallback(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    failure_type: type[OSError],
 ) -> None:
-    """import応答のタイムアウト時に同じPEをraw形式で再登録しない。"""
+    """import応答の通信障害時に同じPEをraw形式で再登録しない。"""
 
     class TimeoutImportClient:
         def __init__(self) -> None:
@@ -1144,7 +1146,7 @@ def test_import_timeout_does_not_trigger_duplicate_raw_fallback(
 
         def get(self, endpoint: str, **_query: object) -> object:
             assert endpoint in {"/analysis_status", "/open_program"}
-            raise target.GhidraMcpError("programは未登録です")
+            raise target.GhidraMcpProgramNotFound("programは未登録です")
 
         def post(
             self,
@@ -1155,8 +1157,8 @@ def test_import_timeout_does_not_trigger_duplicate_raw_fallback(
             assert endpoint == "/import_file"
             self.import_calls += 1
             try:
-                raise TimeoutError("Ghidraの応答待ちが時間切れです")
-            except TimeoutError as error:
+                raise failure_type("Ghidraのimport応答が失われました")
+            except failure_type as error:
                 raise target.GhidraMcpError("POST /import_file failed") from error
 
     data = b"MZ" + b"\x00" * 510
@@ -1188,6 +1190,45 @@ def test_import_timeout_does_not_trigger_duplicate_raw_fallback(
             analysis_timeout=1,
         )
     assert client.import_calls == 1
+
+
+def test_open_transport_failure_does_not_trigger_import(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """既存programを開く通信障害では新規importを始めない。"""
+
+    class OpenFailureClient:
+        timeout = 10
+
+        def get(self, endpoint: str, **_query: object) -> object:
+            if endpoint == "/analysis_status":
+                raise target.GhidraMcpProgramNotFound("program not found")
+            assert endpoint == "/open_program"
+            try:
+                raise TimeoutError("open response lost")
+            except TimeoutError as error:
+                raise target.GhidraMcpError("GET /open_program failed") from error
+
+        def post(self, *_args: object, **_kwargs: object) -> object:
+            raise AssertionError("open応答不明時にimportしてはならない")
+
+    data = b"MZ" + b"\x00" * 510
+    digest = hashlib.sha256(data).hexdigest()
+    private_output = tmp_path / "private"
+    input_snapshot = target._immutable_staging_snapshot(private_output, digest, data)
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=input_snapshot.path,
+        size=len(data),
+        relationships=[{"case_sha256": digest, "depth": 0, "transform": "root"}],
+        input_snapshot=input_snapshot,
+    )
+    monkeypatch.setattr(target, "_is_managed_pe", lambda _data: False)
+    with pytest.raises(target.GhidraMcpError, match="open_program"):
+        target.analyze_program(
+            OpenFailureClient(), item, private_output, "/Malware/Test", analysis_timeout=1
+        )
 
 
 def test_analysis_wait_bounds_transport_and_sleep_to_remaining_budget(
@@ -1229,6 +1270,18 @@ def test_mcp_get_transport_timeout_is_not_forwarded_as_query(
     client.get("/analysis_status", program="/Batch/explicit", transport_timeout=0.25)
     assert calls == [(("GET", "/analysis_status"), {
         "query": {"program": "/Batch/explicit"}, "body": None, "timeout": 0.25,
+    })]
+
+
+def test_mcp_post_transport_timeout_is_not_forwarded_as_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = target.GhidraMcpClient("http://127.0.0.1:8089")
+    calls = []
+    monkeypatch.setattr(client, "_request", lambda *args, **kwargs: calls.append((args, kwargs)))
+    client.post("/close_program", {"name": "/Batch/explicit"}, transport_timeout=0.25)
+    assert calls == [(("POST", "/close_program"), {
+        "query": {}, "body": {"name": "/Batch/explicit"}, "timeout": 0.25,
     })]
 
 
@@ -1425,6 +1478,164 @@ def test_client_accepts_only_numeric_loopback_plain_http() -> None:
             target.GhidraMcpClient(value)
 
 
+def test_curl_transport_is_explicit_and_confined_to_loopback(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """curl設定・proxy・redirectを無効化し、明示した実行ファイルだけを使う。"""
+
+    with pytest.raises(ValueError, match="明示パス"):
+        target.GhidraMcpClient("http://127.0.0.1:8089", transport="curl")
+    with pytest.raises(ValueError, match="絶対パス"):
+        target.GhidraMcpClient(
+            "http://127.0.0.1:8089", transport="curl", curl_path=Path("relative/curl")
+        )
+    with pytest.raises(ValueError, match="numeric loopback"):
+        target.GhidraMcpClient(
+            "http://192.0.2.1:8089", transport="curl", curl_path=tmp_path / "curl"
+        )
+    observed: dict[str, object] = {}
+
+    def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
+        observed.update(command=command, kwargs=kwargs)
+        return SimpleNamespace(returncode=0, stdout=b'{"ok":true}200', stderr=b"")
+
+    monkeypatch.setattr(target.subprocess, "run", fake_run)
+    client = target.GhidraMcpClient(
+        "http://127.0.0.1:8089", transport="curl", curl_path=tmp_path / "curl"
+    )
+    assert client.get("/test_read", program="/project/program") == {"ok": True}
+    command = observed["command"]
+    assert isinstance(command, list)
+    assert command[0] == str(tmp_path / "curl")
+    assert command[1] == "--disable"
+    assert command[command.index("--noproxy") + 1] == "*"
+    assert command[command.index("--max-redirs") + 1] == "0"
+    assert command[-1] == "http://127.0.0.1:8089/test_read?program=%2Fproject%2Fprogram"
+    assert observed["kwargs"]["input"] is None
+
+
+def test_curl_transport_bounds_response_and_classifies_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """HTTP semantic errorは再試行せず、transport timeoutだけを分類する。"""
+
+    client = target.GhidraMcpClient(
+        "http://127.0.0.1:8089", transport="curl", curl_path=tmp_path / "curl"
+    )
+    monkeypatch.setattr(
+        target.subprocess, "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=0, stdout=b"error503", stderr=b""),
+    )
+    with pytest.raises(target.GhidraMcpError, match="HTTP 503") as semantic:
+        client.get("/test_read")
+    assert target._request_transport_failure_kind(semantic.value) is None
+    monkeypatch.setattr(
+        target.subprocess, "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=28, stdout=b"000", stderr=b""),
+    )
+    with pytest.raises(target.GhidraMcpError) as timeout:
+        client.get("/test_read")
+    assert target._request_transport_failure_kind(timeout.value) == "timeout"
+    monkeypatch.setattr(target, "MAX_MCP_RESPONSE_BYTES", 4)
+    monkeypatch.setattr(
+        target.subprocess, "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=0, stdout=b"oversized200", stderr=b""),
+    )
+    with pytest.raises(target.GhidraMcpError, match="bytes上限"):
+        client.get("/test_read")
+
+
+def test_entry_inventory_change_reopens_once_after_confirmed_save(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """関数一覧の変化だけを一度再試行し、二重取込みや無限再試行を避ける。"""
+
+    calls: list[str] = []
+    item = SimpleNamespace(sha256="a" * 64)
+
+    def fake_analyze(*_args: object, **_kwargs: object) -> dict[str, object]:
+        calls.append("analyze")
+        if len(calls) == 1:
+            raise target.GhidraMcpInventoryChanged("inventory changed")
+        return {"status": "complete"}
+
+    monkeypatch.setattr(target, "analyze_program", fake_analyze)
+    monkeypatch.setattr(
+        target, "_cleanup_retryable_program_failure",
+        lambda *_args: calls.append("save_close") or "saved_and_closed",
+    )
+    result = target._analyze_with_inventory_refresh(
+        object(), item, tmp_path, "/project", analysis_timeout=5, skip_auto_analysis=False
+    )
+    assert result == {"status": "complete"}
+    assert calls == ["analyze", "save_close", "analyze"]
+
+
+def test_entry_inventory_change_does_not_retry_without_confirmed_save(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """保存を確認できなければ元の不一致でfail-closedにする。"""
+
+    calls: list[str] = []
+
+    def fake_analyze(*_args: object, **_kwargs: object) -> dict[str, object]:
+        calls.append("analyze")
+        raise target.GhidraMcpInventoryChanged("inventory changed")
+
+    monkeypatch.setattr(target, "analyze_program", fake_analyze)
+    monkeypatch.setattr(
+        target, "_cleanup_retryable_program_failure",
+        lambda *_args: "save_not_confirmed",
+    )
+    with pytest.raises(target.GhidraMcpInventoryChanged):
+        target._analyze_with_inventory_refresh(
+            object(), SimpleNamespace(sha256="b" * 64), tmp_path, "/project",
+            analysis_timeout=5, skip_auto_analysis=False,
+        )
+    assert calls == ["analyze"]
+
+
+def test_entry_inventory_growth_requires_stable_superset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """入口関数の自動発見は単調増加し、連続2回一致した場合だけ受理する。"""
+
+    initial = [{"address": "1000", "name": "entry"}]
+    grown = initial + [{"address": "2000", "name": "discovered"}]
+    coverage = {"complete": True, "item_count": 2}
+    monkeypatch.setattr(
+        target, "_all_functions_with_coverage",
+        lambda *_args: (grown, coverage),
+    )
+    actual, actual_coverage, reads = target._stabilize_recovered_function_inventory(
+        object(), "/project/program", initial, grown, {"complete": True}
+    )
+    assert actual == grown
+    assert actual_coverage == coverage
+    assert reads == 1
+
+
+def test_entry_inventory_growth_rejects_contraction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """既知関数が消失した一覧は安定したように見えても採用しない。"""
+
+    initial = [{"address": "1000"}]
+    grown = initial + [{"address": "2000"}]
+    monkeypatch.setattr(
+        target, "_all_functions_with_coverage",
+        lambda *_args: (initial, {"complete": True}),
+    )
+    with pytest.raises(target.GhidraMcpInventoryChanged, match="縮小"):
+        target._stabilize_recovered_function_inventory(
+            object(), "/project/program", initial, grown, {"complete": True}
+        )
+
+
 @pytest.mark.parametrize("timeout", [0, -1, float("nan"), float("inf"), True])
 def test_client_rejects_nonpositive_or_nonfinite_transport_timeout(
     timeout: object,
@@ -1519,7 +1730,7 @@ def test_client_rejects_mcp_error_object(
 
         def open(self, _request: Request, *, timeout: int) -> Response:
             self.calls += 1
-            assert timeout == 60
+            assert timeout == 15
             return Response()
 
     opener = Opener()
@@ -1530,6 +1741,77 @@ def test_client_rejects_mcp_error_object(
             program="/Malware/Test/missing",
         )
     assert opener.calls == 1
+
+
+def test_client_classifies_only_exact_program_not_found(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """selectorまで一致する未登録応答だけをimport可能な分類にする。"""
+
+    class Response:
+        def __init__(self, body: bytes) -> None:
+            self.chunks = [body, b""]
+
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def settimeout(self, _value: float) -> None:
+            pass
+
+        def read1(self, _amount: int) -> bytes:
+            return self.chunks.pop(0)
+
+    class Opener:
+        def open(self, request: Request, *, timeout: float) -> Response:
+            assert timeout > 0
+            prefix = (
+                "File not found in project: "
+                if "/open_program" in request.full_url
+                else "Program not found: "
+            )
+            return Response(json.dumps({"error": prefix + "/Malware/Test/missing"}).encode())
+
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    client = target.GhidraMcpClient("http://127.0.0.1:8089")
+    with pytest.raises(target.GhidraMcpProgramNotFound):
+        client.get("/analysis_status", program="/Malware/Test/missing")
+    with pytest.raises(target.GhidraMcpProgramNotFound):
+        client.get("/open_program", path="/Malware/Test/missing", auto_analyze=False)
+
+
+def test_client_handles_exact_no_open_programs_status(monkeypatch: pytest.MonkeyPatch) -> None:
+    """全programを閉じたGhidraの固定status応答だけを未オープンとみなす。"""
+
+    class Response:
+        def settimeout(self, _value: float) -> None:
+            pass
+
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def read1(self, _amount: int) -> bytes:
+            if not hasattr(self, "done"):
+                self.done = True
+                return b'{"error":"No programs are currently open"}'
+            return b""
+
+    class Opener:
+        def open(self, request: Request, *, timeout: float) -> Response:
+            assert timeout > 0
+            return Response()
+
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: Opener())
+    client = target.GhidraMcpClient("http://127.0.0.1:8089")
+    with pytest.raises(target.GhidraMcpProgramNotFound):
+        client.get("/analysis_status", program="/Malware/Test/missing")
+    with pytest.raises(target.GhidraMcpError, match="error object"):
+        client.get("/open_program", path="/Malware/Test/missing")
 
 
 @pytest.mark.parametrize(
@@ -2010,10 +2292,10 @@ def test_quick_read_only_get_retries_one_header_timeout_on_new_request(
     assert all("body" not in item and "error" not in item and "url" not in item for item in evidence)
 
 
-def test_quick_read_only_get_stops_after_two_transport_timeouts(
+def test_quick_read_only_get_stops_after_three_transport_timeouts(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """2回とも通信timeoutなら3回目を開始せず、timeout causeを保持して失敗する。"""
+    """3回とも通信timeoutなら4回目を開始せず、timeout causeを保持して失敗する。"""
 
     requests: list[Request] = []
 
@@ -2031,9 +2313,96 @@ def test_quick_read_only_get_stops_after_two_transport_timeouts(
             program="/Malware/Test/sample",
             transport_timeout=10,
         )
-    assert len(requests) == 2
+    assert len(requests) == 3
     assert target._request_transport_failure_kind(captured.value) == "timeout"
     assert "PRIVATE_HEADER_STALL" not in str(captured.value)
+
+
+def test_fast_quick_get_retries_transient_stalls_with_short_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """軽量な関数一覧GETは15秒ずつ別接続で最大5回試す。"""
+
+    class Response:
+        def __init__(self) -> None:
+            self.chunks = [b'{"functions":[]}', b""]
+
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def settimeout(self, _value: float) -> None:
+            pass
+
+        def read1(self, _amount: int) -> bytes:
+            return self.chunks.pop(0)
+
+    class Opener:
+        calls = 0
+        requests: list[Request] = []
+
+        def open(self, request: Request, *, timeout: float) -> Response:
+            self.calls += 1
+            self.requests.append(request)
+            assert timeout == 15.0
+            if self.calls < 5:
+                raise TimeoutError("PRIVATE_HEADER_STALL")
+            return Response()
+
+    opener = Opener()
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: opener)
+    client = target.GhidraMcpClient("http://127.0.0.1:8089", timeout=3600)
+    assert client.get("/list_functions_enhanced", program="/Malware/Test/sample") == {
+        "functions": []
+    }
+    assert opener.calls == 5
+    assert len({id(request) for request in opener.requests}) == 5
+    evidence = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert all(item["maximum_attempts"] == 5 for item in evidence)
+    assert all(item["transport_timeout_seconds"] == 15.0 for item in evidence)
+
+
+def test_quick_read_only_get_recovers_after_timeout_and_connection_reset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """独立した通信障害が続いても3回目の読み取りを許可する。"""
+
+    class Response:
+        def __init__(self) -> None:
+            self.chunks = [b'{"segments":[]}', b""]
+
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def settimeout(self, _value: float) -> None:
+            pass
+
+        def read1(self, _amount: int) -> bytes:
+            return self.chunks.pop(0)
+
+    class Opener:
+        calls = 0
+
+        def open(self, _request: Request, *, timeout: float) -> Response:
+            self.calls += 1
+            assert timeout == 60.0
+            if self.calls == 1:
+                raise TimeoutError("first transport failure")
+            if self.calls == 2:
+                raise ConnectionResetError("second transport failure")
+            return Response()
+
+    opener = Opener()
+    monkeypatch.setattr(target, "_build_ghidra_mcp_opener", lambda: opener)
+    client = target.GhidraMcpClient("http://127.0.0.1:8089", timeout=3600)
+    assert client.get("/list_segments", program="/Malware/Test/sample") == {"segments": []}
+    assert opener.calls == 3
 
 
 def test_quick_read_only_get_requires_explicit_normalized_selector(
@@ -2226,6 +2595,29 @@ def test_opcode_hash_endpoint_is_skipped_only_for_strict_zero_inventory() -> Non
     assert [call[0] for call in mismatch_client.calls] == ["/get_bulk_function_hashes"]
     assert invoked["endpoint_invoked"] is True
     assert invoked["source"] == "ghidra_mcp"
+
+
+def test_large_opcode_hash_inventory_uses_smaller_pages() -> None:
+    """大規模inventoryだけ、ハッシュ取得を1要求100件へ分割する。"""
+
+    class Client:
+        def __init__(self) -> None:
+            self.limits: list[int] = []
+
+        def get(self, _endpoint: str, **query: object) -> object:
+            self.limits.append(int(query["limit"]))
+            return {"functions": [], "total_matching": 0}
+
+    client = Client()
+    target._all_opcode_hashes(client, "/project/program", [{"address": "1000"}])
+    assert client.limits == [target.FUNCTION_PAGE_SIZE]
+    client.limits.clear()
+    inventory = [
+        {"address": f"{index:08x}", "name": "function"}
+        for index in range(target.LARGE_HASH_INVENTORY_THRESHOLD + 1)
+    ]
+    target._all_opcode_hashes(client, "/project/program", inventory)
+    assert client.limits == [target.LARGE_HASH_PAGE_SIZE]
 
 
 def test_strict_zero_opcode_hash_skip_evidence_rejects_forgery() -> None:
@@ -3416,6 +3808,46 @@ def test_zero_function_recovery_rejects_unverified_inventory_after_create() -> N
     assert recovery["reason"] == "created_entry_body_not_unique_in_function_inventory"
     assert recovery["final_function_count"] == 1
     assert recovery["validated_entry_body_count"] == 0
+
+
+def test_failed_entry_recovery_with_valid_pe_remains_pending() -> None:
+    """解析中に0件だった有効PEを完了cacheとして固定しない。"""
+
+    base = {
+        "analysis_mode": "native_ghidra_with_optional_cil",
+        "ghidra_function_inventory_count": 0,
+        "managed_method_count": 0,
+    }
+    assert target._native_zero_function_recovery_pending({
+        **base,
+        "entry_point_function_recovery": {
+            "status": "failed",
+            "validated_address": "00460300",
+            "reason": "created_entry_body_not_unique_in_function_inventory",
+        },
+    })
+    assert not target._native_zero_function_recovery_pending({
+        **base,
+        "entry_point_function_recovery": {
+            "status": "failed",
+            "reason": "pe_header_parse_failed",
+        },
+    })
+    assert target._native_zero_function_recovery_pending({
+        **base,
+        "entry_point_function_recovery": {
+            "status": "not_attempted",
+            "reason": "input_cache_unavailable_for_recovery",
+        },
+    })
+    assert not target._native_zero_function_recovery_pending({
+        **base,
+        "ghidra_function_inventory_count": 1,
+        "entry_point_function_recovery": {
+            "status": "not_attempted",
+            "reason": "input_cache_unavailable_for_recovery",
+        },
+    })
 
 
 def test_markdown_does_not_publish_raw_pseudocode() -> None:
@@ -7131,6 +7563,19 @@ def test_finalize_case_report_documents_exhaustive_handler_no_evidence(
     assert "静的確認済み属性へは昇格させません" in refreshed["limitations"][-1]
 
 
+def test_replace_markdown_section_preserves_windows_command_line() -> None:
+    """再投影時にもWindows pathのbackslashをそのまま保持する。"""
+
+    command = r"C:\ProgramData\sample\Loader.exe /config:C:\ProgramData\sample\cfg.bin"
+    before = "# ケース\n\n## プロセス挙動\n\n旧記録\n\n## 制約\n\n静的解析のみ。\n"
+
+    updated = target._replace_markdown_section(before, "プロセス挙動", [command])
+
+    assert command in updated
+    assert "旧記録" not in updated
+    assert updated.count("## 制約") == 1
+
+
 def test_finalize_collection_registers_partial_case_identity(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -7155,7 +7600,19 @@ def test_finalize_collection_registers_partial_case_identity(
         collection / "manifest.json",
         {"cases": [{"case_id": f"sha256:{digest}"}]},
     )
-    target._json_dump(collection / "publication-summary.json", {})
+    target._json_dump(
+        collection / "publication-summary.json",
+        {
+            "cases": [
+                {
+                    "sha256": digest,
+                    "case_state": "partial",
+                    "blockers": [target.FUNCTION_ANALYSIS_BLOCKER],
+                    "publication_stage": "analysis_followup_pending",
+                }
+            ]
+        },
+    )
     (collection / "README.md").write_text(
         "# テスト\n- 公開段階: `analysis_followup_pending`\n",
         encoding="utf-8",
@@ -7179,6 +7636,9 @@ def test_finalize_collection_registers_partial_case_identity(
     assert manifest["analysis_complete"] is False
     assert manifest["case_state_counts"] == {"partial": 1}
     assert manifest["case_blocker_counts"] == {"generic_triage_partial": 1}
+    summary = target.load_json_object_strict(collection / "publication-summary.json")
+    assert summary["cases"][0]["blockers"] == ["generic_triage_partial"]
+    assert summary["cases"][0]["publication_stage"] == "partial_followup_required"
     readme = (collection / "README.md").read_text(encoding="utf-8")
     assert "partial_followup_required" in readme
     assert "`generic_triage_partial` | 1" in readme
@@ -8850,13 +9310,13 @@ def test_run_stops_between_programs_and_preserves_completed_cache(
     assert (private_output / "objects" / digests[0] / "program-result.json").is_file()
 
 
-@pytest.mark.parametrize("transport_timeout", [False, True])
+@pytest.mark.parametrize("failure_kind", ["analysis_timeout", "transport_timeout", "connection_reset"])
 def test_run_continues_after_timeout_and_rotates_unattempted_programs_on_resume(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    transport_timeout: bool,
+    failure_kind: str,
 ) -> None:
-    """timeoutもchunk枠を消費し、次回は未試行programを先に解析する。"""
+    """通信障害もchunk枠を消費し、次回は未試行programを先に解析する。"""
 
     digests = [str(index) * 64 for index in range(1, 5)]
     objects = {
@@ -8884,12 +9344,14 @@ def test_run_continues_after_timeout_and_rotates_unattempted_programs_on_resume(
     def analyze(_client: object, item: target.ProgramObject, *_args: object, **_kwargs: object):
         attempted.append(item.sha256)
         if item.sha256 == digests[0]:
-            try:
+            if failure_kind == "analysis_timeout":
                 raise TimeoutError("fixture timeout")
-            except TimeoutError as exc:
-                if transport_timeout:
-                    raise target.GhidraMcpError("fixture transport timeout") from exc
-                raise
+            try:
+                if failure_kind == "transport_timeout":
+                    raise TimeoutError("fixture timeout")
+                raise ConnectionResetError("fixture connection reset")
+            except (TimeoutError, ConnectionResetError) as exc:
+                raise target.GhidraMcpError("fixture transport failure") from exc
         # 2つ目の開始前にtimeout checkpointがすでに書かれている。
         checkpoint = target._load_resume_checkpoint(private_output, collection_id="batch")
         assert checkpoint is not None
@@ -8912,7 +9374,11 @@ def test_run_continues_after_timeout_and_rotates_unattempted_programs_on_resume(
     rows, _ = target._bounded_jsonl_snapshot(private_output / "program-timeouts.raw.jsonl")
     assert len(rows) == 1
     assert rows[0]["sha256"] == digests[0]
-    assert rows[0]["reason"] == ("mcp_transport_timeout" if transport_timeout else "analysis_wait_timeout")
+    assert rows[0]["reason"] == {
+        "analysis_timeout": "analysis_wait_timeout",
+        "transport_timeout": "mcp_transport_timeout",
+        "connection_reset": "mcp_transport_failure",
+    }[failure_kind]
     assert rows[0]["sample_executed"] is False
     second = target.run(args)
     assert attempted == digests
@@ -8953,6 +9419,58 @@ def test_run_does_not_suppress_non_timeout_mcp_errors(
     with pytest.raises(target.GhidraMcpError, match="selector mismatch"):
         target.run(args)
     assert not (private_output / "program-timeouts.raw.jsonl").exists()
+
+
+def test_retryable_cleanup_saves_then_closes_exact_program(tmp_path: Path) -> None:
+    """通信障害後の後始末は明示selectorへ限定し、保存確認後に閉じる。"""
+
+    digest = "a" * 64
+    case_sha = "b" * 64
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=tmp_path / f"{digest}.quarantine.bin",
+        size=1,
+        relationships=[{"case_sha256": case_sha, "depth": 1, "transform": "fixture"}],
+    )
+    selector = f"/daily/batch/{case_sha[:8]}/layers/{digest[:8]}/{item.input_path.name}"
+    calls: list[tuple[str, str]] = []
+
+    class Client:
+        def get(self, endpoint: str, **query: object) -> object:
+            assert query == {"program": selector, "transport_timeout": 30}
+            calls.append(("get", endpoint))
+            return {"success": True, "program": item.input_path.name}
+
+        def post(self, endpoint: str, body: object, **query: object) -> object:
+            assert body == {"name": selector}
+            assert query == {"transport_timeout": 30}
+            calls.append(("post", endpoint))
+            return {"success": True, "name": selector}
+
+    assert target._cleanup_retryable_program_failure(Client(), item, "/daily/batch") == "saved_and_closed"
+    assert calls == [("get", "/save_program"), ("post", "/close_program")]
+
+
+def test_retryable_cleanup_never_closes_without_confirmed_save(tmp_path: Path) -> None:
+    """保存失敗時の未完了programは開いたまま残し、後続で再試行する。"""
+
+    digest = "a" * 64
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=tmp_path / f"{digest}.quarantine.bin",
+        size=1,
+        relationships=[{"case_sha256": "b" * 64, "depth": 0, "transform": "fixture"}],
+    )
+
+    class Client:
+        def get(self, endpoint: str, **query: object) -> object:
+            assert endpoint == "/save_program"
+            return {"success": False}
+
+        def post(self, endpoint: str, body: object, **query: object) -> object:
+            pytest.fail("保存未確認のprogramを閉じてはいけません")
+
+    assert target._cleanup_retryable_program_failure(Client(), item, "/daily/batch") == "save_not_confirmed"
 
 
 def test_run_defers_postprocessing_without_rewriting_complete_cache(
