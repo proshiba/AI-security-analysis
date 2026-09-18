@@ -19,6 +19,7 @@ import os
 import re
 import shutil
 import stat
+import subprocess
 import sys
 import tempfile
 import time
@@ -102,6 +103,8 @@ DEFAULT_PROJECT_ROOT = "/Malware/MalwareBazaarWindows/20260723"
 MAX_MCP_RESPONSE_BYTES = 64 * 1024 * 1024
 MCP_RESPONSE_READ_CHUNK_BYTES = 64 * 1024
 FUNCTION_PAGE_SIZE = 500
+LARGE_HASH_INVENTORY_THRESHOLD = 10_000
+LARGE_HASH_PAGE_SIZE = 100
 MAX_FUNCTION_INVENTORY_ITEMS = 100_000
 MAX_FUNCTION_INVENTORY_PAGES = 10_000
 CALL_GRAPH_ENDPOINT = "/get_full_call_graph"
@@ -315,6 +318,10 @@ class GhidraMcpError(RuntimeError):
 
 class GhidraMcpProgramNotFound(GhidraMcpError):
     """指定programがGhidra projectに存在しない明示的な応答。"""
+
+
+class GhidraMcpInventoryChanged(GhidraMcpError):
+    """入口関数復元直後にGhidraの関数inventoryが増減した状態。"""
 
 
 def _request_timed_out(error: BaseException) -> bool:
@@ -1672,7 +1679,14 @@ def _build_ghidra_mcp_opener() -> OpenerDirector:
 class GhidraMcpClient:
     """numeric loopback限定Ghidra MCP HTTP client。"""
 
-    def __init__(self, base_url: str, *, timeout: int = 180) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        *,
+        timeout: int = 180,
+        transport: str = "urllib",
+        curl_path: Path | None = None,
+    ) -> None:
         parsed = urlparse(base_url)
         try:
             parsed.port
@@ -1684,7 +1698,69 @@ class GhidraMcpClient:
             raise ValueError("Ghidra MCP URLへ資格情報、query、fragmentは指定できません")
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        if transport not in {"urllib", "curl"}:
+            raise ValueError("Ghidra MCP transportはurllibまたはcurlを指定してください")
+        if transport == "curl" and curl_path is None:
+            raise ValueError("curl transportには実行ファイルの明示パスが必要です")
+        if curl_path is not None and not curl_path.is_absolute():
+            raise ValueError("curl実行ファイルは絶対パスで指定してください")
+        self.transport = transport
+        self.curl_path = curl_path
         self._opener = _build_ghidra_mcp_opener()
+
+    def _curl_request(
+        self,
+        method: str,
+        url: str,
+        data: bytes | None,
+        timeout: float,
+    ) -> bytes:
+        """設定ファイル・proxy・redirectを無効化したlocalhost専用HTTP通信。"""
+
+        assert self.curl_path is not None
+        command = [
+            str(self.curl_path), "--disable", "--globoff", "--http1.1",
+            "--noproxy", "*", "--proxy", "", "--max-redirs", "0",
+            "--max-time", str(timeout), "--connect-timeout", str(min(timeout, 10.0)),
+            "--max-filesize", str(MAX_MCP_RESPONSE_BYTES),
+            "--silent", "--show-error", "--output", "-",
+            "--write-out", "%{http_code}",
+            "--header", "Accept: application/json",
+            "--header", "Connection: close",
+            "--request", method,
+        ]
+        if data is not None:
+            command.extend(["--header", "Content-Type: application/json", "--data-binary", "@-"])
+        command.append(url)
+        try:
+            response = subprocess.run(
+                command,
+                input=data,
+                capture_output=True,
+                check=False,
+                timeout=timeout + 2.0,
+            )
+        except subprocess.TimeoutExpired as error:
+            raise GhidraMcpError(f"{method} curl transport timed out") from TimeoutError(str(error))
+        except OSError as error:
+            raise GhidraMcpError(f"{method} curl transport failed") from error
+        if response.returncode != 0:
+            if response.returncode == 28:
+                raise GhidraMcpError(f"{method} curl transport timed out") from TimeoutError(
+                    "curl transport deadline exceeded"
+                )
+            raise GhidraMcpError(f"{method} curl transport failed") from OSError(
+                f"curl exit code {response.returncode}"
+            )
+        if len(response.stdout) < 3 or not response.stdout[-3:].isdigit():
+            raise GhidraMcpError(f"{method} curl transport returned no HTTP status")
+        status_code = int(response.stdout[-3:])
+        raw = response.stdout[:-3]
+        if len(raw) > MAX_MCP_RESPONSE_BYTES:
+            raise GhidraMcpError("Ghidra MCP responseがbytes上限を超えています")
+        if status_code != 200:
+            raise GhidraMcpError(f"{method} curl transport failed: HTTP {status_code}")
+        return raw
 
     def _request(
         self,
@@ -1730,10 +1806,13 @@ class GhidraMcpClient:
                 "transport_timeout_seconds": float(effective_timeout),
             }, ensure_ascii=False), flush=True)
         try:
-            with self._opener.open(request, timeout=effective_timeout) as response:
-                if time.monotonic() >= deadline:
-                    raise TimeoutError("Ghidra MCP response deadline exceeded after headers")
-                raw = _read_mcp_response_body(response, deadline=deadline)
+            if self.transport == "curl":
+                raw = self._curl_request(method, url, data, float(effective_timeout))
+            else:
+                with self._opener.open(request, timeout=effective_timeout) as response:
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("Ghidra MCP response deadline exceeded after headers")
+                    raw = _read_mcp_response_body(response, deadline=deadline)
         except HTTPError as error:
             status_code = error.code
             try:
@@ -3441,11 +3520,16 @@ def _all_opcode_hashes(
 ) -> dict[str, Any]:
     functions: list[dict[str, Any]] = []
     offset = 0
+    page_size = (
+        LARGE_HASH_PAGE_SIZE
+        if len(function_inventory) > LARGE_HASH_INVENTORY_THRESHOLD
+        else FUNCTION_PAGE_SIZE
+    )
     while True:
         page = client.get(
             "/get_bulk_function_hashes",
             offset=offset,
-            limit=FUNCTION_PAGE_SIZE,
+            limit=page_size,
             filter="",
             program=program,
         )
@@ -4145,6 +4229,32 @@ def _function_inventory_identity(
             for function in functions
         )
     )
+
+
+def _stabilize_recovered_function_inventory(
+    client: GhidraMcpClient,
+    program: str,
+    initial_functions: list[dict[str, Any]],
+    observed_functions: list[dict[str, Any]],
+    observed_coverage: dict[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any], int]:
+    """入口関数復元後、単調な自動発見だけを連続2回の一致で受理する。"""
+
+    initial = set(_function_inventory_identity(initial_functions))
+    previous = set(_function_inventory_identity(observed_functions))
+    if not initial.issubset(previous):
+        raise GhidraMcpInventoryChanged("entry point関数復元後に既知関数が消失しました")
+    if previous == initial:
+        return observed_functions, observed_coverage, 0
+    for refresh_attempt in range(1, 4):
+        current_functions, current_coverage = _all_functions_with_coverage(client, program)
+        current = set(_function_inventory_identity(current_functions))
+        if not previous.issubset(current):
+            raise GhidraMcpInventoryChanged("entry point関数復元後のinventoryが縮小・置換されました")
+        if current == previous:
+            return current_functions, current_coverage, refresh_attempt
+        previous = current
+    raise GhidraMcpInventoryChanged("entry point関数復元後のinventoryが安定しません")
 
 
 def _call_graph_degrees(call_graph: Mapping[str, Any]) -> tuple[Counter[str], Counter[str], dict[str, list[str]]]:
@@ -6128,6 +6238,42 @@ def _cleanup_retryable_program_failure(
     return "saved_and_closed"
 
 
+def _analyze_with_inventory_refresh(
+    client: GhidraMcpClient,
+    item: ProgramObject,
+    private_output: Path,
+    project_root: str,
+    *,
+    analysis_timeout: int,
+    skip_auto_analysis: bool,
+) -> dict[str, Any]:
+    """入口関数復元でinventoryが変わった場合だけ、保存・再開を一度行う。"""
+
+    try:
+        return analyze_program(
+            client, item, private_output, project_root,
+            analysis_timeout=analysis_timeout,
+            skip_auto_analysis=skip_auto_analysis,
+        )
+    except GhidraMcpInventoryChanged:
+        cleanup_status = _cleanup_retryable_program_failure(client, item, project_root)
+        if cleanup_status != "saved_and_closed":
+            raise
+        print(
+            json.dumps({
+                "phase": "ghidra_inventory_refresh",
+                "sha256": item.sha256,
+                "state": "saved_and_reopened_once",
+            }),
+            flush=True,
+        )
+        return analyze_program(
+            client, item, private_output, project_root,
+            analysis_timeout=analysis_timeout,
+            skip_auto_analysis=skip_auto_analysis,
+        )
+
+
 def analyze_program(
     client: GhidraMcpClient,
     item: ProgramObject,
@@ -6488,10 +6634,16 @@ def analyze_program(
                 client,
                 program,
             )
-            if _function_inventory_identity(recovered_functions) != _function_inventory_identity(functions):
-                raise GhidraMcpError(
-                    "entry point関数復元後の再取得inventoryが一致しません"
+            recovered_functions, recovered_coverage, stabilization_reads = (
+                _stabilize_recovered_function_inventory(
+                    client, program, functions, recovered_functions, recovered_coverage,
                 )
+            )
+            if stabilization_reads:
+                entry_function_recovery["inventory_growth_stabilization_reads"] = stabilization_reads
+                entry_function_recovery_raw["inventory_growth_stabilization_reads"] = stabilization_reads
+                entry_function_recovery["final_function_count"] = len(recovered_functions)
+                entry_function_recovery_raw["final_function_count"] = len(recovered_functions)
             if recovered_functions != functions:
                 entry_function_recovery["inventory_refresh_metadata_changed"] = True
                 entry_function_recovery_raw["inventory_refresh_metadata_changed"] = True
@@ -9610,6 +9762,7 @@ def finalize_collection_publication(
     by_family: dict[str, list[Path]] = defaultdict(list)
     state_counts: Counter[str] = Counter()
     blocker_counts: Counter[str] = Counter()
+    case_publication_state: dict[str, tuple[str, list[str]]] = {}
     for digest in requested:
         case_dir = case_paths.get(digest)
         if case_dir is None:
@@ -9624,7 +9777,11 @@ def finalize_collection_publication(
         state_counts[status] += 1
         blockers = state.get("blockers") if isinstance(state, Mapping) else []
         if isinstance(blockers, list):
-            blocker_counts.update(str(blocker) for blocker in blockers if isinstance(blocker, str) and blocker.strip())
+            valid_blockers = [str(blocker) for blocker in blockers if isinstance(blocker, str) and blocker.strip()]
+            blocker_counts.update(valid_blockers)
+        else:
+            valid_blockers = []
+        case_publication_state[digest] = (status, valid_blockers)
         by_family[family].append(case_dir)
     complete_statuses = {"complete"}
     all_complete = bool(requested) and set(state_counts) <= complete_statuses
@@ -9657,6 +9814,16 @@ def finalize_collection_publication(
             "case_blocker_counts": dict(sorted(blocker_counts.items())),
         }
     )
+    for item in summary.get("cases", []):
+        if not isinstance(item, dict):
+            continue
+        digest = str(item.get("sha256") or "").casefold()
+        if digest not in case_publication_state:
+            continue
+        case_status, case_blockers = case_publication_state[digest]
+        item["case_state"] = case_status
+        item["blockers"] = case_blockers
+        item["publication_stage"] = "complete" if case_status == "complete" else "partial_followup_required"
     _json_dump(summary_path, summary)
     readme_path = collection_dir / "README.md"
     readme = readme_path.read_text(encoding="utf-8-sig")
@@ -10548,7 +10715,8 @@ def _replace_markdown_section(markdown: str, heading: str, body: Sequence[str]) 
     section = "\n".join([f"## {heading}", "", *body, ""])
     pattern = re.compile(rf"(?ms)^## {re.escape(heading)}\s*$.*?(?=^##\s|\Z)")
     if pattern.search(markdown):
-        return pattern.sub(section, markdown).rstrip() + "\n"
+        # Windows pathや実コマンド中のbackslashを置換templateとして解釈しない。
+        return pattern.sub(lambda _match: section, markdown).rstrip() + "\n"
     return markdown.rstrip() + "\n\n" + section
 
 
@@ -11799,10 +11967,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 context="Ghidra import直前",
             )
         if client is None:
-            client = GhidraMcpClient(args.mcp_url, timeout=args.request_timeout)
+            client = GhidraMcpClient(
+                args.mcp_url, timeout=args.request_timeout,
+                transport=args.mcp_transport, curl_path=args.mcp_curl_path,
+            )
         attempted_programs += 1
         try:
-            results[item.sha256] = analyze_program(
+            results[item.sha256] = _analyze_with_inventory_refresh(
                 client,
                 item,
                 private_output,
@@ -11946,7 +12117,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
     )
     if client is None:
-        client = GhidraMcpClient(args.mcp_url, timeout=args.request_timeout)
+        client = GhidraMcpClient(
+            args.mcp_url, timeout=args.request_timeout,
+            transport=args.mcp_transport, curl_path=args.mcp_curl_path,
+        )
     complete_artifact_refresh = refresh_complete_program_artifacts(
         client,
         results,
@@ -12093,6 +12267,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--mcp-url",
         default=DEFAULT_MCP_URL,
         help="localhostのGhidra MCP URLを指定します",
+    )
+    parser.add_argument(
+        "--mcp-transport",
+        choices=("urllib", "curl"),
+        default="urllib",
+        help="Ghidra MCPのlocalhost HTTP通信手段。curlは明示パスが必要です",
+    )
+    parser.add_argument(
+        "--mcp-curl-path",
+        type=Path,
+        help="curl transportで使用する信頼済みcurl実行ファイルの絶対パス",
     )
     parser.add_argument(
         "--project-root",

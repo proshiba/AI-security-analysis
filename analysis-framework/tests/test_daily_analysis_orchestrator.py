@@ -785,6 +785,33 @@ def test_production_ghidra_separates_prepared_inputs_from_source(
     assert daily_context.ghidra_sample_root != daily_context.source_root
 
 
+def test_production_ghidra_uses_system_curl_for_local_mcp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Windows system curlを明示指定し、PATH依存の実行を避ける。"""
+
+    import ghidra_function_batch
+
+    daily_context = context(tmp_path)
+    system_curl = Path("C:/Windows/System32/curl.exe")
+    monkeypatch.setattr(target, "_ghidra_system_curl_path", lambda: system_curl)
+    captured = {}
+
+    def fake_run(arguments):
+        captured["arguments"] = arguments
+        return {
+            "status": "complete",
+            "unique_pe_programs": 1,
+            "complete_programs": 1,
+            "pending_programs": [],
+        }
+
+    monkeypatch.setattr(ghidra_function_batch, "run", fake_run)
+    assert target._production_ghidra(daily_context).status == "complete"
+    assert captured["arguments"].mcp_transport == "curl"
+    assert captured["arguments"].mcp_curl_path == system_curl
+
+
 @pytest.mark.parametrize("pending", [None, "a" * 64, [1], ["bad"], ["a" * 64, "a" * 64]])
 def test_production_ghidra_rejects_invalid_pending_queue(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, pending: object,

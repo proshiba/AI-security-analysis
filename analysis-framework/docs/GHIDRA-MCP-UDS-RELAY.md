@@ -33,6 +33,18 @@ py -3.13 -B .\analysis-framework\common\ghidra_mcp_uds_relay.py `
 
 既存checkpointを新実装へ移行するときも、以後のresumeと同じ`--ghidra-mcp-url`を指定します。別URLを指定したresumeはoperator pin不一致としてfail closedになります。
 
+## 一括静的解析の通信切替
+
+Python標準HTTP経由の個別照会が断続的にtimeoutする場合、`ghidra_function_batch.py`の直接実行に限り、既存の引数へ次を追加できます。既定は引き続き`urllib`です。
+
+```powershell
+--mcp-url http://127.0.0.1:18089 `
+--mcp-transport curl `
+--mcp-curl-path C:\Windows\System32\curl.exe
+```
+
+指定するcurl実行ファイルは、信頼済みの絶対パスで確認します。この経路でも接続先はnumeric loopbackのHTTPだけに限定し、curl設定、proxy、redirectを無効化します。応答は64 MiBを上限とし、検体の実行や任意Ghidra script実行は行いません。日次orchestrator自体へのtransport切替ではないため、必要な場合は一括静的解析のcheckpointを直接完了させてから日次stageを再整合します。
+
 ## 障害時の確認
 
 - `relay_transport_failed`の場合はsocket fileのPID、Ghidra process、socketの更新時刻を確認します。

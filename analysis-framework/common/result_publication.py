@@ -204,6 +204,7 @@ def register_publication_cases(
     for digest, path in sorted(normalized.items()):
         metadata_path = path / "metadata.json"
         metadata, metadata_before = _read_json_document(metadata_path, {})
+        metadata_before_document = dict(metadata)
         case_kind = "unclassified" if context.family == "unclassified" else "malware"
         for key, expected in (
             ("schema_version", 1),
@@ -276,7 +277,10 @@ def register_publication_cases(
             metadata["attribution_status"] = attribution_status
         if provisional_cluster_id is not None:
             metadata["provisional_cluster_id"] = provisional_cluster_id
-        documents[metadata_path] = (metadata_before, _json_bytes(metadata))
+        # 封印済みreportはmetadataの生bytesもhash化する。意味的に変更が
+        # なければ改行や整形だけを書き換えてhashを破壊してはならない。
+        if metadata != metadata_before_document:
+            documents[metadata_path] = (metadata_before, _json_bytes(metadata))
         entry = (catalog["cases"] or {}).get(digest)
         new_entry = {
             **(entry if isinstance(entry, dict) else {}),

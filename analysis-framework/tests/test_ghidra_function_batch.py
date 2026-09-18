@@ -1478,6 +1478,164 @@ def test_client_accepts_only_numeric_loopback_plain_http() -> None:
             target.GhidraMcpClient(value)
 
 
+def test_curl_transport_is_explicit_and_confined_to_loopback(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """curl設定・proxy・redirectを無効化し、明示した実行ファイルだけを使う。"""
+
+    with pytest.raises(ValueError, match="明示パス"):
+        target.GhidraMcpClient("http://127.0.0.1:8089", transport="curl")
+    with pytest.raises(ValueError, match="絶対パス"):
+        target.GhidraMcpClient(
+            "http://127.0.0.1:8089", transport="curl", curl_path=Path("relative/curl")
+        )
+    with pytest.raises(ValueError, match="numeric loopback"):
+        target.GhidraMcpClient(
+            "http://192.0.2.1:8089", transport="curl", curl_path=tmp_path / "curl"
+        )
+    observed: dict[str, object] = {}
+
+    def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
+        observed.update(command=command, kwargs=kwargs)
+        return SimpleNamespace(returncode=0, stdout=b'{"ok":true}200', stderr=b"")
+
+    monkeypatch.setattr(target.subprocess, "run", fake_run)
+    client = target.GhidraMcpClient(
+        "http://127.0.0.1:8089", transport="curl", curl_path=tmp_path / "curl"
+    )
+    assert client.get("/test_read", program="/project/program") == {"ok": True}
+    command = observed["command"]
+    assert isinstance(command, list)
+    assert command[0] == str(tmp_path / "curl")
+    assert command[1] == "--disable"
+    assert command[command.index("--noproxy") + 1] == "*"
+    assert command[command.index("--max-redirs") + 1] == "0"
+    assert command[-1] == "http://127.0.0.1:8089/test_read?program=%2Fproject%2Fprogram"
+    assert observed["kwargs"]["input"] is None
+
+
+def test_curl_transport_bounds_response_and_classifies_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """HTTP semantic errorは再試行せず、transport timeoutだけを分類する。"""
+
+    client = target.GhidraMcpClient(
+        "http://127.0.0.1:8089", transport="curl", curl_path=tmp_path / "curl"
+    )
+    monkeypatch.setattr(
+        target.subprocess, "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=0, stdout=b"error503", stderr=b""),
+    )
+    with pytest.raises(target.GhidraMcpError, match="HTTP 503") as semantic:
+        client.get("/test_read")
+    assert target._request_transport_failure_kind(semantic.value) is None
+    monkeypatch.setattr(
+        target.subprocess, "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=28, stdout=b"000", stderr=b""),
+    )
+    with pytest.raises(target.GhidraMcpError) as timeout:
+        client.get("/test_read")
+    assert target._request_transport_failure_kind(timeout.value) == "timeout"
+    monkeypatch.setattr(target, "MAX_MCP_RESPONSE_BYTES", 4)
+    monkeypatch.setattr(
+        target.subprocess, "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=0, stdout=b"oversized200", stderr=b""),
+    )
+    with pytest.raises(target.GhidraMcpError, match="bytes上限"):
+        client.get("/test_read")
+
+
+def test_entry_inventory_change_reopens_once_after_confirmed_save(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """関数一覧の変化だけを一度再試行し、二重取込みや無限再試行を避ける。"""
+
+    calls: list[str] = []
+    item = SimpleNamespace(sha256="a" * 64)
+
+    def fake_analyze(*_args: object, **_kwargs: object) -> dict[str, object]:
+        calls.append("analyze")
+        if len(calls) == 1:
+            raise target.GhidraMcpInventoryChanged("inventory changed")
+        return {"status": "complete"}
+
+    monkeypatch.setattr(target, "analyze_program", fake_analyze)
+    monkeypatch.setattr(
+        target, "_cleanup_retryable_program_failure",
+        lambda *_args: calls.append("save_close") or "saved_and_closed",
+    )
+    result = target._analyze_with_inventory_refresh(
+        object(), item, tmp_path, "/project", analysis_timeout=5, skip_auto_analysis=False
+    )
+    assert result == {"status": "complete"}
+    assert calls == ["analyze", "save_close", "analyze"]
+
+
+def test_entry_inventory_change_does_not_retry_without_confirmed_save(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """保存を確認できなければ元の不一致でfail-closedにする。"""
+
+    calls: list[str] = []
+
+    def fake_analyze(*_args: object, **_kwargs: object) -> dict[str, object]:
+        calls.append("analyze")
+        raise target.GhidraMcpInventoryChanged("inventory changed")
+
+    monkeypatch.setattr(target, "analyze_program", fake_analyze)
+    monkeypatch.setattr(
+        target, "_cleanup_retryable_program_failure",
+        lambda *_args: "save_not_confirmed",
+    )
+    with pytest.raises(target.GhidraMcpInventoryChanged):
+        target._analyze_with_inventory_refresh(
+            object(), SimpleNamespace(sha256="b" * 64), tmp_path, "/project",
+            analysis_timeout=5, skip_auto_analysis=False,
+        )
+    assert calls == ["analyze"]
+
+
+def test_entry_inventory_growth_requires_stable_superset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """入口関数の自動発見は単調増加し、連続2回一致した場合だけ受理する。"""
+
+    initial = [{"address": "1000", "name": "entry"}]
+    grown = initial + [{"address": "2000", "name": "discovered"}]
+    coverage = {"complete": True, "item_count": 2}
+    monkeypatch.setattr(
+        target, "_all_functions_with_coverage",
+        lambda *_args: (grown, coverage),
+    )
+    actual, actual_coverage, reads = target._stabilize_recovered_function_inventory(
+        object(), "/project/program", initial, grown, {"complete": True}
+    )
+    assert actual == grown
+    assert actual_coverage == coverage
+    assert reads == 1
+
+
+def test_entry_inventory_growth_rejects_contraction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """既知関数が消失した一覧は安定したように見えても採用しない。"""
+
+    initial = [{"address": "1000"}]
+    grown = initial + [{"address": "2000"}]
+    monkeypatch.setattr(
+        target, "_all_functions_with_coverage",
+        lambda *_args: (initial, {"complete": True}),
+    )
+    with pytest.raises(target.GhidraMcpInventoryChanged, match="縮小"):
+        target._stabilize_recovered_function_inventory(
+            object(), "/project/program", initial, grown, {"complete": True}
+        )
+
+
 @pytest.mark.parametrize("timeout", [0, -1, float("nan"), float("inf"), True])
 def test_client_rejects_nonpositive_or_nonfinite_transport_timeout(
     timeout: object,
@@ -2437,6 +2595,29 @@ def test_opcode_hash_endpoint_is_skipped_only_for_strict_zero_inventory() -> Non
     assert [call[0] for call in mismatch_client.calls] == ["/get_bulk_function_hashes"]
     assert invoked["endpoint_invoked"] is True
     assert invoked["source"] == "ghidra_mcp"
+
+
+def test_large_opcode_hash_inventory_uses_smaller_pages() -> None:
+    """大規模inventoryだけ、ハッシュ取得を1要求100件へ分割する。"""
+
+    class Client:
+        def __init__(self) -> None:
+            self.limits: list[int] = []
+
+        def get(self, _endpoint: str, **query: object) -> object:
+            self.limits.append(int(query["limit"]))
+            return {"functions": [], "total_matching": 0}
+
+    client = Client()
+    target._all_opcode_hashes(client, "/project/program", [{"address": "1000"}])
+    assert client.limits == [target.FUNCTION_PAGE_SIZE]
+    client.limits.clear()
+    inventory = [
+        {"address": f"{index:08x}", "name": "function"}
+        for index in range(target.LARGE_HASH_INVENTORY_THRESHOLD + 1)
+    ]
+    target._all_opcode_hashes(client, "/project/program", inventory)
+    assert client.limits == [target.LARGE_HASH_PAGE_SIZE]
 
 
 def test_strict_zero_opcode_hash_skip_evidence_rejects_forgery() -> None:
@@ -7342,6 +7523,19 @@ def test_finalize_case_report_documents_exhaustive_handler_no_evidence(
     assert "静的確認済み属性へは昇格させません" in refreshed["limitations"][-1]
 
 
+def test_replace_markdown_section_preserves_windows_command_line() -> None:
+    """再投影時にもWindows pathのbackslashをそのまま保持する。"""
+
+    command = r"C:\ProgramData\sample\Loader.exe /config:C:\ProgramData\sample\cfg.bin"
+    before = "# ケース\n\n## プロセス挙動\n\n旧記録\n\n## 制約\n\n静的解析のみ。\n"
+
+    updated = target._replace_markdown_section(before, "プロセス挙動", [command])
+
+    assert command in updated
+    assert "旧記録" not in updated
+    assert updated.count("## 制約") == 1
+
+
 def test_finalize_collection_registers_partial_case_identity(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -7366,7 +7560,19 @@ def test_finalize_collection_registers_partial_case_identity(
         collection / "manifest.json",
         {"cases": [{"case_id": f"sha256:{digest}"}]},
     )
-    target._json_dump(collection / "publication-summary.json", {})
+    target._json_dump(
+        collection / "publication-summary.json",
+        {
+            "cases": [
+                {
+                    "sha256": digest,
+                    "case_state": "partial",
+                    "blockers": [target.FUNCTION_ANALYSIS_BLOCKER],
+                    "publication_stage": "analysis_followup_pending",
+                }
+            ]
+        },
+    )
     (collection / "README.md").write_text(
         "# テスト\n- 公開段階: `analysis_followup_pending`\n",
         encoding="utf-8",
@@ -7390,6 +7596,9 @@ def test_finalize_collection_registers_partial_case_identity(
     assert manifest["analysis_complete"] is False
     assert manifest["case_state_counts"] == {"partial": 1}
     assert manifest["case_blocker_counts"] == {"generic_triage_partial": 1}
+    summary = target.load_json_object_strict(collection / "publication-summary.json")
+    assert summary["cases"][0]["blockers"] == ["generic_triage_partial"]
+    assert summary["cases"][0]["publication_stage"] == "partial_followup_required"
     readme = (collection / "README.md").read_text(encoding="utf-8")
     assert "partial_followup_required" in readme
     assert "`generic_triage_partial` | 1" in readme

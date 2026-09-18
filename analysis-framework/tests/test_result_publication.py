@@ -61,6 +61,23 @@ def test_canonical_publication_writes_case_metadata_catalog_and_collection(
     ]
 
 
+def test_repeated_registration_preserves_sealed_metadata_bytes(short_tmp: Path) -> None:
+    """登録済みcaseの再同期で改行だけを変更しない。"""
+
+    _results, aggregate = _context(short_tmp)
+    case, context = publication.publication_case_path(aggregate, "agenttesla", SHA)
+    assert context is not None
+    case.mkdir(parents=True)
+    publication.register_publication_cases(context, [case])
+    metadata_path = case / "metadata.json"
+    sealed_bytes = metadata_path.read_bytes().replace(b"\n", b"\r\n")
+    metadata_path.write_bytes(sealed_bytes)
+
+    publication.register_publication_cases(context, [case])
+
+    assert metadata_path.read_bytes() == sealed_bytes
+
+
 def test_publication_preserves_existing_catalog_extension_fields(short_tmp: Path) -> None:
     results, aggregate = _context(short_tmp)
     case, context = publication.publication_case_path(
