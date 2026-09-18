@@ -1127,11 +1127,21 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
     if maximum_path_length < 160:
         raise LayoutPlanError("maximum path length must be at least 160")
 
+    def is_collection_supplement(path: Path) -> bool:
+        relative = path.relative_to(results_root)
+        return (
+            len(relative.parts) == 4
+            and relative.parts[0] == "collections"
+            and relative.parts[2] == "supplements"
+        )
+
     source_directories = sorted(
         (
             path.resolve()
             for path in results_root.rglob("*")
-            if path.is_dir() and SHA256_RE.fullmatch(path.name.lower())
+            if path.is_dir()
+            and SHA256_RE.fullmatch(path.name.lower())
+            and not is_collection_supplement(path)
         ),
         key=lambda value: value.as_posix().casefold(),
     )

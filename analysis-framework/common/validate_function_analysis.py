@@ -368,6 +368,23 @@ def validate_case(case_dir: Path, sha256: str | None = None) -> CaseValidation:
                 validation.add(
                     f"program_evidence[{index}]にMCP成功証跡がありません"
                 )
+            if (
+                type(item.get("ghidra_function_count")) is int
+                and item["ghidra_function_count"] == 0
+            ):
+                entry_points = item.get("entry_points")
+                base_address = str(item.get("base_address") or "").casefold()
+                if isinstance(entry_points, list) and any(
+                    isinstance(entry, Mapping)
+                    and entry.get("kind") == "entry_point"
+                    and str(entry.get("address") or "").casefold() != base_address
+                    and str(entry.get("name") or "").casefold() != ""
+                    and not str(entry.get("name") or "").startswith("IMAGE_DOS_HEADER_")
+                    for entry in entry_points
+                ):
+                    validation.add(
+                        f"program_evidence[{index}]に実entry pointがありますが関数inventoryは0件です"
+                    )
             retrieval = item.get("retrieval_coverage")
             if not isinstance(retrieval, Mapping):
                 validation.add(

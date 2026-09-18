@@ -292,6 +292,45 @@ def test_validate_case_accepts_documented_program_structure_only(
     assert result.valid is True
     assert result.coverage["characteristic_function_selected_count"] == 0
 
+
+def test_validate_case_rejects_zero_functions_with_real_pe_entry(tmp_path: Path) -> None:
+    """PEの実entryがある0件inventoryを構造限定の完了扱いにしない。"""
+
+    case_dir = _case_dir(tmp_path)
+    report = _case_report()
+    for key in (
+        "function_inventory_count",
+        "discovered_function_inventory_count",
+        "characteristic_function_selected_count",
+        "characteristic_function_analyzed_count",
+        "decompilation_attempted_count",
+        "decompilation_succeeded_count",
+        "decompilation_limited_or_failed_count",
+        "decompilation_excluded_count",
+        "unselected_function_count",
+        "ghidra_function_inventory_count",
+    ):
+        report["coverage"][key] = 0
+    report["functions"] = []
+    report["overall_logic"]["selected_function_count"] = 0
+    report["program_evidence"][0].update(
+        {
+            "base_address": "00400000",
+            "ghidra_function_count": 0,
+            "entry_points": [
+                {"kind": "entry_point", "address": "00401000", "name": "entry"}
+            ],
+        }
+    )
+    _write_json(case_dir / "static-logic.json", report)
+    (case_dir / "STATIC-LOGIC.md").write_text("# 静的ロジック\n", encoding="utf-8")
+    (case_dir / "OVERALL-LOGIC.md").write_text("# 全体ロジック\n", encoding="utf-8")
+
+    result = validate_case(case_dir, SHA256)
+
+    assert result.valid is False
+    assert any("関数inventoryは0件" in item for item in result.findings)
+
 def test_validate_case_accepts_non_pe_static_layer_without_ghidra_program(
     tmp_path: Path,
 ) -> None:

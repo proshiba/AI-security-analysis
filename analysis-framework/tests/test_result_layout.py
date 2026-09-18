@@ -67,6 +67,27 @@ def _tree_snapshot(root: Path) -> list[tuple[str, str]]:
     return rows
 
 
+def test_collection_supplement_sha_directory_is_not_a_case(short_tmp: Path) -> None:
+    repository = _base_repository(short_tmp)
+    digest = _sha("a")
+    _case(repository, "family", digest)
+    supplement = (
+        repository
+        / "analysis-results"
+        / "collections"
+        / "malwarebazaar-windows-20260918-0050"
+        / "supplements"
+        / _sha("b")
+    )
+    supplement.mkdir(parents=True)
+    (supplement / "README.md").write_text("# 補足解析\n", encoding="utf-8")
+
+    plan = layout.build_layout_plan(repository, maximum_path_length=320)
+
+    assert plan["counts"]["case_directories"] == 1
+    assert [case["sha256"] for case in plan["cases"]] == [digest]
+
+
 def test_version_resolver_uses_only_family_specific_evidence(tmp_path: Path) -> None:
     repository = _base_repository(tmp_path)
     cases = {

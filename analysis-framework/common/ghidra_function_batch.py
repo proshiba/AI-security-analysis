@@ -6108,13 +6108,24 @@ def _wait_for_analysis(
 
 
 def _native_zero_function_recovery_pending(result: Mapping[str, Any]) -> bool:
-    """entry point関数回復証跡のない旧native 0件cacheか返す。"""
+    """native 0件でentry point回復が未完了のcacheか返す。"""
 
+    recovery = result.get("entry_point_function_recovery")
     return bool(
         result.get("analysis_mode") == "native_ghidra_with_optional_cil"
         and int(result.get("ghidra_function_inventory_count") or 0) == 0
         and int(result.get("managed_method_count") or 0) == 0
-        and not isinstance(result.get("entry_point_function_recovery"), Mapping)
+        and (
+            not isinstance(recovery, Mapping)
+            or (
+                recovery.get("status") == "failed"
+                and bool(recovery.get("validated_address"))
+            )
+            or (
+                recovery.get("status") == "not_attempted"
+                and recovery.get("reason") == "input_cache_unavailable_for_recovery"
+            )
+        )
     )
 
 
@@ -6811,6 +6822,8 @@ def analyze_program(
             "raw_results_private": True,
         },
     }
+    if _native_zero_function_recovery_pending(result):
+        result["status"] = "partial"
     ensure_characteristic_selection(result)
     _persist_program_result(result_path, result)
     try:
@@ -7094,7 +7107,9 @@ def refresh_complete_program_artifacts(
         result.pop("call_graph_augmented_from_decompilation", None)
         result["retrieval_coverage"] = coverage
         result["all_static_analysis_content_retained"] = True
-        result["status"] = "complete"
+        result["status"] = (
+            "partial" if _native_zero_function_recovery_pending(result) else "complete"
+        )
         result.pop("call_graph_retrieval", None)
         _atomic_private_json(raw_index_path, raw_index)
         _persist_program_result(object_dir / "program-result.json", result)

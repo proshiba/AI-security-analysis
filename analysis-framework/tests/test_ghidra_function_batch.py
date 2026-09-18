@@ -3810,6 +3810,46 @@ def test_zero_function_recovery_rejects_unverified_inventory_after_create() -> N
     assert recovery["validated_entry_body_count"] == 0
 
 
+def test_failed_entry_recovery_with_valid_pe_remains_pending() -> None:
+    """解析中に0件だった有効PEを完了cacheとして固定しない。"""
+
+    base = {
+        "analysis_mode": "native_ghidra_with_optional_cil",
+        "ghidra_function_inventory_count": 0,
+        "managed_method_count": 0,
+    }
+    assert target._native_zero_function_recovery_pending({
+        **base,
+        "entry_point_function_recovery": {
+            "status": "failed",
+            "validated_address": "00460300",
+            "reason": "created_entry_body_not_unique_in_function_inventory",
+        },
+    })
+    assert not target._native_zero_function_recovery_pending({
+        **base,
+        "entry_point_function_recovery": {
+            "status": "failed",
+            "reason": "pe_header_parse_failed",
+        },
+    })
+    assert target._native_zero_function_recovery_pending({
+        **base,
+        "entry_point_function_recovery": {
+            "status": "not_attempted",
+            "reason": "input_cache_unavailable_for_recovery",
+        },
+    })
+    assert not target._native_zero_function_recovery_pending({
+        **base,
+        "ghidra_function_inventory_count": 1,
+        "entry_point_function_recovery": {
+            "status": "not_attempted",
+            "reason": "input_cache_unavailable_for_recovery",
+        },
+    })
+
+
 def test_markdown_does_not_publish_raw_pseudocode() -> None:
     """人向け要約へ生の逆コンパイル本文を出さない。"""
 
