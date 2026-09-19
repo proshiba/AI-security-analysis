@@ -599,8 +599,13 @@ def test_unmatched_forced_family_does_not_execute_handler(tmp_path: Path) -> Non
         "communication-patterns.json"
     )
     assert report["knowledge_artifacts"]["c2_analysis"] == "c2-analysis.json"
+    assert report["knowledge_artifacts"]["component_static_findings"] == "component-static-findings.json"
+    component = json.loads((case_dir / "component-static-findings.json").read_text(encoding="utf-8"))
+    assert component["status"] == "no_route_only_component_findings"
+    assert component["evidence_boundary"]["family_attribution_confirmed"] is False
     assert "communication-patterns.json" in report["artifact_sha256"]
     assert "c2-analysis.json" in report["artifact_sha256"]
+    assert "component-static-findings.json" in report["artifact_sha256"]
 
 
 def test_handler_never_runs_on_unrelated_sibling_layer(

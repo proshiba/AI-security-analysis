@@ -2269,6 +2269,82 @@ def test_publish_case_uses_unclassified_case_kind(tmp_path: Path) -> None:
     assert "[OVERALL-LOGIC.md](OVERALL-LOGIC.md)" in (destination / "README.md").read_text(encoding="utf-8")
 
 
+def test_publish_component_candidate(tmp_path_factory: pytest.TempPathFactory) -> None:
+    """component候補の参照だけを公開し、family/C2へ昇格させない。"""
+
+    tmp_path = tmp_path_factory.mktemp("c")
+    digest = "9" * 64
+    source, report_value = valid_source_case(tmp_path, digest)
+    publisher.write_json(
+        source / "static-logic.json",
+        static_logic.build_static_logic_report(
+            sha256=digest,
+            family="unclassified",
+            source_name="sample.bin",
+        ),
+    )
+    component = {
+        "schema_version": 1,
+        "sha256": digest,
+        "status": "route_only_component_findings",
+        "finding_count": 1,
+        "findings": [{
+            "component_candidate": "ror13_network_loader",
+            "family_attribution_confirmed": False,
+            "c2_confirmed": False,
+            "observations": {"network_endpoint_candidates": [{
+                "host": "8.8.8.8",
+                "port": 8080,
+                "confidence": "static_candidate_dataflow_review_required",
+                "c2_confirmed": False,
+            }]},
+        }],
+        "evidence_boundary": {
+            "family_attribution_confirmed": False,
+            "c2_confirmed": False,
+            "liveness_confirmed": False,
+        },
+        "safety": {"sample_executed": False, "network_contacted": False},
+    }
+    publisher.write_json(source / "component-static-findings.json", component)
+    report_value["knowledge_artifacts"]["component_static_findings"] = "component-static-findings.json"
+    report_value["artifact_sha256"] = analysis_contract.artifact_hashes(
+        source,
+        {*report_value["artifact_sha256"], "component-static-findings.json"},
+    )
+    analysis_contract.seal_report(report_value)
+    publisher.write_json(source / "report.json", report_value)
+    repository = tmp_path / "r"
+    repository.mkdir()
+
+    family, destination, summary = publisher.publish_case(
+        repository,
+        repository / "analysis-results",
+        "component-candidate-test",
+        source,
+        {"sha256": digest, "metadata": {}},
+        {"unclassified"},
+    )
+
+    assert family == "unclassified"
+    assert publisher.load_json(destination / "component-static-findings.json") == component
+    analysis = publisher.load_json(destination / "analysis.json")
+    assert analysis["artifacts"]["component_static_findings"] == "component-static-findings.json"
+    assert analysis["case"]["confirmed_static_c2_observations"] == 0
+    assert summary["confirmed_static_c2_observations"] == 0
+    assert publisher.load_json(destination / "iocs.json")["network"] == []
+    readme = (destination / "README.md").read_text(encoding="utf-8")
+    assert "[静的component候補所見（family・C2未確定）](component-static-findings.json)" in readme
+    published_report = publisher.load_json(destination / "report.json")
+    assert "component-static-findings.json" in published_report["artifact_sha256"]
+    assert analysis_contract.case_integrity_errors(
+        destination,
+        published_report,
+        expected_digest=digest,
+        require_resumable=False,
+    ) == []
+
+
 def test_publish_case_helper_failure_preserves_existing_case_byte_identical(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

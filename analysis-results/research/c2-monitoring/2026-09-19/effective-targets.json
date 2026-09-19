@@ -4,24 +4,34 @@
     "start": "リポジトリ収録開始"
   },
   "collection_scope": "all_historical_c2",
-  "daily_source_handoffs": [],
+  "daily_source_handoffs": [
+    {
+      "effective_target_commitment_sha256": "be9ff0b380c8bfec7f7f87d0d63a8c0d7c744cd6f8cb3fe3472d5e9377f127a6",
+      "effective_target_count": 26,
+      "policy_excluded_onion_hosts": [],
+      "schema_version": 1,
+      "source_date": "2026-09-18",
+      "source_target_commitment_sha256": "5c0cf771b3880f4e8635d7c0d74b9ec790e5a4bed33a8297183769777d4dd935",
+      "source_target_count": 26
+    }
+  ],
   "inventory_summary": {
-    "candidate_evidence_record_count": 469,
-    "dns_only_target_count": 12,
-    "duplicate_evidence_record_count": 16,
-    "network_service_endpoint_count": 260,
-    "ordinary_candidate_host_count": 179,
+    "candidate_evidence_record_count": 495,
+    "dns_only_target_count": 32,
+    "duplicate_evidence_record_count": 20,
+    "network_service_endpoint_count": 266,
+    "ordinary_candidate_host_count": 205,
     "ordinary_host_coverage_percent": 100.0,
     "parse_error_count": 0,
-    "planned_endpoint_count": 272,
-    "planned_ordinary_host_count": 179,
+    "planned_endpoint_count": 298,
+    "planned_ordinary_host_count": 205,
     "rejected_protocol_profile_count": 1,
     "reviewed_profile_only_target_count": 13,
     "reviewed_protocol_target_count": 21,
-    "scanned_daily_ioc_summary_file_count": 0,
+    "scanned_daily_ioc_summary_file_count": 1,
     "scanned_indicators_json_file_count": 128,
-    "scanned_ioc_file_count": 3619,
-    "scanned_iocs_json_file_count": 3491
+    "scanned_ioc_file_count": 3720,
+    "scanned_iocs_json_file_count": 3591
   },
   "onion_excluded_by_policy": true,
   "protocol_profile_registry": {
@@ -202,6 +212,31 @@
     {
       "analyzed_dates": [],
       "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "130.94.101.82",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[22]"
+      ],
+      "target_id": "all-history-351bc5f57778",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
       "family": "noodlerat",
       "host": "137.220.158.91",
       "maximum_response_bytes": 256,
@@ -218,6 +253,81 @@
         "analysis-results/malware/noodlerat/iocs.json:network[10]"
       ],
       "target_id": "all-history-1924b0489771",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "140.99.164.199",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[23]"
+      ],
+      "target_id": "all-history-feea874a49fa",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "149.104.87.228",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[24]"
+      ],
+      "target_id": "all-history-b0f3a4ce2602",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "149.104.90.203",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[25]"
+      ],
+      "target_id": "all-history-e8d59557c0e0",
       "timeout_seconds": 3.0,
       "transport": "direct"
     },
@@ -1189,6 +1299,106 @@
     {
       "analyzed_dates": [],
       "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "216.238.105.53",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[27]"
+      ],
+      "target_id": "all-history-6f21135dd5d7",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "216.238.110.120",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[28]"
+      ],
+      "target_id": "all-history-e20c2aeff3aa",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "216.238.121.164",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[29]"
+      ],
+      "target_id": "all-history-f712d6be8e1e",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "216.238.92.2",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[26]"
+      ],
+      "target_id": "all-history-b008cf77b971",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
       "family": "mirai",
       "host": "217.32.184.17",
       "maximum_response_bytes": 256,
@@ -1448,6 +1658,206 @@
         "analysis-results/research/campaigns/correlated-20260724/correlated-remcosrat-9856d4a51265/iocs.json:indicators[2]"
       ],
       "target_id": "all-history-17e716d67b27",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "38.54.57.17",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[12]"
+      ],
+      "target_id": "all-history-8e7d9d0e460a",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "38.60.197.55",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[13]"
+      ],
+      "target_id": "all-history-d931600442dd",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "38.60.209.106",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[14]"
+      ],
+      "target_id": "all-history-5150f694f291",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "38.60.224.235",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[16]"
+      ],
+      "target_id": "all-history-9920536e43b8",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "38.60.224.51",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[15]"
+      ],
+      "target_id": "all-history-ce32d50d1592",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "38.60.241.127",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[18]"
+      ],
+      "target_id": "all-history-abcdfe13c896",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "38.60.241.193",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[19]"
+      ],
+      "target_id": "all-history-3165eec4f5f8",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "38.60.241.65",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[17]"
+      ],
+      "target_id": "all-history-1c72bd10337c",
       "timeout_seconds": 3.0,
       "transport": "direct"
     },
@@ -2726,6 +3136,31 @@
     {
       "analyzed_dates": [],
       "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "77.111.101.40",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[20]"
+      ],
+      "target_id": "all-history-3e79cb11da27",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
       "family": "stealc",
       "host": "777palm.com",
       "maximum_response_bytes": 256,
@@ -2860,6 +3295,31 @@
         "analysis-results/research/daily-news-malware/2026-08-02/iocs.json:configured_c2[0]"
       ],
       "target_id": "all-history-8e672f218479",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "SparroWocky",
+      "host": "91.148.134.115",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[21]"
+      ],
+      "target_id": "all-history-1f774096bf49",
       "timeout_seconds": 3.0,
       "transport": "direct"
     },
@@ -3526,6 +3986,31 @@
     {
       "analyzed_dates": [],
       "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "unknown",
+      "host": "boiseno.club",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[2]"
+      ],
+      "target_id": "all-history-1973a656356e",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
       "family": "mirai",
       "host": "botnet.b5m.co.uk",
       "maximum_response_bytes": 256,
@@ -3646,6 +4131,31 @@
     {
       "analyzed_dates": [],
       "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "unknown",
+      "host": "cdn10.sendibt1.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[0]"
+      ],
+      "target_id": "all-history-db9833a84d51",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
       "family": "asyncrat",
       "host": "clipmagic.co",
       "maximum_response_bytes": 256,
@@ -3734,6 +4244,31 @@
         "analysis-results/malware/asyncrat/versions/unknown/cases/ebd9d6ef8b792ba88aa5edbd9bc093ec8739729fecc8507c8d3b158c02f09024/iocs.json:network[0]"
       ],
       "target_id": "all-history-38a9447b60ac",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "unknown",
+      "host": "corralos.beer",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[4]"
+      ],
+      "target_id": "all-history-2fcbc5a83d85",
       "timeout_seconds": 3.0,
       "transport": "direct"
     },
@@ -4421,6 +4956,31 @@
     {
       "analyzed_dates": [],
       "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "N/A",
+      "host": "github.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[35]"
+      ],
+      "target_id": "all-history-8c1d49e3673e",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
       "family": "asyncrat",
       "host": "glara.info",
       "maximum_response_bytes": 256,
@@ -4439,6 +4999,31 @@
         "analysis-results/malware/asyncrat/versions/unknown/cases/cc900a5a94804cc09fa2009055e3ef4aca1e3b18b32358e8d9884da4d374712b/iocs.json:network[0]"
       ],
       "target_id": "all-history-9156aeff096f",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "unknown",
+      "host": "glegchner.com",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[3]"
+      ],
+      "target_id": "all-history-01f2d7565b96",
       "timeout_seconds": 3.0,
       "transport": "direct"
     },
@@ -4983,6 +5568,56 @@
         "analysis-results/malware/asyncrat/versions/unknown/cases/9b04aea6f10863f085b14d872049a8bd9bb09d02a8f9c80ab5bcc524c1b5c666/iocs.json:network[0]"
       ],
       "target_id": "all-history-eead8fd7a937",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "N/A",
+      "host": "nightmare-stresser.com",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[5]"
+      ],
+      "target_id": "all-history-a52ba0dd02a5",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "N/A",
+      "host": "nightmarestresser.org",
+      "maximum_response_bytes": 256,
+      "method": "dns_resolve",
+      "port": 0,
+      "protocol": "dns",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[6]"
+      ],
+      "target_id": "all-history-766c52a346ac",
       "timeout_seconds": 3.0,
       "transport": "direct"
     },
@@ -7029,6 +7664,31 @@
     },
     {
       "analyzed_dates": [],
+      "associated_case_count": 1,
+      "daily_source_dates": [
+        "2026-09-18"
+      ],
+      "family": "unknown",
+      "host": "yelahaye.surf",
+      "maximum_response_bytes": 256,
+      "method": "tcp_connect",
+      "port": 443,
+      "protocol": "tcp",
+      "protocol_hints": [],
+      "roles": [
+        "c2"
+      ],
+      "sample_sha256s": [],
+      "selection_basis": "全解析履歴のC2/control/exfil候補",
+      "sources": [
+        "analysis-results/research/daily-news-malware/2026-09-18/ioc-summary.json:daily_news_handoff[1]"
+      ],
+      "target_id": "all-history-d068de9d948e",
+      "timeout_seconds": 3.0,
+      "transport": "direct"
+    },
+    {
+      "analyzed_dates": [],
       "associated_case_count": 3,
       "family": "remusstealer",
       "host": "zelpx.garden",
@@ -7052,779 +7712,6 @@
         "analysis-results/malware/remusstealer/versions/unknown/cases/b6bc2fb4af89149d91c946ac7f7898b2831f2466545d2777b32a6edf0cc34b7f/iocs.json:network[2]"
       ],
       "target_id": "all-history-e5e4ae00dc61",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "Overlord",
-      "host": "103.59.101.28",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[19]"
-      ],
-      "target_id": "all-history-58cdc3ce4074",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "unknown",
-      "host": "122.10.117.3",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[10]"
-      ],
-      "target_id": "all-history-2c10e7b418fd",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "unknown",
-      "host": "156.245.245.223",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[6]"
-      ],
-      "target_id": "all-history-7df96a5bd12f",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "unknown",
-      "host": "181.214.250.174",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[4]"
-      ],
-      "target_id": "all-history-0a25261ebe57",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "VectraRAT",
-      "host": "195.20.115.77",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[126]"
-      ],
-      "target_id": "all-history-b6a44e5d8125",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "VectraRAT",
-      "host": "195.63.145.106",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[129]"
-      ],
-      "target_id": "all-history-bb8b9b3af4bb",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "202.144.192.149",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[25]"
-      ],
-      "target_id": "all-history-b6416682735c",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "202.144.192.23",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[21]"
-      ],
-      "target_id": "all-history-31d2c5763c91",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "210.1.226.163",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[23]"
-      ],
-      "target_id": "all-history-01c416e4d810",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "210.1.226.238",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[22]"
-      ],
-      "target_id": "all-history-8a469150d2a8",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "210.1.231.13",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[24]"
-      ],
-      "target_id": "all-history-3145dafbf6ac",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "43.245.198.195",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[26]"
-      ],
-      "target_id": "all-history-2b094726feed",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "43.245.198.238",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[27]"
-      ],
-      "target_id": "all-history-6e1c190a1fbe",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "unknown",
-      "host": "46.62.197.232",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[176]"
-      ],
-      "target_id": "all-history-d967b098ee96",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "VectraRAT",
-      "host": "86.109.75.168",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[123]"
-      ],
-      "target_id": "all-history-c9cd4c431201",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "VectraRAT",
-      "host": "91.219.236.179",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[127]"
-      ],
-      "target_id": "all-history-1d4a43b9d92e",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "VectraRAT",
-      "host": "91.92.242.236",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[128]"
-      ],
-      "target_id": "all-history-fa27db0ec9dd",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "api06.chat5188.tk",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[37]"
-      ],
-      "target_id": "all-history-661644c90b41",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "api08.chat5188.tk",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[36]"
-      ],
-      "target_id": "all-history-0773c67c871d",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "api80.c2iznja.com",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[28]"
-      ],
-      "target_id": "all-history-9827ff758287",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "apis.chat5188.tk",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[34]"
-      ],
-      "target_id": "all-history-50dbc368ac51",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "base64.c2iznja.com",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[32]"
-      ],
-      "target_id": "all-history-28ac13e9a8ad",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "cache.c2iznja.com",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[33]"
-      ],
-      "target_id": "all-history-c05f2aa76fe2",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "chat.chat5188.tk",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[35]"
-      ],
-      "target_id": "all-history-ae6058d6074b",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "unknown",
-      "host": "commonerdays.vercel.app",
-      "maximum_response_bytes": 256,
-      "method": "tcp_connect",
-      "port": 443,
-      "protocol": "tcp",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[173]"
-      ],
-      "target_id": "all-history-9d1a39850d30",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "Overlord",
-      "host": "devin-us.com",
-      "maximum_response_bytes": 256,
-      "method": "tcp_connect",
-      "port": 443,
-      "protocol": "tcp",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[18]",
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[20]"
-      ],
-      "target_id": "all-history-6f3165996de9",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "unknown",
-      "host": "dnswwt.club",
-      "maximum_response_bytes": 256,
-      "method": "tcp_connect",
-      "port": 443,
-      "protocol": "tcp",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[2]",
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[3]"
-      ],
-      "target_id": "all-history-9c51838c6c69",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "unknown",
-      "host": "inword.club",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[5]"
-      ],
-      "target_id": "all-history-5c0c3965f862",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "unknown",
-      "host": "jpword.cc",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[9]"
-      ],
-      "target_id": "all-history-6099353e6c24",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "live-hk.c2iznja.com",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[30]"
-      ],
-      "target_id": "all-history-f08336fa7a56",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "unknown",
-      "host": "mayteslaadvisorhq.s3.us-east-2.amazonaws.com",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[174]"
-      ],
-      "target_id": "all-history-4871b22e8f30",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "HEAVYGRAM",
-      "host": "micbucket.ams1.vultrobjects.com",
-      "maximum_response_bytes": 256,
-      "method": "tcp_connect",
-      "port": 443,
-      "protocol": "tcp",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[120]",
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[122]"
-      ],
-      "target_id": "all-history-7a4cdafc174e",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "newdma.c2iznja.com",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[29]"
-      ],
-      "target_id": "all-history-41b422c16cf9",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "unknown",
-      "host": "openfodervbs4view.ams3.cdn.digitaloceanspaces.com",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[175]"
-      ],
-      "target_id": "all-history-ae760cabc4cb",
-      "timeout_seconds": 3.0,
-      "transport": "direct"
-    },
-    {
-      "analyzed_dates": [],
-      "associated_case_count": 1,
-      "family": "BambooToken",
-      "host": "turbo.c2iznja.com",
-      "maximum_response_bytes": 256,
-      "method": "dns_resolve",
-      "port": 0,
-      "protocol": "dns",
-      "protocol_hints": [],
-      "roles": [
-        "c2"
-      ],
-      "sample_sha256s": [],
-      "selection_basis": "全解析履歴のC2/control/exfil候補",
-      "sources": [
-        "analysis-results/research/daily-news-malware/2026-09-16/ioc-summary.json:daily_news_handoff[31]"
-      ],
-      "target_id": "all-history-8860d88ed709",
       "timeout_seconds": 3.0,
       "transport": "direct"
     }

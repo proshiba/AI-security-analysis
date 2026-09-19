@@ -3,19 +3,19 @@
 本表はdetector、静的handler、品質policyの実装構造、format別AST監査、検体を渡さない隔離runtime import確認から自動生成しています。検体実行、外部通信、生成AIは使用しません。
 この割合は実検体を解析して測定した成功率ではなく、解析完了率、config／C2抽出成功率、終端payload到達率、誤検知率を示しません。
 
-- 対象family: 90件
-- detector＋AST監査＋runtime import確認済みhandler＋品質policyが揃う構造: 80件（88.89%）
+- 対象family: 92件
+- detector＋AST監査＋runtime import確認済みhandler＋品質policyが揃う構造: 82件（89.13%）
 - 代表fixtureで自動解析完了を実証済み: 0件
-- detector＋安全handlerでfamily自動選択可能: 80件
-- automatic宣言済みfamily: 88件（97.78%）
-- AST監査＋runtime import確認済みscript-only handler: 88件（97.78%）
-- 品質policy宣言済み: 88件 / 安全handler＋品質policy: 88件
+- detector＋安全handlerでfamily自動選択可能: 82件
+- automatic宣言済みfamily: 90件（97.83%）
+- AST監査＋runtime import確認済みscript-only handler: 90件（97.83%）
+- 品質policy宣言済み: 90件 / 安全handler＋品質policy: 90件
 - 安全handlerはあるが品質policy未宣言: 0件
-- handler実装: 宣言101件 / AST監査通過101件 / runtime import確認済み101件 / 停止0件
+- handler実装: 宣言103件 / AST監査通過103件 / runtime import確認済み103件 / 停止0件
 - automatic handlerがAST監査またはruntime importで停止: 0件
 - handlerによる候補検証のみ: 8件
-- 実行したformat別preflight: 1042件（上限2048件）
-- 実行した検体なしruntime import確認: 101件（計画101件）
+- 実行したformat別preflight: 1029件（上限2048件）
+- 実行した検体なしruntime import確認: 103件（計画103件）
 
 | family | 状態 | detector | 品質policy | 宣言handler | 安全handler | blocker |
 |---|---|---:|---:|---:|---:|---|
@@ -30,6 +30,7 @@
 | catddos | fully_routable | あり | あり | 1 | 1 | なし |
 | chud_bot | fully_routable | あり | あり | 1 | 1 | なし |
 | clickfix_booking | candidate_verification_only | なし | あり | 1 | 1 | detector_missing |
+| clipboard_replacement_dll | fully_routable | あり | あり | 1 | 1 | なし |
 | condi | fully_routable | あり | あり | 1 | 1 | なし |
 | credential_phishing_html | fully_routable | あり | あり | 1 | 1 | なし |
 | darkcomet | fully_routable | あり | あり | 1 | 1 | なし |
@@ -88,6 +89,7 @@
 | redlinestealer | fully_routable | あり | あり | 1 | 1 | なし |
 | remcosrat | fully_routable | あり | あり | 1 | 1 | なし |
 | remusstealer | fully_routable | あり | あり | 1 | 1 | なし |
+| ror13_network_loader | fully_routable | あり | あり | 1 | 1 | なし |
 | screenconnect_rmm | fully_routable | あり | あり | 1 | 1 | なし |
 | shadowpad | fully_routable | あり | あり | 1 | 1 | なし |
 | signed_dht_bot | fully_routable | あり | あり | 1 | 1 | なし |
