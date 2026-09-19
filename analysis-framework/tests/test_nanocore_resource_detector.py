@@ -9,6 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from malware.nanocore import detect as detector
+from malware.nanocore import extract_config as extractor
 
 
 def test_verified_resource_matches_without_plaintext_schema(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -60,3 +61,36 @@ def test_resource_without_endpoint_does_not_promote_family(monkeypatch: pytest.M
     )
     result = detector.detect(b"MZ...NanoCore.ClientPluginHost...", Path("candidate.bin"))
     assert result["matched"] is False
+
+
+@pytest.mark.parametrize(
+    ("host", "port", "expected"),
+    [
+        ("controller.example", 443, True),
+        ("", 443, False),
+        ("controller.example", 0, False),
+        ("controller.example", True, False),
+    ],
+)
+def test_decoded_config_flag_requires_typed_endpoint(
+    monkeypatch: pytest.MonkeyPatch, host: str, port: object, expected: bool
+) -> None:
+    """復号flagをhostと有効な整数portの相関なしに立てない。"""
+
+    monkeypatch.setattr(extractor, "_resource_envelope", lambda _data: (b"envelope", {}))
+    monkeypatch.setattr(
+        extractor,
+        "decode_envelope",
+        lambda _data: {
+            "Version": "1.2.2.0",
+            "PrimaryConnectionHost": host,
+            "ConnectionPort": port,
+        },
+    )
+    result = extractor.extract_config(b"MZsynthetic")
+    assert result["decoded_config_recovered"] is expected
+    assert result["static_config_recovered"] is expected
+    assert len(result["c2"]) == int(expected)
+    assert result["classification_confidence"] == (
+        "confirmed_config_format" if expected else "unverified_config_fields"
+    )

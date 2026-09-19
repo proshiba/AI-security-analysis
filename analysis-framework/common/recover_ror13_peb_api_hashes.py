@@ -18,6 +18,19 @@ DLL_NAMES = (
     "ws2_32.dll", "msvcrt.dll", "advapi32.dll", "wininet.dll",
     "winhttp.dll", "crypt32.dll", "shlwapi.dll",
 )
+# OSのDLL export表を利用できない隔離環境でも、観測済みAPIだけは再現可能にする。
+# この集合はfamilyのsignatureではなく、API hash値を関数名へ戻す辞書である。
+BUILTIN_EXPORTS = {
+    "kernel32.dll": (
+        "LoadLibraryA", "VirtualAlloc", "VirtualProtect", "GetTempPathA",
+    ),
+    "ws2_32.dll": (
+        "WSAStartup", "WSASocketA", "connect", "send", "recv",
+        "closesocket", "gethostbyname", "inet_addr",
+    ),
+    "user32.dll": ("wsprintfA", "MessageBoxA"),
+    "msvcrt.dll": ("strlen", "strcat", "strcpy", "printf", "_access"),
+}
 
 
 def ror13(value: int) -> int:
@@ -42,8 +55,21 @@ def api_hash(dll: str, function: str) -> int:
     return (module + export) & MASK32
 
 
-def load_export_map(dll_dir: Path) -> dict[int, list[str]]:
+def builtin_export_map() -> dict[int, list[str]]:
+    """Windows DLLの実体なしで利用できる限定されたhash辞書を作る。"""
+
     mapping: dict[int, list[str]] = {}
+    for dll, names in BUILTIN_EXPORTS.items():
+        for name in names:
+            value = api_hash(dll, name)
+            if value not in mapping:
+                mapping[value] = []
+            mapping[value].append(f"{dll}!{name}")
+    return mapping
+
+
+def load_export_map(dll_dir: Path) -> dict[int, list[str]]:
+    mapping = builtin_export_map()
     for dll in DLL_NAMES:
         path = dll_dir / dll
         if not path.is_file():
@@ -61,7 +87,10 @@ def load_export_map(dll_dir: Path) -> dict[int, list[str]]:
                     name = symbol.name.decode("ascii")
                 except UnicodeDecodeError:
                     continue
-                mapping.setdefault(api_hash(dll, name), []).append(f"{dll}!{name}")
+                names = mapping.setdefault(api_hash(dll, name), [])
+                label = f"{dll}!{name}"
+                if label not in names:
+                    names.append(label)
         finally:
             image.close()
     return mapping
@@ -131,8 +160,8 @@ def endpoint_candidate(
             if len(combined) > 15 or combined.count(".") > 3:
                 break
             try:
-                address = ipaddress.IPv4Address(combined)
-            except ipaddress.AddressValueError:
+                address = ipaddress.ip_address(combined)
+            except ValueError:
                 continue
             if address.is_global:
                 candidates.append((len(combined), str(address), selected.copy()))
@@ -157,9 +186,18 @@ def endpoint_candidate(
 
 
 def review_sample(path: Path, exports: dict[int, list[str]]) -> dict[str, object]:
-    data = path.read_bytes()
+    """隔離ファイルを読み、実行せずにPE命令と即値だけを解析する。"""
+
+    return review_bytes(path.read_bytes(), exports)
+
+
+def review_bytes(data: bytes, exports: dict[int, list[str]] | None = None) -> dict[str, object]:
+    """自動handler向けのメモリ内入口。OSのexport表は必須にしない。"""
+
     if len(data) > 128 * 1024 * 1024:
         raise ValueError("入力PEが上限を超えています")
+    if exports is None:
+        exports = builtin_export_map()
     image = pefile.PE(data=data, fast_load=True)
     try:
         mode = capstone.CS_MODE_64 if image.FILE_HEADER.Machine == 0x8664 else capstone.CS_MODE_32
@@ -194,8 +232,14 @@ def review_sample(path: Path, exports: dict[int, list[str]]) -> dict[str, object
                 for current in reversed(instructions[max(0, index - 6) : index]):
                     if current.mnemonic == "call":
                         break
-                    _reads, writes = current.regs_access()
-                    if not {capstone.x86.X86_REG_ECX, capstone.x86.X86_REG_RCX}.intersection(writes):
+                    if not current.operands:
+                        continue
+                    destination = current.operands[0]
+                    if destination.type != capstone.x86.X86_OP_REG or destination.reg not in {
+                        capstone.x86.X86_REG_ECX, capstone.x86.X86_REG_RCX,
+                        capstone.x86.X86_REG_CX, capstone.x86.X86_REG_CL,
+                        capstone.x86.X86_REG_CH,
+                    }:
                         continue
                     if current.mnemonic == "mov" and current.op_str.startswith("ecx, 0x"):
                         constant = int(current.op_str.split("0x", 1)[1], 16)
@@ -206,7 +250,9 @@ def review_sample(path: Path, exports: dict[int, list[str]]) -> dict[str, object
                     target = int(following.op_str, 16)
                 except ValueError:
                     continue
-                calls.setdefault(target, []).append(constant)
+                if target not in calls:
+                    calls[target] = []
+                calls[target].append(constant)
         if not calls:
             return {"sha256": hashlib.sha256(data).hexdigest(), "status": "no_pattern", "matches": []}
         resolver, hashes = max(calls.items(), key=lambda item: len(item[1]))
@@ -229,7 +275,8 @@ def review_sample(path: Path, exports: dict[int, list[str]]) -> dict[str, object
             "safety": {"sample_executed": False, "network_contacted": False},
         }
     finally:
-        image.close()
+        # data=bytesから生成したPEには閉じるべき外部file handleがない。
+        pass
 
 
 def main() -> int:

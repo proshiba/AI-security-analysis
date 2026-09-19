@@ -207,12 +207,19 @@ family handlerが返す公開結果と復元bytesは分離します。format、s
 
 - `family-routing.json`: 選択family、候補family、証拠tier、候補実行可否
 - `candidate-handler-assessment.json`: 候補handlerの安全性、互換性、観測証拠、失敗理由
+- `component-static-findings.json`: 帰属未確定のcomponentについて、成功したroute-only静的handlerの最小証拠だけを記録
 - `orchestration.json`: family、config、network、終端payload、関数ロジックの品質ゲート
 - `report.json`: 上記を含むcase状態、blocker、解析契約、成果物hash
 - `follow-on-analysis.json`: 保持payloadを辿った固定点解析グラフ、上限、除外理由、子解析契約SHA-256
 - `terminal-payload-acquisition.json`: 終端frontier、採用SHA-256、保留SHA-256、未取得理由、安全フラグ
 
 `summary.json`は、検出器が選択したfamilyと、候補handlerだけが観測したfamilyを分離して集計します。候補検証の試行数をfamily確定数へ混入させません。root入力の`cases`／`counts`と後段payloadの`derived_cases`／`derived_counts`も分離します。
+
+`component-static-findings.json`は、`candidate-handler-assessment.json`内の`handler_evidence_route_only`で、検体非実行・非通信、同一layer SHA-256、handler ID、証拠品質を再照合できた結果だけから生成します。clipboard改変DLLではAPI相関と難読化アドレス形式文字列の件数を示し、文字列の実値は複製しません。ROR13 network loaderでは静的に相関したIP・portを`static_candidate_dataflow_review_required`として記録します。いずれも実際の置換条件や`connect`引数への完全なデータフローは保証しません。未検証の復号文字列、stack断片、生payload、資格情報はこの補助成果物に含めません。`family_attribution_confirmed`、`c2_confirmed`、`liveness_confirmed`はいずれも`false`であり、`communication-patterns.json`や`c2-analysis.json`の確定C2、`orchestration.json`のfamily解決へ昇格させる資料ではありません。
+
+`clipboard_replacement_dll`と`ror13_network_loader`は自動routing用の行動profile IDです。登録済みdetector・handler・品質policyの数には含まれますが、両者の一致だけで固有マルウェアfamilyや解析完了を示すものではありません。
+
+詳細な`candidate-handler-assessment.json`には安全化済みのhandler結果が別途残り、そこにはアドレス形式文字列の候補値や命令列断片が含まれ得ます。公開する際は、この詳細成果物と最小化された`component-static-findings.json`を区別して確認してください。
 
 ## WebUI／ローカルAPIとの契約
 

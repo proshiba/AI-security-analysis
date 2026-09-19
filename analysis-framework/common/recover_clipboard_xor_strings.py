@@ -35,8 +35,9 @@ def decode_blob(blob: bytes, length: int) -> str:
         return ""
 
 
-def recover_strings(path: Path) -> dict[str, object]:
-    data = path.read_bytes()
+def recover_strings_from_bytes(data: bytes) -> dict[str, object]:
+    """同一bytes snapshotから文字列を復元し、path/dataの取り違えを防ぐ。"""
+
     if len(data) > 128 * 1024 * 1024:
         raise ValueError("入力PEが上限を超えています")
     image = pefile.PE(data=data, fast_load=False)
@@ -105,6 +106,12 @@ def recover_strings(path: Path) -> dict[str, object]:
         }
     finally:
         image.close()
+
+
+def recover_strings(path: Path) -> dict[str, object]:
+    """従来CLI用のpath入口。"""
+
+    return recover_strings_from_bytes(path.read_bytes())
 
 
 def main() -> int:

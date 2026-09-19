@@ -1,44 +1,44 @@
 {
   "ai_used": false,
   "counts": {
-    "ast_preflight_eligible_handlers": 101,
-    "automated_analysis_completion_possible": 80,
+    "ast_preflight_eligible_handlers": 103,
+    "automated_analysis_completion_possible": 82,
     "automated_analysis_completion_verified": 0,
-    "automatic_family_selection_possible": 80,
+    "automatic_family_selection_possible": 82,
     "automatic_handler_blocked": 0,
     "blocked_automatic_handlers": 0,
     "by_status": {
       "automatic_handler_blocked": 0,
       "candidate_verification_only": 8,
       "classification_only": 0,
-      "fully_routable": 80,
+      "fully_routable": 82,
       "manual_handler_only": 0,
       "manual_only_without_detector": 2,
       "quality_policy_missing": 0,
       "unsupported": 0
     },
     "candidate_verification_only": 8,
-    "declared_automatic_handlers": 101,
-    "declared_script_only_handler_available": 88,
-    "declared_script_only_handler_percent": 97.78,
-    "detector_registered": 80,
-    "executed_preflight_count": 1042,
-    "executed_runtime_import_count": 101,
-    "families": 90,
-    "fully_routable": 80,
-    "fully_routable_percent": 88.89,
-    "planned_preflight_count": 1042,
-    "planned_runtime_import_count": 101,
+    "declared_automatic_handlers": 103,
+    "declared_script_only_handler_available": 90,
+    "declared_script_only_handler_percent": 97.83,
+    "detector_registered": 82,
+    "executed_preflight_count": 1029,
+    "executed_runtime_import_count": 103,
+    "families": 92,
+    "fully_routable": 82,
+    "fully_routable_percent": 89.13,
+    "planned_preflight_count": 1029,
+    "planned_runtime_import_count": 103,
     "preflight_limit": 2048,
-    "quality_gated_script_only_handler_available": 88,
-    "quality_policy_declared": 88,
+    "quality_gated_script_only_handler_available": 90,
+    "quality_policy_declared": 90,
     "quality_policy_missing": 0,
-    "runtime_import_verified_handlers": 101,
-    "runtime_import_verified_structure": 80,
-    "safe_automatic_handlers": 101,
-    "script_only_handler_available": 88,
-    "script_only_handler_percent": 97.78,
-    "structurally_routable": 80
+    "runtime_import_verified_handlers": 103,
+    "runtime_import_verified_structure": 82,
+    "safe_automatic_handlers": 103,
+    "script_only_handler_available": 90,
+    "script_only_handler_percent": 97.83,
+    "structurally_routable": 82
   },
   "executed_sample": false,
   "families": [
@@ -1641,6 +1641,90 @@
     },
     {
       "accepted_formats": [
+        "pe"
+      ],
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
+      "automatic_handler_preflights": [
+        {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
+          "blocked_formats": [],
+          "blockers": [],
+          "declared_formats": [
+            "pe"
+          ],
+          "dependency_file_count": 2,
+          "dependency_fingerprint_sha256": "a51ac123b5eb911d921ce226aaab986f4089e1f958649360af22efdb01b4bf3f",
+          "eligible": true,
+          "eligible_formats": [
+            "pe"
+          ],
+          "handler_id": "clipboard_replacement_dll:analysis.framework.malware.clipboard.replacement.dll.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "clipboard_replacement_dll:analysis.framework.malware.clipboard.replacement.dll.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
+        }
+      ],
+      "automatic_handlers": [
+        "clipboard_replacement_dll:analysis.framework.malware.clipboard.replacement.dll.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocked_automatic_handlers": [],
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
+      "declared_accepted_formats": [
+        "pe"
+      ],
+      "declared_automatic_handlers": [
+        "clipboard_replacement_dll:analysis.framework.malware.clipboard.replacement.dll.extract.config.py:extract_config"
+      ],
+      "declared_script_only_handler_available": true,
+      "detector_registered": true,
+      "family": "clipboard_replacement_dll",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "other",
+        "config_required": true,
+        "network_required": false,
+        "terminal_payload_required": false
+      },
+      "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
+      "safe_automatic_handlers": [
+        "clipboard_replacement_dll:analysis.framework.malware.clipboard.replacement.dll.extract.config.py:extract_config"
+      ],
+      "script_only_handler_available": true,
+      "status": "fully_routable",
+      "structurally_routable": true
+    },
+    {
+      "accepted_formats": [
         "7z",
         "apple-disk-image",
         "asar",
@@ -2377,7 +2461,7 @@
             "pe"
           ],
           "dependency_file_count": 38,
-          "dependency_fingerprint_sha256": "1589eda621740d56f589d87cb77af259518979246ab15a2b247b6bd85bcc6027",
+          "dependency_fingerprint_sha256": "96878333fc939a50302597d5ef365a750a4710d234c7a9d6a22f8f0c0423462c",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -2466,7 +2550,7 @@
             "elf"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "4358bd60ea9397549b2390e1823c281cbf613b5b01ed4c8985dc10cba20a6ead",
+          "dependency_fingerprint_sha256": "7d5e9526241a5ee647313e12a45cb21478bfec9542e981949a0df41e79d557e6",
           "eligible": true,
           "eligible_formats": [
             "elf"
@@ -2709,7 +2793,7 @@
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "0442504a7740e3ab62005bfd131059cf8a14bbf9fe47d440420c927af7e1afe5",
+          "dependency_fingerprint_sha256": "90df35a499bd4bba15d3391be6f652b3bfd7d7b474d8757842c71d2ee64c3172",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -3158,7 +3242,7 @@
             "zip"
           ],
           "dependency_file_count": 36,
-          "dependency_fingerprint_sha256": "af612dba51d093a186ca6fd8d1090af274cdb9ca220985680180d8ff7718d36e",
+          "dependency_fingerprint_sha256": "712836d57307b787f9f2bd36e9ced89d7a9de21ad0da75ade91f66f8a7884ea2",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -4837,7 +4921,7 @@
             "script"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "613d6057c1660bbe3ee66f15e9b6db8f49eb14ea68d82c31561c30688ae701b3",
+          "dependency_fingerprint_sha256": "a3881c58f1ce3ca1bda3facac54110cd5af7d79f49f5aa94a6630bf4d9fc5c7a",
           "eligible": true,
           "eligible_formats": [
             "script"
@@ -6436,86 +6520,26 @@
     },
     {
       "accepted_formats": [
-        "7z",
-        "apple-disk-image",
-        "asar",
-        "autoit-a3x",
-        "cab",
-        "data",
-        "elf",
-        "java-class",
-        "macho",
-        "ole",
-        "pe",
-        "png",
-        "rar",
-        "script",
-        "xz",
-        "zip"
+        "pe"
       ],
       "automated_analysis_completion_possible": true,
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "ast_eligible_formats": [
-            "7z",
-            "apple-disk-image",
-            "asar",
-            "autoit-a3x",
-            "cab",
-            "data",
-            "elf",
-            "java-class",
-            "macho",
-            "ole",
-            "pe",
-            "png",
-            "rar",
-            "script",
-            "xz",
-            "zip"
+            "pe"
           ],
           "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
-            "7z",
-            "apple-disk-image",
-            "asar",
-            "autoit-a3x",
-            "cab",
-            "data",
-            "elf",
-            "java-class",
-            "macho",
-            "ole",
-            "pe",
-            "png",
-            "rar",
-            "script",
-            "xz",
-            "zip"
+            "pe"
           ],
           "dependency_file_count": 1,
-          "dependency_fingerprint_sha256": "01d874d201f46ad2a1dc5cd1bf57d84d61df1af514f599134fa1a8b06b9a66bf",
+          "dependency_fingerprint_sha256": "c0d37be227e76cb129b19e136f1c3d7e12651a5183ea50e5e45ada74531a1517",
           "eligible": true,
           "eligible_formats": [
-            "7z",
-            "apple-disk-image",
-            "asar",
-            "autoit-a3x",
-            "cab",
-            "data",
-            "elf",
-            "java-class",
-            "macho",
-            "ole",
-            "pe",
-            "png",
-            "rar",
-            "script",
-            "xz",
-            "zip"
+            "pe"
           ],
           "handler_id": "nanocore:analysis.framework.malware.nanocore.extract.config.py:extract_config",
           "runtime_import": {
@@ -6553,22 +6577,7 @@
         "status": "not_verified"
       },
       "declared_accepted_formats": [
-        "7z",
-        "apple-disk-image",
-        "asar",
-        "autoit-a3x",
-        "cab",
-        "data",
-        "elf",
-        "java-class",
-        "macho",
-        "ole",
-        "pe",
-        "png",
-        "rar",
-        "script",
-        "xz",
-        "zip"
+        "pe"
       ],
       "declared_automatic_handlers": [
         "nanocore:analysis.framework.malware.nanocore.extract.config.py:extract_config"
@@ -9289,7 +9298,7 @@
             "elf"
           ],
           "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "8d07f4cbaf18d1ed778ab3e2cbf1a757de72ad6aedac6d5dcf10e3bf1747ead1",
+          "dependency_fingerprint_sha256": "d891bf666b411bf7f4258b1fcb2611960c5dd61ef4d81834d9e475006eaf13d1",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -9766,6 +9775,90 @@
       "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
         "remusstealer:extractors.remusstealer.extractor.py:extract"
+      ],
+      "script_only_handler_available": true,
+      "status": "fully_routable",
+      "structurally_routable": true
+    },
+    {
+      "accepted_formats": [
+        "pe"
+      ],
+      "automated_analysis_completion_possible": true,
+      "automated_analysis_completion_verified": false,
+      "automatic_handler_preflights": [
+        {
+          "ast_eligible_formats": [
+            "pe"
+          ],
+          "ast_preflight_eligible": true,
+          "blocked_formats": [],
+          "blockers": [],
+          "declared_formats": [
+            "pe"
+          ],
+          "dependency_file_count": 3,
+          "dependency_fingerprint_sha256": "d72d4159d89d01e6606575033e369d37e9e41a0ac7ea956999b93217584353e0",
+          "eligible": true,
+          "eligible_formats": [
+            "pe"
+          ],
+          "handler_id": "ror13_network_loader:analysis.framework.malware.ror13.network.loader.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "ror13_network_loader:analysis.framework.malware.ror13.network.loader.extract.config.py:extract_config",
+            "handler_imported": true,
+            "invocation": "bytes",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
+        }
+      ],
+      "automatic_handlers": [
+        "ror13_network_loader:analysis.framework.malware.ror13.network.loader.extract.config.py:extract_config"
+      ],
+      "automatic_selection_possible": true,
+      "blocked_automatic_handlers": [],
+      "blocker": null,
+      "candidate_verification_possible": true,
+      "completion_verification": {
+        "blockers": [
+          "representative_fixture_completion_not_verified",
+          "required_output_contract_not_exercised"
+        ],
+        "required_evidence": [
+          "representative_fixture",
+          "required_output_contract",
+          "orchestration_quality_gates"
+        ],
+        "status": "not_verified"
+      },
+      "declared_accepted_formats": [
+        "pe"
+      ],
+      "declared_automatic_handlers": [
+        "ror13_network_loader:analysis.framework.malware.ror13.network.loader.extract.config.py:extract_config"
+      ],
+      "declared_script_only_handler_available": true,
+      "detector_registered": true,
+      "family": "ror13_network_loader",
+      "manual_or_unsupported_handlers": [],
+      "next_action_ja": null,
+      "quality_policy": {
+        "category": "loader",
+        "config_required": true,
+        "network_required": true,
+        "terminal_payload_required": true
+      },
+      "quality_policy_declared": true,
+      "runtime_import_verified_structure": true,
+      "safe_automatic_handlers": [
+        "ror13_network_loader:analysis.framework.malware.ror13.network.loader.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
       "status": "fully_routable",
@@ -11414,7 +11507,7 @@
             "pe"
           ],
           "dependency_file_count": 51,
-          "dependency_fingerprint_sha256": "062fd64a057789d5c4a5913a6088726bbc816ec2953021cab847a506c442fba0",
+          "dependency_fingerprint_sha256": "b87bc05fc3b73378d6b1f80e5e32d55c93eb1172a13f9c3aae8a5670e6e4cf85",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11540,7 +11633,7 @@
             "pe"
           ],
           "dependency_file_count": 54,
-          "dependency_fingerprint_sha256": "61f9840e7965a4e0c8b598a371b2e85342425aea0bb02ff96645361398b3a33b",
+          "dependency_fingerprint_sha256": "37b0c011b75fee2d874a1a4098aaab8816349cbadaef05150321f692ddb79cd0",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -11634,7 +11727,7 @@
             "pe"
           ],
           "dependency_file_count": 51,
-          "dependency_fingerprint_sha256": "406fa510354622b16b37cf78a0023c3ca7d60de128b3015e7009c492b24119fd",
+          "dependency_fingerprint_sha256": "fbc1a033ebf1bda98d16f14699e08dacd1a8dfc5a6748474a9e85cf44303f483",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11671,7 +11764,7 @@
             "png"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "cfe606289b46dd7bc79d679021484426b5f60e89e1308c7e2b021d689f74ee35",
+          "dependency_fingerprint_sha256": "31fb60bc619866b78b46232156631dcfca7a777d3f20387d508021dc7129e32f",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -11705,7 +11798,7 @@
             "zip"
           ],
           "dependency_file_count": 52,
-          "dependency_fingerprint_sha256": "d211e4b62678fefc6c4c4abc0211d4a72bfdc8f2b916cf70af586a07e520dae8",
+          "dependency_fingerprint_sha256": "da10801b600b72179d0d5ce9b88c8a030e3eec5ff795ee8d5c7c99db52196192",
           "eligible": true,
           "eligible_formats": [
             "zip"
@@ -11738,7 +11831,7 @@
             "pe"
           ],
           "dependency_file_count": 50,
-          "dependency_fingerprint_sha256": "a1275d778baddb5df4510053d2b6c22b7e461036569e22c3893daee344fef006",
+          "dependency_fingerprint_sha256": "7e3107b4d0915df8113ce0a3f6a293cc48bf8d771e61ed6b685b827d351a0845",
           "eligible": true,
           "eligible_formats": [
             "data",
