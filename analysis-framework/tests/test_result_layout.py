@@ -88,6 +88,46 @@ def test_collection_supplement_sha_directory_is_not_a_case(short_tmp: Path) -> N
     assert [case["sha256"] for case in plan["cases"]] == [digest]
 
 
+def test_stix_and_research_audit_artifacts_do_not_change_case_layout(short_tmp: Path) -> None:
+    """STIXと監査成果物は許可し、検体移行対象には含めない。"""
+
+    repository = _base_repository(short_tmp)
+    stix = repository / "analysis-results" / "stix"
+    (stix / "families").mkdir(parents=True)
+    (stix / "infrastructure").mkdir()
+    (stix / "README.md").write_text("# STIX\n", encoding="utf-8")
+    (stix / "families" / "example.json").write_text("{}\n", encoding="utf-8")
+    (stix / "infrastructure" / "bundle.json").write_text("{}\n", encoding="utf-8")
+    audit = repository / "analysis-results" / "research" / "stix-audit" / "2026-09-21"
+    audit.mkdir(parents=True)
+    (audit / "README.md").write_text("# STIX監査\n", encoding="utf-8")
+    (audit / "c2-inventory-audit.json").write_text("{}\n", encoding="utf-8")
+
+    plan = layout.build_layout_plan(repository, maximum_path_length=320)
+
+    assert plan["errors"] == []
+    assert plan["counts"]["case_directories"] == 0
+    assert plan["counts"]["case_moves"] == 0
+    assert plan["counts"]["artifact_moves"] == 0
+    assert plan["counts"]["research_moves"] == 0
+    assert "stix" in plan["postconditions"]["result_root_directory_allowlist"]
+    before_stix = _tree_snapshot(stix)
+    before_audit = _tree_snapshot(audit)
+    layout.apply_layout_plan(repository, plan)
+    assert _tree_snapshot(stix) == before_stix
+    assert _tree_snapshot(audit) == before_audit
+    assert layout.build_layout_plan(repository, maximum_path_length=320)["errors"] == []
+
+    unknown = repository / "analysis-results" / "unplanned" / "README.md"
+    unknown.parent.mkdir()
+    unknown.write_text("# 未登録\n", encoding="utf-8")
+    rejected = layout.build_layout_plan(repository, maximum_path_length=320)
+    assert {
+        "code": "unplanned_result_root_artifact",
+        "path": "analysis-results/unplanned/README.md",
+    } in rejected["errors"]
+
+
 def test_version_resolver_uses_only_family_specific_evidence(tmp_path: Path) -> None:
     repository = _base_repository(tmp_path)
     cases = {

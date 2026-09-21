@@ -29,7 +29,7 @@ HISTORY_PATH_RE = re.compile(
 )
 
 _EXCLUDED_TREES = {".git", ".work", ".cache", ".venv", "node_modules", "__pycache__"}
-_RESULT_ROOT_DIRECTORY_ALLOWLIST = {"_shared", "catalog", "collections", "malware", "network-traffic", "research"}
+_RESULT_ROOT_DIRECTORY_ALLOWLIST = {"_shared", "catalog", "collections", "malware", "network-traffic", "research", "stix"}
 _RESULT_ROOT_FILE_ALLOWLIST = {"AGENTS.md", "IOC-INDEX.md", "README.md"}
 _CLICKFIX_DOMAIN_RE = re.compile(
     r"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
