@@ -1,0 +1,33 @@
+{
+  "as_of": "2026-09-21",
+  "confirmed_auxiliary": 12,
+  "confirmed_c2": 68,
+  "counts": {
+    "campaign": 11,
+    "domain-name": 43,
+    "file": 5,
+    "grouping": 26,
+    "indicator": 0,
+    "infrastructure": 80,
+    "intrusion-set": 4,
+    "ipv4-addr": 106,
+    "ipv6-addr": 0,
+    "malware": 13,
+    "network-traffic": 45,
+    "note": 196,
+    "observed-data": 45,
+    "relationship": 340,
+    "url": 2,
+    "x509-certificate": 9
+  },
+  "curated_endpoints": 164,
+  "safety": {
+    "certificate_only_promoted_to_campaign": false,
+    "discovery_route_excluded": true,
+    "historical_live_observation_in_sources": true,
+    "live_c2_contacted_during_generation": false,
+    "sample_executed_during_generation": false
+  },
+  "schema_version": 1,
+  "stix_version": "2.1"
+}

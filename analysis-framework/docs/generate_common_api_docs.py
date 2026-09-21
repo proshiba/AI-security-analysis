@@ -16,6 +16,9 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 COMMON = REPOSITORY / "analysis-framework" / "common"
 FRAMEWORK = REPOSITORY / "analysis-framework"
 MODULE_SOURCES = {
+    "generate_family_stix": "analysis-framework/common/generate_family_stix.py",
+    "generate_infrastructure_stix": "analysis-framework/common/generate_infrastructure_stix.py",
+    "inventory_infrastructure_evidence": "analysis-framework/common/inventory_infrastructure_evidence.py",
     "analysis_lifecycle": "analysis-framework/common/analysis_lifecycle.py",
     "analysis_orchestrator": "analysis-framework/common/analysis_orchestrator.py",
     "analysis_resume_planner": "analysis-framework/common/analysis_resume_planner.py",

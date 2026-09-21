@@ -47,6 +47,8 @@ ClickFix／ClearFakeのWeb配布事例は[ClickFix調査](clickfix/README.md)へ
 
 各 `README.md` から、概要、開発・販売主体、利用アクター、コモディティ／MaaS性、過去の攻撃事例、技術解析、版情報へ移動できます。詳細なOSINTと出典は各 `OSINT.md` にあります。
 
+ファミリーを横断する機械可読の整理は[ファミリー別STIX 2.1](stix/README.md)を参照してください。静的特徴、関数コード類似候補、出典付きの攻撃利用史・キャンペーン・主体・提供形態を分けて記録しています。
+
 - [Agent Tesla](malware/agenttesla/README.md)
 - [ACRStealer／Amatera](malware/acrstealer/README.md)
 - [Amadey](malware/amadey/README.md)

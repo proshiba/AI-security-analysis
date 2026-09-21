@@ -1,0 +1,328 @@
+{
+  "id": "bundle--58b34d02-31aa-5643-be86-f74f7635fa41",
+  "objects": [
+    {
+      "aliases": [
+        "Latrodectus Loader"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "システム情報収集、永続化、C2通信、任意コマンド実行、追加ペイロード取得を行うWindows向けダウンローダーである。2023年末からIcedIDに代わる初期アクセス用マルウェアとして利用が広がった。",
+      "external_references": [
+        {
+          "description": "latrodectus 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/latrodectus/README.md"
+        },
+        {
+          "description": "ClickFixを使ったLatrodectus配布 (am-latrodectus-clickfix)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/au/blog/threat-insight/security-brief-clickfix-social-engineering-technique-floods-threat-landscape"
+        },
+        {
+          "description": "Latrodectusローカル解析結果 (am-latrodectus-local-2026)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/latrodectus"
+        },
+        {
+          "description": "LatrodectusとStorm-0249の整理 (am-latrodectus-microsoft)",
+          "source_name": "Microsoft",
+          "url": "https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?Name=Trojan%3AWin32%2FLatrodectus%21MSR"
+        },
+        {
+          "description": "Latrodectus 1.4の機能更新 (am-latrodectus-netskope)",
+          "source_name": "Netskope",
+          "url": "https://www.netskope.com/blog/latrodectus-rapid-evolution-continues-with-latest-new-payload-features"
+        },
+        {
+          "description": "Latrodectus：IcedID開発系譜とTA577・TA578の活動 (am-latrodectus-proofpoint-2024)",
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice"
+        }
+      ],
+      "id": "malware--4da14403-0626-5ab9-b22a-98d646a6237d",
+      "is_family": true,
+      "labels": [
+        "business-model:restricted"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Latrodectus",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: ProofpointとTeam Cymruはコード特性と過去のIcedID基盤との重複から、IcedIDと同じ開発者が作成した可能性が高いと評価する。開発者個人の公開帰属は確認されておらず、IcedID 2.0という見出しも同一マルウェアを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Latrodectus：IcedID開発系譜とTA577・TA578の活動 (am-latrodectus-proofpoint-2024)",
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice"
+        }
+      ],
+      "id": "note--13a0fcaa-22b8-54b2-8d8f-0e388d57360e",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4da14403-0626-5ab9-b22a-98d646a6237d"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: restricted_criminal_tool。複数の初期アクセスブローカーが利用する閉鎖的な犯罪ローダーだが、一般公開ビルダーや公然販売MaaSを裏付ける証拠は不足する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "LatrodectusとStorm-0249の整理 (am-latrodectus-microsoft)",
+          "source_name": "Microsoft",
+          "url": "https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?Name=Trojan%3AWin32%2FLatrodectus%21MSR"
+        },
+        {
+          "description": "Latrodectus：IcedID開発系譜とTA577・TA578の活動 (am-latrodectus-proofpoint-2024)",
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice"
+        }
+      ],
+      "id": "note--306a84eb-37aa-567d-b56f-507cd075ffe7",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4da14403-0626-5ab9-b22a-98d646a6237d"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 単一アクター専用ではないと報告されている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "LatrodectusとStorm-0249の整理 (am-latrodectus-microsoft)",
+          "source_name": "Microsoft",
+          "url": "https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?Name=Trojan%3AWin32%2FLatrodectus%21MSR"
+        },
+        {
+          "description": "Latrodectus：IcedID開発系譜とTA577・TA578の活動 (am-latrodectus-proofpoint-2024)",
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice"
+        }
+      ],
+      "id": "note--adc6776c-4e49-5920-8229-5c3cf866af2e",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4da14403-0626-5ab9-b22a-98d646a6237d"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--2d35eaa6-3fa1-504a-9956-b3ba02bbc27d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "TA577",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "2023年11月にLatrodectusをメール活動で配布した初期アクセスブローカーである。",
+      "external_references": [
+        {
+          "description": "Latrodectus：IcedID開発系譜とTA577・TA578の活動 (am-latrodectus-proofpoint-2024)",
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice"
+        }
+      ],
+      "id": "relationship--ba3f037e-4c8d-56a8-8077-08adb691810c",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--2d35eaa6-3fa1-504a-9956-b3ba02bbc27d",
+      "spec_version": "2.1",
+      "target_ref": "malware--4da14403-0626-5ab9-b22a-98d646a6237d",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: TA577。2023年11月にLatrodectusをメール活動で配布した初期アクセスブローカーである。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Latrodectus：IcedID開発系譜とTA577・TA578の活動 (am-latrodectus-proofpoint-2024)",
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice"
+        }
+      ],
+      "id": "note--979b89fe-7a49-553e-833b-7c9ea1b66e91",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4da14403-0626-5ab9-b22a-98d646a6237d",
+        "threat-actor--2d35eaa6-3fa1-504a-9956-b3ba02bbc27d"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--75c8123e-8a88-557f-9b3d-a0544bacb7d4",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "TA578",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "2024年1月以降、問い合わせフォームや著作権侵害通知を使う活動でLatrodectusを主に配布した。",
+      "external_references": [
+        {
+          "description": "Latrodectus：IcedID開発系譜とTA577・TA578の活動 (am-latrodectus-proofpoint-2024)",
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice"
+        }
+      ],
+      "id": "relationship--91c76090-840e-56f6-b199-365083196aaa",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--75c8123e-8a88-557f-9b3d-a0544bacb7d4",
+      "spec_version": "2.1",
+      "target_ref": "malware--4da14403-0626-5ab9-b22a-98d646a6237d",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: TA578。2024年1月以降、問い合わせフォームや著作権侵害通知を使う活動でLatrodectusを主に配布した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Latrodectus：IcedID開発系譜とTA577・TA578の活動 (am-latrodectus-proofpoint-2024)",
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice"
+        }
+      ],
+      "id": "note--217fd1cb-1d48-50f8-95ac-29e3af16c354",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4da14403-0626-5ab9-b22a-98d646a6237d",
+        "threat-actor--75c8123e-8a88-557f-9b3d-a0544bacb7d4"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--e7cf6582-54cb-5c65-ba82-98c460b31477",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Storm-0249",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: Storm-0249。MicrosoftがLatrodectus活動の相当部分を帰属する初期アクセスブローカーである。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "LatrodectusとStorm-0249の整理 (am-latrodectus-microsoft)",
+          "source_name": "Microsoft",
+          "url": "https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?Name=Trojan%3AWin32%2FLatrodectus%21MSR"
+        }
+      ],
+      "id": "note--5c1ca6a9-b47c-5909-ab91-69975936cd7a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4da14403-0626-5ab9-b22a-98d646a6237d",
+        "threat-actor--e7cf6582-54cb-5c65-ba82-98c460b31477"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2023-11から2024）: TA577がメールで配布した後、TA578が問い合わせフォーム、著作権侵害通知、WebDAV・MSI等を使って配布した。 報告された主体: TA577、TA578。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Latrodectus：IcedID開発系譜とTA577・TA578の活動 (am-latrodectus-proofpoint-2024)",
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice"
+        }
+      ],
+      "id": "note--10e676d5-d9ec-51e0-9d22-5d202c137619",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4da14403-0626-5ab9-b22a-98d646a6237d"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2024-09）: ClickFixを利用し、Brute Ratel C4とLatrodectusを配布する活動が確認された。 報告された主体: 未特定の金銭目的アクター。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ClickFixを使ったLatrodectus配布 (am-latrodectus-clickfix)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/au/blog/threat-insight/security-brief-clickfix-social-engineering-technique-floods-threat-landscape"
+        }
+      ],
+      "id": "note--305692cb-9491-513c-85dc-b03785902824",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4da14403-0626-5ab9-b22a-98d646a6237d"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "latrodectus 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/latrodectus/README.md"
+        }
+      ],
+      "id": "report--ac71b446-fd74-577e-b8a5-68649447f5cd",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Latrodectus：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--4da14403-0626-5ab9-b22a-98d646a6237d",
+        "note--13a0fcaa-22b8-54b2-8d8f-0e388d57360e",
+        "note--306a84eb-37aa-567d-b56f-507cd075ffe7",
+        "note--adc6776c-4e49-5920-8229-5c3cf866af2e",
+        "threat-actor--2d35eaa6-3fa1-504a-9956-b3ba02bbc27d",
+        "relationship--ba3f037e-4c8d-56a8-8077-08adb691810c",
+        "note--979b89fe-7a49-553e-833b-7c9ea1b66e91",
+        "threat-actor--75c8123e-8a88-557f-9b3d-a0544bacb7d4",
+        "relationship--91c76090-840e-56f6-b199-365083196aaa",
+        "note--217fd1cb-1d48-50f8-95ac-29e3af16c354",
+        "threat-actor--e7cf6582-54cb-5c65-ba82-98c460b31477",
+        "note--5c1ca6a9-b47c-5909-ab91-69975936cd7a",
+        "note--10e676d5-d9ec-51e0-9d22-5d202c137619",
+        "note--305692cb-9491-513c-85dc-b03785902824"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

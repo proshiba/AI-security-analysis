@@ -1,0 +1,272 @@
+{
+  "id": "bundle--8cac0e03-6bee-5a26-9428-80b0b99f0ead",
+  "objects": [
+    {
+      "aliases": [
+        "Vidar Stealer"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "2018年頃から活動するWindows情報窃取マルウェアで、ブラウザ認証情報、Cookie、暗号資産ウォレット等を窃取する。Arkeiのコピー／フォーク系統として分析されている。",
+      "external_references": [
+        {
+          "description": "vidar 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/vidar/README.md"
+        },
+        {
+          "description": "Vidar Stealerの概要 (nz-vidar-kaspersky)",
+          "source_name": "Kaspersky Resource Center",
+          "url": "https://www.kaspersky.es/resource-center/threats/vidar-stealer"
+        },
+        {
+          "description": "ローカルVidar解析結果 (nz-vidar-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/vidar/README.md"
+        },
+        {
+          "description": "DEV-0569がRoyalランサムウェアなどを配布する新手法 (nz-vidar-ms-2022)",
+          "source_name": "Microsoft",
+          "url": "https://www.microsoft.com/en-us/security/blog/2022/11/17/dev-0569-finds-new-ways-to-deliver-royal-ransomware-various-payloads/"
+        },
+        {
+          "description": "脅威アクターがYouTubeのゲームクラックを介してマルウェアを配布 (nz-vidar-proofpoint-2024)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/au/blog/threat-insight/threat-actors-deliver-malware-youtube-video-game-cracks"
+        },
+        {
+          "description": "Arkei亜種：VidarからMars Stealerまで (nz-vidar-sans-2022)",
+          "source_name": "SANS Internet Storm Center",
+          "url": "https://isc.sans.edu/diary/Arkei%2BVariants%2BFrom%2BVidar%2Bto%2BMars%2BStealer/28468/"
+        },
+        {
+          "description": "Vidar Stealerの実態：コード署名悪用、Goローダー、ファイル肥大化 (nz-vidar-unit42-2026)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/vidar-stealer-xmrig-miner-campaign-analysis/"
+        }
+      ],
+      "id": "malware--1186c4ff-97e2-559a-acd6-77fd36eb70a8",
+      "is_family": true,
+      "labels": [
+        "business-model:maas"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Vidar",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: コード類似からArkei派生と評価され、Kasperskyは作者側が2023年にArkeiから発展したと主張したことを紹介しているが、開発チームの実名は不明である。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Vidar Stealerの概要 (nz-vidar-kaspersky)",
+          "source_name": "Kaspersky Resource Center",
+          "url": "https://www.kaspersky.es/resource-center/threats/vidar-stealer"
+        },
+        {
+          "description": "Arkei亜種：VidarからMars Stealerまで (nz-vidar-sans-2022)",
+          "source_name": "SANS Internet Storm Center",
+          "url": "https://isc.sans.edu/diary/Arkei%2BVariants%2BFrom%2BVidar%2Bto%2BMars%2BStealer/28468/"
+        }
+      ],
+      "id": "note--38d799c1-f80b-514e-97d2-06860865d1ca",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1186c4ff-97e2-559a-acd6-77fd36eb70a8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: maas。複数アフィリエイトが利用するMaaS／コモディティstealerで、単一配布グループに限定されない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Vidar Stealerの概要 (nz-vidar-kaspersky)",
+          "source_name": "Kaspersky Resource Center",
+          "url": "https://www.kaspersky.es/resource-center/threats/vidar-stealer"
+        },
+        {
+          "description": "Vidar Stealerの実態：コード署名悪用、Goローダー、ファイル肥大化 (nz-vidar-unit42-2026)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/vidar-stealer-xmrig-miner-campaign-analysis/"
+        }
+      ],
+      "id": "note--0a72824b-3960-5703-b847-8e4de38b9f06",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1186c4ff-97e2-559a-acd6-77fd36eb70a8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 単一アクター専用ではないと報告されている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Vidar Stealerの概要 (nz-vidar-kaspersky)",
+          "source_name": "Kaspersky Resource Center",
+          "url": "https://www.kaspersky.es/resource-center/threats/vidar-stealer"
+        },
+        {
+          "description": "Vidar Stealerの実態：コード署名悪用、Goローダー、ファイル肥大化 (nz-vidar-unit42-2026)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/vidar-stealer-xmrig-miner-campaign-analysis/"
+        }
+      ],
+      "id": "note--4eae5108-2ed0-5796-ae5b-a25f7ca633e7",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1186c4ff-97e2-559a-acd6-77fd36eb70a8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: DEV-0569 / BATLOADER。Microsoftはマルバタイジング等のチェーンでVidarを配布した活動をDEV-0569として追跡した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "DEV-0569がRoyalランサムウェアなどを配布する新手法 (nz-vidar-ms-2022)",
+          "source_name": "Microsoft",
+          "url": "https://www.microsoft.com/en-us/security/blog/2022/11/17/dev-0569-finds-new-ways-to-deliver-royal-ransomware-various-payloads/"
+        }
+      ],
+      "id": "note--f38ae085-dcbc-5d2f-be94-b3256db1aa5d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1186c4ff-97e2-559a-acd6-77fd36eb70a8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: Vidar MaaSアフィリエイト。Unit 42は2026年4月の米国・EU向けキャンペーン運用者を金銭目的のVidar MaaSアフィリエイトと評価した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Vidar Stealerの実態：コード署名悪用、Goローダー、ファイル肥大化 (nz-vidar-unit42-2026)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/vidar-stealer-xmrig-miner-campaign-analysis/"
+        }
+      ],
+      "id": "note--a470feed-8de5-5a7c-bf76-704c102294b3",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1186c4ff-97e2-559a-acd6-77fd36eb70a8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2022年から2024年）: BATLOADER／DEV-0569の配布と、YouTube上のゲーム・ソフトウェアクラックを用いるキャンペーンが報告された。 報告された主体: DEV-0569 / BATLOADER。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "DEV-0569がRoyalランサムウェアなどを配布する新手法 (nz-vidar-ms-2022)",
+          "source_name": "Microsoft",
+          "url": "https://www.microsoft.com/en-us/security/blog/2022/11/17/dev-0569-finds-new-ways-to-deliver-royal-ransomware-various-payloads/"
+        },
+        {
+          "description": "脅威アクターがYouTubeのゲームクラックを介してマルウェアを配布 (nz-vidar-proofpoint-2024)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/au/blog/threat-insight/threat-actors-deliver-malware-youtube-video-game-cracks"
+        }
+      ],
+      "id": "note--c8d59edb-8f8a-5d30-bb77-fe440833bc35",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1186c4ff-97e2-559a-acd6-77fd36eb70a8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2026年4月）: 偽クラック、マルバタイジング、巨大ファイルGoローダーを経てVidarとXMRigを同時配布するキャンペーンが観測された。 報告された主体: Vidar MaaSアフィリエイト。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Vidar Stealerの実態：コード署名悪用、Goローダー、ファイル肥大化 (nz-vidar-unit42-2026)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/vidar-stealer-xmrig-miner-campaign-analysis/"
+        }
+      ],
+      "id": "note--220a6d6c-6c45-5d16-9553-162236621717",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1186c4ff-97e2-559a-acd6-77fd36eb70a8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "公開済み1件のcaseに対応する静的比較プロファイルから集計した特徴。件数は観測case数であり、全版共通の断定ではない。\nlayer_chain: root:pe (1件)",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "vidar 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/vidar/README.md"
+        },
+        {
+          "description": "静的ロジック比較プロファイル",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/catalog/logic-similarity.json"
+        }
+      ],
+      "id": "note--a45cc5dc-7b04-5817-bcb6-323e0220759d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1186c4ff-97e2-559a-acd6-77fd36eb70a8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "vidar 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/vidar/README.md"
+        }
+      ],
+      "id": "report--46e53b54-7e84-5a93-a64a-36595bd4fb08",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Vidar：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--1186c4ff-97e2-559a-acd6-77fd36eb70a8",
+        "note--38d799c1-f80b-514e-97d2-06860865d1ca",
+        "note--0a72824b-3960-5703-b847-8e4de38b9f06",
+        "note--4eae5108-2ed0-5796-ae5b-a25f7ca633e7",
+        "note--f38ae085-dcbc-5d2f-be94-b3256db1aa5d",
+        "note--a470feed-8de5-5a7c-bf76-704c102294b3",
+        "note--c8d59edb-8f8a-5d30-bb77-fe440833bc35",
+        "note--220a6d6c-6c45-5d16-9553-162236621717",
+        "note--a45cc5dc-7b04-5817-bcb6-323e0220759d"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

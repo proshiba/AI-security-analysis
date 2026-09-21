@@ -1,0 +1,234 @@
+{
+  "id": "bundle--4b95199e-6b3d-5526-a40a-daacda3022f3",
+  "objects": [
+    {
+      "aliases": [
+        "Atomic macOS Stealer",
+        "Atomic Stealer",
+        "AMOS Stealer"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "macOSを対象に、キーチェーン、ブラウザーデータ、クレジットカード情報、暗号資産ウォレット、文書、システム情報を窃取する情報窃取型マルウェアである。",
+      "external_references": [
+        {
+          "description": "amosstealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/amosstealer/README.md"
+        },
+        {
+          "description": "Atomic macOS Stealerの概要 (am-amos-broadcom-2023)",
+          "source_name": "Broadcom",
+          "url": "https://www.broadcom.com/support/security-center/protection-bulletin/atomic-macos-stealer-amos"
+        },
+        {
+          "description": "AMOSローカル解析結果 (am-amos-local-2026)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/amosstealer"
+        },
+        {
+          "description": "偽ブラウザー更新で配布されたAtomic Stealer (am-amos-malwarebytes-2023)",
+          "source_name": "Malwarebytes",
+          "url": "https://www.malwarebytes.com/blog/threat-intelligence/2023/11/atomic-stealer-distributed-via-fake-browser-updates"
+        },
+        {
+          "description": "増加するmacOS情報窃取型マルウェアの調査 (am-amos-unit42-2025)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/macos-stealers-growing/"
+        }
+      ],
+      "id": "malware--caf489a6-b792-56d3-a601-8481fb24ff71",
+      "is_family": true,
+      "labels": [
+        "business-model:maas"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "AMOS",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 20,
+      "content": "開発主体: 開発者の実名・組織に関する公開帰属は確認されていない。2023年4月頃からフォーラムやTelegramでMaaSとして広告・販売する運営者の存在が報告されている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Atomic macOS Stealerの概要 (am-amos-broadcom-2023)",
+          "source_name": "Broadcom",
+          "url": "https://www.broadcom.com/support/security-center/protection-bulletin/atomic-macos-stealer-amos"
+        },
+        {
+          "description": "増加するmacOS情報窃取型マルウェアの調査 (am-amos-unit42-2025)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/macos-stealers-growing/"
+        }
+      ],
+      "id": "note--c405078b-fbcd-5bd2-abed-a9037b641736",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--caf489a6-b792-56d3-a601-8481fb24ff71"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: maas。フォーラムとTelegramで販売され、継続更新される有償MaaSである。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Atomic macOS Stealerの概要 (am-amos-broadcom-2023)",
+          "source_name": "Broadcom",
+          "url": "https://www.broadcom.com/support/security-center/protection-bulletin/atomic-macos-stealer-amos"
+        },
+        {
+          "description": "増加するmacOS情報窃取型マルウェアの調査 (am-amos-unit42-2025)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/macos-stealers-growing/"
+        }
+      ],
+      "id": "note--d0eb5721-861b-5023-93c1-0eb5d75be4cc",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--caf489a6-b792-56d3-a601-8481fb24ff71"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Atomic macOS Stealerの概要 (am-amos-broadcom-2023)",
+          "source_name": "Broadcom",
+          "url": "https://www.broadcom.com/support/security-center/protection-bulletin/atomic-macos-stealer-amos"
+        },
+        {
+          "description": "増加するmacOS情報窃取型マルウェアの調査 (am-amos-unit42-2025)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/macos-stealers-growing/"
+        }
+      ],
+      "id": "note--90aeb806-a84e-521e-a65d-31fec6e70b34",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--caf489a6-b792-56d3-a601-8481fb24ff71"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: ClearFake配布者。侵害サイト上の偽Safari・Chrome更新を利用してAMOSを配布した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "偽ブラウザー更新で配布されたAtomic Stealer (am-amos-malwarebytes-2023)",
+          "source_name": "Malwarebytes",
+          "url": "https://www.malwarebytes.com/blog/threat-intelligence/2023/11/atomic-stealer-distributed-via-fake-browser-updates"
+        }
+      ],
+      "id": "note--d21b71c0-0d9c-5871-b089-623798466f61",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--caf489a6-b792-56d3-a601-8481fb24ff71"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: 不特定のMaaSアフィリエイト。単一の専属アクターではなく、購入者がマルバタイジングや偽ソフトウェアを使って配布する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "増加するmacOS情報窃取型マルウェアの調査 (am-amos-unit42-2025)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/macos-stealers-growing/"
+        }
+      ],
+      "id": "note--421e92f4-3fe5-5217-a567-0caf81d86b44",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--caf489a6-b792-56d3-a601-8481fb24ff71"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2023）: 侵害サイトのClearFakeを通じ、SafariまたはChromeの更新を装ってMac利用者へ配布された。 報告された主体: ClearFake配布者。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "偽ブラウザー更新で配布されたAtomic Stealer (am-amos-malwarebytes-2023)",
+          "source_name": "Malwarebytes",
+          "url": "https://www.malwarebytes.com/blog/threat-intelligence/2023/11/atomic-stealer-distributed-via-fake-browser-updates"
+        }
+      ],
+      "id": "note--b3714aee-0e18-5244-bf40-f16278ec60c2",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--caf489a6-b792-56d3-a601-8481fb24ff71"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2023-2025）: 正規アプリやクラック版を装うマルバタイジングを中心に配布され、実装言語や難読化を変えながら更新された。 報告された主体: 不特定のMaaSアフィリエイト。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "増加するmacOS情報窃取型マルウェアの調査 (am-amos-unit42-2025)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/macos-stealers-growing/"
+        }
+      ],
+      "id": "note--496481bb-4826-57b4-969b-f7d0b5be754d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--caf489a6-b792-56d3-a601-8481fb24ff71"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "amosstealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/amosstealer/README.md"
+        }
+      ],
+      "id": "report--beeaf51e-8336-50fc-9823-f76097e5dee6",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "AMOS：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--caf489a6-b792-56d3-a601-8481fb24ff71",
+        "note--c405078b-fbcd-5bd2-abed-a9037b641736",
+        "note--d0eb5721-861b-5023-93c1-0eb5d75be4cc",
+        "note--90aeb806-a84e-521e-a65d-31fec6e70b34",
+        "note--d21b71c0-0d9c-5871-b089-623798466f61",
+        "note--421e92f4-3fe5-5217-a567-0caf81d86b44",
+        "note--b3714aee-0e18-5244-bf40-f16278ec60c2",
+        "note--496481bb-4826-57b4-969b-f7d0b5be754d"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

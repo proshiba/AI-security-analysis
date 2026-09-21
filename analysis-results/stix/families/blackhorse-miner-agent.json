@@ -1,0 +1,69 @@
+{
+  "id": "bundle--c427d67b-9a5e-589f-8aea-7cb788cad330",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: Go製daemonがXMRig mining、systemd/cron/watchdog、外部fleet commandを組み合わせます。検体内project名に基づく暫定familyで、開発者・運用者・販売性・過去攻撃は未特定です。XMRig自体は正規用途もあるため作者を攻撃へ帰属しません。",
+      "external_references": [
+        {
+          "description": "blackhorse-miner-agent 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/blackhorse-miner-agent/README.md"
+        }
+      ],
+      "id": "malware--95b2dbc4-2ad2-501e-a7f8-83f2db1de908",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "blackhorse-miner-agent",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "blackhorse-miner-agent 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/blackhorse-miner-agent/README.md"
+        }
+      ],
+      "id": "note--f2005604-84c8-5ed3-922d-5719141ee724",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--95b2dbc4-2ad2-501e-a7f8-83f2db1de908"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "blackhorse-miner-agent 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/blackhorse-miner-agent/README.md"
+        }
+      ],
+      "id": "report--2444b813-a9b2-5fdc-8df5-f0bff7e25082",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "blackhorse-miner-agent：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--95b2dbc4-2ad2-501e-a7f8-83f2db1de908",
+        "note--f2005604-84c8-5ed3-922d-5719141ee724"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

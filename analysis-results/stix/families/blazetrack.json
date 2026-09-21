@@ -1,0 +1,69 @@
+{
+  "id": "bundle--0b9a2213-eb4e-5066-93ea-7040c5cd4c7c",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: BlazeTrackは、改変IExpress外層、AutoIt A3Xローダー、x86終端PEからなるWindows向け多段ローダーの暫定名です。名称は永続化ファイルBlazeTrack.exeに由来し、既知の正式ファミリー名や開発者名を示すものではありません。",
+      "external_references": [
+        {
+          "description": "blazetrack 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/blazetrack/README.md"
+        }
+      ],
+      "id": "malware--7f2a7507-2708-539f-b7a5-ba3dcbeb2133",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "blazetrack",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "blazetrack 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/blazetrack/README.md"
+        }
+      ],
+      "id": "note--cb1a738e-07bc-56c8-ab20-64a6db41bbca",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--7f2a7507-2708-539f-b7a5-ba3dcbeb2133"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "blazetrack 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/blazetrack/README.md"
+        }
+      ],
+      "id": "report--bf2a1805-1895-53ef-ad10-37ee3f3c15b7",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "blazetrack：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--7f2a7507-2708-539f-b7a5-ba3dcbeb2133",
+        "note--cb1a738e-07bc-56c8-ab20-64a6db41bbca"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

@@ -1,0 +1,69 @@
+{
+  "id": "bundle--f89e66e7-e332-5b13-9353-5defc9997d83",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: GendDDoSは暗号化テーブルからgenddos.st:6742を復号するMirai派生Linux DDoSボットの暫定クラスタ名です。x86、x86-64、ARM、ARMv5/ARMv6/ARMv7、ARC Compact、MIPS big-/little-endian、M68K、SH4、SPARC、PowerPCの15件は、提出名ohshit.*、実効XOR 0x22、主C2、2-byte長フレーム、watchdog、14攻撃処理を共有します。",
+      "external_references": [
+        {
+          "description": "genddos-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/genddos-bot/README.md"
+        }
+      ],
+      "id": "malware--f4041b9d-8380-582e-a0e2-ee416faaa976",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "genddos-bot",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "genddos-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/genddos-bot/README.md"
+        }
+      ],
+      "id": "note--f5955d4d-efd8-5441-b152-3fb9c2fd8925",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--f4041b9d-8380-582e-a0e2-ee416faaa976"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "genddos-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/genddos-bot/README.md"
+        }
+      ],
+      "id": "report--d83080b9-ef57-5345-adb9-9be5e12fc3e4",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "genddos-bot：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--f4041b9d-8380-582e-a0e2-ee416faaa976",
+        "note--f5955d4d-efd8-5441-b152-3fb9c2fd8925"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

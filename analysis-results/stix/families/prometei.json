@@ -1,0 +1,219 @@
+{
+  "id": "bundle--50a86e57-30f6-540d-8767-dede5c0daf38",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Cisco Talosが2020年に報告した複数モジュールのMonero採掘botnet。侵害後にSMB、盗取資格情報、PsExec、WMI等で横展開した。一般販売されたMaaSであるとの根拠は確認しない。",
+      "external_references": [
+        {
+          "description": "prometei 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/prometei/README.md"
+        },
+        {
+          "description": "Monero採掘を目的とするPrometei botnet (stix-prometei-talos-2020)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/prometei-botnet-and-its-quest-for-monero/"
+        }
+      ],
+      "id": "malware--4f16ab96-6fa8-5989-b82b-247bc7f95fa9",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Prometei",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 20,
+      "content": "開発主体: 実名開発者は未確認。Talosは複数moduleが同じ配布serverから取得されることから同じ作者である可能性を示したが、身元の確定ではない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Monero採掘を目的とするPrometei botnet (stix-prometei-talos-2020)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/prometei-botnet-and-its-quest-for-monero/"
+        }
+      ],
+      "id": "note--356804a8-7bdf-5c11-8eac-fd012a60250d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4f16ab96-6fa8-5989-b82b-247bc7f95fa9"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: unknown。観測されたbotnetの継続運用であり、公開ソースやMaaSとしての販売は確認していない。個別アクター専用性も未確認。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Monero採掘を目的とするPrometei botnet (stix-prometei-talos-2020)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/prometei-botnet-and-its-quest-for-monero/"
+        }
+      ],
+      "id": "note--2b4f19de-f53d-59cc-b454-248522a45d90",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4f16ab96-6fa8-5989-b82b-247bc7f95fa9"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Monero採掘を目的とするPrometei botnet (stix-prometei-talos-2020)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/prometei-botnet-and-its-quest-for-monero/"
+        }
+      ],
+      "id": "note--efb93f0b-0a0c-5645-b483-e6c64870d5b2",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4f16ab96-6fa8-5989-b82b-247bc7f95fa9"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 20,
+      "content": "利用主体に関する公開報告: 未特定のbotnet運用者。採掘目的の運用主体が存在するが、Talos資料から個人・組織名を確定できない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Monero採掘を目的とするPrometei botnet (stix-prometei-talos-2020)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/prometei-botnet-and-its-quest-for-monero/"
+        }
+      ],
+      "id": "note--56d5ec79-2fca-56cb-9c45-ee677e44a059",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4f16ab96-6fa8-5989-b82b-247bc7f95fa9"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2020年）: 侵害ネットワーク内でSMBと盗取資格情報、PsExec、WMI等を使って横展開し、Monero採掘moduleを導入した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Monero採掘を目的とするPrometei botnet (stix-prometei-talos-2020)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/prometei-botnet-and-its-quest-for-monero/"
+        }
+      ],
+      "id": "note--fbce7727-7659-5247-a3ac-9d85ab994c9c",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4f16ab96-6fa8-5989-b82b-247bc7f95fa9"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Cisco Talosが2020年に調査した横展開とMonero採掘を伴うbotnet活動。名前は本STIX内での記述名であり、運用者名ではない。",
+      "external_references": [
+        {
+          "description": "Monero採掘を目的とするPrometei botnet (stix-prometei-talos-2020)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/prometei-botnet-and-its-quest-for-monero/"
+        }
+      ],
+      "id": "campaign--8871f87d-14cb-5eda-8641-c27fbc68ebcc",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Talos観測の2020年Prometei採掘活動",
+      "spec_version": "2.1",
+      "type": "campaign"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Monero採掘を目的とするPrometei botnet (stix-prometei-talos-2020)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/prometei-botnet-and-its-quest-for-monero/"
+        }
+      ],
+      "id": "relationship--77a07eb0-dd54-5d6c-970d-9e39927b3fe5",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "campaign--8871f87d-14cb-5eda-8641-c27fbc68ebcc",
+      "spec_version": "2.1",
+      "target_ref": "malware--4f16ab96-6fa8-5989-b82b-247bc7f95fa9",
+      "type": "relationship"
+    },
+    {
+      "content": "公開済み1件のcaseに対応する静的比較プロファイルから集計した特徴。件数は観測case数であり、全版共通の断定ではない。\nlayer_chain: root:pe (1件)\nmodule_stack: root_program:x86:le:32:default (1件)\ncapabilities: execution:process_creation (1件)、network:api_access (1件)\nfunction_roles: cpu feature判定 (1件)、cpuid取得 (1件)、sidecar読取 (1件)、復号ディスパッチャ (1件)、復号後terminal転送先 (1件)、診断command実行 (1件)、診断ログ初期化 (1件)",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "prometei 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/prometei/README.md"
+        },
+        {
+          "description": "静的ロジック比較プロファイル",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/catalog/logic-similarity.json"
+        }
+      ],
+      "id": "note--2be858c9-4d2d-5a42-91ec-e91cd9017a8d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4f16ab96-6fa8-5989-b82b-247bc7f95fa9"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "prometei 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/prometei/README.md"
+        }
+      ],
+      "id": "report--afaf32c0-d3c5-5a32-b1df-e92fcc3f4db4",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Prometei：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--4f16ab96-6fa8-5989-b82b-247bc7f95fa9",
+        "note--356804a8-7bdf-5c11-8eac-fd012a60250d",
+        "note--2b4f19de-f53d-59cc-b454-248522a45d90",
+        "note--efb93f0b-0a0c-5645-b483-e6c64870d5b2",
+        "note--56d5ec79-2fca-56cb-9c45-ee677e44a059",
+        "note--fbce7727-7659-5247-a3ac-9d85ab994c9c",
+        "campaign--8871f87d-14cb-5eda-8641-c27fbc68ebcc",
+        "relationship--77a07eb0-dd54-5d6c-970d-9e39927b3fe5",
+        "note--2be858c9-4d2d-5a42-91ec-e91cd9017a8d"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

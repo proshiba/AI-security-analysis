@@ -8,8 +8,8 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title">sync_result_catalog</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Csync_result_catalog.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\sync_result_catalog.py</a></td></tr></table>
-    <p><span class="code">固定レイアウトのcaseを、単調追加だけ許可して全件catalogへ同期する。</span></p>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cw%5Ca26%5Canalysis-framework%5Ccommon%5Csync_result_catalog.py">c:\users\administrator\w\a26\analysis-framework\common\sync_result_catalog.py</a></td></tr></table>
+    <p><span class="code">固定レイアウトのcaseを、安全な明示変更だけ許可して全件catalogへ同期する。</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
@@ -17,10 +17,12 @@
 
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
-</td><td class="multicolumn"><a href="json.html">json</a><br>
+<a href="json.html">json</a><br>
 </td><td class="multicolumn"><a href="os.html">os</a><br>
-</td><td class="multicolumn"><a href="tempfile.html">tempfile</a><br>
-</td></tr></table></td></tr></table><p>
+<a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="sys.html">sys</a><br>
+<a href="tempfile.html">tempfile</a><br>
+</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor index-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
@@ -66,18 +68,18 @@ Static methods inherited from <a href="builtins.html#ValueError">builtins.ValueE
 Methods inherited from <a href="builtins.html#BaseException">builtins.BaseException</a>:<br>
 <dl><dt><a name="CatalogSyncError-__getattribute__"><strong>__getattribute__</strong></a>(self, name, /)</dt><dd><span class="code">Return&nbsp;getattr(self,&nbsp;name).</span></dd></dl>
 
-<dl><dt><a name="CatalogSyncError-__reduce__"><strong>__reduce__</strong></a>(self, /)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
+<dl><dt><a name="CatalogSyncError-__reduce__"><strong>__reduce__</strong></a>(...)</dt><dd><span class="code">Helper&nbsp;for&nbsp;pickle.</span></dd></dl>
 
 <dl><dt><a name="CatalogSyncError-__repr__"><strong>__repr__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
 
-<dl><dt><a name="CatalogSyncError-__setstate__"><strong>__setstate__</strong></a>(self, object, /)</dt></dl>
+<dl><dt><a name="CatalogSyncError-__setstate__"><strong>__setstate__</strong></a>(...)</dt></dl>
 
 <dl><dt><a name="CatalogSyncError-__str__"><strong>__str__</strong></a>(self, /)</dt><dd><span class="code">Return&nbsp;str(self).</span></dd></dl>
 
-<dl><dt><a name="CatalogSyncError-add_note"><strong>add_note</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#CatalogSyncError-add_note">add_note</a>(note)&nbsp;--<br>
+<dl><dt><a name="CatalogSyncError-add_note"><strong>add_note</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#CatalogSyncError-add_note">add_note</a>(note)&nbsp;--<br>
 add&nbsp;a&nbsp;note&nbsp;to&nbsp;the&nbsp;exception</span></dd></dl>
 
-<dl><dt><a name="CatalogSyncError-with_traceback"><strong>with_traceback</strong></a>(self, object, /)</dt><dd><span class="code">Exception.<a href="#CatalogSyncError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
+<dl><dt><a name="CatalogSyncError-with_traceback"><strong>with_traceback</strong></a>(...)</dt><dd><span class="code">Exception.<a href="#CatalogSyncError-with_traceback">with_traceback</a>(tb)&nbsp;--<br>
 set&nbsp;self.<strong>__traceback__</strong>&nbsp;to&nbsp;tb&nbsp;and&nbsp;return&nbsp;self.</span></dd></dl>
 
 <hr>
@@ -104,8 +106,18 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">catalog同期CLIの引数parserを返す。</span></dd></dl>
  <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLI引数を処理し、同期計画または書込み結果を出力する。</span></dd></dl>
- <dl><dt><a name="-sync_case_identity_metadata"><strong>sync_case_identity_metadata</strong></a>(repository: 'Path', *, write: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">固定レイアウトからcase&nbsp;identity&nbsp;metadataを補完し、安全な分類補正だけを行う。</span></dd></dl>
- <dl><dt><a name="-sync_catalog"><strong>sync_catalog</strong></a>(repository: 'Path', *, write: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">レイアウト計画からcatalogを再構成し、単調追加だけを任意で反映する。</span></dd></dl>
- <dl><dt><a name="-validate_monotonic"><strong>validate_monotonic</strong></a>(existing: 'dict[str, Any]', desired: 'dict[str, Any]') -&gt; 'tuple[str, ...]'</dt><dd><span class="code">既存entryが消失・変更しないことを検証し、新規SHA-256を返す。</span></dd></dl>
+ <dl><dt><a name="-normalize_approved_case_removals"><strong>normalize_approved_case_removals</strong></a>(values: 'Iterable[str]') -&gt; 'frozenset[str]'</dt><dd><span class="code">明示承認された削除対象を正規化し、曖昧な入力を拒否する。</span></dd></dl>
+ <dl><dt><a name="-preflight_catalog_sync"><strong>preflight_catalog_sync</strong></a>(repository: 'Path', *, plan: 'dict[str, Any] | None' = None, approved_case_removals: 'Iterable[str]' = (), bootstrap_missing_catalog: 'bool' = False) -&gt; 'None'</dt><dd><span class="code">refreshの全write前にcatalog変更の明示承認を検証する。</span></dd></dl>
+ <dl><dt><a name="-read_approved_case_removals_from_stdin"><strong>read_approved_case_removals_from_stdin</strong></a>() -&gt; 'frozenset[str]'</dt><dd><span class="code">秘密性のあるcase識別子をargvへ残さずstdinから受け取る。</span></dd></dl>
+ <dl><dt><a name="-sync_case_identity_metadata"><strong>sync_case_identity_metadata</strong></a>(repository: 'Path', *, write: 'bool' = False, plan: 'dict[str, Any] | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">固定レイアウトからcase&nbsp;identity&nbsp;metadataを補完し、安全な分類補正だけを行う。<br>
+&nbsp;<br>
+`plan`&nbsp;を渡すと、同じレイアウト計画を使い回して再構築を省く。計画の構築は<br>
+全成果物の走査を伴い1回あたり数十秒かかるため、同一ツリーに対して何度も<br>
+作り直さないための入口。呼び出し側は、計画の入力(metadata.jsonを含む)が<br>
+その後に書き換わっていないことを保証する責任を持つ。</span></dd></dl>
+ <dl><dt><a name="-sync_catalog"><strong>sync_catalog</strong></a>(repository: 'Path', *, write: 'bool' = False, plan: 'dict[str, Any] | None' = None, approved_case_removals: 'Iterable[str]' = (), bootstrap_missing_catalog: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">レイアウト計画からcatalogを再構成し、安全な差分だけを任意で反映する。<br>
+&nbsp;<br>
+`plan`&nbsp;の意味は&nbsp;sync_case_identity_metadata&nbsp;と同じ。</span></dd></dl>
+ <dl><dt><a name="-validate_monotonic"><strong>validate_monotonic</strong></a>(existing: 'dict[str, Any]', desired: 'dict[str, Any]', *, approved_case_removals: 'Iterable[str]' = ()) -&gt; 'tuple[str, ...]'</dt><dd><span class="code">既存entryの変更と未承認削除を拒否し、新規SHA-256を返す。</span></dd></dl>
 </td></tr></table>
 </body></html>

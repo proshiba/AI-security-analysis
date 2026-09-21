@@ -1,0 +1,272 @@
+{
+  "id": "bundle--33f737e5-d694-54e1-bf5b-0edf8e7ffd0a",
+  "objects": [
+    {
+      "aliases": [
+        "Mirai派生Bot（暫定名）"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Miraiの公開後に形成された派生エコシステムの特徴を持ち、Telnet認証情報走査、競合プロセス排除、watchdog、cron永続化、DDoS用Bot制御を複数CPU向けに実装する。ローカル3検体はChaCha20暗号化設定にTCP C2、DoHリゾルバー、ENSレジストリ、Ethereumゲートウェイを保持するが、既知の固有派生名にはまだ帰属できない。",
+      "external_references": [
+        {
+          "description": "mirai-derived-ens-doh-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/mirai-derived-ens-doh-bot/README.md"
+        },
+        {
+          "description": "インターネット・通信レジリエンスに関する大統領報告 (nz-mirai-cisa-2017)",
+          "source_name": "CISA / NSTAC",
+          "url": "https://www.cisa.gov/sites/default/files/publications/NSTAC%20Report%20to%20the%20President%20on%20ICR%20FINAL%20%2810-12-17%29%20%281%29-%20508%20compliant_0.pdf"
+        },
+        {
+          "description": "Mirai内部：悪名高いIoT Botnetの回顧分析 (nz-mirai-cloudflare-2023)",
+          "source_name": "Cloudflare",
+          "url": "https://blog.cloudflare.com/inside-mirai-the-infamous-iot-botnet-a-retrospective-analysis/"
+        },
+        {
+          "description": "大規模サイバー攻撃3事件の訴追と有罪答弁 (nz-mirai-doj-2017)",
+          "source_name": "U.S. Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        },
+        {
+          "description": "Mirai派生ENS/DoH Botローカル解析 (nz-mirai-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/mirai-derived-ens-doh-bot"
+        }
+      ],
+      "id": "malware--bc4f4a40-8360-5661-8ed3-676cf30299cf",
+      "is_family": true,
+      "labels": [
+        "business-model:commodity"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Mirai派生ENS/DoH Bot",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 80,
+      "content": "開発主体: 原型MiraiはParas Jha、Josiah White、Dalton Normanが2016年に作成・運用したことを米司法省資料で確認できる。一方、今回のENS/DoH派生版の開発者・改変者は特定できず、原型作者が本検体を開発したとは扱わない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "大規模サイバー攻撃3事件の訴追と有罪答弁 (nz-mirai-doj-2017)",
+          "source_name": "U.S. Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        },
+        {
+          "description": "Mirai派生ENS/DoH Botローカル解析 (nz-mirai-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/mirai-derived-ens-doh-bot"
+        }
+      ],
+      "id": "note--b606886c-213c-5b77-8569-f3cff3076792",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--bc4f4a40-8360-5661-8ed3-676cf30299cf"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: commodity。原型ソースの公開後に多数の派生版が再利用・改変されており、Mirai系はコモディティ化したIoT Botnetコード基盤と評価する。ただし本ENS/DoH実装の販売形態は未確認である。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai内部：悪名高いIoT Botnetの回顧分析 (nz-mirai-cloudflare-2023)",
+          "source_name": "Cloudflare",
+          "url": "https://blog.cloudflare.com/inside-mirai-the-infamous-iot-botnet-a-retrospective-analysis/"
+        },
+        {
+          "description": "大規模サイバー攻撃3事件の訴追と有罪答弁 (nz-mirai-doj-2017)",
+          "source_name": "U.S. Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "note--f66794eb-329b-571a-9400-1360e3a103f4",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--bc4f4a40-8360-5661-8ed3-676cf30299cf"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai内部：悪名高いIoT Botnetの回顧分析 (nz-mirai-cloudflare-2023)",
+          "source_name": "Cloudflare",
+          "url": "https://blog.cloudflare.com/inside-mirai-the-infamous-iot-botnet-a-retrospective-analysis/"
+        },
+        {
+          "description": "大規模サイバー攻撃3事件の訴追と有罪答弁 (nz-mirai-doj-2017)",
+          "source_name": "U.S. Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "note--39909d4a-700b-5a82-a3c8-f5d20d3fa460",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--bc4f4a40-8360-5661-8ed3-676cf30299cf"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: 原型Miraiの作者・運用者。米司法省は3名がMiraiを作成・運用し、DDoSに利用したと記録している。これは原型の帰属であり、ローカル派生版の運用者帰属ではない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "大規模サイバー攻撃3事件の訴追と有罪答弁 (nz-mirai-doj-2017)",
+          "source_name": "U.S. Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "note--3dac6931-e900-592e-a452-3390eb19fd97",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--bc4f4a40-8360-5661-8ed3-676cf30299cf"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: 公開ソースを転用した複数の犯罪者・模倣者。原型ソース公開後、複数グループが亜種や模倣Botnetを運用したことが技術史料で確認される。ただし本検体の固有運用者は不明である。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai内部：悪名高いIoT Botnetの回顧分析 (nz-mirai-cloudflare-2023)",
+          "source_name": "Cloudflare",
+          "url": "https://blog.cloudflare.com/inside-mirai-the-infamous-iot-botnet-a-retrospective-analysis/"
+        },
+        {
+          "description": "大規模サイバー攻撃3事件の訴追と有罪答弁 (nz-mirai-doj-2017)",
+          "source_name": "U.S. Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "note--458e05f3-1e37-5175-a48a-3005278b0727",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--bc4f4a40-8360-5661-8ed3-676cf30299cf"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2016年9月）: MiraiはKrebs on SecurityとOVHを標的とする大規模DDoSで観測された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai内部：悪名高いIoT Botnetの回顧分析 (nz-mirai-cloudflare-2023)",
+          "source_name": "Cloudflare",
+          "url": "https://blog.cloudflare.com/inside-mirai-the-infamous-iot-botnet-a-retrospective-analysis/"
+        }
+      ],
+      "id": "note--1930c014-d20c-56fb-a27c-af38d465535c",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--bc4f4a40-8360-5661-8ed3-676cf30299cf"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2016年10月）: Dynへの攻撃により主要Webサービスへの名前解決が広範に妨害され、Mirai感染IoT機器が利用された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "インターネット・通信レジリエンスに関する大統領報告 (nz-mirai-cisa-2017)",
+          "source_name": "CISA / NSTAC",
+          "url": "https://www.cisa.gov/sites/default/files/publications/NSTAC%20Report%20to%20the%20President%20on%20ICR%20FINAL%20%2810-12-17%29%20%281%29-%20508%20compliant_0.pdf"
+        },
+        {
+          "description": "Mirai内部：悪名高いIoT Botnetの回顧分析 (nz-mirai-cloudflare-2023)",
+          "source_name": "Cloudflare",
+          "url": "https://blog.cloudflare.com/inside-mirai-the-infamous-iot-botnet-a-retrospective-analysis/"
+        }
+      ],
+      "id": "note--8c44e39d-ff37-517c-a908-0781b0f9e8f0",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--bc4f4a40-8360-5661-8ed3-676cf30299cf"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2016年以降）: ソース公開を受け、多数の派生版・模倣版が別の攻撃者によって継続利用された。ローカルENS/DoH派生版を特定の過去攻撃へ結び付ける証拠はない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai内部：悪名高いIoT Botnetの回顧分析 (nz-mirai-cloudflare-2023)",
+          "source_name": "Cloudflare",
+          "url": "https://blog.cloudflare.com/inside-mirai-the-infamous-iot-botnet-a-retrospective-analysis/"
+        },
+        {
+          "description": "大規模サイバー攻撃3事件の訴追と有罪答弁 (nz-mirai-doj-2017)",
+          "source_name": "U.S. Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        },
+        {
+          "description": "Mirai派生ENS/DoH Botローカル解析 (nz-mirai-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/mirai-derived-ens-doh-bot"
+        }
+      ],
+      "id": "note--d87644a1-2025-51f4-bd4a-49962496f2d5",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--bc4f4a40-8360-5661-8ed3-676cf30299cf"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "mirai-derived-ens-doh-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/mirai-derived-ens-doh-bot/README.md"
+        }
+      ],
+      "id": "report--e00a1673-03cf-5a5a-9ca6-220722aef8a7",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Mirai派生ENS/DoH Bot：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--bc4f4a40-8360-5661-8ed3-676cf30299cf",
+        "note--b606886c-213c-5b77-8569-f3cff3076792",
+        "note--f66794eb-329b-571a-9400-1360e3a103f4",
+        "note--39909d4a-700b-5a82-a3c8-f5d20d3fa460",
+        "note--3dac6931-e900-592e-a452-3390eb19fd97",
+        "note--458e05f3-1e37-5175-a48a-3005278b0727",
+        "note--1930c014-d20c-56fb-a27c-af38d465535c",
+        "note--8c44e39d-ff37-517c-a908-0781b0f9e8f0",
+        "note--d87644a1-2025-51f4-bd4a-49962496f2d5"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

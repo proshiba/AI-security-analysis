@@ -1,0 +1,94 @@
+{
+  "id": "bundle--6e4c5b1b-d80f-541f-b921-6ab29b7ece4e",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: 暗号資産ウォレットアドレスのクリップボード置換、シードフレーズ窃取、スクリーンショット、WordPress侵害・拡散を行うスクリプト系トロイの木馬です。Tor経由でC2と通信します。",
+      "external_references": [
+        {
+          "description": "efimer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/efimer/README.md"
+        }
+      ],
+      "id": "malware--e2b2db19-d30e-5e62-94dd-5c030b21fc24",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "efimer",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "efimer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/efimer/README.md"
+        }
+      ],
+      "id": "note--712d8e24-0c2b-595e-8eb2-1bad70126157",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e2b2db19-d30e-5e62-94dd-5c030b21fc24"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "公開済み4件のcaseに対応する静的比較プロファイルから集計した特徴。件数は観測case数であり、全版共通の断定ではない。\nexecution_stages: command_control (4件)、credential_collection (4件)、delivery (4件)、payload_decoding (4件)、persistence (4件)\nlayer_chain: root:pe (4件)\nmodule_stack: bundled_network_component:pe/tor (4件)、packaging_runtime:pe/pyinstaller runtime (4件)、terminal_logic:javascript (4件)\ncapabilities: bundle:data_p003 (4件)、cluster:identical_decrypted_payload (4件)、collection:clipboard_wallet (4件)、collection:screenshot (4件)、credential_access:bip39_seed (4件)、credential_access:private_key (4件)、credential_attack:wordpress_xmlrpc (4件)、embedded:tor (4件)、exfiltration:file_over_tor (4件)、network:tor_onion_c2 (4件)、persistence:scheduled_task_pt1m (4件)、protection:pyarmor (4件)\nfunction_roles: bip39_dictionary_load (4件)、c2_beacon_and_tasking (4件)、clipboard_read (4件)、clipboard_write (4件)、file_exfiltration (4件)、private_key_scan (4件)、screenshot_capture (4件)、seed_phrase_scan (4件)、tor_gateway_start (4件)、wallet_replacement_dispatch (4件)、wordpress_bruteforce_worker (4件)、wordpress_credential_validation (4件)",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "efimer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/efimer/README.md"
+        },
+        {
+          "description": "静的ロジック比較プロファイル",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/catalog/logic-similarity.json"
+        }
+      ],
+      "id": "note--34554ae3-3514-5bd6-ba07-25e22f9326c3",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e2b2db19-d30e-5e62-94dd-5c030b21fc24"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "efimer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/efimer/README.md"
+        }
+      ],
+      "id": "report--afeb2773-3b7d-5ca5-9fdb-7d9b37fc82c8",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "efimer：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--e2b2db19-d30e-5e62-94dd-5c030b21fc24",
+        "note--712d8e24-0c2b-595e-8eb2-1bad70126157",
+        "note--34554ae3-3514-5bd6-ba07-25e22f9326c3"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

@@ -1,0 +1,301 @@
+{
+  "id": "bundle--d9bb5712-5631-5c97-bc38-07131b71b88b",
+  "objects": [
+    {
+      "aliases": [
+        "Nood RAT",
+        "Win.NOODLERAT",
+        "Linux.NOODLERAT"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Windows版とLinux版を持つバックドア。Trend Microは既存のGh0st RATやRekoobeとは分けて整理している。ローカル静的解析ではLinux版の設定grammarとcommand clusterを確認したが、公開Windows検体の最終payload帰属は未解決である。",
+      "external_references": [
+        {
+          "description": "noodlerat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/noodlerat/README.md"
+        },
+        {
+          "description": "Linux攻撃で使用されたNood RATの解析 (stix-noodle-ahnlab-2024)",
+          "source_name": "AhnLab ASEC",
+          "url": "https://asec.ahnlab.com/en/62144/"
+        },
+        {
+          "description": "NoodleRATローカル静的解析 (stix-noodle-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/noodlerat/README.md"
+        },
+        {
+          "description": "UAT-10147による侵害後のNoodleRAT配備 (stix-noodle-talos-2026)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/"
+        },
+        {
+          "description": "中国語話者グループが用いるNoodle RATの再評価 (stix-noodle-trend-2024)",
+          "source_name": "Trend Micro",
+          "url": "https://www.trendmicro.com/en_gb/research/24/f/noodle-rat-reviewing-the-new-backdoor-used-by-chinese-speaking-g.html"
+        }
+      ],
+      "id": "malware--1caf2e1d-9297-57f7-893d-9a125d22ba5a",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "NoodleRAT",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: 公開資料から単一の開発者・組織を確定できない。AhnLabが紹介したbuilderの存在は、実名開発者や個別運用者の同定を意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Linux攻撃で使用されたNood RATの解析 (stix-noodle-ahnlab-2024)",
+          "source_name": "AhnLab ASEC",
+          "url": "https://asec.ahnlab.com/en/62144/"
+        },
+        {
+          "description": "中国語話者グループが用いるNoodle RATの再評価 (stix-noodle-trend-2024)",
+          "source_name": "Trend Micro",
+          "url": "https://www.trendmicro.com/en_gb/research/24/f/noodle-rat-reviewing-the-new-backdoor-used-by-chinese-speaking-g.html"
+        }
+      ],
+      "id": "note--8283569f-dec2-56d7-befc-387d325732b6",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1caf2e1d-9297-57f7-893d-9a125d22ba5a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: unknown。複数活動での利用は報告されるが、OSS公開、商用販売、MaaS提供、特定アクター専用のいずれも、この根拠だけでは確定できない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "UAT-10147による侵害後のNoodleRAT配備 (stix-noodle-talos-2026)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/"
+        },
+        {
+          "description": "中国語話者グループが用いるNoodle RATの再評価 (stix-noodle-trend-2024)",
+          "source_name": "Trend Micro",
+          "url": "https://www.trendmicro.com/en_gb/research/24/f/noodle-rat-reviewing-the-new-backdoor-used-by-chinese-speaking-g.html"
+        }
+      ],
+      "id": "note--5c8cff1d-f980-5e8f-a115-bae087902315",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1caf2e1d-9297-57f7-893d-9a125d22ba5a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 単一アクター専用ではないと報告されている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "UAT-10147による侵害後のNoodleRAT配備 (stix-noodle-talos-2026)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/"
+        },
+        {
+          "description": "中国語話者グループが用いるNoodle RATの再評価 (stix-noodle-trend-2024)",
+          "source_name": "Trend Micro",
+          "url": "https://www.trendmicro.com/en_gb/research/24/f/noodle-rat-reviewing-the-new-backdoor-used-by-chinese-speaking-g.html"
+        }
+      ],
+      "id": "note--13526041-6f3f-5f58-ac00-94d78c79ced6",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1caf2e1d-9297-57f7-893d-9a125d22ba5a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--c2267df0-3ada-59e9-9f88-025c69d782ef",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "UAT-10147",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Cisco Talosは2026年のLinux Webサーバ侵害で、権限昇格後の最終バックドアとしてNoodleRATを展開したと報告した。これは利用の帰属であり、開発者の帰属ではない。",
+      "external_references": [
+        {
+          "description": "UAT-10147による侵害後のNoodleRAT配備 (stix-noodle-talos-2026)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/"
+        }
+      ],
+      "id": "relationship--34bd411d-25f6-5ff0-b204-a938063e043d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--c2267df0-3ada-59e9-9f88-025c69d782ef",
+      "spec_version": "2.1",
+      "target_ref": "malware--1caf2e1d-9297-57f7-893d-9a125d22ba5a",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: UAT-10147。Cisco Talosは2026年のLinux Webサーバ侵害で、権限昇格後の最終バックドアとしてNoodleRATを展開したと報告した。これは利用の帰属であり、開発者の帰属ではない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "UAT-10147による侵害後のNoodleRAT配備 (stix-noodle-talos-2026)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/"
+        }
+      ],
+      "id": "note--01a9150a-0b65-5015-9f22-110b5f4521c1",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1caf2e1d-9297-57f7-893d-9a125d22ba5a",
+        "threat-actor--c2267df0-3ada-59e9-9f88-025c69d782ef"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2018年から2024年）: AhnLabはWebLogic脆弱性を悪用した導入、Rockeの暗号資産採掘活動、Cloud Snooper攻撃でのLinux版利用を整理した。ただし一部は過去資料の再評価であり、各活動の主体を同一視しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Linux攻撃で使用されたNood RATの解析 (stix-noodle-ahnlab-2024)",
+          "source_name": "AhnLab ASEC",
+          "url": "https://asec.ahnlab.com/en/62144/"
+        }
+      ],
+      "id": "note--c1a8e4ee-3ca2-5bce-837b-62fea3e31e01",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1caf2e1d-9297-57f7-893d-9a125d22ba5a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2026年）: UAT-10147は脆弱なLinux Webサーバで遠隔コード実行と権限昇格を行った後、NoodleRATを最終バックドアとして配備した。 報告された主体: UAT-10147。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "UAT-10147による侵害後のNoodleRAT配備 (stix-noodle-talos-2026)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/"
+        }
+      ],
+      "id": "note--341d1018-c68e-500a-8205-80894170169a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1caf2e1d-9297-57f7-893d-9a125d22ba5a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Cisco Talosが報告した活動を本STIX内で識別するための記述名。脆弱なLinux Webサーバへの侵入と権限昇格後、NoodleRATを最終バックドアとして配備した。開発主体は示さない。",
+      "external_references": [
+        {
+          "description": "UAT-10147による侵害後のNoodleRAT配備 (stix-noodle-talos-2026)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/"
+        }
+      ],
+      "id": "campaign--9d67605a-425f-5565-9d17-e692e3ff5149",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "UAT-10147の2026年Webサーバ侵害活動",
+      "spec_version": "2.1",
+      "type": "campaign"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "UAT-10147による侵害後のNoodleRAT配備 (stix-noodle-talos-2026)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/"
+        }
+      ],
+      "id": "relationship--9725bb82-ee9f-5fb3-a085-bb6a676af7d8",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "campaign--9d67605a-425f-5565-9d17-e692e3ff5149",
+      "spec_version": "2.1",
+      "target_ref": "malware--1caf2e1d-9297-57f7-893d-9a125d22ba5a",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Cisco TalosがUAT-10147として追跡した侵害活動に限る。NoodleRATの開発者とは同一視しない。",
+      "external_references": [
+        {
+          "description": "UAT-10147による侵害後のNoodleRAT配備 (stix-noodle-talos-2026)",
+          "source_name": "Cisco Talos",
+          "url": "https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/"
+        }
+      ],
+      "id": "relationship--95f5728d-4953-5f85-9390-e5d0563e5a55",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "attributed-to",
+      "source_ref": "campaign--9d67605a-425f-5565-9d17-e692e3ff5149",
+      "spec_version": "2.1",
+      "target_ref": "threat-actor--c2267df0-3ada-59e9-9f88-025c69d782ef",
+      "type": "relationship"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "noodlerat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/noodlerat/README.md"
+        }
+      ],
+      "id": "report--095855c5-e4e1-5d9a-9a77-3eb746804b19",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "NoodleRAT：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--1caf2e1d-9297-57f7-893d-9a125d22ba5a",
+        "note--8283569f-dec2-56d7-befc-387d325732b6",
+        "note--5c8cff1d-f980-5e8f-a115-bae087902315",
+        "note--13526041-6f3f-5f58-ac00-94d78c79ced6",
+        "threat-actor--c2267df0-3ada-59e9-9f88-025c69d782ef",
+        "relationship--34bd411d-25f6-5ff0-b204-a938063e043d",
+        "note--01a9150a-0b65-5015-9f22-110b5f4521c1",
+        "note--c1a8e4ee-3ca2-5bce-837b-62fea3e31e01",
+        "note--341d1018-c68e-500a-8205-80894170169a",
+        "campaign--9d67605a-425f-5565-9d17-e692e3ff5149",
+        "relationship--9725bb82-ee9f-5fb3-a085-bb6a676af7d8",
+        "relationship--95f5728d-4953-5f85-9390-e5d0563e5a55"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

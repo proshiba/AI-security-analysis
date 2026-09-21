@@ -1,0 +1,69 @@
+{
+  "id": "bundle--f74ff2de-aa09-5bca-a71b-06944fd45eae",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "出典付きのファミリー別OSINT知識は未登録。静的解析結果のみを参照する。",
+      "external_references": [
+        {
+          "description": "jomangy 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/jomangy/README.md"
+        }
+      ],
+      "id": "malware--60fab12a-78d6-5436-8996-271e9a0d2b77",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "jomangy",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "jomangy 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/jomangy/README.md"
+        }
+      ],
+      "id": "note--34b9afb5-13d4-5fb8-9b7b-12683e2bfec7",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--60fab12a-78d6-5436-8996-271e9a0d2b77"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "jomangy 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/jomangy/README.md"
+        }
+      ],
+      "id": "report--887e05b2-89f5-5559-8524-c4308ed7ad4e",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "jomangy：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--60fab12a-78d6-5436-8996-271e9a0d2b77",
+        "note--34b9afb5-13d4-5fb8-9b7b-12683e2bfec7"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

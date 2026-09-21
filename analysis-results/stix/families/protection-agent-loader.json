@@ -1,0 +1,138 @@
+{
+  "id": "bundle--deab678b-c82f-520d-8811-c9c2906dace0",
+  "objects": [
+    {
+      "aliases": [
+        "Protection.Agent.v2.exe"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "重複.NETメタデータストリームと高エントロピー保護層を持つローダー候補である。静的解析ではMethodDef、次段、設定、C2を復元できず、未確認能力を推測しない。",
+      "external_references": [
+        {
+          "description": "protection-agent-loader 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/protection-agent-loader/README.md"
+        },
+        {
+          "description": "ProtectionAgentローダーのローカル解析 (nz-protection-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/protection-agent-loader"
+        }
+      ],
+      "id": "malware--2d81824e-3f56-5089-a207-6f89f86bb821",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "ProtectionAgent保護.NETローダー",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 20,
+      "content": "開発主体: ProtectionAgentという文字列は保護器または内部名を示すが、開発主体の帰属根拠はない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ProtectionAgentローダーのローカル解析 (nz-protection-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/protection-agent-loader"
+        }
+      ],
+      "id": "note--8f32440f-99df-5337-8b45-ff2d87859b71",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--2d81824e-3f56-5089-a207-6f89f86bb821"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: unknown。販売・公開・サービス提供形態を確認できない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ProtectionAgentローダーのローカル解析 (nz-protection-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/protection-agent-loader"
+        }
+      ],
+      "id": "note--681622f9-b8e3-56bb-b398-a8cb864d7b21",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--2d81824e-3f56-5089-a207-6f89f86bb821"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ProtectionAgentローダーのローカル解析 (nz-protection-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/protection-agent-loader"
+        }
+      ],
+      "id": "note--602db1f7-c8f6-50fe-b417-8f0740827b66",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--2d81824e-3f56-5089-a207-6f89f86bb821"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 20,
+      "content": "利用主体に関する公開報告: 未特定の運用者。ローカル検体の配布・運用主体は未特定であり、個人・組織・国家へ帰属させない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ProtectionAgentローダーのローカル解析 (nz-protection-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/protection-agent-loader"
+        }
+      ],
+      "id": "note--016ab2c6-8b9c-54f3-b746-1a45260f4ee9",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--2d81824e-3f56-5089-a207-6f89f86bb821"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "protection-agent-loader 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/protection-agent-loader/README.md"
+        }
+      ],
+      "id": "report--deefb4e1-4c30-54e1-9fd6-c4a105824c25",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "ProtectionAgent保護.NETローダー：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--2d81824e-3f56-5089-a207-6f89f86bb821",
+        "note--8f32440f-99df-5337-8b45-ff2d87859b71",
+        "note--681622f9-b8e3-56bb-b398-a8cb864d7b21",
+        "note--602db1f7-c8f6-50fe-b417-8f0740827b66",
+        "note--016ab2c6-8b9c-54f3-b746-1a45260f4ee9"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

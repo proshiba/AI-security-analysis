@@ -1,0 +1,202 @@
+{
+  "id": "bundle--53807471-cccf-5a55-97aa-7e68122ff685",
+  "objects": [
+    {
+      "aliases": [
+        "PureHVNC",
+        "PureRAT"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "PureCoderブランドの商用マルウェア群に属するHVNC／RATで、PureHVNCがPureRATの前身とされる。同じ販売系統にPureCrypterやPureLogsがある。",
+      "external_references": [
+        {
+          "description": "purehvnc 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/purehvnc/README.md"
+        },
+        {
+          "description": "Pureの内幕：RATからビルダー、開発者まで (nz-pure-checkpoint-2025)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/"
+        },
+        {
+          "description": "Python多段ローダーを介したPureHVNCの配備 (nz-pure-fortinet-2024)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/purehvnc-deployed-via-python-multi-stage-loader"
+        },
+        {
+          "description": "TorNetとPureHVNCを実行する新ローダー (nz-pure-iij-2025)",
+          "source_name": "IIJ Security Diary",
+          "url": "https://sect.iij.ad.jp/en/2025/10/loader-executing-tornet-and-purehvnc/"
+        },
+        {
+          "description": "ローカルPureHVNC解析結果 (nz-pure-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/purehvnc/README.md"
+        }
+      ],
+      "id": "malware--7b0933bf-b275-5df5-a455-fa0ae539719a",
+      "is_family": true,
+      "labels": [
+        "business-model:maas"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "PureHVNC / PureRAT",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 80,
+      "content": "開発主体: 開発・販売ハンドルはPureCoderである。関連GitHub、地下フォーラム、Telegram、販売サイトは確認されているが、実名や所在地は未確認で、UTC+0300の活動時間だけから居住国を断定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Pureの内幕：RATからビルダー、開発者まで (nz-pure-checkpoint-2025)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/"
+        }
+      ],
+      "id": "note--6cced01c-8612-5cae-bdb9-df9b02e520ce",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--7b0933bf-b275-5df5-a455-fa0ae539719a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: maas。地下フォーラム、Telegram、専用サイトで販売される有償マルウェアスイートであり、購入者が個別キャンペーンを運用する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Pureの内幕：RATからビルダー、開発者まで (nz-pure-checkpoint-2025)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/"
+        }
+      ],
+      "id": "note--2be7da96-d07f-5386-98ab-2b605b71a237",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--7b0933bf-b275-5df5-a455-fa0ae539719a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Pureの内幕：RATからビルダー、開発者まで (nz-pure-checkpoint-2025)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/"
+        }
+      ],
+      "id": "note--ee50df09-f79d-5662-91bd-045e0ad4d2d0",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--7b0933bf-b275-5df5-a455-fa0ae539719a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: Pureマルウェア購入者。地下フォーラム等から取得した複数の犯罪アクターが運用する販売型ツールで、特定国家アクター専用ではない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Pureの内幕：RATからビルダー、開発者まで (nz-pure-checkpoint-2025)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/"
+        }
+      ],
+      "id": "note--b771d341-b4b7-59f4-aef4-097d6d00457b",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--7b0933bf-b275-5df5-a455-fa0ae539719a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2024年）: 顧客サービスを装うHTML、search-ms、LNK、Pythonローダーを経てPureHVNC等を配布するチェーンが観測された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Python多段ローダーを介したPureHVNCの配備 (nz-pure-fortinet-2024)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/purehvnc-deployed-via-python-multi-stage-loader"
+        }
+      ],
+      "id": "note--0de556f6-e378-5f72-b39a-b2888bb37b39",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--7b0933bf-b275-5df5-a455-fa0ae539719a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2025年）: 偽求人とClickFixからRust Loader、PureHVNC、Sliverへ進む侵入、およびTorNetとPureHVNCを同時投入するチェーンが報告された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Pureの内幕：RATからビルダー、開発者まで (nz-pure-checkpoint-2025)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/"
+        },
+        {
+          "description": "TorNetとPureHVNCを実行する新ローダー (nz-pure-iij-2025)",
+          "source_name": "IIJ Security Diary",
+          "url": "https://sect.iij.ad.jp/en/2025/10/loader-executing-tornet-and-purehvnc/"
+        }
+      ],
+      "id": "note--f149715d-1db7-502d-936d-e55b9783345d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--7b0933bf-b275-5df5-a455-fa0ae539719a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "purehvnc 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/purehvnc/README.md"
+        }
+      ],
+      "id": "report--9ca6a56a-52ca-51f9-b050-dec0ada6a9d5",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "PureHVNC / PureRAT：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--7b0933bf-b275-5df5-a455-fa0ae539719a",
+        "note--6cced01c-8612-5cae-bdb9-df9b02e520ce",
+        "note--2be7da96-d07f-5386-98ab-2b605b71a237",
+        "note--ee50df09-f79d-5662-91bd-045e0ad4d2d0",
+        "note--b771d341-b4b7-59f4-aef4-097d6d00457b",
+        "note--0de556f6-e378-5f72-b39a-b2888bb37b39",
+        "note--f149715d-1db7-502d-936d-e55b9783345d"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

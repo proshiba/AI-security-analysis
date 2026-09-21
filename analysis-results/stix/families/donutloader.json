@@ -1,0 +1,244 @@
+{
+  "id": "bundle--bcf365f6-6711-50b9-80b5-a3cd49cd2a8b",
+  "objects": [
+    {
+      "aliases": [
+        "DonutLoader",
+        "DONUTLOADER"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Donutは.NETアセンブリやPE等から位置独立シェルコードを生成し、メモリー内でロードするオープンソースの二重用途ツールである。マルウェアファミリーやMaaSそのものではなく、攻撃内の生成物がDONUTLOADERと命名される場合がある。",
+      "external_references": [
+        {
+          "description": "donutloader 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/donutloader/README.md"
+        },
+        {
+          "description": "SPECTRALVIPERとDONUTLOADERを用いたREF2754活動 (am-donut-elastic-2023)",
+          "source_name": "Elastic Security Labs",
+          "url": "https://www.elastic.co/security-labs/elastic-charms-spectralviper"
+        },
+        {
+          "description": "Donut導入解説と共同開発者 (am-donut-intro)",
+          "source_name": "TheWover",
+          "url": "https://thewover.github.io/Introducing-Donut/"
+        },
+        {
+          "description": "DonutLoaderローカル解析結果 (am-donut-local-2026)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/donutloader"
+        },
+        {
+          "description": "Donut公式リリース一覧 (am-donut-releases)",
+          "source_name": "TheWover・Odzhan",
+          "url": "https://github.com/TheWover/donut/releases"
+        }
+      ],
+      "id": "malware--f83136b4-ecba-5b70-8e7d-d22e2c6cb283",
+      "is_family": true,
+      "labels": [
+        "business-model:open-source"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Donut",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 80,
+      "content": "開発主体: TheWoverとOdzhanによる共同オープンソースプロジェクトである。原開発者を悪用者と同一視しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Donut導入解説と共同開発者 (am-donut-intro)",
+          "source_name": "TheWover",
+          "url": "https://thewover.github.io/Introducing-Donut/"
+        }
+      ],
+      "id": "note--8ec0da2b-1bb9-554f-b3ee-bfed9bf37950",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--f83136b4-ecba-5b70-8e7d-d22e2c6cb283"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: open_source_dual_use。公開コードで入手容易な二重用途ツールとしてコモディティ化しているが、運営者がビルドやC2を販売するMaaSではない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Donut導入解説と共同開発者 (am-donut-intro)",
+          "source_name": "TheWover",
+          "url": "https://thewover.github.io/Introducing-Donut/"
+        },
+        {
+          "description": "Donut公式リリース一覧 (am-donut-releases)",
+          "source_name": "TheWover・Odzhan",
+          "url": "https://github.com/TheWover/donut/releases"
+        }
+      ],
+      "id": "note--51103946-0f4b-5f6a-944b-f1f2fd38eee6",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--f83136b4-ecba-5b70-8e7d-d22e2c6cb283"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Donut導入解説と共同開発者 (am-donut-intro)",
+          "source_name": "TheWover",
+          "url": "https://thewover.github.io/Introducing-Donut/"
+        },
+        {
+          "description": "Donut公式リリース一覧 (am-donut-releases)",
+          "source_name": "TheWover・Odzhan",
+          "url": "https://github.com/TheWover/donut/releases"
+        }
+      ],
+      "id": "note--f858ed10-e3f7-5bb6-a1d8-adc58b87cbad",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--f83136b4-ecba-5b70-8e7d-d22e2c6cb283"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--b0cc5e97-4745-5479-a6b6-6e71bee4c620",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "REF2754",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 50,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Elasticがベトナムの国家関連活動と中程度の確信で評価した侵害集合で、DONUTLOADERをSPECTRALVIPER等のロードに利用した。",
+      "external_references": [
+        {
+          "description": "SPECTRALVIPERとDONUTLOADERを用いたREF2754活動 (am-donut-elastic-2023)",
+          "source_name": "Elastic Security Labs",
+          "url": "https://www.elastic.co/security-labs/elastic-charms-spectralviper"
+        }
+      ],
+      "id": "relationship--8126ef3e-d7f1-587f-80b0-cafcbb5e268a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--b0cc5e97-4745-5479-a6b6-6e71bee4c620",
+      "spec_version": "2.1",
+      "target_ref": "malware--f83136b4-ecba-5b70-8e7d-d22e2c6cb283",
+      "type": "relationship"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: REF2754。Elasticがベトナムの国家関連活動と中程度の確信で評価した侵害集合で、DONUTLOADERをSPECTRALVIPER等のロードに利用した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "SPECTRALVIPERとDONUTLOADERを用いたREF2754活動 (am-donut-elastic-2023)",
+          "source_name": "Elastic Security Labs",
+          "url": "https://www.elastic.co/security-labs/elastic-charms-spectralviper"
+        }
+      ],
+      "id": "note--5835827d-2105-59c6-a84c-4f0291881b27",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--f83136b4-ecba-5b70-8e7d-d22e2c6cb283",
+        "threat-actor--b0cc5e97-4745-5479-a6b6-6e71bee4c620"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2019）: レッドチーム用途を掲げるシェルコード生成器として一般公開された。 報告された主体: TheWover、Odzhan。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Donut導入解説と共同開発者 (am-donut-intro)",
+          "source_name": "TheWover",
+          "url": "https://thewover.github.io/Introducing-Donut/"
+        },
+        {
+          "description": "Donut公式リリース一覧 (am-donut-releases)",
+          "source_name": "TheWover・Odzhan",
+          "url": "https://github.com/TheWover/donut/releases"
+        }
+      ],
+      "id": "note--ea898c2d-2a3a-5bf3-9436-b3a1a7a4b842",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--f83136b4-ecba-5b70-8e7d-d22e2c6cb283"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2023）: REF2754侵害でSPECTRALVIPER、P8LOADER、POWERSEALにつながるメモリー内実行チェーンに利用された。 報告された主体: REF2754。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "SPECTRALVIPERとDONUTLOADERを用いたREF2754活動 (am-donut-elastic-2023)",
+          "source_name": "Elastic Security Labs",
+          "url": "https://www.elastic.co/security-labs/elastic-charms-spectralviper"
+        }
+      ],
+      "id": "note--f63037c5-3ffd-523d-a7d3-12174aa95b4c",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--f83136b4-ecba-5b70-8e7d-d22e2c6cb283"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "donutloader 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/donutloader/README.md"
+        }
+      ],
+      "id": "report--6b09bdfe-1203-5975-a7f0-87bc3b9c2151",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Donut：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--f83136b4-ecba-5b70-8e7d-d22e2c6cb283",
+        "note--8ec0da2b-1bb9-554f-b3ee-bfed9bf37950",
+        "note--51103946-0f4b-5f6a-944b-f1f2fd38eee6",
+        "note--f858ed10-e3f7-5bb6-a1d8-adc58b87cbad",
+        "threat-actor--b0cc5e97-4745-5479-a6b6-6e71bee4c620",
+        "relationship--8126ef3e-d7f1-587f-80b0-cafcbb5e268a",
+        "note--5835827d-2105-59c6-a84c-4f0291881b27",
+        "note--ea898c2d-2a3a-5bf3-9436-b3a1a7a4b842",
+        "note--f63037c5-3ffd-523d-a7d3-12174aa95b4c"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

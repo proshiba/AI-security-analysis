@@ -1,0 +1,280 @@
+{
+  "id": "bundle--f0ab9b8b-6ff4-595a-a0e8-6f7120a35684",
+  "objects": [
+    {
+      "aliases": [
+        "WannaCrypt",
+        "WannaCry 2.0"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "2017年5月に世界的に拡散した自己伝播型ランサムウェア。Windows SMBの脆弱性を突いて感染を広げ、ファイル暗号化と身代金要求を行った。",
+      "external_references": [
+        {
+          "description": "wannacry 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/wannacry/README.md"
+        },
+        {
+          "description": "WannaCryランサムウェアの指標と感染拡大 (stix-wannacry-cisa-2017)",
+          "source_name": "CISA",
+          "url": "https://www.cisa.gov/news-events/ics-alerts/ics-alert-17-135-01i"
+        },
+        {
+          "description": "WannaCry作成等に関する米司法省訴追発表 (stix-wannacry-doj-2018)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and"
+        }
+      ],
+      "id": "malware--e34a4bfc-aac4-5748-b460-25346cd291c8",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "WannaCry",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: 米司法省は北朝鮮政府支援のLazarus Groupに関係する共謀者がWannaCry 2.0用マルウェアを作成したと訴追資料で主張する。個々のローカル派生検体の作者まで確定したものではない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "WannaCry作成等に関する米司法省訴追発表 (stix-wannacry-doj-2018)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and"
+        }
+      ],
+      "id": "note--7c146b32-82ff-5213-8193-bfa08076e12e",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e34a4bfc-aac4-5748-b460-25346cd291c8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--58238681-a298-58d5-b476-c7797e46546a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Lazarus Group",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 50,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "米司法省の訴追資料はWannaCry 2.0用マルウェアの作成を北朝鮮政府支援チームへ帰属する。司法省の主張として扱い、個々の派生版へ拡張しない。",
+      "external_references": [
+        {
+          "description": "WannaCry作成等に関する米司法省訴追発表 (stix-wannacry-doj-2018)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and"
+        }
+      ],
+      "id": "relationship--91facfd7-333c-599e-a1a7-ff9ad748afcb",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "authored-by",
+      "source_ref": "malware--e34a4bfc-aac4-5748-b460-25346cd291c8",
+      "spec_version": "2.1",
+      "target_ref": "threat-actor--58238681-a298-58d5-b476-c7797e46546a",
+      "type": "relationship"
+    },
+    {
+      "content": "提供形態: unknown。2017年の世界的攻撃は報告されるが、WannaCry 2.0をOSS、一般販売、MaaSとして提供した根拠はこの資料にはない。特定アクター専用性を派生版全体へ一般化しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "WannaCryランサムウェアの指標と感染拡大 (stix-wannacry-cisa-2017)",
+          "source_name": "CISA",
+          "url": "https://www.cisa.gov/news-events/ics-alerts/ics-alert-17-135-01i"
+        },
+        {
+          "description": "WannaCry作成等に関する米司法省訴追発表 (stix-wannacry-doj-2018)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and"
+        }
+      ],
+      "id": "note--e3495596-265f-5603-ac33-32eeb4274170",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e34a4bfc-aac4-5748-b460-25346cd291c8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "WannaCryランサムウェアの指標と感染拡大 (stix-wannacry-cisa-2017)",
+          "source_name": "CISA",
+          "url": "https://www.cisa.gov/news-events/ics-alerts/ics-alert-17-135-01i"
+        },
+        {
+          "description": "WannaCry作成等に関する米司法省訴追発表 (stix-wannacry-doj-2018)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and"
+        }
+      ],
+      "id": "note--9535a09b-e2ba-55d1-9412-80c688967075",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e34a4bfc-aac4-5748-b460-25346cd291c8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: Lazarus Group。米司法省は2017年のWannaCry 2.0攻撃をLazarus Groupに関係する北朝鮮政府支援チームの活動として訴追資料で扱う。これは米司法省による帰属である。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "WannaCry作成等に関する米司法省訴追発表 (stix-wannacry-doj-2018)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and"
+        }
+      ],
+      "id": "note--d8902220-bc27-5b9f-bfd6-0e8395055de1",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e34a4bfc-aac4-5748-b460-25346cd291c8",
+        "threat-actor--58238681-a298-58d5-b476-c7797e46546a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2017年5月）: SMB脆弱性を悪用する自己伝播で世界各地のWindows環境へ拡散し、ファイル暗号化と身代金要求を行った。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "WannaCryランサムウェアの指標と感染拡大 (stix-wannacry-cisa-2017)",
+          "source_name": "CISA",
+          "url": "https://www.cisa.gov/news-events/ics-alerts/ics-alert-17-135-01i"
+        }
+      ],
+      "id": "note--9c0ff449-6a73-5212-bee4-75492b028c82",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e34a4bfc-aac4-5748-b460-25346cd291c8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "2017年5月に始まったWindows SMB脆弱性の悪用による自己伝播とファイル暗号化を伴う世界的活動。後年の模倣・派生検体を自動的に含めない。",
+      "external_references": [
+        {
+          "description": "WannaCryランサムウェアの指標と感染拡大 (stix-wannacry-cisa-2017)",
+          "source_name": "CISA",
+          "url": "https://www.cisa.gov/news-events/ics-alerts/ics-alert-17-135-01i"
+        },
+        {
+          "description": "WannaCry作成等に関する米司法省訴追発表 (stix-wannacry-doj-2018)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and"
+        }
+      ],
+      "id": "campaign--3dadc489-6303-5d60-8719-8879dbd05fdb",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "2017年5月のWannaCry世界的攻撃",
+      "spec_version": "2.1",
+      "type": "campaign"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "WannaCryランサムウェアの指標と感染拡大 (stix-wannacry-cisa-2017)",
+          "source_name": "CISA",
+          "url": "https://www.cisa.gov/news-events/ics-alerts/ics-alert-17-135-01i"
+        },
+        {
+          "description": "WannaCry作成等に関する米司法省訴追発表 (stix-wannacry-doj-2018)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and"
+        }
+      ],
+      "id": "relationship--d53b28cd-e172-5c78-850b-ee28ff60b766",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "campaign--3dadc489-6303-5d60-8719-8879dbd05fdb",
+      "spec_version": "2.1",
+      "target_ref": "malware--e34a4bfc-aac4-5748-b460-25346cd291c8",
+      "type": "relationship"
+    },
+    {
+      "confidence": 50,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "米司法省の訴追資料によるLazarus Groupへの帰属として記録し、個別派生版への確定帰属とはしない。",
+      "external_references": [
+        {
+          "description": "WannaCryランサムウェアの指標と感染拡大 (stix-wannacry-cisa-2017)",
+          "source_name": "CISA",
+          "url": "https://www.cisa.gov/news-events/ics-alerts/ics-alert-17-135-01i"
+        },
+        {
+          "description": "WannaCry作成等に関する米司法省訴追発表 (stix-wannacry-doj-2018)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and"
+        }
+      ],
+      "id": "relationship--591076da-575c-5375-8249-782f1b4d0407",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "attributed-to",
+      "source_ref": "campaign--3dadc489-6303-5d60-8719-8879dbd05fdb",
+      "spec_version": "2.1",
+      "target_ref": "threat-actor--58238681-a298-58d5-b476-c7797e46546a",
+      "type": "relationship"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "wannacry 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/wannacry/README.md"
+        }
+      ],
+      "id": "report--dac39602-a4c7-5c30-a322-a222b57e7f50",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "WannaCry：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--e34a4bfc-aac4-5748-b460-25346cd291c8",
+        "note--7c146b32-82ff-5213-8193-bfa08076e12e",
+        "threat-actor--58238681-a298-58d5-b476-c7797e46546a",
+        "relationship--91facfd7-333c-599e-a1a7-ff9ad748afcb",
+        "note--e3495596-265f-5603-ac33-32eeb4274170",
+        "note--9535a09b-e2ba-55d1-9412-80c688967075",
+        "note--d8902220-bc27-5b9f-bfd6-0e8395055de1",
+        "note--9c0ff449-6a73-5212-bee4-75492b028c82",
+        "campaign--3dadc489-6303-5d60-8719-8879dbd05fdb",
+        "relationship--d53b28cd-e172-5c78-850b-ee28ff60b766",
+        "relationship--591076da-575c-5375-8249-782f1b4d0407"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

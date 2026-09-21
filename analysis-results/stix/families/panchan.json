@@ -1,0 +1,161 @@
+{
+  "id": "bundle--52d5dad9-a4fa-5328-8367-4402dd80f52b",
+  "objects": [
+    {
+      "aliases": [
+        "Pan-chan"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Goで実装されたP2P型SSH worm / cryptojacker。SSH辞書攻撃と既存鍵の再利用で横展開し、署名付きrig設定を共有してXMRig/NBMinerをfileless実行する。",
+      "external_references": [
+        {
+          "description": "panchan 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/panchan/README.md"
+        },
+        {
+          "description": "新たなP2P Botnet Panchan (nz-panchan-akamai-2022)",
+          "source_name": "Akamai",
+          "url": "https://www.akamai.com/blog/security-research/new-p2p-botnet-panchan"
+        }
+      ],
+      "id": "malware--4f243964-a484-5f1e-bcf9-1cfb9c0bd1ff",
+      "is_family": true,
+      "labels": [
+        "business-model:restricted"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Panchan",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: Akamaiは管理画面の日本語、被害地域、関連Discord情報から日本語話者を推定するが、個人・組織名は未特定である。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "新たなP2P Botnet Panchan (nz-panchan-akamai-2022)",
+          "source_name": "Akamai",
+          "url": "https://www.akamai.com/blog/security-research/new-p2p-botnet-panchan"
+        }
+      ],
+      "id": "note--33aaf81a-18ff-5a51-8277-947a62554b44",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4f243964-a484-5f1e-bcf9-1cfb9c0bd1ff"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: restricted_criminal_tool。公開販売・MaaS・広範な第三者配布は確認されず、署名付き管理設定を持つ限定運用botnetと評価する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "新たなP2P Botnet Panchan (nz-panchan-akamai-2022)",
+          "source_name": "Akamai",
+          "url": "https://www.akamai.com/blog/security-research/new-p2p-botnet-panchan"
+        }
+      ],
+      "id": "note--c6620ebe-cd92-5d56-bad0-68769339c5db",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4f243964-a484-5f1e-bcf9-1cfb9c0bd1ff"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "新たなP2P Botnet Panchan (nz-panchan-akamai-2022)",
+          "source_name": "Akamai",
+          "url": "https://www.akamai.com/blog/security-research/new-p2p-botnet-panchan"
+        }
+      ],
+      "id": "note--4e9c6f6f-0454-5b96-880c-3e6ae280e2ce",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4f243964-a484-5f1e-bcf9-1cfb9c0bd1ff"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: 未帰属のcryptojacking運用者。教育機関を含むSSH到達可能なLinux hostを侵害し、暗号資産採掘に利用する金銭目的運用者。特定組織への帰属はない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "新たなP2P Botnet Panchan (nz-panchan-akamai-2022)",
+          "source_name": "Akamai",
+          "url": "https://www.akamai.com/blog/security-research/new-p2p-botnet-panchan"
+        }
+      ],
+      "id": "note--019451ea-4355-5512-800b-d3d32522026d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4f243964-a484-5f1e-bcf9-1cfb9c0bd1ff"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2022年3月以降）: SSH辞書攻撃とid_rsa/known_hosts再利用でLinux hostへ横展開し、XMRig/NBMinerによる採掘に使用された。教育機関とアジア地域で多く観測された。 報告された主体: 未帰属のcryptojacking運用者。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "新たなP2P Botnet Panchan (nz-panchan-akamai-2022)",
+          "source_name": "Akamai",
+          "url": "https://www.akamai.com/blog/security-research/new-p2p-botnet-panchan"
+        }
+      ],
+      "id": "note--a361d384-74ca-50a9-9120-64e4ae765173",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4f243964-a484-5f1e-bcf9-1cfb9c0bd1ff"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "panchan 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/panchan/README.md"
+        }
+      ],
+      "id": "report--a3f2c2a4-cbd2-57a2-93d6-93601b9a8b93",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Panchan：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--4f243964-a484-5f1e-bcf9-1cfb9c0bd1ff",
+        "note--33aaf81a-18ff-5a51-8277-947a62554b44",
+        "note--c6620ebe-cd92-5d56-bad0-68769339c5db",
+        "note--4e9c6f6f-0454-5b96-880c-3e6ae280e2ce",
+        "note--019451ea-4355-5512-800b-d3d32522026d",
+        "note--a361d384-74ca-50a9-9120-64e4ae765173"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

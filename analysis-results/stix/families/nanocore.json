@@ -1,0 +1,264 @@
+{
+  "id": "bundle--14baba0a-0c31-5b22-8990-52bcf95cc569",
+  "objects": [
+    {
+      "aliases": [
+        "NanoCoreRAT"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": ".NET製のモジュール型RAT。米司法省によるとTaylor Huddlestonが開発・販売した。販売後は複数の犯罪者に使用され、税務文書やISO添付などのフィッシング経路で配布された。",
+      "external_references": [
+        {
+          "description": "nanocore 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/nanocore/README.md"
+        },
+        {
+          "description": "NanoCore開発・頒布に関する米司法省発表 (stix-nanocore-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/usao-edva/pr/arkansas-man-pleads-guilty-developing-and-distributing-prolific-malware"
+        },
+        {
+          "description": "TA2719の地域別メールによるRAT配布 (stix-nanocore-proofpoint-2020)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/threat-actor-profile-ta2719-uses-colorful-lures-deliver-rats-local-languages"
+        },
+        {
+          "description": "税務テーマのフィッシングで増加したNanoCore RAT (stix-nanocore-unit42-2016)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/nanocorerat-behind-an-increase-in-tax-themed-phishing-e-mails/"
+        }
+      ],
+      "id": "malware--284f7655-2715-5d77-8946-ec86bac8a27c",
+      "is_family": true,
+      "labels": [
+        "business-model:commodity"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "NanoCore RAT",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 80,
+      "content": "開発主体: 米司法省はTaylor HuddlestonがNanoCore RATを開発・販売したと記録する。これは原型の開発に関するもので、全派生版の作者を示さない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "NanoCore開発・頒布に関する米司法省発表 (stix-nanocore-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/usao-edva/pr/arkansas-man-pleads-guilty-developing-and-distributing-prolific-malware"
+        }
+      ],
+      "id": "note--c8beb08f-ac30-5576-8097-5e92b5ab58eb",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--284f7655-2715-5d77-8946-ec86bac8a27c"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--e3866068-e6bc-50e4-93f4-716670a2402b",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Taylor Huddleston",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "米司法省が開発・販売を確認したNanoCore原型の作者。すべての派生版の作者を示さない。",
+      "external_references": [
+        {
+          "description": "NanoCore開発・頒布に関する米司法省発表 (stix-nanocore-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/usao-edva/pr/arkansas-man-pleads-guilty-developing-and-distributing-prolific-malware"
+        }
+      ],
+      "id": "relationship--99ba4162-8524-5167-a56a-61a2a05fa162",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "authored-by",
+      "source_ref": "malware--284f7655-2715-5d77-8946-ec86bac8a27c",
+      "spec_version": "2.1",
+      "target_ref": "threat-actor--e3866068-e6bc-50e4-93f4-716670a2402b",
+      "type": "relationship"
+    },
+    {
+      "content": "提供形態: commodity。原型は販売された商用RATで、クラック版も流通した。複数アクターに利用され、単一アクター専用ではない。MaaSの継続的サービス提供とは区別する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "NanoCore開発・頒布に関する米司法省発表 (stix-nanocore-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/usao-edva/pr/arkansas-man-pleads-guilty-developing-and-distributing-prolific-malware"
+        },
+        {
+          "description": "税務テーマのフィッシングで増加したNanoCore RAT (stix-nanocore-unit42-2016)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/nanocorerat-behind-an-increase-in-tax-themed-phishing-e-mails/"
+        }
+      ],
+      "id": "note--66f11e0b-b8ba-5d24-aab8-f23b04bfaebc",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--284f7655-2715-5d77-8946-ec86bac8a27c"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 単一アクター専用ではないと報告されている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "NanoCore開発・頒布に関する米司法省発表 (stix-nanocore-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/usao-edva/pr/arkansas-man-pleads-guilty-developing-and-distributing-prolific-malware"
+        },
+        {
+          "description": "税務テーマのフィッシングで増加したNanoCore RAT (stix-nanocore-unit42-2016)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/nanocorerat-behind-an-increase-in-tax-themed-phishing-e-mails/"
+        }
+      ],
+      "id": "note--1454906e-116c-52f4-a5b5-717b310964b7",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--284f7655-2715-5d77-8946-ec86bac8a27c"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--08aea8e9-2c4e-53bd-9e0c-91d116214234",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "TA2719",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "ProofpointはTA2719が2020年に地域別の偽装メールでNanoCoreを配布したと報告した。",
+      "external_references": [
+        {
+          "description": "TA2719の地域別メールによるRAT配布 (stix-nanocore-proofpoint-2020)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/threat-actor-profile-ta2719-uses-colorful-lures-deliver-rats-local-languages"
+        }
+      ],
+      "id": "relationship--28d40e67-9189-50ef-9978-567d92673018",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--08aea8e9-2c4e-53bd-9e0c-91d116214234",
+      "spec_version": "2.1",
+      "target_ref": "malware--284f7655-2715-5d77-8946-ec86bac8a27c",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: TA2719。ProofpointはTA2719が2020年に地域別の偽装メールでNanoCoreを配布したと報告した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TA2719の地域別メールによるRAT配布 (stix-nanocore-proofpoint-2020)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/threat-actor-profile-ta2719-uses-colorful-lures-deliver-rats-local-languages"
+        }
+      ],
+      "id": "note--c76fd74e-9bf3-5799-830d-28a911764bd5",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--284f7655-2715-5d77-8946-ec86bac8a27c",
+        "threat-actor--08aea8e9-2c4e-53bd-9e0c-91d116214234"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2015年から2016年）: 税務申告を装うメールで実行ファイルやmacro入り文書を配布し、NanoCore RATを導入する活動をUnit 42が観測した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "税務テーマのフィッシングで増加したNanoCore RAT (stix-nanocore-unit42-2016)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/nanocorerat-behind-an-increase-in-tax-themed-phishing-e-mails/"
+        }
+      ],
+      "id": "note--9290662f-35c8-5415-88ea-00557babc0df",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--284f7655-2715-5d77-8946-ec86bac8a27c"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2020年）: TA2719は各国の警察・銀行・配送業者を装う地域別メールとISO添付を用いてNanoCoreを配布した。 報告された主体: TA2719。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TA2719の地域別メールによるRAT配布 (stix-nanocore-proofpoint-2020)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/threat-actor-profile-ta2719-uses-colorful-lures-deliver-rats-local-languages"
+        }
+      ],
+      "id": "note--71835298-a1a3-519f-8b1b-36b6cf3965b1",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--284f7655-2715-5d77-8946-ec86bac8a27c"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "nanocore 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/nanocore/README.md"
+        }
+      ],
+      "id": "report--68cb4cad-f81c-50c8-8abf-6a5073a82829",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "NanoCore RAT：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--284f7655-2715-5d77-8946-ec86bac8a27c",
+        "note--c8beb08f-ac30-5576-8097-5e92b5ab58eb",
+        "threat-actor--e3866068-e6bc-50e4-93f4-716670a2402b",
+        "relationship--99ba4162-8524-5167-a56a-61a2a05fa162",
+        "note--66f11e0b-b8ba-5d24-aab8-f23b04bfaebc",
+        "note--1454906e-116c-52f4-a5b5-717b310964b7",
+        "threat-actor--08aea8e9-2c4e-53bd-9e0c-91d116214234",
+        "relationship--28d40e67-9189-50ef-9978-567d92673018",
+        "note--c76fd74e-9bf3-5799-830d-28a911764bd5",
+        "note--9290662f-35c8-5415-88ea-00557babc0df",
+        "note--71835298-a1a3-519f-8b1b-36b6cf3965b1"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

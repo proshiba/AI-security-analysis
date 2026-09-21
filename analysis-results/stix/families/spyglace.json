@@ -1,0 +1,252 @@
+{
+  "id": "bundle--1149ef19-5184-5161-8756-ee10ce264910",
+  "objects": [
+    {
+      "aliases": [
+        "SpyGlace"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "SpyGlaceはAPT-C-60が使用するカスタム・サイバー諜報バックドアとしてESETが命名した。APT-C-60はESET評価でSouth Korea-alignedの諜報グループで、東アジアを標的とする。",
+      "external_references": [
+        {
+          "description": "spyglace 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/spyglace/README.md"
+        },
+        {
+          "description": "WPS Officeゼロデイを悪用するスパイ集団と、解析で判明した第2の脆弱性 (nz-spyglace-eset-2024)",
+          "source_name": "ESET",
+          "url": "https://www.eset.com/us/about/newsroom/research/eset-research-spy-group-exploits-wps-office-zero-day-analysis-uncovers-a-second-vulnerability/"
+        },
+        {
+          "description": "APT-C-60による正規サービスを悪用した攻撃 (nz-spyglace-jpcert-2024)",
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2024/12/APT-C-60.html"
+        },
+        {
+          "description": "脅威グループAPT-C-60による攻撃の続報 (nz-spyglace-jpcert-2025)",
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2025/11/APT-C-60_update.html"
+        },
+        {
+          "description": "2026年の脅威グループAPT-C-60による攻撃の続報 (nz-spyglace-jpcert-2026)",
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html"
+        },
+        {
+          "description": "ローカルSpyGlace解析結果 (nz-spyglace-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/spyglace/README.md"
+        }
+      ],
+      "id": "malware--15aee228-9579-5f49-84c6-04c8647f5726",
+      "is_family": true,
+      "labels": [
+        "business-model:restricted"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "SpyGlace / APT-C-60",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: 個人開発者の実名は不明である。開発・運用はAPT-C-60活動に結び付くが、内製か外注かは公開根拠から確定できない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "WPS Officeゼロデイを悪用するスパイ集団と、解析で判明した第2の脆弱性 (nz-spyglace-eset-2024)",
+          "source_name": "ESET",
+          "url": "https://www.eset.com/us/about/newsroom/research/eset-research-spy-group-exploits-wps-office-zero-day-analysis-uncovers-a-second-vulnerability/"
+        },
+        {
+          "description": "APT-C-60による正規サービスを悪用した攻撃 (nz-spyglace-jpcert-2024)",
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2024/12/APT-C-60.html"
+        }
+      ],
+      "id": "note--c610bfc6-8111-5389-b324-93afe16ea655",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--15aee228-9579-5f49-84c6-04c8647f5726"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: restricted_criminal_tool。APT-C-60に結び付く私有の標的型バックドアで、一般販売されたコモディティRATやMaaSである証拠はない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "WPS Officeゼロデイを悪用するスパイ集団と、解析で判明した第2の脆弱性 (nz-spyglace-eset-2024)",
+          "source_name": "ESET",
+          "url": "https://www.eset.com/us/about/newsroom/research/eset-research-spy-group-exploits-wps-office-zero-day-analysis-uncovers-a-second-vulnerability/"
+        },
+        {
+          "description": "APT-C-60による正規サービスを悪用した攻撃 (nz-spyglace-jpcert-2024)",
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2024/12/APT-C-60.html"
+        }
+      ],
+      "id": "note--deecce4a-6cff-59bc-90f6-aaf25a091d48",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--15aee228-9579-5f49-84c6-04c8647f5726"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "WPS Officeゼロデイを悪用するスパイ集団と、解析で判明した第2の脆弱性 (nz-spyglace-eset-2024)",
+          "source_name": "ESET",
+          "url": "https://www.eset.com/us/about/newsroom/research/eset-research-spy-group-exploits-wps-office-zero-day-analysis-uncovers-a-second-vulnerability/"
+        },
+        {
+          "description": "APT-C-60による正規サービスを悪用した攻撃 (nz-spyglace-jpcert-2024)",
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2024/12/APT-C-60.html"
+        }
+      ],
+      "id": "note--c55c90d9-e6d5-5505-92a5-979623acef24",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--15aee228-9579-5f49-84c6-04c8647f5726"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--33615193-c677-5b53-8237-03fd57aded9f",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "APT-C-60",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: APT-C-60。WPS Office脆弱性、偽応募者、正規クラウド／コードホスティングサービスを悪用する一連の活動でSpyGlaceを運用した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "WPS Officeゼロデイを悪用するスパイ集団と、解析で判明した第2の脆弱性 (nz-spyglace-eset-2024)",
+          "source_name": "ESET",
+          "url": "https://www.eset.com/us/about/newsroom/research/eset-research-spy-group-exploits-wps-office-zero-day-analysis-uncovers-a-second-vulnerability/"
+        },
+        {
+          "description": "APT-C-60による正規サービスを悪用した攻撃 (nz-spyglace-jpcert-2024)",
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2024/12/APT-C-60.html"
+        },
+        {
+          "description": "脅威グループAPT-C-60による攻撃の続報 (nz-spyglace-jpcert-2025)",
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2025/11/APT-C-60_update.html"
+        },
+        {
+          "description": "2026年の脅威グループAPT-C-60による攻撃の続報 (nz-spyglace-jpcert-2026)",
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html"
+        }
+      ],
+      "id": "note--7818b6b5-0678-57c2-b2e9-2d0be5390baf",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--15aee228-9579-5f49-84c6-04c8647f5726",
+        "threat-actor--33615193-c677-5b53-8237-03fd57aded9f"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2024年）: WPS OfficeのCVE-2024-7262悪用と、日本組織への偽応募者VHDX／LNKチェーンでSpyGlace 3.1.6が観測された。 報告された主体: APT-C-60。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "WPS Officeゼロデイを悪用するスパイ集団と、解析で判明した第2の脆弱性 (nz-spyglace-eset-2024)",
+          "source_name": "ESET",
+          "url": "https://www.eset.com/us/about/newsroom/research/eset-research-spy-group-exploits-wps-office-zero-day-analysis-uncovers-a-second-vulnerability/"
+        },
+        {
+          "description": "APT-C-60による正規サービスを悪用した攻撃 (nz-spyglace-jpcert-2024)",
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2024/12/APT-C-60.html"
+        }
+      ],
+      "id": "note--7fb3e8be-41b5-5463-8ae7-5828abb795ce",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--15aee228-9579-5f49-84c6-04c8647f5726"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2025年から2026年）: 採用テーマとGitHub悪用で3.1.12から3.1.14、Proton Drive、GitHub、GitLab、jsDelivr、Codeberg等の悪用で3.1.15、3.1.17、3.1.18が報告された。 報告された主体: APT-C-60。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "脅威グループAPT-C-60による攻撃の続報 (nz-spyglace-jpcert-2025)",
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2025/11/APT-C-60_update.html"
+        },
+        {
+          "description": "2026年の脅威グループAPT-C-60による攻撃の続報 (nz-spyglace-jpcert-2026)",
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html"
+        }
+      ],
+      "id": "note--5da3c3bc-6e21-5e7c-bea5-fdbf1def127a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--15aee228-9579-5f49-84c6-04c8647f5726"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "spyglace 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/spyglace/README.md"
+        }
+      ],
+      "id": "report--8470361c-66a1-545e-9959-bd68864defae",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "SpyGlace / APT-C-60：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--15aee228-9579-5f49-84c6-04c8647f5726",
+        "note--c610bfc6-8111-5389-b324-93afe16ea655",
+        "note--deecce4a-6cff-59bc-90f6-aaf25a091d48",
+        "note--c55c90d9-e6d5-5505-92a5-979623acef24",
+        "threat-actor--33615193-c677-5b53-8237-03fd57aded9f",
+        "note--7818b6b5-0678-57c2-b2e9-2d0be5390baf",
+        "note--7fb3e8be-41b5-5463-8ae7-5828abb795ce",
+        "note--5da3c3bc-6e21-5e7c-bea5-fdbf1def127a"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

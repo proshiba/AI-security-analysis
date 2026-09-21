@@ -9,50 +9,13 @@
 <dl><dt><a name="-format_help"><strong>format_help</strong></a>(self) -&gt; 'str'</dt><dd><span class="code">使用法、オプション見出し、標準help説明を日本語で返す。</span></dd></dl>
 
 <h2>analyze_unit</h2>
-<dl><dt><a name="-analyze_unit"><strong>analyze_unit</strong></a>(
-    unit: 'InputUnit',
-    *,
-    output: 'Path',
-    registry: 'Path',
-    specs: 'list[HandlerSpec]',
-    registered: 'set[str]',
-    forced_family: 'str | None',
-    minimum_confidence: 'str',
-    assessment_only: 'bool',
-    analysis_contract: 'dict[str, Any]',
-    family_hint_manifest: 'dict[str, Any] | None' = None,
-    family_requirements_policy: 'dict[str, dict[str, Any]] | None' = None,
-    upx: 'Path | None' = None,
-    sevenzip: 'Path | None' = None,
-    diec: 'Path | None' = None,
-    force_container_probe: 'bool' = False,
-    max_static_layers: 'int' = 64,
-    retry_max_static_layers: 'int | None' = None,
-    archive_password: 'str' = 'infected',
-    string_scan_limit: 'int' = 1000000,
-    follow_on_lineage: 'dict[str, Any] | None' = None
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">1検体を分類し、適用可能な既存静的解析器を一括実行する。</span></dd></dl>
+<dl><dt><a name="-analyze_unit"><strong>analyze_unit</strong></a>(unit: 'InputUnit', *, output: 'Path', registry: 'Path', specs: 'list[HandlerSpec]', registered: 'set[str]', forced_family: 'str | None', minimum_confidence: 'str', assessment_only: 'bool', analysis_contract: 'dict[str, Any]', family_hint_manifest: 'dict[str, Any] | None' = None, family_requirements_policy: 'dict[str, dict[str, Any]] | None' = None, upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, innounp: 'Path | None' = None, force_container_probe: 'bool' = False, max_static_layers: 'int' = 64, retry_max_static_layers: 'int | None' = None, archive_password: 'str' = 'infected', string_scan_limit: 'int' = 1000000, follow_on_lineage: 'dict[str, Any] | None' = None, inno_password: 'str' = '') -&gt; 'dict[str, Any]'</dt><dd><span class="code">1検体を分類し、適用可能な既存静的解析器を一括実行する。</span></dd></dl>
 
 <h2>assess_handlers</h2>
-<dl><dt><a name="-assess_handlers"><strong>assess_handlers</strong></a>(
-    specs: 'list[HandlerSpec]',
-    layer_selections: 'list[dict[str, Any]]',
-    forced_family: 'str | None',
-    registered_families: 'set[str] | None' = None
-) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">全既存解析器について、自動実行、非適用、手動確認を明示する。</span></dd></dl>
+<dl><dt><a name="-assess_handlers"><strong>assess_handlers</strong></a>(specs: 'list[HandlerSpec]', layer_selections: 'list[dict[str, Any]]', forced_family: 'str | None', registered_families: 'set[str] | None' = None) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">全既存解析器について、自動実行、非適用、手動確認を明示する。</span></dd></dl>
 
 <h2>build_artifact_family_hint_manifest</h2>
-<dl><dt><a name="-build_artifact_family_hint_manifest"><strong>build_artifact_family_hint_manifest</strong></a>(
-    *,
-    artifact_sha256: 'str',
-    parent_sha256: 'str',
-    root_sha256: 'str',
-    artifact_kind: 'str',
-    source: 'str',
-    source_id: 'str',
-    depth: 'int',
-    parent_hints: 'Sequence[Mapping[str, Any]]'
-) -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">親の候補familyを、帰属には使わない子artifact検証hintへ変換する。</span></dd></dl>
+<dl><dt><a name="-build_artifact_family_hint_manifest"><strong>build_artifact_family_hint_manifest</strong></a>(*, artifact_sha256: 'str', parent_sha256: 'str', root_sha256: 'str', artifact_kind: 'str', source: 'str', source_id: 'str', depth: 'int', parent_hints: 'Sequence[Mapping[str, Any]]') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">親の候補familyを、帰属には使わない子artifact検証hintへ変換する。</span></dd></dl>
 
 <h2>build_parser</h2>
 <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">日本語helpを持つ一括静的解析CLIを構築する。</span></dd></dl>
@@ -61,14 +24,7 @@
 <dl><dt><a name="-collect_inputs"><strong>collect_inputs</strong></a>(inputs: 'list[Path]', output: 'Path', max_files: 'int') -&gt; 'list[Path]'</dt><dd><span class="code">ファイルとディレクトリを決定的に展開し、symlinkと出力先を除外する。</span></dd></dl>
 
 <h2>load_resumable_case</h2>
-<dl><dt><a name="-load_resumable_case"><strong>load_resumable_case</strong></a>(
-    output: 'Path',
-    digest: 'str',
-    *,
-    assessment_only: 'bool',
-    expected_contract: 'dict[str, Any]',
-    unit: 'InputUnit'
-) -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">同一入力・同一契約・全成果物一致の完了caseだけを再利用する。</span></dd></dl>
+<dl><dt><a name="-load_resumable_case"><strong>load_resumable_case</strong></a>(output: 'Path', digest: 'str', *, assessment_only: 'bool', expected_contract: 'dict[str, Any]', unit: 'InputUnit') -&gt; 'dict[str, Any] | None'</dt><dd><span class="code">同一入力・同一契約・全成果物一致の完了caseだけを再利用する。</span></dd></dl>
 
 <h2>main</h2>
 <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLI引数を処理し、失敗を検体単位に分離した一括解析を実行する。</span></dd></dl>
@@ -77,61 +33,18 @@
 <dl><dt><a name="-normalize_family"><strong>normalize_family</strong></a>(value: 'str') -&gt; 'str'</dt><dd><span class="code">CLIの代表的な別名を内部ファミリーIDへ正規化する。</span></dd></dl>
 
 <h2>plan_handler_layers</h2>
-<dl><dt><a name="-plan_handler_layers"><strong>plan_handler_layers</strong></a>(
-    spec: 'HandlerSpec',
-    applicability: 'dict[str, Any]',
-    layers: 'list[StaticLayer]'
-) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">family一致層とその外装祖先だけを、形式契約付きで実行順へ変換する。</span></dd></dl>
+<dl><dt><a name="-plan_handler_layers"><strong>plan_handler_layers</strong></a>(spec: 'HandlerSpec', applicability: 'dict[str, Any]', layers: 'list[StaticLayer]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">family一致層と安全に関連付けられる層を、形式契約付き実行順へ変換する。</span></dd></dl>
 
 <h2>read_input_unit</h2>
-<dl><dt><a name="-read_input_unit"><strong>read_input_unit</strong></a>(
-    path: 'Path',
-    *,
-    password: 'str',
-    archive_mode: 'str',
-    max_file_size: 'int'
-) -&gt; 'InputUnit'</dt><dd><span class="code">生ファイルまたは認証済み単一メンバーZIPをメモリ内で読み込む。</span></dd></dl>
+<dl><dt><a name="-read_input_unit"><strong>read_input_unit</strong></a>(path: 'Path', *, password: 'str', archive_mode: 'str', max_file_size: 'int') -&gt; 'InputUnit'</dt><dd><span class="code">生ファイルまたは認証済み単一メンバーZIPをメモリ内で読み込む。</span></dd></dl>
 
 <h2>recover_static_layers</h2>
-<dl><dt><a name="-recover_static_layers"><strong>recover_static_layers</strong></a>(
-    unit: 'InputUnit',
-    *,
-    upx: 'Path | None' = None,
-    sevenzip: 'Path | None' = None,
-    diec: 'Path | None' = None,
-    force_container_probe: 'bool' = False,
-    max_static_layers: 'int' = 64,
-    archive_password: 'str' = 'infected'
-) -&gt; 'tuple[list[StaticLayer], dict[str, Any]]'</dt><dd><span class="code">共有パイプラインへ既存unpackerと公開値sanitizerを注入する互換入口。</span></dd></dl>
+<dl><dt><a name="-recover_static_layers"><strong>recover_static_layers</strong></a>(unit: 'InputUnit', *, upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, innounp: 'Path | None' = None, force_container_probe: 'bool' = False, max_static_layers: 'int' = 64, archive_password: 'str' = 'infected', inno_password: 'str' = '') -&gt; 'tuple[list[StaticLayer], dict[str, Any]]'</dt><dd><span class="code">共有パイプラインへ既存unpackerと公開値sanitizerを注入する互換入口。</span></dd></dl>
 
 <h2>run_batch</h2>
-<dl><dt><a name="-run_batch"><strong>run_batch</strong></a>(
-    inputs: 'list[Path]',
-    output: 'Path',
-    *,
-    registry: 'Path' = Path('&lt;repo-root&gt;/analysis-framework/registry/malware_types.json'),
-    password: 'str' = 'infected',
-    archive_mode: 'str' = 'auto',
-    forced_family: 'str | None' = None,
-    minimum_confidence: 'str' = 'medium',
-    assessment_only: 'bool' = False,
-    max_files: 'int' = 1000,
-    upx: 'Path | None' = None,
-    sevenzip: 'Path | None' = None,
-    diec: 'Path | None' = None,
-    force_container_probe: 'bool' = False,
-    max_static_layers: 'int' = 64,
-    retry_max_static_layers: 'int | None' = None,
-    max_file_size: 'int' = 536870912,
-    string_scan_limit: 'int' = 1000000,
-    resume: 'bool' = False,
-    family_hint_manifest: 'Path | None' = None
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">複数入力をSHA-256で重複排除し、失敗を検体単位に分離する。</span></dd></dl>
+<dl><dt><a name="-run_batch"><strong>run_batch</strong></a>(inputs: 'list[Path]', output: 'Path', *, registry: 'Path' = Path('&lt;repo-root&gt;/analysis-framework/registry/malware_types.json'), password: 'str' = 'infected', archive_mode: 'str' = 'auto', forced_family: 'str | None' = None, minimum_confidence: 'str' = 'medium', assessment_only: 'bool' = False, max_files: 'int' = 1000, upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, innounp: 'Path | None' = None, force_container_probe: 'bool' = False, max_static_layers: 'int' = 64, retry_max_static_layers: 'int | None' = None, max_file_size: 'int' = 536870912, string_scan_limit: 'int' = 1000000, resume: 'bool' = False, family_hint_manifest: 'Path | None' = None, inno_password: 'str' = '') -&gt; 'dict[str, Any]'</dt><dd><span class="code">複数入力をSHA-256で重複排除し、失敗を検体単位に分離する。</span></dd></dl>
 
 <h2>summarize_family_coverage</h2>
-<dl><dt><a name="-summarize_family_coverage"><strong>summarize_family_coverage</strong></a>(
-    specs: 'list[HandlerSpec]',
-    registered_families: 'set[str]'
-) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">検出器と既存解析器の有無をファミリー単位で可視化する。</span></dd></dl>
+<dl><dt><a name="-summarize_family_coverage"><strong>summarize_family_coverage</strong></a>(specs: 'list[HandlerSpec]', registered_families: 'set[str]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">検出器と既存解析器の有無をファミリー単位で可視化する。</span></dd></dl>
 
 </body></html>

@@ -1,0 +1,69 @@
+{
+  "id": "bundle--a7764f16-4828-5d08-907a-86448f97f466",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: Mozilla署名binaryへのDLL side-load、host entrypoint patch、mutex、2日bucket DGA、遠隔task stateを持つagentです。検体内識別子からの暫定名で、開発者と運用者は不明です。KongTuke配布活動と整合しますが、本agent自体のMaaS性は確認できません。",
+      "external_references": [
+        {
+          "description": "suomi-agent 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/suomi-agent/README.md"
+        }
+      ],
+      "id": "malware--bdf825a0-4e00-5ece-b38b-0797e51c3621",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "suomi-agent",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "suomi-agent 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/suomi-agent/README.md"
+        }
+      ],
+      "id": "note--2a8c2398-54a8-5288-b49a-6cd583a3e0b3",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--bdf825a0-4e00-5ece-b38b-0797e51c3621"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "suomi-agent 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/suomi-agent/README.md"
+        }
+      ],
+      "id": "report--c1d5d250-0e7f-5b28-88a0-30a95875a375",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "suomi-agent：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--bdf825a0-4e00-5ece-b38b-0797e51c3621",
+        "note--2a8c2398-54a8-5288-b49a-6cd583a3e0b3"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

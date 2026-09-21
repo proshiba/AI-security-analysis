@@ -1,0 +1,199 @@
+{
+  "id": "bundle--9b652e10-c378-5fea-a654-e1afa598edb6",
+  "objects": [
+    {
+      "aliases": [
+        "RedShell"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "TrendAI Researchは、日付計算utilityを装うnpm package群がimport時にLinux ELFを起動し、RedC2 4.0のRedShell implantを配布したと報告した。AI処理は主にRed Agentのcontroller側機能であり、implant内のAI modelと混同しない。",
+      "external_references": [
+        {
+          "description": "redc2 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/redc2/README.md"
+        },
+        {
+          "description": "npm供給網攻撃によるRedC2 Linux implantの配布 (stix-redc2-trendai-2026)",
+          "source_name": "TrendAI Research",
+          "url": "https://www.trendaisecurity.com/ja/resources-insights/trendai-security-blog/redc2-ai-powered-linux-implant"
+        }
+      ],
+      "id": "malware--c4fb4d48-eb35-591d-9a08-3f1b90055f30",
+      "is_family": true,
+      "labels": [
+        "business-model:commercial-service"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "RedC2／RedShell",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: RedC2の販売主体と個人開発者の実名は未確認。TrendAIはHack Forumsで販売されるframeworkと報告したが、npm package投稿者とframework開発者の同一性は示さない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "npm供給網攻撃によるRedC2 Linux implantの配布 (stix-redc2-trendai-2026)",
+          "source_name": "TrendAI Research",
+          "url": "https://www.trendaisecurity.com/ja/resources-insights/trendai-security-blog/redc2-ai-powered-linux-implant"
+        }
+      ],
+      "id": "note--8e990d32-330b-5228-8960-5de94d18a620",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--c4fb4d48-eb35-591d-9a08-3f1b90055f30"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: commercial_service。Hack Forumsで販売されるクロスプラットフォームC2 frameworkとして報告された。OSSとの証拠はなく、販売形態を継続サービス型MaaSと同一視しない。単一アクター専用とも確認しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "npm供給網攻撃によるRedC2 Linux implantの配布 (stix-redc2-trendai-2026)",
+          "source_name": "TrendAI Research",
+          "url": "https://www.trendaisecurity.com/ja/resources-insights/trendai-security-blog/redc2-ai-powered-linux-implant"
+        }
+      ],
+      "id": "note--41465a03-64e3-5b8b-b971-f0a8cce84ad5",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--c4fb4d48-eb35-591d-9a08-3f1b90055f30"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "npm供給網攻撃によるRedC2 Linux implantの配布 (stix-redc2-trendai-2026)",
+          "source_name": "TrendAI Research",
+          "url": "https://www.trendaisecurity.com/ja/resources-insights/trendai-security-blog/redc2-ai-powered-linux-implant"
+        }
+      ],
+      "id": "note--f74e81e8-030f-554b-9bc5-f2263f4cb0ca",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--c4fb4d48-eb35-591d-9a08-3f1b90055f30"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 20,
+      "content": "利用主体に関する公開報告: 未特定のnpm配布者。日付計算utilityを装うpackage群の配布主体は公開資料から実名・既知アクターへ帰属できない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "npm供給網攻撃によるRedC2 Linux implantの配布 (stix-redc2-trendai-2026)",
+          "source_name": "TrendAI Research",
+          "url": "https://www.trendaisecurity.com/ja/resources-insights/trendai-security-blog/redc2-ai-powered-linux-implant"
+        }
+      ],
+      "id": "note--e3b77c90-c08f-5fe5-9a12-07ce40a883b9",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--c4fb4d48-eb35-591d-9a08-3f1b90055f30"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2026年8月）: npm上の日付・streak計算utilityを装うpackage群で、import時に内包したRedShell Linux ELFを別processで起動する供給網経路が観測された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "npm供給網攻撃によるRedC2 Linux implantの配布 (stix-redc2-trendai-2026)",
+          "source_name": "TrendAI Research",
+          "url": "https://www.trendaisecurity.com/ja/resources-insights/trendai-security-blog/redc2-ai-powered-linux-implant"
+        }
+      ],
+      "id": "note--4c4703cc-2b07-5506-86d5-722ace32c89d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--c4fb4d48-eb35-591d-9a08-3f1b90055f30"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "TrendAIが報告した、日付計算packageのimport時にRedShell Linux ELFを起動する供給網攻撃。package配布主体とRedC2 framework開発者を同一視しない。",
+      "external_references": [
+        {
+          "description": "npm供給網攻撃によるRedC2 Linux implantの配布 (stix-redc2-trendai-2026)",
+          "source_name": "TrendAI Research",
+          "url": "https://www.trendaisecurity.com/ja/resources-insights/trendai-security-blog/redc2-ai-powered-linux-implant"
+        }
+      ],
+      "id": "campaign--8ea78845-eeee-5cc5-bcfd-ab8abd59e69b",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "2026年のnpm日付utility偽装配布活動",
+      "spec_version": "2.1",
+      "type": "campaign"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "npm供給網攻撃によるRedC2 Linux implantの配布 (stix-redc2-trendai-2026)",
+          "source_name": "TrendAI Research",
+          "url": "https://www.trendaisecurity.com/ja/resources-insights/trendai-security-blog/redc2-ai-powered-linux-implant"
+        }
+      ],
+      "id": "relationship--19f44d66-9269-575e-9a78-5103ed156190",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "campaign--8ea78845-eeee-5cc5-bcfd-ab8abd59e69b",
+      "spec_version": "2.1",
+      "target_ref": "malware--c4fb4d48-eb35-591d-9a08-3f1b90055f30",
+      "type": "relationship"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "redc2 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/redc2/README.md"
+        }
+      ],
+      "id": "report--a1dfa78c-fbbb-5411-a1a9-d267a8527cc8",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "RedC2／RedShell：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--c4fb4d48-eb35-591d-9a08-3f1b90055f30",
+        "note--8e990d32-330b-5228-8960-5de94d18a620",
+        "note--41465a03-64e3-5b8b-b971-f0a8cce84ad5",
+        "note--f74e81e8-030f-554b-9bc5-f2263f4cb0ca",
+        "note--e3b77c90-c08f-5fe5-9a12-07ce40a883b9",
+        "note--4c4703cc-2b07-5506-86d5-722ace32c89d",
+        "campaign--8ea78845-eeee-5cc5-bcfd-ab8abd59e69b",
+        "relationship--19f44d66-9269-575e-9a78-5103ed156190"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

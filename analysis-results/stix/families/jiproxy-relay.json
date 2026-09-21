@@ -1,0 +1,138 @@
+{
+  "id": "bundle--abb9be09-8f99-5bdc-8069-647985bc30d1",
+  "objects": [
+    {
+      "aliases": [
+        "jiproxy.so"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "MIPS big-endian向けUDPリレーで、独自暗号化設定、155ポートの転送、tracker状態報告、UPnPポート公開を実装する。完全一致ハッシュと固有文字列を検索したが、既知ファミリーや正当製品へ結び付ける公開根拠は確認できない。",
+      "external_references": [
+        {
+          "description": "jiproxy-relay 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/jiproxy-relay/README.md"
+        },
+        {
+          "description": "JiProxy UDPリレーのローカル解析 (am-jiproxy-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/jiproxy-relay"
+        }
+      ],
+      "id": "malware--699c4794-424d-57d6-b43e-98539dfc5896",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "JiProxy UDP relay（暫定名称）",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 20,
+      "content": "開発主体: 開発主体は未確認である。モジュール名だけから個人・組織へ帰属しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "JiProxy UDPリレーのローカル解析 (am-jiproxy-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/jiproxy-relay"
+        }
+      ],
+      "id": "note--848d4cbb-89f0-5cd4-99a3-a73145e66cc0",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--699c4794-424d-57d6-b43e-98539dfc5896"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: unknown。販売、公開ソース、MaaS提供の証拠は確認できず、コモディティ性は未確認である。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "JiProxy UDPリレーのローカル解析 (am-jiproxy-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/jiproxy-relay"
+        }
+      ],
+      "id": "note--0bbedf8d-7f3a-57e9-94a8-62560828fa6e",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--699c4794-424d-57d6-b43e-98539dfc5896"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "JiProxy UDPリレーのローカル解析 (am-jiproxy-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/jiproxy-relay"
+        }
+      ],
+      "id": "note--8a9f91b3-6727-5c57-82ec-b68d61da4281",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--699c4794-424d-57d6-b43e-98539dfc5896"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 20,
+      "content": "利用主体に関する公開報告: 未特定の運用者。ローカル検体を配布・運用した主体は未特定であり、個人・組織・国家へ帰属させない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "JiProxy UDPリレーのローカル解析 (am-jiproxy-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/jiproxy-relay"
+        }
+      ],
+      "id": "note--05d3f8bb-d2c1-5dcb-8f91-188ba5e2a51e",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--699c4794-424d-57d6-b43e-98539dfc5896"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "jiproxy-relay 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/jiproxy-relay/README.md"
+        }
+      ],
+      "id": "report--829bfec4-d659-52e7-95c1-8259d40866f2",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "JiProxy UDP relay（暫定名称）：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--699c4794-424d-57d6-b43e-98539dfc5896",
+        "note--848d4cbb-89f0-5cd4-99a3-a73145e66cc0",
+        "note--0bbedf8d-7f3a-57e9-94a8-62560828fa6e",
+        "note--8a9f91b3-6727-5c57-82ec-b68d61da4281",
+        "note--05d3f8bb-d2c1-5dcb-8f91-188ba5e2a51e"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

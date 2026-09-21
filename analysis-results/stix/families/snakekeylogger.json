@@ -1,0 +1,222 @@
+{
+  "id": "bundle--63021284-6da5-53ad-b07e-24a973154c9c",
+  "objects": [
+    {
+      "aliases": [
+        "404 Keylogger",
+        "KrakenKeylogger"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "404 Keylogger、KrakenKeyloggerとも呼ばれる.NET製情報窃取／キーロガーで、認証情報、キー入力、クリップボード、スクリーンショット等を窃取し、SMTP、FTP、Telegram等を流出経路に用いる。TurlaのSnakeとは別系統である。",
+      "external_references": [
+        {
+          "description": "snakekeylogger 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/snakekeylogger/README.md"
+        },
+        {
+          "description": "Snake Keyloggerの概要 (nz-snake-fortiguard-2026)",
+          "source_name": "FortiGuard Threat Actor Encyclopedia",
+          "url": "https://www.fortiguard.com/threat-actor/6253/snake-keylogger"
+        },
+        {
+          "description": "Snake Keyloggerマルウェアの新亜種に関する詳細調査 (nz-snake-fortinet-2021)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/deep-dive-into-a-fresh-variant-of-snake-keylogger-malware"
+        },
+        {
+          "description": "Snake Keylogger新亜種の詳細解析 (nz-snake-fortinet-2024)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/deep-analysis-of-snake-keylogger-new-variant"
+        },
+        {
+          "description": "FortiSandbox 5.0による進化したSnake Keylogger亜種の検出 (nz-snake-fortinet-2025)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/de/blog/threat-research/fortisandbox-detects-evolving-snake-keylogger-variant"
+        },
+        {
+          "description": "ローカルSnake Keylogger解析結果 (nz-snake-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/snakekeylogger/README.md"
+        }
+      ],
+      "id": "malware--20875c80-eb33-56ef-a2ca-5ae747e57854",
+      "is_family": true,
+      "labels": [
+        "business-model:maas"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Snake Keylogger",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 20,
+      "content": "開発主体: 開発者・運営者の確証ある実名と出自は不明である。公開報告の初出時期には2019年末と2020年末の差があり、2019年末から2020年に公知化したと扱う。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Snake Keyloggerの概要 (nz-snake-fortiguard-2026)",
+          "source_name": "FortiGuard Threat Actor Encyclopedia",
+          "url": "https://www.fortiguard.com/threat-actor/6253/snake-keylogger"
+        },
+        {
+          "description": "Snake Keyloggerマルウェアの新亜種に関する詳細調査 (nz-snake-fortinet-2021)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/deep-dive-into-a-fresh-variant-of-snake-keylogger-malware"
+        }
+      ],
+      "id": "note--a069f5f8-12ea-549a-b804-190d9c3124a3",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--20875c80-eb33-56ef-a2ca-5ae747e57854"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: maas。地下フォーラムで販売されたサブスクリプション型MaaS／コモディティstealerである。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Snake Keyloggerの概要 (nz-snake-fortiguard-2026)",
+          "source_name": "FortiGuard Threat Actor Encyclopedia",
+          "url": "https://www.fortiguard.com/threat-actor/6253/snake-keylogger"
+        },
+        {
+          "description": "Snake Keylogger新亜種の詳細解析 (nz-snake-fortinet-2024)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/deep-analysis-of-snake-keylogger-new-variant"
+        }
+      ],
+      "id": "note--66b0e344-ed86-5702-b59f-7bd30ecf1a52",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--20875c80-eb33-56ef-a2ca-5ae747e57854"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Snake Keyloggerの概要 (nz-snake-fortiguard-2026)",
+          "source_name": "FortiGuard Threat Actor Encyclopedia",
+          "url": "https://www.fortiguard.com/threat-actor/6253/snake-keylogger"
+        },
+        {
+          "description": "Snake Keylogger新亜種の詳細解析 (nz-snake-fortinet-2024)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/deep-analysis-of-snake-keylogger-new-variant"
+        }
+      ],
+      "id": "note--b69e49bc-70ff-5f57-96ad-6f834d852570",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--20875c80-eb33-56ef-a2ca-5ae747e57854"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: 複数の購入型犯罪アクター。地下市場の購入者が広く使用し、APTを含む複数アクターでの利用が報告されるが、単一グループ専用ではない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Snake Keyloggerの概要 (nz-snake-fortiguard-2026)",
+          "source_name": "FortiGuard Threat Actor Encyclopedia",
+          "url": "https://www.fortiguard.com/threat-actor/6253/snake-keylogger"
+        }
+      ],
+      "id": "note--5d20aa73-947c-5cc0-82c6-dde061f012f4",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--20875c80-eb33-56ef-a2ca-5ae747e57854"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2021年から2024年）: Excelマクロ、CVE-2017-0199、HTAやスクリプトを用いる複数配布方式が観測された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Snake Keyloggerマルウェアの新亜種に関する詳細調査 (nz-snake-fortinet-2021)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/deep-dive-into-a-fresh-variant-of-snake-keylogger-malware"
+        },
+        {
+          "description": "Snake Keylogger新亜種の詳細解析 (nz-snake-fortinet-2024)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/deep-analysis-of-snake-keylogger-new-variant"
+        }
+      ],
+      "id": "note--41a2c9cd-1e83-575b-b2f9-4bbc3dc4f031",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--20875c80-eb33-56ef-a2ca-5ae747e57854"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2025年）: AutoItインジェクタと大規模なブロック／地域別配布を伴う変種が報告された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "FortiSandbox 5.0による進化したSnake Keylogger亜種の検出 (nz-snake-fortinet-2025)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/de/blog/threat-research/fortisandbox-detects-evolving-snake-keylogger-variant"
+        }
+      ],
+      "id": "note--cb4b9256-fbd7-5386-92c3-624a63386673",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--20875c80-eb33-56ef-a2ca-5ae747e57854"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "snakekeylogger 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/snakekeylogger/README.md"
+        }
+      ],
+      "id": "report--69ad8538-a8e5-5404-8921-0775eb7c2f6b",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Snake Keylogger：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--20875c80-eb33-56ef-a2ca-5ae747e57854",
+        "note--a069f5f8-12ea-549a-b804-190d9c3124a3",
+        "note--66b0e344-ed86-5702-b59f-7bd30ecf1a52",
+        "note--b69e49bc-70ff-5f57-96ad-6f834d852570",
+        "note--5d20aa73-947c-5cc0-82c6-dde061f012f4",
+        "note--41a2c9cd-1e83-575b-b2f9-4bbc3dc4f031",
+        "note--cb4b9256-fbd7-5386-92c3-624a63386673"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

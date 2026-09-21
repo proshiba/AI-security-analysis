@@ -1,0 +1,243 @@
+{
+  "id": "bundle--a9ce525c-83a3-5f78-8c11-a37227b75a07",
+  "objects": [
+    {
+      "aliases": [
+        "DarkCrystal RAT",
+        "Dark Crystal RAT"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "C#・.NET製のモジュール型RATであり、遠隔操作、情報窃取、スクリーンショット、キーロギング、追加プラグイン・ペイロード実行等を備える。",
+      "external_references": [
+        {
+          "description": "dcrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/dcrat/README.md"
+        },
+        {
+          "description": "DCRat・Dark Crystal RATの概要 (am-dcrat-broadcom-2024)",
+          "source_name": "Broadcom",
+          "url": "https://www.broadcom.com/support/security-center/protection-bulletin/dcrat-aka-dark-crystal-rat-trojan-malware"
+        },
+        {
+          "description": "ウクライナを狙ったDCRat活動 (am-dcrat-fortinet-2022)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/ukraine-targeted-by-dark-crystal-rat"
+        },
+        {
+          "description": "DCRatローカル解析結果 (am-dcrat-local-2026)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/dcrat"
+        },
+        {
+          "description": "C#バックドアDark Crystal RATの分析 (am-dcrat-mandiant-2020)",
+          "source_name": "Mandiant",
+          "url": "https://cloud.google.com/blog/topics/threat-intelligence/analyzing-dark-crystal-rat-backdoor"
+        },
+        {
+          "description": "Dark Crystal RATの警告 (am-dcrat-nhs-2020)",
+          "source_name": "NHS England",
+          "url": "https://digital.nhs.uk/cyber-alerts/2020/cc-3451"
+        }
+      ],
+      "id": "malware--fd34b53d-2028-5316-a7b0-1f309903cf1c",
+      "is_family": true,
+      "labels": [
+        "business-model:maas"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "DCRat",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 20,
+      "content": "開発主体: 開発者の実名・組織に関する公開帰属は確認されていない。公開報告ではdcrat.ruのサイト、ライセンス、ビルダー、プラグイン体系が分析されているが、運営者の本人性は確定していない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "C#バックドアDark Crystal RATの分析 (am-dcrat-mandiant-2020)",
+          "source_name": "Mandiant",
+          "url": "https://cloud.google.com/blog/topics/threat-intelligence/analyzing-dark-crystal-rat-backdoor"
+        },
+        {
+          "description": "Dark Crystal RATの警告 (am-dcrat-nhs-2020)",
+          "source_name": "NHS England",
+          "url": "https://digital.nhs.uk/cyber-alerts/2020/cc-3451"
+        }
+      ],
+      "id": "note--717ba8c4-1f54-564f-a71f-0fd5c51a79fe",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--fd34b53d-2028-5316-a7b0-1f309903cf1c"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: maas。2018年頃から提供される安価なMaaS・RATサービスであり、多数の購入者が設定可能なビルダーを利用する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "DCRat・Dark Crystal RATの概要 (am-dcrat-broadcom-2024)",
+          "source_name": "Broadcom",
+          "url": "https://www.broadcom.com/support/security-center/protection-bulletin/dcrat-aka-dark-crystal-rat-trojan-malware"
+        },
+        {
+          "description": "Dark Crystal RATの警告 (am-dcrat-nhs-2020)",
+          "source_name": "NHS England",
+          "url": "https://digital.nhs.uk/cyber-alerts/2020/cc-3451"
+        }
+      ],
+      "id": "note--50279d48-92d6-52c4-b12c-d4645c758bca",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--fd34b53d-2028-5316-a7b0-1f309903cf1c"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "DCRat・Dark Crystal RATの概要 (am-dcrat-broadcom-2024)",
+          "source_name": "Broadcom",
+          "url": "https://www.broadcom.com/support/security-center/protection-bulletin/dcrat-aka-dark-crystal-rat-trojan-malware"
+        },
+        {
+          "description": "Dark Crystal RATの警告 (am-dcrat-nhs-2020)",
+          "source_name": "NHS England",
+          "url": "https://digital.nhs.uk/cyber-alerts/2020/cc-3451"
+        }
+      ],
+      "id": "note--d24d3e7c-3d85-5238-a8da-6997353dbabf",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--fd34b53d-2028-5316-a7b0-1f309903cf1c"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: DCRat購入者・アフィリエイト。Tor等を通じてビルダーを購入し、独自設定のDCRatを配布する複数の利用者が存在する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Dark Crystal RATの警告 (am-dcrat-nhs-2020)",
+          "source_name": "NHS England",
+          "url": "https://digital.nhs.uk/cyber-alerts/2020/cc-3451"
+        }
+      ],
+      "id": "note--24d58141-db35-575c-9803-95298cca931b",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--fd34b53d-2028-5316-a7b0-1f309903cf1c"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: ウクライナ標的キャンペーン運用者。悪性添付を利用してウクライナを狙いDCRatを配布したが、公開報告では開発者と同一とは確認されていない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ウクライナを狙ったDCRat活動 (am-dcrat-fortinet-2022)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/ukraine-targeted-by-dark-crystal-rat"
+        }
+      ],
+      "id": "note--81d56418-02b6-57a8-912b-a55e30cf46bb",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--fd34b53d-2028-5316-a7b0-1f309903cf1c"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2020）: 購入可能なC#バックドアとして、プラグインを使う遠隔操作・情報窃取活動で観測された。 報告された主体: DCRat購入者・アフィリエイト。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "C#バックドアDark Crystal RATの分析 (am-dcrat-mandiant-2020)",
+          "source_name": "Mandiant",
+          "url": "https://cloud.google.com/blog/topics/threat-intelligence/analyzing-dark-crystal-rat-backdoor"
+        },
+        {
+          "description": "Dark Crystal RATの警告 (am-dcrat-nhs-2020)",
+          "source_name": "NHS England",
+          "url": "https://digital.nhs.uk/cyber-alerts/2020/cc-3451"
+        }
+      ],
+      "id": "note--7d353813-b0cd-5d4a-8c88-7b9630c2e31d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--fd34b53d-2028-5316-a7b0-1f309903cf1c"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2022）: ロシアによる全面侵攻期のウクライナを狙い、悪性添付からDCRatを配布する活動が確認された。 報告された主体: ウクライナ標的キャンペーン運用者。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ウクライナを狙ったDCRat活動 (am-dcrat-fortinet-2022)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/ukraine-targeted-by-dark-crystal-rat"
+        }
+      ],
+      "id": "note--22dd4fe4-c0b9-55ff-a13d-ad98c35d43a6",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--fd34b53d-2028-5316-a7b0-1f309903cf1c"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "dcrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/dcrat/README.md"
+        }
+      ],
+      "id": "report--d40b6524-e94d-58c6-94a0-0f85aa2d82db",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "DCRat：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--fd34b53d-2028-5316-a7b0-1f309903cf1c",
+        "note--717ba8c4-1f54-564f-a71f-0fd5c51a79fe",
+        "note--50279d48-92d6-52c4-b12c-d4645c758bca",
+        "note--d24d3e7c-3d85-5238-a8da-6997353dbabf",
+        "note--24d58141-db35-575c-9803-95298cca931b",
+        "note--81d56418-02b6-57a8-912b-a55e30cf46bb",
+        "note--7d353813-b0cd-5d4a-8c88-7b9630c2e31d",
+        "note--22dd4fe4-c0b9-55ff-a13d-ad98c35d43a6"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

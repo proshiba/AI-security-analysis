@@ -1,0 +1,12 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>generate_infrastructure_stix — API仕様</title></head><body>
+<h1>generate_infrastructure_stix</h1>
+<p><a href="../../analysis-framework/common/generate_infrastructure_stix.py">実装</a></p>
+<pre>審査済みインフラ知識を、根拠境界を維持したSTIX 2.1へ変換する。</pre>
+<h2>generate</h2>
+<dl><dt><a name="-generate"><strong>generate</strong></a>(repository: 'Path', as_of: 'date') -&gt; 'tuple[dict[str, str], dict[str, Any]]'</dt><dd><span class="code">外部通信なしで、審査済みJSONから単一のインフラBundleを構築する。</span></dd></dl>
+
+<h2>main</h2>
+<dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">審査済みインフラSTIXを生成、または既存成果物と照合する。</span></dd></dl>
+
+</body></html>

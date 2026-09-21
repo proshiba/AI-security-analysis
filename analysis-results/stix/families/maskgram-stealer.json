@@ -1,0 +1,69 @@
+{
+  "id": "bundle--44cff22e-355d-53cc-9c61-1593a6e8fb33",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: MaskGramStealerはWindows向け情報窃取マルウェアです。browser認証情報、暗号資産wallet、process・system情報を収集し、正規SNS・ゲーム・音楽プロフィールをdead-dropとして実C2を切り替えます。",
+      "external_references": [
+        {
+          "description": "maskgram-stealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/maskgram-stealer/README.md"
+        }
+      ],
+      "id": "malware--f463a902-6e2e-5036-8f98-bf6b45a5b3c8",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "maskgram-stealer",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "maskgram-stealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/maskgram-stealer/README.md"
+        }
+      ],
+      "id": "note--857a65c8-4083-576d-b22f-774f67cd2ceb",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--f463a902-6e2e-5036-8f98-bf6b45a5b3c8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "maskgram-stealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/maskgram-stealer/README.md"
+        }
+      ],
+      "id": "report--8a7ddbe8-47ad-5543-8e34-c975cc51a7a6",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "maskgram-stealer：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--f463a902-6e2e-5036-8f98-bf6b45a5b3c8",
+        "note--857a65c8-4083-576d-b22f-774f67cd2ceb"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

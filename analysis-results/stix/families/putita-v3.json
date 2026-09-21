@@ -1,0 +1,69 @@
+{
+  "id": "bundle--7c7a35cf-6703-5dad-85e2-55a1f53605e9",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: PUTA v3はLinux/IoT機器を対象にするMirai派生DDoSボットです。x86、x86-64、ARMv5、ARMv6、MIPS little-endianの10件は、内部応答マーカーPUTA-V3-OK、暗号化handshake、13攻撃IDを共有します。多くのビルドはChaCha20-Poly1305認証付き外部C2設定を持ちますが、x86-64ビルドはloopback controllerだけを保持します。UPX版と非圧縮版は展開後SHA-256で対応付けています。",
+      "external_references": [
+        {
+          "description": "putita-v3 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/putita-v3/README.md"
+        }
+      ],
+      "id": "malware--ae3f02ae-0d43-5f65-aa24-82ecf9d67b2f",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "putita-v3",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "putita-v3 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/putita-v3/README.md"
+        }
+      ],
+      "id": "note--b5653ca3-6b7b-5c40-8a7e-27b78cf0da1a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--ae3f02ae-0d43-5f65-aa24-82ecf9d67b2f"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "putita-v3 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/putita-v3/README.md"
+        }
+      ],
+      "id": "report--15ac18a6-879c-5425-b827-de21555ab60f",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "putita-v3：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--ae3f02ae-0d43-5f65-aa24-82ecf9d67b2f",
+        "note--b5653ca3-6b7b-5c40-8a7e-27b78cf0da1a"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

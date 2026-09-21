@@ -1,0 +1,69 @@
+{
+  "id": "bundle--0ffbd3d1-afc3-5b78-a47b-ef3b9c0ad07d",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "出典付きのファミリー別OSINT知識は未登録。静的解析結果のみを参照する。",
+      "external_references": [
+        {
+          "description": "chud-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/chud-bot/README.md"
+        }
+      ],
+      "id": "malware--cc1da33e-776c-5b31-87d5-0ff940b0a57a",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "chud-bot",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "chud-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/chud-bot/README.md"
+        }
+      ],
+      "id": "note--0552d332-c86f-59f1-ab9b-103134a6f4f7",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--cc1da33e-776c-5b31-87d5-0ff940b0a57a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "chud-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/chud-bot/README.md"
+        }
+      ],
+      "id": "report--b53a44fa-ab1e-548a-86c5-4a9e4db91e32",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "chud-bot：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--cc1da33e-776c-5b31-87d5-0ff940b0a57a",
+        "note--0552d332-c86f-59f1-ab9b-103134a6f4f7"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

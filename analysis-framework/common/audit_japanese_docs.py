@@ -68,6 +68,8 @@ TECHNICAL_WORDS = {
     "pe",
     "sha",
     "sha256",
+    "stix",
+    "osint",
     "sigma",
     "tcp",
     "tls",

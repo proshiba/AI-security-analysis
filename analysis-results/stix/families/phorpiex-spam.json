@@ -1,0 +1,69 @@
+{
+  "id": "bundle--a5a4935c-23be-595b-895b-e82a1ed3bf0c",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: Phorpiex botnetのsextortion spam送信module。controllerからrecipient listを得て感染hostから対象domainのMXへ直接SMTP送信する。Phorpiexはworm、clipper、miner、追加malware loaderとしても使われるが、このfamily directoryはspam moduleに限定する。",
+      "external_references": [
+        {
+          "description": "phorpiex-spam 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/phorpiex-spam/README.md"
+        }
+      ],
+      "id": "malware--25237e03-875f-583b-8582-32d9370112e3",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "phorpiex-spam",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "phorpiex-spam 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/phorpiex-spam/README.md"
+        }
+      ],
+      "id": "note--e5e18887-14a3-50fc-97af-88110a01d4d7",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--25237e03-875f-583b-8582-32d9370112e3"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "phorpiex-spam 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/phorpiex-spam/README.md"
+        }
+      ],
+      "id": "report--63cc96e9-ea4a-5c0d-bc45-13b0780d6a3d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "phorpiex-spam：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--25237e03-875f-583b-8582-32d9370112e3",
+        "note--e5e18887-14a3-50fc-97af-88110a01d4d7"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

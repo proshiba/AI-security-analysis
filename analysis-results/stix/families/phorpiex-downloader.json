@@ -1,0 +1,69 @@
+{
+  "id": "bundle--8a7d5826-5a2c-5064-8cee-9c5095c68f78",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "出典付きのファミリー別OSINT知識は未登録。静的解析結果のみを参照する。",
+      "external_references": [
+        {
+          "description": "phorpiex-downloader 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/phorpiex-downloader/README.md"
+        }
+      ],
+      "id": "malware--56da4e7f-edc0-5103-97b4-6725f2648fd8",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "phorpiex-downloader",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "phorpiex-downloader 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/phorpiex-downloader/README.md"
+        }
+      ],
+      "id": "note--f8904494-f8f3-5553-93f3-da769a74b67a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--56da4e7f-edc0-5103-97b4-6725f2648fd8"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "phorpiex-downloader 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/phorpiex-downloader/README.md"
+        }
+      ],
+      "id": "report--d5a56663-4654-5af7-8ae1-b572e35968f3",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "phorpiex-downloader：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--56da4e7f-edc0-5103-97b4-6725f2648fd8",
+        "note--f8904494-f8f3-5553-93f3-da769a74b67a"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

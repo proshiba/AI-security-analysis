@@ -1,0 +1,295 @@
+{
+  "id": "bundle--6590d725-d3d6-5889-899a-ffd3535d7a4e",
+  "objects": [
+    {
+      "aliases": [
+        "PureLogs",
+        "PureLogsStealer"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "PureCoderが開発・販売するWindows向け.NET情報窃取マルウェアです。ブラウザー、認証情報、暗号資産ウォレット、Discord、ファイル、システム情報を収集し、HTTP APIを通じてC2へ送信します。",
+      "external_references": [
+        {
+          "description": "purelogs 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/purelogs/README.md"
+        },
+        {
+          "description": "Pureの内幕：RATからビルダー、開発者まで (nz-purelogs-checkpoint-2025)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/"
+        },
+        {
+          "description": "JavaScript駆動型PureLogs亜種を展開するフィッシングキャンペーン (nz-purelogs-fortinet-js-2026)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/jp/blog/threat-research/phishing-campaign-deploys-javascript-driven-purelogs-variant-to-steal-sensitive-data"
+        },
+        {
+          "description": "PawsRunnerのステガノグラフィによるPureLogs配布 (nz-purelogs-fortinet-paws-2026)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/purelogs-delivery-via-pawsrunner-steganography"
+        },
+        {
+          "description": "日本語マルスパムによるPureLogsのローカル解析 (nz-purelogs-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/purelogs"
+        }
+      ],
+      "id": "malware--a07f9fd6-e1dd-5631-a5d1-691dc647af2e",
+      "is_family": true,
+      "labels": [
+        "business-model:maas"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "PureLogs",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 80,
+      "content": "開発主体: PureLogsはPureCoderブランドの製品です。PureHVNC/PureRAT、PureCrypter等と販売系統を共有しますが、情報窃取を主目的とする独立製品として扱います。実名や所在地は未確認です。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Pureの内幕：RATからビルダー、開発者まで (nz-purelogs-checkpoint-2025)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/"
+        },
+        {
+          "description": "PawsRunnerのステガノグラフィによるPureLogs配布 (nz-purelogs-fortinet-paws-2026)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/purelogs-delivery-via-pawsrunner-steganography"
+        }
+      ],
+      "id": "note--fd3cc271-02fa-5245-9628-280952cc95fc",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a07f9fd6-e1dd-5631-a5d1-691dc647af2e"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: maas。Pure製品群の一部として販売されるコモディティ型情報窃取マルウェアです。同じ開発者や保護機構を共有しても、PureRAT/PureHVNCと同一ファミリーへ統合しません。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Pureの内幕：RATからビルダー、開発者まで (nz-purelogs-checkpoint-2025)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/"
+        },
+        {
+          "description": "PawsRunnerのステガノグラフィによるPureLogs配布 (nz-purelogs-fortinet-paws-2026)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/purelogs-delivery-via-pawsrunner-steganography"
+        }
+      ],
+      "id": "note--c411a94b-ed2f-5092-b187-89410df326da",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a07f9fd6-e1dd-5631-a5d1-691dc647af2e"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Pureの内幕：RATからビルダー、開発者まで (nz-purelogs-checkpoint-2025)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/"
+        },
+        {
+          "description": "PawsRunnerのステガノグラフィによるPureLogs配布 (nz-purelogs-fortinet-paws-2026)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/purelogs-delivery-via-pawsrunner-steganography"
+        }
+      ],
+      "id": "note--d7ba0aae-eeb6-50dc-940e-77de88b76dbe",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a07f9fd6-e1dd-5631-a5d1-691dc647af2e"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: Pureマルウェア購入者。地下フォーラム、Telegram、販売サイト等から取得した複数の犯罪アクターが個別の攻撃キャンペーンで利用できる商品型マルウェアです。公開資料と今回の検体だけでは運用者を特定できません。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Pureの内幕：RATからビルダー、開発者まで (nz-purelogs-checkpoint-2025)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/"
+        }
+      ],
+      "id": "note--b0d719f8-5468-593a-8536-66d8424e31cc",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a07f9fd6-e1dd-5631-a5d1-691dc647af2e"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2026年5月）: 請求書を装うTXZ添付、混在言語コメントを持つJavaScript、環境変数、PowerShell、猫画像のステガノグラフィを使うPawsRunnerからPureLogsを配布するフィッシングキャンペーンが報告されました。報告検体の設定はPureLogs 5.0.0を示します。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "PawsRunnerのステガノグラフィによるPureLogs配布 (nz-purelogs-fortinet-paws-2026)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/purelogs-delivery-via-pawsrunner-steganography"
+        }
+      ],
+      "id": "note--09d1625f-81c2-50ce-beef-6afe4cb7e73c",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a07f9fd6-e1dd-5631-a5d1-691dc647af2e"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2026年5月から7月）: 注文書を装うRAR、難読化JavaScript、PowerShell、MsBuild.exeのプロセスホローイングを経てPureLogsダウンローダーとプラグインを展開するキャンペーンが報告されました。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "JavaScript駆動型PureLogs亜種を展開するフィッシングキャンペーン (nz-purelogs-fortinet-js-2026)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/jp/blog/threat-research/phishing-campaign-deploys-javascript-driven-purelogs-variant-to-steal-sensitive-data"
+        }
+      ],
+      "id": "note--4c714a68-a8d0-58c9-9ff8-5fa5d20672ca",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a07f9fd6-e1dd-5631-a5d1-691dc647af2e"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2026年7月）: 本リポジトリでは、日本語の商品破損連絡、改名WinWord.exeのAppV DLLサイドローディング、内包Python 3.14を経てPureLogsとPureRAT/PureHVNC候補を同時配布する感染チェーンを確認しました。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "日本語マルスパムによるPureLogsのローカル解析 (nz-purelogs-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/purelogs"
+        }
+      ],
+      "id": "note--5d07f603-47a5-5077-b103-adaa5714dc09",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a07f9fd6-e1dd-5631-a5d1-691dc647af2e"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Fortinetが報告した攻撃を本STIX内で識別するための記述名。請求書を装うTXZ添付から環境変数とPawsRunnerの画像ステガノグラフィを経由してPureLogsを配備した。",
+      "external_references": [
+        {
+          "description": "PawsRunnerのステガノグラフィによるPureLogs配布 (nz-purelogs-fortinet-paws-2026)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/purelogs-delivery-via-pawsrunner-steganography"
+        }
+      ],
+      "id": "campaign--829d1e1c-c0da-5de1-8edc-6e5bdaec7254",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Fortinet観測の2026年PawsRunnerフィッシング活動",
+      "spec_version": "2.1",
+      "type": "campaign"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "PawsRunnerのステガノグラフィによるPureLogs配布 (nz-purelogs-fortinet-paws-2026)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/purelogs-delivery-via-pawsrunner-steganography"
+        }
+      ],
+      "id": "relationship--fcc91f6e-b52b-575e-a165-0f8b2b4a0ff0",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "campaign--829d1e1c-c0da-5de1-8edc-6e5bdaec7254",
+      "spec_version": "2.1",
+      "target_ref": "malware--a07f9fd6-e1dd-5631-a5d1-691dc647af2e",
+      "type": "relationship"
+    },
+    {
+      "content": "公開済み5件のcaseに対応する静的比較プロファイルから集計した特徴。件数は観測case数であり、全版共通の断定ではない。\nexecution_stages: command_control (2件)、file_operations (2件)、defense_evasion (1件)、loader_execution (1件)、payload_decoding (1件)、persistence (1件)\nlayer_chain: root:pe (5件)、pe--dotnet-resource-opaque-->data (1件)\nmodule_stack: root_program:x86:le:64:default (4件)、root_program:x86:le:32:default (1件)\ncapabilities: execution:process_creation (4件)、persistence:registry_access (4件)、evasion:anti_debug (3件)、runtime:dotnet (1件)\nfunction_roles: command_dispatch_or_handler (2件)、file_operation (2件)、anti_analysis (1件)、config_or_data_transform (1件)、cryptographic_transform (1件)、entrypoint (1件)、network_communication (1件)、persistence (1件)、process_or_memory_operation (1件)",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "purelogs 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/purelogs/README.md"
+        },
+        {
+          "description": "静的ロジック比較プロファイル",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/catalog/logic-similarity.json"
+        }
+      ],
+      "id": "note--ace7ccbd-b6fa-526c-9009-48d7a92b511b",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a07f9fd6-e1dd-5631-a5d1-691dc647af2e"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "purelogs 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/purelogs/README.md"
+        }
+      ],
+      "id": "report--2ee5e7f9-a802-5e81-896b-096330d1e2b1",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "PureLogs：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--a07f9fd6-e1dd-5631-a5d1-691dc647af2e",
+        "note--fd3cc271-02fa-5245-9628-280952cc95fc",
+        "note--c411a94b-ed2f-5092-b187-89410df326da",
+        "note--d7ba0aae-eeb6-50dc-940e-77de88b76dbe",
+        "note--b0d719f8-5468-593a-8536-66d8424e31cc",
+        "note--09d1625f-81c2-50ce-beef-6afe4cb7e73c",
+        "note--4c714a68-a8d0-58c9-9ff8-5fa5d20672ca",
+        "note--5d07f603-47a5-5077-b103-adaa5714dc09",
+        "campaign--829d1e1c-c0da-5de1-8edc-6e5bdaec7254",
+        "relationship--fcc91f6e-b52b-575e-a165-0f8b2b4a0ff0",
+        "note--ace7ccbd-b6fa-526c-9009-48d7a92b511b"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

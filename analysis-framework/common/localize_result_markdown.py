@@ -330,6 +330,7 @@ KNOWN_PRODUCT_TITLES = {
     "stealc", "valleyrat", "valleyrat / winos4.0", "venomrat", "vidar", "xworm",
 }
 SAFE_TECHNICAL_WORDS = {
+    "stix", "osint",
     "7-zip", "aes", "amos", "agenttesla", "amadey", "aplib", "asar",
     "atlascross", "autoit", "cff", "chrd", "cil", "cpu", "darkcomet",
     "die", "donut", "electron", "enigma", "gzip", "http", "iat", "ioc", "java",

@@ -1,0 +1,264 @@
+{
+  "id": "bundle--d1bbded2-4da0-5f24-8629-62e36396e92a",
+  "objects": [
+    {
+      "aliases": [
+        "Async RAT"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "C#で実装されたオープンソースRATで、暗号化通信、リモート画面、キーロギング、認証情報回収、プラグイン実行等を備える。教育・研究用途を掲げる原プロジェクトとは別に、改変ビルドが実攻撃へ広く悪用される。",
+      "external_references": [
+        {
+          "description": "asyncrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/asyncrat/README.md"
+        },
+        {
+          "description": "AsyncRAT公式リポジトリ (am-asyncrat-github)",
+          "source_name": "NYAN-x-CAT",
+          "url": "https://github.com/NYAN-x-CAT/AsyncRAT-C-Sharp"
+        },
+        {
+          "description": "AsyncRATローカル解析結果 (am-asyncrat-local-2026)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/asyncrat"
+        },
+        {
+          "description": "AsyncRATソフトウェア項目 (am-asyncrat-mitre)",
+          "source_name": "MITRE ATT&CK",
+          "url": "https://attack.mitre.org/software/S1087/"
+        },
+        {
+          "description": "Blind Eagle・APT-C-36グループ項目 (am-asyncrat-mitre-aptc36)",
+          "source_name": "MITRE ATT&CK",
+          "url": "https://attack.mitre.org/groups/G0099/"
+        },
+        {
+          "description": "AsyncRAT公式リリース一覧 (am-asyncrat-releases)",
+          "source_name": "NYAN-x-CAT",
+          "url": "https://github.com/NYAN-x-CAT/AsyncRAT-C-Sharp/releases"
+        }
+      ],
+      "id": "malware--6cd970f8-5edc-523a-86b7-20e552e13407",
+      "is_family": true,
+      "labels": [
+        "business-model:open-source"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "AsyncRAT",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 80,
+      "content": "開発主体: 公開リポジトリの原開発者はNYAN-x-CATである。悪性ビルドの運用者や改変者は原開発者とは別であり、原開発者を攻撃者とみなさない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "AsyncRAT公式リポジトリ (am-asyncrat-github)",
+          "source_name": "NYAN-x-CAT",
+          "url": "https://github.com/NYAN-x-CAT/AsyncRAT-C-Sharp"
+        }
+      ],
+      "id": "note--a6b73bde-9213-5984-b30e-0ec3edecafa2",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--6cd970f8-5edc-523a-86b7-20e552e13407"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: open_source_dual_use。ソースコードとビルドが無償公開されるためコモディティ化しているが、原プロジェクト自体はMaaS販売サービスではない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "AsyncRAT公式リポジトリ (am-asyncrat-github)",
+          "source_name": "NYAN-x-CAT",
+          "url": "https://github.com/NYAN-x-CAT/AsyncRAT-C-Sharp"
+        },
+        {
+          "description": "AsyncRAT公式リリース一覧 (am-asyncrat-releases)",
+          "source_name": "NYAN-x-CAT",
+          "url": "https://github.com/NYAN-x-CAT/AsyncRAT-C-Sharp/releases"
+        }
+      ],
+      "id": "note--0137b225-6513-554e-970d-3ce2d7335b6c",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--6cd970f8-5edc-523a-86b7-20e552e13407"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "AsyncRAT公式リポジトリ (am-asyncrat-github)",
+          "source_name": "NYAN-x-CAT",
+          "url": "https://github.com/NYAN-x-CAT/AsyncRAT-C-Sharp"
+        },
+        {
+          "description": "AsyncRAT公式リリース一覧 (am-asyncrat-releases)",
+          "source_name": "NYAN-x-CAT",
+          "url": "https://github.com/NYAN-x-CAT/AsyncRAT-C-Sharp/releases"
+        }
+      ],
+      "id": "note--10fe8370-c15c-5137-a100-4f67924bef35",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--6cd970f8-5edc-523a-86b7-20e552e13407"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--64ba74c3-dfee-56c2-a941-c2790db78403",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Blind Eagle",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "APT-C-36とも呼ばれる脅威アクターが、カスタマイズしたAsyncRATを攻撃に利用した。",
+      "external_references": [
+        {
+          "description": "Blind Eagle・APT-C-36グループ項目 (am-asyncrat-mitre-aptc36)",
+          "source_name": "MITRE ATT&CK",
+          "url": "https://attack.mitre.org/groups/G0099/"
+        }
+      ],
+      "id": "relationship--4d95faa2-1a66-528a-972f-10255b9cc8d8",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--64ba74c3-dfee-56c2-a941-c2790db78403",
+      "spec_version": "2.1",
+      "target_ref": "malware--6cd970f8-5edc-523a-86b7-20e552e13407",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: Blind Eagle。APT-C-36とも呼ばれる脅威アクターが、カスタマイズしたAsyncRATを攻撃に利用した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Blind Eagle・APT-C-36グループ項目 (am-asyncrat-mitre-aptc36)",
+          "source_name": "MITRE ATT&CK",
+          "url": "https://attack.mitre.org/groups/G0099/"
+        }
+      ],
+      "id": "note--2bcdeb6e-6120-53ca-9ecd-520f39a6b9e6",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--6cd970f8-5edc-523a-86b7-20e552e13407",
+        "threat-actor--64ba74c3-dfee-56c2-a941-c2790db78403"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: 不特定の悪性フォーク利用者。公開コードを改変し、フィッシング添付やローダーを通じて悪性ビルドを配布する複数の利用者が存在する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "AsyncRATソフトウェア項目 (am-asyncrat-mitre)",
+          "source_name": "MITRE ATT&CK",
+          "url": "https://attack.mitre.org/software/S1087/"
+        }
+      ],
+      "id": "note--b4e127a1-c023-5824-a9a3-45af9a1be602",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--6cd970f8-5edc-523a-86b7-20e552e13407"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2020年代）: 悪性Office文書、アーカイブ、スクリプト、ローダーを介するフィッシングで改変版が配布された。 報告された主体: 不特定の悪性フォーク利用者。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "AsyncRATソフトウェア項目 (am-asyncrat-mitre)",
+          "source_name": "MITRE ATT&CK",
+          "url": "https://attack.mitre.org/software/S1087/"
+        }
+      ],
+      "id": "note--0d61211a-e9cf-5448-960e-3f2273ffaa5e",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--6cd970f8-5edc-523a-86b7-20e552e13407"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2020年代）: 南米組織を狙うBlind Eagleの活動で、カスタマイズされたAsyncRATが使用された。 報告された主体: Blind Eagle。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Blind Eagle・APT-C-36グループ項目 (am-asyncrat-mitre-aptc36)",
+          "source_name": "MITRE ATT&CK",
+          "url": "https://attack.mitre.org/groups/G0099/"
+        }
+      ],
+      "id": "note--66de3f15-44ab-5eb8-b51d-96e48f7f45b8",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--6cd970f8-5edc-523a-86b7-20e552e13407"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "asyncrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/asyncrat/README.md"
+        }
+      ],
+      "id": "report--1c2fa15b-230a-521d-9268-88d2539d8234",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "AsyncRAT：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--6cd970f8-5edc-523a-86b7-20e552e13407",
+        "note--a6b73bde-9213-5984-b30e-0ec3edecafa2",
+        "note--0137b225-6513-554e-970d-3ce2d7335b6c",
+        "note--10fe8370-c15c-5137-a100-4f67924bef35",
+        "threat-actor--64ba74c3-dfee-56c2-a941-c2790db78403",
+        "relationship--4d95faa2-1a66-528a-972f-10255b9cc8d8",
+        "note--2bcdeb6e-6120-53ca-9ecd-520f39a6b9e6",
+        "note--b4e127a1-c023-5824-a9a3-45af9a1be602",
+        "note--0d61211a-e9cf-5448-960e-3f2273ffaa5e",
+        "note--66de3f15-44ab-5eb8-b51d-96e48f7f45b8"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

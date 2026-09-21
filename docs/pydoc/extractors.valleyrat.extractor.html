@@ -8,16 +8,45 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.valleyrat.html" class="white">valleyrat</a>.extractor</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Cextractors%5Cvalleyrat%5Cextractor.py">c:\users\administrator\ai-security-analysis-daily-20260727\extractors\valleyrat\extractor.py</a></td></tr></table>
-    <p><span class="code">Extract&nbsp;ValleyRAT&nbsp;configuration&nbsp;indicators&nbsp;across&nbsp;reviewed&nbsp;campaign&nbsp;variants.</span></p>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cw%5Ca26%5Cextractors%5Cvalleyrat%5Cextractor.py">c:\users\administrator\w\a26\extractors\valleyrat\extractor.py</a></td></tr></table>
+    <p><span class="code">レビュー済みValleyRAT&nbsp;campaign&nbsp;variantから設定指標を静的に抽出する。</span></p>
 <p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
+</td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
+</td><td class="multicolumn"><a href="re.html">re</a><br>
+</td><td class="multicolumn"><a href="struct.html">struct</a><br>
+</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
 <td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-decode_vvas_reversed_config"><strong>decode_vvas_reversed_config</strong></a>(strings: 'list[str]') -&gt; 'dict[str, str]'</dt><dd><span class="code">Decode&nbsp;the&nbsp;reviewed&nbsp;reversed&nbsp;key/value&nbsp;config&nbsp;used&nbsp;by&nbsp;vvaS&nbsp;shellcode.</span></dd></dl>
- <dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">Return&nbsp;static&nbsp;ValleyRAT&nbsp;config&nbsp;candidates&nbsp;without&nbsp;contacting&nbsp;endpoints.</span></dd></dl>
- <dl><dt><a name="-identify_variant"><strong>identify_variant</strong></a>(strings: 'list[str]') -&gt; 'str'</dt><dd><span class="code">Identify&nbsp;a&nbsp;config&nbsp;representation&nbsp;without&nbsp;assuming&nbsp;all&nbsp;ValleyRAT&nbsp;builds&nbsp;match.</span></dd></dl>
-</td></tr></table>
+<td class="singlecolumn"><dl><dt><a name="-decode_vvas_reversed_config"><strong>decode_vvas_reversed_config</strong></a>(strings: 'list[str]') -&gt; 'dict[str, str]'</dt><dd><span class="code">一意に検証できたvvaS反転key/value設定だけを返す。</span></dd></dl>
+ <dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">endpointへ接続せず、ValleyRAT関連の静的設定候補を返す。</span></dd></dl>
+ <dl><dt><a name="-identify_variant"><strong>identify_variant</strong></a>(strings: 'list[str]') -&gt; 'str'</dt><dd><span class="code">すべてのbuildを同一視せず、設定表現からvariantを識別する。</span></dd></dl>
+ <dl><dt><a name="-probe_codemark_terminal_config"><strong>probe_codemark_terminal_config</strong></a>(data: 'bytes', *, trusted_static_recovery: 'bool' = False) -&gt; 'dict[str, object]'</dt><dd><span class="code">raw&nbsp;x86／x64&nbsp;code形状とcodemark設定を検証しprovenanceを分離する。</span></dd></dl>
+ <dl><dt><a name="-probe_run_dll_native_core_config"><strong>probe_run_dll_native_core_config</strong></a>(data: 'bytes') -&gt; 'dict[str, object]'</dt><dd><span class="code">厳格なPE＋data-reference契約からroute-only&nbsp;C2設定を返す。</span></dd></dl>
+ <dl><dt><a name="-probe_vvas_config"><strong>probe_vvas_config</strong></a>(data: 'bytes', *, input_format: 'str') -&gt; 'dict[str, object]'</dt><dd><span class="code">一意な反転設定とformat別の構造補強が揃う場合だけfamily帰属を許可する。<br>
+&nbsp;<br>
+PEは同一WS2_32&nbsp;descriptorのAPI群だけでなく、mapped設定、実行section<br>
+からの参照、entrypointまたはexport/TLS&nbsp;rootからparser／reverse／network<br>
+componentへの有界到達性を要求する。resource内設定ではさらに同一launcher<br>
+CFG上のresource取得API列を要求する。endpointやraw設定自体はdetector向け<br>
+probeへ含めない。</span></dd></dl>
+ <dl><dt><a name="-probe_x86_codemark_resource_config"><strong>probe_x86_codemark_resource_config</strong></a> = probe_resource_config(data: 'bytes') -&gt; 'dict[str, object]'</dt><dd><span class="code">detector向けに秘密値なしのx86&nbsp;resource終端証拠だけを返す。</span></dd></dl>
+ <dl><dt><a name="-probe_xor_b1_downloader"><strong>probe_xor_b1_downloader</strong></a>(data: 'bytes') -&gt; 'dict[str, object]'</dt><dd><span class="code">XOR-B1&nbsp;WinINet&nbsp;loaderを次段候補routeとしてだけ要約する。</span></dd></dl>
+ <dl><dt><a name="-probe_xor_vvas_config"><strong>probe_xor_vvas_config</strong></a>(data: 'bytes') -&gt; 'dict[str, object]'</dt><dd><span class="code">単一byte&nbsp;XOR設定をfamily未確定の後続解析候補として要約する。</span></dd></dl>
+</td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>HANDLER_CONTRACT</strong> = {'input_formats': ['pe', 'data'], 'minimum_evidence_score': 30000}<br>
+<strong>__all__</strong> = ['HANDLER_CONTRACT', 'decode_vvas_reversed_config', 'extract', 'identify_variant', 'probe_codemark_terminal_config', 'probe_run_dll_native_core_config', 'probe_vvas_config', 'probe_x86_codemark_resource_config', 'probe_xor_b1_downloader', 'probe_xor_vvas_config']</td></tr></table>
 </body></html>

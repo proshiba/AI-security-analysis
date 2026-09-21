@@ -1,0 +1,69 @@
+{
+  "id": "bundle--3c3ee478-aebd-58ad-bce5-9237af0a76b0",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: 固定C2を持たず、埋め込み公開鍵に対応するBEP44 mutable itemをBitTorrent DHTから取得し、Ed25519署名を検証してからIP集合を採用します。公開bootstrap domainは正規共有serviceであり、C2や悪性IOCではありません。",
+      "external_references": [
+        {
+          "description": "signed-dht-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/signed-dht-bot/README.md"
+        }
+      ],
+      "id": "malware--1a3cd138-e72d-56a2-bad8-c4e8f9ddad48",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "signed-dht-bot",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "signed-dht-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/signed-dht-bot/README.md"
+        }
+      ],
+      "id": "note--c9ac60df-138b-5226-a50a-cebb0e6c12e3",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1a3cd138-e72d-56a2-bad8-c4e8f9ddad48"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "signed-dht-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/signed-dht-bot/README.md"
+        }
+      ],
+      "id": "report--7cd535ab-4086-5225-a58f-1aed066ad7aa",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "signed-dht-bot：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--1a3cd138-e72d-56a2-bad8-c4e8f9ddad48",
+        "note--c9ac60df-138b-5226-a50a-cebb0e6c12e3"
+      ],
+      "published": "2026-09-21T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}
