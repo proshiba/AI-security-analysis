@@ -86,6 +86,7 @@ import analyze_family_sample  # noqa: E402
 import automated_case_analysis  # noqa: E402
 import batch_error_contract  # noqa: E402
 import classify_sample  # noqa: E402
+import component_static_findings  # noqa: E402
 import handler_evidence  # noqa: E402
 import orchestration_outcome  # noqa: E402
 import runtime_contract  # noqa: E402
@@ -2701,6 +2702,11 @@ def analyze_unit(
             recovered_payload_directory.rmdir()
             recovered_payload_directory = None
     write_json(case_dir / "candidate-handler-assessment.json", candidate_assessment)
+    component_findings = component_static_findings.build_component_static_findings(
+        sha256=digest,
+        assessment=candidate_assessment,
+    )
+    _atomic_replace_json(case_dir / "component-static-findings.json", component_findings)
     route_config_candidates = handler_evidence.build_route_config_candidate_document(
         sha256=digest,
         assessment=candidate_assessment,
@@ -2860,6 +2866,7 @@ def analyze_unit(
         "routing": "family-routing.json",
         "candidate_handler_assessment": "candidate-handler-assessment.json",
         "route_config_candidates": "route-config-candidates.json",
+        "component_static_findings": "component-static-findings.json",
     }
     write_json(case_dir / "orchestration.json", outcome)
 
@@ -2894,6 +2901,7 @@ def analyze_unit(
         "communication_patterns": "communication-patterns.json",
         "c2_analysis": "c2-analysis.json",
         "route_config_candidates": "route-config-candidates.json",
+        "component_static_findings": "component-static-findings.json",
     }
     report["case_state"] = completion
     report["classification"]["automation_family"] = family_resolution.get("family")
@@ -2935,6 +2943,7 @@ def analyze_unit(
         "communication-patterns.json",
         "c2-analysis.json",
         "route-config-candidates.json",
+        "component-static-findings.json",
     ]
     if not assessment_only:
         artifact_paths.append("generic-triage.json")

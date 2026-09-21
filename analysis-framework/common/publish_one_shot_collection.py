@@ -755,6 +755,7 @@ def render_readme(
     confirmed_management_count: int = 0,
     family_attribution: dict[str, Any] | None = None,
     static_configuration: dict[str, Any] | None = None,
+    component_static_findings_available: bool = False,
 ) -> str:
     if confirmed_network_count is None:
         confirmed_network_count = confirmed_c2_count
@@ -920,6 +921,11 @@ def render_readme(
             "- [IOC一覧](IOC-LIST.md)",
             "- [適用可否判定](applicability.json)",
             "- [静的レイヤー](static-layers.json)",
+            *(
+                ["- [静的component候補所見（family・C2未確定）](component-static-findings.json)"]
+                if component_static_findings_available
+                else []
+            ),
             "",
             "## 制約",
             "",
@@ -1879,6 +1885,10 @@ def publish_case(
         target = destination.joinpath(*relative.split("/"))
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(source_path.read_bytes())
+    component_static_findings_available = (
+        (report.get("knowledge_artifacts") or {}).get("component_static_findings")
+        == "component-static-findings.json"
+    )
     handler_results = []
     trusted_handler_results: list[tuple[dict[str, Any], dict[str, Any]]] = []
     for execution in report.get("handler_executions") or []:
@@ -2089,6 +2099,8 @@ def publish_case(
             "関数本体未レビューのbinaryは完了扱いにしていない。",
         ],
     }
+    if component_static_findings_available:
+        analysis["artifacts"]["component_static_findings"] = "component-static-findings.json"
     if screenconnect_management_assessment is not None:
         analysis["screenconnect_management_assessment"] = screenconnect_management_assessment
     if static_configuration is not None:
@@ -2127,6 +2139,7 @@ def publish_case(
             confirmed_management_count=len(management_iocs),
             family_attribution=family_attribution,
             static_configuration=static_configuration,
+            component_static_findings_available=component_static_findings_available,
         ),
         encoding="utf-8",
     )

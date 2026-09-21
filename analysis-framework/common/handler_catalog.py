@@ -3033,6 +3033,7 @@ _APPROVED_EXTERNAL_CALLS = frozenset(
         "contextlib.suppress",
         "copy.deepcopy",
         "cryptography.hazmat.primitives.ciphers.Cipher",
+        "cryptography.hazmat.decrepit.ciphers.algorithms.TripleDES",
         "cryptography.hazmat.primitives.ciphers.aead.ChaCha20Poly1305",
         "cryptography.hazmat.primitives.ciphers.algorithms.AES",
         "cryptography.hazmat.primitives.ciphers.algorithms.TripleDES",
@@ -3405,6 +3406,31 @@ _REVIEWED_REPOSITORY_DATA_READS = {
     ),
 }
 _REVIEWED_SOURCE_CALLS = {
+    (
+        "analysis-framework/malware/clipboard_replacement_dll/extract_config.py",
+        "reachable:_pe_import_profile",
+        "image.close",
+    ): "bytes入力から構築したPE objectを閉じるだけの局所cleanup",
+    (
+        "analysis-framework/common/recover_clipboard_xor_strings.py",
+        "reachable:recover_strings_from_bytes",
+        "image.close",
+    ): "bytes入力から構築したPE objectを閉じるだけの局所cleanup",
+    (
+        "analysis-framework/common/recover_clipboard_xor_strings.py",
+        "reachable:recover_strings_from_bytes",
+        "image.get_qword_at_rva",
+    ): "範囲検証後のPEメモリ内pointer slot読取",
+    (
+        "analysis-framework/common/recover_clipboard_xor_strings.py",
+        "reachable:recover_strings_from_bytes",
+        "decoder.disasm",
+    ): "検体bytes内の実行sectionをCapstoneで静的disassemble",
+    (
+        "analysis-framework/common/recover_ror13_peb_api_hashes.py",
+        "reachable:review_bytes",
+        "decoder.disasm",
+    ): "入力PE実行sectionをx86/x64 Capstoneで静的disassemble",
     (
         "extractors/xworm/integrated.py",
         "reachable:decrypt_setting",
@@ -4897,6 +4923,101 @@ def _reviewed_source_call_shape_allowed(
     }
     if supplied_strings & _DANGEROUS_REFLECTION_ATTRIBUTES:
         return False
+    if key in {
+        (
+            "analysis-framework/malware/clipboard_replacement_dll/extract_config.py",
+            "reachable:_pe_import_profile",
+            "image.close",
+        ),
+        (
+            "analysis-framework/common/recover_clipboard_xor_strings.py",
+            "reachable:recover_strings_from_bytes",
+            "image.close",
+        ),
+        (
+            "analysis-framework/common/recover_clipboard_xor_strings.py",
+            "reachable:recover_strings_from_bytes",
+            "image.get_qword_at_rva",
+        ),
+    }:
+        if not (
+            isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "image"
+        ):
+            return False
+        origin = _simple_name_origin(scope, "image")
+        if not (
+            isinstance(origin, ast.Call)
+            and _expanded_call_name(origin, aliases) == "pefile.PE"
+            and _expression_binding_is_intact(origin.func, tree, scope)
+            and not origin.args
+            and len(origin.keywords) == 2
+            and {keyword.arg for keyword in origin.keywords} == {"data", "fast_load"}
+            and any(keyword.arg == "data" and isinstance(keyword.value, ast.Name) and keyword.value.id == "data" for keyword in origin.keywords)
+            and any(keyword.arg == "fast_load" and isinstance(keyword.value, ast.Constant) and keyword.value.value is False for keyword in origin.keywords)
+            and _parameter_is_not_rebound(scope, "data")
+            and not node.keywords
+        ):
+            return False
+        if name == "image.close":
+            return not node.args
+        return len(node.args) == 1 and isinstance(node.args[0], ast.Name) and node.args[0].id == "slot"
+    if key in {
+        (
+            "analysis-framework/common/recover_clipboard_xor_strings.py",
+            "reachable:recover_strings_from_bytes",
+            "decoder.disasm",
+        ),
+        (
+            "analysis-framework/common/recover_ror13_peb_api_hashes.py",
+            "reachable:review_bytes",
+            "decoder.disasm",
+        ),
+    }:
+        origin = _simple_name_origin(scope, "decoder")
+        expected_code = ast.parse("section.get_data()", mode="eval").body
+        expected_base = ast.parse("base + int(section.VirtualAddress)", mode="eval").body
+        if key[0] == "analysis-framework/common/recover_clipboard_xor_strings.py":
+            expected_mode = ast.parse("capstone.CS_MODE_64", mode="eval").body
+            mode_valid = bool(
+                isinstance(origin, ast.Call)
+                and len(origin.args) == 2
+                and ast.dump(origin.args[1], include_attributes=False)
+                == ast.dump(expected_mode, include_attributes=False)
+            )
+        else:
+            mode = _simple_name_origin(scope, "mode")
+            expected_mode = ast.parse(
+                "capstone.CS_MODE_64 if image.FILE_HEADER.Machine == 0x8664 else capstone.CS_MODE_32",
+                mode="eval",
+            ).body
+            mode_valid = bool(
+                isinstance(origin, ast.Call)
+                and len(origin.args) == 2
+                and isinstance(origin.args[1], ast.Name)
+                and origin.args[1].id == "mode"
+                and mode is not None
+                and ast.dump(mode, include_attributes=False)
+                == ast.dump(expected_mode, include_attributes=False)
+            )
+        return bool(
+            isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "decoder"
+            and isinstance(origin, ast.Call)
+            and _expanded_call_name(origin, aliases) == "capstone.Cs"
+            and _expression_binding_is_intact(origin.func, tree, scope)
+            and len(origin.args) == 2
+            and isinstance(origin.args[0], ast.Attribute)
+            and _expanded_expression_name(origin.args[0], aliases) == "capstone.CS_ARCH_X86"
+            and mode_valid
+            and not origin.keywords
+            and not node.keywords
+            and len(node.args) == 2
+            and ast.dump(node.args[0], include_attributes=False) == ast.dump(expected_code, include_attributes=False)
+            and ast.dump(node.args[1], include_attributes=False) == ast.dump(expected_base, include_attributes=False)
+        )
     if key == (
         "extractors/xworm/integrated.py",
         "reachable:decrypt_setting",
