@@ -2,7 +2,7 @@
 """case成果物からcollection公開集計を決定的に再投影する。
 
 公開済みの ``report.json``、``c2-analysis.json``、``static-logic.json`` だけを読み、
-``publication-summary.json`` と ``manifest.json`` の派生fieldを同期する。検体、private
+``publication-summary.json``、``manifest.json``、``README.md`` の派生表示を同期する。検体、private
 成果物、外部networkには触れない。
 """
 
@@ -52,6 +52,71 @@ class ProjectionError(ValueError):
 
 def _json_bytes(document: Mapping[str, Any]) -> bytes:
     return (json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False) + "\n").encode("utf-8")
+
+
+def _document_bytes(document: Mapping[str, Any] | bytes) -> bytes:
+    return document if isinstance(document, bytes) else _json_bytes(document)
+
+
+def _readme_bytes(source: bytes, summary: Mapping[str, Any], case_count: int) -> bytes:
+    """静的ロジック節だけを検証済みcase集計から再生成する。"""
+
+    try:
+        readme = source.decode("utf-8-sig").replace("\r\n", "\n")
+    except UnicodeDecodeError as exc:
+        raise ProjectionError("collection READMEがUTF-8ではありません") from exc
+    statuses = summary["static_logic_status"]
+    coverage = summary["function_analysis"]
+    if sum(statuses.values()) != case_count:
+        raise ProjectionError("静的ロジック件数と対象case数が一致しません")
+    completed = sum(count for status, count in statuses.items() if status in COMPLETE_STATUSES)
+    pending = case_count - completed
+    if pending < 0:
+        raise ProjectionError("静的ロジック件数が対象case数を超えています")
+    lines = [
+        "## 静的ロジック状態",
+        "",
+        f"- 代表関数解析完了case: `{completed}`",
+    ]
+    if pending:
+        lines.append(f"- 代表関数解析保留case: `{pending}`")
+    lines.extend(
+        [
+            f"- Ghidra／CILプログラム: `{coverage['unique_pe_programs']}`件の固有PE",
+            f"- 発見関数／メソッドinventory: `{coverage['discovered_function_inventory_count']}`",
+            f"- 代表関数: `{coverage['characteristic_function_selected_count']}`",
+            f"- 選定外関数: `{coverage['unselected_function_count']}`",
+            f"- Ghidra関数: `{coverage['ghidra_function_inventory_count']}`",
+            f"- managedメソッド: `{coverage['managed_method_inventory_count']}`",
+            f"- MCP成功証跡付きプログラム: `{coverage['ghidra_programs_with_valid_mcp_responses']}`",
+            f"- 逆コンパイル／CIL解析試行: `{coverage['characteristic_function_attempted_count']}`",
+            f"- 成功: `{coverage['decompilation_succeeded_count']}`",
+            f"- 制約付き／失敗: `{coverage['decompilation_limited_or_failed_count']}`",
+            "",
+        ]
+    )
+    if pending:
+        lines.append("保留caseの関数本体は未確認です。上記の関数台帳と試行件数は公開済みcaseの記録から集計しており、全件の解析完了を意味しません。")
+    else:
+        lines.append("全関数inventoryを保持しつつ、特徴的な代表関数を選定して解析しました。")
+    lines.extend(
+        [
+            (
+                "各caseのSTATIC-LOGIC.mdに関数解説、OVERALL-LOGIC.mdに全体処理を記録しています。"
+                if not pending
+                else "完了caseのSTATIC-LOGIC.mdに関数解説、OVERALL-LOGIC.mdに全体処理を記録しています。"
+            ),
+            "生の逆コンパイル本文とCIL命令列はリポジトリ外へ保持しています。" if not pending else "取得済みの生の逆コンパイル本文とCIL命令列はリポジトリ外へ保持しています。",
+            "",
+            "",
+        ]
+    )
+    pattern = re.compile(r"(?ms)^## 静的ロジック状態\n.*?(?=^個別のPE構造)")
+    replacement = "\n".join(lines)
+    rendered, count = pattern.subn(lambda _match: replacement, readme)
+    if count != 1:
+        raise ProjectionError("collection READMEの静的ロジック節を一意に特定できません")
+    return rendered.encode("utf-8")
 
 
 def _bounded_snapshot(path: Path) -> bytes:
@@ -254,7 +319,12 @@ def build_collection_projection(repository: Path, collection_dir: Path) -> dict[
         raise ProjectionError("collectionはrepository内のanalysis-results/collections配下に限定されます") from exc
     manifest_path = collection_dir / "manifest.json"
     summary_path = collection_dir / "publication-summary.json"
-    source_snapshots = {manifest_path: _bounded_snapshot(manifest_path), summary_path: _bounded_snapshot(summary_path)}
+    readme_path = collection_dir / "README.md"
+    source_snapshots = {
+        manifest_path: _bounded_snapshot(manifest_path),
+        summary_path: _bounded_snapshot(summary_path),
+        readme_path: _bounded_snapshot(readme_path),
+    }
     manifest = load_json_object_strict(manifest_path)
     summary = load_json_object_strict(summary_path)
     requested = _requested_hashes(manifest)
@@ -332,13 +402,14 @@ def build_collection_projection(repository: Path, collection_dir: Path) -> dict[
     return {
         "manifest": manifest_expected,
         "summary": summary_expected,
+        "readme": _readme_bytes(source_snapshots[readme_path], summary_expected, len(requested)),
         "source_snapshots": {**source_snapshots, **case_snapshots},
         "case_count": len(requested),
     }
 
 
 def _atomic_write_documents(
-    documents: Mapping[Path, Mapping[str, Any]],
+    documents: Mapping[Path, Mapping[str, Any] | bytes],
     source_snapshots: Mapping[Path, bytes],
 ) -> None:
     prepared: dict[Path, Path] = {}
@@ -349,7 +420,7 @@ def _atomic_write_documents(
             temporary_path = Path(temporary)
             prepared[path] = temporary_path
             with os.fdopen(handle, "wb") as stream:
-                stream.write(_json_bytes(document))
+                stream.write(_document_bytes(document))
                 stream.flush()
                 os.fsync(stream.fileno())
         for path, expected in source_snapshots.items():
@@ -359,8 +430,10 @@ def _atomic_write_documents(
             os.replace(temporary, path)
             replaced.append(path)
         for path, document in documents.items():
-            expected = _json_bytes(document)
-            if _bounded_snapshot(path) != expected or load_json_object_strict(path) != document:
+            expected = _document_bytes(document)
+            if _bounded_snapshot(path) != expected or (
+                not isinstance(document, bytes) and load_json_object_strict(path) != document
+            ):
                 raise ProjectionError(f"原子置換後のbyte／JSON再検証に失敗しました: {path}")
     except BaseException as original_error:
         rollback_errors: list[str] = []
@@ -405,8 +478,13 @@ def synchronize_collection_projection(
     paths = {
         collection_dir / "manifest.json": projection["manifest"],
         collection_dir / "publication-summary.json": projection["summary"],
+        collection_dir / "README.md": projection["readme"],
     }
-    stale = [path.name for path, expected in paths.items() if load_json_object_strict(path) != expected]
+    stale = [
+        path.name
+        for path, expected in paths.items()
+        if (_bounded_snapshot(path) != expected if isinstance(expected, bytes) else load_json_object_strict(path) != expected)
+    ]
     if write and stale:
         _atomic_write_documents(paths, projection["source_snapshots"])
     output_paths = frozenset(paths)

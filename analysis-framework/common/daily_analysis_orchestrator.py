@@ -4325,7 +4325,11 @@ def _production_ghidra(context: DailyContext) -> StageOutcome:
         }
     return StageOutcome(
         status="complete" if status == "complete" else "partial",
-        retryable=status == "ghidra_chunk_pending",
+        retryable=(
+            status == "ghidra_chunk_pending"
+            and result.get("stop_reason") != "program_analysis_incomplete"
+            and result.get("retryable", True) is True
+        ),
         result={
             "status": status,
             "stop_reason": result.get("stop_reason"),

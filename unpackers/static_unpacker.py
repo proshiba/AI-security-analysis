@@ -5135,7 +5135,7 @@ def _cab_preflight(
             )
     for extents in extents_by_folder.values():
         previous_end = 0
-        for extent_start, extent_end in sorted(extents):
+        for extent_start, extent_end in sorted(set(extents)):
             if extent_start < previous_end:
                 raise _CabLzxFallbackError("member_extent_overlap")
             previous_end = extent_end
@@ -5284,11 +5284,12 @@ def _cab_inventory_report(
     """展開済みCAB memberを決定的順序で再検証し、保持対象を選ぶ。"""
 
     members = sorted(members, key=lambda item: (str(item[0]).casefold(), str(item[0])))
-    if len(members) > max_members:
+    selective = len(members) > max_members
+    if len(members) > MAX_SELECTIVE_ARCHIVE_SCAN_MEMBERS:
         return {
             "status": "member_limit_blocked",
             "member_count": len(members),
-            "max_members": max_members,
+            "max_members": MAX_SELECTIVE_ARCHIVE_SCAN_MEMBERS,
             "inventory": [],
             "parser": parser,
             "backend": "in_memory_python",
@@ -5297,6 +5298,7 @@ def _cab_inventory_report(
 
     inventory: list[dict[str, object]] = []
     artifacts: list[tuple[str, bytes]] = []
+    candidates: list[tuple[int, str, str, bytes]] = []
     total_size = 0
     for raw_name, raw_blob in members:
         try:
@@ -5323,12 +5325,46 @@ def _cab_inventory_report(
         keep = kind != "data" or suffix in RECOVERY_SUFFIXES
         keep = keep or (not suffix and size <= 16 * 1024 * 1024)
         if keep:
-            artifacts.append((f"cab-{kind}", blob))
+            if selective:
+                priority = (
+                    0
+                    if kind == "pe"
+                    else 1
+                    if kind in {"elf", "macho"}
+                    else 2
+                    if kind in {"script", "autoit-a3x"}
+                    else 3
+                    if kind != "data"
+                    else 4
+                )
+                candidates.append((priority, name, kind, blob))
+            else:
+                artifacts.append((f"cab-{kind}", blob))
+
+    if selective:
+        selected = sorted(
+            candidates, key=lambda item: (item[0], item[1].casefold(), item[1])
+        )[: min(MAX_RETAINED_MEMBERS, max_members)]
+        artifacts = [(f"cab-{kind}", blob) for _, _, kind, blob in selected]
 
     return {
-        "status": "artifacts_recovered" if artifacts else "no_artifact_recovered",
+        "status": (
+            "selectively_extracted" if artifacts else "complete_no_actionable_member"
+        )
+        if selective
+        else ("artifacts_recovered" if artifacts else "no_artifact_recovered"),
         "member_count": len(inventory),
         "extracted_total_size": total_size,
+        **(
+            {
+                "retained_members": len(artifacts),
+                "omitted_candidate_count": len(candidates) - len(artifacts),
+                "selection_complete": len(candidates)
+                <= min(MAX_RETAINED_MEMBERS, max_members),
+            }
+            if selective
+            else {}
+        ),
         "inventory": inventory,
         "parser": parser,
         "backend": "in_memory_python",
@@ -5351,7 +5387,7 @@ def recover_cab_members(
     try:
         preflight = _cab_preflight(
             data,
-            max_members=max_members,
+            max_members=MAX_SELECTIVE_ARCHIVE_SCAN_MEMBERS,
             max_member_size=max_member_size,
             max_total_size=max_total_size,
         )
@@ -5365,6 +5401,22 @@ def recover_cab_members(
             **_cab_safety_fields(),
         }, []
     try:
+        if len(preflight.members) > max_members and preflight.compression != "lzx":
+            budget = _cab_lzx_memory_budget(
+                cabinet_size=len(data),
+                members=preflight.members,
+                folder_output_sizes=preflight.folder_output_sizes,
+                window_bits=preflight.window_bits,
+                data_block_count=preflight.data_block_count,
+            )
+            if budget.estimated_peak_bytes > budget.worker_limit_bytes:
+                return {
+                    "status": "parse_failed",
+                    "parser": "cab-preflight",
+                    "failure_reason": "peak_memory_budget_exceeded",
+                    "preflight": preflight.public(len(data)),
+                    **_cab_safety_fields(),
+                }, []
         archive = cabarchive.CabArchive(data)
         archive_items = list(archive.items())
     except cabarchive.NotSupportedError as exc:

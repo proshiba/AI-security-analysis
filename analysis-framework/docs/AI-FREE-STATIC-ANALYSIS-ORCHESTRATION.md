@@ -39,7 +39,7 @@ WebUIからfamily別scriptを直接呼び分けたり、任意のcommand lineを
 
 ### daily解析の標準受付
 
-[`daily_news_malware_intake.py`](../common/daily_news_malware_intake.py)の`--run-static-analysis`も、`analyze_sample.py`を直接起動しません。解析対象fileを日付別private rootの`archives`配下に限定する固定requestを構築し、64 KiB以下のJSONを標準入力から[`analysis_job_runner.py`](../common/analysis_job_runner.py)の`run --request -`へ渡します。出力先は解析repositoryと相互包含しないrepository外の専用`static-analysis-jobs` rootです。requestへ任意command、環境変数、password、実行file path、network optionを追加できません。
+[`daily_news_malware_intake.py`](../common/daily_news_malware_intake.py)の`--run-static-analysis`も、`analyze_sample.py`を直接起動しません。解析対象fileを日付別private rootの`archives`配下に限定する固定requestを構築し、64 KiB以下のJSONを標準入力から[`analysis_job_runner.py`](../common/analysis_job_runner.py)の`run --request -`へ渡します。出力先は解析repositoryと相互包含しないrepository外の専用`j` root（`--private-output`直下）です。Windowsのcase成果物path長をrunner起動前に検証し、上限超過は短いprivate出力先の指定を求めて停止します。requestへ任意command、環境変数、password、実行file path、network optionを追加できません。
 
 同じ日付rootに`malwarebazaar-lookups.json`がある場合、既存のfamily hint builderでprovider metadataを完全一致SHA-256へ束縛し、`family-hints.json`を生成してrunnerへ渡します。このhintは候補handlerの検証にだけ使用し、providerのsignatureやtagだけでfamilyを確定しません。
 

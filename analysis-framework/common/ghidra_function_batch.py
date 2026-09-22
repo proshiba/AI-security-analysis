@@ -1080,19 +1080,23 @@ def _run_progress_document(
     if status == "complete" and (retryable or stop_reason is not None or pending or postprocessing_pending):
         raise ValueError("complete run-progressに未完了状態があります")
     if status == "ghidra_chunk_pending" and (
-        not retryable
-        or not isinstance(stop_reason, str)
+        not isinstance(stop_reason, str)
         or stop_reason
         not in {
             "minimum_free_space_not_met",
             "max_new_programs_reached",
             "postprocessing_in_progress",
+            "program_analysis_incomplete",
             "program_timeout",
         }
     ):
         raise ValueError("pending run-progressの停止理由が不正です")
-    if stop_reason == "program_timeout" and (not inventory_prepared or not pending or postprocessing_pending):
-        raise ValueError("program timeoutには未完了programのcheckpointが必要です")
+    if status == "ghidra_chunk_pending" and retryable != (stop_reason != "program_analysis_incomplete"):
+        raise ValueError("未確認programの自動再試行可否が停止理由と一致しません")
+    if stop_reason in {"program_timeout", "program_analysis_incomplete"} and (
+        not inventory_prepared or not pending or postprocessing_pending
+    ):
+        raise ValueError("未完了programにはpending checkpointが必要です")
     return {
         "schema_version": RUN_PROGRESS_SCHEMA_VERSION,
         "collection_id": collection_id,
@@ -11986,10 +11990,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ordered.sort(key=lambda item: (item.sha256 in pending_order, pending_order.get(item.sha256, 0)))
     max_new_programs = args.max_new_programs
     newly_analyzed = 0
+    newly_analyzed_digests: set[str] = set()
     attempted_programs = 0
     cached_programs = 0
+    cached_digests: set[str] = set()
     pending_programs: list[str] = []
     timed_out_programs: list[str] = []
+    incomplete_programs: list[str] = []
     storage_blocked = False
     storage_observation = _storage_budget_observation(
         storage_paths,
@@ -12020,7 +12027,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             elif native_zero_recovery_pending:
                 cached_complete = False
         if postprocessing_only and not cached_complete:
-            raise ValueError("postprocessing-only checkpointに未完了program cacheがあります")
+            if cached is None or cached.get("status") != "partial" or cached.get("mcp_responses_valid") is not True:
+                raise ValueError("postprocessing-only checkpointに検証不能なprogram cacheがあります")
+            # 前回の後処理が部分解析を発見した場合、準備済み入力から再解析する。
+            # 不明なcacheを完了扱いしたり、後処理をそのまま再開したりしない。
+            postprocessing_only = False
+            resume_mode = "prepared_inputs"
         if cached_complete:
             if cached is None or cached_snapshot is None:  # pragma: no cover - 直前の代入契約の最終防御
                 raise RuntimeError("完了cacheを読み込めませんでした")
@@ -12031,6 +12043,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             if not storage_blocked and selection_after != selection_before:
                 _persist_program_result(result_path, cached)
             cached_programs += 1
+            cached_digests.add(item.sha256)
             continue
         if storage_blocked:
             pending_programs.append(item.sha256)
@@ -12072,7 +12085,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             )
         attempted_programs += 1
         try:
-            results[item.sha256] = _analyze_with_inventory_refresh(
+            analyzed = _analyze_with_inventory_refresh(
                 client,
                 item,
                 private_output,
@@ -12137,7 +12150,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 flush=True,
             )
         else:
-            newly_analyzed += 1
+            if analyzed.get("status") == "complete" and analyzed.get("mcp_responses_valid") is True:
+                results[item.sha256] = analyzed
+                newly_analyzed += 1
+                newly_analyzed_digests.add(item.sha256)
+            elif analyzed.get("status") == "partial":
+                # 実entrypointを関数として検証できなかった場合などは公開せず保留する。
+                incomplete_programs.append(item.sha256)
+                pending_programs.append(item.sha256)
+            else:
+                raise ValueError("Ghidra program結果のstatusまたはMCP成功証跡が不正です")
         storage_observation = _storage_budget_observation(
             storage_paths,
             minimum_free_bytes=args.minimum_free_bytes,
@@ -12147,15 +12169,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             storage_blocked = True
     pending_programs.extend(timed_out_programs)
     if pending_programs:
+        stop_reason = (
+            "program_analysis_incomplete" if incomplete_programs
+            else "minimum_free_space_not_met" if storage_blocked
+            else "program_timeout" if timed_out_programs
+            else "max_new_programs_reached"
+        )
         progress = _run_progress_document(
             collection_id=collection_dir.name,
             status="ghidra_chunk_pending",
-            stop_reason=(
-                "minimum_free_space_not_met" if storage_blocked
-                else "program_timeout" if timed_out_programs
-                else "max_new_programs_reached"
-            ),
-            retryable=True,
+            stop_reason=stop_reason,
+            retryable=stop_reason != "program_analysis_incomplete",
             inventory_prepared=True,
             prepared_inventory_sha256=prepared_inventory_sha256,
             unique_pe_programs=len(ordered),
@@ -12225,6 +12249,34 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         results,
         private_output,
     )
+    incomplete_after_refresh = sorted(
+        digest for digest, result in results.items()
+        if result.get("status") != "complete" or result.get("mcp_responses_valid") is not True
+    )
+    if incomplete_after_refresh:
+        # ページング再取得が0関数の実entrypoint未確認を発見した場合、
+        # case公開前に保留へ戻す。取得済みのpartial private証拠は保持する。
+        progress = _run_progress_document(
+            collection_id=collection_dir.name,
+            status="ghidra_chunk_pending",
+            stop_reason="program_analysis_incomplete",
+            retryable=False,
+            inventory_prepared=True,
+            prepared_inventory_sha256=prepared_inventory_sha256,
+            unique_pe_programs=len(ordered),
+            complete_programs=len(results) - len(incomplete_after_refresh),
+            cached_programs=cached_programs - len(cached_digests.intersection(incomplete_after_refresh)),
+            newly_analyzed_programs=(
+                newly_analyzed - len(newly_analyzed_digests.intersection(incomplete_after_refresh))
+            ),
+            pending_programs=incomplete_after_refresh,
+            postprocessing_pending=False,
+            prepared_inputs_reused=effective_reuse,
+            resume_mode="prepared_inputs",
+            disk_space=storage_observation,
+        )
+        _write_run_progress(private_output, progress)
+        return progress
     call_graph_augmentation = augment_private_call_graphs(results, private_output)
     private_validation = validate_private_artifacts(
         results,

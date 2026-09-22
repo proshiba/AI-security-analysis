@@ -9844,6 +9844,162 @@ def test_run_automatically_resumes_postprocessing_without_program_analysis(
         target.run(arguments)
 
 
+def test_postprocessing_partial_cache_returns_nonretryable_pending(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """実entrypoint未確認cacheは公開せず、再解析1回後に保留へ戻す。"""
+
+    digest = "6" * 64
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=tmp_path / f"{digest}.quarantine.bin",
+        size=1,
+    )
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    collection.mkdir(parents=True)
+    sample_root.mkdir()
+    inventory_sha256 = _write_prepared_inventory(
+        private_output, collection_id="batch", digests=[digest],
+    )
+    target._write_run_progress(
+        private_output,
+        target._run_progress_document(
+            collection_id="batch",
+            status="ghidra_chunk_pending",
+            stop_reason="postprocessing_in_progress",
+            retryable=True,
+            inventory_prepared=True,
+            prepared_inventory_sha256=inventory_sha256,
+            unique_pe_programs=1,
+            complete_programs=1,
+            cached_programs=1,
+            newly_analyzed_programs=0,
+            pending_programs=[],
+            postprocessing_pending=True,
+            prepared_inputs_reused=True,
+            resume_mode="postprocessing_only",
+            disk_space={},
+        ),
+    )
+    partial = {
+        "status": "partial",
+        "mcp_responses_valid": True,
+        "sha256": digest,
+        "analysis_mode": "native_ghidra_with_optional_cil",
+        "ghidra_function_inventory_count": 0,
+        "managed_method_count": 0,
+        "entry_point_function_recovery": {
+            "status": "failed",
+            "validated_address": "00479370",
+            "reason": "created_entry_body_not_unique_in_function_inventory",
+        },
+        "functions": [],
+    }
+    target.ensure_characteristic_selection(partial)
+    target._json_dump(private_output / "objects" / digest / "program-result.json", partial)
+    monkeypatch.setattr(target, "load_prepared_inputs", lambda *args, **kwargs: ({digest: item}, {}))
+    monkeypatch.setattr(target, "validate_prepared_scope", lambda *args, **kwargs: None)
+    monkeypatch.setattr(target, "GhidraMcpClient", lambda *args, **kwargs: object())
+    monkeypatch.setattr(
+        target,
+        "_storage_budget_observation",
+        lambda *args, **kwargs: {
+            "phase": kwargs["phase"], "minimum_free_bytes": kwargs["minimum_free_bytes"],
+            "sufficient": True, "filesystems": [],
+        },
+    )
+    attempts: list[str] = []
+
+    def reanalyze(*_args: object, **_kwargs: object) -> dict[str, object]:
+        attempts.append(digest)
+        return dict(partial)
+
+    monkeypatch.setattr(target, "_analyze_with_inventory_refresh", reanalyze)
+    monkeypatch.setattr(
+        target, "refresh_complete_program_artifacts",
+        lambda *args, **kwargs: pytest.fail("partial programを公開処理へ進めてはいけません"),
+    )
+    arguments = target.build_parser().parse_args([
+        "--repository", str(repository), "--collection", str(collection),
+        "--sample-root", str(sample_root), "--private-output", str(private_output),
+    ])
+
+    result = target.run(arguments)
+
+    assert attempts == [digest]
+    assert result["status"] == "ghidra_chunk_pending"
+    assert result["stop_reason"] == "program_analysis_incomplete"
+    assert result["retryable"] is False
+    assert result["complete_programs"] == 0
+    assert result["pending_programs"] == [digest]
+    assert result["postprocessing_pending"] is False
+    assert result["resume_mode"] == "prepared_inputs"
+
+
+def test_artifact_refresh_partial_result_stops_before_case_publication(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """後処理で発見したpartialも50件公開前に保留する。"""
+
+    digest = "7" * 64
+    item = target.ProgramObject(
+        sha256=digest,
+        input_path=tmp_path / f"{digest}.quarantine.bin",
+        size=1,
+    )
+    repository = tmp_path / "repository"
+    collection = repository / "analysis-results" / "collections" / "batch"
+    sample_root = tmp_path / "samples"
+    private_output = tmp_path / "private"
+    collection.mkdir(parents=True)
+    sample_root.mkdir()
+    _write_prepared_inventory(private_output, collection_id="batch", digests=[digest])
+    cached = {
+        "status": "complete", "mcp_responses_valid": True,
+        "sha256": digest, "functions": [],
+    }
+    target.ensure_characteristic_selection(cached)
+    target._json_dump(private_output / "objects" / digest / "program-result.json", cached)
+    monkeypatch.setattr(target, "prepare_inputs", lambda *args, **kwargs: ({digest: item}, {}))
+    monkeypatch.setattr(target, "validate_prepared_scope", lambda *args, **kwargs: None)
+    monkeypatch.setattr(target, "GhidraMcpClient", lambda *args, **kwargs: object())
+    monkeypatch.setattr(
+        target,
+        "_storage_budget_observation",
+        lambda *args, **kwargs: {
+            "phase": kwargs["phase"], "minimum_free_bytes": kwargs["minimum_free_bytes"],
+            "sufficient": True, "filesystems": [],
+        },
+    )
+
+    def refresh(_client: object, results: dict[str, dict[str, object]], _private: Path) -> dict[str, int]:
+        results[digest]["status"] = "partial"
+        return {"programs": 1}
+
+    monkeypatch.setattr(target, "refresh_complete_program_artifacts", refresh)
+    monkeypatch.setattr(
+        target, "publish_cases",
+        lambda *args, **kwargs: pytest.fail("partial programをcaseへ公開してはいけません"),
+    )
+    arguments = target.build_parser().parse_args([
+        "--repository", str(repository), "--collection", str(collection),
+        "--sample-root", str(sample_root), "--private-output", str(private_output),
+    ])
+
+    result = target.run(arguments)
+
+    assert result["stop_reason"] == "program_analysis_incomplete"
+    assert result["retryable"] is False
+    assert result["complete_programs"] == 0
+    assert result["cached_programs"] == 0
+    assert result["pending_programs"] == [digest]
+
+
 def test_run_can_prepare_without_contacting_mcp(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
