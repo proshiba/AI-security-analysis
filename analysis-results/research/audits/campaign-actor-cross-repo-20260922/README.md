@@ -30,7 +30,7 @@
 
 - 自動相関のscoreは候補の順位付けであり、campaign・operation・Actorの確定ではない。
 - 当日の終端ペイロード未取得caseの解析は別の継続課題であり、この監査で完遂したとは扱わない。現行の[終端ギャップ台帳](../../../../intelligence/terminal-payload-recovery/README.md)には未クローズのギャップが1,015件ある。
-- 別リポジトリ `threatactor-intel-analysis` には、TA577・TA578・TA4922の活動と、APT-C-60・AtlasCrossの別個のcanonical actor profileを追加した。DarkHotelやAtlas RATとのexact aliasは作っていない。全件生成器が生じさせた対象外の大量差分を含む元コピーは削除・復元せず保持し、意図した51ファイルだけを別の整理済みworktree `C:\Users\Administrator\w\actor-audit-curated-20260922` へ移した。対象外差分は0件で、push・PRはしていない。
+- 別リポジトリ `threatactor-intel-analysis` には、TA577・TA578・TA4922の活動と、APT-C-60・AtlasCrossの別個のcanonical actor profileを追加した。DarkHotelやAtlas RATとのexact aliasは作っていない。全件生成器が生じさせた対象外の大量差分を含む元コピーは削除・復元せず保持し、意図した51ファイルだけを別の整理済みworktreeへ移した。対象外差分は0件で、push・PRはしていない。
 
 ## 検証
 
