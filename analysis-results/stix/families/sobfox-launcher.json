@@ -1,5 +1,5 @@
 {
-  "id": "bundle--4deb8077-5afc-5c66-83d6-bd83595ad1c1",
+  "id": "bundle--745443d2-d449-526d-85bf-0e02c9a1064a",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--42005e4d-6563-5261-8689-6f4d33ed93e7",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "sobfox-launcher：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--071fa5bd-5781-592c-b43b-8671ff0e1db3",
         "note--d3bf08e7-0571-5fdf-b9b8-50085378a0b0"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

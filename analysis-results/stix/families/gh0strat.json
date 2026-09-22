@@ -1,5 +1,5 @@
 {
-  "id": "bundle--44b60515-53cb-51f7-a976-671297c434bc",
+  "id": "bundle--85ed20fc-14fd-5834-8b20-3eeabff838c0",
   "objects": [
     {
       "aliases": [
@@ -230,7 +230,7 @@
       ],
       "id": "report--cd0d262a-0fa8-5802-b776-f3b0d06cc2fe",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Gh0st RAT：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--a21defe8-dd13-5447-ae5c-11dabc7c6f51",
@@ -245,7 +245,7 @@
         "campaign--f0ae4c7b-3561-5810-99cb-a880a3d26964",
         "relationship--64ba850d-5cd1-5bd2-930e-2c29cff61cd5"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

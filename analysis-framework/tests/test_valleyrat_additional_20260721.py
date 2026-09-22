@@ -199,12 +199,13 @@ def test_detectors_and_emulator_are_passive() -> None:
     assert PROTECTED_EMU.emulate()["packets_generated"] == 0
 
 
-def test_protected_installer_review_set_covers_unresolved_four() -> None:
+def test_protected_installer_review_set_covers_unresolved_five() -> None:
     expected = {
         "959001875232215e49463f8528c5786a741fda70e8b0fd95159ebdb0b41e140a",
         "40c98ff9673f67cfa82d9e2e16a2e55644f71fec87e2d92f25821a2b917f8145",
         "e6f4c46f2a72a4d8b1eda2c2c431c64d73eae7057221b35a6fc16138e4dc4d43",
         "b1dd9ebb57480de3da86e683639b328e9dcf291b4bd2d4816986d1b0cdfa9342",
+        "df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24",
     }
     assert set(PROTECTED.REVIEWED) == expected
 

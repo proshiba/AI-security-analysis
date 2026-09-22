@@ -1,5 +1,5 @@
 {
-  "id": "bundle--0ffbd3d1-afc3-5b78-a47b-ef3b9c0ad07d",
+  "id": "bundle--95171b2a-6418-5c21-8f6e-6bae94ffb01e",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--b53a44fa-ab1e-548a-86c5-4a9e4db91e32",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "chud-bot：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--cc1da33e-776c-5b31-87d5-0ff940b0a57a",
         "note--0552d332-c86f-59f1-ab9b-103134a6f4f7"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

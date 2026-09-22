@@ -1,0 +1,20 @@
+{
+  "campaign_id": "correlated-latrodectus-48ccbbb41b6f",
+  "families": [
+    "latrodectus"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "url",
+      "value": "https://aprettopizza.world/live/"
+    },
+    {
+      "type": "url",
+      "value": "https://peermangoz.me/live/"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

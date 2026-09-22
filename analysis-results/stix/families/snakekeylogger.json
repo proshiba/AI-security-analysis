@@ -1,5 +1,5 @@
 {
-  "id": "bundle--63021284-6da5-53ad-b07e-24a973154c9c",
+  "id": "bundle--2d767ff9-855a-5e61-bbd6-ed7695594b8e",
   "objects": [
     {
       "aliases": [
@@ -199,7 +199,7 @@
       ],
       "id": "report--69ad8538-a8e5-5404-8921-0775eb7c2f6b",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Snake Keylogger：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--20875c80-eb33-56ef-a2ca-5ae747e57854",
@@ -210,7 +210,7 @@
         "note--41a2c9cd-1e83-575b-b2f9-4bbc3dc4f031",
         "note--cb4b9256-fbd7-5386-92c3-624a63386673"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

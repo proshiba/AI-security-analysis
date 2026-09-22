@@ -1,5 +1,5 @@
 {
-  "id": "bundle--eb0c61fa-385d-50e4-9475-561e684d99ea",
+  "id": "bundle--fa700079-592c-5023-bef3-a45d20db19b9",
   "objects": [
     {
       "aliases": [
@@ -219,7 +219,7 @@
       ],
       "id": "report--517376ef-a501-5996-8ee1-318c21eb969d",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "DarkComet：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--a1040eef-ae0d-5275-8423-026b5853af40",
@@ -231,7 +231,7 @@
         "note--8cbae843-d603-571c-924f-eecf29f01dbc",
         "note--b5ada9a3-ed5b-5754-8702-cabd70d77033"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

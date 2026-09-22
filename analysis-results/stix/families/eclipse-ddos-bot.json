@@ -1,5 +1,5 @@
 {
-  "id": "bundle--cbb13c13-9727-5bae-ac25-a3e8a39076d8",
+  "id": "bundle--11012058-5516-5f2d-8040-086677ecf9d2",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--100db91b-7447-524f-ac06-c923d9b53aa4",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "eclipse-ddos-bot：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--59afa2a0-757f-51d8-ab7d-9470265c2411",
         "note--72aa0d7e-4ecc-5877-93f3-b4cd762419a2"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

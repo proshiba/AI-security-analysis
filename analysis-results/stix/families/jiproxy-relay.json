@@ -1,5 +1,5 @@
 {
-  "id": "bundle--abb9be09-8f99-5bdc-8069-647985bc30d1",
+  "id": "bundle--071d88ad-b44b-540b-ae09-a72374dc4826",
   "objects": [
     {
       "aliases": [
@@ -117,7 +117,7 @@
       ],
       "id": "report--829bfec4-d659-52e7-95c1-8259d40866f2",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "JiProxy UDP relay（暫定名称）：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--699c4794-424d-57d6-b43e-98539dfc5896",
@@ -126,7 +126,7 @@
         "note--8a9f91b3-6727-5c57-82ec-b68d61da4281",
         "note--05d3f8bb-d2c1-5dcb-8f91-188ba5e2a51e"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

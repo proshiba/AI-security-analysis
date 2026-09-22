@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "server275.web-hosting.com:587",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 3
+    }
+  ]
+}

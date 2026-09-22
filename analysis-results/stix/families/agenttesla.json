@@ -1,5 +1,5 @@
 {
-  "id": "bundle--6b3d3cdf-1961-5bf0-9b5b-502e202d834b",
+  "id": "bundle--b5903a5b-cd12-5227-a1a8-35a7dab86646",
   "objects": [
     {
       "aliases": [
@@ -213,7 +213,7 @@
       ],
       "id": "report--7da69f91-1007-5f26-a6b3-112ce5ed16b9",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Agent Tesla：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--b33fe962-6a51-520d-a5f7-03eecabb683b",
@@ -226,7 +226,7 @@
         "note--391cd009-15fd-5a65-9417-6df28a6ce660",
         "note--9895b998-07f2-5f04-a9d2-cb1733db6b1f"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

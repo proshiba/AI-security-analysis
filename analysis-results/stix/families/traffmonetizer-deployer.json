@@ -1,5 +1,5 @@
 {
-  "id": "bundle--dedf1799-70c7-557d-9009-0447af945ea7",
+  "id": "bundle--d56a5974-1044-580d-b44e-f5968ed342e8",
   "objects": [
     {
       "aliases": [
@@ -159,7 +159,7 @@
       ],
       "id": "report--c406b839-f22d-5548-9657-d80fda8db7ef",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "TraffMonetizer不正デプロイヤー：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--749da0e4-69f7-5b59-8329-2c3030b178f9",
@@ -169,7 +169,7 @@
         "note--3774185a-f40f-5fd7-96af-f0295fe538b6",
         "note--9cd18558-bea6-5a25-a7f7-577667d32df4"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

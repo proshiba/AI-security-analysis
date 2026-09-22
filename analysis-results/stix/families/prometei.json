@@ -1,5 +1,5 @@
 {
-  "id": "bundle--50a86e57-30f6-540d-8767-dede5c0daf38",
+  "id": "bundle--eb7c3f23-5b7f-5a81-9764-d84d47d3157e",
   "objects": [
     {
       "aliases": [],
@@ -194,7 +194,7 @@
       ],
       "id": "report--afaf32c0-d3c5-5a32-b1df-e92fcc3f4db4",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Prometei：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--4f16ab96-6fa8-5989-b82b-247bc7f95fa9",
@@ -207,7 +207,7 @@
         "relationship--77a07eb0-dd54-5d6c-970d-9e39927b3fe5",
         "note--2be858c9-4d2d-5a42-91ec-e91cd9017a8d"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

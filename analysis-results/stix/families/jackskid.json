@@ -1,5 +1,5 @@
 {
-  "id": "bundle--d5f44f10-f212-5638-8256-6b4ccf3ff797",
+  "id": "bundle--47da701d-1658-579c-967a-1197962b95f9",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--30ba6f2c-37d6-5c90-a89d-e8948cd2bf98",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "jackskid：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--8aa2fa6d-731f-533f-948a-c8d7a503e87e",
         "note--b3042e96-467a-5694-80c9-d04896a11712"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

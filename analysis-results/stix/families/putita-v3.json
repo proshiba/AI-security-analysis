@@ -1,5 +1,5 @@
 {
-  "id": "bundle--7c7a35cf-6703-5dad-85e2-55a1f53605e9",
+  "id": "bundle--18e2f62e-c85e-53e4-ab71-ef16cc83a99a",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--15ac18a6-879c-5425-b827-de21555ab60f",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "putita-v3：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--ae3f02ae-0d43-5f65-aa24-82ecf9d67b2f",
         "note--b5653ca3-6b7b-5c40-8a7e-27b78cf0da1a"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

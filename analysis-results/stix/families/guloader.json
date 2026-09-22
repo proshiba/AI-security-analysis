@@ -1,5 +1,5 @@
 {
-  "id": "bundle--c57719a8-ffa2-521c-b54a-414a42cc5707",
+  "id": "bundle--2c0a8337-6ea2-57ac-b68c-ff7e30cd8534",
   "objects": [
     {
       "aliases": [
@@ -184,7 +184,7 @@
       ],
       "id": "report--3240c04e-2871-50f6-87cd-9b233c6e686c",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "GuLoader：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--4b8e7788-fa82-5c07-bef4-bab2b7ffe9cc",
@@ -195,7 +195,7 @@
         "note--da7c5733-e1cd-5d63-87e1-1a08ddea1fab",
         "note--6d75efd3-0fda-520c-ab78-bb6687a503ba"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

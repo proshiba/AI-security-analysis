@@ -2924,6 +2924,11 @@ def test_characteristic_selection_covers_roles_and_respects_limit() -> None:
         ("FUN_1000", ["socket"], "network_communication"),
         ("FUN_1000", ["CreateServiceW"], "persistence"),
         ("install_service", [], "persistence"),
+        ("_guard_dispatch_icall", [], "compiler_or_library_code"),
+        ("__guard_xfg_dispatch_icall", [], "compiler_or_library_code"),
+        ("FUN_1000", ["RegSetValueExW"], "persistence"),
+        ("FUN_1000", ["RegCreateKeyExW"], "persistence"),
+        ("FUN_1000", ["TerminateProcess"], "process_or_memory_operation"),
     ],
 )
 def test_classify_role_uses_symbol_and_api_boundaries(
@@ -3241,6 +3246,81 @@ def test_characteristic_selection_prioritizes_go_main_over_runtime() -> None:
     )
     assert any(
         "probable_go_main_user_code" in item["selection_reasons"] for item in selected if item["name"] == "main.main"
+    )
+
+
+def test_characteristic_selection_prioritizes_entry_reachable_process_and_registry_candidates() -> None:
+    """CFG補助関数・低位addressのstubに埋もれず、入口到達の重要API候補を残す。"""
+
+    functions = [
+        {
+            "address": f"0x{0x1000 + index * 0x10:x}",
+            "name": f"FUN_{0x1000 + index * 0x10:x}",
+            "isExternal": False,
+            "isThunk": False,
+        }
+        for index in range(50)
+    ]
+    functions.extend(
+        {
+            "address": address,
+            "name": name,
+            "isExternal": False,
+            "isThunk": False,
+        }
+        for address, name in (
+            ("0x5000", "entry"),
+            ("0x6000", "FUN_6000"),
+            ("0x6100", "FUN_6100"),
+            ("0x6200", "FUN_6200"),
+            ("0x7000", "_guard_dispatch_icall"),
+        )
+    )
+    graph = {
+        "edges": [
+            {"caller_addr": "5000", "callee_addr": "6000", "callee_name": "FUN_6000"},
+            {"caller_addr": "5000", "callee_addr": "6100", "callee_name": "FUN_6100"},
+            {"caller_addr": "6000", "callee_addr": "6200", "callee_name": "FUN_6200"},
+            {"caller_addr": "5000", "callee_addr": "7000", "callee_name": "_guard_dispatch_icall"},
+            {"caller_addr": "6000", "callee_addr": "9000", "callee_name": "TerminateProcess"},
+            {"caller_addr": "6100", "callee_addr": "9010", "callee_name": "RegSetValueExW"},
+        ]
+    }
+
+    selected = target.select_characteristic_functions(
+        functions,
+        graph,
+        "entry @ 0x5000 [Function]",
+        {"functions": []},
+        max_count=8,
+    )
+    by_address = {item["address"]: item for item in selected}
+    assert {"0x5000", "0x6000", "0x6100", "0x6200"} <= set(by_address)
+    assert "0x7000" not in by_address
+    assert by_address["0x6000"]["preliminary_role"] == "process_or_memory_operation"
+    assert by_address["0x6100"]["preliminary_role"] == "persistence"
+    assert by_address["0x6000"]["entry_call_depth"] == 1
+    assert by_address["0x6200"]["entry_call_depth"] == 2
+    assert "entry_reachable_call_depth:2" in by_address["0x6200"]["selection_reasons"]
+    assert target._classify_role("_guard_dispatch_icall", (), "") == "compiler_or_library_code"
+
+
+def test_characteristic_selection_does_not_invent_unobserved_entry_reachability() -> None:
+    """graphにedgeがない場合、名前やaddressの近さから到達性を捏造しない。"""
+
+    selected = target.select_characteristic_functions(
+        [
+            {"address": "0x1000", "name": "entry", "isExternal": False, "isThunk": False},
+            {"address": "0x1010", "name": "FUN_1010", "isExternal": False, "isThunk": False},
+        ],
+        {"edges": []},
+        "entry @ 0x1000 [Function]",
+        {"functions": []},
+        max_count=2,
+    )
+    assert all(
+        not any(reason.startswith("entry_reachable_call_depth:") for reason in item["selection_reasons"])
+        for item in selected
     )
 
 

@@ -15,6 +15,7 @@
 | PyInstaller CArchive | cookie／TOC／全entry境界・path衝突・圧縮stream終端・実sizeをmemory上で検証 | script、module、PYZ、PE、入れ子archiveの優先保持と全inventory commitment |
 | UPX | 隔離した入力に対して信頼済み UPX utility を実行 | UPX が file を検証できた場合の unpack 済み PE |
 | PE resource と overlay | offset と size を parse し、有効な PE 範囲を carve | child PE/resource |
+| PE `.data` の逆順fragment＋affine XOR Donut wrapper | `.data`末尾のkey／size、4・8分割の境界、zero padding、既知Donut loader prologue、復号instanceを上限付きで照合 | 認証済みDonut shellcodeを子レイヤーへ送り、終端moduleを再帰解析 |
 | GDPF PDF overlay | EOFのlittle-endian size、GDPF footer、PE overlay境界、%PDF- magicを同時検証 | 実在する場合だけPDFデコイを子レイヤー化 |
 | .NET ResourceSet | object を deserialize せず serialized resource を parse | string、byte array、image |
 | .NET bitmap steganography | 上限付き RGB column traversal を再現 | 埋め込み managed PE |
@@ -29,6 +30,8 @@
 | Mach-O | header と segment の inventory | packing 評価だけ |
 
 `static_unpacker.py` が orchestrator です。`javascript_obfuscator.py` は script encoding と string array layer、`javascript_dropper_unpacker.py` は numeric array、Unicode environment、AES-CBC、GZip chain、`nsis_unpacker.py` は明示的な NSIS script と native constant XOR layer を処理します。`static_control_flow.py` は、上限付きの再帰的 x86/x64 entry CFG triage を提供します。`opaque_native_entry.py` はimportless native PEに限定し、entry CFG、PEB／export resolver、API hash候補、変換loop、埋込みPE候補を実行やCPU emulationなしで調べます。byte走査の完了と意味的な復元完了を分離し、未知hashや動的pointer tableが残る場合は完了扱いにしません。候補関数、追跡関数、resolver callsite、変換loop、API／module hash、entry CFG、埋込み候補は`total`、`returned`、`truncated`で記録し、いずれかの上限到達を`coverage_complete=false`へ反映します。`managed_il_triage.py` は CLR を load せず、managed metadata、CIL、resource を棚卸しします。`managed_proxy_deobfuscator.py` は埋込みresourceのhash・entropy・保護候補を列挙し、確認済みEazfuscator系DynamicMethod proxy表をfield→methodの対応へ静的復号します。
+
+`reverse_chunk_affine_xor_donut_pe.py` は、`.data` に一意な候補と認証済みDonut instanceがある場合だけ子shellcodeを返します。復元されたshellcodeと終端moduleは `static_layer_pipeline.py` が親子SHA-256を付けて再帰解析します。Donutの既知prologueとinstanceの検証は両方必要で、wrapper構造だけをfamilyまたはC2の確定根拠にしません。
 
 collection単位の再開では `analysis-framework/common/collection_followup_planner.py` が、公開済みreportの契約と登録済みblockerだけを読み、未完了caseを再試行可能性別に分類します。同一証拠で解消できないblockerは無益に再実行せず、新しいterminal evidenceまたは対応実装を待つ計画として残します。
 

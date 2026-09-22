@@ -1,14 +1,10 @@
 {
-  "id": "bundle--5609ceef-e458-5bf1-878e-68ef419f7558",
+  "id": "bundle--f640a06e-c817-5f59-8419-852a52549c00",
   "objects": [
     {
-      "aliases": [
-        "AtlasCross",
-        "AtlasAgent",
-        "AtlasCross RAT"
-      ],
+      "aliases": [],
       "created": "2026-09-21T00:00:00Z",
-      "description": "Gh0st RAT系プロトコルを基礎とするモジュール型RATである。公開検体ではメモリー内ロード、暗号化通信、PowerShell実行基盤、セキュリティ機構の無効化、プロセス注入等が報告されている。",
+      "description": "Gh0st RAT系プロトコルを基礎とするモジュール型RATである。公開検体ではメモリー内ロード、暗号化通信、PowerShell実行基盤、セキュリティ機構の無効化、プロセス注入等が報告されている。内部IDのatlascrossは過去互換のため維持するが、NSFOCUSが2023年に報告したアクターAtlasCross、および同アクターが使用したAtlasAgent・DangerAdsとは別系統であり、aliasやコード系譜として結合しない。",
       "external_references": [
         {
           "description": "atlascross 公開静的解析",
@@ -21,9 +17,14 @@
           "url": "https://hexastrike.com/resources/blog/threat-intelligence/trust-the-tunnel-get-the-trojan-silver-fox-delivers-atlas-rat-via-weaponized-vpn-installers/"
         },
         {
-          "description": "AtlasCrossローカルキャンペーン検証 (am-atlas-local-2026)",
+          "description": "Atlas RATローカルキャンペーン検証（旧内部ID atlascross） (am-atlas-local-2026)",
           "source_name": "AI-security-analysis",
           "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/atlascross"
+        },
+        {
+          "description": "AtlasCrossアクターおよびAtlasAgent・DangerAdsの解析 (am-atlas-nsfocus-2023)",
+          "source_name": "NSFOCUS",
+          "url": "https://nsfocusglobal.com/pt-br/warning-newly-discovered-apt-attacker-atlascross-exploits-red-cross-blood-drive-phishing-for-cyberattack/"
         },
         {
           "description": "TA4922：中国系犯罪グループのグローバル化 (am-atlas-proofpoint-2026)",
@@ -37,7 +38,7 @@
         "business-model:restricted"
       ],
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Atlas RAT",
       "spec_version": "2.1",
       "type": "malware"
@@ -321,7 +322,7 @@
       ],
       "id": "report--43ed25c5-3431-5a4c-8f77-c578bea8b292",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Atlas RAT：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--04a97b9a-44ae-584f-9279-9b645c479709",
@@ -340,7 +341,7 @@
         "relationship--e438588c-4662-5878-8ce8-a55b5d672e06",
         "relationship--bc4dcb97-4964-50e2-989e-dc80d35e53cc"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

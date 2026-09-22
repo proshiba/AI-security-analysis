@@ -1,5 +1,5 @@
 {
-  "id": "bundle--45360a23-957c-5fdd-904d-3b3aa32c0f47",
+  "id": "bundle--dde7be2d-dfde-5d01-ac33-28d3410dfad5",
   "objects": [
     {
       "aliases": [
@@ -229,7 +229,7 @@
       ],
       "id": "report--c0848b65-0cb6-504b-9557-e62e76372865",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "FormBook：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--8b267637-79b2-582e-9226-31ba54e571a0",
@@ -241,7 +241,7 @@
         "note--c1ea0d65-7691-5359-a571-60e91cffd7fc",
         "note--3c7ecd9f-2e10-59c4-9e8d-62806f2bebf3"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

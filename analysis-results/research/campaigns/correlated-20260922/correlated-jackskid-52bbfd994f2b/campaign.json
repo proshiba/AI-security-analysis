@@ -1,0 +1,69 @@
+{
+  "campaign_id": "correlated-jackskid-52bbfd994f2b",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "high",
+  "families": [
+    "jackskid"
+  ],
+  "members": [
+    "1de6220fc4c3502a55fa5cc220b9a91cead25fc34bc7d3610edf1914f83bc379",
+    "6afda92c73f89ddce818f752d2d3fb7f39cef34c53478ecd993cd42936a12efc",
+    "aa91037d96973b8a145864fe4784cf74e3869ca4afdd51aea0dddc0a587c1aa3",
+    "b6b9753bf156d5eb5dcbad43de9ab651146a819da27fe9d2c031097ca10619d3",
+    "be45e9deed6d9f3fae1a875937880ab8e4350058f2af6df9237dda8777c7cf57",
+    "c3ba74fb10475f9e9db534ad484bbcfaa7ee1fd571639b35f57906e1fca1d716"
+  ],
+  "member_count": 6,
+  "shared_indicators": [
+    {
+      "type": "domain",
+      "value": "meower.eth",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "roanoke.sol",
+      "support": 6
+    },
+    {
+      "type": "endpoint",
+      "value": "172.233.124.230:39419",
+      "support": 3
+    },
+    {
+      "type": "endpoint",
+      "value": "45.154.98.115:39419",
+      "support": 3
+    },
+    {
+      "type": "endpoint",
+      "value": "deformed.su:9018",
+      "support": 4
+    },
+    {
+      "type": "endpoint",
+      "value": "nvms9000.online:9018",
+      "support": 2
+    },
+    {
+      "type": "ip",
+      "value": "172.233.124.230",
+      "support": 2
+    },
+    {
+      "type": "ip",
+      "value": "45.154.98.115",
+      "support": 2
+    }
+  ],
+  "shared_feature_ids": [
+    "propagation:telnet_scan"
+  ],
+  "edge_count": 15,
+  "maximum_pair_score": 25,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

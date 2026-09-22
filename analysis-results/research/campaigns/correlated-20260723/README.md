@@ -1,5 +1,7 @@
 # 過去caseの攻撃キャンペーン相関
 
+> 2026-09-22監査訂正: `correlated-wannacry-63b40cc27704` は誤相関として無効化しました。旧集計と旧リンクは監査履歴のため残しますが、有効なcampaign候補・IOC・自動labelとして使用しません。[訂正内容](correlated-wannacry-63b40cc27704/README.md)
+
 公開済みcaseの共有インフラ、共有子要素、非汎用の配布・挙動特徴を相関し、
 同一攻撃キャンペーンの可能性がある集合だけを候補として切り出しました。
 ファミリー名、ファイル名、収集バッチ、IP単独では相関していません。
@@ -54,7 +56,7 @@
 | [`correlated-unclassified-90d978be19ce`](correlated-unclassified-90d978be19ce/README.md) | unclassified | 5 | high | same_family_campaign_candidate |
 | [`correlated-valleyrat-570f481c0f42`](correlated-valleyrat-570f481c0f42/README.md) | valleyrat | 2 | medium | same_family_campaign_candidate |
 | [`correlated-venomrat-b8be79d70868`](correlated-venomrat-b8be79d70868/README.md) | venomrat | 3 | medium | same_family_campaign_candidate |
-| [`correlated-wannacry-63b40cc27704`](correlated-wannacry-63b40cc27704/README.md) | wannacry | 5 | high | same_family_campaign_candidate |
+| [`correlated-wannacry-63b40cc27704`](correlated-wannacry-63b40cc27704/README.md) | wannacry | 5 | 無効 | 2026-09-22監査で誤相関と判定 |
 
 ## 判定上の注意
 

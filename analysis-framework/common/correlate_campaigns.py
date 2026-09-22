@@ -25,6 +25,7 @@ from campaign_correlation import (
     load_rules,
 )
 from case_features import build_case_profile, discover_case_directories
+from reviewed_campaign_matches import load_reviewed_campaigns, reviewed_labels_by_sha
 
 
 DEFAULT_RULES = Path(__file__).resolve().parents[1] / "registry" / "campaign_correlation_rules.json"
@@ -110,6 +111,28 @@ def _history_by_sha(repository: Path) -> dict[str, dict[str, Any]]:
         for item in value.get("analyses", [])
         if isinstance(item, dict) and item.get("sample_sha256")
     }
+
+
+def _load_campaign_profile(
+    case_dir: Path, history_entry: Mapping[str, Any] | None
+) -> dict[str, Any]:
+    """相関用features schemaだけを採用し、別用途の旧schemaは再評価する。"""
+
+    profile_path = case_dir / "features.json"
+    if profile_path.is_file():
+        profile = load_json_object_strict(profile_path)
+        recorded_sha = profile.get("sha256")
+        if recorded_sha is not None and str(recorded_sha).casefold() != case_dir.name.casefold():
+            raise ValueError(f"features.jsonのSHA-256がcaseと一致しません: {case_dir.name}")
+        if (
+            recorded_sha is not None
+            and isinstance(profile.get("family"), str)
+            and isinstance(profile.get("campaign_type"), str)
+            and isinstance(profile.get("sample_characteristics"), list)
+            and isinstance(profile.get("behaviors"), list)
+        ):
+            return profile
+    return build_case_profile(case_dir, history_entry)
 
 
 def _render_index(report: Mapping[str, Any]) -> str:
@@ -248,6 +271,7 @@ def _expected_documents(
 def _expected_case_label_documents(
     report: Mapping[str, Any],
     case_directories: Mapping[str, Path],
+    reviewed_labels: Mapping[str, list[dict[str, str]]] | None = None,
 ) -> dict[Path, str]:
     """caseラベルを明示更新する場合だけ使う期待文書を構築する。"""
 
@@ -257,17 +281,20 @@ def _expected_case_label_documents(
         for sha256, labels in report["labels"].items()
     }
     for sha256, case_dir in case_directories.items():
-        labels = labels_by_sha.get(sha256, [])
+        reviewed = (reviewed_labels or {}).get(sha256, [])
+        labels = [*labels_by_sha.get(sha256, []), *reviewed]
         payload = {
             "schema_version": 1,
             "sha256": sha256,
             "labels": labels,
-            "status": "matched" if labels else "no_strong_match",
+            "status": ("reviewed_match" if reviewed else "matched") if labels else "no_strong_match",
             "rule_source": "registry/campaign_fingerprints.json",
             "executed_sample": False,
             "network_contacted": False,
             "safety": report["safety"],
         }
+        if reviewed:
+            payload["reviewed_rule_source"] = "registry/reviewed_public_campaigns.json"
         documents[case_dir / "campaign-labels.json"] = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
     return documents
 
@@ -300,17 +327,16 @@ def generate(
     case_directories = {}
     for case_dir in discover_case_directories(repository / "analysis-results"):
         case_directories[case_dir.name.lower()] = case_dir
-        profile_path = case_dir / "features.json"
-        if profile_path.is_file():
-            profile = json.loads(profile_path.read_text(encoding="utf-8-sig"))
-        else:
-            profile = build_case_profile(case_dir, history.get(case_dir.name.lower()))
+        profile = _load_campaign_profile(case_dir, history.get(case_dir.name.lower()))
         evidences.append(extract_campaign_evidence(case_dir, profile, rules))
     report = correlate_cases(evidences, rules)
     fingerprints = build_fingerprints(report)
     expected = _expected_documents(output_root, report, fingerprints)
+    reviewed = reviewed_labels_by_sha(load_reviewed_campaigns(
+        repository / "analysis-framework/registry/reviewed_public_campaigns.json"
+    ))
     case_label_documents = (
-        _expected_case_label_documents(report, case_directories)
+        _expected_case_label_documents(report, case_directories, reviewed)
         if case_labels
         else {}
     )

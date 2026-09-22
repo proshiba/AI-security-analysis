@@ -11,9 +11,9 @@
 
 ここでいう`campaign`は、共有証拠を持つ検体や配布活動の候補集合です。`operation`は、複数campaign、複数マルウェア、配布基盤、C2基盤などを一定期間にわたって運用した主体の活動仮説です。どちらも脅威アクターへの帰属と同義ではありません。
 
-## 現在の出発点
+## 履歴baselineと現行母集団
 
-2026年7月25日時点の生成済み成果物には、次の規模の相関対象があります。
+2026年7月25日時点の生成済み成果物には、次の規模の相関対象がありました。以下は当時の履歴baselineであり、現行のcase件数ではありません。
 
 | 項目 | 現在値 | 調査上の意味 |
 |---|---:|---|
@@ -28,11 +28,13 @@
 
 これらは固定値ではありません。定期実行ごとにbaselineを保存し、増減理由を説明できるようにします。
 
+2026年9月22日の再監査では、catalogと相関器の列挙対象はともに3,762件で一致しました。新しい全件相関は30個のcampaign**候補**、ラベル対象115件を生成します。これは自動scoreによるレビュー候補であり、campaignやActorの確定数ではありません。旧1,125件との差は主として7月時点のスナップショットと現行catalogの時点差で、現行処理から2,587件が除外されているという意味ではありません。[再監査記録](../analysis-results/research/audits/campaign-actor-cross-repo-20260922/README.md)に誤相関と根拠境界を記載しています。
+
 現在利用できる主な正本と処理は次のとおりです。
 
 - [IOC横断索引](../analysis-results/IOC-INDEX.md)
 - [コード類似性索引](../analysis-results/catalog/CODE-SIMILARITY.md)
-- [campaign相関結果](../analysis-results/research/campaigns/correlated-20260724/README.md)
+- [campaign相関結果（2026-09-22）](../analysis-results/research/campaigns/correlated-20260922/README.md)
 - [ValleyRAT campaign帰属結果](../analysis-results/research/campaigns/valleyrat-20260725/README.md)
 - [IOC生成処理](../analysis-framework/common/generate_ioc_lists.py)
 - [コード類似性索引生成処理](../analysis-framework/common/generate_code_similarity_index.py)

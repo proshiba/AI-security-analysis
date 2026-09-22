@@ -1,5 +1,5 @@
 {
-  "id": "bundle--d9bb5712-5631-5c97-bc38-07131b71b88b",
+  "id": "bundle--5739a1dd-894c-5e39-83cd-1836c1295ccc",
   "objects": [
     {
       "aliases": [
@@ -273,7 +273,7 @@
       ],
       "id": "report--095855c5-e4e1-5d9a-9a77-3eb746804b19",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "NoodleRAT：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--1caf2e1d-9297-57f7-893d-9a125d22ba5a",
@@ -289,7 +289,7 @@
         "relationship--9725bb82-ee9f-5fb3-a085-bb6a676af7d8",
         "relationship--95f5728d-4953-5f85-9390-e5d0563e5a55"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

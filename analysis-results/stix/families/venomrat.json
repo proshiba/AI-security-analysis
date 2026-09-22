@@ -1,5 +1,5 @@
 {
-  "id": "bundle--9dd0561d-fb86-5210-93c8-ba85c6136fd5",
+  "id": "bundle--24486b2f-f996-57cb-9a54-dd1b9dff4f04",
   "objects": [
     {
       "aliases": [
@@ -255,7 +255,7 @@
       ],
       "id": "report--6aeb550a-3b79-5e58-abe6-97466215ddf3",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "VenomRAT：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--8af22a99-00b6-5806-873b-0ccccd3242e0",
@@ -270,7 +270,7 @@
         "note--9b794636-9e61-5815-9356-82faae4b5828",
         "note--ca28acd2-06a9-5d30-b7b8-177877cbb8f7"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

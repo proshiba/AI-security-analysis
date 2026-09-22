@@ -55,6 +55,198 @@
       "classification": "same_family_campaign_candidate"
     },
     {
+      "campaign_id": "correlated-asyncrat-d444111cc4bf",
+      "families": [
+        "asyncrat"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "58win.builders:22"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.builders:23"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.builders:443"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.builders:5555"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.builders:6066"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.builders:80"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.builders:8080"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.builders:8443"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.builders:9999"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.futbol:22"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.futbol:23"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.futbol:443"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.futbol:5555"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.futbol:6066"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.futbol:80"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.futbol:8080"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.futbol:8443"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.futbol:9999"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.gifts:22"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.gifts:23"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.gifts:443"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.gifts:5555"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.gifts:6066"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.gifts:80"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.gifts:8080"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.gifts:8443"
+        },
+        {
+          "type": "endpoint",
+          "value": "58win.gifts:9999"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot8.vip:22"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot8.vip:23"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot8.vip:443"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot8.vip:5555"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot8.vip:6066"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot8.vip:80"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot8.vip:8080"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot8.vip:8443"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot8.vip:9999"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot9.online:22"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot9.online:23"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot9.online:443"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot9.online:5555"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot9.online:6066"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot9.online:80"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot9.online:8080"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot9.online:8443"
+        },
+        {
+          "type": "endpoint",
+          "value": "ratuslot9.online:9999"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
       "campaign_id": "correlated-condi-0c21a99db5d6",
       "families": [
         "condi"
@@ -143,7 +335,7 @@
       "classification": "same_family_campaign_candidate"
     },
     {
-      "campaign_id": "correlated-efimer-5bebcc52c2ef",
+      "campaign_id": "correlated-efimer-257fce617ecd",
       "families": [
         "efimer"
       ],
@@ -161,18 +353,6 @@
         {
           "type": "endpoint",
           "value": "swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion:80"
-        },
-        {
-          "type": "url",
-          "value": "http://gfoqsewps57xcyxoedle2gd53o6jne6y5nq5eh25muksqwzutzq7b3ad.onion/route.php"
-        },
-        {
-          "type": "url",
-          "value": "http://hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion/route.php"
-        },
-        {
-          "type": "url",
-          "value": "http://swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion/core/repla.php"
         }
       ],
       "feature_ids": [
@@ -491,6 +671,30 @@
       "classification": "same_family_campaign_candidate"
     },
     {
+      "campaign_id": "correlated-maskgram-stealer-42f5282cf0cc",
+      "families": [
+        "maskgram-stealer"
+      ],
+      "confidence": "high",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "geschmeidig6307-kotyatanet.sbs:443"
+        },
+        {
+          "type": "endpoint",
+          "value": "samtpfotchensnezhok9566leisegepard.sbs:443"
+        },
+        {
+          "type": "endpoint",
+          "value": "wintersonyae246leisekoshachiy.icu:443"
+        }
+      ],
+      "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
       "campaign_id": "correlated-mirai-derived-ens-doh-bot-f390f335f534",
       "families": [
         "mirai-derived-ens-doh-bot"
@@ -508,6 +712,28 @@
         }
       ],
       "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-quasarrat-36ab6fe239bc",
+      "families": [
+        "quasarrat"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "domain",
+          "value": "stopman.ooguy.com"
+        },
+        {
+          "type": "endpoint",
+          "value": "stopman.ooguy.com:2002"
+        }
+      ],
+      "feature_ids": [
+        "crypto:aes"
+      ],
       "classification": "same_family_campaign_candidate"
     },
     {
@@ -592,6 +818,35 @@
         }
       ],
       "feature_ids": [],
+      "classification": "same_family_campaign_candidate"
+    },
+    {
+      "campaign_id": "correlated-valleyrat-2c9e5f30ae0b",
+      "families": [
+        "valleyrat"
+      ],
+      "confidence": "medium",
+      "minimum_indicator_matches": 2,
+      "indicators": [
+        {
+          "type": "endpoint",
+          "value": "202.61.140.222:448"
+        },
+        {
+          "type": "ip",
+          "value": "202.61.140.222"
+        }
+      ],
+      "feature_ids": [
+        "behavior:1",
+        "behavior:2",
+        "behavior:3",
+        "behavior:4",
+        "clickfix:false",
+        "delivery:zip_img_sideload",
+        "format:pe_dll",
+        "protocol:custom_stage"
+      ],
       "classification": "same_family_campaign_candidate"
     },
     {

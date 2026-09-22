@@ -1,5 +1,5 @@
 {
-  "id": "bundle--180a605d-6afc-5fba-885c-7b41081a2950",
+  "id": "bundle--719143fe-51f9-53ba-9906-b98904c875b2",
   "objects": [
     {
       "aliases": [
@@ -292,7 +292,7 @@
       ],
       "id": "report--18f781b9-434a-5eed-969b-ec6c8374e3fc",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Amadey：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--04b22748-84d1-534e-ade9-76a886b37008",
@@ -310,7 +310,7 @@
         "note--ae1aeea9-9581-54c3-bded-40224c377fa8",
         "note--4d65abfa-3c7e-5c06-bbeb-7447c33e2a8e"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

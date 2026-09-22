@@ -1,5 +1,5 @@
 {
-  "id": "bundle--1149ef19-5184-5161-8756-ee10ce264910",
+  "id": "bundle--8d5fee7c-c279-5367-b261-190a86a6aaaa",
   "objects": [
     {
       "aliases": [
@@ -228,7 +228,7 @@
       ],
       "id": "report--8470361c-66a1-545e-9959-bd68864defae",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "SpyGlace / APT-C-60：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--15aee228-9579-5f49-84c6-04c8647f5726",
@@ -240,7 +240,7 @@
         "note--7fb3e8be-41b5-5463-8ae7-5828abb795ce",
         "note--5da3c3bc-6e21-5e7c-bea5-fdbf1def127a"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

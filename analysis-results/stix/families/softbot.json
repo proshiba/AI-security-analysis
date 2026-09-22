@@ -1,5 +1,5 @@
 {
-  "id": "bundle--b614450f-29af-5129-9175-4a3209b9389f",
+  "id": "bundle--2a55f5f7-3f18-551e-a3ba-fe6fe77d8402",
   "objects": [
     {
       "aliases": [
@@ -160,7 +160,7 @@
       ],
       "id": "report--958fbe92-d31c-50b1-aab2-41bb39977670",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "SoftBot（Mirai派生）：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--8a033a7a-e901-5d1e-a0f0-e0fc7ee06741",
@@ -170,7 +170,7 @@
         "note--42b5f236-e484-559f-a931-061196efb71e",
         "note--4e93d389-43fd-528a-b865-61738460ed8d"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

@@ -52,6 +52,8 @@ MAX_DIRECT_CLI_RESPONSE = 64 * 1024
 MAX_DIRECT_CLI_ARGUMENTS = 256
 MAX_DIRECT_CLI_ARGUMENT_CHARACTERS = 32 * 1024
 MAX_CLI_CREDENTIAL_BYTES = 4096
+WINDOWS_SAFE_CASE_ARTIFACT_PATH_LENGTH = 240
+LONGEST_FIXED_CASE_ARTIFACT_NAME = "candidate-handler-assessment.json"
 MAX_FOLLOW_ON_WORKER_ACTIVE_PROCESSES = 8
 MAX_FOLLOW_ON_WORKER_MEMORY_BYTES = 2 * 1024 * 1024 * 1024
 MAX_HANDLER_ATTEMPTS_PER_CASE = 64
@@ -88,6 +90,7 @@ import batch_error_contract  # noqa: E402
 import classify_sample  # noqa: E402
 import component_static_findings  # noqa: E402
 import handler_evidence  # noqa: E402
+import handler_profile_lineage  # noqa: E402
 import orchestration_outcome  # noqa: E402
 import runtime_contract  # noqa: E402
 import static_implementation_commitment  # noqa: E402
@@ -201,6 +204,31 @@ FAMILY_HINT_LINEAGE_FIELDS = (
     "inherited_family",
     "family_hint_source",
 )
+
+
+class OutputPathLengthError(ValueError):
+    """Windowsでcase成果物を安全に作れない出力先を示す。"""
+
+
+def _validate_case_output_path_length(output: Path, *, windows: bool | None = None) -> None:
+    """既知の最長case成果物がWindowsの保守的なpath長上限内か調べる。"""
+
+    if windows is None:
+        windows = os.name == "nt"
+    if not windows:
+        return
+    absolute_output = Path(os.path.abspath(os.fspath(output)))
+    longest = (
+        absolute_output
+        / "cases"
+        / ("0" * 64)
+        / LONGEST_FIXED_CASE_ARTIFACT_NAME
+    )
+    if len(os.fspath(longest)) > WINDOWS_SAFE_CASE_ARTIFACT_PATH_LENGTH:
+        raise OutputPathLengthError(
+            "Windowsの解析出力先が安全なpath長上限を超えます。"
+            "より短い --output を指定してください。"
+        )
 
 
 def _bounded_json_size(value: Any, *, maximum_bytes: int) -> int | None:
@@ -2811,11 +2839,6 @@ def analyze_unit(
         logic_report,
         requirements_policy,
     )
-    family_resolution = orchestration_outcome.resolve_family(
-        outcome_candidates,
-        outcome_handler_records,
-    )
-
     handler_results: list[tuple[dict[str, Any], dict[str, Any]]] = []
     for execution in executions:
         relative = execution.get("result")
@@ -2827,6 +2850,19 @@ def analyze_unit(
                 load_json_object_strict(resolve_case_artifact(case_dir, relative)),
             )
         )
+    handler_config_candidates = handler_profile_lineage.build_document(
+        sha256=digest,
+        handler_records=legacy_outcome_records,
+    )
+    write_json(case_dir / "handler-config-candidates.json", handler_config_candidates)
+    outcome_candidates = handler_profile_lineage.restrict_detector_candidates(
+        outcome_candidates,
+        handler_config_candidates,
+    )
+    family_resolution = orchestration_outcome.resolve_family(
+        outcome_candidates,
+        outcome_handler_records,
+    )
     automation_family = family_resolution.get("family")
     if not isinstance(automation_family, str) or not automation_family:
         automation_family = "unclassified"
@@ -2866,6 +2902,7 @@ def analyze_unit(
         "routing": "family-routing.json",
         "candidate_handler_assessment": "candidate-handler-assessment.json",
         "route_config_candidates": "route-config-candidates.json",
+        "handler_config_candidates": "handler-config-candidates.json",
         "component_static_findings": "component-static-findings.json",
     }
     write_json(case_dir / "orchestration.json", outcome)
@@ -2901,6 +2938,7 @@ def analyze_unit(
         "communication_patterns": "communication-patterns.json",
         "c2_analysis": "c2-analysis.json",
         "route_config_candidates": "route-config-candidates.json",
+        "handler_config_candidates": "handler-config-candidates.json",
         "component_static_findings": "component-static-findings.json",
     }
     report["case_state"] = completion
@@ -2920,6 +2958,13 @@ def analyze_unit(
         ],
         "candidate_count": route_config_candidates["candidate_count"],
         "candidate_set_complete": route_config_candidates["candidate_set_complete"],
+        "family_attribution_confirmed": False,
+        "used_for_c2_confirmation": False,
+    }
+    report["handler_config_candidates"] = {
+        "status": handler_config_candidates["status"],
+        "candidate_count": handler_config_candidates["candidate_count"],
+        "conflicting_profiles": handler_config_candidates["conflicting_profiles"],
         "family_attribution_confirmed": False,
         "used_for_c2_confirmation": False,
     }
@@ -2943,6 +2988,7 @@ def analyze_unit(
         "communication-patterns.json",
         "c2-analysis.json",
         "route-config-candidates.json",
+        "handler-config-candidates.json",
         "component-static-findings.json",
     ]
     if not assessment_only:
@@ -6043,6 +6089,7 @@ def run_batch(
 ) -> dict[str, Any]:
     """複数入力をSHA-256で重複排除し、失敗を検体単位に分離する。"""
 
+    _validate_case_output_path_length(output)
     output.mkdir(parents=True, exist_ok=True)
     paths = collect_inputs(inputs, output, max_files)
     if archive_mode == "malwarebazaar":
@@ -6736,6 +6783,7 @@ def _run_isolated_cli(argv: Sequence[str] | None) -> int:
             "inno_password": inno_password,
         }
         arguments, archive_password, inno_password = _direct_cli_request(request)
+        _validate_case_output_path_length(build_parser().parse_args(arguments).output)
         request = {
             "schema_version": 1,
             "arguments": arguments,
@@ -6787,6 +6835,9 @@ def _run_isolated_cli(argv: Sequence[str] | None) -> int:
                 maximum_size=MAX_DIRECT_CLI_RESPONSE,
             )
             exit_code, counts = _direct_cli_response(response_raw)
+    except OutputPathLengthError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     except (OSError, RuntimeError, subprocess.SubprocessError, ValueError):
         return 2
     print(json.dumps(counts, ensure_ascii=False, indent=2, allow_nan=False))

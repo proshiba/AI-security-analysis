@@ -1,5 +1,5 @@
 {
-  "id": "bundle--1c09a84d-e941-5f02-9712-a4b01e8df1c2",
+  "id": "bundle--dbe191cf-c328-553e-a7b3-f2f7b7035c48",
   "objects": [
     {
       "aliases": [
@@ -184,7 +184,7 @@
       ],
       "id": "report--0af00758-23ba-5a07-8194-e2012ddcfbda",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "RemcosRAT：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--18dd8ea2-1725-51cb-9664-1857f5d56d78",
@@ -195,7 +195,7 @@
         "note--d067c510-6d58-58a6-aa2b-a8424d05c313",
         "note--f03d7385-c3b0-5b33-9de1-46761be4412b"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

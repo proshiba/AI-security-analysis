@@ -1,6 +1,6 @@
 api_version: asa/v1alpha1
 kind: AnalysisPipeline
-metadata: {id: atlascross.config, display_name: AtlasCross offline config workflow, version: 1.0.0}
+metadata: {id: atlascross.config, display_name: Atlas RAT静的設定抽出, version: 1.0.0}
 capabilities: [filesystem.sample.read]
 steps:
   - {id: intake, uses: "intake.submission@^1"}

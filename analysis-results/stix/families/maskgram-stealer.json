@@ -1,5 +1,5 @@
 {
-  "id": "bundle--44cff22e-355d-53cc-9c61-1593a6e8fb33",
+  "id": "bundle--84efdeee-3fb4-5174-aac3-988984838a51",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--8a7ddbe8-47ad-5543-8e34-c975cc51a7a6",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "maskgram-stealer：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--f463a902-6e2e-5036-8f98-bf6b45a5b3c8",
         "note--857a65c8-4083-576d-b22f-774f67cd2ceb"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

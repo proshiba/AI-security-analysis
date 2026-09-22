@@ -1,5 +1,5 @@
 {
-  "id": "bundle--0b9a2213-eb4e-5066-93ea-7040c5cd4c7c",
+  "id": "bundle--96fcf0eb-b3f9-53d0-b0a7-38d41fb59a32",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--bf2a1805-1895-53ef-ad10-37ee3f3c15b7",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "blazetrack：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--7f2a7507-2708-539f-b7a5-ba3dcbeb2133",
         "note--cb1a738e-07bc-56c8-ab20-64a6db41bbca"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

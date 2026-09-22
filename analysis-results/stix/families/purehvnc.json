@@ -1,5 +1,5 @@
 {
-  "id": "bundle--53807471-cccf-5a55-97aa-7e68122ff685",
+  "id": "bundle--bcf8f9f6-31c7-572a-b6e7-97d5844fe261",
   "objects": [
     {
       "aliases": [
@@ -179,7 +179,7 @@
       ],
       "id": "report--9ca6a56a-52ca-51f9-b050-dec0ada6a9d5",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "PureHVNC / PureRAT：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--7b0933bf-b275-5df5-a455-fa0ae539719a",
@@ -190,7 +190,7 @@
         "note--0de556f6-e378-5f72-b39a-b2888bb37b39",
         "note--f149715d-1db7-502d-936d-e55b9783345d"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

@@ -1,5 +1,5 @@
 {
-  "id": "bundle--8cac0e03-6bee-5a26-9428-80b0b99f0ead",
+  "id": "bundle--8c75b800-16b2-55a5-82c0-aca5db1397e3",
   "objects": [
     {
       "aliases": [
@@ -247,7 +247,7 @@
       ],
       "id": "report--46e53b54-7e84-5a93-a64a-36595bd4fb08",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Vidar：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--1186c4ff-97e2-559a-acd6-77fd36eb70a8",
@@ -260,7 +260,7 @@
         "note--220a6d6c-6c45-5d16-9553-162236621717",
         "note--a45cc5dc-7b04-5817-bcb6-323e0220759d"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

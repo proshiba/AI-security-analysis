@@ -2,10 +2,11 @@
 
 ## 優先順位
 
-1. 公開資料のSHA-256またはMD5完全一致
+1. 公開資料の悪性SHA-256またはMD5完全一致（正規hostを除外）
 2. レビュー済みの親子hash・固有配布chain
-3. imphash完全一致のコード近縁cluster
-4. 上記がなければ未解決
+3. 正規side-load hostの共有は文脈のみとして保留
+4. imphash完全一致のコード近縁cluster
+5. 上記がなければ未解決
 
 network IOCだけの一致、ファイル名、取得時期、community tag、genericなDLL side-loadingだけでは公開campaignを確定しません。
 

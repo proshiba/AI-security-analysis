@@ -4,11 +4,11 @@
 
 コード類似は共有関数の比較候補であり、同一開発者・利用アクター・campaignを示すものではありません。OSINT未登録ファミリーは公開済みローカル概要と静的比較情報に限定し、未知の開発者や商品化形態を補完しません。
 
-[攻撃インフラ横断STIX Bundle](infrastructure/bundle.json)／[調査・判定基準](../../analysis-framework/docs/INFRASTRUCTURE-STIX.md)
+[攻撃インフラ横断STIX Bundle](infrastructure/bundle.json)／[一次資料照合済みcampaign STIX Bundle](reviewed-campaigns/bundle.json)／[調査・判定基準](../../analysis-framework/docs/INFRASTRUCTURE-STIX.md)
 
 [ファミリー別の生成手順と判定境界](../../analysis-framework/docs/FAMILY-STIX.md)
 
-生成日: 2026-09-21。ファミリー: 66件、OSINT登録: 44件、利用関係: 19件。
+生成日: 2026-09-22。ファミリー: 66件、OSINT登録: 44件、利用関係: 19件。
 
 | ファミリー | STIX Bundle | 出典付きOSINT |
 |---|---|---|

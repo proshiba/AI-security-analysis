@@ -1,5 +1,5 @@
 {
-  "id": "bundle--52d5dad9-a4fa-5328-8367-4402dd80f52b",
+  "id": "bundle--d50c7ab9-b072-5016-bc2e-9c315ae5f74b",
   "objects": [
     {
       "aliases": [
@@ -139,7 +139,7 @@
       ],
       "id": "report--a3f2c2a4-cbd2-57a2-93d6-93601b9a8b93",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Panchan：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--4f243964-a484-5f1e-bcf9-1cfb9c0bd1ff",
@@ -149,7 +149,7 @@
         "note--019451ea-4355-5512-800b-d3d32522026d",
         "note--a361d384-74ca-50a9-9120-64e4ae765173"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

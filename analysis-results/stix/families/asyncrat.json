@@ -1,5 +1,5 @@
 {
-  "id": "bundle--d1bbded2-4da0-5f24-8629-62e36396e92a",
+  "id": "bundle--f9a0f640-7024-50fd-8101-e58a5f7f24d3",
   "objects": [
     {
       "aliases": [
@@ -238,7 +238,7 @@
       ],
       "id": "report--1c2fa15b-230a-521d-9268-88d2539d8234",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "AsyncRAT：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--6cd970f8-5edc-523a-86b7-20e552e13407",
@@ -252,7 +252,7 @@
         "note--0d61211a-e9cf-5448-960e-3f2273ffaa5e",
         "note--66de3f15-44ab-5eb8-b51d-96e48f7f45b8"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

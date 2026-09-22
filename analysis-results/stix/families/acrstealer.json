@@ -1,5 +1,5 @@
 {
-  "id": "bundle--4ef45220-d461-5a25-8718-b7b778020e9c",
+  "id": "bundle--ee393836-9a47-5df7-8022-c752ec9125be",
   "objects": [
     {
       "aliases": [
@@ -241,7 +241,7 @@
       ],
       "id": "report--e8ceb29a-d1b6-52a9-bd97-3ef9d93f04de",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "ACRStealer／Amatera Stealer：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--e8b4ab0f-d57b-50d0-932a-b5f5a2afbec5",
@@ -256,7 +256,7 @@
         "campaign--a37a4317-7b7f-5366-941c-d579cbc3cace",
         "relationship--d176b379-f3c9-561b-90c0-b54fa4b797fa"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

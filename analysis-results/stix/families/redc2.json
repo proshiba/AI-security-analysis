@@ -1,5 +1,5 @@
 {
-  "id": "bundle--9b652e10-c378-5fea-a654-e1afa598edb6",
+  "id": "bundle--82a8c1d7-a4bb-5acc-b319-bd0b08806e80",
   "objects": [
     {
       "aliases": [
@@ -175,7 +175,7 @@
       ],
       "id": "report--a1dfa78c-fbbb-5411-a1a9-d267a8527cc8",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "RedC2／RedShell：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--c4fb4d48-eb35-591d-9a08-3f1b90055f30",
@@ -187,7 +187,7 @@
         "campaign--8ea78845-eeee-5cc5-bcfd-ab8abd59e69b",
         "relationship--19f44d66-9269-575e-9a78-5103ed156190"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

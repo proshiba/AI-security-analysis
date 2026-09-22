@@ -1,5 +1,5 @@
 {
-  "id": "bundle--66a47d16-638c-5430-9eb8-8ca78a48af10",
+  "id": "bundle--09e2ecd9-feb2-52fc-bc88-3be3870c3c62",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--475b81cc-2c51-5070-9775-fbf1f7495691",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "freepbx-k-php：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--ab9bae0a-7744-51e1-ba9d-7bb17acb7eef",
         "note--c560e3e1-03f6-5f98-89ed-d64639c2c407"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

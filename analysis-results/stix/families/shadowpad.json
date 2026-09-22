@@ -1,5 +1,5 @@
 {
-  "id": "bundle--870d7fd8-0c17-5057-81ac-576085698f54",
+  "id": "bundle--150f33d0-e583-56eb-8673-714636ba568f",
   "objects": [
     {
       "aliases": [
@@ -249,7 +249,7 @@
       ],
       "id": "report--084d8bd8-171f-55d8-949f-0bcf66e6785b",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "ShadowPad：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--4d38d80b-feec-5a65-b9ba-b5f319ce0df4",
@@ -263,7 +263,7 @@
         "campaign--ab148fb6-6b15-5bd6-adc1-903735eafe92",
         "relationship--35319d11-497b-592b-b21c-94a14a948d53"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

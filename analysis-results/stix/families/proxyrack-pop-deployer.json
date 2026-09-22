@@ -1,5 +1,5 @@
 {
-  "id": "bundle--720715da-3625-5a73-a4f3-10f2c7085643",
+  "id": "bundle--c265054a-f5c6-5711-b60c-1e8ccd2aaba7",
   "objects": [
     {
       "aliases": [
@@ -174,7 +174,7 @@
       ],
       "id": "report--c3c3b789-54bb-5cf8-8a14-60a91f361663",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Proxyrack PoPクライアント不正デプロイヤー：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--ed91a185-7241-5783-aa89-1758a9286ee9",
@@ -184,7 +184,7 @@
         "note--cea63f3b-8cba-518e-983b-2574f9bd6454",
         "note--5e74dc92-745f-5fdc-bd7b-5451dcf096a0"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

@@ -265,7 +265,7 @@ ROLE_PATTERNS = (
 LIBRARY_RE = re.compile(
     r"(?i)^(?:__|_?mem(?:cpy|set|move|cmp)|_?str(?:len|cpy|cmp)|"
     r"_?wcs|operator(?:new|delete)|std::|crt|security_check_cookie|"
-    r"guard_|tls_callback|\.?ctor|\.?cctor|runtime[._]|internal(?:[./_]|$)|"
+    r"_?guard_|tls_callback|\.?ctor|\.?cctor|runtime[._]|internal(?:[./_]|$)|"
     r"type[.:_]|go[.:_])"
 )
 GO_MAIN_USER_CODE_RE = re.compile(r"(?i)^main(?:[.(*_/]|$)")
@@ -4266,8 +4266,8 @@ def _call_graph_degrees(call_graph: Mapping[str, Any]) -> tuple[Counter[str], Co
     for edge in call_graph.get("edges", []) if isinstance(call_graph, Mapping) else []:
         if not isinstance(edge, Mapping):
             continue
-        caller = str(edge.get("caller_addr") or "")
-        callee = str(edge.get("callee_addr") or "")
+        caller = _call_graph_address_key(edge.get("caller_addr"))
+        callee = _call_graph_address_key(edge.get("callee_addr"))
         callee_name = str(edge.get("callee_name") or callee)
         if caller:
             outbound[caller] += 1
@@ -4278,6 +4278,66 @@ def _call_graph_degrees(call_graph: Mapping[str, Any]) -> tuple[Counter[str], Co
     return inbound, outbound, callees
 
 
+def _call_graph_address_key(value: Any) -> str:
+    """同じ関数addressの0x接頭辞・先頭ゼロだけを正規化する。"""
+
+    rendered = str(value or "").strip().casefold().removeprefix("0x")
+    if not rendered or re.fullmatch(r"[0-9a-f]{1,16}", rendered) is None:
+        return ""
+    return rendered.lstrip("0") or "0"
+
+
+def _entry_reachable_depths(
+    functions: Iterable[Mapping[str, Any]],
+    call_graph: Mapping[str, Any],
+    entry_points: Any,
+    *,
+    max_depth: int = 4,
+) -> dict[str, int]:
+    """既知の内部call edgeだけから入口到達深度を求める。未観測edgeは補完しない。"""
+
+    internal = {
+        key
+        for item in functions
+        if not bool(item.get("isExternal")) and not bool(item.get("isThunk"))
+        if (key := _call_graph_address_key(item.get("address")))
+    }
+    entries = {
+        key
+        for address in _entry_point_addresses(entry_points)
+        if (key := _call_graph_address_key(address)) in internal
+    }
+    entries.update(
+        key
+        for item in functions
+        if _classify_role(str(item.get("name") or ""), (), "") == "entrypoint"
+        if (key := _call_graph_address_key(item.get("address"))) in internal
+    )
+    if not entries:
+        return {}
+    adjacency: dict[str, set[str]] = defaultdict(set)
+    for edge in call_graph.get("edges", []) if isinstance(call_graph, Mapping) else []:
+        if not isinstance(edge, Mapping):
+            continue
+        caller = _call_graph_address_key(edge.get("caller_addr"))
+        callee = _call_graph_address_key(edge.get("callee_addr"))
+        if caller in internal and callee in internal and caller != callee:
+            adjacency[caller].add(callee)
+    depths = {entry: 0 for entry in entries}
+    frontier = set(entries)
+    for depth in range(1, max_depth + 1):
+        frontier = {
+            callee
+            for caller in frontier
+            for callee in adjacency[caller]
+            if callee not in depths
+        }
+        if not frontier:
+            break
+        depths.update({address: depth for address in frontier})
+    return depths
+
+
 def _characteristic_candidates(
     functions: Iterable[Mapping[str, Any]],
     call_graph: Mapping[str, Any],
@@ -4286,24 +4346,26 @@ def _characteristic_candidates(
 ) -> list[dict[str, Any]]:
     """関数inventoryを代表関数候補へ採点する。"""
 
+    inventory = [dict(source) for source in functions]
     inbound, outbound, callees = _call_graph_degrees(call_graph)
     entries = _entry_point_addresses(entry_points)
+    entry_depths = _entry_reachable_depths(inventory, call_graph, entry_points)
     instruction_counts = {
         str(item.get("address") or ""): int(item.get("instruction_count") or 0)
         for item in (opcode_hashes or {}).get("functions", [])
         if isinstance(item, Mapping)
     }
     candidates: list[dict[str, Any]] = []
-    for source in functions:
-        item = dict(source)
+    for item in inventory:
         if bool(item.get("isExternal")) or bool(item.get("isThunk")):
             continue
         address = str(item.get("address") or "")
         name = str(item.get("name") or "unknown")
-        related = callees.get(address, [])
+        address_key = _call_graph_address_key(address)
+        related = callees.get(address_key, [])
         role = _classify_role(name, related, "")
-        in_degree = inbound[address]
-        out_degree = outbound[address]
+        in_degree = inbound[address_key]
+        out_degree = outbound[address_key]
         instructions = instruction_counts.get(address, int(item.get("instruction_count") or 0))
         reasons: list[str] = []
         score = 0
@@ -4320,6 +4382,10 @@ def _characteristic_candidates(
         if role not in {"general_internal_logic", "compiler_or_library_code"}:
             score += 3_000
             reasons.append(f"role:{role}")
+        entry_call_depth = entry_depths.get(_call_graph_address_key(address))
+        if entry_call_depth is not None and entry_call_depth > 0 and role != "compiler_or_library_code":
+            score += 4_000 - entry_call_depth * 750
+            reasons.append(f"entry_reachable_call_depth:{entry_call_depth}")
         if in_degree or out_degree:
             score += min(2_000, (in_degree + out_degree) * 40)
             reasons.append(f"call_graph_centrality:in={in_degree},out={out_degree}")
@@ -4342,6 +4408,7 @@ def _characteristic_candidates(
                 "in_degree": in_degree,
                 "out_degree": out_degree,
                 "instruction_count": instructions,
+                "entry_call_depth": entry_call_depth,
             }
         )
         candidates.append(item)
@@ -4363,8 +4430,16 @@ def select_characteristic_functions(
         for item in candidates:
             item["selection_reasons"] = sorted(set([*item["selection_reasons"], "small_program_complete_context"]))
         return sorted(candidates, key=lambda item: str(item.get("address") or ""))
+    # CFGのindirect-call検査・dispatch helperはcompile時の補助処理であり、
+    # 代表枠が不足する大きなprogramでcommand handler枠を奪わせない。
     ranked = sorted(
-        candidates,
+        [
+            item for item in candidates
+            if not re.fullmatch(
+                r"(?i)_+guard_(?:xfg_)?(?:dispatch|check)_icall(?:_nop)?",
+                str(item.get("name") or ""),
+            )
+        ],
         key=lambda item: (
             -int(item["selection_score"]),
             -int(item["instruction_count"]),
@@ -4487,6 +4562,7 @@ def ensure_characteristic_selection(result: dict[str, Any]) -> list[str]:
         "maximum_per_analysis_kind": MAX_CHARACTERISTIC_FUNCTIONS_PER_PROGRAM,
         "required_dimensions": [
             "entry_point",
+            "observed_entry_reachable_call_depth",
             "malware_behavior_role",
             "call_graph_centrality",
             "function_size",
@@ -4494,6 +4570,7 @@ def ensure_characteristic_selection(result: dict[str, Any]) -> list[str]:
         ],
         "all_functions_decompilation_required": False,
         "unselected_scope_recorded": True,
+        "compiler_guard_helpers_excluded_when_sampling": True,
     }
     return selected_ids
 
@@ -5839,6 +5916,8 @@ def _semantic_symbol_role(value: str, *, function_name: bool) -> str | None:
         "createremotethread",
         "createprocesswithtoken",
         "createprocessasuser",
+        "openprocess",
+        "terminateprocess",
         "virtualalloc",
         "virtualallocex",
         "virtualprotect",
@@ -5871,7 +5950,12 @@ def _semantic_symbol_role(value: str, *, function_name: bool) -> str | None:
         "startservice",
         "openscmanager",
         "regsetvalue",
+        "regsetvalueex",
         "regcreatekey",
+        "regcreatekeyex",
+        "regdeletevalue",
+        "regdeletekey",
+        "regdeletekeyex",
         "schtasks",
     }
     persistence_name = canonical in {

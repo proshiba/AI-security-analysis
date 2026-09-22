@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "url",
+      "value": "https://arsimonopa.com/live/",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "https://lemonimonakio.com/live/",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 4
+    }
+  ]
+}

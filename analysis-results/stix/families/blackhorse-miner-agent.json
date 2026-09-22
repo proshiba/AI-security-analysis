@@ -1,5 +1,5 @@
 {
-  "id": "bundle--c427d67b-9a5e-589f-8aea-7cb788cad330",
+  "id": "bundle--d464eaa2-7e3c-5692-813e-a0d2b10d7f8a",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--2444b813-a9b2-5fdc-8df5-f0bff7e25082",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "blackhorse-miner-agent：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--95b2dbc4-2ad2-501e-a7f8-83f2db1de908",
         "note--f2005604-84c8-5ed3-922d-5719141ee724"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

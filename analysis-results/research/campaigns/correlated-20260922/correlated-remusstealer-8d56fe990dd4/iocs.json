@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "31.77.168.180:5000",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 2
+    },
+    {
+      "type": "ip",
+      "value": "31.77.168.180",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://31.77.168.180:5000/umvbr.bin",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 2
+    }
+  ]
+}

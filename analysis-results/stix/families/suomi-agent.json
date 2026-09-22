@@ -1,5 +1,5 @@
 {
-  "id": "bundle--a7764f16-4828-5d08-907a-86448f97f466",
+  "id": "bundle--911ecbcb-5ad2-595d-ac3d-4b972d11cba9",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--c1d5d250-0e7f-5b28-88a0-30a95875a375",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "suomi-agent：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--bdf825a0-4e00-5ece-b38b-0797e51c3621",
         "note--2a8c2398-54a8-5288-b49a-6cd583a3e0b3"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

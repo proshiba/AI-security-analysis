@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "url",
+      "value": "https://drifajizo.fun/live/",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "https://scifimond.com/live/",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 2
+    }
+  ]
+}

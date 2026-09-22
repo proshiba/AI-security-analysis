@@ -1,0 +1,22 @@
+{
+  "campaign_id": "correlated-quasarrat-36ab6fe239bc",
+  "families": [
+    "quasarrat"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "stopman.ooguy.com"
+    },
+    {
+      "type": "endpoint",
+      "value": "stopman.ooguy.com:2002"
+    }
+  ],
+  "feature_ids": [
+    "crypto:aes"
+  ],
+  "classification": "same_family_campaign_candidate"
+}

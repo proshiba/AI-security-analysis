@@ -1,5 +1,5 @@
 {
-  "id": "bundle--bcf365f6-6711-50b9-80b5-a3cd49cd2a8b",
+  "id": "bundle--295b0f21-74af-5095-a6b7-fccd514ed742",
   "objects": [
     {
       "aliases": [
@@ -219,7 +219,7 @@
       ],
       "id": "report--6b09bdfe-1203-5975-a7f0-87bc3b9c2151",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Donut：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--f83136b4-ecba-5b70-8e7d-d22e2c6cb283",
@@ -232,7 +232,7 @@
         "note--ea898c2d-2a3a-5bf3-9436-b3a1a7a4b842",
         "note--f63037c5-3ffd-523d-a7d3-12174aa95b4c"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

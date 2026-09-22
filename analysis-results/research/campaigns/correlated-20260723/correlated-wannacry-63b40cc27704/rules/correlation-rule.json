@@ -1,5 +1,7 @@
 {
   "campaign_id": "correlated-wannacry-63b40cc27704",
+  "invalidated": true,
+  "invalidation_reason_ja": "旧擬似domainに依存した自動label ruleを無効化。",
   "families": [
     "wannacry"
   ],

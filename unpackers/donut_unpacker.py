@@ -53,6 +53,25 @@ LAYOUTS = (
     DonutLayout("legacy-0x23c", 0x23C, 0x23C, 0x240, 0x920, 0xD58, 0xD60),
 )
 
+DONUT_LOADER_PROLOGUES = (
+    b"YU\x48\x89\xe5",
+    b"\x59\x31\xc0\x48\x0f",
+    b"\x59\x48\x89\x5c\x24",
+    b"\x59\x5a\x51\x52\x81\xec\xd4\x02\x00\x00",
+)
+MAX_LOADER_PREFIX_SIZE = 0x20
+
+
+def _loader_prologue_end(data: bytes, code: int) -> int | None:
+    """宣言されたinstance直後の有界領域で既知loader prologueを確認する。"""
+
+    for gap in range(MAX_LOADER_PREFIX_SIZE + 1):
+        for prologue in DONUT_LOADER_PROLOGUES:
+            offset = code + gap
+            if data.startswith(prologue, offset):
+                return offset + len(prologue)
+    return None
+
 
 def sha256_bytes(data: bytes) -> str:
     """Return a lowercase SHA-256 digest."""
@@ -106,21 +125,16 @@ def chaskey_ctr(key: bytes, counter: bytes, data: bytes) -> bytes:
 
 
 def is_donut_shellcode(data: bytes) -> bool:
-    """Return true when bytes have Donut's call-over-instance layout."""
+    """Donutのcall-over-instance構造と有界な既知loader prologueを確認する。"""
     if len(data) < 10 or data[0] != 0xE8:
         return False
     length = struct.unpack_from("<I", data, 1)[0]
     code = 5 + length
-    prologue = data[code : code + 5]
-    return 0 < length <= len(data) - 5 and (
-        prologue.startswith(b"YU\x48\x89\xe5")
-        or prologue.startswith(b"\x59\x31\xc0\x48\x0f")
-        or prologue.startswith(b"\x59\x48\x89\x5c\x24")
-    )
+    return 0 < length <= len(data) - 5 and _loader_prologue_end(data, code) is not None
 
 
 def find_donut_shellcodes(data: bytes, strides: tuple[int, ...] = (1, 4)) -> list[DonutCandidate]:
-    """Find strict call-over-instance Donut shellcode in contiguous or sparse lanes."""
+    """連続領域または疎なbyte列から厳格なDonut候補を探す。"""
     candidates: list[DonutCandidate] = []
     for stride in strides:
         if stride < 1:
@@ -139,14 +153,10 @@ def find_donut_shellcodes(data: bytes, strides: tuple[int, ...] = (1, 4)) -> lis
                 code = offset + 5 + length
                 if length <= 0 or code + 5 > len(lane):
                     continue
-                prologue = lane[code : code + 5]
-                if not (
-                    prologue.startswith(b"YU\x48\x89\xe5")
-                    or prologue.startswith(b"\x59\x31\xc0\x48\x0f")
-                    or prologue.startswith(b"\x59\x48\x89\x5c\x24")
-                ):
+                prologue_end = _loader_prologue_end(lane, code)
+                if prologue_end is None:
                     continue
-                shellcode = lane[offset : code + 5]
+                shellcode = lane[offset:prologue_end]
                 candidates.append(DonutCandidate(phase + offset * stride, stride, shellcode))
     unique: dict[tuple[str, int], DonutCandidate] = {}
     for item in candidates:

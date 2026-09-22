@@ -1,5 +1,5 @@
 {
-  "id": "bundle--f979bff0-84c5-58d6-90ad-7cfcb51146d1",
+  "id": "bundle--e80cf6f7-f88c-5ac7-b5b2-8e4ba19fd0d2",
   "objects": [
     {
       "aliases": [],
@@ -75,14 +75,14 @@
       ],
       "id": "report--e38d1a9d-6f83-5887-82e4-c965372a785b",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "owareaper：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--9ec7c823-c79f-5e7a-bc6f-37a7bd516ef0",
         "note--deaa3327-63cc-5175-ae8c-02f12fd75f50",
         "note--c7445175-1e4a-59c1-9f73-937ab5e61b5b"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

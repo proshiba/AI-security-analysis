@@ -1,5 +1,5 @@
 {
-  "id": "bundle--1bbd1f80-7978-5278-ae61-77ce04a2ca65",
+  "id": "bundle--bca578fb-a56b-5a22-9762-33b31cee208a",
   "objects": [
     {
       "aliases": [
@@ -257,7 +257,7 @@
       ],
       "id": "report--170576bf-9cc8-5257-95c8-0e2276e519c2",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "HijackLoader：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--ee497792-43f9-5e09-a429-ea2998698ac7",
@@ -272,7 +272,7 @@
         "note--2a253284-91b7-5100-b0bc-f20ce82f8a5c",
         "note--bd30e54d-e0d9-532a-84de-63cb64291036"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

@@ -1,5 +1,5 @@
 {
-  "id": "bundle--995e13ac-b39e-5ad1-989a-0c4e19aa7d7f",
+  "id": "bundle--30dfbf26-e61a-54ee-8d6b-894b67333e38",
   "objects": [
     {
       "aliases": [
@@ -225,7 +225,7 @@
       ],
       "id": "report--04f3ba5a-324c-5bf4-be3e-66f61cb49870",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "njRAT：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--c5c996f1-2afe-51a8-9f40-fe9770b25ad2",
@@ -238,7 +238,7 @@
         "note--a84728e3-b08d-5c73-8861-18ec31e2c17a",
         "note--e3deb2c6-e263-5f88-9002-4ef40699858c"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

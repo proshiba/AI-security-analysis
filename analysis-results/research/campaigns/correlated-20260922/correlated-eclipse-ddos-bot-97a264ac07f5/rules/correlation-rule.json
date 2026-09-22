@@ -1,0 +1,20 @@
+{
+  "campaign_id": "correlated-eclipse-ddos-bot-97a264ac07f5",
+  "families": [
+    "eclipse-ddos-bot"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "45.66.228.114:7000"
+    },
+    {
+      "type": "ip",
+      "value": "45.66.228.114"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

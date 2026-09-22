@@ -1,5 +1,5 @@
 {
-  "id": "bundle--bc0bcc62-9778-5314-b882-1b14ba6d6f58",
+  "id": "bundle--36f8a086-42bb-5fad-93d9-66560c2dbe7b",
   "objects": [
     {
       "aliases": [
@@ -194,7 +194,7 @@
       ],
       "id": "report--4a2fc2da-99fe-57e3-9537-d6c54bbe6155",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "StealC：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--df098332-2623-578a-bc2f-e5d5225720e0",
@@ -205,7 +205,7 @@
         "note--aaefa6c0-5eb3-5b07-80fa-4d9623519dd7",
         "note--66ba4f3f-354d-5070-9233-4e56ee30b91c"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

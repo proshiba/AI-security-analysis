@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "58win.builders:22",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:23",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:443",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:5555",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:6066",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:80",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:8080",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:8443",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:9999",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:22",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:23",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:443",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:5555",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:6066",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:80",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:8080",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:8443",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:9999",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:22",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:23",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:443",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:5555",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:6066",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:80",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:8080",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:8443",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:9999",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:22",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:23",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:443",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:5555",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:6066",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:80",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:8080",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:8443",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:9999",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:22",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:23",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:443",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:5555",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:6066",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:80",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:8080",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:8443",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:9999",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    }
+  ]
+}

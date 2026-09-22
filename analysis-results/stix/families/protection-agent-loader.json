@@ -1,5 +1,5 @@
 {
-  "id": "bundle--deab678b-c82f-520d-8811-c9c2906dace0",
+  "id": "bundle--21650e32-c609-5f16-bd16-284d41034cb1",
   "objects": [
     {
       "aliases": [
@@ -117,7 +117,7 @@
       ],
       "id": "report--deefb4e1-4c30-54e1-9fd6-c4a105824c25",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "ProtectionAgent保護.NETローダー：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--2d81824e-3f56-5089-a207-6f89f86bb821",
@@ -126,7 +126,7 @@
         "note--602db1f7-c8f6-50fe-b417-8f0740827b66",
         "note--016ab2c6-8b9c-54f3-b746-1a45260f4ee9"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

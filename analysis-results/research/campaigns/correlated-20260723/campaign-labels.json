@@ -1,5 +1,7 @@
 {
   "schema_version": 1,
+  "invalidated_campaign_ids": ["correlated-wannacry-63b40cc27704"],
+  "invalidation_notice_ja": "該当campaign labelは2026-09-22監査で誤相関と判定。適用しない。",
   "labels": {
     "00e4d6eef2089f774e0b1369eabe9df9696005cb2415eebe3eb1496a1aed8a91": [
       {

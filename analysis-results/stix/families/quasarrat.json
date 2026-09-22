@@ -1,5 +1,5 @@
 {
-  "id": "bundle--67125b9f-572a-5947-a77e-ee696677cdf3",
+  "id": "bundle--a745ca4e-6a8d-53cf-86fc-4af4f67d9467",
   "objects": [
     {
       "aliases": [
@@ -304,7 +304,7 @@
       ],
       "id": "report--313f23a1-d483-5adb-a2c5-a52d10b67e10",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "QuasarRAT：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--b5562de3-9052-5277-a850-a9aa83ad7b1b",
@@ -321,7 +321,7 @@
         "note--a7524985-8726-58cd-bcf7-93b94c783300",
         "note--72b78e24-bb76-5502-9b81-736620236f8a"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

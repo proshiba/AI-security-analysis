@@ -1,5 +1,9 @@
 # campaign候補：correlated-wannacry-63b40cc27704
 
+> **無効化（2026-09-22）**: 本件は同一campaignの根拠になりません。旧相関器が`0.oj`等の任意文字列と`c.wnry`等のWannaCry構成ファイル名をdomainとして扱い、共通初期値と配布物内の文字列を過大評価しました。以下の旧score・共有指標は監査履歴であり、IOC、C2、campaign fingerprintとして使用しません。5件の同一攻撃活動・同一アクターは未立証です。
+
+現在の相関器では`IOC-LIST.md`を優先し、旧caseのJSON fallbackでも明示的なC2 key以外を受け入れません。再評価には、正規化された検体固有の配布・設定・通信・コード根拠が必要です。
+
 - 分類: `same_family_campaign_candidate`
 - 確度: `high`
 - ファミリー: `wannacry`

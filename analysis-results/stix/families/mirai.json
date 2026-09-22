@@ -1,5 +1,5 @@
 {
-  "id": "bundle--e1b8e514-1a42-5603-b3bc-664f637596ae",
+  "id": "bundle--fa35a219-350e-5711-a1f3-3819b80aa2a8",
   "objects": [
     {
       "aliases": [],
@@ -457,7 +457,7 @@
       ],
       "id": "report--c3e4302b-195d-5ffe-a1aa-e45b6ea8a908",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Mirai：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f",
@@ -484,7 +484,7 @@
         "relationship--3bcd4189-46f8-5b8e-a34c-4e9df45ff1c8",
         "relationship--2975cb4b-53ef-5fee-b78c-46ec07bf09fb"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

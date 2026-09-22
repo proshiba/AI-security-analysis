@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "url",
+      "value": "https://fluraresto.me/live/",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "https://mastralakkot.live/live/",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 3
+    }
+  ]
+}

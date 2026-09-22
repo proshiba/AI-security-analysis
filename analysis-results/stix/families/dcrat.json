@@ -1,5 +1,5 @@
 {
-  "id": "bundle--a9ce525c-83a3-5f78-8c11-a37227b75a07",
+  "id": "bundle--aa74dae4-2463-578f-a260-2a3a513cd436",
   "objects": [
     {
       "aliases": [
@@ -219,7 +219,7 @@
       ],
       "id": "report--d40b6524-e94d-58c6-94a0-0f85aa2d82db",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "DCRat：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--fd34b53d-2028-5316-a7b0-1f309903cf1c",
@@ -231,7 +231,7 @@
         "note--7d353813-b0cd-5d4a-8c88-7b9630c2e31d",
         "note--22dd4fe4-c0b9-55ff-a13d-ad98c35d43a6"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

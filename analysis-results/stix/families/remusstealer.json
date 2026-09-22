@@ -1,5 +1,5 @@
 {
-  "id": "bundle--5d1fc496-0867-57db-a818-ba5c4afa73c8",
+  "id": "bundle--6f1229d2-14dc-5e0a-bebc-43eb1506cf09",
   "objects": [
     {
       "aliases": [
@@ -218,7 +218,7 @@
       ],
       "id": "report--f85d5dfb-0b53-5202-aa11-d88ed9e6b6f6",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "RemusStealer：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--778cf38e-3349-5d94-bfef-00e03df81c55",
@@ -230,7 +230,7 @@
         "note--3eb1e713-0c5f-55bd-b87b-1566b2a431f5",
         "note--120ab102-431f-5ca7-99f6-588f1aedd82c"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

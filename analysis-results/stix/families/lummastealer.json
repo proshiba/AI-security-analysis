@@ -1,5 +1,5 @@
 {
-  "id": "bundle--cf4ba0c9-2f35-5afe-a1c4-5ce302c0d874",
+  "id": "bundle--6f7309c4-419b-5439-a3fd-1609b8fb9aec",
   "objects": [
     {
       "aliases": [
@@ -190,7 +190,7 @@
       ],
       "id": "report--bceb35d6-c1bf-55a9-b93c-04070fb297d8",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Lumma Stealer：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--8aa9f911-2868-53ae-91e5-20e43b24faac",
@@ -201,7 +201,7 @@
         "note--6f4f0945-8877-53ec-b446-646b0d50be6a",
         "note--94fc911c-d661-54bc-851d-ba415422b3c9"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

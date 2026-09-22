@@ -1,5 +1,5 @@
 {
-  "id": "bundle--33f737e5-d694-54e1-bf5b-0edf8e7ffd0a",
+  "id": "bundle--eada3650-0cfa-52d4-8c7e-19a7b5390ad6",
   "objects": [
     {
       "aliases": [
@@ -247,7 +247,7 @@
       ],
       "id": "report--e00a1673-03cf-5a5a-9ca6-220722aef8a7",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "Mirai派生ENS/DoH Bot：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--bc4f4a40-8360-5661-8ed3-676cf30299cf",
@@ -260,7 +260,7 @@
         "note--8c44e39d-ff37-517c-a908-0781b0f9e8f0",
         "note--d87644a1-2025-51f4-bd4a-49962496f2d5"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

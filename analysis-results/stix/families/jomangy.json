@@ -1,5 +1,5 @@
 {
-  "id": "bundle--f74ff2de-aa09-5bca-a71b-06944fd45eae",
+  "id": "bundle--cf265651-a928-5a94-88a6-0b76ddbc054b",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--887e05b2-89f5-5559-8524-c4308ed7ad4e",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "jomangy：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--60fab12a-78d6-5436-8996-271e9a0d2b77",
         "note--34b9afb5-13d4-5fb8-9b7b-12683e2bfec7"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

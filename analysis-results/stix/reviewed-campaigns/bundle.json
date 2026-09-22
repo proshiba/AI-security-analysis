@@ -1,0 +1,501 @@
+{
+  "type": "bundle",
+  "id": "bundle--9ff9d8bc-3acb-57c0-876e-b30dfc471e2c",
+  "objects": [
+    {
+      "type": "campaign",
+      "spec_version": "2.1",
+      "id": "campaign--89ede0d7-7644-5d7a-8ce1-89f95553d8fb",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "name": "TA577によるLatrodectus配布（2023-11-27）",
+      "description": "ProofpointのIOC表にLNKとLatrodectus DLLの完全一致SHA-256が掲載される。TA577の帰属は同報告の2023年11月活動評価に依拠する。",
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice",
+          "description": "公表日: 2024-04-04"
+        }
+      ],
+      "first_seen": "2023-11-27T00:00:00Z",
+      "last_seen": "2023-11-27T23:59:59Z"
+    },
+    {
+      "type": "intrusion-set",
+      "spec_version": "2.1",
+      "id": "intrusion-set--b5d8b98e-2935-5df6-8f14-865c057917b8",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "name": "TA577",
+      "description": "当該キャンペーンへの帰属は公開一次資料の評価に限定する。別名の同一性は主張しない。",
+      "external_references": [
+        {
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice",
+          "description": "公表日: 2024-04-04"
+        }
+      ]
+    },
+    {
+      "type": "relationship",
+      "spec_version": "2.1",
+      "id": "relationship--68c719bc-2482-5c7f-9364-cbd5e4c22118",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "relationship_type": "attributed-to",
+      "source_ref": "campaign--89ede0d7-7644-5d7a-8ce1-89f95553d8fb",
+      "target_ref": "intrusion-set--b5d8b98e-2935-5df6-8f14-865c057917b8",
+      "description": "Proofpoint・Team Cymruによる帰属。独立のactor同定ではない。",
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice",
+          "description": "公表日: 2024-04-04"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "id": "file--5c997351-6492-5592-a19e-8a91c51288e8",
+      "hashes": {
+        "SHA-256": "db03a34684feab7475862080f59d4d99b32c74d3a152a53b257fd1a443e8ee77"
+      }
+    },
+    {
+      "type": "note",
+      "spec_version": "2.1",
+      "id": "note--a283e3e6-6daf-5bcf-8590-3760b79e8a3c",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "content": "LNK配布物。一致根拠: exact_sha256。",
+      "object_refs": [
+        "campaign--89ede0d7-7644-5d7a-8ce1-89f95553d8fb",
+        "file--5c997351-6492-5592-a19e-8a91c51288e8"
+      ],
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice",
+          "description": "公表日: 2024-04-04"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "id": "file--63a89994-c47d-5a64-90d2-d2f4cd412c25",
+      "hashes": {
+        "SHA-256": "e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7"
+      }
+    },
+    {
+      "type": "note",
+      "spec_version": "2.1",
+      "id": "note--a7077a2b-4702-585d-a1ee-94dd388dac5c",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "content": "Latrodectus DLL。一致根拠: exact_sha256。",
+      "object_refs": [
+        "campaign--89ede0d7-7644-5d7a-8ce1-89f95553d8fb",
+        "file--63a89994-c47d-5a64-90d2-d2f4cd412c25"
+      ],
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice",
+          "description": "公表日: 2024-04-04"
+        }
+      ]
+    },
+    {
+      "type": "campaign",
+      "spec_version": "2.1",
+      "id": "campaign--c2b47f56-b4ff-5563-a239-c92237e4c45d",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "name": "TA578によるLatrodectus配布（2024年3月）",
+      "description": "同一DLLのSHA-256がProofpointの2024-03-04と2024-03-07のIOC行に掲載される。TA578の帰属は同報告の配布活動評価に依拠する。",
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice",
+          "description": "公表日: 2024-04-04"
+        }
+      ],
+      "first_seen": "2024-03-04T00:00:00Z",
+      "last_seen": "2024-03-07T23:59:59Z"
+    },
+    {
+      "type": "intrusion-set",
+      "spec_version": "2.1",
+      "id": "intrusion-set--a6a5f005-7b50-5fcd-8809-8d9e39459dd4",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "name": "TA578",
+      "description": "当該キャンペーンへの帰属は公開一次資料の評価に限定する。別名の同一性は主張しない。",
+      "external_references": [
+        {
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice",
+          "description": "公表日: 2024-04-04"
+        }
+      ]
+    },
+    {
+      "type": "relationship",
+      "spec_version": "2.1",
+      "id": "relationship--4908f83e-7861-5f39-a3e4-ed9c69d86d3b",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "relationship_type": "attributed-to",
+      "source_ref": "campaign--c2b47f56-b4ff-5563-a239-c92237e4c45d",
+      "target_ref": "intrusion-set--a6a5f005-7b50-5fcd-8809-8d9e39459dd4",
+      "description": "Proofpoint・Team Cymruによる帰属。独立のactor同定ではない。",
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice",
+          "description": "公表日: 2024-04-04"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "id": "file--5ba4c254-53f9-59e5-927f-60a72cde1a66",
+      "hashes": {
+        "SHA-256": "aee22a35cbdac3f16c3ed742c0b1bfe9739a13469cf43b36fb2c63565111028c"
+      }
+    },
+    {
+      "type": "note",
+      "spec_version": "2.1",
+      "id": "note--e66e4f18-04a4-523f-8de6-d55fd1cd9084",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "content": "Latrodectus DLL。一致根拠: exact_sha256。",
+      "object_refs": [
+        "campaign--c2b47f56-b4ff-5563-a239-c92237e4c45d",
+        "file--5ba4c254-53f9-59e5-927f-60a72cde1a66"
+      ],
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "Proofpoint・Team Cymru",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice",
+          "description": "公表日: 2024-04-04"
+        }
+      ]
+    },
+    {
+      "type": "campaign",
+      "spec_version": "2.1",
+      "id": "campaign--b821231b-775f-5f67-97f3-90a8dc283b32",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "name": "APT-C-60によるSpyGlace配布（2026年）",
+      "description": "JPCERT/CC付録CのSpyGlace v3.1.15符号化ファイル4件と完全一致する。ローカルで復号したPEと設定は別の静的証拠であり、2024年・2025年活動への個別hash帰属はしない。 活動時期: 2026年。JPCERT/CCは個々の4検体の活動日を指定していない。",
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html",
+          "description": "公表日: 2026-07-13"
+        }
+      ]
+    },
+    {
+      "type": "intrusion-set",
+      "spec_version": "2.1",
+      "id": "intrusion-set--1086bc0a-b878-5452-b863-0f9b8b606d0f",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "name": "APT-C-60",
+      "description": "当該キャンペーンへの帰属は公開一次資料の評価に限定する。別名の同一性は主張しない。",
+      "external_references": [
+        {
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html",
+          "description": "公表日: 2026-07-13"
+        }
+      ]
+    },
+    {
+      "type": "relationship",
+      "spec_version": "2.1",
+      "id": "relationship--a4b11030-5d41-573f-9e5f-be9be4177221",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "relationship_type": "attributed-to",
+      "source_ref": "campaign--b821231b-775f-5f67-97f3-90a8dc283b32",
+      "target_ref": "intrusion-set--1086bc0a-b878-5452-b863-0f9b8b606d0f",
+      "description": "JPCERT/CCによる帰属。独立のactor同定ではない。",
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html",
+          "description": "公表日: 2026-07-13"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "id": "file--1aeb304e-69a6-5959-b9e0-0d621d81c9eb",
+      "hashes": {
+        "SHA-256": "e5f2c7068ade7b87d24c3b94bc749c351d53609f5fcaa48dce06234beaa2444f"
+      }
+    },
+    {
+      "type": "note",
+      "spec_version": "2.1",
+      "id": "note--6ffc3ed2-0c70-53bd-9970-d352e65c91ab",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "content": "SpyGlace v3.1.15符号化ファイル。一致根拠: exact_sha256。",
+      "object_refs": [
+        "campaign--b821231b-775f-5f67-97f3-90a8dc283b32",
+        "file--1aeb304e-69a6-5959-b9e0-0d621d81c9eb"
+      ],
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html",
+          "description": "公表日: 2026-07-13"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "id": "file--769844e0-c46d-572d-b036-44e1c3a27167",
+      "hashes": {
+        "SHA-256": "9394627e9c44cf2226ddf50012e5cf47ccf7d3bd8afa2395c635a93637e23502"
+      }
+    },
+    {
+      "type": "note",
+      "spec_version": "2.1",
+      "id": "note--7bd3fcc2-7fa7-505f-8e3d-36c0b0be5454",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "content": "SpyGlace v3.1.15符号化ファイル。一致根拠: exact_sha256。",
+      "object_refs": [
+        "campaign--b821231b-775f-5f67-97f3-90a8dc283b32",
+        "file--769844e0-c46d-572d-b036-44e1c3a27167"
+      ],
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html",
+          "description": "公表日: 2026-07-13"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "id": "file--788a2bd5-fb5c-56bb-84df-44f5c12f8ebd",
+      "hashes": {
+        "SHA-256": "add013bf7ffc8a89789a7fd0ae0ff799c620af9b2755b214880b6a56768fd48c"
+      }
+    },
+    {
+      "type": "note",
+      "spec_version": "2.1",
+      "id": "note--a4bea578-e03b-5853-aa27-aa45a65f70b6",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "content": "SpyGlace v3.1.15符号化ファイル。一致根拠: exact_sha256。",
+      "object_refs": [
+        "campaign--b821231b-775f-5f67-97f3-90a8dc283b32",
+        "file--788a2bd5-fb5c-56bb-84df-44f5c12f8ebd"
+      ],
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html",
+          "description": "公表日: 2026-07-13"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "id": "file--4568924f-4b47-564d-b6d8-cd832ec04d2b",
+      "hashes": {
+        "SHA-256": "c86f319f64d25f23ac29d9b53c9764f06a150634ee8e2d836424d460e5a99b52"
+      }
+    },
+    {
+      "type": "note",
+      "spec_version": "2.1",
+      "id": "note--392a13db-1925-5a70-9a19-6aade5328694",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "content": "SpyGlace v3.1.15符号化ファイル。一致根拠: exact_sha256。",
+      "object_refs": [
+        "campaign--b821231b-775f-5f67-97f3-90a8dc283b32",
+        "file--4568924f-4b47-564d-b6d8-cd832ec04d2b"
+      ],
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "JPCERT/CC",
+          "url": "https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html",
+          "description": "公表日: 2026-07-13"
+        }
+      ]
+    },
+    {
+      "type": "campaign",
+      "spec_version": "2.1",
+      "id": "campaign--e3fbe903-7548-5183-a5cb-a03e9498457b",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "name": "Head MareによるTrueConf Server侵害と改ざんインストーラー（2026年7月）",
+      "description": "Kaspersky公開MD5の改ざんTrueConfインストーラーと、ローカルで対応づけたSHA-256が一致する。PhantomCore子DLLとC2は独立復元していない。 活動時期: 2026年7月。日単位の初観測日は公開されていない。",
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "Kaspersky",
+          "url": "https://securelist.ru/tr/head-mare-targets-trueconf-server-with-phantomcore/116557/",
+          "description": "公表日: 2026-08-07"
+        }
+      ]
+    },
+    {
+      "type": "intrusion-set",
+      "spec_version": "2.1",
+      "id": "intrusion-set--e837cdc5-a411-5b2d-9bd1-f32c5dc75fdb",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "name": "Head Mare",
+      "description": "当該キャンペーンへの帰属は公開一次資料の評価に限定する。別名の同一性は主張しない。",
+      "external_references": [
+        {
+          "source_name": "Kaspersky",
+          "url": "https://securelist.ru/tr/head-mare-targets-trueconf-server-with-phantomcore/116557/",
+          "description": "公表日: 2026-08-07"
+        }
+      ]
+    },
+    {
+      "type": "relationship",
+      "spec_version": "2.1",
+      "id": "relationship--71ed02d7-312f-521d-af64-b1e99e308e76",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "relationship_type": "attributed-to",
+      "source_ref": "campaign--e3fbe903-7548-5183-a5cb-a03e9498457b",
+      "target_ref": "intrusion-set--e837cdc5-a411-5b2d-9bd1-f32c5dc75fdb",
+      "description": "Kasperskyによる帰属。独立のactor同定ではない。",
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "Kaspersky",
+          "url": "https://securelist.ru/tr/head-mare-targets-trueconf-server-with-phantomcore/116557/",
+          "description": "公表日: 2026-08-07"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "id": "file--c9c81ee2-dea5-5ca4-9f14-9d9ed0a8859f",
+      "hashes": {
+        "SHA-256": "e66bbb6c651b5ab839434b8e62f502169f35894e28dbe9f3275911582eccd250",
+        "MD5": "748c9f8cb1065000616204935f96207f"
+      }
+    },
+    {
+      "type": "note",
+      "spec_version": "2.1",
+      "id": "note--9bd79c5c-944f-54f9-90c6-60048290f9cb",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "content": "改ざんTrueConf Clientインストーラー。一致根拠: exact_md5_with_verified_sha256_mapping。",
+      "object_refs": [
+        "campaign--e3fbe903-7548-5183-a5cb-a03e9498457b",
+        "file--c9c81ee2-dea5-5ca4-9f14-9d9ed0a8859f"
+      ],
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "Kaspersky",
+          "url": "https://securelist.ru/tr/head-mare-targets-trueconf-server-with-phantomcore/116557/",
+          "description": "公表日: 2026-08-07"
+        }
+      ]
+    },
+    {
+      "type": "campaign",
+      "spec_version": "2.1",
+      "id": "campaign--030c3a7f-3838-5e87-b150-3a5985d60b55",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "name": "grandfoodtony.comを用いたShadowPad活動（2021年）",
+      "description": "ローカル復号設定のwww.grandfoodtony.comはKaspersky ICS CERT掲載のgrandfoodtony.com配下である。公開報告にはローカルSHA-256、campaign ID、ポート、Casper構造の対応は掲載されず、同一キャンペーンへの完全一致は未確認。Hafnium等へ帰属しない。 活動時期: 2021年3月以降。公開報告の対象活動とローカル検体の取得日は別。",
+      "confidence": 50,
+      "external_references": [
+        {
+          "source_name": "Kaspersky ICS CERT",
+          "url": "https://ics-cert.kaspersky.com/publications/reports/2022/06/27/attacks-on-industrial-control-systems-using-shadowpad/",
+          "description": "公表日: 2022-06-27"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "id": "file--996e038f-d613-5bcf-89b2-4b6111b9c2c4",
+      "hashes": {
+        "SHA-256": "231d21ceefd5c70aa952e8a21523dfe6b5aae9ae6e2b71a0cdbe4e5430b4f5b3"
+      }
+    },
+    {
+      "type": "note",
+      "spec_version": "2.1",
+      "id": "note--c5f57f17-f7eb-5800-9a8a-2d40a2a23bea",
+      "created": "2026-09-22T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
+      "lang": "ja",
+      "content": "ShadowPad Casperローダー／設定一致候補。一致根拠: reported_domain_overlap_only。 公開報告にこのSHA-256やローカルcampaign IDは掲載されず、同一campaignは低確度候補に留まる。",
+      "object_refs": [
+        "campaign--030c3a7f-3838-5e87-b150-3a5985d60b55",
+        "file--996e038f-d613-5bcf-89b2-4b6111b9c2c4"
+      ],
+      "confidence": 20,
+      "external_references": [
+        {
+          "source_name": "Kaspersky ICS CERT",
+          "url": "https://ics-cert.kaspersky.com/publications/reports/2022/06/27/attacks-on-industrial-control-systems-using-shadowpad/",
+          "description": "公表日: 2022-06-27"
+        }
+      ]
+    }
+  ]
+}

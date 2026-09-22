@@ -1,5 +1,5 @@
 {
-  "id": "bundle--4e91ad2f-3595-505b-a7b2-6d1444879d3a",
+  "id": "bundle--dae7f100-68cf-5668-b1c1-76fbac8d39a9",
   "objects": [
     {
       "aliases": [
@@ -249,7 +249,7 @@
       ],
       "id": "report--68e31003-b5fe-5e1c-8f76-ba44a8459261",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "ValleyRAT / Winos4.0：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--c64c2639-bebf-55c6-be74-c70e5a8b1598",
@@ -264,7 +264,7 @@
         "relationship--3e28b459-6434-5107-b1b8-db24c95ffd7a",
         "note--5939a6c7-0bec-5413-9a8b-6315c8db1007"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

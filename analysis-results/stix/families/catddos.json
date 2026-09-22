@@ -1,5 +1,5 @@
 {
-  "id": "bundle--ecc61819-6c6f-5805-a203-93edb466081d",
+  "id": "bundle--24ce2c34-c4d1-566a-ac69-c98c18b31622",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--0e3462bf-0370-56a7-a5d3-d890e53febc8",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "catddos：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--a623672a-78cb-569f-9a31-1dc6d703833a",
         "note--0096a7f7-df05-55f9-9e65-d24b60552cce"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "geschmeidig6307-kotyatanet.sbs:443",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "endpoint",
+      "value": "samtpfotchensnezhok9566leisegepard.sbs:443",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "endpoint",
+      "value": "wintersonyae246leisekoshachiy.icu:443",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    }
+  ]
+}

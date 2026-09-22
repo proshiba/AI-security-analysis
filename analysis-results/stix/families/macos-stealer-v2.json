@@ -1,5 +1,5 @@
 {
-  "id": "bundle--d396543d-611e-5e8f-8fbc-e522a9a24c7b",
+  "id": "bundle--abe6d6b1-1528-5909-8396-d92426da039d",
   "objects": [
     {
       "aliases": [
@@ -176,7 +176,7 @@
       ],
       "id": "report--cb60d84b-6ca1-57f3-b776-3b050296de36",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "MioLab／Nova（macos-stealer-v2）：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--a24e896c-1eef-5b96-8ea3-4513eee4d340",
@@ -188,7 +188,7 @@
         "campaign--f87a77be-8171-50a0-992c-07a160c45a00",
         "relationship--52b4b1b9-c330-5065-a7db-3671b73f3254"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

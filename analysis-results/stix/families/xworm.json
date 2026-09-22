@@ -1,5 +1,5 @@
 {
-  "id": "bundle--10e4541e-2c89-5f57-8c82-db5d330a5fbc",
+  "id": "bundle--d361068a-f53c-534c-956d-8e7e180e61a2",
   "objects": [
     {
       "aliases": [
@@ -203,7 +203,7 @@
       ],
       "id": "report--b1acbe82-ddce-5dfc-a7c5-089fabe82214",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "XWorm：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--09ca90cf-2061-58dd-9a3a-0f44fdb41380",
@@ -214,7 +214,7 @@
         "note--5f0c1d37-037b-5f76-8036-d75d90bab4d7",
         "note--9087cc65-de32-5e03-aba5-fd940b1c8042"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

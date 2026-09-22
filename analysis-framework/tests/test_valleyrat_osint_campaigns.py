@@ -104,7 +104,7 @@ def test_curated_parent_child_members_are_local_candidates() -> None:
     } == {cluster["campaign_id"]}
 
 
-def test_case_evidence_uses_text_artifacts_without_execution(tmp_path: Path) -> None:
+def test_case_evidence_does_not_promote_untyped_text_hash(tmp_path: Path) -> None:
     digest = "f" * 64
     case = tmp_path / digest
     case.mkdir()
@@ -119,4 +119,26 @@ def test_case_evidence_uses_text_artifacts_without_execution(tmp_path: Path) -> 
     evidence = extract_case_evidence(case)
     assert evidence["delivery_pattern"] == "dll_sideload_vvas_bundle"
     assert evidence["endpoints"] == ["203.0.113.10:443"]
-    assert evidence["artifact_sha256"] == sorted([digest, "1" * 64])
+    assert evidence["artifact_sha256"] == [digest]
+
+
+def test_legitimate_sideload_host_is_context_not_campaign_confirmation(tmp_path: Path) -> None:
+    registry = load_registry(REGISTRY)
+    digest = "2" * 64
+    case = tmp_path / digest
+    case.mkdir()
+    host = "facf78d474b66ed821288db41fa6ad8a7b6f30650eb12127cb3e9a3cc6146116"
+    (case / "iocs.json").write_text(
+        json.dumps({"files": [
+            {"sha256": host, "role": "legitimate_sideload_host", "confidence": "context_only_not_standalone_ioc"},
+            {"sha256": digest, "role": "malicious_sideload_dll", "confidence": "confirmed_malicious"},
+        ]}), encoding="utf-8",
+    )
+    evidence = extract_case_evidence(case)
+    assert evidence["artifact_sha256"] == [digest]
+    assert evidence["context_sha256"] == [host]
+    report = build_attribution([evidence], registry)
+    record = report["cases"][0]
+    assert record["status"] == "shared_sideload_host_context"
+    assert record["actor_assessment"]["status"] == "unresolved"
+    assert record["public_campaign_matches"][0]["status"] == "shared_sideload_host_context"

@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-09-22",
+  "campaigns": [
+    {
+      "id": "proofpoint-ta577-latrodectus-20231127",
+      "name": "TA577によるLatrodectus配布（2023-11-27）",
+      "family": "latrodectus",
+      "match_strength": "exact_sha256",
+      "actor": "TA577",
+      "actor_attribution": "source_attributed",
+      "activity_start": "2023-11-27",
+      "activity_end": "2023-11-27",
+      "publication_date": "2024-04-04",
+      "source_name": "Proofpoint・Team Cymru",
+      "source_url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice",
+      "description": "ProofpointのIOC表にLNKとLatrodectus DLLの完全一致SHA-256が掲載される。TA577の帰属は同報告の2023年11月活動評価に依拠する。",
+      "files": [
+        {"sha256": "db03a34684feab7475862080f59d4d99b32c74d3a152a53b257fd1a443e8ee77", "role": "LNK配布物", "extension": "lnk"},
+        {"sha256": "e99f3517a36a9f7a55335699cfb4d84d08b042d47146119156f7f3bab580b4d7", "role": "Latrodectus DLL", "extension": "dll"}
+      ]
+    },
+    {
+      "id": "proofpoint-ta578-latrodectus-202403",
+      "name": "TA578によるLatrodectus配布（2024年3月）",
+      "family": "latrodectus",
+      "match_strength": "exact_sha256",
+      "actor": "TA578",
+      "actor_attribution": "source_attributed",
+      "activity_start": "2024-03-04",
+      "activity_end": "2024-03-07",
+      "publication_date": "2024-04-04",
+      "source_name": "Proofpoint・Team Cymru",
+      "source_url": "https://www.proofpoint.com/us/blog/threat-insight/latrodectus-spider-bytes-ice",
+      "description": "同一DLLのSHA-256がProofpointの2024-03-04と2024-03-07のIOC行に掲載される。TA578の帰属は同報告の配布活動評価に依拠する。",
+      "files": [
+        {"sha256": "aee22a35cbdac3f16c3ed742c0b1bfe9739a13469cf43b36fb2c63565111028c", "role": "Latrodectus DLL", "extension": "dll"}
+      ]
+    },
+    {
+      "id": "jpcert-apt-c60-spyglace-2026",
+      "name": "APT-C-60によるSpyGlace配布（2026年）",
+      "family": "spyglace",
+      "match_strength": "exact_sha256",
+      "actor": "APT-C-60",
+      "actor_attribution": "source_attributed",
+      "activity_window": "2026年。JPCERT/CCは個々の4検体の活動日を指定していない。",
+      "publication_date": "2026-07-13",
+      "source_name": "JPCERT/CC",
+      "source_url": "https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html",
+      "description": "JPCERT/CC付録CのSpyGlace v3.1.15符号化ファイル4件と完全一致する。ローカルで復号したPEと設定は別の静的証拠であり、2024年・2025年活動への個別hash帰属はしない。",
+      "files": [
+        {"sha256": "e5f2c7068ade7b87d24c3b94bc749c351d53609f5fcaa48dce06234beaa2444f", "role": "SpyGlace v3.1.15符号化ファイル", "extension": "tmp"},
+        {"sha256": "9394627e9c44cf2226ddf50012e5cf47ccf7d3bd8afa2395c635a93637e23502", "role": "SpyGlace v3.1.15符号化ファイル", "extension": "tmp"},
+        {"sha256": "add013bf7ffc8a89789a7fd0ae0ff799c620af9b2755b214880b6a56768fd48c", "role": "SpyGlace v3.1.15符号化ファイル", "extension": "tmp"},
+        {"sha256": "c86f319f64d25f23ac29d9b53c9764f06a150634ee8e2d836424d460e5a99b52", "role": "SpyGlace v3.1.15符号化ファイル", "extension": "tmp"}
+      ]
+    },
+    {
+      "id": "kaspersky-head-mare-trueconf-202607",
+      "name": "Head MareによるTrueConf Server侵害と改ざんインストーラー（2026年7月）",
+      "family": null,
+      "match_strength": "exact_md5_with_verified_sha256_mapping",
+      "actor": "Head Mare",
+      "actor_attribution": "source_attributed",
+      "activity_window": "2026年7月。日単位の初観測日は公開されていない。",
+      "publication_date": "2026-08-07",
+      "source_name": "Kaspersky",
+      "source_url": "https://securelist.ru/tr/head-mare-targets-trueconf-server-with-phantomcore/116557/",
+      "description": "Kaspersky公開MD5の改ざんTrueConfインストーラーと、ローカルで対応づけたSHA-256が一致する。PhantomCore子DLLとC2は独立復元していない。",
+      "files": [
+        {"sha256": "e66bbb6c651b5ab839434b8e62f502169f35894e28dbe9f3275911582eccd250", "md5": "748c9f8cb1065000616204935f96207f", "role": "改ざんTrueConf Clientインストーラー", "extension": "exe"}
+      ]
+    },
+    {
+      "id": "kaspersky-ics-shadowpad-2021-grandfoodtony",
+      "name": "grandfoodtony.comを用いたShadowPad活動（2021年）",
+      "family": "shadowpad",
+      "match_strength": "reported_domain_overlap_only",
+      "actor": null,
+      "actor_attribution": "unresolved",
+      "activity_window": "2021年3月以降。公開報告の対象活動とローカル検体の取得日は別。",
+      "publication_date": "2022-06-27",
+      "source_name": "Kaspersky ICS CERT",
+      "source_url": "https://ics-cert.kaspersky.com/publications/reports/2022/06/27/attacks-on-industrial-control-systems-using-shadowpad/",
+      "description": "ローカル復号設定のwww.grandfoodtony.comはKaspersky ICS CERT掲載のgrandfoodtony.com配下である。公開報告にはローカルSHA-256、campaign ID、ポート、Casper構造の対応は掲載されず、同一キャンペーンへの完全一致は未確認。Hafnium等へ帰属しない。",
+      "files": [
+        {"sha256": "231d21ceefd5c70aa952e8a21523dfe6b5aae9ae6e2b71a0cdbe4e5430b4f5b3", "role": "ShadowPad Casperローダー／設定一致候補", "extension": "dll"}
+      ]
+    }
+  ]
+}

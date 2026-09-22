@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "meower.eth",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    },
+    {
+      "type": "domain",
+      "value": "roanoke.sol",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 6
+    },
+    {
+      "type": "endpoint",
+      "value": "172.233.124.230:39419",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "endpoint",
+      "value": "45.154.98.115:39419",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "endpoint",
+      "value": "deformed.su:9018",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "endpoint",
+      "value": "nvms9000.online:9018",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "ip",
+      "value": "172.233.124.230",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    },
+    {
+      "type": "ip",
+      "value": "45.154.98.115",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 2
+    }
+  ]
+}

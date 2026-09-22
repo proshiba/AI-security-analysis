@@ -1,5 +1,5 @@
 {
-  "id": "bundle--f0ab9b8b-6ff4-595a-a0e8-6f7120a35684",
+  "id": "bundle--72f88571-eacf-5fd1-8f80-50d697492f58",
   "objects": [
     {
       "aliases": [
@@ -253,7 +253,7 @@
       ],
       "id": "report--dac39602-a4c7-5c30-a322-a222b57e7f50",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "WannaCry：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--e34a4bfc-aac4-5748-b460-25346cd291c8",
@@ -268,7 +268,7 @@
         "relationship--d53b28cd-e172-5c78-850b-ee28ff60b766",
         "relationship--591076da-575c-5375-8249-782f1b4d0407"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

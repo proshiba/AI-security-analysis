@@ -1,5 +1,5 @@
 {
-  "id": "bundle--6590d725-d3d6-5889-899a-ffd3535d7a4e",
+  "id": "bundle--d2cdaaaf-ec15-52c1-a444-5fd949729e48",
   "objects": [
     {
       "aliases": [
@@ -268,7 +268,7 @@
       ],
       "id": "report--2ee5e7f9-a802-5e81-896b-096330d1e2b1",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "PureLogs：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--a07f9fd6-e1dd-5631-a5d1-691dc647af2e",
@@ -283,7 +283,7 @@
         "relationship--fcc91f6e-b52b-575e-a165-0f8b2b4a0ff0",
         "note--ace7ccbd-b6fa-526c-9009-48d7a92b511b"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

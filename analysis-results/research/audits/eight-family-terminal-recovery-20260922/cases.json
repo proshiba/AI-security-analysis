@@ -1,0 +1,2463 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-09-22",
+  "scope": "8ファミリー整理先の終端未復元台帳",
+  "evidence_boundary": "case別アーカイブキーやZIP名の一致だけでは元byte・終端byteの内包を証明しない。family整理先は終端familyの確定ではない。",
+  "summary": {
+    "total": 104,
+    "by_family": {
+      "purehvnc": 3,
+      "dcrat": 0,
+      "asyncrat": 3,
+      "venomrat": 8,
+      "formbook": 11,
+      "lummastealer": 16,
+      "remusstealer": 22,
+      "valleyrat": 41
+    },
+    "by_root_byte_evidence": {
+      "local_archive_name_only": 6,
+      "not_confirmed_in_searched_indexes": 72,
+      "private_case_archive_key_only": 9,
+      "verified_local_archive_member": 1,
+      "verified_local_root_bytes": 16
+    },
+    "report_available": 56,
+    "static_layer_report_available": 55,
+    "public_child_layer_present": 3,
+    "selected_family_present": 6,
+    "private_case_archive_key_observed": 19
+  },
+  "cases": [
+    {
+      "sha256": "a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9",
+      "family": "purehvnc",
+      "priority": "P0",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "container_or_resource_boundary",
+        "protector_or_virtualization_boundary",
+        "terminal_config_unrecovered",
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap",
+        "terminal_protector_resource_backed_method_body_restoration_blocks_config_and_c2"
+      ],
+      "case_path": "analysis-results/malware/purehvnc/versions/unknown/cases/a4a0b87c94132e0433ae48e2151f31e8cdb02113cd0f3aa81a903adc854a64d9",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": "purehvnc",
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "4972c57c77b67c080fca0e1f97e650894f7b60fb50d049ae9f43d83759fad701",
+      "family": "valleyrat",
+      "priority": "P0",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "terminal_family_not_confirmed"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/4972c57c77b67c080fca0e1f97e650894f7b60fb50d049ae9f43d83759fad701",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 1,
+      "selected_family": "valleyrat",
+      "reported_case_status": "complete",
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "復元済みOnyx shellcodeを非実行で解析し、終端ファミリーと後続層を検証する。"
+    },
+    {
+      "sha256": "6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1",
+      "family": "valleyrat",
+      "priority": "P0",
+      "gap_state": "source_material_absent",
+      "gap_types": [
+        "required_bytes_absent"
+      ],
+      "blockers": [
+        "required_terminal_bytes_absent"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/6546aad603716ebbe02412440e8d8d8e5fd7af80f212c6fe45e50a76f093c6d1",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "不足する終端byteの取得可能性を認証済み保管物・完全SHA一致の公開成果物から確認する。rootだけで終端復元済みとしない。"
+    },
+    {
+      "sha256": "81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9",
+      "family": "valleyrat",
+      "priority": "P0",
+      "gap_state": "curated_recovery_backlog",
+      "gap_types": [
+        "protector_or_virtualization_boundary"
+      ],
+      "blockers": [
+        "native_control_flow_obfuscation",
+        "opaque_predicates",
+        "overlapping_instructions",
+        "rdtsc",
+        "stack_state_manipulation"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/81f68f61a8f7cf1accca338fd196051020bf60885aad409332091b759ff818d9",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d",
+      "family": "valleyrat",
+      "priority": "P0",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "protector_or_virtualization_boundary",
+        "terminal_config_unrecovered",
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap",
+        "native_control_flow_obfuscation",
+        "opaque_predicates",
+        "overlapping_instructions",
+        "rdtsc",
+        "stack_state_manipulation",
+        "terminal_payload_not_recovered"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/ad4a584f5e622c10703bca28c58ee8372899edb48cc1ccf28a2cff87d1afbf2d",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": "valleyrat",
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de",
+      "family": "valleyrat",
+      "priority": "P0",
+      "gap_state": "curated_recovery_backlog",
+      "gap_types": [
+        "protector_or_virtualization_boundary"
+      ],
+      "blockers": [
+        "native_control_flow_obfuscation",
+        "opaque_predicates",
+        "overlapping_instructions",
+        "rdtsc",
+        "stack_state_manipulation"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/fc397bf8ddae5d01a16beb2076261b2a708b7cb3e8fea0898e56127a757153de",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "3187d3e3b16a56070801701cb040843b67ee52f3a601be142267fd0ea0d91e3b",
+      "family": "venomrat",
+      "priority": "P0",
+      "gap_state": "source_material_absent",
+      "gap_types": [
+        "required_bytes_absent",
+        "terminal_config_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap",
+        "required_terminal_bytes_absent"
+      ],
+      "case_path": "analysis-results/malware/venomrat/versions/unknown/cases/3187d3e3b16a56070801701cb040843b67ee52f3a601be142267fd0ea0d91e3b",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "不足する終端byteの取得可能性を認証済み保管物・完全SHA一致の公開成果物から確認する。rootだけで終端復元済みとしない。"
+    },
+    {
+      "sha256": "6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8",
+      "family": "venomrat",
+      "priority": "P0",
+      "gap_state": "source_material_absent",
+      "gap_types": [
+        "required_bytes_absent"
+      ],
+      "blockers": [
+        "required_terminal_bytes_absent"
+      ],
+      "case_path": "analysis-results/malware/venomrat/versions/unknown/cases/6d25076b0cf8d493bd252bcfdee87c9ec9e23ddb814cfc671e3e80d31e2bf6f8",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "不足する終端byteの取得可能性を認証済み保管物・完全SHA一致の公開成果物から確認する。rootだけで終端復元済みとしない。"
+    },
+    {
+      "sha256": "3610fcc54a204281b09095004f02b674cd75bdd83996a1428fdef85645eff3e1",
+      "family": "asyncrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/asyncrat/versions/unknown/cases/3610fcc54a204281b09095004f02b674cd75bdd83996a1428fdef85645eff3e1",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "verified_local_archive_member",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "5e84fd9106777b85d5a60f4e607940730ba57ea2dcafaeaaadd6f21e38555761",
+      "family": "asyncrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/asyncrat/versions/unknown/cases/5e84fd9106777b85d5a60f4e607940730ba57ea2dcafaeaaadd6f21e38555761",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "private_case_archive_key_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "case別保管物を権限付き環境で復元し、manifestとmemberのSHA-256を照合してから静的解析する。"
+    },
+    {
+      "sha256": "f6f7dbd6561e7ee6ba7e6abffdb1e5de01bf511318aade34825d888e99db645f",
+      "family": "asyncrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/asyncrat/versions/unknown/cases/f6f7dbd6561e7ee6ba7e6abffdb1e5de01bf511318aade34825d888e99db645f",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": "8e07ec3b2017e3be75d8d3d56a847f705ac6389427471ed52481cef870351600",
+      "terminal_recovery_assessment": "private_terminal_recovered_public_case_unsynchronized",
+      "next_safe_step": "既存の私有終端byte・親子hash・HMAC検証済み設定を公開caseへ証拠付きで照合し、矛盾解消後に再sealする。"
+    },
+    {
+      "sha256": "03f46cf9a2de612f87385012e18af57a87e1d227f1fe2b0e8f6f335073104964",
+      "family": "formbook",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/formbook/versions/unknown/cases/03f46cf9a2de612f87385012e18af57a87e1d227f1fe2b0e8f6f335073104964",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "local_archive_name_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "ローカル暗号化ZIPのmember SHA-256を検証した後、非実行の静的層復元へ進む。"
+    },
+    {
+      "sha256": "17b4070f7739accf08ec200d8fe71a65f407afbca9f3f576f42397519f694d2d",
+      "family": "formbook",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/formbook/versions/unknown/cases/17b4070f7739accf08ec200d8fe71a65f407afbca9f3f576f42397519f694d2d",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "local_archive_name_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "ローカル暗号化ZIPのmember SHA-256を検証した後、非実行の静的層復元へ進む。"
+    },
+    {
+      "sha256": "20cdcfc958897b318418dce7c7f6308e3481731f09fac0772d0fd27d4e66e528",
+      "family": "formbook",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/formbook/versions/unknown/cases/20cdcfc958897b318418dce7c7f6308e3481731f09fac0772d0fd27d4e66e528",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "4b5ed2db4d4c48782e6926d8569f314f6aa36d8d6ec7100eaf1f561bd7626ff9",
+      "family": "formbook",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/formbook/versions/unknown/cases/4b5ed2db4d4c48782e6926d8569f314f6aa36d8d6ec7100eaf1f561bd7626ff9",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "local_archive_name_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "ローカル暗号化ZIPのmember SHA-256を検証した後、非実行の静的層復元へ進む。"
+    },
+    {
+      "sha256": "7906d425e122ae7f4922dbeff8c261be021a921c5f13471a470c60c583280504",
+      "family": "formbook",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/formbook/versions/unknown/cases/7906d425e122ae7f4922dbeff8c261be021a921c5f13471a470c60c583280504",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "87843d4d75d858a1802d545a80afbdf986d5aa3a30588c5094864f55d1ca8f53",
+      "family": "formbook",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/formbook/versions/unknown/cases/87843d4d75d858a1802d545a80afbdf986d5aa3a30588c5094864f55d1ca8f53",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "local_archive_name_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "ローカル暗号化ZIPのmember SHA-256を検証した後、非実行の静的層復元へ進む。"
+    },
+    {
+      "sha256": "9344ddd2906925b386bad207e1fb416739a5657a7103feed770d6d6b8d042556",
+      "family": "formbook",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/formbook/versions/unknown/cases/9344ddd2906925b386bad207e1fb416739a5657a7103feed770d6d6b8d042556",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "b59fe70e499dfd4f13fd545ec1892a10dd8a913ebc41190d69ecca2f4135c02f",
+      "family": "formbook",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/formbook/versions/unknown/cases/b59fe70e499dfd4f13fd545ec1892a10dd8a913ebc41190d69ecca2f4135c02f",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "local_archive_name_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "ローカル暗号化ZIPのmember SHA-256を検証した後、非実行の静的層復元へ進む。"
+    },
+    {
+      "sha256": "dc5ced17f0c85fef8a1fa466796a84fb83592eb7c8a86302d9b0cc9e5837c140",
+      "family": "formbook",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/formbook/versions/unknown/cases/dc5ced17f0c85fef8a1fa466796a84fb83592eb7c8a86302d9b0cc9e5837c140",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "eee434a01829c957c266fab72279ef491fbca7592236f1885d4f03e2d1e72a4d",
+      "family": "formbook",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/formbook/versions/unknown/cases/eee434a01829c957c266fab72279ef491fbca7592236f1885d4f03e2d1e72a4d",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "f0e29d11e1800cf4ef616458f74cd3cfccd0e39559423344e92574fc78023259",
+      "family": "formbook",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/formbook/versions/unknown/cases/f0e29d11e1800cf4ef616458f74cd3cfccd0e39559423344e92574fc78023259",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "private_case_archive_key_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "case別保管物を権限付き環境で復元し、manifestとmemberのSHA-256を照合してから静的解析する。"
+    },
+    {
+      "sha256": "009b2025c43202f2c643e46d27b30ca5e0f33b7da37841a661838aa07ac34938",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/009b2025c43202f2c643e46d27b30ca5e0f33b7da37841a661838aa07ac34938",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "060618b911a7022394c88e195aa477157d366363f76ed4b86f0cc3b635908cc3",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/060618b911a7022394c88e195aa477157d366363f76ed4b86f0cc3b635908cc3",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "18768e002f6f953ad6b9f3265d6e438ec19d0ffa05afaf28a72a04417c35528c",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/18768e002f6f953ad6b9f3265d6e438ec19d0ffa05afaf28a72a04417c35528c",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "3368d54f30631c9e305f6df3464e08b6b4f24eebdb605240c44b144deed717fa",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/3368d54f30631c9e305f6df3464e08b6b4f24eebdb605240c44b144deed717fa",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "4e5b2ae91379b8069c04c6639bb0bca5ddea0dde567bea8cb9bc9822b9cdda0d",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/4e5b2ae91379b8069c04c6639bb0bca5ddea0dde567bea8cb9bc9822b9cdda0d",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "4e732364c5335ed8b999528110f954bf88717fbfe865639d8daa4485d9d82410",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/4e732364c5335ed8b999528110f954bf88717fbfe865639d8daa4485d9d82410",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "56970a928b7e73504022d0e856ab131d262247b03b3cc082dc950a8e8d2e276b",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/56970a928b7e73504022d0e856ab131d262247b03b3cc082dc950a8e8d2e276b",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "817ac7a4ee5b546a812b129c9b9cfbb4581988bd95ac3e2a32a83b82f1bf430c",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/817ac7a4ee5b546a812b129c9b9cfbb4581988bd95ac3e2a32a83b82f1bf430c",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "89c66cb60337dd2f0901bed8919fe22ad88ae1874e92977cba2f9b37cf79dd5a",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/89c66cb60337dd2f0901bed8919fe22ad88ae1874e92977cba2f9b37cf79dd5a",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "9817c80e1108f291efd2eb04a7b5abc8ca5895788b8a3934d1c3dded97d4b124",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/9817c80e1108f291efd2eb04a7b5abc8ca5895788b8a3934d1c3dded97d4b124",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "a6feb3ea4e8dcff0eaea4c8b89b3dc728e0cfe7ea2729c5e25d1f0b6bbfc3453",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/a6feb3ea4e8dcff0eaea4c8b89b3dc728e0cfe7ea2729c5e25d1f0b6bbfc3453",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "a8760de45ed2bdda90fea6b136b5a3c5afdfdce4c1b05d3c4ab76e92f308ae36",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/a8760de45ed2bdda90fea6b136b5a3c5afdfdce4c1b05d3c4ab76e92f308ae36",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "b2930dcb9a593f79105aa4fecc4f67d3db99273858c42845a553585975307408",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/b2930dcb9a593f79105aa4fecc4f67d3db99273858c42845a553585975307408",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "b435de3e50714d774f42cfdefd710519915e7f987f69da8d5fc1963961519844",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/b435de3e50714d774f42cfdefd710519915e7f987f69da8d5fc1963961519844",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "b9b7602e0b929dd2bae9e87b53d5ab1e0a236fe466ea4628c3b8fc32cc2ed899",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/b9b7602e0b929dd2bae9e87b53d5ab1e0a236fe466ea4628c3b8fc32cc2ed899",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "c1d067c076f8d0d818aca72cefa32df501a6a887d96e407bdfe08d712b6ff781",
+      "family": "lummastealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/lummastealer/versions/unknown/cases/c1d067c076f8d0d818aca72cefa32df501a6a887d96e407bdfe08d712b6ff781",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "c66052e6deca51833f260eeed639d78a7424bb244e9682ae736616d45d342e1c",
+      "family": "purehvnc",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "static_recovery_incomplete",
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap",
+        "root_to_terminal_byte_derivation_incomplete"
+      ],
+      "case_path": "analysis-results/malware/purehvnc/versions/unknown/cases/c66052e6deca51833f260eeed639d78a7424bb244e9682ae736616d45d342e1c",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 1,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "d82fd1f36b81436d7fd9096cec50e2d08dbe148680ff1281e59b10d0fe806448",
+      "family": "purehvnc",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/purehvnc/versions/unknown/cases/d82fd1f36b81436d7fd9096cec50e2d08dbe148680ff1281e59b10d0fe806448",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "0d298a65db890328d0357b2fb39ea7352645a994a601f430c38450769635f957",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/0d298a65db890328d0357b2fb39ea7352645a994a601f430c38450769635f957",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "private_case_archive_key_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "case別保管物を権限付き環境で復元し、manifestとmemberのSHA-256を照合してから静的解析する。"
+    },
+    {
+      "sha256": "22de5809840cb4a6a2c64f4c8b303cc66209b217a7bd4a9e5941e928b03a95fd",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/22de5809840cb4a6a2c64f4c8b303cc66209b217a7bd4a9e5941e928b03a95fd",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "32c100b984e2a26d588fafc648dcdd7694788d0c18af15704e3601ffc001f334",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/32c100b984e2a26d588fafc648dcdd7694788d0c18af15704e3601ffc001f334",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "private_case_archive_key_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "case別保管物を権限付き環境で復元し、manifestとmemberのSHA-256を照合してから静的解析する。"
+    },
+    {
+      "sha256": "375146d634c77d66eb3b7b6914d3968ddcb39bdb67cb91aa561484806eabf1ac",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/375146d634c77d66eb3b7b6914d3968ddcb39bdb67cb91aa561484806eabf1ac",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "41dbfcca18129caecd4a958132d0346b6ca0c30bc8b06abf4e776bd2715e7244",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/41dbfcca18129caecd4a958132d0346b6ca0c30bc8b06abf4e776bd2715e7244",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "523dd77b85d0b0cedc99ca23bc7225d4137b9e562a71a2d6d5e163e703680e2e",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/523dd77b85d0b0cedc99ca23bc7225d4137b9e562a71a2d6d5e163e703680e2e",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "5e815731f67cb070fb1b31272c45bd7f4ecd4a408cbbc68a9545bafc3292d72c",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "decoder_or_constant_recovery_incomplete",
+        "protector_or_virtualization_boundary",
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "api_hash_resolver",
+        "custom_state_machine",
+        "human_documented_terminal_gap",
+        "native_control_flow_obfuscation"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/5e815731f67cb070fb1b31272c45bd7f4ecd4a408cbbc68a9545bafc3292d72c",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "6ae503b3ee113406e80f9ec06b42800843cd655e2307b4b4c934a72efbd72085",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/6ae503b3ee113406e80f9ec06b42800843cd655e2307b4b4c934a72efbd72085",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "71f17c5e06548f128eb4f0cfafd247cc79894331f996c383fa5c2bcddfe9c5b8",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/71f17c5e06548f128eb4f0cfafd247cc79894331f996c383fa5c2bcddfe9c5b8",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "73a4a9839bc009d4837002d24e131ab748074342190fa6159115ce77f8256938",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/73a4a9839bc009d4837002d24e131ab748074342190fa6159115ce77f8256938",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "7ae44ecd94c5e10f560e78539d4dba8b10d2ddcaf551d1321d81f7d97b771d5d",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/7ae44ecd94c5e10f560e78539d4dba8b10d2ddcaf551d1321d81f7d97b771d5d",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "83554baeeb700815f9b6492584a1b1a40c64f752d1ff1a67cde079ad524b008f",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/83554baeeb700815f9b6492584a1b1a40c64f752d1ff1a67cde079ad524b008f",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "848939e80154d4ac60f31782bb0ed6ce5fd27faea14ac8fd489fd5b250b4ab1a",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/848939e80154d4ac60f31782bb0ed6ce5fd27faea14ac8fd489fd5b250b4ab1a",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "bb71186aa5e8ce286c5e8698adf22aac802615856dbab846a88e740cb5ce4316",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/bb71186aa5e8ce286c5e8698adf22aac802615856dbab846a88e740cb5ce4316",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "c375cb55dafefcb4ad4fdad99e58159943b9e1c51c7756c2e7880656881fc0f0",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/c375cb55dafefcb4ad4fdad99e58159943b9e1c51c7756c2e7880656881fc0f0",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "private_case_archive_key_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "case別保管物を権限付き環境で復元し、manifestとmemberのSHA-256を照合してから静的解析する。"
+    },
+    {
+      "sha256": "c4e1726827d84a3d77979d1c01baf16518965d9574409e09c1311b89784766cc",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/c4e1726827d84a3d77979d1c01baf16518965d9574409e09c1311b89784766cc",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "d00bdb02626137fd008456600d4fd89500f1de1c87a3ea3295b4e78740613b76",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/d00bdb02626137fd008456600d4fd89500f1de1c87a3ea3295b4e78740613b76",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "d5d5465b53f72727b8218dab4165b954748d29ab8f8de275fbd3a6fac0e08b6d",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/d5d5465b53f72727b8218dab4165b954748d29ab8f8de275fbd3a6fac0e08b6d",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "d9824b3a6894de0606a03a23417f1c7e780ee0b5655f724dbfa455601e13eb8e",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/d9824b3a6894de0606a03a23417f1c7e780ee0b5655f724dbfa455601e13eb8e",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "e2bb18135f11abb5afa22fcd607183ff5cc5d2d499f8924a9a09dbe32ce7ecb9",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/e2bb18135f11abb5afa22fcd607183ff5cc5d2d499f8924a9a09dbe32ce7ecb9",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "f8cdef17d24fff6b62927d599b08164309a94304da6a045eb39727685be4643c",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/f8cdef17d24fff6b62927d599b08164309a94304da6a045eb39727685be4643c",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "fb15e3e58c46d5b4e6fd94e5bb94a6a1100b647ab7a930f1b3434891b6f49b41",
+      "family": "remusstealer",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/remusstealer/versions/unknown/cases/fb15e3e58c46d5b4e6fd94e5bb94a6a1100b647ab7a930f1b3434891b6f49b41",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/12b920865bc8bd9bad20650a0f7849fe2856de3d72bc5f1a93bb288e8eefaca2",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "14cfc813ef030e8b3f0e85fe8c140e1b746b52c76fff8352d0d92eb46f725470",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/14cfc813ef030e8b3f0e85fe8c140e1b746b52c76fff8352d0d92eb46f725470",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "1d0b8f081975cc9dfb542c8da5d173c3a68a23531e83f07e86ccc706e56d76f3",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/1d0b8f081975cc9dfb542c8da5d173c3a68a23531e83f07e86ccc706e56d76f3",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "private_case_archive_key_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "case別保管物を権限付き環境で復元し、manifestとmemberのSHA-256を照合してから静的解析する。"
+    },
+    {
+      "sha256": "212d6b6ed3c8910e12580e8d7f5844f1471aa4e4be50261f9402c8569fad6377",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/212d6b6ed3c8910e12580e8d7f5844f1471aa4e4be50261f9402c8569fad6377",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "255cdacde3f3951fc41cad1d6a248f0bf27ae7aa4fa5b058848b3a1cb93533c4",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/255cdacde3f3951fc41cad1d6a248f0bf27ae7aa4fa5b058848b3a1cb93533c4",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "27d6d9269b546067e85d88538254575cff12928e4b6da2bccd7a04a7c6ad2c24",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/27d6d9269b546067e85d88538254575cff12928e4b6da2bccd7a04a7c6ad2c24",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "2da611af6f3cad9f6829a476cfd47b8c4fd54e814024517da3aab2e4a81643b0",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/2da611af6f3cad9f6829a476cfd47b8c4fd54e814024517da3aab2e4a81643b0",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "container_or_resource_boundary"
+      ],
+      "blockers": [
+        "terminal_managed_resource_unresolved"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/307594e042248ad7cc9627e8de385851bd92df452216b1b829077d3a93ac815b",
+      "report_available": true,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "47fee9267fb82c1457a560624110062b7a3cf9457b038e6ab85b1476112c0ceb",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/47fee9267fb82c1457a560624110062b7a3cf9457b038e6ab85b1476112c0ceb",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "537ae9a039a1c81d5622263cc5573f7b1b2efe6dc3df13c4c15ff42a8ad77799",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/537ae9a039a1c81d5622263cc5573f7b1b2efe6dc3df13c4c15ff42a8ad77799",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "55dcb3da4b2a7a8ebf59637f0f78e8195cb361c594bdd47e932ac5fc8258c5ce",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/55dcb3da4b2a7a8ebf59637f0f78e8195cb361c594bdd47e932ac5fc8258c5ce",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/5876be168613a5e77024f79dad518662e8fd418f01d5839fc7e73ecb0f085a92",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "58b16700b8a3b8f0db2fb2e14b8c3e835270111518e67239b373a81ffd265b9a",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/58b16700b8a3b8f0db2fb2e14b8c3e835270111518e67239b373a81ffd265b9a",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/5f8daf53ef216151a72cb3fbb953886c74488b9d91b3a8afbc9bbf39e8d5eacf",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "local_archive_name_only",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "ローカル暗号化ZIPのmember SHA-256を検証した後、非実行の静的層復元へ進む。"
+    },
+    {
+      "sha256": "658fc8b2caf56d7572f065bdc7bcf248f1ba3e96901ba6ed3eee4291e524d46e",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/658fc8b2caf56d7572f065bdc7bcf248f1ba3e96901ba6ed3eee4291e524d46e",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "private_case_archive_key_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "case別保管物を権限付き環境で復元し、manifestとmemberのSHA-256を照合してから静的解析する。"
+    },
+    {
+      "sha256": "77d7a748ab647241403ab5741a7184501602877cc803ef33b6044feb5a708387",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/77d7a748ab647241403ab5741a7184501602877cc803ef33b6044feb5a708387",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/8715bb53fad907f12ab1b5ec7bad49d2a4f72bf07f81bb2a6621fd1f9f55ffa1",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "96c0911c225219cfd380076f5196d7ee87c617cddb968d3d465122473e20d6fb",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/96c0911c225219cfd380076f5196d7ee87c617cddb968d3d465122473e20d6fb",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "9705bd691a0be1f2fdb19b72b12e25097c39ce9c2173c3d5e7b106b4e97fa548",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/9705bd691a0be1f2fdb19b72b12e25097c39ce9c2173c3d5e7b106b4e97fa548",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/9a9d372cc821b6d2f7e30abb80aff7cae841703db0fb78bd859e6581420fbc07",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/a0d1e6b471522635bcf7ca0176d6ee8febcf90184078b5e8ce24e0eca970b532",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/a0eb29beacb4463ed88b579625a1483245dff067697b85d93fd62992c5512489",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "static_recovery_incomplete"
+      ],
+      "blockers": [
+        "root_to_terminal_byte_derivation_incomplete"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/a7f8757c780afc2fcb081f861b3be24b0be5badd3042f759e8af4fd47380dca2",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 5,
+      "selected_family": "valleyrat",
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "abb8a45533292bf79cacd52c3a23f8e1530ec53d459cde3182a60f4e4cb2233f",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/abb8a45533292bf79cacd52c3a23f8e1530ec53d459cde3182a60f4e4cb2233f",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "b3369a20d7c603b4d1078010b008a9db1b49dccf694a05e6bd49ede2762a8075",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/b3369a20d7c603b4d1078010b008a9db1b49dccf694a05e6bd49ede2762a8075",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "b856a8d469bae6f192b89f05c09a91b89682688a99a6c2bb8381d7d7cd28aab6",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "protector_or_virtualization_boundary",
+        "static_recovery_incomplete",
+        "terminal_config_unrecovered",
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap",
+        "virtualized_terminal_payload_not_recovered"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/b856a8d469bae6f192b89f05c09a91b89682688a99a6c2bb8381d7d7cd28aab6",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": "valleyrat",
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "bca78e472cdf94c16fd67cdf2894d7286c17b370007878b988b9a9f9705f99d5",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/bca78e472cdf94c16fd67cdf2894d7286c17b370007878b988b9a9f9705f99d5",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "be7d04f3bbca91674206a22fdedc0d4874a62ffe0dd164e98de6d3cb065a57bf",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/be7d04f3bbca91674206a22fdedc0d4874a62ffe0dd164e98de6d3cb065a57bf",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "private_case_archive_key_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "case別保管物を権限付き環境で復元し、manifestとmemberのSHA-256を照合してから静的解析する。"
+    },
+    {
+      "sha256": "c240b8b5400a53cae0401e1c38b5a61fd5796ce6ff74b90724de12c334e50d86",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "static_recovery_incomplete"
+      ],
+      "blockers": [
+        "terminal_wire_protocol_variant_confirmation_pending"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/c240b8b5400a53cae0401e1c38b5a61fd5796ce6ff74b90724de12c334e50d86",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": "valleyrat",
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "c33bf27dc5e7c57f95cc10e6480e54faea225df318ae994117d60a231149347b",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/c33bf27dc5e7c57f95cc10e6480e54faea225df318ae994117d60a231149347b",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "private_case_archive_key_only",
+      "private_case_archive_key_observed": true,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "case別保管物を権限付き環境で復元し、manifestとmemberのSHA-256を照合してから静的解析する。"
+    },
+    {
+      "sha256": "df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "dfacebad09d75d41ee5f477754815ae7e4afd926638d7b72a6a25338cd2479da",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/dfacebad09d75d41ee5f477754815ae7e4afd926638d7b72a6a25338cd2479da",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "e18134f304e4b3964ebfae04b8c465fd4f8628ba66f19486d64980e936d6dca3",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/e18134f304e4b3964ebfae04b8c465fd4f8628ba66f19486d64980e936d6dca3",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "triaged_unknown",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "ebe31ad40a9ce206268d9f355e42ca4979847bfd861b3d157c06ed1bd842219c",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/ebe31ad40a9ce206268d9f355e42ca4979847bfd861b3d157c06ed1bd842219c",
+      "report_available": true,
+      "static_layer_report_available": true,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": "partial",
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/edb371be39673ca248b4dcb168de0efd90e9d7a39d7cc096c83c435bd6fe260b",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "verified_local_root_bytes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "認証済みrootから上限付き静的層復元を再実行し、保護層の停止位置・子hash・設定抽出結果を記録する。"
+    },
+    {
+      "sha256": "ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791",
+      "family": "valleyrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/valleyrat/versions/unknown/cases/ee0ef34a4402dea54ec8b4e0557de9605a038a4f2b82380f2978296fd60f9791",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "165b528fb02e35b12a59a311102a8bef74ec2f0bf908864fd7fa7ed8f917261e",
+      "family": "venomrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/venomrat/versions/unknown/cases/165b528fb02e35b12a59a311102a8bef74ec2f0bf908864fd7fa7ed8f917261e",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "651859b30c796cf59166ca018a2b4f18c996af4e688d302466ae56a5712b72a7",
+      "family": "venomrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/venomrat/versions/unknown/cases/651859b30c796cf59166ca018a2b4f18c996af4e688d302466ae56a5712b72a7",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "7215cbe8e5dfed7b22c8bbe8c5f7f35a7848e545d1cdeb60a378baf0be32cb0e",
+      "family": "venomrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "container_or_resource_boundary",
+        "protector_or_virtualization_boundary",
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "dotnet_reactor_control_flow",
+        "human_documented_terminal_gap",
+        "opaque_resource",
+        "smartassembly"
+      ],
+      "case_path": "analysis-results/malware/venomrat/versions/unknown/cases/7215cbe8e5dfed7b22c8bbe8c5f7f35a7848e545d1cdeb60a378baf0be32cb0e",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "9100e92ceb94455d3159c4273b47a4d635f1d6b8add68e7c775e1849d3d1a9da",
+      "family": "venomrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/venomrat/versions/unknown/cases/9100e92ceb94455d3159c4273b47a4d635f1d6b8add68e7c775e1849d3d1a9da",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "d6d876c7327482a6293fb5014393ace99e14aa7e0638bbda9fc602d35b8a72c9",
+      "family": "venomrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/venomrat/versions/unknown/cases/d6d876c7327482a6293fb5014393ace99e14aa7e0638bbda9fc602d35b8a72c9",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    },
+    {
+      "sha256": "e4ea373bf70b008d51db2d707171a01a40c45e7e01d2ed61eef21199fd30c8dd",
+      "family": "venomrat",
+      "priority": "P1",
+      "gap_state": "explicit_unrecovered",
+      "gap_types": [
+        "terminal_payload_unrecovered"
+      ],
+      "blockers": [
+        "human_documented_terminal_gap"
+      ],
+      "case_path": "analysis-results/malware/venomrat/versions/unknown/cases/e4ea373bf70b008d51db2d707171a01a40c45e7e01d2ed61eef21199fd30c8dd",
+      "report_available": false,
+      "static_layer_report_available": false,
+      "recovered_child_layer_count": 0,
+      "selected_family": null,
+      "reported_case_status": null,
+      "root_byte_evidence": "not_confirmed_in_searched_indexes",
+      "private_case_archive_key_observed": false,
+      "private_terminal_child_sha256": null,
+      "terminal_recovery_assessment": "unresolved",
+      "next_safe_step": "元byteまたは完全SHA一致の公開後段成果物を探索し、入手できるまで終端未復元を維持する。"
+    }
+  ]
+}

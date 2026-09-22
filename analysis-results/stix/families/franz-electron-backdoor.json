@@ -1,5 +1,5 @@
 {
-  "id": "bundle--c0fa8b4a-0e92-5085-8be3-43d0cfb6bd57",
+  "id": "bundle--d01400f9-aeea-5b3a-b113-6b4b57e9da2a",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--d1316eff-9cd1-5f82-958d-98d298d01d40",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "franz-electron-backdoor：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--e2d41e49-709c-5386-80fd-eb7d28c01be5",
         "note--12857e4e-9f31-5f3b-8062-0dc0f39c02c9"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

@@ -1,5 +1,5 @@
 {
-  "id": "bundle--36ed8e03-f7a4-5c1b-8f7b-0d26bd17df7f",
+  "id": "bundle--cf694dbe-1379-5959-8a0d-216dbcb70849",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--0df17443-9101-5c13-b5f1-fdc5f36b0de8",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "pulsarrat：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--4b396e57-edbc-5f32-82d7-e67f7812e81f",
         "note--8b80e0be-6984-5c3c-8a3b-6b3c5e84114b"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

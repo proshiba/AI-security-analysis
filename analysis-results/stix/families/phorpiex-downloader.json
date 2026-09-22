@@ -1,5 +1,5 @@
 {
-  "id": "bundle--8a7d5826-5a2c-5064-8cee-9c5095c68f78",
+  "id": "bundle--05b937e3-e16a-57d3-8a05-b4fe33985be6",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--d5a56663-4654-5af7-8ae1-b572e35968f3",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "phorpiex-downloader：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--56da4e7f-edc0-5103-97b4-6725f2648fd8",
         "note--f8904494-f8f3-5553-93f3-da769a74b67a"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "artifact_hash",
+      "value": "c7b2d253001ad30d897a6bd36ad183a283f19c1f2b50c84f039327fe32ae9e28",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 2
+    }
+  ]
+}

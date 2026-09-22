@@ -17,6 +17,16 @@ if str(COMMON) not in sys.path:
 import generate_family_stix as stix  # noqa: E402
 
 
+def test_atlas_rat_does_not_alias_atlascross_actor_or_atlasagent() -> None:
+    """内部IDの後方互換とファミリー／アクター同一性を分離する。"""
+
+    knowledge = json.loads((Path(__file__).parents[1] / "knowledge" / "malware_families" / "a_m.json").read_text(encoding="utf-8"))
+    atlas = next(item for item in knowledge["families"] if item["id"] == "atlascross")
+    assert atlas["display_name"] == "Atlas RAT"
+    assert not {"AtlasCross", "AtlasAgent", "DangerAds"} & set(atlas["aliases"])
+    assert any(source["id"] == "am-atlas-nsfocus-2023" for source in atlas["sources"])
+
+
 def _knowledge() -> dict:
     return {
         "display_name": "検証RAT",

@@ -1,5 +1,5 @@
 {
-  "id": "bundle--a5a4935c-23be-595b-895b-e82a1ed3bf0c",
+  "id": "bundle--a7eeb97b-3a5f-5115-84a1-115828d793d7",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--63cc96e9-ea4a-5c0d-bc45-13b0780d6a3d",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "phorpiex-spam：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--25237e03-875f-583b-8582-32d9370112e3",
         "note--e5e18887-14a3-50fc-97af-88110a01d4d7"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

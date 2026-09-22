@@ -1,5 +1,5 @@
 {
-  "id": "bundle--74e99b3f-b0b5-5bc9-8dfe-709b1f376982",
+  "id": "bundle--f91ce42b-fcb9-5e30-b488-a5d1932bd8c1",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--49914c9e-8706-5da1-8545-e968b7673ed3",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "infectedslurs-tbot：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--e8ee490a-eb78-5fe7-b0f4-9aac2e62250d",
         "note--4b78dfcd-089d-5dcc-aeda-f552d5d0df46"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

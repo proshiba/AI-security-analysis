@@ -1,5 +1,5 @@
 {
-  "id": "bundle--f89e66e7-e332-5b13-9353-5defc9997d83",
+  "id": "bundle--b8f558c6-7aae-5168-90f1-7bd65ab84285",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--d83080b9-ef57-5345-adb9-9be5e12fc3e4",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "genddos-bot：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--f4041b9d-8380-582e-a0e2-ee416faaa976",
         "note--f5955d4d-efd8-5441-b152-3fb9c2fd8925"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

@@ -1,5 +1,5 @@
 {
-  "id": "bundle--3c3ee478-aebd-58ad-bce5-9237af0a76b0",
+  "id": "bundle--c491f7c3-307c-5f22-b49c-ce05f4ee6cca",
   "objects": [
     {
       "aliases": [],
@@ -51,13 +51,13 @@
       ],
       "id": "report--7cd535ab-4086-5225-a58f-1aed066ad7aa",
       "lang": "ja",
-      "modified": "2026-09-21T00:00:00Z",
+      "modified": "2026-09-22T00:00:00Z",
       "name": "signed-dht-bot：静的解析・攻撃利用史・OSINT",
       "object_refs": [
         "malware--1a3cd138-e72d-56a2-bad8-c4e8f9ddad48",
         "note--c9ac60df-138b-5226-a50a-cebb0e6c12e3"
       ],
-      "published": "2026-09-21T00:00:00Z",
+      "published": "2026-09-22T00:00:00Z",
       "report_types": [
         "malware"
       ],

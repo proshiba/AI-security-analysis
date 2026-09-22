@@ -618,6 +618,11 @@ def generate(repository: Path, as_of: date) -> tuple[dict[str, str], dict[str, A
                         "generic_runtime_used_for_code_similarity": False}}
     output["index.json"] = json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     lines = ["# ファミリー別STIX 2.1", "", "静的解析と出典付きOSINTをファミリー別Bundleへまとめた公開成果物です。検体の発見経路や未審査のcampaign候補は攻撃経路として収録しません。", "", "コード類似は共有関数の比較候補であり、同一開発者・利用アクター・campaignを示すものではありません。OSINT未登録ファミリーは公開済みローカル概要と静的比較情報に限定し、未知の開発者や商品化形態を補完しません。", "", "[攻撃インフラ横断STIX Bundle](infrastructure/bundle.json)／[調査・判定基準](../../analysis-framework/docs/INFRASTRUCTURE-STIX.md)", "", "[ファミリー別の生成手順と判定境界](../../analysis-framework/docs/FAMILY-STIX.md)", "", f"生成日: {as_of.isoformat()}。ファミリー: {stats['families']}件、OSINT登録: {stats['families_with_osint']}件、利用関係: {stats['actor_relationships']}件。", "", "| ファミリー | STIX Bundle | 出典付きOSINT |", "|---|---|---|",]
+    link_index = next(i for i, line in enumerate(lines) if line.startswith("[攻撃インフラ横断STIX Bundle]"))
+    lines[link_index] = lines[link_index].replace(
+        "／[調査・判定基準]",
+        "／[一次資料照合済みcampaign STIX Bundle](reviewed-campaigns/bundle.json)／[調査・判定基準]",
+    )
     for family in sorted(families):
         lines.append(f"| {family} | [JSON](families/{family}.json) | {'あり' if family in knowledge else '未登録'} |")
     output["README.md"] = "\n".join(lines) + "\n"

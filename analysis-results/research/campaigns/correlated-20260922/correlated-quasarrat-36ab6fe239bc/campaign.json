@@ -1,0 +1,35 @@
+{
+  "campaign_id": "correlated-quasarrat-36ab6fe239bc",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "medium",
+  "families": [
+    "quasarrat"
+  ],
+  "members": [
+    "439b73b50c9e5c161b070a4eafa6a56ddb4ea6daf155b8dc06105028a7d04fd2",
+    "c40348ae2d031c27d318c831189a2a9b6de0c453f756b8d94c0a3bca4b93c627"
+  ],
+  "member_count": 2,
+  "shared_indicators": [
+    {
+      "type": "domain",
+      "value": "stopman.ooguy.com",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "stopman.ooguy.com:2002",
+      "support": 2
+    }
+  ],
+  "shared_feature_ids": [
+    "crypto:aes"
+  ],
+  "edge_count": 1,
+  "maximum_pair_score": 11,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}
