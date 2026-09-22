@@ -587,6 +587,9 @@ def _profile_run_indicators(directory: Path, results_root: Path) -> list[Indicat
 
 def collect_indicators(directory: Path, repository: Path, history: dict[str, dict]) -> list[Indicator]:
     """単一解析について、保守的かつ公開可能な指標をすべて収集する。"""
+    ioc_path = directory / "iocs.json"
+    if ioc_path.is_file() and load_json_object_strict(ioc_path).get("invalidated") is True:
+        return []
     aggregate = _profile_run_indicators(directory, repository / "analysis-results")
     if aggregate is not None:
         return aggregate
@@ -612,6 +615,19 @@ def canonical_case_ioc_rendering(directory: Path) -> tuple[str, int] | None:
     view = canonical_ioc_view(document, expected_sha256=directory.name)
     content = render_canonical_ioc_document(document, expected_sha256=directory.name)
     return content, view.entry_count
+
+
+def invalidated_ioc_rendering(directory: Path) -> tuple[str, int] | None:
+    """監査で無効化したIOCを旧資料から再抽出しない。"""
+
+    path = directory / "iocs.json"
+    if not path.is_file() or load_json_object_strict(path).get("invalidated") is not True:
+        return None
+    return (
+        "# IOC 一覧（無効化済み）\n\n"
+        "> この解析の旧指標は監査で無効化されました。IOCやC2監視対象として使用しません。\n",
+        0,
+    )
 
 
 def clickfix_case_ioc_rendering(directory: Path) -> tuple[str, int] | None:
@@ -750,7 +766,9 @@ def generate(
     mismatches = []
     reports = []
     for directory in directories:
-        canonical = canonical_case_ioc_rendering(directory)
+        canonical = invalidated_ioc_rendering(directory)
+        if canonical is None:
+            canonical = canonical_case_ioc_rendering(directory)
         if canonical is None:
             canonical = clickfix_case_ioc_rendering(directory)
         if canonical is None:

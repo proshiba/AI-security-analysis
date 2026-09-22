@@ -1,0 +1,243 @@
+{
+  "id": "bundle--fa700079-592c-5023-bef3-a45d20db19b9",
+  "objects": [
+    {
+      "aliases": [
+        "Dark Comet RAT",
+        "DarkComet RAT"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "リモート画面、キーロギング、パスワード窃取、Webカメラ操作、ファイル操作、任意コマンド実行等を備えるWindows向けRATである。正規管理用途を掲げて無償公開されたが、標的型監視と一般犯罪に広く悪用された。",
+      "external_references": [
+        {
+          "description": "darkcomet 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/darkcomet/README.md"
+        },
+        {
+          "description": "シリア活動家を狙った監視ソフトウェア (am-darkcomet-citizenlab-2012)",
+          "source_name": "Citizen Lab",
+          "url": "https://citizenlab.ca/research/syrian-activists-targeted-with-blackshades-spy-software/"
+        },
+        {
+          "description": "DarkComet開発者による配布終了 (am-darkcomet-darkreading-2012)",
+          "source_name": "Dark Reading",
+          "url": "https://www.darkreading.com/cyberattacks-data-breaches/darkcomet-developer-retires-notorious-remote-access-tool"
+        },
+        {
+          "description": "シリアの通信復旧後に再開したDarkComet活動 (am-darkcomet-eff-2012)",
+          "source_name": "Electronic Frontier Foundation",
+          "url": "https://www.eff.org/deeplinks/2012/12/iinternet-back-in-syria-so-is-malware"
+        },
+        {
+          "description": "DarkCometローカル解析結果 (am-darkcomet-local-2026)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/darkcomet"
+        },
+        {
+          "description": "DarkCometソフトウェア項目 (am-darkcomet-mitre)",
+          "source_name": "MITRE ATT&CK",
+          "url": "https://attack.mitre.org/software/S0334/"
+        }
+      ],
+      "id": "malware--a1040eef-ae0d-5275-8423-026b5853af40",
+      "is_family": true,
+      "labels": [
+        "business-model:freeware"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "DarkComet",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 80,
+      "content": "開発主体: Jean-Pierre LesueurがDarkCoderScの名で開発した。シリアでの悪用等を受け、2012年7月に配布・開発の終了を表明した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "DarkComet開発者による配布終了 (am-darkcomet-darkreading-2012)",
+          "source_name": "Dark Reading",
+          "url": "https://www.darkreading.com/cyberattacks-data-breaches/darkcomet-developer-retires-notorious-remote-access-tool"
+        }
+      ],
+      "id": "note--c798eec6-7a79-5f3e-8c18-69e70fdfa989",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a1040eef-ae0d-5275-8423-026b5853af40"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: freeware_dual_use。無償で広く入手できた二重用途RATであり、利用障壁が低くコモディティ化した。ただし継続課金型MaaSとは異なる。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "DarkComet開発者による配布終了 (am-darkcomet-darkreading-2012)",
+          "source_name": "Dark Reading",
+          "url": "https://www.darkreading.com/cyberattacks-data-breaches/darkcomet-developer-retires-notorious-remote-access-tool"
+        },
+        {
+          "description": "シリアの通信復旧後に再開したDarkComet活動 (am-darkcomet-eff-2012)",
+          "source_name": "Electronic Frontier Foundation",
+          "url": "https://www.eff.org/deeplinks/2012/12/iinternet-back-in-syria-so-is-malware"
+        }
+      ],
+      "id": "note--9094b6e6-3b30-5ae5-84ce-8b9540d75555",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a1040eef-ae0d-5275-8423-026b5853af40"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "DarkComet開発者による配布終了 (am-darkcomet-darkreading-2012)",
+          "source_name": "Dark Reading",
+          "url": "https://www.darkreading.com/cyberattacks-data-breaches/darkcomet-developer-retires-notorious-remote-access-tool"
+        },
+        {
+          "description": "シリアの通信復旧後に再開したDarkComet活動 (am-darkcomet-eff-2012)",
+          "source_name": "Electronic Frontier Foundation",
+          "url": "https://www.eff.org/deeplinks/2012/12/iinternet-back-in-syria-so-is-malware"
+        }
+      ],
+      "id": "note--1f7d89a1-c885-50a1-9a62-0ec6d818e32f",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a1040eef-ae0d-5275-8423-026b5853af40"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: シリア政権支持派。シリア反体制活動家を狙う監視活動でDarkCometを継続的に配布したと報告されている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "シリア活動家を狙った監視ソフトウェア (am-darkcomet-citizenlab-2012)",
+          "source_name": "Citizen Lab",
+          "url": "https://citizenlab.ca/research/syrian-activists-targeted-with-blackshades-spy-software/"
+        },
+        {
+          "description": "シリアの通信復旧後に再開したDarkComet活動 (am-darkcomet-eff-2012)",
+          "source_name": "Electronic Frontier Foundation",
+          "url": "https://www.eff.org/deeplinks/2012/12/iinternet-back-in-syria-so-is-malware"
+        }
+      ],
+      "id": "note--5e2aaf8f-cca3-5303-ae0b-be9da3b62de0",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a1040eef-ae0d-5275-8423-026b5853af40"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: Transparent Tribe・SilverTerrier・APT38。MITRE ATT&CKがDarkCometの利用グループとして整理している。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "DarkCometソフトウェア項目 (am-darkcomet-mitre)",
+          "source_name": "MITRE ATT&CK",
+          "url": "https://attack.mitre.org/software/S0334/"
+        }
+      ],
+      "id": "note--027ec52b-9dc4-5ee1-aeb3-3baaa1b76783",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a1040eef-ae0d-5275-8423-026b5853af40"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2011-2012）: Skype、偽暗号化ツール、PDFを装う実行ファイル等を使い、シリア反体制活動家を監視する攻撃で利用された。 報告された主体: シリア政権支持派。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "シリア活動家を狙った監視ソフトウェア (am-darkcomet-citizenlab-2012)",
+          "source_name": "Citizen Lab",
+          "url": "https://citizenlab.ca/research/syrian-activists-targeted-with-blackshades-spy-software/"
+        },
+        {
+          "description": "シリアの通信復旧後に再開したDarkComet活動 (am-darkcomet-eff-2012)",
+          "source_name": "Electronic Frontier Foundation",
+          "url": "https://www.eff.org/deeplinks/2012/12/iinternet-back-in-syria-so-is-malware"
+        }
+      ],
+      "id": "note--8cbae843-d603-571c-924f-eecf29f01dbc",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a1040eef-ae0d-5275-8423-026b5853af40"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2012）: 親チベット組織への監視利用も報告され、開発者が配布終了を表明する背景の一つとなった。 報告された主体: 未特定の監視活動運用者。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "DarkComet開発者による配布終了 (am-darkcomet-darkreading-2012)",
+          "source_name": "Dark Reading",
+          "url": "https://www.darkreading.com/cyberattacks-data-breaches/darkcomet-developer-retires-notorious-remote-access-tool"
+        }
+      ],
+      "id": "note--b5ada9a3-ed5b-5754-8702-cabd70d77033",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a1040eef-ae0d-5275-8423-026b5853af40"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "darkcomet 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/darkcomet/README.md"
+        }
+      ],
+      "id": "report--517376ef-a501-5996-8ee1-318c21eb969d",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "DarkComet：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--a1040eef-ae0d-5275-8423-026b5853af40",
+        "note--c798eec6-7a79-5f3e-8c18-69e70fdfa989",
+        "note--9094b6e6-3b30-5ae5-84ce-8b9540d75555",
+        "note--1f7d89a1-c885-50a1-9a62-0ec6d818e32f",
+        "note--5e2aaf8f-cca3-5303-ae0b-be9da3b62de0",
+        "note--027ec52b-9dc4-5ee1-aeb3-3baaa1b76783",
+        "note--8cbae843-d603-571c-924f-eecf29f01dbc",
+        "note--b5ada9a3-ed5b-5754-8702-cabd70d77033"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

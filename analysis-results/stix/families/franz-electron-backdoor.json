@@ -1,0 +1,69 @@
+{
+  "id": "bundle--d01400f9-aeea-5b3a-b113-6b4b57e9da2a",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: franz-electron-backdoor は、正規 Franz Electron クライアントを再梱包し、app.asar に遠隔タスク実行機能を追加した検体を整理するための暫定ローカル名である。Franz製品そのものを悪性と判定する名称ではない。",
+      "external_references": [
+        {
+          "description": "franz-electron-backdoor 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/franz-electron-backdoor/README.md"
+        }
+      ],
+      "id": "malware--e2d41e49-709c-5386-80fd-eb7d28c01be5",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "franz-electron-backdoor",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "franz-electron-backdoor 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/franz-electron-backdoor/README.md"
+        }
+      ],
+      "id": "note--12857e4e-9f31-5f3b-8062-0dc0f39c02c9",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e2d41e49-709c-5386-80fd-eb7d28c01be5"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "franz-electron-backdoor 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/franz-electron-backdoor/README.md"
+        }
+      ],
+      "id": "report--d1316eff-9cd1-5f82-958d-98d298d01d40",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "franz-electron-backdoor：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--e2d41e49-709c-5386-80fd-eb7d28c01be5",
+        "note--12857e4e-9f31-5f3b-8062-0dc0f39c02c9"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

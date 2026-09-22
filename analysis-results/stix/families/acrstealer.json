@@ -1,0 +1,268 @@
+{
+  "id": "bundle--ee393836-9a47-5df7-8022-c752ec9125be",
+  "objects": [
+    {
+      "aliases": [
+        "ACR Stealer",
+        "Amatera Stealer"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Proofpointは2025年のAmateraをACRStealerの大幅更新・改名系統と評価した。2024年には偽Google AuthenticatorサイトからACRStealerとLatrodectusが配布され、2025年にはClearFakeの偽CAPTCHAとClickFixからAmateraが配布された。",
+      "external_references": [
+        {
+          "description": "acrstealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/acrstealer/README.md"
+        },
+        {
+          "description": "偽Google AuthenticatorサイトによるACRStealer配布 (stix-acr-cyble-2024)",
+          "source_name": "Cyble",
+          "url": "https://cyble.com/blog/double-trouble-latrodectus-and-acr-stealer-observed-spreading-via-google-authenticator-phishing-site/"
+        },
+        {
+          "description": "ACRStealerからAmateraへの改名と配布活動 (stix-acr-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/amatera-stealer-rebranded-acr-stealer-improved-evasion-sophistication"
+        }
+      ],
+      "id": "malware--e8b4ab0f-d57b-50d0-932a-b5f5a2afbec5",
+      "is_family": true,
+      "labels": [
+        "business-model:maas"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "ACRStealer／Amatera Stealer",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: 実名開発者は未確認。ProofpointはACRからAmateraへの更新と販売panelを報告するが、公開資料だけで個々の版の作者を同一視しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ACRStealerからAmateraへの改名と配布活動 (stix-acr-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/amatera-stealer-rebranded-acr-stealer-improved-evasion-sophistication"
+        }
+      ],
+      "id": "note--0c566aa5-2354-5471-bd40-ddd288b0d482",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e8b4ab0f-d57b-50d0-932a-b5f5a2afbec5"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: maas。ProofpointがAmateraをsubscription型MaaSと確認した。単一アクター専用ではない。ACR旧版の全商流まで遡及しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ACRStealerからAmateraへの改名と配布活動 (stix-acr-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/amatera-stealer-rebranded-acr-stealer-improved-evasion-sophistication"
+        }
+      ],
+      "id": "note--3e7a7d01-7c1c-5cbe-be32-b0295c5bcc0d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e8b4ab0f-d57b-50d0-932a-b5f5a2afbec5"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 単一アクター専用ではないと報告されている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ACRStealerからAmateraへの改名と配布活動 (stix-acr-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/amatera-stealer-rebranded-acr-stealer-improved-evasion-sophistication"
+        }
+      ],
+      "id": "note--87954887-c735-5f2e-b3b3-a2d492a7cf4d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e8b4ab0f-d57b-50d0-932a-b5f5a2afbec5"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 20,
+      "content": "利用主体に関する公開報告: 未特定のMaaS購入者。購入者ごとの配布活動がありうるが、CybleとProofpointの観測だけでは単一の利用アクターを確定できない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "偽Google AuthenticatorサイトによるACRStealer配布 (stix-acr-cyble-2024)",
+          "source_name": "Cyble",
+          "url": "https://cyble.com/blog/double-trouble-latrodectus-and-acr-stealer-observed-spreading-via-google-authenticator-phishing-site/"
+        },
+        {
+          "description": "ACRStealerからAmateraへの改名と配布活動 (stix-acr-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/amatera-stealer-rebranded-acr-stealer-improved-evasion-sophistication"
+        }
+      ],
+      "id": "note--847328fa-1b7e-5a0f-b8e7-4e961eb20db7",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e8b4ab0f-d57b-50d0-932a-b5f5a2afbec5"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2024年8月）: 偽Google Safety Centreの認証アプリ配布ページからloaderをダウンロードさせ、ACRStealerとLatrodectusを投下した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "偽Google AuthenticatorサイトによるACRStealer配布 (stix-acr-cyble-2024)",
+          "source_name": "Cyble",
+          "url": "https://cyble.com/blog/double-trouble-latrodectus-and-acr-stealer-observed-spreading-via-google-authenticator-phishing-site/"
+        }
+      ],
+      "id": "note--6eb2918b-7c01-50b9-a80a-b19fbbd98ab8",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e8b4ab0f-d57b-50d0-932a-b5f5a2afbec5"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2025年4月から5月）: 侵害WebサイトへのClearFake注入、偽CAPTCHA、ClickFix、PowerShellとMSBuildを経てAmateraを展開した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ACRStealerからAmateraへの改名と配布活動 (stix-acr-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/amatera-stealer-rebranded-acr-stealer-improved-evasion-sophistication"
+        }
+      ],
+      "id": "note--c958d071-8ddd-5bb6-aef8-4ce6906c9bb4",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e8b4ab0f-d57b-50d0-932a-b5f5a2afbec5"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Cybleが2024年8月に報告した偽Google Safety Centreからのloader配布。ACRStealerとLatrodectusを投下した。未特定の運用者を既知アクターへ帰属しない。",
+      "external_references": [
+        {
+          "description": "偽Google AuthenticatorサイトによるACRStealer配布 (stix-acr-cyble-2024)",
+          "source_name": "Cyble",
+          "url": "https://cyble.com/blog/double-trouble-latrodectus-and-acr-stealer-observed-spreading-via-google-authenticator-phishing-site/"
+        }
+      ],
+      "id": "campaign--183e2f0a-321f-50a9-b657-18e054776970",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "2024年の偽Google Authenticator配布活動",
+      "spec_version": "2.1",
+      "type": "campaign"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "偽Google AuthenticatorサイトによるACRStealer配布 (stix-acr-cyble-2024)",
+          "source_name": "Cyble",
+          "url": "https://cyble.com/blog/double-trouble-latrodectus-and-acr-stealer-observed-spreading-via-google-authenticator-phishing-site/"
+        }
+      ],
+      "id": "relationship--37fceaab-5527-510e-ae63-9849cfb05ae4",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "campaign--183e2f0a-321f-50a9-b657-18e054776970",
+      "spec_version": "2.1",
+      "target_ref": "malware--e8b4ab0f-d57b-50d0-932a-b5f5a2afbec5",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Proofpointが報告した侵害サイトの偽CAPTCHA、ClickFix、PowerShell、MSBuildを経由するAmatera配布。ClearFakeの他の全配布を同一campaignへ含めない。",
+      "external_references": [
+        {
+          "description": "ACRStealerからAmateraへの改名と配布活動 (stix-acr-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/amatera-stealer-rebranded-acr-stealer-improved-evasion-sophistication"
+        }
+      ],
+      "id": "campaign--a37a4317-7b7f-5366-941c-d579cbc3cace",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "2025年5月のClearFake・ClickFix配布活動",
+      "spec_version": "2.1",
+      "type": "campaign"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ACRStealerからAmateraへの改名と配布活動 (stix-acr-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/amatera-stealer-rebranded-acr-stealer-improved-evasion-sophistication"
+        }
+      ],
+      "id": "relationship--d176b379-f3c9-561b-90c0-b54fa4b797fa",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "campaign--a37a4317-7b7f-5366-941c-d579cbc3cace",
+      "spec_version": "2.1",
+      "target_ref": "malware--e8b4ab0f-d57b-50d0-932a-b5f5a2afbec5",
+      "type": "relationship"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "acrstealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/acrstealer/README.md"
+        }
+      ],
+      "id": "report--e8ceb29a-d1b6-52a9-bd97-3ef9d93f04de",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "ACRStealer／Amatera Stealer：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--e8b4ab0f-d57b-50d0-932a-b5f5a2afbec5",
+        "note--0c566aa5-2354-5471-bd40-ddd288b0d482",
+        "note--3e7a7d01-7c1c-5cbe-be32-b0295c5bcc0d",
+        "note--87954887-c735-5f2e-b3b3-a2d492a7cf4d",
+        "note--847328fa-1b7e-5a0f-b8e7-4e961eb20db7",
+        "note--6eb2918b-7c01-50b9-a80a-b19fbbd98ab8",
+        "note--c958d071-8ddd-5bb6-aef8-4ce6906c9bb4",
+        "campaign--183e2f0a-321f-50a9-b657-18e054776970",
+        "relationship--37fceaab-5527-510e-ae63-9849cfb05ae4",
+        "campaign--a37a4317-7b7f-5366-941c-d579cbc3cace",
+        "relationship--d176b379-f3c9-561b-90c0-b54fa4b797fa"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

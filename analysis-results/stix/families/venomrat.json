@@ -1,0 +1,282 @@
+{
+  "id": "bundle--24486b2f-f996-57cb-9a54-dd1b9dff4f04",
+  "objects": [
+    {
+      "aliases": [
+        "Venom RAT",
+        "VenomRat"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "2020年頃から報告される.NET製RATで、Quasar系コードを基にした改変／クローンとして説明され、遠隔操作、画面・キー入力・認証情報・ファイル操作等を備える。",
+      "external_references": [
+        {
+          "description": "venomrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/venomrat/README.md"
+        },
+        {
+          "description": "サイバー犯罪基盤への終止符：1,025台のサーバーを停止 (nz-venom-europol-2025)",
+          "source_name": "Europol",
+          "url": "https://www.europol.europa.eu/media-press/newsroom/news/end-of-game-for-cybercrime-infrastructure-1025-servers-taken-down"
+        },
+        {
+          "description": "ScrubCryptによる多数のプラグインを備えたVenomRATの配備 (nz-venom-fortinet-2024)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/scrubcrypt-deploys-venomrat-with-arsenal-of-plugins"
+        },
+        {
+          "description": "ローカルVenomRAT解析結果 (nz-venom-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/venomrat/README.md"
+        },
+        {
+          "description": "マイクロソフト検知名 Trojan:Win32/VenomRat.AVM!MTB (nz-venom-ms)",
+          "source_name": "Microsoft Security Intelligence",
+          "url": "https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?Name=Trojan%3AWin32%2FVenomRat.AVM%21MTB&ThreatID=2147902074"
+        },
+        {
+          "description": "セキュリティ概況：VenomRATの無力化 (nz-venom-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/security-brief-venomrat-defanged"
+        }
+      ],
+      "id": "malware--8af22a99-00b6-5806-873b-0ccccd3242e0",
+      "is_family": true,
+      "labels": [
+        "business-model:commodity"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "VenomRAT",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: 地下フォーラムで広告された作成者の実名は確認できない。ProofpointとEuropolは2025年の主要容疑者逮捕を報告したが、参照した公開資料は実名を示していない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "サイバー犯罪基盤への終止符：1,025台のサーバーを停止 (nz-venom-europol-2025)",
+          "source_name": "Europol",
+          "url": "https://www.europol.europa.eu/media-press/newsroom/news/end-of-game-for-cybercrime-infrastructure-1025-servers-taken-down"
+        },
+        {
+          "description": "セキュリティ概況：VenomRATの無力化 (nz-venom-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/security-brief-venomrat-defanged"
+        }
+      ],
+      "id": "note--d185bf9c-e83d-5556-b1e7-1a908666f0e8",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8af22a99-00b6-5806-873b-0ccccd3242e0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: commodity。地下市場で流通するQuasarクローン型のコモディティRATで、複数配布アクターが使用する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "マイクロソフト検知名 Trojan:Win32/VenomRat.AVM!MTB (nz-venom-ms)",
+          "source_name": "Microsoft Security Intelligence",
+          "url": "https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?Name=Trojan%3AWin32%2FVenomRat.AVM%21MTB&ThreatID=2147902074"
+        },
+        {
+          "description": "セキュリティ概況：VenomRATの無力化 (nz-venom-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/security-brief-venomrat-defanged"
+        }
+      ],
+      "id": "note--e5bacbbe-1db0-588b-a60b-0ec8304f3813",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8af22a99-00b6-5806-873b-0ccccd3242e0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "マイクロソフト検知名 Trojan:Win32/VenomRat.AVM!MTB (nz-venom-ms)",
+          "source_name": "Microsoft Security Intelligence",
+          "url": "https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?Name=Trojan%3AWin32%2FVenomRat.AVM%21MTB&ThreatID=2147902074"
+        },
+        {
+          "description": "セキュリティ概況：VenomRATの無力化 (nz-venom-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/security-brief-venomrat-defanged"
+        }
+      ],
+      "id": "note--496cbb0b-f76a-598a-a27c-a11906bd0d67",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8af22a99-00b6-5806-873b-0ccccd3242e0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--7d7cd089-a1ee-5145-9f5e-746816f4d774",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "TA558",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Proofpoint観測では2022年以降のVenomRAT配布の58%を占めたが、VenomRATは同アクター専用ではない。",
+      "external_references": [
+        {
+          "description": "セキュリティ概況：VenomRATの無力化 (nz-venom-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/security-brief-venomrat-defanged"
+        }
+      ],
+      "id": "relationship--992d9f3e-84a9-5241-b3b1-737f2c874d50",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--7d7cd089-a1ee-5145-9f5e-746816f4d774",
+      "spec_version": "2.1",
+      "target_ref": "malware--8af22a99-00b6-5806-873b-0ccccd3242e0",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: TA558。Proofpoint観測では2022年以降のVenomRAT配布の58%を占めたが、VenomRATは同アクター専用ではない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "セキュリティ概況：VenomRATの無力化 (nz-venom-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/security-brief-venomrat-defanged"
+        }
+      ],
+      "id": "note--b9250da1-8815-5888-9722-b3a16dea5cea",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8af22a99-00b6-5806-873b-0ccccd3242e0",
+        "threat-actor--7d7cd089-a1ee-5145-9f5e-746816f4d774"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--0e15d515-1fae-5d9f-b7a5-c4c6bb18ad54",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "TA2541",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Proofpointが散発的なVenomRAT利用を報告した。",
+      "external_references": [
+        {
+          "description": "セキュリティ概況：VenomRATの無力化 (nz-venom-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/security-brief-venomrat-defanged"
+        }
+      ],
+      "id": "relationship--0408adea-e24a-5aa8-98e9-7924ff883dd4",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--0e15d515-1fae-5d9f-b7a5-c4c6bb18ad54",
+      "spec_version": "2.1",
+      "target_ref": "malware--8af22a99-00b6-5806-873b-0ccccd3242e0",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: TA2541。Proofpointが散発的なVenomRAT利用を報告した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "セキュリティ概況：VenomRATの無力化 (nz-venom-proofpoint-2025)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/security-brief-venomrat-defanged"
+        }
+      ],
+      "id": "note--9b794636-9e61-5815-9356-82faae4b5828",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8af22a99-00b6-5806-873b-0ccccd3242e0",
+        "threat-actor--0e15d515-1fae-5d9f-b7a5-c4c6bb18ad54"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2024年）: 配送書類テーマ、BatCloak／ScrubCryptを経てVenomRAT 6.0.3と複数プラグインを投入するキャンペーンが報告された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ScrubCryptによる多数のプラグインを備えたVenomRATの配備 (nz-venom-fortinet-2024)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/scrubcrypt-deploys-venomrat-with-arsenal-of-plugins"
+        }
+      ],
+      "id": "note--ca28acd2-06a9-5d30-b7b8-177877cbb8f7",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8af22a99-00b6-5806-873b-0ccccd3242e0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "venomrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/venomrat/README.md"
+        }
+      ],
+      "id": "report--6aeb550a-3b79-5e58-abe6-97466215ddf3",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "VenomRAT：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--8af22a99-00b6-5806-873b-0ccccd3242e0",
+        "note--d185bf9c-e83d-5556-b1e7-1a908666f0e8",
+        "note--e5bacbbe-1db0-588b-a60b-0ec8304f3813",
+        "note--496cbb0b-f76a-598a-a27c-a11906bd0d67",
+        "threat-actor--7d7cd089-a1ee-5145-9f5e-746816f4d774",
+        "relationship--992d9f3e-84a9-5241-b3b1-737f2c874d50",
+        "note--b9250da1-8815-5888-9722-b3a16dea5cea",
+        "threat-actor--0e15d515-1fae-5d9f-b7a5-c4c6bb18ad54",
+        "relationship--0408adea-e24a-5aa8-98e9-7924ff883dd4",
+        "note--9b794636-9e61-5815-9356-82faae4b5828",
+        "note--ca28acd2-06a9-5d30-b7b8-177877cbb8f7"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

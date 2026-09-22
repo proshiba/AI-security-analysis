@@ -47,6 +47,19 @@ def test_indicator_only_case_is_included(tmp_path: Path) -> None:
     assert inventory["scanned_indicators_json_file_count"] == 1
 
 
+def test_invalidated_campaign_ioc_cannot_enter_monitoring(tmp_path: Path) -> None:
+    results = tmp_path / "analysis-results"
+    path = results / "research" / "campaigns" / "correlated-wannacry-invalid" / "iocs.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({
+        "invalidated": True,
+        "indicators": [{"type": "endpoint", "value": "198.51.100.9:443", "role": "c2_endpoint"}],
+    }), encoding="utf-8")
+    plan, inventory = build_inventory(results, generated_date="2026-09-22")
+    assert plan["targets"] == []
+    assert any(item["reason"] == "invalidated_ioc_document" for item in inventory["exclusions"])
+
+
 def test_duplicate_evidence_across_both_case_files_is_counted_once(tmp_path: Path) -> None:
     malware_root = tmp_path / "malware"
     sample = "f" * 64

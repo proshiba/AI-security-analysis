@@ -1,0 +1,333 @@
+{
+  "id": "bundle--a745ca4e-6a8d-53cf-86fc-4af4f67d9467",
+  "objects": [
+    {
+      "aliases": [
+        "Quasar",
+        "Quasar RAT"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "C#で実装されたWindows用オープンソース遠隔管理ツールで、MITライセンスの正規用途を持つ一方、フォークや改変版が攻撃で広く悪用される。",
+      "external_references": [
+        {
+          "description": "quasarrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/quasarrat/README.md"
+        },
+        {
+          "description": "ウクライナの組織を狙う破壊型マルウェア AA22-057A (nz-quasar-cisa-2022)",
+          "source_name": "CISA",
+          "url": "https://www.cisa.gov/sites/default/files/publications/AA22-057A_Destructive_Malware_Targeting_Organizations_in_Ukraine.pdf"
+        },
+        {
+          "description": "Lapsus$および関連脅威グループによる攻撃の検証 (nz-quasar-csrb-2023)",
+          "source_name": "CISA Cyber Safety Review Board",
+          "url": "https://www.cisa.gov/sites/default/files/2023-08/CSRB_Lapsus%24_508c.pdf"
+        },
+        {
+          "description": "Quasar公式アーカイブリポジトリ (nz-quasar-github)",
+          "source_name": "Quasar project",
+          "url": "https://github.com/quasar/Quasar"
+        },
+        {
+          "description": "ローカルQuasarRAT解析結果 (nz-quasar-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/quasarrat/README.md"
+        },
+        {
+          "description": "政府機関への最近の標的型攻撃で使われたDowneksとQuasar RAT (nz-quasar-unit42-2017)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/unit42-downeks-and-quasar-rat-used-in-recent-targeted-attacks-against-governments/"
+        },
+        {
+          "description": "東南アジア政府を狙う継続的サイバー諜報とAlloy Taurusの関連 (nz-quasar-unit42-2023)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/alloy-taurus-targets-se-asian-government/"
+        }
+      ],
+      "id": "malware--b5562de3-9052-5277-a850-a9aa83ad7b1b",
+      "is_family": true,
+      "labels": [
+        "business-model:open-source"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "QuasarRAT",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: Unit 42はドイツの開発者ハンドルMaxXorによるxRATの発展形と説明している。公開ハンドルを超える実名情報は確認できない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "政府機関への最近の標的型攻撃で使われたDowneksとQuasar RAT (nz-quasar-unit42-2017)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/unit42-downeks-and-quasar-rat-used-in-recent-targeted-attacks-against-governments/"
+        }
+      ],
+      "id": "note--48944c6c-f5fd-5847-be57-7b1bd21202ba",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b5562de3-9052-5277-a850-a9aa83ad7b1b"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: open_source_dual_use。無償オープンソースの遠隔管理ツールで、ビルダーとフォークが広く入手可能なため、単一MaaSや単一アクターの指標ではない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Quasar公式アーカイブリポジトリ (nz-quasar-github)",
+          "source_name": "Quasar project",
+          "url": "https://github.com/quasar/Quasar"
+        },
+        {
+          "description": "政府機関への最近の標的型攻撃で使われたDowneksとQuasar RAT (nz-quasar-unit42-2017)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/unit42-downeks-and-quasar-rat-used-in-recent-targeted-attacks-against-governments/"
+        }
+      ],
+      "id": "note--3c6217b1-4ba7-53f0-8c83-922970255042",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b5562de3-9052-5277-a850-a9aa83ad7b1b"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Quasar公式アーカイブリポジトリ (nz-quasar-github)",
+          "source_name": "Quasar project",
+          "url": "https://github.com/quasar/Quasar"
+        },
+        {
+          "description": "政府機関への最近の標的型攻撃で使われたDowneksとQuasar RAT (nz-quasar-unit42-2017)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/unit42-downeks-and-quasar-rat-used-in-recent-targeted-attacks-against-governments/"
+        }
+      ],
+      "id": "note--fd1f6d3e-b2eb-525a-80d2-9a59165a64c9",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b5562de3-9052-5277-a850-a9aa83ad7b1b"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: Gaza Cybergang / DustySky。2016年にDowneks経由で政府標的へ改変Quasarを投入した活動として報告された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "政府機関への最近の標的型攻撃で使われたDowneksとQuasar RAT (nz-quasar-unit42-2017)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/unit42-downeks-and-quasar-rat-used-in-recent-targeted-attacks-against-governments/"
+        }
+      ],
+      "id": "note--d306528e-3ed0-5772-a204-3fcb25694195",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b5562de3-9052-5277-a850-a9aa83ad7b1b"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--73579e7e-7f7a-5410-baa1-2ba522f52269",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Lapsus$",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "CISA Cyber Safety Review Board報告書が侵害活動でQuasar RATを展開したと記録している。",
+      "external_references": [
+        {
+          "description": "Lapsus$および関連脅威グループによる攻撃の検証 (nz-quasar-csrb-2023)",
+          "source_name": "CISA Cyber Safety Review Board",
+          "url": "https://www.cisa.gov/sites/default/files/2023-08/CSRB_Lapsus%24_508c.pdf"
+        }
+      ],
+      "id": "relationship--5d3aa733-6dd8-579d-ba50-5d1c33122212",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--73579e7e-7f7a-5410-baa1-2ba522f52269",
+      "spec_version": "2.1",
+      "target_ref": "malware--b5562de3-9052-5277-a850-a9aa83ad7b1b",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: Lapsus$。CISA Cyber Safety Review Board報告書が侵害活動でQuasar RATを展開したと記録している。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Lapsus$および関連脅威グループによる攻撃の検証 (nz-quasar-csrb-2023)",
+          "source_name": "CISA Cyber Safety Review Board",
+          "url": "https://www.cisa.gov/sites/default/files/2023-08/CSRB_Lapsus%24_508c.pdf"
+        }
+      ],
+      "id": "note--bd30b3a9-5475-5691-aecd-5af614d2017d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b5562de3-9052-5277-a850-a9aa83ad7b1b",
+        "threat-actor--73579e7e-7f7a-5410-baa1-2ba522f52269"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--0e8ed623-e09b-5e65-a99e-043dff1e77f1",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Alloy Taurus",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 50,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "東南アジア政府侵入クラスタCL-STA-0045でQuasarを使用し、Unit 42が中程度の確度でAlloy Taurusへ関連付けた。",
+      "external_references": [
+        {
+          "description": "東南アジア政府を狙う継続的サイバー諜報とAlloy Taurusの関連 (nz-quasar-unit42-2023)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/alloy-taurus-targets-se-asian-government/"
+        }
+      ],
+      "id": "relationship--3152f525-5366-55e6-b48d-7c5f672eec89",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--0e8ed623-e09b-5e65-a99e-043dff1e77f1",
+      "spec_version": "2.1",
+      "target_ref": "malware--b5562de3-9052-5277-a850-a9aa83ad7b1b",
+      "type": "relationship"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: Alloy Taurus。東南アジア政府侵入クラスタCL-STA-0045でQuasarを使用し、Unit 42が中程度の確度でAlloy Taurusへ関連付けた。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "東南アジア政府を狙う継続的サイバー諜報とAlloy Taurusの関連 (nz-quasar-unit42-2023)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/alloy-taurus-targets-se-asian-government/"
+        }
+      ],
+      "id": "note--86d875f5-3e4e-54a6-bd35-9b101c3822e5",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b5562de3-9052-5277-a850-a9aa83ad7b1b",
+        "threat-actor--0e8ed623-e09b-5e65-a99e-043dff1e77f1"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2016年）: Downeksから改変Quasarを配布する政府標的攻撃が観測された。 報告された主体: Gaza Cybergang / DustySky。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "政府機関への最近の標的型攻撃で使われたDowneksとQuasar RAT (nz-quasar-unit42-2017)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/unit42-downeks-and-quasar-rat-used-in-recent-targeted-attacks-against-governments/"
+        }
+      ],
+      "id": "note--a7524985-8726-58cd-bcf7-93b94c783300",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b5562de3-9052-5277-a850-a9aa83ad7b1b"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2022年から2023年）: WhisperGate関連調査、Lapsus$侵害、東南アジア政府への複数波侵入でQuasarの使用が文書化された。 報告された主体: Lapsus$、Alloy Taurus。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "ウクライナの組織を狙う破壊型マルウェア AA22-057A (nz-quasar-cisa-2022)",
+          "source_name": "CISA",
+          "url": "https://www.cisa.gov/sites/default/files/publications/AA22-057A_Destructive_Malware_Targeting_Organizations_in_Ukraine.pdf"
+        },
+        {
+          "description": "Lapsus$および関連脅威グループによる攻撃の検証 (nz-quasar-csrb-2023)",
+          "source_name": "CISA Cyber Safety Review Board",
+          "url": "https://www.cisa.gov/sites/default/files/2023-08/CSRB_Lapsus%24_508c.pdf"
+        },
+        {
+          "description": "東南アジア政府を狙う継続的サイバー諜報とAlloy Taurusの関連 (nz-quasar-unit42-2023)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/alloy-taurus-targets-se-asian-government/"
+        }
+      ],
+      "id": "note--72b78e24-bb76-5502-9b81-736620236f8a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b5562de3-9052-5277-a850-a9aa83ad7b1b"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "quasarrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/quasarrat/README.md"
+        }
+      ],
+      "id": "report--313f23a1-d483-5adb-a2c5-a52d10b67e10",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "QuasarRAT：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--b5562de3-9052-5277-a850-a9aa83ad7b1b",
+        "note--48944c6c-f5fd-5847-be57-7b1bd21202ba",
+        "note--3c6217b1-4ba7-53f0-8c83-922970255042",
+        "note--fd1f6d3e-b2eb-525a-80d2-9a59165a64c9",
+        "note--d306528e-3ed0-5772-a204-3fcb25694195",
+        "threat-actor--73579e7e-7f7a-5410-baa1-2ba522f52269",
+        "relationship--5d3aa733-6dd8-579d-ba50-5d1c33122212",
+        "note--bd30b3a9-5475-5691-aecd-5af614d2017d",
+        "threat-actor--0e8ed623-e09b-5e65-a99e-043dff1e77f1",
+        "relationship--3152f525-5366-55e6-b48d-7c5f672eec89",
+        "note--86d875f5-3e4e-54a6-bd35-9b101c3822e5",
+        "note--a7524985-8726-58cd-bcf7-93b94c783300",
+        "note--72b78e24-bb76-5502-9b81-736620236f8a"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

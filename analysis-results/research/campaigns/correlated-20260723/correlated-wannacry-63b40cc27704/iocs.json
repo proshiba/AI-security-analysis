@@ -1,5 +1,7 @@
 {
   "schema_version": 1,
+  "invalidated": true,
+  "invalidation_reason_ja": "旧擬似domainを含むため、全指標を有効IOCとして使用しない。",
   "indicators": [
     {
       "type": "domain",

@@ -1,0 +1,200 @@
+{
+  "id": "bundle--abe6d6b1-1528-5909-8396-d92426da039d",
+  "objects": [
+    {
+      "aliases": [
+        "MioLab",
+        "Nova"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "SEALはMioLab（Nova）のmacos-stealer-v2を、偽投資提案とGoogle Docsの偽復号panelから配布されるmacOS向け情報窃取型として報告した。MacSync／Odyssey／AMOSは別系統であり、本ファミリーに統合しない。",
+      "external_references": [
+        {
+          "description": "macos-stealer-v2 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/macos-stealer-v2/README.md"
+        },
+        {
+          "description": "暗号資産利用者への偽商談を起点とするMioLab配布活動 (stix-miolab-seal-2026)",
+          "source_name": "SEAL Intel",
+          "url": "https://radar.securityalliance.org/beware-of-cold-reachouts-infostealer-malware-campaigns-targeting-crypto/"
+        }
+      ],
+      "id": "malware--a24e896c-1eef-5b96-8ea3-4513eee4d340",
+      "is_family": true,
+      "labels": [
+        "business-model:maas"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "MioLab／Nova（macos-stealer-v2）",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: MioLabのMaaS提供者は報告されているが、実名の個人開発者や組織は未確認。配布affiliateと提供者を同一視しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "暗号資産利用者への偽商談を起点とするMioLab配布活動 (stix-miolab-seal-2026)",
+          "source_name": "SEAL Intel",
+          "url": "https://radar.securityalliance.org/beware-of-cold-reachouts-infostealer-malware-campaigns-targeting-crypto/"
+        }
+      ],
+      "id": "note--ee380b1d-e6b0-5854-bf4b-b2b78d175ae4",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a24e896c-1eef-5b96-8ea3-4513eee4d340"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: maas。SEALはMioLabをMaaS提供者と記録する。単一アクター専用ではないが、個別caseの販売者・affiliate・被害組織は特定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "暗号資産利用者への偽商談を起点とするMioLab配布活動 (stix-miolab-seal-2026)",
+          "source_name": "SEAL Intel",
+          "url": "https://radar.securityalliance.org/beware-of-cold-reachouts-infostealer-malware-campaigns-targeting-crypto/"
+        }
+      ],
+      "id": "note--e1cc8088-908e-5453-9f9d-8bf58d76bf8c",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a24e896c-1eef-5b96-8ea3-4513eee4d340"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 単一アクター専用ではないと報告されている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "暗号資産利用者への偽商談を起点とするMioLab配布活動 (stix-miolab-seal-2026)",
+          "source_name": "SEAL Intel",
+          "url": "https://radar.securityalliance.org/beware-of-cold-reachouts-infostealer-malware-campaigns-targeting-crypto/"
+        }
+      ],
+      "id": "note--621b2d47-1358-5731-9bcf-8c01c4a18510",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a24e896c-1eef-5b96-8ea3-4513eee4d340"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 20,
+      "content": "利用主体に関する公開報告: 未特定のTraffer affiliate。偽投資提案などの配布主体は複数で、SEALは全活動を単一攻撃グループへ帰属できないとしている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "暗号資産利用者への偽商談を起点とするMioLab配布活動 (stix-miolab-seal-2026)",
+          "source_name": "SEAL Intel",
+          "url": "https://radar.securityalliance.org/beware-of-cold-reachouts-infostealer-malware-campaigns-targeting-crypto/"
+        }
+      ],
+      "id": "note--188d0546-65ea-520c-ad9f-347956b4893b",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a24e896c-1eef-5b96-8ea3-4513eee4d340"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2026年）: 暗号資産関係者への偽投資提案からGoogle Docs内の偽復号panelを表示し、MioLab系macOS payloadの実行へ誘導した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "暗号資産利用者への偽商談を起点とするMioLab配布活動 (stix-miolab-seal-2026)",
+          "source_name": "SEAL Intel",
+          "url": "https://radar.securityalliance.org/beware-of-cold-reachouts-infostealer-malware-campaigns-targeting-crypto/"
+        }
+      ],
+      "id": "note--af65df7b-1e9a-53e1-a695-563e16532846",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a24e896c-1eef-5b96-8ea3-4513eee4d340"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "SEALが報告した、偽投資提案からGoogle Docs内の偽復号panelでmacos-stealer-v2系MioLab payloadへ誘導する活動。MacSync配布活動を含めない。",
+      "external_references": [
+        {
+          "description": "暗号資産利用者への偽商談を起点とするMioLab配布活動 (stix-miolab-seal-2026)",
+          "source_name": "SEAL Intel",
+          "url": "https://radar.securityalliance.org/beware-of-cold-reachouts-infostealer-malware-campaigns-targeting-crypto/"
+        }
+      ],
+      "id": "campaign--f87a77be-8171-50a0-992c-07a160c45a00",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "2026年の偽投資文書・復号panel配布活動",
+      "spec_version": "2.1",
+      "type": "campaign"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "暗号資産利用者への偽商談を起点とするMioLab配布活動 (stix-miolab-seal-2026)",
+          "source_name": "SEAL Intel",
+          "url": "https://radar.securityalliance.org/beware-of-cold-reachouts-infostealer-malware-campaigns-targeting-crypto/"
+        }
+      ],
+      "id": "relationship--52b4b1b9-c330-5065-a7db-3671b73f3254",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "campaign--f87a77be-8171-50a0-992c-07a160c45a00",
+      "spec_version": "2.1",
+      "target_ref": "malware--a24e896c-1eef-5b96-8ea3-4513eee4d340",
+      "type": "relationship"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "macos-stealer-v2 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/macos-stealer-v2/README.md"
+        }
+      ],
+      "id": "report--cb60d84b-6ca1-57f3-b776-3b050296de36",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "MioLab／Nova（macos-stealer-v2）：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--a24e896c-1eef-5b96-8ea3-4513eee4d340",
+        "note--ee380b1d-e6b0-5854-bf4b-b2b78d175ae4",
+        "note--e1cc8088-908e-5453-9f9d-8bf58d76bf8c",
+        "note--621b2d47-1358-5731-9bcf-8c01c4a18510",
+        "note--188d0546-65ea-520c-ad9f-347956b4893b",
+        "note--af65df7b-1e9a-53e1-a695-563e16532846",
+        "campaign--f87a77be-8171-50a0-992c-07a160c45a00",
+        "relationship--52b4b1b9-c330-5065-a7db-3671b73f3254"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

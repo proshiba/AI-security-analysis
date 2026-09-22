@@ -1,0 +1,353 @@
+{
+  "id": "bundle--f640a06e-c817-5f59-8419-852a52549c00",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Gh0st RAT系プロトコルを基礎とするモジュール型RATである。公開検体ではメモリー内ロード、暗号化通信、PowerShell実行基盤、セキュリティ機構の無効化、プロセス注入等が報告されている。内部IDのatlascrossは過去互換のため維持するが、NSFOCUSが2023年に報告したアクターAtlasCross、および同アクターが使用したAtlasAgent・DangerAdsとは別系統であり、aliasやコード系譜として結合しない。",
+      "external_references": [
+        {
+          "description": "atlascross 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/atlascross/README.md"
+        },
+        {
+          "description": "偽VPNインストーラーでAtlas RATを配布するSilver Fox活動 (am-atlas-hexastrike-2026)",
+          "source_name": "HexaStrike",
+          "url": "https://hexastrike.com/resources/blog/threat-intelligence/trust-the-tunnel-get-the-trojan-silver-fox-delivers-atlas-rat-via-weaponized-vpn-installers/"
+        },
+        {
+          "description": "Atlas RATローカルキャンペーン検証（旧内部ID atlascross） (am-atlas-local-2026)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/atlascross"
+        },
+        {
+          "description": "AtlasCrossアクターおよびAtlasAgent・DangerAdsの解析 (am-atlas-nsfocus-2023)",
+          "source_name": "NSFOCUS",
+          "url": "https://nsfocusglobal.com/pt-br/warning-newly-discovered-apt-attacker-atlascross-exploits-red-cross-blood-drive-phishing-for-cyberattack/"
+        },
+        {
+          "description": "TA4922：中国系犯罪グループのグローバル化 (am-atlas-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "malware--04a97b9a-44ae-584f-9279-9b645c479709",
+      "is_family": true,
+      "labels": [
+        "business-model:restricted"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "Atlas RAT",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 20,
+      "content": "開発主体: 開発者の個人・組織に関する公開帰属は確認されていない。一般販売やMaaS運営を裏付ける公開証拠も不足している。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "偽VPNインストーラーでAtlas RATを配布するSilver Fox活動 (am-atlas-hexastrike-2026)",
+          "source_name": "HexaStrike",
+          "url": "https://hexastrike.com/resources/blog/threat-intelligence/trust-the-tunnel-get-the-trojan-silver-fox-delivers-atlas-rat-via-weaponized-vpn-installers/"
+        },
+        {
+          "description": "TA4922：中国系犯罪グループのグローバル化 (am-atlas-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "note--d0d3524e-bc82-50cc-a4b3-72d533ee9d99",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--04a97b9a-44ae-584f-9279-9b645c479709"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: restricted_criminal_tool。複数の中国系犯罪活動で使われるが、公開販売型MaaSと確認できないため、現時点では限定的な犯罪RATとして扱う。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "偽VPNインストーラーでAtlas RATを配布するSilver Fox活動 (am-atlas-hexastrike-2026)",
+          "source_name": "HexaStrike",
+          "url": "https://hexastrike.com/resources/blog/threat-intelligence/trust-the-tunnel-get-the-trojan-silver-fox-delivers-atlas-rat-via-weaponized-vpn-installers/"
+        },
+        {
+          "description": "TA4922：中国系犯罪グループのグローバル化 (am-atlas-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "note--7607708c-0383-525d-b70d-2cf87ef8fbc6",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--04a97b9a-44ae-584f-9279-9b645c479709"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "偽VPNインストーラーでAtlas RATを配布するSilver Fox活動 (am-atlas-hexastrike-2026)",
+          "source_name": "HexaStrike",
+          "url": "https://hexastrike.com/resources/blog/threat-intelligence/trust-the-tunnel-get-the-trojan-silver-fox-delivers-atlas-rat-via-weaponized-vpn-installers/"
+        },
+        {
+          "description": "TA4922：中国系犯罪グループのグローバル化 (am-atlas-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "note--3a450f00-0a23-5ee3-871e-ca3b137d6b76",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--04a97b9a-44ae-584f-9279-9b645c479709"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--27f12f86-07f6-5af0-87ec-9f22101d6a71",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Silver Fox",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 50,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "HexaStrikeは偽VPN・メッセンジャー等のインストーラーでAtlas RATを配布した活動をSilver Foxへ帰属した。",
+      "external_references": [
+        {
+          "description": "偽VPNインストーラーでAtlas RATを配布するSilver Fox活動 (am-atlas-hexastrike-2026)",
+          "source_name": "HexaStrike",
+          "url": "https://hexastrike.com/resources/blog/threat-intelligence/trust-the-tunnel-get-the-trojan-silver-fox-delivers-atlas-rat-via-weaponized-vpn-installers/"
+        }
+      ],
+      "id": "relationship--a8a01fcf-3b59-5b35-8a42-f7539b0b92df",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--27f12f86-07f6-5af0-87ec-9f22101d6a71",
+      "spec_version": "2.1",
+      "target_ref": "malware--04a97b9a-44ae-584f-9279-9b645c479709",
+      "type": "relationship"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: Silver Fox。HexaStrikeは偽VPN・メッセンジャー等のインストーラーでAtlas RATを配布した活動をSilver Foxへ帰属した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "偽VPNインストーラーでAtlas RATを配布するSilver Fox活動 (am-atlas-hexastrike-2026)",
+          "source_name": "HexaStrike",
+          "url": "https://hexastrike.com/resources/blog/threat-intelligence/trust-the-tunnel-get-the-trojan-silver-fox-delivers-atlas-rat-via-weaponized-vpn-installers/"
+        }
+      ],
+      "id": "note--7f0a926f-20da-5d4b-ae2d-cd508f267542",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--04a97b9a-44ae-584f-9279-9b645c479709",
+        "threat-actor--27f12f86-07f6-5af0-87ec-9f22101d6a71"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--36041030-00b0-560c-baa5-26a1575669a9",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "TA4922",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "ProofpointはAtlas RATを使用する中国語話者の金銭目的アクターとして追跡する。Silver Fox等との重複はあるが、一対一対応ではないとされる。",
+      "external_references": [
+        {
+          "description": "TA4922：中国系犯罪グループのグローバル化 (am-atlas-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "relationship--a8fdb8fa-04ad-504b-abe6-f3966d5474cc",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--36041030-00b0-560c-baa5-26a1575669a9",
+      "spec_version": "2.1",
+      "target_ref": "malware--04a97b9a-44ae-584f-9279-9b645c479709",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: TA4922。ProofpointはAtlas RATを使用する中国語話者の金銭目的アクターとして追跡する。Silver Fox等との重複はあるが、一対一対応ではないとされる。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TA4922：中国系犯罪グループのグローバル化 (am-atlas-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "note--1645be1b-5604-5a17-b64e-18551c86b9c1",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--04a97b9a-44ae-584f-9279-9b645c479709",
+        "threat-actor--36041030-00b0-560c-baa5-26a1575669a9"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2025-11から2026-03）: 中国語話者を狙う偽Surfshark、Signal、Telegram、Zoom等の配布サイトからAtlas RATが展開された。 報告された主体: Silver Fox。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "偽VPNインストーラーでAtlas RATを配布するSilver Fox活動 (am-atlas-hexastrike-2026)",
+          "source_name": "HexaStrike",
+          "url": "https://hexastrike.com/resources/blog/threat-intelligence/trust-the-tunnel-get-the-trojan-silver-fox-delivers-atlas-rat-via-weaponized-vpn-installers/"
+        }
+      ],
+      "id": "note--5b20ca09-5ca5-52a9-929f-b6741680acb9",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--04a97b9a-44ae-584f-9279-9b645c479709"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2026-03から2026-04）: 日本・東アジアから英国・ドイツ等へ広がる人事・請求書テーマの活動でAtlas RATが使用された。 報告された主体: TA4922。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TA4922：中国系犯罪グループのグローバル化 (am-atlas-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "note--91a70f1c-b38e-5610-b4d5-b95a71cb8711",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--04a97b9a-44ae-584f-9279-9b645c479709"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Proofpointが2026年3月6日に観測した活動を本STIX内で識別するための記述名。日本の組織を人事・給与調整メールで誘導し、ZIP内の正規EXEと悪性DLLのサイドローディングからAtlas RATを導入した。",
+      "external_references": [
+        {
+          "description": "TA4922：中国系犯罪グループのグローバル化 (am-atlas-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "campaign--91974107-1698-5faa-9fe4-5942ba4120cd",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "TA4922の2026年3月日本向け人事メール活動",
+      "spec_version": "2.1",
+      "type": "campaign"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TA4922：中国系犯罪グループのグローバル化 (am-atlas-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "relationship--e438588c-4662-5878-8ce8-a55b5d672e06",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "campaign--91974107-1698-5faa-9fe4-5942ba4120cd",
+      "spec_version": "2.1",
+      "target_ref": "malware--04a97b9a-44ae-584f-9279-9b645c479709",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "ProofpointがTA4922として追跡する活動内で観測した事例に限る。Silver Fox等の別名との一対一対応は主張しない。",
+      "external_references": [
+        {
+          "description": "TA4922：中国系犯罪グループのグローバル化 (am-atlas-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "relationship--bc4dcb97-4964-50e2-989e-dc80d35e53cc",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "attributed-to",
+      "source_ref": "campaign--91974107-1698-5faa-9fe4-5942ba4120cd",
+      "spec_version": "2.1",
+      "target_ref": "threat-actor--36041030-00b0-560c-baa5-26a1575669a9",
+      "type": "relationship"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "atlascross 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/atlascross/README.md"
+        }
+      ],
+      "id": "report--43ed25c5-3431-5a4c-8f77-c578bea8b292",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "Atlas RAT：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--04a97b9a-44ae-584f-9279-9b645c479709",
+        "note--d0d3524e-bc82-50cc-a4b3-72d533ee9d99",
+        "note--7607708c-0383-525d-b70d-2cf87ef8fbc6",
+        "note--3a450f00-0a23-5ee3-871e-ca3b137d6b76",
+        "threat-actor--27f12f86-07f6-5af0-87ec-9f22101d6a71",
+        "relationship--a8a01fcf-3b59-5b35-8a42-f7539b0b92df",
+        "note--7f0a926f-20da-5d4b-ae2d-cd508f267542",
+        "threat-actor--36041030-00b0-560c-baa5-26a1575669a9",
+        "relationship--a8fdb8fa-04ad-504b-abe6-f3966d5474cc",
+        "note--1645be1b-5604-5a17-b64e-18551c86b9c1",
+        "note--5b20ca09-5ca5-52a9-929f-b6741680acb9",
+        "note--91a70f1c-b38e-5610-b4d5-b95a71cb8711",
+        "campaign--91974107-1698-5faa-9fe4-5942ba4120cd",
+        "relationship--e438588c-4662-5878-8ce8-a55b5d672e06",
+        "relationship--bc4dcb97-4964-50e2-989e-dc80d35e53cc"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

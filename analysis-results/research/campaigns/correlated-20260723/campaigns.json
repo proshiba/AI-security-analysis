@@ -1,6 +1,8 @@
 {
   "schema_version": 1,
   "analysis_mode": "repository_artifact_correlation",
+  "invalidated_campaign_ids": ["correlated-wannacry-63b40cc27704"],
+  "invalidation_notice_ja": "2026-09-22監査でWannaCryの旧擬似domain相関を無効化。旧集計は歴史的snapshotであり有効候補数ではない。",
   "counts": {
     "cases": 1025,
     "candidate_pairs": 1247,
@@ -10122,6 +10124,7 @@
     },
     {
       "campaign_id": "correlated-wannacry-63b40cc27704",
+      "invalidated": true,
       "classification": "same_family_campaign_candidate",
       "confidence": "high",
       "families": [

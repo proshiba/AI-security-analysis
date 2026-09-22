@@ -3,7 +3,7 @@
   "updated_on": "2026-08-11",
   "family": "valleyrat",
   "policy": {
-    "confirmed_public_campaign": "公開資料のSHA-256またはMD5と、ルート検体または解析済み内包物が完全一致した場合だけ確定する。",
+    "confirmed_public_campaign": "公開資料の悪性ファイルSHA-256またはMD5と、ルート検体または役割確認済み悪性内包物が完全一致した場合だけ確定する。正規side-load host等のcontext_only hashは除く。",
     "candidate_public_campaign": "公開C2などの一致に加え、配布構成またはcampaign固有markerが一致した場合に限り候補とする。",
     "local_campaign_candidate": "同一配布物の親子関係、または複数の独立した強いローカル証拠がある場合に限り付与する。",
     "actor_attribution": "malware family名、MalwareBazaarのcommunity tag、ファイル名、imphash単独ではactorを帰属しない。",
@@ -185,7 +185,6 @@
         "00e0e5821096b5bd36bbc2f4c872ed859fb99fdd95a7b4a65eade26fd2aa2022",
         "8597faea1e71e44803b503913e399006626b9f70b54815f20b779b39befa592b",
         "459e1dc3d09eb800e6367dc7833f38f7adbb9510ea70fa490a76d9b64bd1d9f6",
-        "facf78d474b66ed821288db41fa6ad8a7b6f30650eb12127cb3e9a3cc6146116",
         "4a1b74163098cb85dd91c7eea3d4133005664076529ec26138fce15c322bf926",
         "6243e3e29e2178361437e59cca8c1f19d9ecf25b44ea31f7b2159871c317572a",
         "b97e05b3367614b444893995ecda3ae5f64d8c9bdc5c375c493f12b26b5335d1",
@@ -200,6 +199,9 @@
         "56d3315bb14f4218fb19710dc9b88fec8da96c89e97de2d486dbb692e3b23241"
       ],
       "md5": [],
+      "context_only_sha256": [
+        "facf78d474b66ed821288db41fa6ad8a7b6f30650eb12127cb3e9a3cc6146116"
+      ],
       "network_indicators": [],
       "markers": [
         "日本語malspam",

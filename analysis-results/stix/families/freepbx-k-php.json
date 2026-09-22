@@ -1,0 +1,69 @@
+{
+  "id": "bundle--09e2ecd9-feb2-52fc-bc88-3be3870c3c62",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: 侵害済みFreePBX/Asteriskサーバで実行されるBash後処理スクリプトのクラスタです。k.phpとwr.phpの7件を収録し、WebShell複製、root相当・PBX管理アカウント作成、cron再感染、電話・メール・PBX設定の収集と外部送信を確認しています。",
+      "external_references": [
+        {
+          "description": "freepbx-k-php 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/freepbx-k-php/README.md"
+        }
+      ],
+      "id": "malware--ab9bae0a-7744-51e1-ba9d-7bb17acb7eef",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "freepbx-k-php",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "freepbx-k-php 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/freepbx-k-php/README.md"
+        }
+      ],
+      "id": "note--c560e3e1-03f6-5f98-89ed-d64639c2c407",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--ab9bae0a-7744-51e1-ba9d-7bb17acb7eef"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "freepbx-k-php 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/freepbx-k-php/README.md"
+        }
+      ],
+      "id": "report--475b81cc-2c51-5070-9775-fbf1f7495691",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "freepbx-k-php：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--ab9bae0a-7744-51e1-ba9d-7bb17acb7eef",
+        "note--c560e3e1-03f6-5f98-89ed-d64639c2c407"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

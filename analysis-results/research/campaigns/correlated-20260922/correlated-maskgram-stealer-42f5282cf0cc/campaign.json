@@ -1,0 +1,39 @@
+{
+  "campaign_id": "correlated-maskgram-stealer-42f5282cf0cc",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "high",
+  "families": [
+    "maskgram-stealer"
+  ],
+  "members": [
+    "11f0f5b941e46c270da2705545255105008325a28dd26dac5669128c9651135a",
+    "e8c73ce5eb660ea6570b5bf5f560eaf994394da02148f7df10aefac1fda8a756",
+    "ed23e0d5d55c12998aea2e4d065726301cb02257f4c9435758368fb94c7881c9"
+  ],
+  "member_count": 3,
+  "shared_indicators": [
+    {
+      "type": "endpoint",
+      "value": "geschmeidig6307-kotyatanet.sbs:443",
+      "support": 3
+    },
+    {
+      "type": "endpoint",
+      "value": "samtpfotchensnezhok9566leisegepard.sbs:443",
+      "support": 3
+    },
+    {
+      "type": "endpoint",
+      "value": "wintersonyae246leisekoshachiy.icu:443",
+      "support": 3
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 3,
+  "maximum_pair_score": 13,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

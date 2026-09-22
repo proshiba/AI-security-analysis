@@ -1,0 +1,257 @@
+{
+  "id": "bundle--85ed20fc-14fd-5834-8b20-3eeabff838c0",
+  "objects": [
+    {
+      "aliases": [
+        "Gh0st",
+        "Gh0stRat"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みソースから多くの改変版が派生したRAT。Unit 42は独自のTCP識別tagとC2設定を用いて活動を区別しており、同じコード系統だけで単一運用者へ帰属できない。",
+      "external_references": [
+        {
+          "description": "gh0strat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/gh0strat/README.md"
+        },
+        {
+          "description": "Gh0st亜種を用いるMusical Chairs活動 (stix-gh0st-unit42-2015)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/musical-chairs-multi-year-campaign-involving-new-variant-of-gh0st-malware/"
+        },
+        {
+          "description": "Tick Groupによる攻撃継続 (stix-gh0st-unit42-tick-2017)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/unit42-tick-group-continues-attacks/"
+        }
+      ],
+      "id": "malware--a21defe8-dd13-5447-ae5c-11dabc7c6f51",
+      "is_family": true,
+      "labels": [
+        "business-model:open-source"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Gh0st RAT",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: 原型の実名開発者はこの資料からは確定できない。公開ソースを改変した各派生版の開発者も同一視しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Gh0st亜種を用いるMusical Chairs活動 (stix-gh0st-unit42-2015)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/musical-chairs-multi-year-campaign-involving-new-variant-of-gh0st-malware/"
+        }
+      ],
+      "id": "note--df358c13-1965-5c7d-ac84-6b727f748bcd",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a21defe8-dd13-5447-ae5c-11dabc7c6f51"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: open_source_dual_use。ソースとbuilderが一般に入手可能で、多数の改変版と利用者がある。単一アクター専用ではないが、特定のMaaS提供体制は確認しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Gh0st亜種を用いるMusical Chairs活動 (stix-gh0st-unit42-2015)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/musical-chairs-multi-year-campaign-involving-new-variant-of-gh0st-malware/"
+        }
+      ],
+      "id": "note--98dc6268-f89a-5843-86f3-57aa98718a60",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a21defe8-dd13-5447-ae5c-11dabc7c6f51"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 単一アクター専用ではないと報告されている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Gh0st亜種を用いるMusical Chairs活動 (stix-gh0st-unit42-2015)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/musical-chairs-multi-year-campaign-involving-new-variant-of-gh0st-malware/"
+        }
+      ],
+      "id": "note--1b055e36-dc58-52c2-b7c3-93272d4cdf1f",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a21defe8-dd13-5447-ae5c-11dabc7c6f51"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--a0e3a5b5-2a07-5d9b-a7a1-dd55ae1d07e3",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Tick Group",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 50,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Unit 42はTick Groupの攻撃で改変Gh0st RATの利用を報告した。元のGh0st RAT全体やローカル検体の運用者帰属は示さない。",
+      "external_references": [
+        {
+          "description": "Tick Groupによる攻撃継続 (stix-gh0st-unit42-tick-2017)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/unit42-tick-group-continues-attacks/"
+        }
+      ],
+      "id": "relationship--46ea3069-5d03-508b-b047-e78a125adce1",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--a0e3a5b5-2a07-5d9b-a7a1-dd55ae1d07e3",
+      "spec_version": "2.1",
+      "target_ref": "malware--a21defe8-dd13-5447-ae5c-11dabc7c6f51",
+      "type": "relationship"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: Tick Group。Unit 42はTick Groupの攻撃で改変Gh0st RATの利用を報告した。元のGh0st RAT全体やローカル検体の運用者帰属は示さない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Tick Groupによる攻撃継続 (stix-gh0st-unit42-tick-2017)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/unit42-tick-group-continues-attacks/"
+        }
+      ],
+      "id": "note--8439f6ae-8f8e-54ad-ac94-1bf818a82221",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a21defe8-dd13-5447-ae5c-11dabc7c6f51",
+        "threat-actor--a0e3a5b5-2a07-5d9b-a7a1-dd55ae1d07e3"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2015年まで）: Unit 42はC2識別tagなどを相関し、Piano Gh0stを用いたMusical Chairs活動を整理した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Gh0st亜種を用いるMusical Chairs活動 (stix-gh0st-unit42-2015)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/musical-chairs-multi-year-campaign-involving-new-variant-of-gh0st-malware/"
+        }
+      ],
+      "id": "note--678a8642-0429-50c7-9e19-8812e4e56533",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a21defe8-dd13-5447-ae5c-11dabc7c6f51"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2017年）: Tick Groupの侵害活動で改変Gh0st RATとそのdownloaderが使用された。 報告された主体: Tick Group。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Tick Groupによる攻撃継続 (stix-gh0st-unit42-tick-2017)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/unit42-tick-group-continues-attacks/"
+        }
+      ],
+      "id": "note--24329530-6822-59e6-902d-10479e92a41a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--a21defe8-dd13-5447-ae5c-11dabc7c6f51"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 50,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Unit 42がGh0st RATの識別tag、C2基盤、攻撃文脈を組み合わせて整理した複数年の活動。公開Gh0st系コードの共有だけで運用者の同一性を主張しない。",
+      "external_references": [
+        {
+          "description": "Gh0st亜種を用いるMusical Chairs活動 (stix-gh0st-unit42-2015)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/musical-chairs-multi-year-campaign-involving-new-variant-of-gh0st-malware/"
+        }
+      ],
+      "id": "campaign--f0ae4c7b-3561-5810-99cb-a880a3d26964",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Musical Chairs",
+      "spec_version": "2.1",
+      "type": "campaign"
+    },
+    {
+      "confidence": 50,
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Gh0st亜種を用いるMusical Chairs活動 (stix-gh0st-unit42-2015)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/musical-chairs-multi-year-campaign-involving-new-variant-of-gh0st-malware/"
+        }
+      ],
+      "id": "relationship--64ba850d-5cd1-5bd2-930e-2c29cff61cd5",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "campaign--f0ae4c7b-3561-5810-99cb-a880a3d26964",
+      "spec_version": "2.1",
+      "target_ref": "malware--a21defe8-dd13-5447-ae5c-11dabc7c6f51",
+      "type": "relationship"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "gh0strat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/gh0strat/README.md"
+        }
+      ],
+      "id": "report--cd0d262a-0fa8-5802-b776-f3b0d06cc2fe",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "Gh0st RAT：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--a21defe8-dd13-5447-ae5c-11dabc7c6f51",
+        "note--df358c13-1965-5c7d-ac84-6b727f748bcd",
+        "note--98dc6268-f89a-5843-86f3-57aa98718a60",
+        "note--1b055e36-dc58-52c2-b7c3-93272d4cdf1f",
+        "threat-actor--a0e3a5b5-2a07-5d9b-a7a1-dd55ae1d07e3",
+        "relationship--46ea3069-5d03-508b-b047-e78a125adce1",
+        "note--8439f6ae-8f8e-54ad-ac94-1bf818a82221",
+        "note--678a8642-0429-50c7-9e19-8812e4e56533",
+        "note--24329530-6822-59e6-902d-10479e92a41a",
+        "campaign--f0ae4c7b-3561-5810-99cb-a880a3d26964",
+        "relationship--64ba850d-5cd1-5bd2-930e-2c29cff61cd5"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

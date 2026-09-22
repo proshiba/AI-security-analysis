@@ -1,4 +1,6 @@
-# シルバーフォックスによる偽装仮想私設網経由のアトラスクロス／アトラス遠隔操作型トロイ配布キャンペーン
+# Silver Foxによる偽VPNインストーラー経由のAtlas RAT配布活動
+
+`atlascross`は本リポジトリの過去互換の内部IDです。NSFOCUSが2023年に報告したAtlasCrossは別のアクター名で、その使用マルウェアはAtlasAgentとDangerAdsです。本活動との同一hash・コード・インフラの接点は確認できず、両者を同一campaign・系譜として扱いません。[NSFOCUSの原報告](https://nsfocusglobal.com/pt-br/warning-newly-discovered-apt-attacker-atlascross-exploits-red-cross-blood-drive-phishing-for-cyberattack/)
 
 ## 判定
 

@@ -1,0 +1,20 @@
+{
+  "campaign_id": "correlated-latrodectus-4d1f92bd239b",
+  "families": [
+    "latrodectus"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "url",
+      "value": "https://arsimonopa.com/live/"
+    },
+    {
+      "type": "url",
+      "value": "https://lemonimonakio.com/live/"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

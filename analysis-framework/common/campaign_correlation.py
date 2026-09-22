@@ -188,6 +188,13 @@ def _walk_scalars(value: Any, parents: tuple[str, ...] = ()) -> Iterable[tuple[t
 
 
 def _json_fallback_indicators(case_dir: Path, rules: Mapping[str, Any], root_sha256: str) -> list[Indicator]:
+    # 旧caseの汎用JSON走査はネットワークらしい親keyだけでは許可しない。
+    # 任意の文字列／展開ファイル名が擬似domainとして相関されるため、
+    # C2用途を明示したleaf keyだけを候補として扱う。
+    explicit_c2_keys = {
+        "c2_url", "c2_urls", "c2_domain", "c2_domains", "c2_host", "c2_hosts",
+        "c2_ip", "c2_ips", "c2_endpoint", "c2_endpoints",
+    }
     excluded = tuple(str(item).casefold() for item in rules.get("excluded_role_markers", []))
     output = []
     for path in sorted(case_dir.rglob("*.json")):
@@ -199,9 +206,7 @@ def _json_fallback_indicators(case_dir: Path, rules: Mapping[str, Any], root_sha
             continue
         for parents, scalar in _walk_scalars(value):
             context = " ".join(parents).casefold()
-            if not any(
-                marker in context for marker in ("c2", "endpoint", "domain", "host", "url", "server", "network")
-            ):
+            if not parents or parents[-1].casefold() not in explicit_c2_keys:
                 continue
             if any(marker in context for marker in excluded):
                 continue
@@ -460,6 +465,8 @@ def build_fingerprints(report: Mapping[str, Any]) -> dict[str, Any]:
 
     fingerprints = []
     for campaign in report.get("campaigns", []):
+        if campaign.get("invalidated") or campaign.get("campaign_id") in report.get("invalidated_campaign_ids", []):
+            continue
         indicators = campaign.get("shared_indicators", [])
         fingerprints.append(
             {
@@ -488,6 +495,8 @@ def match_fingerprints(evidence: Mapping[str, Any], fingerprints: Mapping[str, A
     family = str(evidence.get("family") or "unknown")
     output = []
     for fingerprint in fingerprints.get("fingerprints", []):
+        if fingerprint.get("invalidated") or fingerprint.get("campaign_id") in fingerprints.get("invalidated_campaign_ids", []):
+            continue
         families = {str(item) for item in fingerprint.get("families", [])}
         if family not in families:
             continue

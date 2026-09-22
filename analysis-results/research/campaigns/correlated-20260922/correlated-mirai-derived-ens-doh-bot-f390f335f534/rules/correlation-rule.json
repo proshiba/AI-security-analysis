@@ -1,0 +1,20 @@
+{
+  "campaign_id": "correlated-mirai-derived-ens-doh-bot-f390f335f534",
+  "families": [
+    "mirai-derived-ens-doh-bot"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "ewqqwt.duckdns.org:43833"
+    },
+    {
+      "type": "endpoint",
+      "value": "ewqqwt2.duckdns.org:43833"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

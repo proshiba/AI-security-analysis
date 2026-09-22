@@ -1,0 +1,248 @@
+{
+  "campaign_id": "correlated-asyncrat-d444111cc4bf",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "high",
+  "families": [
+    "asyncrat"
+  ],
+  "members": [
+    "cdb73efc6808026585e0268ee4396c6ffc1d4d0288abff967c23c94057fc2ab0",
+    "e17581ec73d1c5a0d2849b6ba44dc59117f41b0d490860bfbe556271635775d2"
+  ],
+  "member_count": 2,
+  "shared_indicators": [
+    {
+      "type": "endpoint",
+      "value": "58win.builders:22",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:23",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:443",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:5555",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:6066",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:80",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:8080",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:8443",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.builders:9999",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:22",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:23",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:443",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:5555",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:6066",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:80",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:8080",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:8443",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.futbol:9999",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:22",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:23",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:443",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:5555",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:6066",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:80",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:8080",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:8443",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "58win.gifts:9999",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:22",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:23",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:443",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:5555",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:6066",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:80",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:8080",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:8443",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot8.vip:9999",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:22",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:23",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:443",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:5555",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:6066",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:80",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:8080",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:8443",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "ratuslot9.online:9999",
+      "support": 2
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 1,
+  "maximum_pair_score": 181,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

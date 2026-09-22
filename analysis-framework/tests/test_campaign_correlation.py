@@ -25,7 +25,36 @@ from campaign_correlation import (  # noqa: E402
 
 RULES = load_rules(FRAMEWORK / "registry" / "campaign_correlation_rules.json")
 
-from correlate_campaigns import _synchronize_tracked_campaign_label_seal  # noqa: E402
+from correlate_campaigns import _load_campaign_profile, _synchronize_tracked_campaign_label_seal  # noqa: E402
+
+
+def test_legacy_features_schema_falls_back_to_case_profile(tmp_path: Path, monkeypatch) -> None:
+    """旧features schemaをcampaign profileと誤解せず、caseから再構築する。"""
+
+    case_dir = tmp_path / ("a" * 64)
+    case_dir.mkdir()
+    (case_dir / "features.json").write_text(
+        json.dumps({"schema_version": 1, "case_id": f"sha256:{case_dir.name}", "features": []}),
+        encoding="utf-8",
+    )
+    rebuilt = {"sha256": case_dir.name, "family": "fixture"}
+    monkeypatch.setattr("correlate_campaigns.build_case_profile", lambda path, history: rebuilt)
+    assert _load_campaign_profile(case_dir, None) == rebuilt
+
+
+def test_mismatched_campaign_profile_sha_fails_closed(tmp_path: Path) -> None:
+    """featuresにSHA-256が明示された場合、異なるcaseへの流用を拒否する。"""
+
+    case_dir = tmp_path / ("a" * 64)
+    case_dir.mkdir()
+    (case_dir / "features.json").write_text(
+        json.dumps({"sha256": "b" * 64, "family": "fixture"}),
+        encoding="utf-8",
+    )
+    import pytest
+
+    with pytest.raises(ValueError, match="一致しません"):
+        _load_campaign_profile(case_dir, None)
 
 
 def _evidence(sha: str, family: str, urls: list[str], campaign: str) -> dict:
@@ -70,6 +99,7 @@ def test_reference_infrastructure_is_excluded() -> None:
     assert _indicator_is_excluded("url", "http://ocsp.verisign.com0/", RULES)
     assert _indicator_is_excluded("endpoint", "127.0.0.1:9050", RULES)
     assert _indicator_is_excluded("domain", "payload.php", RULES)
+    assert _indicator_is_excluded("domain", "c.wnry", RULES)
     assert not _indicator_is_excluded("url", "https://one.example/live/", RULES)
 
 
@@ -142,6 +172,47 @@ def test_json_fallback_remains_available_only_without_ioc_list(tmp_path: Path) -
     assert [(item["type"], item["value"]) for item in evidence["indicators"]] == [
         ("url", "https://legacy.example/task"),
     ]
+
+
+def test_json_fallback_does_not_promote_generic_network_strings(tmp_path: Path) -> None:
+    """旧WannaCry型の短い擬似domainをcampaign証拠へ昇格しない。"""
+
+    digest = "c" * 64
+    (tmp_path / "analysis.json").write_text(
+        '{"network": {"domains": ["0.oj", "c.wnry", "1.ng"]}}',
+        encoding="utf-8",
+    )
+    profile = {"sha256": digest, "family": "wannacry", "campaign_type": "unknown", "sample_characteristics": [], "behaviors": []}
+    evidence = extract_campaign_evidence(tmp_path, profile, RULES)
+    assert evidence["indicators"] == []
+
+
+def test_invalidated_campaign_fingerprint_cannot_be_applied() -> None:
+    campaign_id = "correlated-wannacry-63b40cc27704"
+    report = {
+        "campaigns": [{
+            "campaign_id": campaign_id,
+            "families": ["wannacry"],
+            "confidence": "high",
+            "classification": "same_family_campaign_candidate",
+            "shared_feature_ids": [],
+            "shared_indicators": [{"type": "domain", "value": "c.wnry"}],
+            "invalidated": True,
+        }],
+        "safety": {},
+    }
+    assert build_fingerprints(report)["fingerprints"] == []
+    fingerprint = {
+        "fingerprints": [{
+            "campaign_id": campaign_id,
+            "families": ["wannacry"],
+            "minimum_indicator_matches": 1,
+            "indicators": [{"type": "domain", "value": "c.wnry"}],
+        }],
+        "invalidated_campaign_ids": [campaign_id],
+    }
+    case = {"family": "wannacry", "indicators": [{"type": "domain", "value": "c.wnry"}], "feature_ids": []}
+    assert match_fingerprints(case, fingerprint) == []
 
 
 def test_campaign_label_update_reseals_only_after_other_artifacts_validate(

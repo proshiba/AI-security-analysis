@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "gfoqsewps57xcyxoedle2gd53o6jne6y5nq5eh25muksqwzutzq7b3ad.onion:80",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 8
+    },
+    {
+      "type": "endpoint",
+      "value": "hek5ensy7wqqls2cafflihs7sdqr4dwxux47vp3k7pgffeasxsfeeyid.onion:80",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 8
+    },
+    {
+      "type": "endpoint",
+      "value": "swjxev2rvxfivi2wvkxre5vaxkjeepxzxva4u4ydm2qbkbakh6wnyead.onion:80",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 8
+    }
+  ]
+}

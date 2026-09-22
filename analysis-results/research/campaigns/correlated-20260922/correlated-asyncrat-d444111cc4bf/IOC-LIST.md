@@ -1,0 +1,49 @@
+# IOC 一覧
+
+| 種別 (Type) | 値 (Value) | 役割 (Role) | 確度 (Confidence) | 根拠 (Source) |
+|---|---|---|---|---|
+| 接続先 | 58win.builders:22 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.builders:23 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.builders:443 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.builders:5555 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.builders:6066 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.builders:80 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.builders:8080 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.builders:8443 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.builders:9999 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.futbol:22 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.futbol:23 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.futbol:443 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.futbol:5555 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.futbol:6066 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.futbol:80 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.futbol:8080 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.futbol:8443 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.futbol:9999 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.gifts:22 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.gifts:23 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.gifts:443 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.gifts:5555 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.gifts:6066 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.gifts:80 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.gifts:8080 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.gifts:8443 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | 58win.gifts:9999 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot8.vip:22 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot8.vip:23 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot8.vip:443 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot8.vip:5555 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot8.vip:6066 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot8.vip:80 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot8.vip:8080 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot8.vip:8443 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot8.vip:9999 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot9.online:22 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot9.online:23 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot9.online:443 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot9.online:5555 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot9.online:6066 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot9.online:80 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot9.online:8080 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot9.online:8443 | shared_campaign_evidence | 高 | iocs.json |
+| 接続先 | ratuslot9.online:9999 | shared_campaign_evidence | 高 | iocs.json |

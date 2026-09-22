@@ -1,0 +1,69 @@
+{
+  "id": "bundle--cf694dbe-1379-5959-8a0d-216dbcb70849",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: PulsarRATはC#で実装されたオープンソース系の遠隔操作ツールで、QuasarRATから派生したコード基盤を持つ。ファイル管理、遠隔シェル、コマンド実行、情報窃取、キーロギングなどの機能を組み合わせる。",
+      "external_references": [
+        {
+          "description": "pulsarrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/pulsarrat/README.md"
+        }
+      ],
+      "id": "malware--4b396e57-edbc-5f32-82d7-e67f7812e81f",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "pulsarrat",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "pulsarrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/pulsarrat/README.md"
+        }
+      ],
+      "id": "note--8b80e0be-6984-5c3c-8a3b-6b3c5e84114b",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4b396e57-edbc-5f32-82d7-e67f7812e81f"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "pulsarrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/pulsarrat/README.md"
+        }
+      ],
+      "id": "report--0df17443-9101-5c13-b5f1-fdc5f36b0de8",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "pulsarrat：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--4b396e57-edbc-5f32-82d7-e67f7812e81f",
+        "note--8b80e0be-6984-5c3c-8a3b-6b3c5e84114b"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

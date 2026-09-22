@@ -9,11 +9,7 @@
 <h2>StaticImplementationError</h2>
 <pre>静的解析実装treeの安全な固定に失敗したことを表す。</pre>
 <h2>build_implementation_commitment</h2>
-<dl><dt><a name="-build_implementation_commitment"><strong>build_implementation_commitment</strong></a>(
-    repository: 'Path',
-    *,
-    hash_file: 'Callable[[ImplementationSource], str]'
-) -&gt; 'tuple[dict[str, object], tuple[ImplementationSource, ...]]'</dt><dd><span class="code">callerが安全に読んだhashからpath込みのcanonical&nbsp;commitmentを返す。</span></dd></dl>
+<dl><dt><a name="-build_implementation_commitment"><strong>build_implementation_commitment</strong></a>(repository: 'Path', *, hash_file: 'Callable[[ImplementationSource], str]') -&gt; 'tuple[dict[str, object], tuple[ImplementationSource, ...]]'</dt><dd><span class="code">callerが安全に読んだhashからpath込みのcanonical&nbsp;commitmentを返す。</span></dd></dl>
 
 <h2>discover_implementation_sources</h2>
 <dl><dt><a name="-discover_implementation_sources"><strong>discover_implementation_sources</strong></a>(repository: 'Path') -&gt; 'tuple[ImplementationSource, ...]'</dt><dd><span class="code">対象suffixだけをreparse非追跡・件数／深さ上限付きで列挙する。</span></dd></dl>
@@ -22,10 +18,6 @@
 <dl><dt><a name="-read_implementation_source"><strong>read_implementation_source</strong></a>(repository: 'Path', source: 'ImplementationSource') -&gt; 'bytes'</dt><dd><span class="code">列挙時identityと同じ通常単一link&nbsp;fileを1つのhandleから有界に読む。</span></dd></dl>
 
 <h2>verify_implementation_snapshot</h2>
-<dl><dt><a name="-verify_implementation_snapshot"><strong>verify_implementation_snapshot</strong></a>(
-    repository: 'Path',
-    sources: 'tuple[ImplementationSource, ...]',
-    expected_sha256: 'dict[str, str]'
-) -&gt; 'None'</dt><dd><span class="code">tree&nbsp;membership、identity、size、内容hashがsnapshotから不変か確認する。</span></dd></dl>
+<dl><dt><a name="-verify_implementation_snapshot"><strong>verify_implementation_snapshot</strong></a>(repository: 'Path', sources: 'tuple[ImplementationSource, ...]', expected_sha256: 'dict[str, str]') -&gt; 'None'</dt><dd><span class="code">tree&nbsp;membership、identity、size、内容hashがsnapshotから不変か確認する。</span></dd></dl>
 
 </body></html>

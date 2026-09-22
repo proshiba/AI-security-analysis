@@ -1,0 +1,253 @@
+{
+  "id": "bundle--dde7be2d-dfde-5d01-ac33-28d3410dfad5",
+  "objects": [
+    {
+      "aliases": [
+        "Formbook",
+        "XLoader"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "FormBookは2016年頃から販売された情報窃取・フォームグラバーで、キーロギング、クリップボード監視、認証情報窃取、追加コマンド実行等を行う。XLoaderは同じコード基盤を引き継ぐ後継であり、単なるFormBookの版番号ではない。",
+      "external_references": [
+        {
+          "description": "formbook 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/formbook/README.md"
+        },
+        {
+          "description": "FormBook後継XLoaderのC2基盤 (am-formbook-checkpoint-2021)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2021/stealth-is-never-enough-or-revealing-formbook-successors-cc-infrastructure/"
+        },
+        {
+          "description": "2021年に多用されたマルウェア株 (am-formbook-cisa-2022)",
+          "source_name": "CISA・ACSC",
+          "url": "https://www.cisa.gov/sites/default/files/publications/aa22-216a-2021-top-malware-strains.pdf"
+        },
+        {
+          "description": "FormBookローカル解析結果 (am-formbook-local-2026)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/formbook"
+        },
+        {
+          "description": "米国・韓国を狙ったFormBook大量配布活動 (am-formbook-mandiant-2017)",
+          "source_name": "Mandiant",
+          "url": "https://cloud.google.com/blog/topics/threat-intelligence/formbook-malware-distribution-campaigns/"
+        },
+        {
+          "description": "XLoader・FormBookソフトウェア項目 (am-formbook-mitre-2025)",
+          "source_name": "MITRE ATT&CK",
+          "url": "https://attack.mitre.org/software/S1207"
+        }
+      ],
+      "id": "malware--8b267637-79b2-582e-9226-31ba54e571a0",
+      "is_family": true,
+      "labels": [
+        "business-model:maas"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "FormBook",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 20,
+      "content": "開発主体: 開発者の実名・組織に関する公開帰属は確認されていない。FormBookは運営側がバイナリを生成するサービスとして提供され、XLoaderは作成者側が中央管理C2を制御する購読モデルと報告されている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "FormBook後継XLoaderのC2基盤 (am-formbook-checkpoint-2021)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2021/stealth-is-never-enough-or-revealing-formbook-successors-cc-infrastructure/"
+        },
+        {
+          "description": "米国・韓国を狙ったFormBook大量配布活動 (am-formbook-mandiant-2017)",
+          "source_name": "Mandiant",
+          "url": "https://cloud.google.com/blog/topics/threat-intelligence/formbook-malware-distribution-campaigns/"
+        }
+      ],
+      "id": "note--e167d2a4-07e6-58dd-b643-8003e456426d",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8b267637-79b2-582e-9226-31ba54e571a0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: maas。手頃な価格と容易な利用性を持つ情報窃取MaaS・犯罪サービスであり、XLoaderも購読と中央管理基盤を採用する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "FormBook後継XLoaderのC2基盤 (am-formbook-checkpoint-2021)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2021/stealth-is-never-enough-or-revealing-formbook-successors-cc-infrastructure/"
+        },
+        {
+          "description": "米国・韓国を狙ったFormBook大量配布活動 (am-formbook-mandiant-2017)",
+          "source_name": "Mandiant",
+          "url": "https://cloud.google.com/blog/topics/threat-intelligence/formbook-malware-distribution-campaigns/"
+        },
+        {
+          "description": "XLoader・FormBookソフトウェア項目 (am-formbook-mitre-2025)",
+          "source_name": "MITRE ATT&CK",
+          "url": "https://attack.mitre.org/software/S1207"
+        }
+      ],
+      "id": "note--523566f8-1e6f-5fa1-b721-bad693175c15",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8b267637-79b2-582e-9226-31ba54e571a0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "FormBook後継XLoaderのC2基盤 (am-formbook-checkpoint-2021)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2021/stealth-is-never-enough-or-revealing-formbook-successors-cc-infrastructure/"
+        },
+        {
+          "description": "米国・韓国を狙ったFormBook大量配布活動 (am-formbook-mandiant-2017)",
+          "source_name": "Mandiant",
+          "url": "https://cloud.google.com/blog/topics/threat-intelligence/formbook-malware-distribution-campaigns/"
+        },
+        {
+          "description": "XLoader・FormBookソフトウェア項目 (am-formbook-mitre-2025)",
+          "source_name": "MITRE ATT&CK",
+          "url": "https://attack.mitre.org/software/S1207"
+        }
+      ],
+      "id": "note--e579a455-2798-5c8b-af69-aad8daf6b67e",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8b267637-79b2-582e-9226-31ba54e571a0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: FormBook・XLoader購入者。購入者・アフィリエイトが独自のメール活動で利用するため、単一APT専用ではない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "FormBook後継XLoaderのC2基盤 (am-formbook-checkpoint-2021)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2021/stealth-is-never-enough-or-revealing-formbook-successors-cc-infrastructure/"
+        },
+        {
+          "description": "米国・韓国を狙ったFormBook大量配布活動 (am-formbook-mandiant-2017)",
+          "source_name": "Mandiant",
+          "url": "https://cloud.google.com/blog/topics/threat-intelligence/formbook-malware-distribution-campaigns/"
+        }
+      ],
+      "id": "note--986cba22-f1de-5cd0-beac-b6e5f077a65a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8b267637-79b2-582e-9226-31ba54e571a0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: 不特定のサイバー犯罪者。FormBookは世界的に多用された上位マルウェア株として共同政府勧告に掲載された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "2021年に多用されたマルウェア株 (am-formbook-cisa-2022)",
+          "source_name": "CISA・ACSC",
+          "url": "https://www.cisa.gov/sites/default/files/publications/aa22-216a-2021-top-malware-strains.pdf"
+        }
+      ],
+      "id": "note--93301718-7ced-5156-aa56-ec0857b61b28",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8b267637-79b2-582e-9226-31ba54e571a0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2017）: PDFリンク、悪性DOC・XLSマクロ、各種アーカイブを使い、米国・韓国の航空宇宙、防衛請負、製造業を狙う大量配布活動で使用された。 報告された主体: FormBook購入者。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "米国・韓国を狙ったFormBook大量配布活動 (am-formbook-mandiant-2017)",
+          "source_name": "Mandiant",
+          "url": "https://cloud.google.com/blog/topics/threat-intelligence/formbook-malware-distribution-campaigns/"
+        }
+      ],
+      "id": "note--c1ea0d65-7691-5359-a571-60e91cffd7fc",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8b267637-79b2-582e-9226-31ba54e571a0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2021）: 世界的に多用された上位マルウェア株の一つとして共同政府勧告に掲載された。 報告された主体: 不特定のサイバー犯罪者。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "2021年に多用されたマルウェア株 (am-formbook-cisa-2022)",
+          "source_name": "CISA・ACSC",
+          "url": "https://www.cisa.gov/sites/default/files/publications/aa22-216a-2021-top-malware-strains.pdf"
+        }
+      ],
+      "id": "note--3c7ecd9f-2e10-59c4-9e8d-62806f2bebf3",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8b267637-79b2-582e-9226-31ba54e571a0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "formbook 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/formbook/README.md"
+        }
+      ],
+      "id": "report--c0848b65-0cb6-504b-9557-e62e76372865",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "FormBook：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--8b267637-79b2-582e-9226-31ba54e571a0",
+        "note--e167d2a4-07e6-58dd-b643-8003e456426d",
+        "note--523566f8-1e6f-5fa1-b721-bad693175c15",
+        "note--e579a455-2798-5c8b-af69-aad8daf6b67e",
+        "note--986cba22-f1de-5cd0-beac-b6e5f077a65a",
+        "note--93301718-7ced-5156-aa56-ec0857b61b28",
+        "note--c1ea0d65-7691-5359-a571-60e91cffd7fc",
+        "note--3c7ecd9f-2e10-59c4-9e8d-62806f2bebf3"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

@@ -1,0 +1,69 @@
+{
+  "id": "bundle--47da701d-1658-579c-967a-1197962b95f9",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: JackSkidは2025年末から観測されているMirai派生のIoT/Android TV向けDDoSボットです。今回のx86・ARM・MIPS little-/big-endian計7件は、独自RC4/LFSR派生暗号、ENSとSolana Name Serviceの冗長名前解決、Telnet/ADB拡散、競合排除、暗号化C2を実装します。",
+      "external_references": [
+        {
+          "description": "jackskid 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/jackskid/README.md"
+        }
+      ],
+      "id": "malware--8aa2fa6d-731f-533f-948a-c8d7a503e87e",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "jackskid",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "jackskid 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/jackskid/README.md"
+        }
+      ],
+      "id": "note--b3042e96-467a-5694-80c9-d04896a11712",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8aa2fa6d-731f-533f-948a-c8d7a503e87e"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "jackskid 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/jackskid/README.md"
+        }
+      ],
+      "id": "report--30ba6f2c-37d6-5c90-a89d-e8948cd2bf98",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "jackskid：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--8aa2fa6d-731f-533f-948a-c8d7a503e87e",
+        "note--b3042e96-467a-5694-80c9-d04896a11712"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

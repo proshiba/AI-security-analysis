@@ -1,5 +1,7 @@
 {
   "campaign_id": "correlated-wannacry-63b40cc27704",
+  "invalidated": true,
+  "invalidation_reason_ja": "2026-09-22監査: 任意文字列とWannaCry構成ファイル名をdomainとして誤抽出したため、campaign・IOC・actorの根拠として使用しない。",
   "classification": "same_family_campaign_candidate",
   "confidence": "high",
   "families": [

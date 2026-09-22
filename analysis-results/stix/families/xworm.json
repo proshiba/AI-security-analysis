@@ -1,0 +1,226 @@
+{
+  "id": "bundle--d361068a-f53c-534c-956d-8e7e180e61a2",
+  "objects": [
+    {
+      "aliases": [
+        "XWorm RAT"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "2022年頃から観測される.NET製モジュール型RATで、遠隔操作、キー入力、画面、情報窃取、HVNC、追加プラグイン／ペイロード実行等を備える。",
+      "external_references": [
+        {
+          "description": "xworm 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/xworm/README.md"
+        },
+        {
+          "description": "再来する税務詐欺活動 (nz-xworm-fortinet-2023a)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/tax-scammers-at-large"
+        },
+        {
+          "description": "Freeze.rsとSYK Crypterを介したマルウェア配布 (nz-xworm-fortinet-2023b)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/malware-distributed-via-freezers-and-syk-crypter"
+        },
+        {
+          "description": "複数題材のフィッシングメールを使う新たなXWorm活動の詳細調査 (nz-xworm-fortinet-2026)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/de/blog/threat-research/deep-dive-into-new-xworm-campaign-utilizing-multiple-themed-phishing-emails"
+        },
+        {
+          "description": "ローカルXWorm解析結果 (nz-xworm-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/xworm/README.md"
+        },
+        {
+          "description": "XWorm V6の主要プラグイン調査 (nz-xworm-trellix-2025)",
+          "source_name": "Trellix",
+          "url": "https://www.trellix.com/en-au/blogs/research/xworm-v6-exploring-pivotal-plugins/"
+        }
+      ],
+      "id": "malware--09ca90cf-2061-58dd-9a3a-0f44fdb41380",
+      "is_family": true,
+      "labels": [
+        "business-model:commodity"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "XWorm",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: 初期開発・更新はハンドルXCoderがTelegramで主導した。v5.6後の2024年後半にアカウントが消え、2025年にXCoderToolsがv6.0を発表したが、元開発者との同一性は確認されていない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "XWorm V6の主要プラグイン調査 (nz-xworm-trellix-2025)",
+          "source_name": "Trellix",
+          "url": "https://www.trellix.com/en-au/blogs/research/xworm-v6-exploring-pivotal-plugins/"
+        }
+      ],
+      "id": "note--83859983-14a5-5ec7-9183-a1cc836d7cbb",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--09ca90cf-2061-58dd-9a3a-0f44fdb41380"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: commodity。30米ドルから150米ドル程度で販売されたコモディティRATで、クラック版、改変版、偽builderも流通する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "再来する税務詐欺活動 (nz-xworm-fortinet-2023a)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/tax-scammers-at-large"
+        },
+        {
+          "description": "XWorm V6の主要プラグイン調査 (nz-xworm-trellix-2025)",
+          "source_name": "Trellix",
+          "url": "https://www.trellix.com/en-au/blogs/research/xworm-v6-exploring-pivotal-plugins/"
+        }
+      ],
+      "id": "note--4d05c40d-678c-53d6-8109-cd1d013220e3",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--09ca90cf-2061-58dd-9a3a-0f44fdb41380"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "再来する税務詐欺活動 (nz-xworm-fortinet-2023a)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/tax-scammers-at-large"
+        },
+        {
+          "description": "XWorm V6の主要プラグイン調査 (nz-xworm-trellix-2025)",
+          "source_name": "Trellix",
+          "url": "https://www.trellix.com/en-au/blogs/research/xworm-v6-exploring-pivotal-plugins/"
+        }
+      ],
+      "id": "note--405c84f7-0e44-5f42-bb37-ce39f5248b8b",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--09ca90cf-2061-58dd-9a3a-0f44fdb41380"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: 地下市場の複数購入者。安価な販売版やクラック版を複数犯罪アクターが使用し、特定グループ専用ではない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "再来する税務詐欺活動 (nz-xworm-fortinet-2023a)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/tax-scammers-at-large"
+        },
+        {
+          "description": "Freeze.rsとSYK Crypterを介したマルウェア配布 (nz-xworm-fortinet-2023b)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/malware-distributed-via-freezers-and-syk-crypter"
+        }
+      ],
+      "id": "note--f423e103-f19e-590b-8cfd-765d96bfd02e",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--09ca90cf-2061-58dd-9a3a-0f44fdb41380"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2023年）: 税務文書LNK、Freeze.rs、SYK Crypter等を経由してXWorm 3.1を投入するキャンペーンが報告された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "再来する税務詐欺活動 (nz-xworm-fortinet-2023a)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/tax-scammers-at-large"
+        },
+        {
+          "description": "Freeze.rsとSYK Crypterを介したマルウェア配布 (nz-xworm-fortinet-2023b)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/blog/threat-research/malware-distributed-via-freezers-and-syk-crypter"
+        }
+      ],
+      "id": "note--5f0c1d37-037b-5f76-8036-d75d90bab4d7",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--09ca90cf-2061-58dd-9a3a-0f44fdb41380"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2025年から2026年）: v6.0／v6.4系の再流通と、多言語フィッシングExcel、CVE-2018-0802、HTA、PowerShellからv7.2を投入するチェーンが報告された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "複数題材のフィッシングメールを使う新たなXWorm活動の詳細調査 (nz-xworm-fortinet-2026)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/de/blog/threat-research/deep-dive-into-new-xworm-campaign-utilizing-multiple-themed-phishing-emails"
+        },
+        {
+          "description": "XWorm V6の主要プラグイン調査 (nz-xworm-trellix-2025)",
+          "source_name": "Trellix",
+          "url": "https://www.trellix.com/en-au/blogs/research/xworm-v6-exploring-pivotal-plugins/"
+        }
+      ],
+      "id": "note--9087cc65-de32-5e03-aba5-fd940b1c8042",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--09ca90cf-2061-58dd-9a3a-0f44fdb41380"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "xworm 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/xworm/README.md"
+        }
+      ],
+      "id": "report--b1acbe82-ddce-5dfc-a7c5-089fabe82214",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "XWorm：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--09ca90cf-2061-58dd-9a3a-0f44fdb41380",
+        "note--83859983-14a5-5ec7-9183-a1cc836d7cbb",
+        "note--4d05c40d-678c-53d6-8109-cd1d013220e3",
+        "note--405c84f7-0e44-5f42-bb37-ce39f5248b8b",
+        "note--f423e103-f19e-590b-8cfd-765d96bfd02e",
+        "note--5f0c1d37-037b-5f76-8036-d75d90bab4d7",
+        "note--9087cc65-de32-5e03-aba5-fd940b1c8042"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

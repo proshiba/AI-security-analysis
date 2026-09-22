@@ -1,0 +1,29 @@
+{
+  "campaign_id": "correlated-agenttesla-4721f7464834",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "medium",
+  "families": [
+    "agenttesla"
+  ],
+  "members": [
+    "a01716c2c7ea5cb234ee8b5b3b831b63274fbee0b76d8ee5d86a788c6caa26e7",
+    "a74a948afc694949bf99f9bee9215cc759c082cded0ab1b8f6be345630bfd81e",
+    "d5a5eb1de67b57a59ac715ee92541ac6570191844b315d0b408f86d3e56ea2c5"
+  ],
+  "member_count": 3,
+  "shared_indicators": [
+    {
+      "type": "endpoint",
+      "value": "server275.web-hosting.com:587",
+      "support": 3
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 3,
+  "maximum_pair_score": 7,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

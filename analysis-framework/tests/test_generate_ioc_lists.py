@@ -15,16 +15,34 @@ if str(COMMON) not in sys.path:
 
 from generate_ioc_lists import (  # noqa: E402
     Indicator,
+    collect_indicators,
     generate,
     indicator_type,
     indicators_from_config,
     indicators_from_indicators_json,
     indicators_from_ioc_json,
+    invalidated_ioc_rendering,
     normalize_value,
     read_relevant_markdown,
     render_ioc_list,
     sanitize_url,
 )
+
+
+def test_invalidated_campaign_iocs_are_not_republished(tmp_path: Path) -> None:
+    """旧誤相関の監査記録からIOC一覧を再生成しない。"""
+
+    case = tmp_path / "correlated-wannacry-invalid"
+    case.mkdir()
+    (case / "iocs.json").write_text(
+        json.dumps({"invalidated": True, "indicators": [{"type": "domain", "value": "0.oj"}]}),
+        encoding="utf-8",
+    )
+    (case / "README.md").write_text("## C2\n\n- `0.oj`\n", encoding="utf-8")
+    assert collect_indicators(case, tmp_path, {}) == []
+    rendered, count = invalidated_ioc_rendering(case)
+    assert count == 0
+    assert "0.oj" not in rendered
 
 
 def test_sanitize_url_removes_secrets_and_tracking_data() -> None:

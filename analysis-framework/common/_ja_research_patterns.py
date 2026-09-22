@@ -61,7 +61,7 @@ _EXACT_TRANSLATIONS = {
     "| 7 | axios npm供給網侵害 | setup.jsを静的に confirmed | [実検体解析](../../supply-chain/npm/axios-plain-crypto-js-2026/cases/e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09/README.md)、復号器・監査器 |":
         "| 7 | axios npm供給網侵害 | setup.jsを静的に確認済み | [実検体解析](../../supply-chain/npm/axios-plain-crypto-js-2026/cases/e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09/README.md)、復号器・監査器 |",
     "| 8 | Silver Foxによる AtlasCross/Atlas RAT配布 | 公開技術解析で confirmed | [キャンペーン解析](../../campaigns/atlascross/silver-fox-vpn-2026/README.md)、設定復号器（合成fixtureで検証） |":
-        "| 8 | シルバーフォックスによるアトラスクロス／アトラス遠隔操作型トロイの配布 | 公開技術解析で確認済み | [キャンペーン解析](../../campaigns/atlascross/silver-fox-vpn-2026/README.md)、設定復号器（合成した検証用データで確認） |",
+        "| 8 | Silver FoxによるAtlas RATの配布（AtlasCrossアクターとは別） | 公開技術解析で確認済み | [キャンペーン解析](../../campaigns/atlascross/silver-fox-vpn-2026/README.md)、設定復号器（合成した検証用データで確認） |",
     "## 3. Uranium Finance": "## 3. ウラニウム・ファイナンス",
     "## 6. CareCloud": "## 6. ケアクラウド",
     "2026-03-27のSEC Form 8-Kでは、3月16日にCareCloud Healthの6つのEHR環境のうち1つが不正な第三者アクセスを受け、機能とデータアクセスが約8時間部分的に影響した。提出時点でアクセス／持ち出しの範囲を調査中としており、攻撃者、初期侵入、マルウェア、C2は非公開である。EHR監査ログ、特権操作、異常エクスポート、同時間帯のIdP／VPN／EDR相関が優先で、公開情報だけからルールを狭く固定するのは危険である。":

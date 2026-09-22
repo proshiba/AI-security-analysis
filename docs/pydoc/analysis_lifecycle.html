@@ -41,24 +41,10 @@
 <dl><dt><a name="-request_json_schema"><strong>request_json_schema</strong></a>() -&gt; 'dict[str, Any]'</dt><dd><span class="code">WebUIやoperator&nbsp;toolが共有できる厳格JSON&nbsp;Schemaを返す。</span></dd></dl>
 
 <h2>resume_lifecycle</h2>
-<dl><dt><a name="-resume_lifecycle"><strong>resume_lifecycle</strong></a>(
-    workflow_id: 'str',
-    *,
-    repository: 'Path',
-    input_root: 'Path',
-    work_root: 'Path',
-    timeout_seconds: 'int' = 21600
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">保存済みrequestとstage&nbsp;fingerprintを検証して未完stageだけ再開する。</span></dd></dl>
+<dl><dt><a name="-resume_lifecycle"><strong>resume_lifecycle</strong></a>(workflow_id: 'str', *, repository: 'Path', input_root: 'Path', work_root: 'Path', timeout_seconds: 'int' = 21600) -&gt; 'dict[str, Any]'</dt><dd><span class="code">保存済みrequestとstage&nbsp;fingerprintを検証して未完stageだけ再開する。</span></dd></dl>
 
 <h2>run_lifecycle</h2>
-<dl><dt><a name="-run_lifecycle"><strong>run_lifecycle</strong></a>(
-    request: 'LifecycleRequest',
-    *,
-    repository: 'Path',
-    input_root: 'Path',
-    work_root: 'Path',
-    timeout_seconds: 'int' = 21600
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">production固定stageだけで新規workflowを実行する。</span></dd></dl>
+<dl><dt><a name="-run_lifecycle"><strong>run_lifecycle</strong></a>(request: 'LifecycleRequest', *, repository: 'Path', input_root: 'Path', work_root: 'Path', timeout_seconds: 'int' = 21600) -&gt; 'dict[str, Any]'</dt><dd><span class="code">production固定stageだけで新規workflowを実行する。</span></dd></dl>
 
 <h2>utc_now</h2>
 <dl><dt><a name="-utc_now"><strong>utc_now</strong></a>() -&gt; 'str'</dt><dd><span class="code">UTC時刻を固定表現で返す。</span></dd></dl>
@@ -67,13 +53,6 @@
 <dl><dt><a name="-validate_request_object"><strong>validate_request_object</strong></a>(value: 'Mapping[str, Any]') -&gt; 'LifecycleRequest'</dt><dd><span class="code">任意実行fieldを持たない固定schemaとしてworkflow要求を検証する。</span></dd></dl>
 
 <h2>verify_lifecycle</h2>
-<dl><dt><a name="-verify_lifecycle"><strong>verify_lifecycle</strong></a>(
-    workflow_id: 'str',
-    *,
-    repository: 'Path',
-    input_root: 'Path',
-    work_root: 'Path',
-    timeout_seconds: 'int' = 21600
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">成果物を書かず、request、fingerprint、job安全契約、archive&nbsp;reportを再検証する。</span></dd></dl>
+<dl><dt><a name="-verify_lifecycle"><strong>verify_lifecycle</strong></a>(workflow_id: 'str', *, repository: 'Path', input_root: 'Path', work_root: 'Path', timeout_seconds: 'int' = 21600) -&gt; 'dict[str, Any]'</dt><dd><span class="code">成果物を書かず、request、fingerprint、job安全契約、archive&nbsp;reportを再検証する。</span></dd></dl>
 
 </body></html>

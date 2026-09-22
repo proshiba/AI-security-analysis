@@ -1,0 +1,94 @@
+{
+  "id": "bundle--e80cf6f7-f88c-5ac7-b5b2-8e4ba19fd0d2",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: OWAReaperは、Microsoft Exchange Outlook Web App（OWA）のreading pane内で動作するJavaScript backdoorです。HTMLメール内の画像URL fragmentから本体を復元し、OWAのoffline cacheやuser settingsを悪用して永続化します。",
+      "external_references": [
+        {
+          "description": "owareaper 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/owareaper/README.md"
+        }
+      ],
+      "id": "malware--9ec7c823-c79f-5e7a-bc6f-37a7bd516ef0",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "owareaper",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "owareaper 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/owareaper/README.md"
+        }
+      ],
+      "id": "note--deaa3327-63cc-5175-ae8c-02f12fd75f50",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--9ec7c823-c79f-5e7a-bc6f-37a7bd516ef0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "公開済み1件のcaseに対応する静的比較プロファイルから集計した特徴。件数は観測case数であり、全版共通の断定ではない。\nlayer_chain: root:script (1件)\ncapabilities: runtime:dotnet (1件)\nfunction_roles: script_top_level (1件)",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "owareaper 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/owareaper/README.md"
+        },
+        {
+          "description": "静的ロジック比較プロファイル",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/catalog/logic-similarity.json"
+        }
+      ],
+      "id": "note--c7445175-1e4a-59c1-9f73-937ab5e61b5b",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--9ec7c823-c79f-5e7a-bc6f-37a7bd516ef0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "owareaper 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/owareaper/README.md"
+        }
+      ],
+      "id": "report--e38d1a9d-6f83-5887-82e4-c965372a785b",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "owareaper：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--9ec7c823-c79f-5e7a-bc6f-37a7bd516ef0",
+        "note--deaa3327-63cc-5175-ae8c-02f12fd75f50",
+        "note--c7445175-1e4a-59c1-9f73-937ab5e61b5b"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

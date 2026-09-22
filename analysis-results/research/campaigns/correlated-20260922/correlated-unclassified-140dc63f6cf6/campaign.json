@@ -1,0 +1,48 @@
+{
+  "campaign_id": "correlated-unclassified-140dc63f6cf6",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "high",
+  "families": [
+    "unclassified"
+  ],
+  "members": [
+    "7323bcc98fb1b23e201b6a775ab791634601dc5110ad1557b6dac94ceda14545",
+    "dd2fce7dad57958a7dec2c781a26c8fe8f7597696ba80dae921cd7744886972f"
+  ],
+  "member_count": 2,
+  "shared_indicators": [
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/clq",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/ds2",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/f8dj",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/hr2d",
+      "support": 2
+    },
+    {
+      "type": "url",
+      "value": "http://129.121.110.105/mfzi",
+      "support": 2
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 1,
+  "maximum_pair_score": 23,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

@@ -12,7 +12,7 @@
 | 5 | ネットスケーラー CVE-2026-3055 | 脆弱性と悪用を確認済み | [防御的評価](../../vulnerabilities/cve-2026-3055/README.md)。概念実証コードの再現は行わない |
 | 6 | ケアクラウドの電子健康記録環境侵害 | 米証券取引委員会への提出内容を確認済み | 公開 IOC・マルウェアなし。6環境中1環境が約8時間影響 |
 | 7 | axios npm供給網侵害 | setup.jsを静的に確認済み | [実検体解析](../../supply-chain/npm/axios-plain-crypto-js-2026/cases/e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09/README.md)、復号器・監査器 |
-| 8 | シルバーフォックスによるアトラスクロス／アトラス遠隔操作型トロイの配布 | 公開技術解析で確認済み | [キャンペーン解析](../../campaigns/atlascross/silver-fox-vpn-2026/README.md)、設定復号器（合成した検証用データで確認） |
+| 8 | Silver FoxによるAtlas RATの配布（AtlasCrossアクターとは別） | 公開技術解析で確認済み | [キャンペーン解析](../../campaigns/atlascross/silver-fox-vpn-2026/README.md)、設定復号器（合成した検証用データで確認） |
 | 9 | コタ株式会社のシステム障害 | サイバー攻撃 confirmed、手法非公開 | 第1報の事実だけを保持。公開IOC・検体なし |
 
 ## 3. ウラニウム・ファイナンス

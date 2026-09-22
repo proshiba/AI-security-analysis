@@ -15,13 +15,7 @@
 name領域はsizeとSHA-256で記録する。通常のpath検証を緩和せず、NUL後の
 不透明bytesをpathやコードとして解釈しない。</pre>
 <pre>MemoryCArchiveReader(data: &#x27;bytes&#x27;, *, max_toc_size: &#x27;int&#x27; = 16777216, max_entries: &#x27;int&#x27; = 16384) -&gt; &#x27;None&#x27;</pre>
-<dl><dt><a name="-extract"><strong>extract</strong></a>(
-    self,
-    name: 'str',
-    *,
-    max_size: 'int' = 67108864,
-    max_compressed_size: 'int | None' = None
-) -&gt; 'bytes'</dt><dd><span class="code">指定entryだけを上限付きでメモリへ展開する。</span></dd></dl>
+<dl><dt><a name="-extract"><strong>extract</strong></a>(self, name: 'str', *, max_size: 'int' = 67108864, max_compressed_size: 'int | None' = None) -&gt; 'bytes'</dt><dd><span class="code">指定entryだけを上限付きでメモリへ展開する。</span></dd></dl>
 
 <h2>RecoveredCArchiveEntry</h2>
 <pre>優先選択してメモリ内だけで復元したentry。``payload``は公開reportへ含めない。</pre>
@@ -32,38 +26,10 @@ name領域はsizeとSHA-256で記録する。通常のpath検証を緩和せず�
 <pre>公開用集約reportと、非公開の復元bytesを分離した解析結果。</pre>
 <pre>SelectiveCArchiveAnalysis(report: &#x27;dict[str, object]&#x27;, recovered_entries: &#x27;tuple[RecoveredCArchiveEntry, ...]&#x27;) -&gt; None</pre>
 <h2>analyze</h2>
-<dl><dt><a name="-analyze"><strong>analyze</strong></a>(
-    sample: 'Path',
-    expected_sha256: 'str',
-    output_dir: 'Path | None' = None,
-    exact_names: 'set[str] | None' = None,
-    prefixes: 'tuple[str, ...]' = (),
-    max_files: 'int' = 128,
-    max_total_size: 'int' = 268435456,
-    max_compressed_total_size: 'int' = 268435456,
-    max_entry_size: 'int' = 67108864,
-    max_toc_size: 'int' = 16777216,
-    max_toc_entries: 'int' = 16384
-) -&gt; 'dict[str, object]'</dt><dd><span class="code">SHA-256一致を確認し、CArchiveを実行せず選択的に一覧化・展開する。</span></dd></dl>
+<dl><dt><a name="-analyze"><strong>analyze</strong></a>(sample: 'Path', expected_sha256: 'str', output_dir: 'Path | None' = None, exact_names: 'set[str] | None' = None, prefixes: 'tuple[str, ...]' = (), max_files: 'int' = 128, max_total_size: 'int' = 268435456, max_compressed_total_size: 'int' = 268435456, max_entry_size: 'int' = 67108864, max_toc_size: 'int' = 16777216, max_toc_entries: 'int' = 16384) -&gt; 'dict[str, object]'</dt><dd><span class="code">SHA-256一致を確認し、CArchiveを実行せず選択的に一覧化・展開する。</span></dd></dl>
 
 <h2>analyze_carchive_bytes</h2>
-<dl><dt><a name="-analyze_carchive_bytes"><strong>analyze_carchive_bytes</strong></a>(
-    data: 'bytes',
-    *,
-    preferred_names: 'Iterable[str]' = (),
-    max_retained_entries: 'int' = 128,
-    max_entry_compressed_size: 'int' = 67108864,
-    max_entry_uncompressed_size: 'int' = 67108864,
-    max_total_compressed_size: 'int' = 134217728,
-    max_total_uncompressed_size: 'int' = 134217728,
-    max_validation_entry_compressed_size: 'int' = 67108864,
-    max_validation_entry_uncompressed_size: 'int' = 67108864,
-    max_validation_total_compressed_size: 'int' = 268435456,
-    max_validation_total_uncompressed_size: 'int' = 268435456,
-    max_validation_seconds: 'float' = 120.0,
-    max_toc_size: 'int' = 16777216,
-    max_toc_entries: 'int' = 16384
-) -&gt; 'SelectiveCArchiveAnalysis'</dt><dd><span class="code">PyInstaller&nbsp;CArchiveを実行・保存せず、優先entryだけをbytesへ復元する。<br>
+<dl><dt><a name="-analyze_carchive_bytes"><strong>analyze_carchive_bytes</strong></a>(data: 'bytes', *, preferred_names: 'Iterable[str]' = (), max_retained_entries: 'int' = 128, max_entry_compressed_size: 'int' = 67108864, max_entry_uncompressed_size: 'int' = 67108864, max_total_compressed_size: 'int' = 134217728, max_total_uncompressed_size: 'int' = 134217728, max_validation_entry_compressed_size: 'int' = 67108864, max_validation_entry_uncompressed_size: 'int' = 67108864, max_validation_total_compressed_size: 'int' = 268435456, max_validation_total_uncompressed_size: 'int' = 268435456, max_validation_seconds: 'float' = 120.0, max_toc_size: 'int' = 16777216, max_toc_entries: 'int' = 16384) -&gt; 'SelectiveCArchiveAnalysis'</dt><dd><span class="code">PyInstaller&nbsp;CArchiveを実行・保存せず、優先entryだけをbytesへ復元する。<br>
 &nbsp;<br>
 TOC全体の境界、path衝突、payload&nbsp;range重畳は選択前に検証する。全entryが<br>
 内容検証budget内なら1件ずつ展開してEOF・実サイズ・hashを検証し、非候補bytes<br>
@@ -75,18 +41,7 @@ PyInstallerという包装形式だけからmalware&nbsp;familyや悪性意図�
 <dl><dt><a name="-carchive_inventory_summary"><strong>carchive_inventory_summary</strong></a>(reader: 'MemoryCArchiveReader') -&gt; 'dict[str, object]'</dt><dd><span class="code">巨大なentry配列を出力せず、全inventoryの集約値とcommitmentを返す。</span></dd></dl>
 
 <h2>extract_selected_entries_from_bytes</h2>
-<dl><dt><a name="-extract_selected_entries_from_bytes"><strong>extract_selected_entries_from_bytes</strong></a>(
-    data: 'bytes',
-    *,
-    exact_names: 'set[str] | None' = None,
-    prefixes: 'tuple[str, ...]' = (),
-    max_files: 'int' = 128,
-    max_total_size: 'int' = 268435456,
-    max_compressed_total_size: 'int' = 268435456,
-    max_entry_size: 'int' = 67108864,
-    max_toc_size: 'int' = 16777216,
-    max_toc_entries: 'int' = 16384
-) -&gt; 'tuple[MemoryCArchiveReader, dict[str, bytes]]'</dt><dd><span class="code">選択したCArchive&nbsp;entryだけを保存せずメモリへ展開する。</span></dd></dl>
+<dl><dt><a name="-extract_selected_entries_from_bytes"><strong>extract_selected_entries_from_bytes</strong></a>(data: 'bytes', *, exact_names: 'set[str] | None' = None, prefixes: 'tuple[str, ...]' = (), max_files: 'int' = 128, max_total_size: 'int' = 268435456, max_compressed_total_size: 'int' = 268435456, max_entry_size: 'int' = 67108864, max_toc_size: 'int' = 16777216, max_toc_entries: 'int' = 16384) -&gt; 'tuple[MemoryCArchiveReader, dict[str, bytes]]'</dt><dd><span class="code">選択したCArchive&nbsp;entryだけを保存せずメモリへ展開する。</span></dd></dl>
 
 <h2>inventory</h2>
 <dl><dt><a name="-inventory"><strong>inventory</strong></a>(reader: 'MemoryCArchiveReader') -&gt; 'list[dict[str, object]]'</dt><dd><span class="code">内部診断向け全一覧。公開reportにはcarchive_inventory_summaryを使う。</span></dd></dl>
@@ -95,23 +50,7 @@ PyInstallerという包装形式だけからmalware&nbsp;familyや悪性意図�
 <dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">固定CLI引数を解析し、静的CArchive解析結果をJSONで出力する。</span></dd></dl>
 
 <h2>recover_prioritized_entries_from_bytes</h2>
-<dl><dt><a name="-recover_prioritized_entries_from_bytes"><strong>recover_prioritized_entries_from_bytes</strong></a>(
-    data: 'bytes',
-    *,
-    preferred_names: 'Iterable[str]' = (),
-    max_retained_entries: 'int' = 128,
-    max_entry_compressed_size: 'int' = 67108864,
-    max_entry_uncompressed_size: 'int' = 67108864,
-    max_total_compressed_size: 'int' = 134217728,
-    max_total_uncompressed_size: 'int' = 134217728,
-    max_validation_entry_compressed_size: 'int' = 67108864,
-    max_validation_entry_uncompressed_size: 'int' = 67108864,
-    max_validation_total_compressed_size: 'int' = 268435456,
-    max_validation_total_uncompressed_size: 'int' = 268435456,
-    max_validation_seconds: 'float' = 120.0,
-    max_toc_size: 'int' = 16777216,
-    max_toc_entries: 'int' = 16384
-) -&gt; 'SelectiveCArchiveAnalysis'</dt><dd><span class="code">PyInstaller&nbsp;CArchiveを実行・保存せず、優先entryだけをbytesへ復元する。<br>
+<dl><dt><a name="-recover_prioritized_entries_from_bytes"><strong>recover_prioritized_entries_from_bytes</strong></a>(data: 'bytes', *, preferred_names: 'Iterable[str]' = (), max_retained_entries: 'int' = 128, max_entry_compressed_size: 'int' = 67108864, max_entry_uncompressed_size: 'int' = 67108864, max_total_compressed_size: 'int' = 134217728, max_total_uncompressed_size: 'int' = 134217728, max_validation_entry_compressed_size: 'int' = 67108864, max_validation_entry_uncompressed_size: 'int' = 67108864, max_validation_total_compressed_size: 'int' = 268435456, max_validation_total_uncompressed_size: 'int' = 268435456, max_validation_seconds: 'float' = 120.0, max_toc_size: 'int' = 16777216, max_toc_entries: 'int' = 16384) -&gt; 'SelectiveCArchiveAnalysis'</dt><dd><span class="code">PyInstaller&nbsp;CArchiveを実行・保存せず、優先entryだけをbytesへ復元する。<br>
 &nbsp;<br>
 TOC全体の境界、path衝突、payload&nbsp;range重畳は選択前に検証する。全entryが<br>
 内容検証budget内なら1件ずつ展開してEOF・実サイズ・hashを検証し、非候補bytes<br>
@@ -126,11 +65,7 @@ PyInstallerという包装形式だけからmalware&nbsp;familyや悪性意図�
 <dl><dt><a name="-safe_relative_path"><strong>safe_relative_path</strong></a>(name: 'str') -&gt; 'Path'</dt><dd><span class="code">Windowsでも安全なCArchive内の相対パスだけを許可する。</span></dd></dl>
 
 <h2>selected_names</h2>
-<dl><dt><a name="-selected_names"><strong>selected_names</strong></a>(
-    names: 'Iterable[str]',
-    exact_names: 'set[str]',
-    prefixes: 'tuple[str, ...]'
-) -&gt; 'list[str]'</dt><dd><span class="code">明示名または接頭辞に一致するエントリだけを返す。</span></dd></dl>
+<dl><dt><a name="-selected_names"><strong>selected_names</strong></a>(names: 'Iterable[str]', exact_names: 'set[str]', prefixes: 'tuple[str, ...]') -&gt; 'list[str]'</dt><dd><span class="code">明示名または接頭辞に一致するエントリだけを返す。</span></dd></dl>
 
 <h2>sha256_bytes</h2>
 <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">入力bytesの小文字SHA-256を返す。</span></dd></dl>

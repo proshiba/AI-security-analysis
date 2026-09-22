@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "160.119.69.4:80",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 7
+    },
+    {
+      "type": "endpoint",
+      "value": "45.95.147.178:80",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 7
+    },
+    {
+      "type": "ip",
+      "value": "160.119.69.4",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "ip",
+      "value": "45.95.147.178",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://160.119.69.4/hima_data/index.php",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "http://160.119.69.4/x",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "http://160.119.69.4/z/post/noroot.php",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 7
+    },
+    {
+      "type": "url",
+      "value": "http://45.95.147.178/hima_data/index.php",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 4
+    },
+    {
+      "type": "url",
+      "value": "http://45.95.147.178/k.php",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 9
+    },
+    {
+      "type": "url",
+      "value": "http://45.95.147.178/z/post/root.php",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 10
+    },
+    {
+      "type": "url",
+      "value": "http://45.95.147.178/z/wr.php",
+      "role": "shared_campaign_evidence",
+      "confidence": "high",
+      "support": 10
+    }
+  ]
+}

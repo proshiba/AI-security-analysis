@@ -22,7 +22,6 @@ DEFAULT_OUTPUT = (
     / "campaigns"
     / "valleyrat-20260725"
 )
-SHA256_RE = re.compile(r"(?<![0-9a-fA-F])([0-9a-fA-F]{64})(?![0-9a-fA-F])")
 ENDPOINT_RE = re.compile(
     r"(?<![0-9])((?:[0-9]{1,3}\.){3}[0-9]{1,3})(?::([0-9]{1,5}))?"
 )
@@ -53,6 +52,9 @@ def load_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
         for digest in campaign.get("sha256", []):
             if not CASE_SHA_RE.fullmatch(str(digest).lower()):
                 raise ValueError(f"不正なSHA-256です: {digest!r}")
+        for digest in campaign.get("context_only_sha256", []):
+            if not CASE_SHA_RE.fullmatch(str(digest).lower()):
+                raise ValueError(f"不正な文脈SHA-256です: {digest!r}")
         for digest in campaign.get("md5", []):
             if not re.fullmatch(r"[0-9a-f]{32}", str(digest).lower()):
                 raise ValueError(f"不正なMD5です: {digest!r}")
@@ -111,15 +113,15 @@ def extract_case_evidence(
     case_dir: Path,
     metadata: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """caseの公開済みテキスト成果物だけからhash・endpoint・配布型を抽出する。"""
+    """caseの役割付きIOCから悪性hashを限定し、配布型を抽出する。"""
 
     digest = case_dir.name.lower()
     hashes = {digest}
+    context_hashes: set[str] = set()
     endpoints: set[str] = set()
     campaign_type = "unknown"
     for path in _text_artifacts(case_dir):
         text = path.read_text(encoding="utf-8-sig", errors="replace")
-        hashes.update(value.lower() for value in SHA256_RE.findall(text))
         for host, port in ENDPOINT_RE.findall(text):
             octets = [int(item) for item in host.split(".")]
             if any(item > 255 for item in octets):
@@ -130,10 +132,25 @@ def extract_case_evidence(
             if match:
                 campaign_type = match.group(1)
     record = dict(metadata or {})
+    ioc_path = case_dir / "iocs.json"
+    if ioc_path.is_file():
+        for item in _read_json(ioc_path).get("files", []):
+            if not isinstance(item, Mapping):
+                continue
+            value = str(item.get("sha256", "")).lower()
+            if not CASE_SHA_RE.fullmatch(value):
+                continue
+            role = str(item.get("role", "")).lower()
+            confidence = str(item.get("confidence", "")).lower()
+            if "legitimate" in role or "context_only" in confidence:
+                context_hashes.add(value)
+            elif confidence == "confirmed_malicious":
+                hashes.add(value)
     return {
         "sha256": digest,
         "case_path": case_dir.as_posix(),
         "artifact_sha256": sorted(hashes),
+        "context_sha256": sorted(context_hashes),
         "md5": str(record.get("md5_hash", "")).lower(),
         "first_seen": record.get("first_seen"),
         "file_name": record.get("file_name"),
@@ -154,11 +171,13 @@ def match_public_campaigns(
     """完全hash一致を確定、network indicator一致だけを参考候補として返す。"""
 
     artifact_hashes = set(evidence.get("artifact_sha256", []))
+    context_hashes = set(evidence.get("context_sha256", []))
     root_md5 = str(evidence.get("md5", "")).lower()
     endpoint_hosts = {str(item).split(":", 1)[0] for item in evidence.get("endpoints", [])}
     matches: list[dict[str, Any]] = []
     for campaign in registry.get("public_campaigns", []):
         sha_matches = sorted(artifact_hashes & set(campaign.get("sha256", [])))
+        context_matches = sorted(context_hashes & set(campaign.get("context_only_sha256", [])))
         md5_matches = (
             [root_md5]
             if root_md5 and root_md5 in set(campaign.get("md5", []))
@@ -167,7 +186,7 @@ def match_public_campaigns(
         network_matches = sorted(
             endpoint_hosts & set(campaign.get("network_indicators", []))
         )
-        if not sha_matches and not md5_matches and not network_matches:
+        if not sha_matches and not md5_matches and not network_matches and not context_matches:
             continue
         exact = bool(sha_matches or md5_matches)
         matches.append(
@@ -177,10 +196,13 @@ def match_public_campaigns(
                 "status": (
                     "confirmed_exact_hash"
                     if exact
+                    else "shared_sideload_host_context"
+                    if context_matches
                     else "supporting_network_match_only"
                 ),
                 "confidence": "高" if exact else "低",
                 "matched_sha256": sha_matches,
+                "matched_context_sha256": context_matches,
                 "matched_md5": md5_matches,
                 "matched_network_indicators": network_matches,
                 "reported_actor": campaign.get("reported_actor"),
@@ -268,6 +290,8 @@ def build_attribution(
             status = "confirmed_public_campaign"
         elif local_clusters:
             status = "local_campaign_candidate"
+        elif any(item["status"] == "shared_sideload_host_context" for item in public_matches):
+            status = "shared_sideload_host_context"
         elif code_relations:
             status = "local_code_cluster_candidate"
         else:
@@ -312,7 +336,7 @@ def build_attribution(
         "generated_at": datetime.now(UTC).isoformat(),
         "family": "valleyrat",
         "method": {
-            "public_confirmation": "公開IOCとのSHA-256またはMD5完全一致",
+            "public_confirmation": "公開悪性IOCとの役割確認済みSHA-256またはMD5完全一致。正規hostの共有hashは除外",
             "local_campaign": "curated親子関係または固有構成",
             "code_relation": "ルートPEのimphash完全一致。campaign確定には不使用",
             "actor_policy": "community tag単独では帰属しない",
@@ -369,6 +393,7 @@ def _render_readme(
         "|---|---:|---|",
         f"| 公開campaign完全一致 | {status.get('confirmed_public_campaign', 0)} | 公開SHA-256またはMD5との完全一致 |",
         f"| ローカルcampaign候補 | {status.get('local_campaign_candidate', 0)} | 親子hashまたは固有の配布chainをレビュー済み |",
+        f"| 正規side-load host共有文脈 | {status.get('shared_sideload_host_context', 0)} | 正規hostのhashのみ一致し、同一campaignとしない |",
         f"| コードcluster候補のみ | {status.get('local_code_cluster_candidate', 0)} | imphash完全一致。campaign確定ではない |",
         f"| 未解決 | {status.get('unresolved', 0)} | 帰属に足る強い共有証拠なし |",
         "",
@@ -517,10 +542,11 @@ def _render_rules(registry: Mapping[str, Any]) -> str:
             "",
             "## 優先順位",
             "",
-            "1. 公開資料のSHA-256またはMD5完全一致",
+            "1. 公開資料の悪性SHA-256またはMD5完全一致（正規hostを除外）",
             "2. レビュー済みの親子hash・固有配布chain",
-            "3. imphash完全一致のコード近縁cluster",
-            "4. 上記がなければ未解決",
+            "3. 正規side-load hostの共有は文脈のみとして保留",
+            "4. imphash完全一致のコード近縁cluster",
+            "5. 上記がなければ未解決",
             "",
             "network IOCだけの一致、ファイル名、取得時期、community tag、"
             "genericなDLL side-loadingだけでは公開campaignを確定しません。",

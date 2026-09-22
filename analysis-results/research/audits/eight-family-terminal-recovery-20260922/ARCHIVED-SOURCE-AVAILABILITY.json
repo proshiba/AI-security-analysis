@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "checked_at_utc": "2026-09-21T18:33:00Z",
+  "case_index": "cases.json",
+  "scope": "104件の対象ケースと、対象別の私有保管アーカイブの現時点の照合",
+  "evidence_boundary": "ケースSHAを含む保管キーとHeadObjectの一致はZIP内容の証明ではない。全memberとroot SHAを照合した2件だけを静的再解析用元byteとして認証した。S3で一致しない場合も、別prefix、旧保管、ローカル、公開sandboxの不存在を意味しない。",
+  "summary": {
+    "case_count": 104,
+    "scanned_private_object_count": 2016,
+    "case_sha_key_matched_count": 15,
+    "matched_archive_count": 16,
+    "head_metadata_verified_archive_count": 16,
+    "zip_manifest_and_all_members_verified_case_count": 2,
+    "root_member_sha256_verified_case_count": 2,
+    "no_case_sha_key_match_count": 89,
+    "previously_observed_key_without_current_match_count": 7
+  },
+  "verification_criteria": {
+    "head_metadata": "一覧とHeadObjectのsize一致、SSE-S3 AES256、対象識別子の完全SHA-256包含、archive/manifest SHA-256 metadataの形式を照合",
+    "verified_root_member": "ダウンロードZIP SHA-256、復号manifest SHA-256、対象識別子、全memberのsize/SHA-256、root SHA-256のmember一致を照合",
+    "sample_executed": false,
+    "live_c2_contacted": false
+  },
+  "matched_cases": [
+    {
+      "sha256": "f6f7dbd6561e7ee6ba7e6abffdb1e5de01bf511318aade34825d888e99db645f",
+      "family_directory": "asyncrat",
+      "archive_count": 1,
+      "state": "head_metadata_only",
+      "ready_for_static_retry_from_this_audit": false
+    },
+    {
+      "sha256": "3610fcc54a204281b09095004f02b674cd75bdd83996a1428fdef85645eff3e1",
+      "family_directory": "asyncrat",
+      "archive_count": 1,
+      "state": "head_metadata_only",
+      "ready_for_static_retry_from_this_audit": false
+    },
+    {
+      "sha256": "5e84fd9106777b85d5a60f4e607940730ba57ea2dcafaeaaadd6f21e38555761",
+      "family_directory": "asyncrat",
+      "archive_count": 1,
+      "state": "head_metadata_only",
+      "ready_for_static_retry_from_this_audit": false
+    },
+    {
+      "sha256": "03f46cf9a2de612f87385012e18af57a87e1d227f1fe2b0e8f6f335073104964",
+      "family_directory": "formbook",
+      "archive_count": 1,
+      "state": "verified_root_member",
+      "archive_member_count": 23,
+      "ready_for_static_retry_from_this_audit": true
+    },
+    {
+      "sha256": "17b4070f7739accf08ec200d8fe71a65f407afbca9f3f576f42397519f694d2d",
+      "family_directory": "formbook",
+      "archive_count": 1,
+      "state": "verified_root_member",
+      "archive_member_count": 23,
+      "ready_for_static_retry_from_this_audit": true
+    },
+    {
+      "sha256": "4b5ed2db4d4c48782e6926d8569f314f6aa36d8d6ec7100eaf1f561bd7626ff9",
+      "family_directory": "formbook",
+      "archive_count": 1,
+      "state": "head_metadata_only",
+      "ready_for_static_retry_from_this_audit": false
+    },
+    {
+      "sha256": "87843d4d75d858a1802d545a80afbdf986d5aa3a30588c5094864f55d1ca8f53",
+      "family_directory": "formbook",
+      "archive_count": 1,
+      "state": "head_metadata_only",
+      "ready_for_static_retry_from_this_audit": false
+    },
+    {
+      "sha256": "b59fe70e499dfd4f13fd545ec1892a10dd8a913ebc41190d69ecca2f4135c02f",
+      "family_directory": "formbook",
+      "archive_count": 1,
+      "state": "head_metadata_only",
+      "ready_for_static_retry_from_this_audit": false
+    },
+    {
+      "sha256": "eee434a01829c957c266fab72279ef491fbca7592236f1885d4f03e2d1e72a4d",
+      "family_directory": "formbook",
+      "archive_count": 1,
+      "state": "head_metadata_only",
+      "ready_for_static_retry_from_this_audit": false
+    },
+    {
+      "sha256": "255cdacde3f3951fc41cad1d6a248f0bf27ae7aa4fa5b058848b3a1cb93533c4",
+      "family_directory": "valleyrat",
+      "archive_count": 2,
+      "state": "head_metadata_only",
+      "ready_for_static_retry_from_this_audit": false
+    },
+    {
+      "sha256": "55dcb3da4b2a7a8ebf59637f0f78e8195cb361c594bdd47e932ac5fc8258c5ce",
+      "family_directory": "valleyrat",
+      "archive_count": 1,
+      "state": "head_metadata_only",
+      "ready_for_static_retry_from_this_audit": false
+    },
+    {
+      "sha256": "658fc8b2caf56d7572f065bdc7bcf248f1ba3e96901ba6ed3eee4291e524d46e",
+      "family_directory": "valleyrat",
+      "archive_count": 1,
+      "state": "head_metadata_only",
+      "ready_for_static_retry_from_this_audit": false
+    },
+    {
+      "sha256": "9705bd691a0be1f2fdb19b72b12e25097c39ce9c2173c3d5e7b106b4e97fa548",
+      "family_directory": "valleyrat",
+      "archive_count": 1,
+      "state": "head_metadata_only",
+      "ready_for_static_retry_from_this_audit": false
+    },
+    {
+      "sha256": "be7d04f3bbca91674206a22fdedc0d4874a62ffe0dd164e98de6d3cb065a57bf",
+      "family_directory": "valleyrat",
+      "archive_count": 1,
+      "state": "head_metadata_only",
+      "ready_for_static_retry_from_this_audit": false
+    },
+    {
+      "sha256": "df603ed55cbf6f9d74068b956ab966a7b785eb102e1045f343d96255eb2cdc24",
+      "family_directory": "valleyrat",
+      "archive_count": 1,
+      "state": "head_metadata_only",
+      "ready_for_static_retry_from_this_audit": false
+    }
+  ],
+  "static_retry": [
+    {
+      "sha256": "03f46cf9a2de612f87385012e18af57a87e1d227f1fe2b0e8f6f335073104964",
+      "root_member_size": 1159680,
+      "root_format": "PE",
+      "long_output_path_error_code": "root_static_analysis_failed",
+      "long_output_path_exception_type": "FileNotFoundError",
+      "short_output_path_run_errors": 0,
+      "short_output_path_case_status": "partial",
+      "recovered_layer_count": 1,
+      "selected_family": null,
+      "route_config_candidate_count": 0,
+      "terminal_payload_confirmed": false,
+      "remaining_blockers": ["representative_function_analysis_required", "terminal_payload_unrecovered"]
+    },
+    {
+      "sha256": "17b4070f7739accf08ec200d8fe71a65f407afbca9f3f576f42397519f694d2d",
+      "root_member_size": 1251328,
+      "root_format": "PE",
+      "long_output_path_error_code": "root_static_analysis_failed",
+      "long_output_path_exception_type": "FileNotFoundError",
+      "short_output_path_run_errors": 0,
+      "short_output_path_case_status": "partial",
+      "recovered_layer_count": 1,
+      "selected_family": null,
+      "route_config_candidate_count": 0,
+      "terminal_payload_confirmed": false,
+      "remaining_blockers": ["representative_function_analysis_required", "terminal_payload_unrecovered"]
+    }
+  ],
+  "previously_observed_key_without_current_match": [
+    "4972c57c77b67c080fca0e1f97e650894f7b60fb50d049ae9f43d83759fad701",
+    "f0e29d11e1800cf4ef616458f74cd3cfccd0e39559423344e92574fc78023259",
+    "0d298a65db890328d0357b2fb39ea7352645a994a601f430c38450769635f957",
+    "32c100b984e2a26d588fafc648dcdd7694788d0c18af15704e3601ffc001f334",
+    "c375cb55dafefcb4ad4fdad99e58159943b9e1c51c7756c2e7880656881fc0f0",
+    "1d0b8f081975cc9dfb542c8da5d173c3a68a23531e83f07e86ccc706e56d76f3",
+    "c33bf27dc5e7c57f95cc10e6480e54faea225df318ae994117d60a231149347b"
+  ],
+  "unlisted_cases_state": "no_case_sha_key_match_in_scanned_private_prefix"
+}

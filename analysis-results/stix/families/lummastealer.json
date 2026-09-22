@@ -1,0 +1,213 @@
+{
+  "id": "bundle--6f7309c4-419b-5439-a3fd-1609b8fb9aec",
+  "objects": [
+    {
+      "aliases": [
+        "LummaC2",
+        "Lumma"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Chromium・Mozilla系ブラウザー、メール、FTP、VPN、Telegram、暗号資産ウォレット、文書、システム情報を窃取し、追加プラグインや別マルウェアを導入できる情報窃取型マルウェアである。",
+      "external_references": [
+        {
+          "description": "lummastealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/lummastealer/README.md"
+        },
+        {
+          "description": "LummaC2用ドメイン押収 (am-lumma-doj-2025)",
+          "source_name": "米国司法省",
+          "url": "https://www.justice.gov/opa/pr/justice-department-seizes-domains-behind-major-information-stealing-malware-operation"
+        },
+        {
+          "description": "Lumma Stealerローカル解析結果 (am-lumma-local-2026)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/lummastealer"
+        },
+        {
+          "description": "Lumma基盤に対する世界的妨害措置 (am-lumma-microsoft-action-2025)",
+          "source_name": "Microsoft Digital Crimes Unit",
+          "url": "https://blogs.microsoft.com/on-the-issues/2025/05/21/microsoft-leads-global-action-against-favored-cybercrime-tool/"
+        },
+        {
+          "description": "Lummaの配布手法、機能、version 1から6のプロトコル差 (am-lumma-microsoft-technical-2025)",
+          "source_name": "Microsoft",
+          "url": "https://www.microsoft.com/en-us/security/blog/2025/05/21/lumma-stealer-breaking-down-the-delivery-techniques-and-capabilities-of-a-prolific-infostealer/"
+        }
+      ],
+      "id": "malware--8aa9f911-2868-53ae-91e5-20e43b24faac",
+      "is_family": true,
+      "labels": [
+        "business-model:maas"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Lumma Stealer",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: MicrosoftはLumma本体、C2、MaaSを開発・維持する主体をStorm-2477として追跡し、主要開発者はロシア拠点でShamelのハンドルを使うと報告する。実名の公開帰属は確認されていない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Lumma基盤に対する世界的妨害措置 (am-lumma-microsoft-action-2025)",
+          "source_name": "Microsoft Digital Crimes Unit",
+          "url": "https://blogs.microsoft.com/on-the-issues/2025/05/21/microsoft-leads-global-action-against-favored-cybercrime-tool/"
+        },
+        {
+          "description": "Lummaの配布手法、機能、version 1から6のプロトコル差 (am-lumma-microsoft-technical-2025)",
+          "source_name": "Microsoft",
+          "url": "https://www.microsoft.com/en-us/security/blog/2025/05/21/lumma-stealer-breaking-down-the-delivery-techniques-and-capabilities-of-a-prolific-infostealer/"
+        }
+      ],
+      "id": "note--9505bf6a-2dc7-5172-9657-4911f2b90f5e",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8aa9f911-2868-53ae-91e5-20e43b24faac"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: maas。2022年頃から購読型MaaSとして提供され、購入者が独自の配布活動と窃取データ管理を行う、非常にコモディティ性の高い情報窃取サービスである。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Lumma基盤に対する世界的妨害措置 (am-lumma-microsoft-action-2025)",
+          "source_name": "Microsoft Digital Crimes Unit",
+          "url": "https://blogs.microsoft.com/on-the-issues/2025/05/21/microsoft-leads-global-action-against-favored-cybercrime-tool/"
+        },
+        {
+          "description": "Lummaの配布手法、機能、version 1から6のプロトコル差 (am-lumma-microsoft-technical-2025)",
+          "source_name": "Microsoft",
+          "url": "https://www.microsoft.com/en-us/security/blog/2025/05/21/lumma-stealer-breaking-down-the-delivery-techniques-and-capabilities-of-a-prolific-infostealer/"
+        }
+      ],
+      "id": "note--1026eacb-35af-57a6-8c96-43b22542e553",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8aa9f911-2868-53ae-91e5-20e43b24faac"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Lumma基盤に対する世界的妨害措置 (am-lumma-microsoft-action-2025)",
+          "source_name": "Microsoft Digital Crimes Unit",
+          "url": "https://blogs.microsoft.com/on-the-issues/2025/05/21/microsoft-leads-global-action-against-favored-cybercrime-tool/"
+        },
+        {
+          "description": "Lummaの配布手法、機能、version 1から6のプロトコル差 (am-lumma-microsoft-technical-2025)",
+          "source_name": "Microsoft",
+          "url": "https://www.microsoft.com/en-us/security/blog/2025/05/21/lumma-stealer-breaking-down-the-delivery-techniques-and-capabilities-of-a-prolific-infostealer/"
+        }
+      ],
+      "id": "note--ea5e7857-01c5-5c85-b70b-7ef613357412",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8aa9f911-2868-53ae-91e5-20e43b24faac"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: Octo Tempest・Storm-1607・Storm-1113・Storm-1674。MicrosoftがLumma Stealerを利用したランサムウェア関連アクターとして報告している。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Lummaの配布手法、機能、version 1から6のプロトコル差 (am-lumma-microsoft-technical-2025)",
+          "source_name": "Microsoft",
+          "url": "https://www.microsoft.com/en-us/security/blog/2025/05/21/lumma-stealer-breaking-down-the-delivery-techniques-and-capabilities-of-a-prolific-infostealer/"
+        }
+      ],
+      "id": "note--bcce9fdc-0fdc-529f-9cb6-09c19ceb82d9",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8aa9f911-2868-53ae-91e5-20e43b24faac"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: 多数のMaaS購入者。数百のサイバー脅威アクターがLummaを購入し、パネルからビルド、C2、窃取データを管理する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Lumma基盤に対する世界的妨害措置 (am-lumma-microsoft-action-2025)",
+          "source_name": "Microsoft Digital Crimes Unit",
+          "url": "https://blogs.microsoft.com/on-the-issues/2025/05/21/microsoft-leads-global-action-against-favored-cybercrime-tool/"
+        }
+      ],
+      "id": "note--6f4f0945-8877-53ec-b446-646b0d50be6a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8aa9f911-2868-53ae-91e5-20e43b24faac"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2022-2025）: フィッシング、マルバタイジング、偽CAPTCHA・ClickFix、信頼済みプラットフォーム、トラフィック配信システム等を通じて広く配布された。 報告された主体: 多数のMaaS購入者。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Lummaの配布手法、機能、version 1から6のプロトコル差 (am-lumma-microsoft-technical-2025)",
+          "source_name": "Microsoft",
+          "url": "https://www.microsoft.com/en-us/security/blog/2025/05/21/lumma-stealer-breaking-down-the-delivery-techniques-and-capabilities-of-a-prolific-infostealer/"
+        }
+      ],
+      "id": "note--94fc911c-d661-54bc-851d-ba415422b3c9",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--8aa9f911-2868-53ae-91e5-20e43b24faac"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "lummastealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/lummastealer/README.md"
+        }
+      ],
+      "id": "report--bceb35d6-c1bf-55a9-b93c-04070fb297d8",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "Lumma Stealer：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--8aa9f911-2868-53ae-91e5-20e43b24faac",
+        "note--9505bf6a-2dc7-5172-9657-4911f2b90f5e",
+        "note--1026eacb-35af-57a6-8c96-43b22542e553",
+        "note--ea5e7857-01c5-5c85-b70b-7ef613357412",
+        "note--bcce9fdc-0fdc-529f-9cb6-09c19ceb82d9",
+        "note--6f4f0945-8877-53ec-b446-646b0d50be6a",
+        "note--94fc911c-d661-54bc-851d-ba415422b3c9"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

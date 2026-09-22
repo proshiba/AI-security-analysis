@@ -1,0 +1,34 @@
+{
+  "campaign_id": "correlated-latrodectus-529ef014e1b4",
+  "classification": "same_family_campaign_candidate",
+  "confidence": "medium",
+  "families": [
+    "latrodectus"
+  ],
+  "members": [
+    "03e0ca10cbf06f45fefd102dc8e42665729d8891e047348dea7dcceb9b5559cc",
+    "72db19a5ccc7e378e72bd3cf8339280fc47f05b5ff65b1fb3893be6369a5c8bf",
+    "9e7fdc17150409d594eeed12705788fbc74b5c7f482a64d121395df781820f46"
+  ],
+  "member_count": 3,
+  "shared_indicators": [
+    {
+      "type": "url",
+      "value": "https://miistoria.com/live/",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "https://plwskoret.top/live/",
+      "support": 3
+    }
+  ],
+  "shared_feature_ids": [],
+  "edge_count": 3,
+  "maximum_pair_score": 9,
+  "limitations": [
+    "同一アクターまたは同一運用者への帰属を意味しません。",
+    "共有インフラが再利用・転売されている可能性を排除できません。",
+    "収集バッチ、ファミリー名、ファイル名だけでは相関していません。"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "stopman.ooguy.com",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 2
+    },
+    {
+      "type": "endpoint",
+      "value": "stopman.ooguy.com:2002",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 2
+    }
+  ]
+}

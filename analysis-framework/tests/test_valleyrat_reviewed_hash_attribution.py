@@ -103,3 +103,38 @@ def test_every_reviewed_registry_hash_follows_confirmation_policy(
 
     assert route_only_count > 0
     assert route_only_count == len(DETECT.REVIEWED_SAMPLES)
+
+
+def test_protected_inno_route_is_exact_hash_only_and_not_family_confirmation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """汎用native候補よりreview済み経路を優先し、未知hashへ拡張しない。"""
+
+    reviewed_data = b"MZ synthetic reviewed Inno Setup fixture"
+    unknown_data = b"MZ synthetic unknown Inno Setup fixture"
+    reviewed_digest = hashlib.sha256(reviewed_data).hexdigest()
+    monkeypatch.setitem(DETECT.KNOWN_CAMPAIGNS, reviewed_digest, "protected_installer_bundle")
+    monkeypatch.setitem(
+        DETECT.REVIEWED_SAMPLES,
+        reviewed_digest,
+        {"campaign": "protected_installer_bundle", "final_rat_confirmed": False},
+    )
+    monkeypatch.setattr(DETECT, "_terminal_configuration_detection", lambda *_: None)
+    monkeypatch.setattr(DETECT, "_appdomainmanager_loader_shape", lambda *_: {"matched": False})
+    monkeypatch.setattr(
+        DETECT,
+        "_native_loader_detection",
+        lambda *_: {
+            "matched": True,
+            "supports_family_attribution": False,
+            "campaigns": [{"campaign_type": "native_loader_candidate"}],
+        },
+    )
+    monkeypatch.setattr(DETECT, "analyze_signed_proxy_sideload", lambda *_: {})
+
+    reviewed = DETECT.detect(reviewed_data, Path("reviewed.exe"))
+    unknown = DETECT.detect(unknown_data, Path("unknown.exe"))
+    assert reviewed["campaigns"][0]["campaign_type"] == "protected_installer_bundle"
+    assert reviewed["supports_family_attribution"] is False
+    assert reviewed["campaigns"][0]["terminal_family_confirmed"] is False
+    assert unknown["campaigns"][0]["campaign_type"] != "protected_installer_bundle"

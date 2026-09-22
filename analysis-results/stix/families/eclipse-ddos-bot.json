@@ -1,0 +1,69 @@
+{
+  "id": "bundle--11012058-5516-5f2d-8040-086677ecf9d2",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: TCP/7000へ接続してアーキテクチャ名を改行終端で登録し、PING/PONG、UPDATE、BROADCAST、STOP_ALLとUDP_FLOOD、TCP_FLOOD、SYN_BYPASS、HTTP2_FLOODを処理します。多重永続化、競合排除、固定5秒再接続を実装します。",
+      "external_references": [
+        {
+          "description": "eclipse-ddos-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/eclipse-ddos-bot/README.md"
+        }
+      ],
+      "id": "malware--59afa2a0-757f-51d8-ab7d-9470265c2411",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "eclipse-ddos-bot",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "eclipse-ddos-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/eclipse-ddos-bot/README.md"
+        }
+      ],
+      "id": "note--72aa0d7e-4ecc-5877-93f3-b4cd762419a2",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--59afa2a0-757f-51d8-ab7d-9470265c2411"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "eclipse-ddos-bot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/eclipse-ddos-bot/README.md"
+        }
+      ],
+      "id": "report--100db91b-7447-524f-ac06-c923d9b53aa4",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "eclipse-ddos-bot：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--59afa2a0-757f-51d8-ab7d-9470265c2411",
+        "note--72aa0d7e-4ecc-5877-93f3-b4cd762419a2"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

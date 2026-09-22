@@ -1,0 +1,29 @@
+{
+  "campaign_id": "correlated-valleyrat-2c9e5f30ae0b",
+  "families": [
+    "valleyrat"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "202.61.140.222:448"
+    },
+    {
+      "type": "ip",
+      "value": "202.61.140.222"
+    }
+  ],
+  "feature_ids": [
+    "behavior:1",
+    "behavior:2",
+    "behavior:3",
+    "behavior:4",
+    "clickfix:false",
+    "delivery:zip_img_sideload",
+    "format:pe_dll",
+    "protocol:custom_stage"
+  ],
+  "classification": "same_family_campaign_candidate"
+}

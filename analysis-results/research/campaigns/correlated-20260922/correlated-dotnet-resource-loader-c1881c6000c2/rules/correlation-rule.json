@@ -1,0 +1,16 @@
+{
+  "campaign_id": "correlated-dotnet-resource-loader-c1881c6000c2",
+  "families": [
+    "dotnet-resource-loader"
+  ],
+  "confidence": "medium",
+  "minimum_indicator_matches": 1,
+  "indicators": [
+    {
+      "type": "artifact_hash",
+      "value": "c7b2d253001ad30d897a6bd36ad183a283f19c1f2b50c84f039327fe32ae9e28"
+    }
+  ],
+  "feature_ids": [],
+  "classification": "same_family_campaign_candidate"
+}

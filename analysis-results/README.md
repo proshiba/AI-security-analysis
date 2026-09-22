@@ -31,9 +31,9 @@ ClickFix／ClearFakeのWeb配布事例は[ClickFix調査](clickfix/README.md)へ
 <!-- case-inventory:start -->
 | 区分 | 件数 |
 |---|---:|
-| SHA-256で一意な全case | 3,712 |
+| SHA-256で一意な全case | 3,762 |
 | ファミリ帰属済みcase | 1,994 |
-| 未分類case | 1,717 |
+| 未分類case | 1,767 |
 | サプライチェーンpayload | 1 |
 | 版を静的根拠で確認済み | 89 |
 | exact sampleの外部報告で版を特定 | 6 |
@@ -41,11 +41,13 @@ ClickFix／ClearFakeのWeb配布事例は[ClickFix調査](clickfix/README.md)へ
 <!-- case-inventory:end -->
 版名は、静的に回収したsample-specificな設定、またはexact SHA-256に結び付く外部報告がある場合だけ使用します。runtime、依存package、packer、first-seen日、一般的なファミリ記事だけでは版を決めず、根拠がない場合は `versions/unknown/` に置きます。各ファミリの判定根拠と対象検体は `VERSIONS.md` にまとめています。
 
-未分類1,717件は既知ファミリへ無理に帰属させていません。個別caseの挙動・検体特徴と不足項目は `FEATURES.md`／`features.json` に分離し、ファミリー名や収集batchだけではcampaign labelを付けません。
+未分類1,767件は既知ファミリへ無理に帰属させていません。個別caseの挙動・検体特徴と不足項目は `FEATURES.md`／`features.json` に分離し、ファミリー名や収集batchだけではcampaign labelを付けません。
 
 ## マルウェアファミリ
 
 各 `README.md` から、概要、開発・販売主体、利用アクター、コモディティ／MaaS性、過去の攻撃事例、技術解析、版情報へ移動できます。詳細なOSINTと出典は各 `OSINT.md` にあります。
+
+ファミリーを横断する機械可読の整理は[ファミリー別STIX 2.1](stix/README.md)を参照してください。静的特徴、関数コード類似候補、出典付きの攻撃利用史・キャンペーン・主体・提供形態を分けて記録しています。
 
 - [Agent Tesla](malware/agenttesla/README.md)
 - [ACRStealer／Amatera](malware/acrstealer/README.md)

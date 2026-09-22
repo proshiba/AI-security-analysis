@@ -1,0 +1,496 @@
+{
+  "id": "bundle--fa35a219-350e-5711-a1f3-3819b80aa2a8",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "IoT機器を侵害してDDoSに用いるbotnet。米司法省は2016年の原型作成・運用に3人が関与したと公表し、同年のソース公開後は別の犯罪者も多数の亜種を利用した。原型と派生版の作者・運用者は区別する。",
+      "external_references": [
+        {
+          "description": "mirai 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/mirai/README.md"
+        },
+        {
+          "description": "Mirai系botnet clusterと攻撃標的の比較 (stix-mirai-cloudflare-2017)",
+          "source_name": "Cloudflare",
+          "url": "https://blog.cloudflare.com/inside-mirai-the-infamous-iot-botnet-a-retrospective-analysis/"
+        },
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f",
+      "is_family": true,
+      "labels": [
+        "business-model:commodity"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Mirai",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 80,
+      "content": "開発主体: 米司法省によると原型botnetはParas Jha、Josiah White、Dalton Normanが作成した。公開後の派生版すべての作者を意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "note--e1fc3a45-ae5b-5247-aa31-86aa1debb6d6",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--892ec157-c31d-53c5-85bb-7a279e8a927b",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Paras Jha",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "米司法省が原型Mirai botnetの共同作成者として記録する。後続の派生版には拡張しない。",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "relationship--766328ce-c301-5adc-9016-dee030a3abcf",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "authored-by",
+      "source_ref": "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f",
+      "spec_version": "2.1",
+      "target_ref": "threat-actor--892ec157-c31d-53c5-85bb-7a279e8a927b",
+      "type": "relationship"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--0f17abdd-ea3d-5841-bea9-bbb4b818aa32",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Josiah White",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "米司法省が原型Mirai botnetの共同作成者として記録する。後続の派生版には拡張しない。",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "relationship--9716f7a4-4d1c-56f9-b181-ea788f4f5ec5",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "authored-by",
+      "source_ref": "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f",
+      "spec_version": "2.1",
+      "target_ref": "threat-actor--0f17abdd-ea3d-5841-bea9-bbb4b818aa32",
+      "type": "relationship"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--2e82908c-c64e-5b7b-91f2-479ec23aafd2",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Dalton Norman",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "米司法省が原型Mirai botnetの共同作成者として記録する。後続の派生版には拡張しない。",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "relationship--fb3fee48-7e90-589c-82ce-4d15e3eb94ba",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "authored-by",
+      "source_ref": "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f",
+      "spec_version": "2.1",
+      "target_ref": "threat-actor--2e82908c-c64e-5b7b-91f2-479ec23aafd2",
+      "type": "relationship"
+    },
+    {
+      "content": "提供形態: commodity。2016年秋のソース公開後、多数の別アクターが派生版を作成・使用した。ソース公開はOSSライセンスやMaaS販売を意味せず、Miraiファミリー全体は単一アクター専用ではない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai系botnet clusterと攻撃標的の比較 (stix-mirai-cloudflare-2017)",
+          "source_name": "Cloudflare",
+          "url": "https://blog.cloudflare.com/inside-mirai-the-infamous-iot-botnet-a-retrospective-analysis/"
+        },
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "note--b7e294a9-4f4a-5300-9e0d-9183e36718b9",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 単一アクター専用ではないと報告されている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai系botnet clusterと攻撃標的の比較 (stix-mirai-cloudflare-2017)",
+          "source_name": "Cloudflare",
+          "url": "https://blog.cloudflare.com/inside-mirai-the-infamous-iot-botnet-a-retrospective-analysis/"
+        },
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "note--80f4631c-22c6-5002-8c70-fb8eceedd614",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "米司法省は2016年のMirai原型botnetを作成・運用しDDoS攻撃に利用した3人の一人と記録する。",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "relationship--7f2031d8-63f6-547a-b3ba-c2fe041219ac",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--892ec157-c31d-53c5-85bb-7a279e8a927b",
+      "spec_version": "2.1",
+      "target_ref": "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: Paras Jha。米司法省は2016年のMirai原型botnetを作成・運用しDDoS攻撃に利用した3人の一人と記録する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "note--5be660c3-5afb-5adb-89d6-627179ff753f",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f",
+        "threat-actor--892ec157-c31d-53c5-85bb-7a279e8a927b"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "米司法省は2016年のMirai原型botnetを作成・運用しDDoS攻撃に利用した3人の一人と記録する。",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "relationship--b4612d1c-1e35-5b6e-bab5-351f05c0f7ef",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--0f17abdd-ea3d-5841-bea9-bbb4b818aa32",
+      "spec_version": "2.1",
+      "target_ref": "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: Josiah White。米司法省は2016年のMirai原型botnetを作成・運用しDDoS攻撃に利用した3人の一人と記録する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "note--7506949a-c077-51a5-85ef-50c05d6dbf9a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f",
+        "threat-actor--0f17abdd-ea3d-5841-bea9-bbb4b818aa32"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "米司法省は2016年のMirai原型botnetを作成・運用しDDoS攻撃に利用した3人の一人と記録する。",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "relationship--43a6c3ff-8145-568f-98ae-8d25f8717463",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "threat-actor--2e82908c-c64e-5b7b-91f2-479ec23aafd2",
+      "spec_version": "2.1",
+      "target_ref": "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: Dalton Norman。米司法省は2016年のMirai原型botnetを作成・運用しDDoS攻撃に利用した3人の一人と記録する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "note--f231b66f-7b8c-52e8-8160-6a62ca034500",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f",
+        "threat-actor--2e82908c-c64e-5b7b-91f2-479ec23aafd2"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2016年）: 原型botnetがIoT機器を侵害し、大規模DDoS攻撃に使われた。 報告された主体: Paras Jha、Josiah White、Dalton Norman。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "note--57ca26c5-d58a-5edf-beea-ceab6648d371",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2016年後半）: Cloudflareが別々のMirai系clusterによるKrebs、OVH、Dyn等へのDDoSを整理した。標的の違いと基盤の違いから単一運用者へ統合しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai系botnet clusterと攻撃標的の比較 (stix-mirai-cloudflare-2017)",
+          "source_name": "Cloudflare",
+          "url": "https://blog.cloudflare.com/inside-mirai-the-infamous-iot-botnet-a-retrospective-analysis/"
+        }
+      ],
+      "id": "note--75bdb7fd-7c2b-519b-ae06-dd24bd2b7632",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "米司法省が報告した原型Mirai botnetのIoT機器侵害とDDoS攻撃。ソース公開後の別アクターによる派生版を含めない。",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "campaign--3373f484-fddc-52fc-99bb-9556c3efb9da",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "2016年のMirai原型DDoS活動",
+      "spec_version": "2.1",
+      "type": "campaign"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "relationship--824b3d56-b544-5013-abac-6e25982b33ee",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "campaign--3373f484-fddc-52fc-99bb-9556c3efb9da",
+      "spec_version": "2.1",
+      "target_ref": "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "米司法省は3人が2016年の原型botnetを作成・運用したと記録する。後続の派生版には拡張しない。",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "relationship--fa7f6077-6cf3-5714-9ab4-1a95386f16b0",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "attributed-to",
+      "source_ref": "campaign--3373f484-fddc-52fc-99bb-9556c3efb9da",
+      "spec_version": "2.1",
+      "target_ref": "threat-actor--892ec157-c31d-53c5-85bb-7a279e8a927b",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "米司法省は3人が2016年の原型botnetを作成・運用したと記録する。後続の派生版には拡張しない。",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "relationship--3bcd4189-46f8-5b8e-a34c-4e9df45ff1c8",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "attributed-to",
+      "source_ref": "campaign--3373f484-fddc-52fc-99bb-9556c3efb9da",
+      "spec_version": "2.1",
+      "target_ref": "threat-actor--0f17abdd-ea3d-5841-bea9-bbb4b818aa32",
+      "type": "relationship"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "米司法省は3人が2016年の原型botnetを作成・運用したと記録する。後続の派生版には拡張しない。",
+      "external_references": [
+        {
+          "description": "Mirai原型の作成・運用に関する米司法省発表 (stix-mirai-doj-2017)",
+          "source_name": "US Department of Justice",
+          "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving"
+        }
+      ],
+      "id": "relationship--2975cb4b-53ef-5fee-b78c-46ec07bf09fb",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "attributed-to",
+      "source_ref": "campaign--3373f484-fddc-52fc-99bb-9556c3efb9da",
+      "spec_version": "2.1",
+      "target_ref": "threat-actor--2e82908c-c64e-5b7b-91f2-479ec23aafd2",
+      "type": "relationship"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "mirai 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/mirai/README.md"
+        }
+      ],
+      "id": "report--c3e4302b-195d-5ffe-a1aa-e45b6ea8a908",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "Mirai：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--541989de-ff93-5d2c-aa79-ff433fe5c43f",
+        "note--e1fc3a45-ae5b-5247-aa31-86aa1debb6d6",
+        "threat-actor--892ec157-c31d-53c5-85bb-7a279e8a927b",
+        "relationship--766328ce-c301-5adc-9016-dee030a3abcf",
+        "threat-actor--0f17abdd-ea3d-5841-bea9-bbb4b818aa32",
+        "relationship--9716f7a4-4d1c-56f9-b181-ea788f4f5ec5",
+        "threat-actor--2e82908c-c64e-5b7b-91f2-479ec23aafd2",
+        "relationship--fb3fee48-7e90-589c-82ce-4d15e3eb94ba",
+        "note--b7e294a9-4f4a-5300-9e0d-9183e36718b9",
+        "note--80f4631c-22c6-5002-8c70-fb8eceedd614",
+        "relationship--7f2031d8-63f6-547a-b3ba-c2fe041219ac",
+        "note--5be660c3-5afb-5adb-89d6-627179ff753f",
+        "relationship--b4612d1c-1e35-5b6e-bab5-351f05c0f7ef",
+        "note--7506949a-c077-51a5-85ef-50c05d6dbf9a",
+        "relationship--43a6c3ff-8145-568f-98ae-8d25f8717463",
+        "note--f231b66f-7b8c-52e8-8160-6a62ca034500",
+        "note--57ca26c5-d58a-5edf-beea-ceab6648d371",
+        "note--75bdb7fd-7c2b-519b-ae06-dd24bd2b7632",
+        "campaign--3373f484-fddc-52fc-99bb-9556c3efb9da",
+        "relationship--824b3d56-b544-5013-abac-6e25982b33ee",
+        "relationship--fa7f6077-6cf3-5714-9ab4-1a95386f16b0",
+        "relationship--3bcd4189-46f8-5b8e-a34c-4e9df45ff1c8",
+        "relationship--2975cb4b-53ef-5fee-b78c-46ec07bf09fb"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

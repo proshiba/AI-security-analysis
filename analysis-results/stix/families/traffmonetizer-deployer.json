@@ -1,0 +1,181 @@
+{
+  "id": "bundle--d56a5974-1044-580d-b44e-f5968ed342e8",
+  "objects": [
+    {
+      "aliases": [
+        "TraffDeployer"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "商用帯域共有アプリTraffMonetizerをシステム領域へ秘匿配置し、事前設定トークンと最高権限タスクで運用する外層である。公式サービスと無断導入の悪性デプロイヤーを分離して扱う。",
+      "external_references": [
+        {
+          "description": "traffmonetizer-deployer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/traffmonetizer-deployer/README.md"
+        },
+        {
+          "description": "TraffMonetizerデプロイヤーのローカル解析 (nz-traff-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/traffmonetizer-deployer"
+        },
+        {
+          "description": "TraffMonetizer公式サービス説明 (nz-traff-official)",
+          "source_name": "Bytemarket OU dba Traffmonetizer",
+          "url": "https://traffmonetizer.com/"
+        }
+      ],
+      "id": "malware--749da0e4-69f7-5b59-8329-2c3030b178f9",
+      "is_family": true,
+      "labels": [
+        "business-model:commercial-service"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "TraffMonetizer不正デプロイヤー",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 80,
+      "content": "開発主体: 公式サイトはTraffMonetizerをBytemarket OUが提供すると記載する。今回の無断デプロイヤーの作者は不明で、同社が外層を開発したとは扱わない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TraffMonetizerデプロイヤーのローカル解析 (nz-traff-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/traffmonetizer-deployer"
+        },
+        {
+          "description": "TraffMonetizer公式サービス説明 (nz-traff-official)",
+          "source_name": "Bytemarket OU dba Traffmonetizer",
+          "url": "https://traffmonetizer.com/"
+        }
+      ],
+      "id": "note--fd175e73-c077-5a8f-abdc-c506929340ef",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--749da0e4-69f7-5b59-8329-2c3030b178f9"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: commercial_service。公式アプリはアクセストークンを用いて未使用帯域を共有し報酬を得る商用サービスである。単独ドメインや証明書を悪性IOCとしない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TraffMonetizerデプロイヤーのローカル解析 (nz-traff-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/traffmonetizer-deployer"
+        },
+        {
+          "description": "TraffMonetizer公式サービス説明 (nz-traff-official)",
+          "source_name": "Bytemarket OU dba Traffmonetizer",
+          "url": "https://traffmonetizer.com/"
+        }
+      ],
+      "id": "note--077edbad-a14b-587e-8cb7-1b217566b969",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--749da0e4-69f7-5b59-8329-2c3030b178f9"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TraffMonetizerデプロイヤーのローカル解析 (nz-traff-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/traffmonetizer-deployer"
+        },
+        {
+          "description": "TraffMonetizer公式サービス説明 (nz-traff-official)",
+          "source_name": "Bytemarket OU dba Traffmonetizer",
+          "url": "https://traffmonetizer.com/"
+        }
+      ],
+      "id": "note--48411d32-90a4-5744-88c2-404629bea567",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--749da0e4-69f7-5b59-8329-2c3030b178f9"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 20,
+      "content": "利用主体に関する公開報告: 無断導入を行う未特定の運用者。TraffMonetizerの正規提供者とは区別し、無断デプロイヤーを配布・運用した主体だけを指す。具体的な個人・組織は未特定である。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TraffMonetizerデプロイヤーのローカル解析 (nz-traff-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/traffmonetizer-deployer"
+        }
+      ],
+      "id": "note--3774185a-f40f-5fd7-96af-f0295fe538b6",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--749da0e4-69f7-5b59-8329-2c3030b178f9"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2026年7月）: ローカル検体で事前設定トークン、システム領域、最高権限タスクによる不正導入を確認したが、公開情報から特定アクターへ帰属できない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TraffMonetizerデプロイヤーのローカル解析 (nz-traff-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/traffmonetizer-deployer"
+        }
+      ],
+      "id": "note--9cd18558-bea6-5a25-a7f7-577667d32df4",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--749da0e4-69f7-5b59-8329-2c3030b178f9"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "traffmonetizer-deployer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/traffmonetizer-deployer/README.md"
+        }
+      ],
+      "id": "report--c406b839-f22d-5548-9657-d80fda8db7ef",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "TraffMonetizer不正デプロイヤー：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--749da0e4-69f7-5b59-8329-2c3030b178f9",
+        "note--fd175e73-c077-5a8f-abdc-c506929340ef",
+        "note--077edbad-a14b-587e-8cb7-1b217566b969",
+        "note--48411d32-90a4-5744-88c2-404629bea567",
+        "note--3774185a-f40f-5fd7-96af-f0295fe538b6",
+        "note--9cd18558-bea6-5a25-a7f7-577667d32df4"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

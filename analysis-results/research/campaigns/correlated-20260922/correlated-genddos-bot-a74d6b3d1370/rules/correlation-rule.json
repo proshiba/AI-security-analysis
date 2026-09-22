@@ -1,0 +1,26 @@
+{
+  "campaign_id": "correlated-genddos-bot-a74d6b3d1370",
+  "families": [
+    "genddos-bot"
+  ],
+  "confidence": "high",
+  "minimum_indicator_matches": 2,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "65.222.202.53:80"
+    },
+    {
+      "type": "endpoint",
+      "value": "genddos.st:6742"
+    },
+    {
+      "type": "ip",
+      "value": "65.222.202.53"
+    }
+  ],
+  "feature_ids": [
+    "impact:ddos"
+  ],
+  "classification": "same_family_campaign_candidate"
+}

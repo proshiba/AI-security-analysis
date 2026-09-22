@@ -1,0 +1,242 @@
+{
+  "id": "bundle--6f1229d2-14dc-5e0a-bebc-43eb1506cf09",
+  "objects": [
+    {
+      "aliases": [
+        "Remus Stealer",
+        "Remus"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "2026年に地下市場で登場した情報窃取MaaSで、20以上のブラウザ、数百の拡張機能、ウォレット、2FA、パスワード管理製品等を対象とし、C2から暗号化JSONタスクを受ける。",
+      "external_references": [
+        {
+          "description": "remusstealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/remusstealer/README.md"
+        },
+        {
+          "description": "2026年4月の情報窃取型マルウェア動向報告 (nz-remus-ahnlab-2026)",
+          "source_name": "AhnLab ASEC",
+          "url": "https://asec.ahnlab.com/en/93750/"
+        },
+        {
+          "description": "なりすまし、クリック乗っ取り、TDS：マルウェア配布エコシステムの内部 (nz-remus-checkpoint-2026)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2026/impersonation-click-hijacking-and-tds-inside-a-malware-distribution-ecosystem/"
+        },
+        {
+          "description": "Remus Stealer：新しいようで新しくない情報窃取型 (nz-remus-flashpoint-2026)",
+          "source_name": "Flashpoint",
+          "url": "https://flashpoint.io/blog/remus-stealer-a-new-not-so-new-infostealer/"
+        },
+        {
+          "description": "ローカルRemusStealer解析結果 (nz-remus-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/remusstealer/README.md"
+        }
+      ],
+      "id": "malware--778cf38e-3349-5d94-bfef-00e03df81c55",
+      "is_family": true,
+      "labels": [
+        "business-model:maas"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "RemusStealer",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: 初期販売ハンドルはRemusStealerで実名は不明である。販売者はLummaの単純なリブランドを否定する一方、Flashpointはコード、処理フロー、管理パネルの重なりからLummaに強く影響された、または派生した可能性を評価しているが、同一開発者は確定していない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "なりすまし、クリック乗っ取り、TDS：マルウェア配布エコシステムの内部 (nz-remus-checkpoint-2026)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2026/impersonation-click-hijacking-and-tds-inside-a-malware-distribution-ecosystem/"
+        },
+        {
+          "description": "Remus Stealer：新しいようで新しくない情報窃取型 (nz-remus-flashpoint-2026)",
+          "source_name": "Flashpoint",
+          "url": "https://flashpoint.io/blog/remus-stealer-a-new-not-so-new-infostealer/"
+        }
+      ],
+      "id": "note--e00cc9be-4870-5659-8145-46d85a8ea08f",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--778cf38e-3349-5d94-bfef-00e03df81c55"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: maas。250米ドル、500米ドル等の契約層を持つMaaSとして広告され、Flashpointは1000米ドルを含む販売情報も報告した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "なりすまし、クリック乗っ取り、TDS：マルウェア配布エコシステムの内部 (nz-remus-checkpoint-2026)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2026/impersonation-click-hijacking-and-tds-inside-a-malware-distribution-ecosystem/"
+        },
+        {
+          "description": "Remus Stealer：新しいようで新しくない情報窃取型 (nz-remus-flashpoint-2026)",
+          "source_name": "Flashpoint",
+          "url": "https://flashpoint.io/blog/remus-stealer-a-new-not-so-new-infostealer/"
+        }
+      ],
+      "id": "note--cb85795c-4526-543a-8ff3-1716e8eca0fd",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--778cf38e-3349-5d94-bfef-00e03df81c55"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "なりすまし、クリック乗っ取り、TDS：マルウェア配布エコシステムの内部 (nz-remus-checkpoint-2026)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2026/impersonation-click-hijacking-and-tds-inside-a-malware-distribution-ecosystem/"
+        },
+        {
+          "description": "Remus Stealer：新しいようで新しくない情報窃取型 (nz-remus-flashpoint-2026)",
+          "source_name": "Flashpoint",
+          "url": "https://flashpoint.io/blog/remus-stealer-a-new-not-so-new-infostealer/"
+        }
+      ],
+      "id": "note--a501be54-f81b-5c82-bc6a-e810cad8aacc",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--778cf38e-3349-5d94-bfef-00e03df81c55"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: RemusStealer販売者と購入者。ロシア語圏地下フォーラムで販売され、販売者と個別購入者を分離して特定できる公開情報はまだ限られる。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "なりすまし、クリック乗っ取り、TDS：マルウェア配布エコシステムの内部 (nz-remus-checkpoint-2026)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2026/impersonation-click-hijacking-and-tds-inside-a-malware-distribution-ecosystem/"
+        },
+        {
+          "description": "Remus Stealer：新しいようで新しくない情報窃取型 (nz-remus-flashpoint-2026)",
+          "source_name": "Flashpoint",
+          "url": "https://flashpoint.io/blog/remus-stealer-a-new-not-so-new-infostealer/"
+        }
+      ],
+      "id": "note--6236f453-37a2-556f-9260-6823c389f42a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--778cf38e-3349-5d94-bfef-00e03df81c55"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2026年初頭）: OSS／フリーウェア偽サイト、クリックハイジャック、TDS、パスワード付きZIP、巨大なゼロパディングGoローダーを経て配布された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "なりすまし、クリック乗っ取り、TDS：マルウェア配布エコシステムの内部 (nz-remus-checkpoint-2026)",
+          "source_name": "Check Point Research",
+          "url": "https://research.checkpoint.com/2026/impersonation-click-hijacking-and-tds-inside-a-malware-distribution-ecosystem/"
+        }
+      ],
+      "id": "note--ec265728-428e-5722-a3c3-c4405a9195c7",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--778cf38e-3349-5d94-bfef-00e03df81c55"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2026年4月）: クラック／keygen、SEOポイズニング、ファイルホスティングやクラウド経由の配布傾向が報告された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "2026年4月の情報窃取型マルウェア動向報告 (nz-remus-ahnlab-2026)",
+          "source_name": "AhnLab ASEC",
+          "url": "https://asec.ahnlab.com/en/93750/"
+        }
+      ],
+      "id": "note--3eb1e713-0c5f-55bd-b87b-1566b2a431f5",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--778cf38e-3349-5d94-bfef-00e03df81c55"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "公開済み1件のcaseに対応する静的比較プロファイルから集計した特徴。件数は観測case数であり、全版共通の断定ではない。\nexecution_stages: payload_decoding (1件)、process_memory (1件)\nlayer_chain: root:pe (1件)\nmodule_stack: recovered_terminal_memory_program:x86:le:64:default (1件)、root_program:x86:le:64:default (1件)\ncapabilities: crypto:chacha20 (1件)、network:configured_endpoint (1件)、network:connection_retry (1件)、obfuscation:xor (1件)、packer:themida (1件)\nfunction_roles: c2_connection_and_rotation (1件)、c2_response_decryption (1件)、chacha20_stream_processing (1件)、chacha_state_initialization (1件)、endpoint_selection_and_decryption (1件)、token_request_submission (1件)",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "remusstealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/remusstealer/README.md"
+        },
+        {
+          "description": "静的ロジック比較プロファイル",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/catalog/logic-similarity.json"
+        }
+      ],
+      "id": "note--120ab102-431f-5ca7-99f6-588f1aedd82c",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--778cf38e-3349-5d94-bfef-00e03df81c55"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "remusstealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/remusstealer/README.md"
+        }
+      ],
+      "id": "report--f85d5dfb-0b53-5202-aa11-d88ed9e6b6f6",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "RemusStealer：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--778cf38e-3349-5d94-bfef-00e03df81c55",
+        "note--e00cc9be-4870-5659-8145-46d85a8ea08f",
+        "note--cb85795c-4526-543a-8ff3-1716e8eca0fd",
+        "note--a501be54-f81b-5c82-bc6a-e810cad8aacc",
+        "note--6236f453-37a2-556f-9260-6823c389f42a",
+        "note--ec265728-428e-5722-a3c3-c4405a9195c7",
+        "note--3eb1e713-0c5f-55bd-b87b-1566b2a431f5",
+        "note--120ab102-431f-5ca7-99f6-588f1aedd82c"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

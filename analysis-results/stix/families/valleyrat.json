@@ -1,0 +1,276 @@
+{
+  "id": "bundle--dae7f100-68cf-5668-b1c1-76fbac8d39a9",
+  "objects": [
+    {
+      "aliases": [
+        "ValleyRAT",
+        "Winos4.0"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Proofpointが2023年3月にValleyRATと命名した中国語圏を主対象とするモジュール型RATで、後続報告ではWinos4.0フレームワークから生成されたペイロード群の名称として整理されている。",
+      "external_references": [
+        {
+          "description": "valleyrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/valleyrat/README.md"
+        },
+        {
+          "description": "中国語話者を狙う新たなValleyRAT活動の詳細調査 (nz-valley-fortinet-2024)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/uk/blog/threat-research/valleyrat-campaign-targeting-chinese-speakers"
+        },
+        {
+          "description": "ローカルValleyRAT解析結果 (nz-valley-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/valleyrat/README.md"
+        },
+        {
+          "description": "サイバー犯罪の脅威状況で本格化する中国系マルウェア (nz-valley-proofpoint-2023)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/au/blog/threat-insight/chinese-malware-appears-earnest-across-cybercrime-threat-landscape"
+        },
+        {
+          "description": "TA4922：世界展開する中国系犯罪グループの疑い (nz-valley-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "malware--c64c2639-bebf-55c6-be74-c70e5a8b1598",
+      "is_family": true,
+      "labels": [
+        "business-model:open-source"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "ValleyRAT / Winos4.0",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: Winos4.0は大部分がオープンソースでGitHub上に派生版が存在するため、単一の実名開発者や単一運用者は確認できない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TA4922：世界展開する中国系犯罪グループの疑い (nz-valley-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "note--c63c656b-8df1-575e-a241-deed5645603a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--c64c2639-bebf-55c6-be74-c70e5a8b1598"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: open_source_dual_use。公開フレームワーク由来のコモディティ性が高く、特定の有償MaaS運営者だけに限定する証拠はない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TA4922：世界展開する中国系犯罪グループの疑い (nz-valley-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "note--0d13dba7-66cb-5444-950a-5c29f73396a6",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--c64c2639-bebf-55c6-be74-c70e5a8b1598"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TA4922：世界展開する中国系犯罪グループの疑い (nz-valley-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "note--abc5a2e6-3a63-5d94-8e08-5948c0b45f7c",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--c64c2639-bebf-55c6-be74-c70e5a8b1598"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--36041030-00b0-560c-baa5-26a1575669a9",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "TA4922",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 50,
+      "content": "利用主体に関する公開報告: TA4922。ProofpointはWinos4.0／ValleyRAT活動を、主に日本を含むアジア、欧州、アフリカを狙う金銭目的の中国語話者クラスタTA4922へ関連付けた。Silver Fox／Void Arachneとの重なりはあるが別クラスタとして追跡する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "TA4922：世界展開する中国系犯罪グループの疑い (nz-valley-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "note--dd52f03a-aa04-5545-9126-f7b68f9fccad",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--c64c2639-bebf-55c6-be74-c70e5a8b1598",
+        "threat-actor--36041030-00b0-560c-baa5-26a1575669a9"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2023年）: 中国語の請求書・履歴書テーマを用いる少なくとも6件のキャンペーンが観測された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "サイバー犯罪の脅威状況で本格化する中国系マルウェア (nz-valley-proofpoint-2023)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/au/blog/threat-insight/chinese-malware-appears-earnest-across-cybercrime-threat-landscape"
+        }
+      ],
+      "id": "note--a2065cbc-fc1c-5a48-b59b-cdc72b414d11",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--c64c2639-bebf-55c6-be74-c70e5a8b1598"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2024年から2026年）: 中国語話者向けeコマース、金融、営業、管理分野から、日本中心の広域な金銭目的活動へ拡大した。 報告された主体: TA4922。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "中国語話者を狙う新たなValleyRAT活動の詳細調査 (nz-valley-fortinet-2024)",
+          "source_name": "Fortinet",
+          "url": "https://www.fortinet.com/uk/blog/threat-research/valleyrat-campaign-targeting-chinese-speakers"
+        },
+        {
+          "description": "TA4922：世界展開する中国系犯罪グループの疑い (nz-valley-proofpoint-2026)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global"
+        }
+      ],
+      "id": "note--ea7beda4-a28c-5c0b-aa30-574ea99a7b53",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--c64c2639-bebf-55c6-be74-c70e5a8b1598"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Proofpointが2023年5月24日に観測した活動を本STIX内で識別するための記述名。履歴書を装うPDF内のURLからZIP payloadを取得させ、ValleyRATを導入した。6件のキャンペーン全体との同一性は主張しない。",
+      "external_references": [
+        {
+          "description": "サイバー犯罪の脅威状況で本格化する中国系マルウェア (nz-valley-proofpoint-2023)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/au/blog/threat-insight/chinese-malware-appears-earnest-across-cybercrime-threat-landscape"
+        }
+      ],
+      "id": "campaign--ebb1159f-d037-5702-af8c-f177be8e372f",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Proofpoint観測の2023年5月履歴書PDF配布活動",
+      "spec_version": "2.1",
+      "type": "campaign"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "サイバー犯罪の脅威状況で本格化する中国系マルウェア (nz-valley-proofpoint-2023)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/au/blog/threat-insight/chinese-malware-appears-earnest-across-cybercrime-threat-landscape"
+        }
+      ],
+      "id": "relationship--3e28b459-6434-5107-b1b8-db24c95ffd7a",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "campaign--ebb1159f-d037-5702-af8c-f177be8e372f",
+      "spec_version": "2.1",
+      "target_ref": "malware--c64c2639-bebf-55c6-be74-c70e5a8b1598",
+      "type": "relationship"
+    },
+    {
+      "content": "公開済み7件のcaseに対応する静的比較プロファイルから集計した特徴。件数は観測case数であり、全版共通の断定ではない。\nexecution_stages: defense_evasion (1件)、loader_execution (1件)、payload_decoding (1件)\nlayer_chain: root:zip (2件)、7z--reported_member_acquired_from_triage-->iso9660 (1件)、data--iso9660-pe-dll-->pe (1件)、data--iso9660-pe-exe-->pe (1件)、data--nvml_dat_static_decode-->shellcode-x64 (1件)、iso9660--iso9660-data-dat-->data (1件)、iso9660--iso9660-pe-dll-->pe (1件)、iso9660--iso9660-pe-exe-->pe (1件)、iso9660_img--iso9660_extract-->pe32_dll (1件)、iso9660_img--iso9660_extract-->pe32_exe (1件)、pe--offline_winos_module_recovery-->pe (1件)、pe--offline_winos_plugin_recovery-->pe (1件)\nmodule_stack: rebuilt_terminal_pe:x86 (2件)、malicious_nvml_dat_proxy_loader:x86-64 (1件)、rebuilt_terminal_pe:x86-64 (1件)、recovered_codemark_downloader:x86-64 (1件)、recovered_high_speed_remote_desktop_plugin:x86-64 (1件)、recovered_login_and_main_control_module:x86-64 (1件)、recovered_terminal_shellcode:x86:le:64:default (1件)、recovered_winos_bootstrap:x86-64 (1件)、root_malicious_loader:pe32_dll (1件)\ncapabilities: delivery:dll_sideload (2件)、behavior:dll_sideload (1件)、behavior:file_copy (1件)、behavior:indirect_control_flow (1件)、behavior:memory_execution (1件)、behavior:remote_control (1件)、behavior:runonce (1件)、behavior:stage_retrieval (1件)、container:7z_img (1件)、container:zip (1件)、container:zip_img (1件)、delivery:nvml_sideload (1件)\nfunction_roles: api_resolution (2件)、c2_scheduler (2件)、configuration_binding (2件)、session_processing (2件)、session_setup (2件)、tcp_transport (2件)、udp_transport (2件)、bootstrap_entry (1件)、bootstrap_export (1件)、c2_host_binding (1件)、c2_port_binding (1件)、configuration_bootstrap (1件)",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "valleyrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/valleyrat/README.md"
+        },
+        {
+          "description": "静的ロジック比較プロファイル",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/catalog/logic-similarity.json"
+        }
+      ],
+      "id": "note--5939a6c7-0bec-5413-9a8b-6315c8db1007",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--c64c2639-bebf-55c6-be74-c70e5a8b1598"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "valleyrat 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/valleyrat/README.md"
+        }
+      ],
+      "id": "report--68e31003-b5fe-5e1c-8f76-ba44a8459261",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "ValleyRAT / Winos4.0：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--c64c2639-bebf-55c6-be74-c70e5a8b1598",
+        "note--c63c656b-8df1-575e-a241-deed5645603a",
+        "note--0d13dba7-66cb-5444-950a-5c29f73396a6",
+        "note--abc5a2e6-3a63-5d94-8e08-5948c0b45f7c",
+        "threat-actor--36041030-00b0-560c-baa5-26a1575669a9",
+        "note--dd52f03a-aa04-5545-9126-f7b68f9fccad",
+        "note--a2065cbc-fc1c-5a48-b59b-cdc72b414d11",
+        "note--ea7beda4-a28c-5c0b-aa30-574ea99a7b53",
+        "campaign--ebb1159f-d037-5702-af8c-f177be8e372f",
+        "relationship--3e28b459-6434-5107-b1b8-db24c95ffd7a",
+        "note--5939a6c7-0bec-5413-9a8b-6315c8db1007"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

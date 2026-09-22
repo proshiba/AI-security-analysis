@@ -1,0 +1,227 @@
+{
+  "id": "bundle--715f0b16-7ba8-5360-8426-c95b5bbd4a4a",
+  "objects": [
+    {
+      "aliases": [
+        "RedLine",
+        "RedLineStealer"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "2020年3月に表面化したC#/.NET製情報窃取マルウェアで、ブラウザ認証情報、Cookie、暗号資産ウォレット、セッション情報等を収集する。",
+      "external_references": [
+        {
+          "description": "redlinestealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/redlinestealer/README.md"
+        },
+        {
+          "description": "米国によるRedLineおよびMETA情報窃取型への国際共同対処 (nz-redline-doj-2024)",
+          "source_name": "U.S. Department of Justice",
+          "url": "https://www.justice.gov/usao-wdtx/pr/us-joins-international-action-against-redline-and-meta-infostealers"
+        },
+        {
+          "description": "RedLine Stealerの悪名高いバックエンドの分析 (nz-redline-eset-2024)",
+          "source_name": "ESET",
+          "url": "https://www.welivesecurity.com/es/investigaciones/analisis-del-infame-backend-de-redline-stealer/"
+        },
+        {
+          "description": "ローカルRedLine Stealer解析結果 (nz-redline-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/redlinestealer/README.md"
+        },
+        {
+          "description": "マイクロソフト検知名 Trojan:Win32/RedLineStealer!MTB (nz-redline-ms-2021)",
+          "source_name": "Microsoft Security Intelligence",
+          "url": "https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?Name=Trojan%3AWin32%2FRedLineStealer%21MTB&ThreatID=2147806146"
+        },
+        {
+          "description": "新型コロナウイルスを題材にしたメール活動によるRedLine Stealer配布 (nz-redline-proofpoint-2020)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/new-redline-stealer-distributed-using-coronavirus-themed-email-campaign"
+        }
+      ],
+      "id": "malware--1067e410-ca4e-502c-a053-89b79447ac58",
+      "is_family": true,
+      "labels": [
+        "business-model:maas"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "RedLine Stealer",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: Operation MagnusでRedLineとMETAの共通バックエンドが確認された。米司法省はMaxim Rudometovを開発者・管理者の一人として訴追したが、刑事告発であり有罪確定を意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "米国によるRedLineおよびMETA情報窃取型への国際共同対処 (nz-redline-doj-2024)",
+          "source_name": "U.S. Department of Justice",
+          "url": "https://www.justice.gov/usao-wdtx/pr/us-joins-international-action-against-redline-and-meta-infostealers"
+        },
+        {
+          "description": "RedLine Stealerの悪名高いバックエンドの分析 (nz-redline-eset-2024)",
+          "source_name": "ESET",
+          "url": "https://www.welivesecurity.com/es/investigaciones/analisis-del-infame-backend-de-redline-stealer/"
+        }
+      ],
+      "id": "note--6eb55d76-ccde-58ea-8a9c-1f3b87a714cb",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1067e410-ca4e-502c-a053-89b79447ac58"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: maas。早期から期間契約と販売価格を伴うMaaSとして広告され、購入者が独立に配布する。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "マイクロソフト検知名 Trojan:Win32/RedLineStealer!MTB (nz-redline-ms-2021)",
+          "source_name": "Microsoft Security Intelligence",
+          "url": "https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?Name=Trojan%3AWin32%2FRedLineStealer%21MTB&ThreatID=2147806146"
+        },
+        {
+          "description": "新型コロナウイルスを題材にしたメール活動によるRedLine Stealer配布 (nz-redline-proofpoint-2020)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/new-redline-stealer-distributed-using-coronavirus-themed-email-campaign"
+        }
+      ],
+      "id": "note--48841192-c3b8-5c81-a8bf-2c8f4073c0c6",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1067e410-ca4e-502c-a053-89b79447ac58"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "マイクロソフト検知名 Trojan:Win32/RedLineStealer!MTB (nz-redline-ms-2021)",
+          "source_name": "Microsoft Security Intelligence",
+          "url": "https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?Name=Trojan%3AWin32%2FRedLineStealer%21MTB&ThreatID=2147806146"
+        },
+        {
+          "description": "新型コロナウイルスを題材にしたメール活動によるRedLine Stealer配布 (nz-redline-proofpoint-2020)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/new-redline-stealer-distributed-using-coronavirus-themed-email-campaign"
+        }
+      ],
+      "id": "note--85e03f0a-888c-5e90-9dec-e46cec5a63b0",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1067e410-ca4e-502c-a053-89b79447ac58"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: RedLine MaaS購入者。MaaSの多数の購入者が個別キャンペーンを運用するため、RedLine検出だけで単一アクターへ帰属できない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "マイクロソフト検知名 Trojan:Win32/RedLineStealer!MTB (nz-redline-ms-2021)",
+          "source_name": "Microsoft Security Intelligence",
+          "url": "https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?Name=Trojan%3AWin32%2FRedLineStealer%21MTB&ThreatID=2147806146"
+        },
+        {
+          "description": "新型コロナウイルスを題材にしたメール活動によるRedLine Stealer配布 (nz-redline-proofpoint-2020)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/new-redline-stealer-distributed-using-coronavirus-themed-email-campaign"
+        }
+      ],
+      "id": "note--200d2c15-e2ca-5d4c-a57a-3782ce97abcc",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1067e410-ca4e-502c-a053-89b79447ac58"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2020年3月）: COVID-19とFolding@homeを装い、主に米国の医療・製造業へ配布するメールキャンペーンが観測された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "新型コロナウイルスを題材にしたメール活動によるRedLine Stealer配布 (nz-redline-proofpoint-2020)",
+          "source_name": "Proofpoint",
+          "url": "https://www.proofpoint.com/us/blog/threat-insight/new-redline-stealer-distributed-using-coronavirus-themed-email-campaign"
+        }
+      ],
+      "id": "note--126f3ffd-7052-5549-b3d7-0788f895ed32",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1067e410-ca4e-502c-a053-89b79447ac58"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "公開済み3件のcaseに対応する静的比較プロファイルから集計した特徴。件数は観測case数であり、全版共通の断定ではない。\nmodule_stack: protector_wrapper:native pe (1件)、terminal_payload:.net managed pe (1件)\ncapabilities: credential_access:browser (1件)、network:configured_endpoint (1件)、network:connection_retry (1件)、obfuscation:base64 (1件)、packer:themida (1件)、runtime:dotnet (1件)\nfunction_roles: c2_channel_creation (1件)、c2_checkconnect (1件)、credential_blob_decryption_core (1件)、credential_blob_decryption_entry (1件)、entrypoint (1件)、main_orchestrator (1件)、string_decryption (1件)、terminal_configuration (1件)、wcf_binding_configuration (1件)",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "redlinestealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/redlinestealer/README.md"
+        },
+        {
+          "description": "静的ロジック比較プロファイル",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/catalog/logic-similarity.json"
+        }
+      ],
+      "id": "note--eb316080-f84c-5d95-83b4-462379bba278",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--1067e410-ca4e-502c-a053-89b79447ac58"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "redlinestealer 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/redlinestealer/README.md"
+        }
+      ],
+      "id": "report--8bb00c84-7113-5692-a30f-8c04864f5362",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "RedLine Stealer：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--1067e410-ca4e-502c-a053-89b79447ac58",
+        "note--6eb55d76-ccde-58ea-8a9c-1f3b87a714cb",
+        "note--48841192-c3b8-5c81-a8bf-2c8f4073c0c6",
+        "note--85e03f0a-888c-5e90-9dec-e46cec5a63b0",
+        "note--200d2c15-e2ca-5d4c-a57a-3782ce97abcc",
+        "note--126f3ffd-7052-5549-b3d7-0788f895ed32",
+        "note--eb316080-f84c-5d95-83b4-462379bba278"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

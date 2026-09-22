@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "endpoint",
+      "value": "45.66.228.114:7000",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 2
+    },
+    {
+      "type": "ip",
+      "value": "45.66.228.114",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 2
+    }
+  ]
+}

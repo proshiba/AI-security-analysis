@@ -1,0 +1,238 @@
+{
+  "id": "bundle--b5903a5b-cd12-5227-a1a8-35a7dab86646",
+  "objects": [
+    {
+      "aliases": [
+        "AgentTesla"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "Windowsを対象とする情報窃取・キーロガーであり、ブラウザー、メールクライアント、FTPクライアント等から認証情報を収集する。2014年頃から観測され、低価格で入手できるため大量のフィッシングで長期間利用されている。",
+      "external_references": [
+        {
+          "description": "agenttesla 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/agenttesla/README.md"
+        },
+        {
+          "description": "2021年に多用されたマルウェア株 (am-agenttesla-cisa-2022)",
+          "source_name": "CISA・ACSC",
+          "url": "https://www.cisa.gov/sites/default/files/publications/aa22-216a-2021-top-malware-strains.pdf"
+        },
+        {
+          "description": "Agent Teslaローカル解析結果 (am-agenttesla-local-2026)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/tree/main/analysis-results/malware/agenttesla"
+        },
+        {
+          "description": "COVID-19を題材に政府・医療組織を狙った攻撃 (am-agenttesla-unit42-covid-2020)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/covid-19-themed-cyber-attacks-target-government-and-medical-organizations/"
+        },
+        {
+          "description": "OriginLogger：Agent Tesla後継の調査 (am-agenttesla-unit42-originlogger-2022)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/originlogger/"
+        }
+      ],
+      "id": "malware--b33fe962-6a51-520d-a5f7-03eecabb683b",
+      "is_family": true,
+      "labels": [
+        "business-model:commodity"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Agent Tesla",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: 開発者の実名・組織に関する公開帰属は確認されていない。Unit 42は、旧運営が法的問題を理由に2019年3月に終了を告知し、後継としてOriginLoggerを案内した経緯を報告している。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "OriginLogger：Agent Tesla後継の調査 (am-agenttesla-unit42-originlogger-2022)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/originlogger/"
+        }
+      ],
+      "id": "note--d133fb05-5fd6-501d-ac2c-e69091b9e90a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b33fe962-6a51-520d-a5f7-03eecabb683b"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: commodity。犯罪フォーラムで販売され、正規のリモート管理・侵入試験ツールを装う低価格商品として広くコモディティ化した情報窃取型マルウェアである。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "2021年に多用されたマルウェア株 (am-agenttesla-cisa-2022)",
+          "source_name": "CISA・ACSC",
+          "url": "https://www.cisa.gov/sites/default/files/publications/aa22-216a-2021-top-malware-strains.pdf"
+        },
+        {
+          "description": "OriginLogger：Agent Tesla後継の調査 (am-agenttesla-unit42-originlogger-2022)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/originlogger/"
+        }
+      ],
+      "id": "note--194de85c-7681-507b-bf08-c936107befed",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b33fe962-6a51-520d-a5f7-03eecabb683b"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "2021年に多用されたマルウェア株 (am-agenttesla-cisa-2022)",
+          "source_name": "CISA・ACSC",
+          "url": "https://www.cisa.gov/sites/default/files/publications/aa22-216a-2021-top-malware-strains.pdf"
+        },
+        {
+          "description": "OriginLogger：Agent Tesla後継の調査 (am-agenttesla-unit42-originlogger-2022)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/originlogger/"
+        }
+      ],
+      "id": "note--2f892d5e-72c6-5340-951c-fd5766495bb5",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b33fe962-6a51-520d-a5f7-03eecabb683b"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "id": "threat-actor--fc08dcb1-b3a4-53d7-a5f8-21ff4373967a",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "SilverTerrier",
+      "spec_version": "2.1",
+      "type": "threat-actor"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: SilverTerrier。Unit 42が追跡する西アフリカ系BEC活動で、Agent Teslaが好んで使われるツールの一つと報告されている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "COVID-19を題材に政府・医療組織を狙った攻撃 (am-agenttesla-unit42-covid-2020)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/covid-19-themed-cyber-attacks-target-government-and-medical-organizations/"
+        }
+      ],
+      "id": "note--ad084522-b514-5d27-b50d-cdcb377962b4",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b33fe962-6a51-520d-a5f7-03eecabb683b",
+        "threat-actor--fc08dcb1-b3a4-53d7-a5f8-21ff4373967a"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: 不特定の金銭目的サイバー犯罪者。単一アクター専用ではなく、低価格で広く入手できる上位マルウェアとして多数の犯罪者に利用されている。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "2021年に多用されたマルウェア株 (am-agenttesla-cisa-2022)",
+          "source_name": "CISA・ACSC",
+          "url": "https://www.cisa.gov/sites/default/files/publications/aa22-216a-2021-top-malware-strains.pdf"
+        }
+      ],
+      "id": "note--713e82d6-1271-554e-a5c4-862237b63053",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b33fe962-6a51-520d-a5f7-03eecabb683b"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2020）: COVID-19を題材に、政府機関、医療、製薬組織を狙うフィッシングで配布された。 報告された主体: SilverTerrierを含む金銭目的アクター。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "COVID-19を題材に政府・医療組織を狙った攻撃 (am-agenttesla-unit42-covid-2020)",
+          "source_name": "Palo Alto Networks Unit 42",
+          "url": "https://unit42.paloaltonetworks.com/covid-19-themed-cyber-attacks-target-government-and-medical-organizations/"
+        }
+      ],
+      "id": "note--391cd009-15fd-5a65-9417-6df28a6ce660",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b33fe962-6a51-520d-a5f7-03eecabb683b"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2021）: 複数国の政府機関による共同勧告で、世界的に多用された上位マルウェア株の一つとして整理された。 報告された主体: 不特定のサイバー犯罪者。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "2021年に多用されたマルウェア株 (am-agenttesla-cisa-2022)",
+          "source_name": "CISA・ACSC",
+          "url": "https://www.cisa.gov/sites/default/files/publications/aa22-216a-2021-top-malware-strains.pdf"
+        }
+      ],
+      "id": "note--9895b998-07f2-5f04-a9d2-cb1733db6b1f",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--b33fe962-6a51-520d-a5f7-03eecabb683b"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "agenttesla 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/agenttesla/README.md"
+        }
+      ],
+      "id": "report--7da69f91-1007-5f26-a6b3-112ce5ed16b9",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "Agent Tesla：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--b33fe962-6a51-520d-a5f7-03eecabb683b",
+        "note--d133fb05-5fd6-501d-ac2c-e69091b9e90a",
+        "note--194de85c-7681-507b-bf08-c936107befed",
+        "note--2f892d5e-72c6-5340-951c-fd5766495bb5",
+        "threat-actor--fc08dcb1-b3a4-53d7-a5f8-21ff4373967a",
+        "note--ad084522-b514-5d27-b50d-cdcb377962b4",
+        "note--713e82d6-1271-554e-a5c4-862237b63053",
+        "note--391cd009-15fd-5a65-9417-6df28a6ce660",
+        "note--9895b998-07f2-5f04-a9d2-cb1733db6b1f"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

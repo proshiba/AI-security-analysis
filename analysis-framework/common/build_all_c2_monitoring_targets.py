@@ -416,6 +416,9 @@ def build_inventory(
             case_key = path.parent.relative_to(results_root).as_posix()
             relative_source = path.relative_to(results_root).as_posix()
             source = f"{results_root.name}/{relative_source}"
+        if payload.get("invalidated") is True:
+            exclusions.append({"source": source, "reason": "invalidated_ioc_document"})
+            continue
         if is_daily_summary:
             source_date = str(payload.get("source_date") or "")
             bind_daily_source = source_date == daily_source_date

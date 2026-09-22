@@ -1,0 +1,69 @@
+{
+  "id": "bundle--f91ce42b-fcb9-5e30-b488-a5d1932bd8c1",
+  "objects": [
+    {
+      "aliases": [],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "公開済みローカル概要: MIPS little-endianのLinux/IoTボットです。TBOT、組み込みTelnet、NVR向け認証情報、/twget.sh、remotessh、tshell、BusyBoxホスト名TOASTERなどが公開報告のInfectedSlurs/TBOTと強く重なります。ただし完全一致SHA-256や固有ソースパスの一部を確認できないため、帰属は候補に留めます。",
+      "external_references": [
+        {
+          "description": "infectedslurs-tbot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/infectedslurs-tbot/README.md"
+        }
+      ],
+      "id": "malware--e8ee490a-eb78-5fe7-b0f4-9aac2e62250d",
+      "is_family": true,
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "infectedslurs-tbot",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "content": "本STIXでは、出典付きの開発者・利用者・OSS／商用／MaaS提供形態・特定アクター専用性・攻撃利用史は未登録。情報が存在しないことを意味しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "infectedslurs-tbot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/infectedslurs-tbot/README.md"
+        }
+      ],
+      "id": "note--4b78dfcd-089d-5dcc-aeda-f552d5d0df46",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--e8ee490a-eb78-5fe7-b0f4-9aac2e62250d"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "infectedslurs-tbot 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/infectedslurs-tbot/README.md"
+        }
+      ],
+      "id": "report--49914c9e-8706-5da1-8545-e968b7673ed3",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "infectedslurs-tbot：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--e8ee490a-eb78-5fe7-b0f4-9aac2e62250d",
+        "note--4b78dfcd-089d-5dcc-aeda-f552d5d0df46"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

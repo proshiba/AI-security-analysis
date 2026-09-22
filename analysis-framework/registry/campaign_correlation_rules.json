@@ -65,6 +65,8 @@
     ".json",
     ".php",
     ".txt",
+    ".wnry",
+    ".wnryp",
     ".xml"
   ],
   "safety": {

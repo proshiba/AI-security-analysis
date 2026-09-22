@@ -103,6 +103,9 @@ from unpackers.onyx_qt_loader import (
 )
 from unpackers.opaque_native_entry import analyze_opaque_native_pe
 from unpackers.profiled_transform import recover_profiled_transforms
+from unpackers.reverse_chunk_affine_xor_donut_pe import (
+    recover_reverse_chunk_affine_xor_donut_pe,
+)
 from unpackers.rotated_xor_donut import legacy_report_from_attempt
 from unpackers.rzk_lece_unpacker import (
     ENCODED_LECE_MAGIC,
@@ -5613,6 +5616,10 @@ def unpack_bytes(
             ]
             artifacts.extend(embedded_artifacts)
         report["donut_wrapper"], recovered = recover_xor32_donut_wrapper(static_data)
+        artifacts.extend(recovered)
+        report["reverse_chunk_affine_xor_donut_pe"], recovered = (
+            recover_reverse_chunk_affine_xor_donut_pe(static_data)
+        )
         artifacts.extend(recovered)
         if report["pe"]["is_dotnet"]:
             report["dotnet_resources"], recovered = recover_dotnet_resources(

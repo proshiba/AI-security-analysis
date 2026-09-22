@@ -1,0 +1,81 @@
+{
+  "artifact_files": {
+    "c2-analysis.json": 1817,
+    "c2-observation-plan.json": 104,
+    "communication-patterns.json": 1363,
+    "config.json": 371,
+    "indicators.json": 128,
+    "monitoring-results.json": 0,
+    "network-evidence.json": 15,
+    "protocol-observations.json": 0
+  },
+  "artifact_files_with_explicit_endpoint_records": {
+    "c2-analysis.json": 35,
+    "c2-observation-plan.json": 11,
+    "communication-patterns.json": 42,
+    "config.json": 144,
+    "indicators.json": 38,
+    "monitoring-results.json": 0,
+    "network-evidence.json": 15,
+    "protocol-observations.json": 0
+  },
+  "as_of": "2026-09-21",
+  "assessment_boundary": {
+    "candidate_or_plan_is_c2_confirmation": false,
+    "indicator_c2_claim_independently_verified": false,
+    "ioc_absence_means_no_c2": false,
+    "network_evidence_claim_independently_verified": false,
+    "raw_ioc_values_published": false,
+    "raw_sample_paths_published": false,
+    "record_count_deduplicated_across_artifacts": false,
+    "static_config_is_live_c2_confirmation": false
+  },
+  "audit_notes_ja": [
+    "件数は明示的なC2・endpoint欄のレコード数であり、検体間または成果物間の一意な宛先数ではない。",
+    "candidate_literalは未検証の文字列候補、planned_targetは監視計画であり、確認済みC2へ昇格しない。",
+    "indicator_c2_claimはindicators.json内のC2表明であり、独立した実通信や稼働を確認した件数ではない。",
+    "network_evidence_claimは元成果物の主張を集計したもの。PCAP、能動観測、静的根拠の内訳を再審査せず、現在の稼働を意味しない。",
+    "iocs.jsonのnetwork欄が空またはファイル欠落でも、別成果物に静的設定や候補が残る場合がある。",
+    "未知の自由記述欄を横断的に抽出しないため、全C2値の網羅性を保証するものではない。",
+    "analysis-results/research/c2-monitoring配下の日別monitoring-results.jsonは検体別成果物ではないため対象外。"
+  ],
+  "case_counts": {
+    "cases_with_explicit_endpoint_records": 213,
+    "cases_with_target_artifacts": 2196,
+    "iocs_json_state": {
+      "empty": 1841,
+      "invalid": 0,
+      "missing": 138,
+      "nonempty": 217
+    },
+    "iocs_json_state_when_other_artifact_has_endpoint": {
+      "empty": 20,
+      "invalid": 0,
+      "missing": 45,
+      "nonempty": 148
+    }
+  },
+  "endpoint_record_claims_by_tier": {
+    "analysis_endpoint_claim": 164,
+    "candidate_literal": 268,
+    "configuration_claim": 237,
+    "indicator_c2_claim": 41,
+    "monitoring_claim": 0,
+    "network_evidence_claim": 30,
+    "planned_target": 20,
+    "protocol_observation_claim": 0,
+    "static_endpoint_claim": 152
+  },
+  "invalid_json_files": {
+    "c2-analysis.json": 0,
+    "c2-observation-plan.json": 0,
+    "communication-patterns.json": 0,
+    "config.json": 0,
+    "indicators.json": 0,
+    "monitoring-results.json": 0,
+    "network-evidence.json": 0,
+    "protocol-observations.json": 0
+  },
+  "schema_version": 1,
+  "scope": "analysis-results/malware配下のcase単位C2関連JSON。iocs.json自体のnetwork値は件数の比較にのみ使用"
+}

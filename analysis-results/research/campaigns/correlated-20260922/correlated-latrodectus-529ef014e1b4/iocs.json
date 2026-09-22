@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "indicators": [
+    {
+      "type": "url",
+      "value": "https://miistoria.com/live/",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 3
+    },
+    {
+      "type": "url",
+      "value": "https://plwskoret.top/live/",
+      "role": "shared_campaign_evidence",
+      "confidence": "medium",
+      "support": 3
+    }
+  ]
+}

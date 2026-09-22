@@ -1,0 +1,275 @@
+{
+  "id": "bundle--150f33d0-e583-56eb-8673-714636ba568f",
+  "objects": [
+    {
+      "aliases": [
+        "ShadowPad"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "モジュール型バックドアで、2017年のNetSarang製品改ざんにより広く知られ、その後も中国系アクターの標的型侵入で継続使用されている。",
+      "external_references": [
+        {
+          "description": "shadowpad 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/shadowpad/README.md"
+        },
+        {
+          "description": "FishMedley作戦 (nz-shadowpad-eset-fish-2025)",
+          "source_name": "ESET",
+          "url": "https://www.welivesecurity.com/en/eset-research/operation-fishmedley/"
+        },
+        {
+          "description": "香港の大学を狙うWinnti Group (nz-shadowpad-eset-hk-2020)",
+          "source_name": "ESET",
+          "url": "https://www.welivesecurity.com/2020/01/31/winnti-group-targeting-universities-hong-kong/"
+        },
+        {
+          "description": "企業ネットワークにおけるShadowPad (nz-shadowpad-kaspersky-2017)",
+          "source_name": "Kaspersky Securelist",
+          "url": "https://securelist.com/shadowpad-in-corporate-networks/81432/"
+        },
+        {
+          "description": "ローカルShadowPad解析結果 (nz-shadowpad-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/shadowpad/README.md"
+        },
+        {
+          "description": "APT41：諜報活動とサイバー犯罪を併行する作戦 (nz-shadowpad-mandiant)",
+          "source_name": "Mandiant",
+          "url": "https://www.mandiant.com/sites/default/files/2022-02/rt-apt41-dual-operation.pdf"
+        }
+      ],
+      "id": "malware--4d38d80b-feec-5a65-b9ba-b5f319ce0df4",
+      "is_family": true,
+      "labels": [
+        "business-model:restricted"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "ShadowPad",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: 個人開発者の実名は不明である。ESETは、非公開に販売され中国系APTへ限定供給されることで知られるバックドアと説明している。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "FishMedley作戦 (nz-shadowpad-eset-fish-2025)",
+          "source_name": "ESET",
+          "url": "https://www.welivesecurity.com/en/eset-research/operation-fishmedley/"
+        }
+      ],
+      "id": "note--9b46681d-84f1-589f-8941-bd4fbf40bc06",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4d38d80b-feec-5a65-b9ba-b5f319ce0df4"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: restricted_criminal_tool。一般公開MaaSではなく、中国系APTへ限定供給される私的なモジュール型ツールという位置付けが公開根拠に合う。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "FishMedley作戦 (nz-shadowpad-eset-fish-2025)",
+          "source_name": "ESET",
+          "url": "https://www.welivesecurity.com/en/eset-research/operation-fishmedley/"
+        }
+      ],
+      "id": "note--acff4177-7069-5d91-b9ba-6634ac26d92f",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4d38d80b-feec-5a65-b9ba-b5f319ce0df4"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "FishMedley作戦 (nz-shadowpad-eset-fish-2025)",
+          "source_name": "ESET",
+          "url": "https://www.welivesecurity.com/en/eset-research/operation-fishmedley/"
+        }
+      ],
+      "id": "note--891531b4-4d77-511f-a557-68b32c501999",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4d38d80b-feec-5a65-b9ba-b5f319ce0df4"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: APT41 / Winnti系。Mandiantは2017年NetSarangサプライチェーン作戦をAPT41へ帰属し、ESETは香港大学へのWinnti Group活動でShadowPadを確認した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "香港の大学を狙うWinnti Group (nz-shadowpad-eset-hk-2020)",
+          "source_name": "ESET",
+          "url": "https://www.welivesecurity.com/2020/01/31/winnti-group-targeting-universities-hong-kong/"
+        },
+        {
+          "description": "APT41：諜報活動とサイバー犯罪を併行する作戦 (nz-shadowpad-mandiant)",
+          "source_name": "Mandiant",
+          "url": "https://www.mandiant.com/sites/default/files/2022-02/rt-apt41-dual-operation.pdf"
+        }
+      ],
+      "id": "note--afe9973e-e96d-551b-a69b-1a425e04f07f",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4d38d80b-feec-5a65-b9ba-b5f319ce0df4"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: FishMonger / I-SOON。ESETはOperation FishMedleyをFishMongerへ高確度で帰属し、ScatterBeeで保護されたShadowPadの使用を報告した。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "FishMedley作戦 (nz-shadowpad-eset-fish-2025)",
+          "source_name": "ESET",
+          "url": "https://www.welivesecurity.com/en/eset-research/operation-fishmedley/"
+        }
+      ],
+      "id": "note--7cee1b70-5d7d-5132-8a45-7dbadc9f4481",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4d38d80b-feec-5a65-b9ba-b5f319ce0df4"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2017年）: NetSarangソフトウェアのサプライチェーン改ざんで配布され、DNSを用いる選択的起動が報告された。 報告された主体: APT41。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "企業ネットワークにおけるShadowPad (nz-shadowpad-kaspersky-2017)",
+          "source_name": "Kaspersky Securelist",
+          "url": "https://securelist.com/shadowpad-in-corporate-networks/81432/"
+        },
+        {
+          "description": "APT41：諜報活動とサイバー犯罪を併行する作戦 (nz-shadowpad-mandiant)",
+          "source_name": "Mandiant",
+          "url": "https://www.mandiant.com/sites/default/files/2022-02/rt-apt41-dual-operation.pdf"
+        }
+      ],
+      "id": "note--1bce81d8-ea14-5468-a823-9a8454676035",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4d38d80b-feec-5a65-b9ba-b5f319ce0df4"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2019年から2022年）: 香港の大学、およびOperation FishMedleyの政府、NGO、シンクタンク侵害で使用された。 報告された主体: Winnti Group、FishMonger / I-SOON。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "FishMedley作戦 (nz-shadowpad-eset-fish-2025)",
+          "source_name": "ESET",
+          "url": "https://www.welivesecurity.com/en/eset-research/operation-fishmedley/"
+        },
+        {
+          "description": "香港の大学を狙うWinnti Group (nz-shadowpad-eset-hk-2020)",
+          "source_name": "ESET",
+          "url": "https://www.welivesecurity.com/2020/01/31/winnti-group-targeting-universities-hong-kong/"
+        }
+      ],
+      "id": "note--7db68e11-51ad-5634-80bc-66c8b8cb6bbd",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--4d38d80b-feec-5a65-b9ba-b5f319ce0df4"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "description": "ESETが2022年の7件の侵害として整理したFishMongerの活動。政府、NGO、シンクタンクなどを標的とし、ShadowPadを含む複数のimplantを利用した。",
+      "external_references": [
+        {
+          "description": "FishMedley作戦 (nz-shadowpad-eset-fish-2025)",
+          "source_name": "ESET",
+          "url": "https://www.welivesecurity.com/en/eset-research/operation-fishmedley/"
+        }
+      ],
+      "id": "campaign--ab148fb6-6b15-5bd6-adc1-903735eafe92",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "Operation FishMedley",
+      "spec_version": "2.1",
+      "type": "campaign"
+    },
+    {
+      "confidence": 80,
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "FishMedley作戦 (nz-shadowpad-eset-fish-2025)",
+          "source_name": "ESET",
+          "url": "https://www.welivesecurity.com/en/eset-research/operation-fishmedley/"
+        }
+      ],
+      "id": "relationship--35319d11-497b-592b-b21c-94a14a948d53",
+      "modified": "2026-09-21T00:00:00Z",
+      "relationship_type": "uses",
+      "source_ref": "campaign--ab148fb6-6b15-5bd6-adc1-903735eafe92",
+      "spec_version": "2.1",
+      "target_ref": "malware--4d38d80b-feec-5a65-b9ba-b5f319ce0df4",
+      "type": "relationship"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "shadowpad 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/shadowpad/README.md"
+        }
+      ],
+      "id": "report--084d8bd8-171f-55d8-949f-0bcf66e6785b",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "ShadowPad：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--4d38d80b-feec-5a65-b9ba-b5f319ce0df4",
+        "note--9b46681d-84f1-589f-8941-bd4fbf40bc06",
+        "note--acff4177-7069-5d91-b9ba-6634ac26d92f",
+        "note--891531b4-4d77-511f-a557-68b32c501999",
+        "note--afe9973e-e96d-551b-a69b-1a425e04f07f",
+        "note--7cee1b70-5d7d-5132-8a45-7dbadc9f4481",
+        "note--1bce81d8-ea14-5468-a823-9a8454676035",
+        "note--7db68e11-51ad-5634-80bc-66c8b8cb6bbd",
+        "campaign--ab148fb6-6b15-5bd6-adc1-903735eafe92",
+        "relationship--35319d11-497b-592b-b21c-94a14a948d53"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}

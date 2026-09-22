@@ -8,7 +8,7 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title">analyze_unknown_set</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Canalysis-framework%5Ccommon%5Canalyze_unknown_set.py">c:\users\administrator\ai-security-analysis\analysis-framework\common\analyze_unknown_set.py</a></td></tr></table>
+<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cw%5Ca26%5Canalysis-framework%5Ccommon%5Canalyze_unknown_set.py">c:\users\administrator\w\a26\analysis-framework\common\analyze_unknown_set.py</a></td></tr></table>
     <p><span class="code">Statically&nbsp;classify&nbsp;a&nbsp;newest-first&nbsp;MalwareBazaar&nbsp;unknown/stealer&nbsp;batch.</span></p>
 <p>
 <table class="section">
@@ -130,6 +130,8 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
  <dl><dt><a name="-render_summary"><strong>render_summary</strong></a>(summary: 'dict', case_links: 'dict[str, str] | None' = None) -&gt; 'str'</dt><dd><span class="code">新しい順の集約コレクションとファミリー分布を日本語で生成する。</span></dd></dl>
  <dl><dt><a name="-resolve_attribution"><strong>resolve_attribution</strong></a>(evidence: 'list[dict]') -&gt; 'dict'</dt><dd><span class="code">Select&nbsp;a&nbsp;family&nbsp;candidate&nbsp;and&nbsp;calibrated&nbsp;confidence&nbsp;from&nbsp;independent&nbsp;evidence.</span></dd></dl>
  <dl><dt><a name="-safe_config_findings"><strong>safe_config_findings</strong></a>(family: 'str', blobs: 'list[tuple[str, bytes]]') -&gt; 'list[dict]'</dt><dd><span class="code">Run&nbsp;a&nbsp;supported&nbsp;extractor&nbsp;and&nbsp;retain&nbsp;only&nbsp;sanitized&nbsp;network&nbsp;IOC&nbsp;findings.</span></dd></dl>
+ <dl><dt><a name="-sanitize_domain_candidate"><strong>sanitize_domain_candidate</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">DNS名だけを小文字へ正規化し、IP・単一label・制御文字を拒否する。</span></dd></dl>
+ <dl><dt><a name="-sanitize_endpoint_candidate"><strong>sanitize_endpoint_candidate</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">公開IPまたはDNS名とTCP&nbsp;portの組だけを正規化する。</span></dd></dl>
  <dl><dt><a name="-sanitize_ip_candidate"><strong>sanitize_ip_candidate</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">Validate&nbsp;a&nbsp;public&nbsp;IPv4&nbsp;candidate&nbsp;and&nbsp;preserve&nbsp;an&nbsp;optional&nbsp;TCP&nbsp;port.</span></dd></dl>
  <dl><dt><a name="-sanitize_url"><strong>sanitize_url</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">Remove&nbsp;credentials,&nbsp;query,&nbsp;and&nbsp;fragment&nbsp;from&nbsp;an&nbsp;HTTP(S)&nbsp;IOC&nbsp;candidate.</span></dd></dl>
  <dl><dt><a name="-scan_yara"><strong>scan_yara</strong></a>(data: 'bytes', rules) -&gt; 'list[str]'</dt><dd><span class="code">Return&nbsp;bounded&nbsp;repository&nbsp;YARA&nbsp;rule&nbsp;names&nbsp;for&nbsp;one&nbsp;in-memory&nbsp;layer.</span></dd></dl>
@@ -144,21 +146,21 @@ Data descriptors inherited from <a href="builtins.html#BaseException">builtins.B
 <td class="singlecolumn"><strong>ASCII</strong> = re.compile(b'[\\x20-\\x7e]{5,}')<br>
 <strong>BENIGN_HOST_PREFIXES</strong> = ('cacerts.digicert.com', 'crl.comodoca.com', 'crl.sectigo.com', 'crl.usertrust.com', 'crl3.digicert.com', 'crl4.digicert.com', 'crt.sectigo.com', 'ocsp.comodoca.com', 'ocsp.digicert.com', 'ocsp.sectigo.com', 'ocsp.usertrust.com', 'www.microsoft.com')<br>
 <strong>BENIGN_URL_HOSTS</strong> = {'android.googlesource.com', 'api.fastcopy.jp', 'api.ipify.org', 'archiverjs.com', 'axios-http.com', 'blog.caustik.com', ...}<br>
-<strong>COMMON</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/common')<br>
-<strong>EXTRACTORS</strong> = {'acrstealer': &lt;function extract&gt;, 'agenttesla': &lt;function extract&gt;, 'amadey': &lt;function extract&gt;, 'amosstealer': &lt;function extract&gt;, 'asyncrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'atlascross': &lt;function extract&gt;, 'darkcomet': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'dcrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'donutloader': &lt;function extract&gt;, 'formbook': &lt;function extract&gt;, ...}<br>
+<strong>COMMON</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework/common')<br>
+<strong>EXTRACTORS</strong> = {'acrstealer': &lt;function extract&gt;, 'agenttesla': &lt;function extract&gt;, 'amadey': &lt;function extract&gt;, 'amosstealer': &lt;function extract&gt;, 'asyncrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'atlascross': &lt;function extract&gt;, 'darkcomet': &lt;function extract&gt;, 'dcrat': &lt;function extractor_for.&lt;locals&gt;.extract&gt;, 'donutloader': &lt;function extract&gt;, 'formbook': &lt;function extract&gt;, ...}<br>
 <strong>FAMILY_ALIASES</strong> = {'agent tesla': 'agenttesla', 'agenttesla': 'agenttesla', 'amadey': 'amadey', 'amos': 'amosstealer', 'amosstealer': 'amosstealer', 'async rat': 'asyncrat', 'asyncrat': 'asyncrat', 'atomic stealer': 'amosstealer', 'atomicstealer': 'amosstealer', 'beavertail': 'beavertail', ...}<br>
 <strong>FAMILY_ID_RE</strong> = re.compile('^[a-z0-9_]+$')<br>
-<strong>FRAMEWORK_ROOT</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework')<br>
+<strong>FRAMEWORK_ROOT</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework')<br>
 <strong>GENERIC_LABELS</strong> = {'dll', 'dropper', 'electron', 'exe', 'generic', 'infostealer', ...}<br>
 <strong>IP</strong> = re.compile('(?&lt;!\\d)(?:\\d{1,3}\\.){3}\\d{1,3}(?::\\d{1,5})?')<br>
 <strong>MAX_LAYERS</strong> = 48<br>
 <strong>MAX_LAYER_SIZE</strong> = 67108864<br>
-<strong>REPO</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis')<br>
+<strong>REPO</strong> = WindowsPath('C:/Users/Administrator/w/a26')<br>
 <strong>ROOT_FULL_SCAN_LIMIT</strong> = 33554432<br>
 <strong>SOURCE_WEIGHT</strong> = {'external_sandbox': 2, 'external_yara': 3, 'internal_detector': 4, 'internal_inference': 4, 'internal_shape': 3, 'internal_yara': 4, 'source_tag': 1}<br>
-<strong>SRC</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/src')<br>
+<strong>SRC</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework/src')<br>
 <strong>STRICT_INTERNAL_FORMATS</strong> = {'agenttesla': {'pe'}, 'stealc': {'pe'}}<br>
 <strong>URL</strong> = re.compile('https?://[^\\s\\"\'`&lt;&gt;]{4,512}', re.IGNORECASE)<br>
 <strong>WIDE</strong> = re.compile(b'(?:[\\x20-\\x7e]\\x00){5,}')<br>
-<strong>location</strong> = WindowsPath('C:/Users/Administrator/AI-security-analysis/analysis-framework/common')</td></tr></table>
+<strong>location</strong> = WindowsPath('C:/Users/Administrator/w/a26/analysis-framework/common')</td></tr></table>
 </body></html>

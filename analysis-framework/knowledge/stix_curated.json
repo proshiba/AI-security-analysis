@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "families": [
+    {
+      "id": "acrstealer",
+      "display_name": "ACRStealer／Amatera Stealer",
+      "aliases": ["ACR Stealer", "Amatera Stealer"],
+      "overview_ja": "Proofpointは2025年のAmateraをACRStealerの大幅更新・改名系統と評価した。2024年には偽Google AuthenticatorサイトからACRStealerとLatrodectusが配布され、2025年にはClearFakeの偽CAPTCHAとClickFixからAmateraが配布された。[[stix-acr-cyble-2024]] [[stix-acr-proofpoint-2025]]",
+      "developer": {"assessment_ja": "実名開発者は未確認。ProofpointはACRからAmateraへの更新と販売panelを報告するが、公開資料だけで個々の版の作者を同一視しない。", "confidence": "medium", "source_ids": ["stix-acr-proofpoint-2025"]},
+      "actors": [{"name": "未特定のMaaS購入者", "relationship_ja": "購入者ごとの配布活動がありうるが、CybleとProofpointの観測だけでは単一の利用アクターを確定できない。", "confidence": "low", "source_ids": ["stix-acr-cyble-2024", "stix-acr-proofpoint-2025"]}],
+      "commodity": {"classification": "maas", "assessment_ja": "ProofpointがAmateraをsubscription型MaaSと確認した。単一アクター専用ではない。ACR旧版の全商流まで遡及しない。", "source_ids": ["stix-acr-proofpoint-2025"]},
+      "historical_use": [
+        {"period": "2024年8月", "summary_ja": "偽Google Safety Centreの認証アプリ配布ページからloaderをダウンロードさせ、ACRStealerとLatrodectusを投下した。", "actors": [], "source_ids": ["stix-acr-cyble-2024"]},
+        {"period": "2025年4月から5月", "summary_ja": "侵害WebサイトへのClearFake注入、偽CAPTCHA、ClickFix、PowerShellとMSBuildを経てAmateraを展開した。", "actors": [], "source_ids": ["stix-acr-proofpoint-2025"]}
+      ],
+      "versioning": {"case_assignment_policy_ja": "ACRとAmateraの関係はコード・設定・通信の相関で扱い、配布手口だけで個別caseを改名後の版へ帰属しない。[[stix-acr-proofpoint-2025]]", "known_version_notes_ja": "Proofpointは改名後の新buildでNTSockets等の追加を報告するが、ローカルcaseの版は別途静的証拠で判定する。[[stix-acr-proofpoint-2025]]", "local_confirmed_case_count": 0},
+      "sources": [
+        {"id": "stix-acr-cyble-2024", "title_original": "Double Trouble: Latrodectus and ACR Stealer observed spreading via Google Authenticator Phishing Site", "title_ja": "偽Google AuthenticatorサイトによるACRStealer配布", "publisher": "Cyble", "published": "2024-08-08", "url": "https://cyble.com/blog/double-trouble-latrodectus-and-acr-stealer-observed-spreading-via-google-authenticator-phishing-site/", "source_type": "vendor_research"},
+        {"id": "stix-acr-proofpoint-2025", "title_original": "Amatera Stealer: Rebranded ACR Stealer With Improved Evasion, Sophistication", "title_ja": "ACRStealerからAmateraへの改名と配布活動", "publisher": "Proofpoint", "published": "2025-06-16", "url": "https://www.proofpoint.com/us/blog/threat-insight/amatera-stealer-rebranded-acr-stealer-improved-evasion-sophistication", "source_type": "vendor_research"}
+      ]
+    },
+    {
+      "id": "mirai",
+      "display_name": "Mirai",
+      "aliases": [],
+      "overview_ja": "IoT機器を侵害してDDoSに用いるbotnet。米司法省は2016年の原型作成・運用に3人が関与したと公表し、同年のソース公開後は別の犯罪者も多数の亜種を利用した。原型と派生版の作者・運用者は区別する。[[stix-mirai-doj-2017]] [[stix-mirai-cloudflare-2017]]",
+      "developer": {"assessment_ja": "米司法省によると原型botnetはParas Jha、Josiah White、Dalton Normanが作成した。公開後の派生版すべての作者を意味しない。", "confidence": "high", "source_ids": ["stix-mirai-doj-2017"]},
+      "actors": [
+        {"name": "Paras Jha", "relationship_ja": "米司法省は2016年のMirai原型botnetを作成・運用しDDoS攻撃に利用した3人の一人と記録する。", "confidence": "high", "source_ids": ["stix-mirai-doj-2017"]},
+        {"name": "Josiah White", "relationship_ja": "米司法省は2016年のMirai原型botnetを作成・運用しDDoS攻撃に利用した3人の一人と記録する。", "confidence": "high", "source_ids": ["stix-mirai-doj-2017"]},
+        {"name": "Dalton Norman", "relationship_ja": "米司法省は2016年のMirai原型botnetを作成・運用しDDoS攻撃に利用した3人の一人と記録する。", "confidence": "high", "source_ids": ["stix-mirai-doj-2017"]}
+      ],
+      "commodity": {"classification": "commodity", "assessment_ja": "2016年秋のソース公開後、多数の別アクターが派生版を作成・使用した。ソース公開はOSSライセンスやMaaS販売を意味せず、Miraiファミリー全体は単一アクター専用ではない。", "source_ids": ["stix-mirai-doj-2017", "stix-mirai-cloudflare-2017"]},
+      "historical_use": [
+        {"period": "2016年", "summary_ja": "原型botnetがIoT機器を侵害し、大規模DDoS攻撃に使われた。", "actors": ["Paras Jha", "Josiah White", "Dalton Norman"], "source_ids": ["stix-mirai-doj-2017"]},
+        {"period": "2016年後半", "summary_ja": "Cloudflareが別々のMirai系clusterによるKrebs、OVH、Dyn等へのDDoSを整理した。標的の違いと基盤の違いから単一運用者へ統合しない。", "actors": [], "source_ids": ["stix-mirai-cloudflare-2017"]}
+      ],
+      "versioning": {"case_assignment_policy_ja": "原型、ソース公開後の派生版、個別botnet clusterを分け、Miraiコード一致だけで原作者へ帰属しない。[[stix-mirai-doj-2017]] [[stix-mirai-cloudflare-2017]]", "known_version_notes_ja": "機器感染方法やDDoS機能は派生ごとに異なり、ローカルcaseの版は静的な差分で判定する。[[stix-mirai-cloudflare-2017]]", "local_confirmed_case_count": 0},
+      "sources": [
+        {"id": "stix-mirai-doj-2017", "title_original": "Justice Department Announces Charges and Guilty Pleas in Three Computer Crime Cases Involving Significant DDoS Attacks", "title_ja": "Mirai原型の作成・運用に関する米司法省発表", "publisher": "US Department of Justice", "published": "2017-12-13", "url": "https://www.justice.gov/archives/opa/pr/justice-department-announces-charges-and-guilty-pleas-three-computer-crime-cases-involving", "source_type": "law_enforcement"},
+        {"id": "stix-mirai-cloudflare-2017", "title_original": "Inside the infamous Mirai IoT Botnet: A Retrospective Analysis", "title_ja": "Mirai系botnet clusterと攻撃標的の比較", "publisher": "Cloudflare", "published": null, "url": "https://blog.cloudflare.com/inside-mirai-the-infamous-iot-botnet-a-retrospective-analysis/", "source_type": "vendor_research"}
+      ]
+    },
+    {
+      "id": "prometei",
+      "display_name": "Prometei",
+      "aliases": [],
+      "overview_ja": "Cisco Talosが2020年に報告した複数モジュールのMonero採掘botnet。侵害後にSMB、盗取資格情報、PsExec、WMI等で横展開した。一般販売されたMaaSであるとの根拠は確認しない。[[stix-prometei-talos-2020]]",
+      "developer": {"assessment_ja": "実名開発者は未確認。Talosは複数moduleが同じ配布serverから取得されることから同じ作者である可能性を示したが、身元の確定ではない。", "confidence": "low", "source_ids": ["stix-prometei-talos-2020"]},
+      "actors": [{"name": "未特定のbotnet運用者", "relationship_ja": "採掘目的の運用主体が存在するが、Talos資料から個人・組織名を確定できない。", "confidence": "low", "source_ids": ["stix-prometei-talos-2020"]}],
+      "commodity": {"classification": "unknown", "assessment_ja": "観測されたbotnetの継続運用であり、公開ソースやMaaSとしての販売は確認していない。個別アクター専用性も未確認。", "source_ids": ["stix-prometei-talos-2020"]},
+      "historical_use": [{"period": "2020年", "summary_ja": "侵害ネットワーク内でSMBと盗取資格情報、PsExec、WMI等を使って横展開し、Monero採掘moduleを導入した。", "actors": [], "source_ids": ["stix-prometei-talos-2020"]}],
+      "versioning": {"case_assignment_policy_ja": "複数moduleを一つのbinary版へ単純化せず、機能と配布関係で系統を評価する。[[stix-prometei-talos-2020]]", "known_version_notes_ja": "Talosは主botnet系と別のmodule群を説明するが、ローカルcaseの版をその説明だけで決めない。[[stix-prometei-talos-2020]]", "local_confirmed_case_count": 0},
+      "sources": [{"id": "stix-prometei-talos-2020", "title_original": "Prometei botnet and its quest for Monero", "title_ja": "Monero採掘を目的とするPrometei botnet", "publisher": "Cisco Talos", "published": "2020-07-22", "url": "https://blog.talosintelligence.com/prometei-botnet-and-its-quest-for-monero/", "source_type": "vendor_research"}]
+    },
+    {
+      "id": "macos-stealer-v2",
+      "display_name": "MioLab／Nova（macos-stealer-v2）",
+      "aliases": ["MioLab", "Nova"],
+      "overview_ja": "SEALはMioLab（Nova）のmacos-stealer-v2を、偽投資提案とGoogle Docsの偽復号panelから配布されるmacOS向け情報窃取型として報告した。MacSync／Odyssey／AMOSは別系統であり、本ファミリーに統合しない。[[stix-miolab-seal-2026]]",
+      "developer": {"assessment_ja": "MioLabのMaaS提供者は報告されているが、実名の個人開発者や組織は未確認。配布affiliateと提供者を同一視しない。", "confidence": "medium", "source_ids": ["stix-miolab-seal-2026"]},
+      "actors": [{"name": "未特定のTraffer affiliate", "relationship_ja": "偽投資提案などの配布主体は複数で、SEALは全活動を単一攻撃グループへ帰属できないとしている。", "confidence": "low", "source_ids": ["stix-miolab-seal-2026"]}],
+      "commodity": {"classification": "maas", "assessment_ja": "SEALはMioLabをMaaS提供者と記録する。単一アクター専用ではないが、個別caseの販売者・affiliate・被害組織は特定しない。", "source_ids": ["stix-miolab-seal-2026"]},
+      "historical_use": [{"period": "2026年", "summary_ja": "暗号資産関係者への偽投資提案からGoogle Docs内の偽復号panelを表示し、MioLab系macOS payloadの実行へ誘導した。", "actors": [], "source_ids": ["stix-miolab-seal-2026"]}],
+      "versioning": {"case_assignment_policy_ja": "macos-stealer-v2の静的markerと復号設定を用い、MacSync／Odyssey／AMOSの名称や誘導UIの類似だけで統合しない。[[stix-miolab-seal-2026]]", "known_version_notes_ja": "ローカル検体の復号済みbuild_number 256は個別caseの版根拠とし、SEALの外部campaign全体の版へ拡張しない。", "local_confirmed_case_count": 1},
+      "sources": [
+        {"id": "stix-miolab-seal-2026", "title_original": "Beware of cold reachouts - Infostealer malware campaigns targeting crypto", "title_ja": "暗号資産利用者への偽商談を起点とするMioLab配布活動", "publisher": "SEAL Intel", "published": "2026-04-27", "url": "https://radar.securityalliance.org/beware-of-cold-reachouts-infostealer-malware-campaigns-targeting-crypto/", "source_type": "vendor_research"}
+      ]
+    },
+    {
+      "id": "redc2",
+      "display_name": "RedC2／RedShell",
+      "aliases": ["RedShell"],
+      "overview_ja": "TrendAI Researchは、日付計算utilityを装うnpm package群がimport時にLinux ELFを起動し、RedC2 4.0のRedShell implantを配布したと報告した。AI処理は主にRed Agentのcontroller側機能であり、implant内のAI modelと混同しない。[[stix-redc2-trendai-2026]]",
+      "developer": {"assessment_ja": "RedC2の販売主体と個人開発者の実名は未確認。TrendAIはHack Forumsで販売されるframeworkと報告したが、npm package投稿者とframework開発者の同一性は示さない。", "confidence": "medium", "source_ids": ["stix-redc2-trendai-2026"]},
+      "actors": [{"name": "未特定のnpm配布者", "relationship_ja": "日付計算utilityを装うpackage群の配布主体は公開資料から実名・既知アクターへ帰属できない。", "confidence": "low", "source_ids": ["stix-redc2-trendai-2026"]}],
+      "commodity": {"classification": "commercial_service", "assessment_ja": "Hack Forumsで販売されるクロスプラットフォームC2 frameworkとして報告された。OSSとの証拠はなく、販売形態を継続サービス型MaaSと同一視しない。単一アクター専用とも確認しない。", "source_ids": ["stix-redc2-trendai-2026"]},
+      "historical_use": [{"period": "2026年8月", "summary_ja": "npm上の日付・streak計算utilityを装うpackage群で、import時に内包したRedShell Linux ELFを別processで起動する供給網経路が観測された。", "actors": [], "source_ids": ["stix-redc2-trendai-2026"]}],
+      "versioning": {"case_assignment_policy_ja": "RedC2 framework、RedShell implant、Red Agent controller機能を分け、npm loaderとLinux ELFの親子関係で個別caseを評価する。[[stix-redc2-trendai-2026]]", "known_version_notes_ja": "TrendAIはLinux RedShellをRedC2 4.0から追加された機能と報告したが、全packageで個々のbuild版を同一視しない。[[stix-redc2-trendai-2026]]", "local_confirmed_case_count": 0},
+      "sources": [{"id": "stix-redc2-trendai-2026", "title_original": "Prompting the Payload: How an npm Supply Chain Attack Delivers the RedC2 AI-Powered Linux Implant", "title_ja": "npm供給網攻撃によるRedC2 Linux implantの配布", "publisher": "TrendAI Research", "published": "2026-08-20", "url": "https://www.trendaisecurity.com/ja/resources-insights/trendai-security-blog/redc2-ai-powered-linux-implant", "source_type": "vendor_research"}]
+    },
+    {
+      "id": "gh0strat",
+      "display_name": "Gh0st RAT",
+      "aliases": ["Gh0st", "Gh0stRat"],
+      "overview_ja": "公開済みソースから多くの改変版が派生したRAT。Unit 42は独自のTCP識別tagとC2設定を用いて活動を区別しており、同じコード系統だけで単一運用者へ帰属できない。[[stix-gh0st-unit42-2015]]",
+      "developer": {"assessment_ja": "原型の実名開発者はこの資料からは確定できない。公開ソースを改変した各派生版の開発者も同一視しない。", "confidence": "medium", "source_ids": ["stix-gh0st-unit42-2015"]},
+      "actors": [{"name": "Tick Group", "relationship_ja": "Unit 42はTick Groupの攻撃で改変Gh0st RATの利用を報告した。元のGh0st RAT全体やローカル検体の運用者帰属は示さない。", "confidence": "medium", "source_ids": ["stix-gh0st-unit42-tick-2017"]}],
+      "commodity": {"classification": "open_source_dual_use", "assessment_ja": "ソースとbuilderが一般に入手可能で、多数の改変版と利用者がある。単一アクター専用ではないが、特定のMaaS提供体制は確認しない。", "source_ids": ["stix-gh0st-unit42-2015"]},
+      "historical_use": [
+        {"period": "2015年まで", "summary_ja": "Unit 42はC2識別tagなどを相関し、Piano Gh0stを用いたMusical Chairs活動を整理した。", "actors": [], "source_ids": ["stix-gh0st-unit42-2015"]},
+        {"period": "2017年", "summary_ja": "Tick Groupの侵害活動で改変Gh0st RATとそのdownloaderが使用された。", "actors": ["Tick Group"], "source_ids": ["stix-gh0st-unit42-tick-2017"]}
+      ],
+      "versioning": {"case_assignment_policy_ja": "識別tag単独で同じ版や同じ攻撃者とみなさず、コード・設定・配布経路を相関する。[[stix-gh0st-unit42-2015]]", "known_version_notes_ja": "公開ソース由来の多数の派生版があるため、ローカルcaseの版を外部記事から転記しない。[[stix-gh0st-unit42-2015]]", "local_confirmed_case_count": 0},
+      "sources": [
+        {"id": "stix-gh0st-unit42-2015", "title_original": "Musical Chairs: Multi-Year Campaign Involving New Variant of Gh0st Malware", "title_ja": "Gh0st亜種を用いるMusical Chairs活動", "publisher": "Palo Alto Networks Unit 42", "published": null, "url": "https://unit42.paloaltonetworks.com/musical-chairs-multi-year-campaign-involving-new-variant-of-gh0st-malware/", "source_type": "vendor_research"},
+        {"id": "stix-gh0st-unit42-tick-2017", "title_original": "Tick Group Continues Attacks", "title_ja": "Tick Groupによる攻撃継続", "publisher": "Palo Alto Networks Unit 42", "published": null, "url": "https://unit42.paloaltonetworks.com/unit42-tick-group-continues-attacks/", "source_type": "vendor_research"}
+      ]
+    },
+    {
+      "id": "nanocore",
+      "display_name": "NanoCore RAT",
+      "aliases": ["NanoCoreRAT"],
+      "overview_ja": ".NET製のモジュール型RAT。米司法省によるとTaylor Huddlestonが開発・販売した。販売後は複数の犯罪者に使用され、税務文書やISO添付などのフィッシング経路で配布された。[[stix-nanocore-doj-2017]] [[stix-nanocore-unit42-2016]] [[stix-nanocore-proofpoint-2020]]",
+      "developer": {"assessment_ja": "米司法省はTaylor HuddlestonがNanoCore RATを開発・販売したと記録する。これは原型の開発に関するもので、全派生版の作者を示さない。", "confidence": "high", "source_ids": ["stix-nanocore-doj-2017"]},
+      "actors": [{"name": "TA2719", "relationship_ja": "ProofpointはTA2719が2020年に地域別の偽装メールでNanoCoreを配布したと報告した。", "confidence": "high", "source_ids": ["stix-nanocore-proofpoint-2020"]}],
+      "commodity": {"classification": "commodity", "assessment_ja": "原型は販売された商用RATで、クラック版も流通した。複数アクターに利用され、単一アクター専用ではない。MaaSの継続的サービス提供とは区別する。", "source_ids": ["stix-nanocore-doj-2017", "stix-nanocore-unit42-2016"]},
+      "historical_use": [
+        {"period": "2015年から2016年", "summary_ja": "税務申告を装うメールで実行ファイルやmacro入り文書を配布し、NanoCore RATを導入する活動をUnit 42が観測した。", "actors": [], "source_ids": ["stix-nanocore-unit42-2016"]},
+        {"period": "2020年", "summary_ja": "TA2719は各国の警察・銀行・配送業者を装う地域別メールとISO添付を用いてNanoCoreを配布した。", "actors": ["TA2719"], "source_ids": ["stix-nanocore-proofpoint-2020"]}
+      ],
+      "versioning": {"case_assignment_policy_ja": "販売版、クラック版、plugin構成を区別し、配布記事だけでローカルcaseの版を確定しない。[[stix-nanocore-unit42-2016]]", "known_version_notes_ja": "公開資料は複数の版・plugin構成を扱うため、ローカルcaseの版は別途静的根拠が必要。[[stix-nanocore-unit42-2016]]", "local_confirmed_case_count": 0},
+      "sources": [
+        {"id": "stix-nanocore-doj-2017", "title_original": "Arkansas Man Pleads Guilty to Developing and Distributing Prolific Malware", "title_ja": "NanoCore開発・頒布に関する米司法省発表", "publisher": "US Department of Justice", "published": "2017-07-25", "url": "https://www.justice.gov/usao-edva/pr/arkansas-man-pleads-guilty-developing-and-distributing-prolific-malware", "source_type": "law_enforcement"},
+        {"id": "stix-nanocore-unit42-2016", "title_original": "NanoCoreRAT Behind an Increase in Tax-Themed Phishing E-mails", "title_ja": "税務テーマのフィッシングで増加したNanoCore RAT", "publisher": "Palo Alto Networks Unit 42", "published": null, "url": "https://unit42.paloaltonetworks.com/nanocorerat-behind-an-increase-in-tax-themed-phishing-e-mails/", "source_type": "vendor_research"},
+        {"id": "stix-nanocore-proofpoint-2020", "title_original": "Threat Actor Profile: TA2719 Uses Colorful Lures to Deliver RATs in Local Languages", "title_ja": "TA2719の地域別メールによるRAT配布", "publisher": "Proofpoint", "published": "2020-08-26", "url": "https://www.proofpoint.com/us/blog/threat-insight/threat-actor-profile-ta2719-uses-colorful-lures-deliver-rats-local-languages", "source_type": "vendor_research"}
+      ]
+    },
+    {
+      "id": "wannacry",
+      "display_name": "WannaCry",
+      "aliases": ["WannaCrypt", "WannaCry 2.0"],
+      "overview_ja": "2017年5月に世界的に拡散した自己伝播型ランサムウェア。Windows SMBの脆弱性を突いて感染を広げ、ファイル暗号化と身代金要求を行った。[[stix-wannacry-cisa-2017]]",
+      "developer": {"assessment_ja": "米司法省は北朝鮮政府支援のLazarus Groupに関係する共謀者がWannaCry 2.0用マルウェアを作成したと訴追資料で主張する。個々のローカル派生検体の作者まで確定したものではない。", "confidence": "medium", "source_ids": ["stix-wannacry-doj-2018"]},
+      "actors": [{"name": "Lazarus Group", "relationship_ja": "米司法省は2017年のWannaCry 2.0攻撃をLazarus Groupに関係する北朝鮮政府支援チームの活動として訴追資料で扱う。これは米司法省による帰属である。", "confidence": "medium", "source_ids": ["stix-wannacry-doj-2018"]}],
+      "commodity": {"classification": "unknown", "assessment_ja": "2017年の世界的攻撃は報告されるが、WannaCry 2.0をOSS、一般販売、MaaSとして提供した根拠はこの資料にはない。特定アクター専用性を派生版全体へ一般化しない。", "source_ids": ["stix-wannacry-cisa-2017", "stix-wannacry-doj-2018"]},
+      "historical_use": [{"period": "2017年5月", "summary_ja": "SMB脆弱性を悪用する自己伝播で世界各地のWindows環境へ拡散し、ファイル暗号化と身代金要求を行った。", "actors": [], "source_ids": ["stix-wannacry-cisa-2017"]}],
+      "versioning": {"case_assignment_policy_ja": "WannaCry系の亜種を2017年5月のWannaCry 2.0攻撃と自動的に同一視しない。[[stix-wannacry-cisa-2017]]", "known_version_notes_ja": "派生検体の版と2017年の原型の関係は静的根拠ごとに判定する。[[stix-wannacry-cisa-2017]]", "local_confirmed_case_count": 0},
+      "sources": [
+        {"id": "stix-wannacry-cisa-2017", "title_original": "Indicators Associated With WannaCry Ransomware", "title_ja": "WannaCryランサムウェアの指標と感染拡大", "publisher": "CISA", "published": null, "url": "https://www.cisa.gov/news-events/ics-alerts/ics-alert-17-135-01i", "source_type": "government_advisory"},
+        {"id": "stix-wannacry-doj-2018", "title_original": "North Korean Regime-Backed Programmer Charged With Conspiracy to Conduct Multiple Cyber Attacks and Intrusions", "title_ja": "WannaCry作成等に関する米司法省訴追発表", "publisher": "US Department of Justice", "published": "2018-09-06", "url": "https://www.justice.gov/archives/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and", "source_type": "law_enforcement"}
+      ]
+    },
+    {
+      "id": "noodlerat",
+      "display_name": "NoodleRAT",
+      "aliases": ["Nood RAT", "Win.NOODLERAT", "Linux.NOODLERAT"],
+      "overview_ja": "Windows版とLinux版を持つバックドア。Trend Microは既存のGh0st RATやRekoobeとは分けて整理している。ローカル静的解析ではLinux版の設定grammarとcommand clusterを確認したが、公開Windows検体の最終payload帰属は未解決である。[[stix-noodle-trend-2024]] [[stix-noodle-local]]",
+      "developer": {
+        "assessment_ja": "公開資料から単一の開発者・組織を確定できない。AhnLabが紹介したbuilderの存在は、実名開発者や個別運用者の同定を意味しない。",
+        "confidence": "medium",
+        "source_ids": ["stix-noodle-trend-2024", "stix-noodle-ahnlab-2024"]
+      },
+      "actors": [
+        {
+          "name": "UAT-10147",
+          "relationship_ja": "Cisco Talosは2026年のLinux Webサーバ侵害で、権限昇格後の最終バックドアとしてNoodleRATを展開したと報告した。これは利用の帰属であり、開発者の帰属ではない。",
+          "confidence": "high",
+          "source_ids": ["stix-noodle-talos-2026"]
+        }
+      ],
+      "commodity": {
+        "classification": "unknown",
+        "assessment_ja": "複数活動での利用は報告されるが、OSS公開、商用販売、MaaS提供、特定アクター専用のいずれも、この根拠だけでは確定できない。",
+        "source_ids": ["stix-noodle-trend-2024", "stix-noodle-talos-2026"]
+      },
+      "historical_use": [
+        {
+          "period": "2018年から2024年",
+          "summary_ja": "AhnLabはWebLogic脆弱性を悪用した導入、Rockeの暗号資産採掘活動、Cloud Snooper攻撃でのLinux版利用を整理した。ただし一部は過去資料の再評価であり、各活動の主体を同一視しない。",
+          "actors": [],
+          "source_ids": ["stix-noodle-ahnlab-2024"]
+        },
+        {
+          "period": "2026年",
+          "summary_ja": "UAT-10147は脆弱なLinux Webサーバで遠隔コード実行と権限昇格を行った後、NoodleRATを最終バックドアとして配備した。",
+          "actors": ["UAT-10147"],
+          "source_ids": ["stix-noodle-talos-2026"]
+        }
+      ],
+      "versioning": {
+        "case_assignment_policy_ja": "Linux版のlegacy／alternate設定clusterは製品全体の版番号へ昇格しない。[[stix-noodle-local]]",
+        "known_version_notes_ja": "ローカルLinux解析のvariantを確認したが、Windows版の終端payload帰属は未解決である。[[stix-noodle-local]]",
+        "local_confirmed_case_count": 0
+      },
+      "sources": [
+        {
+          "id": "stix-noodle-trend-2024",
+          "title_original": "Noodle RAT: Reviewing the Backdoor Used by Chinese-Speaking Groups",
+          "title_ja": "中国語話者グループが用いるNoodle RATの再評価",
+          "publisher": "Trend Micro",
+          "published": null,
+          "url": "https://www.trendmicro.com/en_gb/research/24/f/noodle-rat-reviewing-the-new-backdoor-used-by-chinese-speaking-g.html",
+          "source_type": "vendor_research"
+        },
+        {
+          "id": "stix-noodle-ahnlab-2024",
+          "title_original": "Analysis of Nood RAT Used in Attacks Against Linux (Gh0st RAT’s Variant)",
+          "title_ja": "Linux攻撃で使用されたNood RATの解析",
+          "publisher": "AhnLab ASEC",
+          "published": "2024-02-19",
+          "url": "https://asec.ahnlab.com/en/62144/",
+          "source_type": "vendor_research"
+        },
+        {
+          "id": "stix-noodle-talos-2026",
+          "title_original": "UAT-10147: Chinese-speaking adversary integrates agentic AI into post-compromise operations",
+          "title_ja": "UAT-10147による侵害後のNoodleRAT配備",
+          "publisher": "Cisco Talos",
+          "published": "2026-08-20",
+          "url": "https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/",
+          "source_type": "vendor_research"
+        },
+        {
+          "id": "stix-noodle-local",
+          "title_original": "NoodleRAT static analysis",
+          "title_ja": "NoodleRATローカル静的解析",
+          "publisher": "AI-security-analysis",
+          "published": "2026-09-19",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/noodlerat/README.md",
+          "source_type": "local_analysis"
+        }
+      ]
+    }
+  ],
+  "developers": [
+    {"family": "mirai", "name": "Paras Jha", "description_ja": "米司法省が原型Mirai botnetの共同作成者として記録する。後続の派生版には拡張しない。", "source_ids": ["stix-mirai-doj-2017"], "confidence": "high"},
+    {"family": "mirai", "name": "Josiah White", "description_ja": "米司法省が原型Mirai botnetの共同作成者として記録する。後続の派生版には拡張しない。", "source_ids": ["stix-mirai-doj-2017"], "confidence": "high"},
+    {"family": "mirai", "name": "Dalton Norman", "description_ja": "米司法省が原型Mirai botnetの共同作成者として記録する。後続の派生版には拡張しない。", "source_ids": ["stix-mirai-doj-2017"], "confidence": "high"},
+    {"family": "nanocore", "name": "Taylor Huddleston", "description_ja": "米司法省が開発・販売を確認したNanoCore原型の作者。すべての派生版の作者を示さない。", "source_ids": ["stix-nanocore-doj-2017"], "confidence": "high"},
+    {"family": "wannacry", "name": "Lazarus Group", "description_ja": "米司法省の訴追資料はWannaCry 2.0用マルウェアの作成を北朝鮮政府支援チームへ帰属する。司法省の主張として扱い、個々の派生版へ拡張しない。", "source_ids": ["stix-wannacry-doj-2018"], "confidence": "medium"}
+  ],
+  "campaigns": [
+    {"family": "acrstealer", "name": "2024年の偽Google Authenticator配布活動", "description_ja": "Cybleが2024年8月に報告した偽Google Safety Centreからのloader配布。ACRStealerとLatrodectusを投下した。未特定の運用者を既知アクターへ帰属しない。", "source_ids": ["stix-acr-cyble-2024"], "confidence": "high"},
+    {"family": "acrstealer", "name": "2025年5月のClearFake・ClickFix配布活動", "description_ja": "Proofpointが報告した侵害サイトの偽CAPTCHA、ClickFix、PowerShell、MSBuildを経由するAmatera配布。ClearFakeの他の全配布を同一campaignへ含めない。", "source_ids": ["stix-acr-proofpoint-2025"], "confidence": "high"},
+    {"family": "mirai", "name": "2016年のMirai原型DDoS活動", "description_ja": "米司法省が報告した原型Mirai botnetのIoT機器侵害とDDoS攻撃。ソース公開後の別アクターによる派生版を含めない。", "source_ids": ["stix-mirai-doj-2017"], "confidence": "high", "attributed_actor_names": ["Paras Jha", "Josiah White", "Dalton Norman"], "attribution_ja": "米司法省は3人が2016年の原型botnetを作成・運用したと記録する。後続の派生版には拡張しない。", "attribution_confidence": "high"},
+    {"family": "prometei", "name": "Talos観測の2020年Prometei採掘活動", "description_ja": "Cisco Talosが2020年に調査した横展開とMonero採掘を伴うbotnet活動。名前は本STIX内での記述名であり、運用者名ではない。", "source_ids": ["stix-prometei-talos-2020"], "confidence": "high"},
+    {"family": "redc2", "name": "2026年のnpm日付utility偽装配布活動", "description_ja": "TrendAIが報告した、日付計算packageのimport時にRedShell Linux ELFを起動する供給網攻撃。package配布主体とRedC2 framework開発者を同一視しない。", "source_ids": ["stix-redc2-trendai-2026"], "confidence": "high"},
+    {"family": "macos-stealer-v2", "name": "2026年の偽投資文書・復号panel配布活動", "description_ja": "SEALが報告した、偽投資提案からGoogle Docs内の偽復号panelでmacos-stealer-v2系MioLab payloadへ誘導する活動。MacSync配布活動を含めない。", "source_ids": ["stix-miolab-seal-2026"], "confidence": "high"},
+    {
+      "family": "gh0strat",
+      "name": "Musical Chairs",
+      "description_ja": "Unit 42がGh0st RATの識別tag、C2基盤、攻撃文脈を組み合わせて整理した複数年の活動。公開Gh0st系コードの共有だけで運用者の同一性を主張しない。",
+      "source_ids": ["stix-gh0st-unit42-2015"],
+      "confidence": "medium"
+    },
+    {
+      "family": "wannacry",
+      "name": "2017年5月のWannaCry世界的攻撃",
+      "description_ja": "2017年5月に始まったWindows SMB脆弱性の悪用による自己伝播とファイル暗号化を伴う世界的活動。後年の模倣・派生検体を自動的に含めない。",
+      "source_ids": ["stix-wannacry-cisa-2017", "stix-wannacry-doj-2018"],
+      "confidence": "high",
+      "attributed_actor_names": ["Lazarus Group"],
+      "attribution_ja": "米司法省の訴追資料によるLazarus Groupへの帰属として記録し、個別派生版への確定帰属とはしない。",
+      "attribution_confidence": "medium"
+    },
+    {
+      "family": "atlascross",
+      "name": "TA4922の2026年3月日本向け人事メール活動",
+      "description_ja": "Proofpointが2026年3月6日に観測した活動を本STIX内で識別するための記述名。日本の組織を人事・給与調整メールで誘導し、ZIP内の正規EXEと悪性DLLのサイドローディングからAtlas RATを導入した。",
+      "source_ids": ["am-atlas-proofpoint-2026"],
+      "confidence": "high",
+      "attributed_actor_names": ["TA4922"],
+      "attribution_ja": "ProofpointがTA4922として追跡する活動内で観測した事例に限る。Silver Fox等の別名との一対一対応は主張しない。",
+      "attribution_confidence": "high"
+    },
+    {
+      "family": "valleyrat",
+      "name": "Proofpoint観測の2023年5月履歴書PDF配布活動",
+      "description_ja": "Proofpointが2023年5月24日に観測した活動を本STIX内で識別するための記述名。履歴書を装うPDF内のURLからZIP payloadを取得させ、ValleyRATを導入した。6件のキャンペーン全体との同一性は主張しない。",
+      "source_ids": ["nz-valley-proofpoint-2023"],
+      "confidence": "high"
+    },
+    {
+      "family": "purelogs",
+      "name": "Fortinet観測の2026年PawsRunnerフィッシング活動",
+      "description_ja": "Fortinetが報告した攻撃を本STIX内で識別するための記述名。請求書を装うTXZ添付から環境変数とPawsRunnerの画像ステガノグラフィを経由してPureLogsを配備した。",
+      "source_ids": ["nz-purelogs-fortinet-paws-2026"],
+      "confidence": "high"
+    },
+    {
+      "family": "shadowpad",
+      "name": "Operation FishMedley",
+      "description_ja": "ESETが2022年の7件の侵害として整理したFishMongerの活動。政府、NGO、シンクタンクなどを標的とし、ShadowPadを含む複数のimplantを利用した。",
+      "source_ids": ["nz-shadowpad-eset-fish-2025"],
+      "confidence": "high"
+    },
+    {
+      "family": "noodlerat",
+      "name": "UAT-10147の2026年Webサーバ侵害活動",
+      "description_ja": "Cisco Talosが報告した活動を本STIX内で識別するための記述名。脆弱なLinux Webサーバへの侵入と権限昇格後、NoodleRATを最終バックドアとして配備した。開発主体は示さない。",
+      "source_ids": ["stix-noodle-talos-2026"],
+      "confidence": "high",
+      "attributed_actor_names": ["UAT-10147"],
+      "attribution_ja": "Cisco TalosがUAT-10147として追跡した侵害活動に限る。NoodleRATの開発者とは同一視しない。",
+      "attribution_confidence": "high"
+    }
+  ]
+}

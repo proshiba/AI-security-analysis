@@ -1,0 +1,217 @@
+{
+  "id": "bundle--36f8a086-42bb-5fad-93d9-66560c2dbe7b",
+  "objects": [
+    {
+      "aliases": [
+        "Stealc",
+        "StealC Stealer"
+      ],
+      "created": "2026-09-21T00:00:00Z",
+      "description": "2023年初頭から販売される情報窃取マルウェアで、Vidar、Raccoon、Mars系との設計類似を持ち、ブラウザ、ウォレット、拡張機能、任意ファイル等を対象とする。",
+      "external_references": [
+        {
+          "description": "stealc 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/stealc/README.md"
+        },
+        {
+          "description": "AmadeyおよびStealCマルウェアの阻止活動を支援 (nz-stealc-bitsight-2026)",
+          "source_name": "Bitsight",
+          "url": "https://www.bitsight.com/blog/bitsight-aids-disruption-efforts-on-amadey-malware-and-stealc-malware"
+        },
+        {
+          "description": "AmadeyボットネットとStealC情報窃取型を阻止する世界的なEndgame作戦への参加 (nz-stealc-eset-2026)",
+          "source_name": "ESET",
+          "url": "https://www.eset.com/us/about/newsroom/research/eset-takes-part-in-operation-endgame-disrupt-amadey-botnet-and-stealc-infostealer/"
+        },
+        {
+          "description": "ローカルStealC解析結果 (nz-stealc-local)",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/stealc/README.md"
+        },
+        {
+          "description": "StealC：普及が進むVidarとRaccoonの模倣型情報窃取マルウェア 第2部 (nz-stealc-sekoia-2023)",
+          "source_name": "Sekoia",
+          "url": "https://blog.sekoia.io/stealc-a-copycat-of-vidar-and-raccoon-infostealers-gaining-in-popularity-part-2/"
+        },
+        {
+          "description": "StealCの急速な変化を追跡する「I StealC You」 (nz-stealc-zscaler-2025)",
+          "source_name": "Zscaler",
+          "url": "https://www.zscaler.com/blogs/security-research/i-stealc-you-tracking-rapid-changes-stealc"
+        }
+      ],
+      "id": "malware--df098332-2623-578a-bc2f-e5d5225720e0",
+      "is_family": true,
+      "labels": [
+        "business-model:maas"
+      ],
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "name": "StealC",
+      "spec_version": "2.1",
+      "type": "malware"
+    },
+    {
+      "confidence": 50,
+      "content": "開発主体: 地下フォーラムでの販売ハンドルはplymouthで、実名は不明である。BitsightはVidarの後継／派生として説明し、Sekoiaはロシア語圏犯罪エコシステム内の知識・コード流通を評価している。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "AmadeyおよびStealCマルウェアの阻止活動を支援 (nz-stealc-bitsight-2026)",
+          "source_name": "Bitsight",
+          "url": "https://www.bitsight.com/blog/bitsight-aids-disruption-efforts-on-amadey-malware-and-stealc-malware"
+        },
+        {
+          "description": "StealC：普及が進むVidarとRaccoonの模倣型情報窃取マルウェア 第2部 (nz-stealc-sekoia-2023)",
+          "source_name": "Sekoia",
+          "url": "https://blog.sekoia.io/stealc-a-copycat-of-vidar-and-raccoon-infostealers-gaining-in-popularity-part-2/"
+        }
+      ],
+      "id": "note--72252e27-19a7-5c61-9296-4a3051273aaf",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--df098332-2623-578a-bc2f-e5d5225720e0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "提供形態: maas。サブスクリプション型MaaSで、Bitsightは280米ドルから880米ドルの販売レンジを報告している。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "AmadeyおよびStealCマルウェアの阻止活動を支援 (nz-stealc-bitsight-2026)",
+          "source_name": "Bitsight",
+          "url": "https://www.bitsight.com/blog/bitsight-aids-disruption-efforts-on-amadey-malware-and-stealc-malware"
+        }
+      ],
+      "id": "note--ab7be1a4-14d9-5658-8f1f-0b94da89c6d3",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--df098332-2623-578a-bc2f-e5d5225720e0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "特定アクター専用性: 公開根拠からは未確認。利用アクターの存在だけで専用性を推定しない。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "AmadeyおよびStealCマルウェアの阻止活動を支援 (nz-stealc-bitsight-2026)",
+          "source_name": "Bitsight",
+          "url": "https://www.bitsight.com/blog/bitsight-aids-disruption-efforts-on-amadey-malware-and-stealc-malware"
+        }
+      ],
+      "id": "note--9add4613-2ae3-5d20-bf96-832b51e31440",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--df098332-2623-578a-bc2f-e5d5225720e0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "confidence": 80,
+      "content": "利用主体に関する公開報告: StealC MaaSアフィリエイト。MaaS購入者／アフィリエイトが個別配布を担い、既知C2インフラはOperation Endgameの妨害対象となった。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "AmadeyおよびStealCマルウェアの阻止活動を支援 (nz-stealc-bitsight-2026)",
+          "source_name": "Bitsight",
+          "url": "https://www.bitsight.com/blog/bitsight-aids-disruption-efforts-on-amadey-malware-and-stealc-malware"
+        },
+        {
+          "description": "AmadeyボットネットとStealC情報窃取型を阻止する世界的なEndgame作戦への参加 (nz-stealc-eset-2026)",
+          "source_name": "ESET",
+          "url": "https://www.eset.com/us/about/newsroom/research/eset-takes-part-in-operation-endgame-disrupt-amadey-botnet-and-stealc-infostealer/"
+        }
+      ],
+      "id": "note--13acd066-4db7-50eb-8b0f-7045f7c8aa47",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--df098332-2623-578a-bc2f-e5d5225720e0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "攻撃利用履歴（2023年）: 地下市場で広告され、x86、WinINet、multipart送信を使う初期系統が解析された。",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "StealC：普及が進むVidarとRaccoonの模倣型情報窃取マルウェア 第2部 (nz-stealc-sekoia-2023)",
+          "source_name": "Sekoia",
+          "url": "https://blog.sekoia.io/stealc-a-copycat-of-vidar-and-raccoon-infostealers-gaining-in-popularity-part-2/"
+        }
+      ],
+      "id": "note--aaefa6c0-5eb3-5b07-80fa-4d9623519dd7",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--df098332-2623-578a-bc2f-e5d5225720e0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "content": "公開済み2件のcaseに対応する静的比較プロファイルから集計した特徴。件数は観測case数であり、全版共通の断定ではない。\nlayer_chain: root:pe (1件)\ncapabilities: execution:cryptographic_api (1件)",
+      "created": "2026-09-21T00:00:00Z",
+      "external_references": [
+        {
+          "description": "stealc 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/stealc/README.md"
+        },
+        {
+          "description": "静的ロジック比較プロファイル",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/catalog/logic-similarity.json"
+        }
+      ],
+      "id": "note--66ba4f3f-354d-5070-9233-4e56ee30b91c",
+      "lang": "ja",
+      "modified": "2026-09-21T00:00:00Z",
+      "object_refs": [
+        "malware--df098332-2623-578a-bc2f-e5d5225720e0"
+      ],
+      "spec_version": "2.1",
+      "type": "note"
+    },
+    {
+      "created": "2026-09-21T00:00:00Z",
+      "description": "攻撃経路に関連する静的解析と審査済みの公開情報を収録した。",
+      "external_references": [
+        {
+          "description": "stealc 公開静的解析",
+          "source_name": "AI-security-analysis",
+          "url": "https://github.com/proshiba/AI-security-analysis/blob/main/analysis-results/malware/stealc/README.md"
+        }
+      ],
+      "id": "report--4a2fc2da-99fe-57e3-9537-d6c54bbe6155",
+      "lang": "ja",
+      "modified": "2026-09-22T00:00:00Z",
+      "name": "StealC：静的解析・攻撃利用史・OSINT",
+      "object_refs": [
+        "malware--df098332-2623-578a-bc2f-e5d5225720e0",
+        "note--72252e27-19a7-5c61-9296-4a3051273aaf",
+        "note--ab7be1a4-14d9-5658-8f1f-0b94da89c6d3",
+        "note--9add4613-2ae3-5d20-bf96-832b51e31440",
+        "note--13acd066-4db7-50eb-8b0f-7045f7c8aa47",
+        "note--aaefa6c0-5eb3-5b07-80fa-4d9623519dd7",
+        "note--66ba4f3f-354d-5070-9233-4e56ee30b91c"
+      ],
+      "published": "2026-09-22T00:00:00Z",
+      "report_types": [
+        "malware"
+      ],
+      "spec_version": "2.1",
+      "type": "report"
+    }
+  ],
+  "type": "bundle"
+}
