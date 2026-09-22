@@ -72,7 +72,7 @@ pathはrequestではなくoperator CLIで固定します。
       └─ tech-memo                 C:\analysis-lab\intelligence\tech-memo
     private root                   C:\analysis-lab\private
       ├─ 日次ニュース成果物: daily-runs\<run-id>\daily-news-malware\<source-date>\
-      ├─ 日次ニュース静的解析ジョブ: daily-runs\<run-id>\daily-news-malware\static-analysis-jobs\
+      ├─ 日次ニュース静的解析ジョブ: daily-runs\<run-id>\daily-news-malware\j\
       ├─ MalwareBazaar取得元: daily-runs\<run-id>\malwarebazaar-windows-YYYYMMDD-NNNN\source\
       ├─ Ghidra静的解析結果: daily-runs\<run-id>\malwarebazaar-windows-YYYYMMDD-NNNN\ghidra-static-results\
       └─ maxmind\

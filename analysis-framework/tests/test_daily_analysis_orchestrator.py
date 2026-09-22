@@ -1102,8 +1102,26 @@ def test_production_ghidra_generates_static_followup_plan(
     call_order.clear()
     pending = target._production_ghidra(daily_context)
     assert pending.status == "partial"
+    assert pending.retryable is True
     assert captured["input_root"] is None
     assert call_order == ["projection", "followup"]
+
+    monkeypatch.setattr(
+        ghidra_function_batch,
+        "run",
+        lambda _arguments: {
+            "status": "ghidra_chunk_pending",
+            "stop_reason": "program_analysis_incomplete",
+            "retryable": False,
+            "unique_pe_programs": 2,
+            "complete_programs": 1,
+            "pending_programs": ["b" * 64],
+        },
+    )
+    blocked = target._production_ghidra(daily_context)
+    assert blocked.status == "partial"
+    assert blocked.retryable is False
+    assert blocked.result["stop_reason"] == "program_analysis_incomplete"
 
 
 def test_production_ghidra_stops_before_followup_when_projection_fails(

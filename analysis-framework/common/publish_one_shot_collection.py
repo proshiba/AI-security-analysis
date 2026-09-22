@@ -15,7 +15,7 @@ import tempfile
 import time
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 COMMON = Path(__file__).resolve().parent
 REPOSITORY = COMMON.parents[1]
@@ -2780,6 +2780,143 @@ def publish(
             _cleanup_current_process_collection_staging(repository, collection_id)
 
 
+def restore_selected_cases(
+    repository: Path,
+    manifest_path: Path,
+    one_shot_root: Path,
+    collection_id: str,
+    *,
+    expected_contract_sha256: str,
+    expected_one_shot_tree_sha256: str,
+    expected_case_tree_sha256s: Mapping[str, str],
+) -> dict[str, Any]:
+    """検証済みone-shot sourceから指定caseだけを原子的に再投影する。"""
+
+    if COLLECTION_RE.fullmatch(collection_id) is None:
+        raise ValueError("collection IDが不正です")
+    contract_sha256 = normalize_sha256_digest(expected_contract_sha256)
+    one_shot_tree_sha256 = normalize_sha256_digest(expected_one_shot_tree_sha256)
+    observed_one_shot_tree_sha256 = analysis_job_runner.analysis_output_content_sha256(
+        analysis_job_runner.analysis_output_content_manifest(one_shot_root)
+    )
+    if observed_one_shot_tree_sha256 != one_shot_tree_sha256:
+        raise ValueError("one-shot job解析treeのSHA-256 pinが一致しません")
+    if not expected_case_tree_sha256s or len(expected_case_tree_sha256s) > 50:
+        raise ValueError("再投影対象case数が不正です")
+    selected = {
+        normalize_sha256_digest(digest): normalize_sha256_digest(tree_sha)
+        for digest, tree_sha in expected_case_tree_sha256s.items()
+    }
+    if len(selected) != len(expected_case_tree_sha256s):
+        raise ValueError("再投影対象caseが重複しています")
+    results = repository / "analysis-results"
+    collection = results / "collections" / collection_id
+    collection_manifest = load_json_object_strict(collection / "manifest.json")
+    collection_digests = {
+        normalize_sha256_digest(str(item["case_id"]).removeprefix("sha256:"))
+        for item in collection_manifest.get("cases", [])
+        if isinstance(item, Mapping) and isinstance(item.get("case_id"), str)
+    }
+    if not set(selected) <= collection_digests:
+        raise ValueError("再投影対象が既存collectionに含まれません")
+    acquisition = load_json_object_strict(manifest_path)
+    _requested_count, items = _validate_acquisition_manifest_count(acquisition)
+    sources: dict[str, tuple[Path, dict[str, Any], Path]] = {}
+    existing_families = {path.name for path in (results / "malware").iterdir() if path.is_dir()}
+    for item in items:
+        if not isinstance(item, dict):
+            raise ValueError("取得manifest itemが不正です")
+        source, resolved_item = resolve_acquisition_case_source([one_shot_root], item)
+        digest = normalize_sha256_digest(resolved_item.get("sha256"))
+        if digest not in selected:
+            continue
+        if digest in sources:
+            raise ValueError("再投影対象sourceが重複しています")
+        matches = list((results / "malware").glob(f"*/versions/*/cases/{digest}"))
+        if len(matches) != 1 or not matches[0].is_dir():
+            raise ValueError("再投影対象の正規caseが一意ではありません")
+        canonical = matches[0]
+        metadata = load_json_object_strict(canonical / "metadata.json")
+        if metadata.get("sha256") != digest or collection_id not in metadata.get("collections", []):
+            raise ValueError("既存caseのcollection bindingが一致しません")
+        report = load_json_object_strict(canonical / "report.json")
+        integrity_errors = case_integrity_errors(
+            canonical,
+            report,
+            expected_digest=digest,
+            require_resumable=(report.get("case_state") or {}).get("status") == "complete",
+        )
+        if integrity_errors:
+            raise ValueError(f"既存caseのsealed artifact整合性が不正です: {integrity_errors[:3]}")
+        if _case_tree_sha256(canonical) != selected[digest]:
+            raise ValueError("既存case treeのSHA-256 pinが一致しません")
+        source_report, _stage = load_validated_source_report(
+            source, digest, allow_function_staging=True,
+        )
+        contract = source_report.get("analysis_contract")
+        if not isinstance(contract, Mapping) or contract.get("sha256") != contract_sha256:
+            raise ValueError("one-shot解析契約SHA-256が一致しません")
+        expected_family, _basis = choose_family(
+            safe_metadata(resolved_item), source_report, existing_families,
+        )
+        if resolve_catalog_case_path(results, digest, family=expected_family) != canonical:
+            raise ValueError("one-shot sourceの正規case identityが既存公開先と一致しません")
+        sources[digest] = (source, resolved_item, canonical)
+    if set(sources) != set(selected):
+        raise ValueError("指定した全caseの検証済みone-shot sourceが揃いません")
+
+    # 全sourceのcontentを固定してから、case単位のjournal付き原子置換へ進む。
+    with tempfile.TemporaryDirectory(prefix="one-shot-case-restore-") as temporary:
+        temporary_root = Path(temporary)
+        snapshots: list[tuple[Path, dict[str, Any]]] = []
+        for digest in sorted(selected):
+            source = sources[digest][0]
+            before = analysis_job_runner.analysis_output_content_manifest(source)
+            snapshot = temporary_root / digest
+            shutil.copytree(source, snapshot, symlinks=True)
+            copied = analysis_job_runner.analysis_output_content_manifest(snapshot)
+            after = analysis_job_runner.analysis_output_content_manifest(source)
+            if before != copied or before != after:
+                raise ValueError("再投影用one-shot sourceがsnapshot作成中に変化しました")
+            snapshots.append((snapshot, copied))
+        restored: list[dict[str, str]] = []
+        try:
+            for snapshot, expected_manifest in snapshots:
+                _reject_forbidden_publication_names([snapshot])
+                _set_snapshot_tree_read_only(snapshot, read_only=True)
+                if analysis_job_runner.analysis_output_content_manifest(snapshot) != expected_manifest:
+                    raise ValueError("再投影用one-shot snapshotが変化しました")
+            for digest, (snapshot, expected_manifest) in zip(sorted(selected), snapshots, strict=True):
+                _verify_snapshot_expectations({snapshot: expected_manifest})
+                _source, item, canonical = sources[digest]
+                if _case_tree_sha256(canonical) != selected[digest]:
+                    raise ValueError("再投影直前に既存case treeが変化しました")
+                family, destination, _summary = publish_case(
+                    repository, results, collection_id, snapshot, item,
+                    existing_families, allow_function_staging=True,
+                )
+                if destination != canonical or family != canonical.parents[3].name:
+                    raise ValueError("再投影先の正規case identityが変化しました")
+                restored.append({
+                    "sha256": digest,
+                    "old_tree_sha256": selected[digest],
+                    "new_tree_sha256": _case_tree_sha256(destination),
+                })
+            _verify_snapshot_expectations({snapshot: expected for snapshot, expected in snapshots})
+        finally:
+            for snapshot, _expected in snapshots:
+                if snapshot.exists():
+                    _set_snapshot_tree_read_only(snapshot, read_only=False)
+    return {
+        "collection_id": collection_id,
+        "restored_cases": restored,
+        "source_contract_sha256": contract_sha256,
+        "source_tree_sha256": one_shot_tree_sha256,
+        "sample_executed": False,
+        "network_contacted": False,
+    }
+
+
 class JapaneseArgumentParser(argparse.ArgumentParser):
     """argparseの固定見出しを日本語へ置換する。"""
 
@@ -2808,6 +2945,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="全caseで要求するone-shot analysis contractのSHA-256",
     )
     parser.add_argument(
+        "--restore-case",
+        action="append",
+        help="指定caseのみ再投影します。SHA256=現行case tree SHA256を指定します",
+    )
+    parser.add_argument(
+        "--expected-one-shot-tree-sha256",
+        help="再投影時に要求する検証済みone-shot job解析treeのSHA-256",
+    )
+    parser.add_argument(
         "--allow-partial-staging",
         "--allow-function-staging",
         dest="allow_function_staging",
@@ -2830,16 +2976,46 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    result = publish(
-        args.repository.resolve(),
-        args.manifest.resolve(),
-        [path.resolve() for path in args.one_shot],
-        args.collection_id,
-        allow_function_staging=args.allow_function_staging,
-        expected_contract_sha256=args.expected_contract_sha256,
-        post_analysis_resource_scan_observations=args.post_analysis_resource_scan_observations,
-        post_analysis_resource_failures=args.post_analysis_resource_failures,
-    )
+    if args.restore_case:
+        if (
+            len(args.one_shot) != 1
+            or args.expected_contract_sha256 is None
+            or args.expected_one_shot_tree_sha256 is None
+            or args.post_analysis_resource_scan_observations is not None
+            or args.post_analysis_resource_failures != 0
+        ):
+            raise ValueError("指定case再投影にはone-shot source1件とcontract/tree pinが必要です")
+        pins: dict[str, str] = {}
+        for value in args.restore_case:
+            digest, separator, tree_sha = value.partition("=")
+            if not separator:
+                raise ValueError("--restore-caseはSHA256=現行case tree SHA256で指定してください")
+            digest = normalize_sha256_digest(digest)
+            if digest in pins:
+                raise ValueError("--restore-caseに重複SHA-256があります")
+            pins[digest] = normalize_sha256_digest(tree_sha)
+        result = restore_selected_cases(
+            args.repository.resolve(),
+            args.manifest.resolve(),
+            args.one_shot[0].resolve(),
+            args.collection_id,
+            expected_contract_sha256=args.expected_contract_sha256,
+            expected_one_shot_tree_sha256=args.expected_one_shot_tree_sha256,
+            expected_case_tree_sha256s=pins,
+        )
+    else:
+        if args.expected_one_shot_tree_sha256 is not None:
+            raise ValueError("--expected-one-shot-tree-sha256には--restore-caseが必要です")
+        result = publish(
+            args.repository.resolve(),
+            args.manifest.resolve(),
+            [path.resolve() for path in args.one_shot],
+            args.collection_id,
+            allow_function_staging=args.allow_function_staging,
+            expected_contract_sha256=args.expected_contract_sha256,
+            post_analysis_resource_scan_observations=args.post_analysis_resource_scan_observations,
+            post_analysis_resource_failures=args.post_analysis_resource_failures,
+        )
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     return 0
 

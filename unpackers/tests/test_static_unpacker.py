@@ -2462,9 +2462,12 @@ def test_standalone_cli_rejects_raw_password_before_parsing_without_echo(
         lambda *_args, **_kwargs: pytest.fail("raw credentialで解析してはならない"),
     )
 
-    assert unpacker.main(
-        ["--input", "sample.bin", "--output", "report.json", raw_option, secret]
-    ) == 2
+    assert (
+        unpacker.main(
+            ["--input", "sample.bin", "--output", "report.json", raw_option, secret]
+        )
+        == 2
+    )
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err == ""
@@ -2499,15 +2502,18 @@ def test_standalone_invalid_stdin_credential_is_silent_and_fail_closed(
         lambda *_args, **_kwargs: pytest.fail("不正credentialで解析してはならない"),
     )
 
-    assert unpacker.main(
-        [
-            "--input",
-            "private-input-path.bin",
-            "--output",
-            "private-output-path.json",
-            "--archive-password-stdin",
-        ]
-    ) == 2
+    assert (
+        unpacker.main(
+            [
+                "--input",
+                "private-input-path.bin",
+                "--output",
+                "private-output-path.json",
+                "--archive-password-stdin",
+            ]
+        )
+        == 2
+    )
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err == ""
@@ -2618,6 +2624,47 @@ def test_uncompressed_cab_is_preflighted_before_cabarchive() -> None:
     assert report["preflight"]["compression"] == "none"
     assert report["preflight"]["declared_file_total_size"] == len(payload)
     assert artifacts == [("cab-data", payload)]
+
+
+def test_cab_exact_shared_extent_is_allowed_but_partial_overlap_is_rejected() -> None:
+    """同一格納領域のaliasのみ認め、部分重複は展開前に拒否する。"""
+
+    cab = bytearray(
+        synthetic_lzx_cab(
+            (("first.bin", b"payload"), ("second.bin", b"payload")),
+            compression_type=0,
+        )
+    )
+    second_entry = unpacker.CAB_HEADER.size + unpacker.CAB_FOLDER.size
+    second_entry += unpacker.CAB_FILE.size + len("first.bin") + 1
+    struct.pack_into("<I", cab, second_entry + 4, 0)
+    report, artifacts = unpacker.recover_cab_members(bytes(cab))
+    assert report["status"] == "artifacts_recovered"
+    assert len(artifacts) == 2
+    assert artifacts[0][1] == artifacts[1][1] == b"payload"
+
+    struct.pack_into("<I", cab, second_entry + 4, 3)
+    report, artifacts = unpacker.recover_cab_members(bytes(cab))
+    assert report["status"] == "parse_failed"
+    assert report["failure_reason"] == "member_extent_overlap"
+    assert artifacts == []
+
+
+def test_cab_over_default_member_count_selects_only_high_value_member() -> None:
+    """CAB全件照合後も後段へ渡すmember数を有界に保つ。"""
+
+    cab = synthetic_lzx_cab(
+        (("plain.bin", b"plain data"), ("run.ps1", b"Write-Output fixture")),
+        compression_type=0,
+    )
+    report, artifacts = unpacker.recover_cab_members(cab, max_members=1)
+    assert report["status"] == "selectively_extracted"
+    assert report["member_count"] == 2
+    assert report["retained_members"] == 1
+    assert report["selection_complete"] is False
+    assert len(artifacts) == 1
+    assert report["executed"] is False
+    assert report["network_contacted"] is False
 
 
 def test_non_lzx_budget_failure_happens_before_cabarchive(

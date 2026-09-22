@@ -2398,6 +2398,158 @@ def test_publish_case_helper_failure_preserves_existing_case_byte_identical(
     assert not any(path.name.startswith(prefix) for path in destination.parent.iterdir())
 
 
+def test_restore_selected_cases_uses_pinned_one_shot_and_case_transaction(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """Ghidra後処理失敗caseだけを検証済みone-shotへ戻し、他caseへ触れない。"""
+
+    tmp_path = tmp_path_factory.mktemp("rs")
+    digest = "9" * 64
+    other = "8" * 64
+    source, source_report = valid_source_case(tmp_path, digest)
+    publisher.write_json(
+        source / "static-logic.json",
+        static_logic.build_static_logic_report(
+            sha256=digest, family="unclassified", source_name="sample.bin",
+        ),
+    )
+    publisher.reseal_canonical_report(source, source_report)
+    one_shot_root = tmp_path / "one-shot"
+    (one_shot_root / "cases").mkdir(parents=True)
+    shutil.copytree(source, one_shot_root / "cases" / digest)
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    _family, destination, _summary = publisher.publish_case(
+        repository, repository / "analysis-results", "restore-fixture",
+        source, {"sha256": digest, "metadata": {}}, {"unclassified"},
+    )
+    other_case = repository / "analysis-results" / "malware" / "unclassified" / "versions" / "unknown" / "cases" / other
+    other_case.mkdir(parents=True)
+    (other_case / "sentinel.txt").write_text("保持", encoding="utf-8")
+    collection = repository / "analysis-results" / "collections" / "restore-fixture"
+    collection.mkdir(parents=True)
+    publisher.write_json(collection / "manifest.json", {
+        "cases": [{"case_id": f"sha256:{digest}"}],
+    })
+    acquisition = tmp_path / "acquisition.json"
+    publisher.write_json(acquisition, {
+        "complete": True, "downloaded": 1, "requested": 1,
+        "items": [{"sha256": digest}],
+    })
+    # 現行公開成果物だけを別のsealed stateへ変え、one-shotとは異なることを示す。
+    (destination / "STATIC-LOGIC.md").write_text("# Ghidra入口未確認\n", encoding="utf-8")
+    publisher.reseal_canonical_report(
+        destination, publisher.load_json(destination / "report.json"),
+        expected_digest=digest,
+    )
+    old_tree = publisher._case_tree_sha256(destination)
+    other_before = publisher._case_tree_sha256(other_case)
+
+    restored = publisher.restore_selected_cases(
+        repository, acquisition, one_shot_root, "restore-fixture",
+        expected_contract_sha256="b" * 64,
+        expected_one_shot_tree_sha256=publisher._case_tree_sha256(one_shot_root),
+        expected_case_tree_sha256s={digest: old_tree},
+    )
+
+    assert [item["sha256"] for item in restored["restored_cases"]] == [digest]
+    assert restored["restored_cases"][0]["old_tree_sha256"] == old_tree
+    assert publisher._case_tree_sha256(destination) == restored["restored_cases"][0]["new_tree_sha256"]
+    assert (destination / "STATIC-LOGIC.md").read_text(encoding="utf-8") != "# Ghidra入口未確認\n"
+    assert publisher._case_tree_sha256(other_case) == other_before
+    assert not publisher._publication_journal_path(destination).exists()
+    current = publisher.load_json(destination / "report.json")
+    assert analysis_contract.case_integrity_errors(
+        destination, current, expected_digest=digest, require_resumable=False,
+    ) == []
+
+
+def test_restore_selected_cases_rejects_changed_public_tree_without_write(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """現行case treeのpinが違えば、sourceの読込後でも公開を変更しない。"""
+
+    tmp_path = tmp_path_factory.mktemp("rr")
+    digest = "a" * 64
+    source, source_report = valid_source_case(tmp_path, digest)
+    publisher.write_json(
+        source / "static-logic.json",
+        static_logic.build_static_logic_report(
+            sha256=digest, family="unclassified", source_name="sample.bin",
+        ),
+    )
+    publisher.reseal_canonical_report(source, source_report)
+    one_shot_root = tmp_path / "one-shot"
+    (one_shot_root / "cases").mkdir(parents=True)
+    shutil.copytree(source, one_shot_root / "cases" / digest)
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    _family, destination, _summary = publisher.publish_case(
+        repository, repository / "analysis-results", "restore-fixture",
+        source, {"sha256": digest, "metadata": {}}, {"unclassified"},
+    )
+    collection = repository / "analysis-results" / "collections" / "restore-fixture"
+    collection.mkdir(parents=True)
+    publisher.write_json(collection / "manifest.json", {
+        "cases": [{"case_id": f"sha256:{digest}"}],
+    })
+    acquisition = tmp_path / "acquisition.json"
+    publisher.write_json(acquisition, {
+        "complete": True, "downloaded": 1, "requested": 1,
+        "items": [{"sha256": digest}],
+    })
+    before = publisher._case_tree_sha256(destination)
+
+    with pytest.raises(ValueError, match="SHA-256 pin"):
+        publisher.restore_selected_cases(
+            repository, acquisition, one_shot_root, "restore-fixture",
+            expected_contract_sha256="b" * 64,
+            expected_one_shot_tree_sha256=publisher._case_tree_sha256(one_shot_root),
+            expected_case_tree_sha256s={digest: "0" * 64},
+        )
+
+    assert publisher._case_tree_sha256(destination) == before
+
+
+def test_restore_selected_cases_cli_requires_exact_pins(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """復旧CLIはcaseとsource jobのhash pinをそのまま正規関数へ渡す。"""
+
+    digest = "1" * 64
+    tree_sha256 = "2" * 64
+    captured: dict[str, object] = {}
+
+    def restore(*args: object, **kwargs: object) -> dict[str, object]:
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+        return {"restored_cases": []}
+
+    monkeypatch.setattr(publisher, "restore_selected_cases", restore)
+    arguments = [
+        "--repository", str(tmp_path / "repository"),
+        "--manifest", str(tmp_path / "manifest.json"),
+        "--one-shot", str(tmp_path / "analysis"),
+        "--collection-id", "restore-fixture",
+        "--restore-case", f"{digest}={tree_sha256}",
+    ]
+    with pytest.raises(ValueError, match="contract/tree pin"):
+        publisher.main(arguments)
+    assert captured == {}
+
+    assert publisher.main([
+        *arguments,
+        "--expected-contract-sha256", "3" * 64,
+        "--expected-one-shot-tree-sha256", "4" * 64,
+    ]) == 0
+    assert captured["kwargs"] == {
+        "expected_contract_sha256": "3" * 64,
+        "expected_one_shot_tree_sha256": "4" * 64,
+        "expected_case_tree_sha256s": {digest: tree_sha256},
+    }
+
+
 def test_collection_publication_cleanup_removes_only_current_process_staging(
     tmp_path: Path,
 ) -> None:

@@ -58,6 +58,12 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Pat
             ]
         },
     )
+    (collection / "README.md").write_text(
+        "# 日次collection\n\n## 静的ロジック状態\n\n| 状態 | 件数 |\n|---|---:|\n"
+        "| `function_analysis_required` | 1 |\n\n"
+        "個別のPE構造、静的ロジックは各ケースに記録しています。\n",
+        encoding="utf-8",
+    )
     _write(
         case / "report.json",
         {
@@ -127,6 +133,9 @@ def test_check_then_atomic_write(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     updated = target.synchronize_collection_projection(repository, collection, write=True)
     assert updated["status"] == "updated"
     assert updated["check_passed"] is True
+    readme = (collection / "README.md").read_text(encoding="utf-8")
+    assert "- 代表関数解析完了case: `1`" in readme
+    assert "代表関数解析保留case" not in readme
     after = target.synchronize_collection_projection(repository, collection, check=True)
     assert after == {
         "status": "current",
@@ -135,6 +144,103 @@ def test_check_then_atomic_write(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
         "write_performed": False,
         "check_passed": True,
     }
+
+
+def test_partial_readme_projection_counts_pending_and_preserves_other_sections(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """関数未確認caseを完了扱いせず、READMEの他節を維持する。"""
+
+    repository, collection, case = _fixture(tmp_path, monkeypatch)
+    logic_path = case / "static-logic.json"
+    logic = json.loads(logic_path.read_text(encoding="utf-8"))
+    logic["status"] = "function_analysis_required"
+    _write(logic_path, logic)
+    before = (collection / "README.md").read_text(encoding="utf-8")
+    assert target.synchronize_collection_projection(repository, collection, check=True)["stale_files"] == [
+        "manifest.json", "publication-summary.json", "README.md"
+    ]
+    target.synchronize_collection_projection(repository, collection, write=True)
+    readme = (collection / "README.md").read_text(encoding="utf-8")
+    assert "- 代表関数解析完了case: `0`" in readme
+    assert "- 代表関数解析保留case: `1`" in readme
+    assert "保留caseの関数本体は未確認です。" in readme
+    assert readme.split("## 静的ロジック状態", 1)[0] == before.split("## 静的ロジック状態", 1)[0]
+    assert "個別のPE構造、静的ロジックは各ケースに記録しています。" in readme
+    assert target.synchronize_collection_projection(repository, collection, check=True)["status"] == "current"
+
+
+def test_readme_projection_exactly_48_complete_two_pending() -> None:
+    """本番と同じ48/2内訳をREADMEへ決定的に描画する。"""
+
+    summary = {
+        "static_logic_status": {
+            "characteristic_function_static_analysis_complete": 45,
+            "characteristic_function_static_analysis_complete_with_documented_limits": 3,
+            "function_analysis_required": 2,
+        },
+        "function_analysis": {
+            "unique_pe_programs": 56,
+            "discovered_function_inventory_count": 15772,
+            "characteristic_function_selected_count": 617,
+            "unselected_function_count": 15155,
+            "ghidra_function_inventory_count": 10614,
+            "managed_method_inventory_count": 5158,
+            "ghidra_programs_with_valid_mcp_responses": 56,
+            "characteristic_function_attempted_count": 617,
+            "decompilation_succeeded_count": 560,
+            "decompilation_limited_or_failed_count": 57,
+        },
+    }
+    source = (
+        "# 日次collection\n\n## 静的ロジック状態\n\n- 代表関数解析完了case: `50`\n\n"
+        "個別のPE構造、静的ロジックは各ケースに記録しています。\n"
+    ).encode()
+    readme = target._readme_bytes(source, summary, 50).decode("utf-8")
+    assert "- 代表関数解析完了case: `48`" in readme
+    assert "- 代表関数解析保留case: `2`" in readme
+    assert "- Ghidra／CILプログラム: `56`件の固有PE" in readme
+    assert "- 発見関数／メソッドinventory: `15772`" in readme
+    assert target._readme_bytes(readme.encode("utf-8"), summary, 50) == readme.encode("utf-8")
+
+
+def test_complete_readme_keeps_existing_ghidra_display() -> None:
+    """全件の関数解析完了時は従来の表示とbyte単位で一致する。"""
+
+    summary = {
+        "static_logic_status": {"characteristic_function_static_analysis_complete": 1},
+        "function_analysis": {
+            "unique_pe_programs": 1,
+            "discovered_function_inventory_count": 10,
+            "characteristic_function_selected_count": 2,
+            "unselected_function_count": 8,
+            "ghidra_function_inventory_count": 10,
+            "managed_method_inventory_count": 0,
+            "ghidra_programs_with_valid_mcp_responses": 1,
+            "characteristic_function_attempted_count": 2,
+            "decompilation_succeeded_count": 1,
+            "decompilation_limited_or_failed_count": 1,
+        },
+    }
+    source = (
+        "# 日次collection\n\n## 静的ロジック状態\n\n"
+        "- 代表関数解析完了case: `1`\n"
+        "- Ghidra／CILプログラム: `1`件の固有PE\n"
+        "- 発見関数／メソッドinventory: `10`\n"
+        "- 代表関数: `2`\n"
+        "- 選定外関数: `8`\n"
+        "- Ghidra関数: `10`\n"
+        "- managedメソッド: `0`\n"
+        "- MCP成功証跡付きプログラム: `1`\n"
+        "- 逆コンパイル／CIL解析試行: `2`\n"
+        "- 成功: `1`\n"
+        "- 制約付き／失敗: `1`\n\n"
+        "全関数inventoryを保持しつつ、特徴的な代表関数を選定して解析しました。\n"
+        "各caseのSTATIC-LOGIC.mdに関数解説、OVERALL-LOGIC.mdに全体処理を記録しています。\n"
+        "生の逆コンパイル本文とCIL命令列はリポジトリ外へ保持しています。\n\n"
+        "個別のPE構造、静的ロジックは各ケースに記録しています。\n"
+    ).encode()
+    assert target._readme_bytes(source, summary, 1) == source
 
 
 def test_write_rejects_changed_input_without_partial_update(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -184,6 +290,28 @@ def test_second_replace_failure_rolls_back_first_file(monkeypatch: pytest.Monkey
         )
     assert manifest_path.read_bytes() == before[manifest_path]
     assert summary_path.read_bytes() == before[summary_path]
+
+
+def test_readme_replace_failure_rolls_back_all_outputs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """README置換に失敗しても先行するJSON集計を復元する。"""
+
+    repository, collection, _case = _fixture(tmp_path, monkeypatch)
+    paths = [collection / name for name in ("manifest.json", "publication-summary.json", "README.md")]
+    before = {path: path.read_bytes() for path in paths}
+    real_replace = target.os.replace
+    failed = False
+
+    def fail_readme_once(source: str | Path, destination: str | Path) -> None:
+        nonlocal failed
+        if Path(destination) == paths[-1] and not failed:
+            failed = True
+            raise OSError("fixture README replace failure")
+        real_replace(source, destination)
+
+    monkeypatch.setattr(target.os, "replace", fail_readme_once)
+    with pytest.raises(OSError, match="README replace failure"):
+        target.synchronize_collection_projection(repository, collection, write=True)
+    assert all(path.read_bytes() == before[path] for path in paths)
 
 
 def test_post_write_verification_failure_rolls_back_both_files(
