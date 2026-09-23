@@ -115,12 +115,51 @@ def test_build_collection_projection_refreshes_case_and_top_level(
     assert item["function_analysis"]["discovered_function_inventory_count"] == 10
     assert summary["case_state_counts"] == {"partial": 1}
     assert summary["case_blocker_counts"] == {"terminal": 1}
+    assert summary["family_attribution_status"] == {
+        "provider_reported_not_statically_confirmed": 1
+    }
     assert summary["static_logic_status"] == {
         "characteristic_function_static_analysis_complete_with_documented_limits": 1
     }
     assert summary["function_analysis"]["unique_pe_programs"] == 1
     assert manifest["analysis_complete"] is False
     assert manifest["complete"] is False
+
+
+def test_build_collection_projection_downgrades_legacy_na_signature(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """旧公開物のn/a provider帰属を未解決へ戻し、raw signatureは保持する。"""
+
+    repository, collection, _case = _fixture(tmp_path, monkeypatch)
+    summary_path = collection / "publication-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["cases"][0].update(
+        {
+            "attribution_basis": "unsupported_reported_signature",
+            "reported_signature": " N/A ",
+            "provider_reported_label": "N/A",
+            "provider_reported_family": None,
+            "family_attribution_status": "provider_reported_not_statically_confirmed",
+            "family_role": "provider_reported_grouping",
+        }
+    )
+    summary["family_attribution_status"] = {
+        "provider_reported_not_statically_confirmed": 1
+    }
+    _write(summary_path, summary)
+
+    projected = target.build_collection_projection(repository, collection)["summary"]
+    item = projected["cases"][0]
+
+    assert item["attribution_basis"] == "no_supported_family_evidence"
+    assert item["family_attribution_status"] == "unresolved"
+    assert item["family_role"] == "unclassified_grouping"
+    assert item["provider_reported_label"] is None
+    assert item["provider_reported_family"] is None
+    assert item["statically_confirmed_family"] is None
+    assert item["reported_signature"] == " N/A "
+    assert projected["family_attribution_status"] == {"unresolved": 1}
 
 
 def test_check_then_atomic_write(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -447,3 +486,24 @@ def test_provider_fields_require_empty_static_family_selection() -> None:
         {"attribution_basis": "malwarebazaar_reported_signature"},
     )
     assert result == {}
+
+
+def test_provider_projection_treats_legacy_na_signature_as_unresolved() -> None:
+    """旧summaryのn/aをprovider-onlyへ再昇格しない。"""
+
+    result = target._provider_attribution_projection(
+        {"classification": {"selected_families": []}},
+        {
+            "attribution_basis": "unsupported_reported_signature",
+            "reported_signature": " n/A ",
+        },
+    )
+
+    assert result == {
+        "attribution_basis": "no_supported_family_evidence",
+        "family_attribution_status": "unresolved",
+        "provider_reported_label": None,
+        "provider_reported_family": None,
+        "statically_confirmed_family": None,
+        "family_role": "unclassified_grouping",
+    }

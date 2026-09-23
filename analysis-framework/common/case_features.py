@@ -67,6 +67,20 @@ PROCESS_CREATION_MARKERS = (
     "winexec",
     "system.diagnostics.process.start",
 )
+COMMAND_LINE_RECOVERY_FALLBACK = "not_recovered_from_published_static_evidence"
+COMMAND_LINE_RECOVERY_STATUSES = frozenset(
+    {
+        "confirmed_null",
+        "recovered_literal",
+        "runtime_derived",
+    }
+)
+COMMAND_LINE_RECOVERY_NOTES = {
+    "confirmed_null": "lpCommandLineがNULLであることを公開静的証拠で確認しました。",
+    "recovered_literal": "固定コマンドliteralを公開静的証拠で復元しました。値は元の解析証拠を参照してください。",
+    "runtime_derived": "コマンドラインは実行時に導出されるため、単一の固定literalではありません。",
+    COMMAND_LINE_RECOVERY_FALLBACK: "固定コマンドは公開静的証拠から復元できていません。",
+}
 
 
 @dataclass(frozen=True)
@@ -558,6 +572,23 @@ def _assessment(
     }
 
 
+def _process_command_line_projection(analysis: Mapping[str, Any]) -> tuple[bool, str]:
+    """Ghidra挙動証拠から公開可能なcommand line復元状態だけを返す。"""
+
+    ghidra_behavior = analysis.get("ghidra_behavior_evidence")
+    process_evidence = (
+        ghidra_behavior.get("process_creation")
+        if isinstance(ghidra_behavior, Mapping)
+        else None
+    )
+    if not isinstance(process_evidence, Mapping):
+        return False, COMMAND_LINE_RECOVERY_FALLBACK
+    candidate_status = process_evidence.get("command_line_recovery_status")
+    if isinstance(candidate_status, str) and candidate_status in COMMAND_LINE_RECOVERY_STATUSES:
+        return True, candidate_status
+    return True, COMMAND_LINE_RECOVERY_FALLBACK
+
+
 def build_case_profile(
     case_dir: Path, history_entry: Mapping[str, Any] | None = None
 ) -> dict[str, Any]:
@@ -655,6 +686,7 @@ def build_case_profile(
         isinstance(hint, Mapping) and hint.get("capability") == "process_creation"
         for hint in analysis.get("capability_hints") or []
     )
+    process_evidence_present, command_line_recovery_status = _process_command_line_projection(analysis)
     process_functions = []
     for function in static_logic.get("functions") or []:
         if not isinstance(function, Mapping):
@@ -671,16 +703,17 @@ def build_case_profile(
             for marker in PROCESS_CREATION_MARKERS
         ):
             process_functions.append(str(function.get("function_id") or function.get("name") or "unknown"))
-    if process_hint_present or process_functions:
+    if process_hint_present or process_functions or process_evidence_present:
         profile["process_creation_assessment"] = {
             "status": "static_process_creation_evidence_present",
             "execution_route_status": "entry_to_process_creation_route_not_fully_recovered",
-            "fixed_command_recovery_status": "not_recovered_from_published_static_evidence",
+            "fixed_command_recovery_status": command_line_recovery_status,
             "function_ids": sorted(set(process_functions)),
             "import_or_capability_hint_present": process_hint_present,
             "note_ja": (
-                "process creation APIまたは関数は静的に確認しましたが、入口からの完全な実行経路と"
-                "固定コマンドは公開静的証拠から復元できていません。"
+                "process creation APIまたは関数は静的に確認しましたが、入口からの完全な実行経路は"
+                "未確定です。"
+                f"{COMMAND_LINE_RECOVERY_NOTES[command_line_recovery_status]}"
             ),
         }
     return profile
@@ -783,13 +816,18 @@ def render_features_markdown(profile: Mapping[str, Any]) -> str:
         lines.extend(f"- {item}" for item in assessment["next_actions"])
     process_creation = profile.get("process_creation_assessment")
     if isinstance(process_creation, Mapping):
+        command_line_status = str(
+            process_creation.get("fixed_command_recovery_status") or ""
+        )
+        if command_line_status not in COMMAND_LINE_RECOVERY_NOTES:
+            command_line_status = COMMAND_LINE_RECOVERY_FALLBACK
         lines.extend(
             [
                 "",
                 "## プロセス生成の静的確認状態",
                 "",
                 "- 実行経路: process creation APIまたは関数への静的到達性は確認しましたが、入口からの完全な経路は未確定です。",
-                "- 固定コマンドの復元状態: 公開静的証拠からは復元できておらず、追加追跡が必要です。",
+                f"- 固定コマンドの復元状態: {COMMAND_LINE_RECOVERY_NOTES[command_line_status]}",
             ]
         )
     lines.extend(

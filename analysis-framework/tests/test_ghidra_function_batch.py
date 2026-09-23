@@ -3044,9 +3044,12 @@ def test_7cea_behavior_projection_records_exact_drop_and_process_values(
     assert "execution:process_creation" in behavior_ids
     assert child in behaviors["execution:embedded_pe_drop_launch"]["evidence"]
     assert r"C:\Users\Public\agentttttttt_extracted.exe" in behaviors["execution:embedded_pe_drop_launch"]["evidence"]
+    assert profile["process_creation_assessment"]["fixed_command_recovery_status"] == "confirmed_null"
     rendered_features = target.render_features_markdown(profile)
     assert child in rendered_features
     assert "34,481,675 bytes" in rendered_features
+    assert "lpCommandLineがNULL" in rendered_features
+    assert "公開静的証拠から復元できていません" not in rendered_features
 
 
 def test_screenconnect_projection_records_exact_launcher_templates(

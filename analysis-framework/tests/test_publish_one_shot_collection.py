@@ -307,6 +307,44 @@ def test_choose_family_is_conservative_for_provider_labels() -> None:
     )
 
 
+@pytest.mark.parametrize("reported_label", ["n/a", " N/A ", "n/A"])
+def test_choose_family_treats_exact_na_signature_as_missing(reported_label: str) -> None:
+    """MalwareBazaarのn/aはprovider帰属ではなく欠損値として扱う。"""
+
+    assert publisher.choose_family(
+        {"signature": reported_label, "tags": []},
+        report(),
+        {"efimer", "unclassified"},
+    ) == ("unclassified", "no_supported_family_evidence")
+
+
+def test_na_signature_does_not_hide_supported_direct_tag() -> None:
+    """signature欠損時も独立した対応済みtag候補は評価する。"""
+
+    assert publisher.choose_family(
+        {"signature": " N/A ", "tags": ["Efimer"]},
+        report(),
+        {"efimer", "unclassified"},
+    ) == ("efimer", "malwarebazaar_direct_tag")
+
+
+def test_na_signature_does_not_create_provider_attribution() -> None:
+    """rawのn/aをprovider報告familyまたはlabelへ昇格しない。"""
+
+    attribution = publisher.build_family_attribution(
+        "unclassified",
+        "no_supported_family_evidence",
+        {"signature": " N/A ", "tags": ["exe"]},
+    )
+
+    assert attribution["status"] == "unresolved"
+    assert attribution["catalog_family_role"] == "unclassified_grouping"
+    assert attribution["provider_reported_label"] is None
+    assert attribution["provider_reported_family"] is None
+    assert attribution["statically_confirmed_family"] is None
+    assert attribution["supports_attribution"] is False
+
+
 @pytest.mark.parametrize(
     ("reported_label", "family"),
     [("Vidar", "vidar"), ("RemusStealer", "remusstealer")],

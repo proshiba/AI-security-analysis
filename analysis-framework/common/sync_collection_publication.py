@@ -28,6 +28,7 @@ from analysis_contract import (
     load_json_object_strict,
 )
 from c2_analysis_contract import validate_contract as validate_c2_contract
+from malwarebazaar_family_labels import is_reported_name_placeholder
 from validate_function_analysis import COMPLETE_STATUSES
 from validate_function_analysis import validate_case as validate_function_case
 
@@ -228,6 +229,15 @@ def _provider_attribution_projection(
         or "provider" in basis
         or "プロバイダ" in basis
     )
+    if selected == [] and is_reported_name_placeholder(summary_item.get("reported_signature")):
+        return {
+            "attribution_basis": "no_supported_family_evidence",
+            "family_attribution_status": "unresolved",
+            "provider_reported_label": None,
+            "provider_reported_family": None,
+            "statically_confirmed_family": None,
+            "family_role": "unclassified_grouping",
+        }
     if selected == [] and provider_basis:
         return {
             "family_attribution_status": "provider_reported_not_statically_confirmed",
@@ -372,6 +382,11 @@ def build_collection_projection(repository: Path, collection_dir: Path) -> dict[
     }
     manifest_expected.update({**common, "complete": all_complete})
     summary_expected.update(common)
+    attribution_status_counts = Counter(
+        str(expected_items[digest].get("family_attribution_status") or "unresolved")
+        for digest in requested
+    )
+    summary_expected["family_attribution_status"] = dict(sorted(attribution_status_counts.items()))
     summary_expected["static_logic_status"] = dict(sorted(status_counts.items()))
     summary_expected["function_analysis"] = {
         "root_cases": len(requested),
