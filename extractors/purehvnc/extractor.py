@@ -18,6 +18,12 @@ from extractors.common import build_result, extract_strings, sha256_bytes
 from extractors.managed_pe import has_clr_metadata
 
 
+HANDLER_CONTRACT = {
+    "input_formats": ["pe"],
+    "minimum_evidence_score": 1,
+}
+
+
 class _ManagedMetadataError(ValueError):
     def __init__(self, reason: str) -> None:
         self.reason = reason

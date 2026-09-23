@@ -14,6 +14,7 @@ _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 _DOMAIN = re.compile(r"(?=.{1,253}\Z)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+\Z")
 _SELF_LABEL = re.compile(r"\s*(bwrat|dcrat|asyncrat|venomrat)\b", re.IGNORECASE)
 _KNOWN_PROFILES = frozenset({"dcrat", "asyncrat", "venomrat"})
+_MAX_INPUT_RECORDS = 256
 _MAX_RECORDS = 64
 _MAX_ENDPOINTS = 64
 
@@ -32,10 +33,54 @@ def _host(value: object) -> str | None:
         return host if _DOMAIN.fullmatch(host) else None
 
 
+def _candidate_execution_valid(record: Mapping[str, Any], assessed: Mapping[str, Any]) -> bool:
+    """family帰属とは分離してcandidate handlerの品質宣言を再検証する。"""
+
+    if assessed.get("succeeded") is True:
+        return True
+    if (
+        record.get("source") != "candidate_verification"
+        or record.get("status")
+        not in {"corroborated", "handler_evidence_without_detector", "handler_evidence_route_only"}
+    ):
+        return False
+    declared = record.get("handler_evidence")
+    computed = assessed.get("quality")
+    return bool(
+        isinstance(declared, Mapping)
+        and isinstance(computed, Mapping)
+        and declared.get("sufficient") is True
+        and computed.get("sufficient") is True
+        and type(declared.get("tier")) is int
+        and type(declared.get("score")) is int
+        and declared.get("tier") == computed.get("tier")
+        and declared.get("score") == computed.get("score")
+    )
+
+
+def _authenticated_config_shape(record: Mapping[str, Any]) -> bool:
+    """上限計数前にHMAC設定候補になり得ない試行を安価に除外する。"""
+
+    wrapper = record.get("result")
+    result = wrapper.get("result") if isinstance(wrapper, Mapping) else None
+    evidence = result.get("static_evidence") if isinstance(result, Mapping) else None
+    config = result.get("config") if isinstance(result, Mapping) else None
+    crypto = config.get("crypto_profile") if isinstance(config, Mapping) else None
+    return bool(
+        isinstance(evidence, Mapping)
+        and evidence.get("authentication") == "hmac_sha256"
+        and isinstance(config, Mapping)
+        and config.get("static_config_recovered") is True
+        and isinstance(crypto, Mapping)
+        and crypto.get("authentication") == "HMAC-SHA256"
+    )
+
+
 def _validated_candidate(record: Mapping[str, Any]) -> dict[str, Any] | None:
     """HMAC検証済み設定だけを、秘密値なしの構成候補へ変換する。"""
 
-    if not orchestration_outcome.assess_handler_record(record)["succeeded"]:
+    assessed = orchestration_outcome.assess_handler_record(record)
+    if not _candidate_execution_valid(record, assessed):
         return None
     profile = record.get("family")
     wrapper = record.get("result")
@@ -115,12 +160,17 @@ def build_document(*, sha256: str, handler_records: Sequence[Mapping[str, Any]])
 
     if _sha(sha256) is None:
         raise ValueError("root SHA-256が不正です")
-    if len(handler_records) > _MAX_RECORDS:
-        raise ValueError("handler record数が安全上限を超えています")
+    if len(handler_records) > _MAX_INPUT_RECORDS:
+        raise ValueError("handler input record数が安全上限を超えています")
+    candidate_records = [
+        record
+        for record in handler_records
+        if isinstance(record, Mapping) and _authenticated_config_shape(record)
+    ]
+    if len(candidate_records) > _MAX_RECORDS:
+        raise ValueError("認証済み設定候補record数が安全上限を超えています")
     unique: dict[tuple[str, str], dict[str, Any]] = {}
-    for record in handler_records:
-        if not isinstance(record, Mapping):
-            continue
+    for record in candidate_records:
         candidate = _validated_candidate(record)
         if candidate is not None:
             unique[(candidate["source_profile"], candidate["terminal_layer_sha256"])] = candidate

@@ -394,21 +394,20 @@ def test_unselected_overlap_and_path_collision_fail_closed() -> None:
 
 
 def test_retention_count_and_size_budgets_are_fail_closed() -> None:
-    scripts = [(f"script_{index:03d}", b"x", True, "s") for index in range(130)]
+    scripts = [(f"script_{index:03d}", b"x", True, "s") for index in range(258)]
     result = target.analyze_carchive_bytes(build_carchive(scripts))
-    assert len(result.recovered_entries) == 128
+    assert len(result.recovered_entries) == 256
     assert result.report["complete"] is False
     assert result.report["selection"]["excluded_candidate_counts"] == {"retained_entry_limit": 2}
 
-    with pytest.raises(ValueError, match="128以下"):
-        target.analyze_carchive_bytes(build_carchive(scripts[:1]), max_retained_entries=129)
+    with pytest.raises(ValueError, match="256以下"):
+        target.analyze_carchive_bytes(build_carchive(scripts[:1]), max_retained_entries=257)
     with pytest.raises(ValueError, match="128以下"):
         target.extract_selected_entries_from_bytes(
             build_carchive(scripts),
             prefixes=("script_",),
             max_files=129,
         )
-
     sample = build_carchive(
         [
             ("a", b"A" * 10, False, "s"),
@@ -428,6 +427,23 @@ def test_retention_count_and_size_budgets_are_fail_closed() -> None:
         "entry_compressed_size_limit": 1,
         "total_compressed_size_limit": 1,
     }
+
+
+def test_default_retention_covers_large_bounded_priority_set() -> None:
+    """1,158 entry中194候補を全保持し、日次実例の128件切捨てを防ぐ。"""
+
+    scripts = [(f"script_{index:03d}", b"x", True, "s") for index in range(194)]
+    bulk = [(f"bulk/data_{index:04d}.dat", b"y", True, "x") for index in range(964)]
+    result = target.analyze_carchive_bytes(build_carchive([*scripts, *bulk]))
+
+    assert len(result.recovered_entries) == 194
+    assert result.report["complete"] is True
+    assert result.report["selection"]["retained_count"] == 194
+    assert result.report["selection"]["non_candidate_count"] == 964
+    assert result.report["selection"]["excluded_candidate_counts"] == {}
+    assert result.report["selection"]["limits"]["max_retained_entries"] == 256
+    assert result.report["content_validation"]["validated_entry_count"] == 1_158
+    assert result.report["content_validation"]["discarded_after_validation_count"] == 964
 
 
 def test_corrupt_zlib_eof_and_declared_sizes_fail_closed() -> None:

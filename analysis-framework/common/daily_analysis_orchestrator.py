@@ -5387,7 +5387,7 @@ def _add_context_arguments(parser: argparse.ArgumentParser, *, request_required:
     parser.add_argument(
         "--trusted-tools-manifest",
         type=Path,
-        help="operator管理の信頼済みUPX／7zz manifest。request JSONからは指定できません",
+        help="operator管理の信頼済みUPX／7zz／innounp manifest。request JSONからは指定できません",
     )
     parser.add_argument(
         "--trusted-tools-manifest-sha256",

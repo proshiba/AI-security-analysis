@@ -776,6 +776,21 @@ def _public_candidate_layer(layer: StaticLayer) -> dict[str, Any]:
     return public
 
 
+def _candidate_layer_semantic_priority(layer: StaticLayer) -> int:
+    """PyInstallerの実ロジック候補を同梱dependency PEより先に保持する。"""
+
+    transform = layer.transform.casefold()
+    if transform.startswith("pyinstaller-python_script-"):
+        return 0
+    if transform.startswith("pyinstaller-python_module-"):
+        return 1
+    if transform.startswith("pyinstaller-pyz_archive-"):
+        return 2
+    if transform.startswith("pyinstaller-pe_name_candidate-"):
+        return 4
+    return 3
+
+
 def _sanitize_candidate_assessment_layers(result: dict[str, Any]) -> None:
     """解析時のraw layer名を変えず、公開layer監査情報だけを個別に無害化する。"""
 
@@ -935,14 +950,16 @@ def _candidate_handler_assessment(
         else:
             compatible_layers.append((index, layer, actual_format, compatible_pair_count))
 
-    def order_key(item: tuple[int, StaticLayer, str, int]) -> tuple[int, int, int]:
+    def order_key(item: tuple[int, StaticLayer, str, int]) -> tuple[int, int, int, int, int]:
         return (
+            0 if item[3] else 1,
             0 if item[1].sha256 in supported_hashes else 1,
+            _candidate_layer_semantic_priority(item[1]),
             item[1].depth,
             item[0],
         )
 
-    ordered = sorted(compatible_layers, key=order_key) + sorted(lineage_only_layers, key=order_key)
+    ordered = sorted([*compatible_layers, *lineage_only_layers], key=order_key)
     selected: list[tuple[int, StaticLayer, str, int]] = []
     total_size = 0
     for item in ordered:
@@ -1468,6 +1485,28 @@ INCOMPLETE_STATIC_STATUS_TOKENS = (
     "truncated",
     "unavailable",
 )
+STRUCTURAL_RECOVERY_BLOCKERS = frozenset(
+    {
+        "archive_extraction_incomplete",
+        "archive_extractor_not_run",
+        "archive_inventory_contains_blocked_entries",
+        "archive_inventory_not_fully_retained",
+        "dotnet_resource_inventory_contains_blocked_entries",
+        "dotnet_resource_recovery_incomplete",
+        "embedded_pe_fanout_scan_incomplete",
+        "inno_encrypted_payload_blocked",
+        "inno_extraction_report_invalid",
+        "packed_layer_not_recovered",
+        "pyinstaller_content_validation_incomplete",
+        "pyinstaller_content_validation_not_reported",
+        "pyinstaller_parser_reported_blockers",
+        "pyinstaller_payloads_not_recovered",
+        "pyinstaller_priority_entries_not_retained",
+        "source_layer_recovery_limit_observed",
+        "upx_static_recovery_incomplete",
+        "upx_static_recovery_not_run",
+    }
+)
 
 
 def _is_incomplete_static_status(value: Any) -> bool:
@@ -1825,7 +1864,7 @@ def _completed_in_memory_cabarchive_cab(report: dict[str, Any]) -> bool:
 
 
 def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
-    """静的復元stepの失敗、深度上限、parser上限を決定的に列挙する。"""
+    """静的復元の全体失敗と明示済み構造復元gapを決定的に列挙する。"""
 
     issues: list[str] = []
     steps = layer_report.get("steps")
@@ -1841,11 +1880,48 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
         and step["report"]["dotnet_bundle"].get("status") == "recovered"
     }
 
-    def visit(value: Any, path: str) -> None:
+    def inside_dotnet_bitmap_entry(context: tuple[str | int, ...]) -> bool:
+        """dotnet resource内の個別Bitmap候補entryだけを識別する。"""
+
+        for index, part in enumerate(context):
+            if part != "dotnet_resources":
+                continue
+            for nested in range(index + 1, len(context) - 2):
+                if (
+                    context[nested] == "bitmap_payloads"
+                    and context[nested + 1] == "entries"
+                    and isinstance(context[nested + 2], int)
+                ):
+                    return True
+        return False
+
+    def local_candidate_diagnostic(
+        context: tuple[str | int, ...],
+        key: str,
+        item: Any,
+    ) -> bool:
+        """局所候補のnegative診断をparser全体の失敗から分離する。"""
+
+        if (
+            key == "status"
+            and isinstance(item, str)
+            and item.casefold() == "decode_failed"
+            and len(context) >= 3
+            and context[-3] == "donut"
+            and context[-2] == "candidates"
+            and isinstance(context[-1], int)
+        ):
+            return True
+        return inside_dotnet_bitmap_entry(context) and (
+            key == "status" or key == "parse_error" or key.endswith("_error")
+        )
+
+    def visit(value: Any, path: str, context: tuple[str | int, ...]) -> None:
         if isinstance(value, dict):
             for raw_key, item in value.items():
                 key = str(raw_key).casefold()
                 child = f"{path}.{raw_key}"
+                child_context = (*context, key)
                 fallback = value.get("sevenzip")
                 authoritative = value.get("embedded_installer_archive")
                 recovered = value.get("recovered")
@@ -1882,18 +1958,19 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
                     continue
                 if item == "validation_failed" and ".profiled_transforms.attempts[" in path:
                     continue
+                local_diagnostic = local_candidate_diagnostic(context, key, item)
                 if key == "unpack_status" and _is_incomplete_static_status(item):
                     issues.append(f"{child}:{item}")
-                elif key == "status" and _is_incomplete_static_status(item):
+                elif key == "status" and _is_incomplete_static_status(item) and not local_diagnostic:
                     issues.append(f"{child}:{item}")
                 elif (key == "parse_error" or key.endswith("_error")) and (
                     item is not None and item is not False and item != ""
-                ):
+                ) and not local_diagnostic:
                     issues.append(child)
-                visit(item, child)
+                visit(item, child, child_context)
         elif isinstance(value, list):
             for index, item in enumerate(value):
-                visit(item, f"{path}[{index}]")
+                visit(item, f"{path}[{index}]", (*context, index))
 
     for index, step in enumerate(steps):
         if not isinstance(step, dict):
@@ -1902,7 +1979,7 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
         step_status = step.get("status")
         if _is_incomplete_static_status(step_status):
             issues.append(f"steps[{index}]:{step_status}")
-        visit(step.get("report"), f"steps[{index}].report")
+        visit(step.get("report"), f"steps[{index}].report", ("steps", index, "report"))
         report = step.get("report")
         if isinstance(report, dict) and "sevenzip" not in report:
             in_memory_cab_complete = _completed_in_memory_lzx_cab(
@@ -1927,6 +2004,16 @@ def _static_layer_issues(layer_report: dict[str, Any]) -> list[str]:
                 and not inno_extraction_complete
             ):
                 issues.append(f"steps[{index}].report:pe_container_extractor_unavailable")
+    structural = layer_report.get("structural_candidates")
+    candidates = structural.get("candidates") if isinstance(structural, dict) else None
+    if isinstance(candidates, list):
+        for index, candidate in enumerate(candidates):
+            blockers = candidate.get("blockers") if isinstance(candidate, dict) else None
+            if not isinstance(blockers, list):
+                continue
+            for blocker in blockers:
+                if blocker in STRUCTURAL_RECOVERY_BLOCKERS:
+                    issues.append(f"structural_candidates.candidates[{index}].blockers:{blocker}")
     return sorted(set(issues))
 
 
@@ -2063,6 +2150,17 @@ def _candidate_outcome_handler_records(assessment: dict[str, Any]) -> list[dict[
         for attempt in family_result.get("attempts") or []:
             if not isinstance(attempt, dict):
                 continue
+            supplied_wrapper = attempt.get("result")
+            supplied_layer = attempt.get("layer")
+            if isinstance(supplied_wrapper, dict):
+                wrapper = dict(supplied_wrapper)
+                # candidate assessorは選択層をattempt直下に保持する。workerが返した
+                # wrapperを変更せず複製し、legacy wrapperと同じlineage形へ揃える。
+                # 既存値は上書きせず、不一致を後段の厳格検証で棄却させる。
+                if "selected_layer" not in wrapper and isinstance(supplied_layer, dict):
+                    wrapper["selected_layer"] = dict(supplied_layer)
+            else:
+                wrapper = supplied_wrapper
             supplied_source = attempt.get("source")
             source = (
                 supplied_source if isinstance(supplied_source, str) and supplied_source else "candidate_verification"
@@ -2078,9 +2176,9 @@ def _candidate_outcome_handler_records(assessment: dict[str, Any]) -> list[dict[
                     "selected_layer_sha256": (
                         attempt.get("selected_layer_sha256") or (attempt.get("layer") or {}).get("sha256")
                     ),
-                    "verified_binary_outputs": _verified_outputs_from_wrapper(attempt.get("result")),
-                    "verified_binary_output_audit": _verified_output_audit_from_wrapper(attempt.get("result")),
-                    "result": attempt.get("result"),
+                    "verified_binary_outputs": _verified_outputs_from_wrapper(wrapper),
+                    "verified_binary_output_audit": _verified_output_audit_from_wrapper(wrapper),
+                    "result": wrapper,
                 }
             )
     return records
@@ -2544,8 +2642,8 @@ def analyze_unit(
         layer_report,
         assessment_only=assessment_only,
     )
-    # 候補固有のstatusは復元stepとは別のtop-levelへ置き、
-    # _static_layer_issuesの再帰走査へ混入させない。
+    # 候補固有のstatusは復元stepの再帰走査へ混入させず、実復元gapだけを
+    # _static_layer_issuesの固定allowlistでcase-level blockerへ昇格する。
     layer_report["structural_candidates"] = structural_candidate_report
     write_json(case_dir / "static-layers.json", layer_report)
 
@@ -2852,7 +2950,7 @@ def analyze_unit(
         )
     handler_config_candidates = handler_profile_lineage.build_document(
         sha256=digest,
-        handler_records=legacy_outcome_records,
+        handler_records=outcome_handler_records,
     )
     write_json(case_dir / "handler-config-candidates.json", handler_config_candidates)
     outcome_candidates = handler_profile_lineage.restrict_detector_candidates(

@@ -43,7 +43,7 @@ py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py schema
 
 ### 信頼済み静的toolのoperator固定
 
-CABやinstallerの静的展開にUPXまたは7zzを使う場合、`plan`、`preflight`、`run`、`resume`、`drive`、`verify`へ`--trusted-tools-manifest`と`--trusted-tools-manifest-sha256`を必ず同時指定します。SHA-256はmanifestの正規化後JSONではなくraw bytesに対する小文字64桁です。この設定はoperator CLIだけが保持し、production request schemaへ追加できません。
+packer、archive、installerの静的解析にUPX、7zz、innounpのいずれかを使う場合、`plan`、`preflight`、`run`、`resume`、`drive`、`verify`へ`--trusted-tools-manifest`と`--trusted-tools-manifest-sha256`を必ず同時指定します。SHA-256はmanifestの正規化後JSONではなくraw bytesに対する小文字64桁です。この設定はoperator CLIだけが保持し、production request schemaへ追加できません。
 
 ~~~powershell
 $manifest = 'C:\ProgramData\MalwareAnalysisTools\trusted-static-tools.json'

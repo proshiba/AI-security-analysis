@@ -3407,6 +3407,21 @@ _REVIEWED_REPOSITORY_DATA_READS = {
 }
 _REVIEWED_SOURCE_CALLS = {
     (
+        "analysis-framework/malware/valleyrat/campaigns/protected_installer_bundle/inno_static.py",
+        "reachable:recover_members",
+        "refinery.lib.inno.archive.InnoArchive",
+    ): "32 MiB以下の入力bytesだけからInno archiveを静的構築する",
+    (
+        "analysis-framework/malware/valleyrat/campaigns/protected_installer_bundle/inno_static.py",
+        "reachable:recover_members",
+        "archive.ifps.disassembly",
+    ): "Inno archive内のPascalScriptを実行せず文字列定数用に静的disassembleする",
+    (
+        "analysis-framework/malware/valleyrat/campaigns/protected_installer_bundle/inno_static.py",
+        "reachable:recover_members",
+        "trial.read_file_and_check",
+    ): "最大32 member・合計64 MiBのInno memberを候補passwordで静的検証する",
+    (
         "analysis-framework/malware/clipboard_replacement_dll/extract_config.py",
         "reachable:_pe_import_profile",
         "image.close",
@@ -4923,6 +4938,62 @@ def _reviewed_source_call_shape_allowed(
     }
     if supplied_strings & _DANGEROUS_REFLECTION_ATTRIBUTES:
         return False
+    inno_source = (
+        "analysis-framework/malware/valleyrat/campaigns/protected_installer_bundle/inno_static.py"
+    )
+    inno_context = "reachable:recover_members"
+
+    def inno_archive_origin(value: ast.AST) -> bool:
+        return bool(
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Name)
+            and value.func.id == "InnoArchive"
+            and len(value.args) == 1
+            and not value.keywords
+            and isinstance(value.args[0], ast.Call)
+            and isinstance(value.args[0].func, ast.Name)
+            and value.args[0].func.id == "bytearray"
+            and len(value.args[0].args) == 1
+            and not value.args[0].keywords
+            and isinstance(value.args[0].args[0], ast.Name)
+            and value.args[0].args[0].id == "data"
+            and _parameter_is_not_rebound(scope, "data")
+        )
+
+    if key == (
+        inno_source,
+        inno_context,
+        "refinery.lib.inno.archive.InnoArchive",
+    ):
+        return inno_archive_origin(node)
+    if key == (inno_source, inno_context, "archive.ifps.disassembly"):
+        origin = _simple_name_origin(scope, "archive")
+        return bool(
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr == "disassembly"
+            and isinstance(node.func.value, ast.Attribute)
+            and node.func.value.attr == "ifps"
+            and isinstance(node.func.value.value, ast.Name)
+            and node.func.value.value.id == "archive"
+            and not node.args
+            and not node.keywords
+            and origin is not None
+            and inno_archive_origin(origin)
+        )
+    if key == (inno_source, inno_context, "trial.read_file_and_check"):
+        origin = _simple_name_origin(scope, "trial")
+        return bool(
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr == "read_file_and_check"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "trial"
+            and len(node.args) == 2
+            and not node.keywords
+            and all(isinstance(item, ast.Name) for item in node.args)
+            and [item.id for item in node.args] == ["item", "password"]
+            and origin is not None
+            and inno_archive_origin(origin)
+        )
     if key in {
         (
             "analysis-framework/malware/clipboard_replacement_dll/extract_config.py",
@@ -7883,21 +7954,59 @@ def _round_robin_candidate_pairs(
     candidates: Sequence[Mapping[str, Any]],
     pairs_by_family: Mapping[str, Sequence[tuple[HandlerSpec, dict[str, Any]]]],
 ) -> list[tuple[str, HandlerSpec, dict[str, Any]]]:
-    """rank順のhandlerごとに第N層を配り、単一handlerによる枠独占を防ぐ。"""
+    """family間とfamily内handler間を順番に配り、上位候補の枠独占を防ぐ。"""
 
-    queues: list[tuple[str, list[tuple[HandlerSpec, dict[str, Any]]]]] = []
+    family_handlers: list[
+        tuple[str, list[list[tuple[HandlerSpec, dict[str, Any]]]]]
+    ] = []
     for candidate in candidates:
         family = str(candidate["family"])
         by_handler: dict[str, list[tuple[HandlerSpec, dict[str, Any]]]] = {}
         for spec, layer in pairs_by_family[family]:
             by_handler.setdefault(spec.id, []).append((spec, layer))
-        queues.extend((family, pairs) for pairs in by_handler.values())
-    return [
+        family_handlers.append((family, list(by_handler.values())))
+
+    scheduled: list[tuple[str, HandlerSpec, dict[str, Any]]] = []
+    # まず各familyへ1枠ずつ割り当てる。これによりrank上位familyのhandler数が
+    # 多くても、全familyの初回試行がfamily内第2試行より先になる。
+    for family, handler_queues in family_handlers:
+        if handler_queues and handler_queues[0]:
+            scheduled.append((family, *handler_queues[0][0]))
+
+    # 次に、まだ開始していないhandlerの初回だけをfamily間round-robinで配る。
+    # handlerの第2層以降は、全handlerの初回が終わるまで実行しない。
+    maximum_handler_count = max(
+        (len(handler_queues) for _family, handler_queues in family_handlers),
+        default=0,
+    )
+    for handler_index in range(1, maximum_handler_count):
+        for family, handler_queues in family_handlers:
+            if handler_index < len(handler_queues) and handler_queues[handler_index]:
+                scheduled.append((family, *handler_queues[handler_index][0]))
+
+    # 全handlerの初回後は、各family内でhandlerを交互化したtailを作り、さらに
+    # family間でも1枠ずつ交互化する。
+    family_tails: list[tuple[str, list[tuple[HandlerSpec, dict[str, Any]]]]] = []
+    for family, handler_queues in family_handlers:
+        tail = [
+            pairs[ordinal]
+            for ordinal in range(
+                1,
+                max((len(pairs) for pairs in handler_queues), default=1),
+            )
+            for pairs in handler_queues
+            if ordinal < len(pairs)
+        ]
+        family_tails.append((family, tail))
+    scheduled.extend(
         (family, *pairs[ordinal])
-        for ordinal in range(max((len(pairs) for _family, pairs in queues), default=0))
-        for family, pairs in queues
+        for ordinal in range(
+            max((len(pairs) for _family, pairs in family_tails), default=0)
+        )
+        for family, pairs in family_tails
         if ordinal < len(pairs)
-    ]
+    )
+    return scheduled
 
 
 def _bounded_campaign_fallback_layers(
@@ -8547,7 +8656,8 @@ def assess_candidate_handlers(
             "worker_started_for_incompatible_pairs": False,
             "fallback_policy_skipped_pairs_consume_execution_quota": False,
             "worker_started_for_fallback_policy_skipped_pairs": False,
-            "execution_order": "candidate_rank_then_handler_round_robin",
+            "execution_order": "candidate_family_first_then_all_handler_first_then_nested_tail_round_robin",
+            "each_candidate_family_first_attempt_before_second": True,
             "each_handler_first_attempt_before_second": True,
             "considered_pair_count": considered_pair_count,
             "compatible_pair_count": planned_attempts,

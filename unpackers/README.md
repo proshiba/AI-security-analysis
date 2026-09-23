@@ -37,24 +37,25 @@ collection単位の再開では `analysis-framework/common/collection_followup_p
 
 CABはparserを呼ぶ前に`MSCF` headerとversion、予約field、cabinet実size、単一volume、folder・file・data block件数、file/folder offset、宣言size、path衝突を検証します。None/MSZIPはこの予算検証後に`cabarchive`へ渡します。LZXはwindow 15–21と全blockの非zero checksumも検証し、`cabarchive`が正確に`LZX compression not supported`を返した場合だけ`binary-refinery`へ切り替えます。LZX固有のpeak memory事前判定は、入力CAB、全folderの復号cache、全memberの`bytes`化、最大decoder window、member・folder・block metadataを合算し、さらにPython runtimeと周辺解析用に256 MiBを予約します。この保守的な見積りが1 GiBを1 byteでも超える場合はdecoder起動前に拒否し、判定内訳と残余byte数を正常時の機械可読contractへ記録します。展開後もfolder/member sizeとmember tableを再照合し、全条件が一致した場合だけ結果を保持します。一時file、外部process、検体・payloadの実行、network通信は使わず、検証失敗時に7-Zipへ迂回しません。checksumを持たないLZX CAB、multi-volume CAB、Quantum圧縮、重複pathは安全側に拒否します。
 
-PyInstaller CArchiveは最大16,384件（hard limit 65,536件）のTOCを先に全検証します。既定budget内では全entryを1件ずつ展開してzlib EOF、宣言size、実size、SHA-256、形式を検証し、非候補bytesは直ちに破棄します。後段へ保持するのは最大128件で、caller指定、Python script、module、PYZ、PE名候補、入れ子archiveの順です。1 entryは64 MiB、保持総量は128 MiB、全内容検証は256 MiB／120秒を上限とし、超過や高価値候補の未保持は`partial`とblockerへ残します。公開reportは全entry列ではなく件数・形式集計とinventory/content commitmentを持ち、PyInstallerという包装形式だけからmalware familyや悪性意図を推定しません。
+PyInstaller CArchiveは最大16,384件（hard limit 65,536件）のTOCを先に全検証します。既定budget内では全entryを1件ずつ展開してzlib EOF、宣言size、実size、SHA-256、形式を検証し、非候補bytesは直ちに破棄します。archive全体を自動解析する`analyze_carchive_bytes()`で後段へ保持する候補は最大256件で、caller指定、Python script、module、PYZ、PE名候補、入れ子archiveの順です。一方、名前またはprefixを指定する`extract_selected_entries_from_bytes()`、`analyze()`、standalone CLIの`--max-files`は既定・hard limitとも128件を維持します。256件への拡張はarchive全体の自動候補保持だけに適用され、選択抽出APIの契約を広げません。1 entryは64 MiB、保持総量は128 MiB、全内容検証は256 MiB／120秒を上限とし、超過や高価値候補の未保持は`partial`とblockerへ残します。公開reportは全entry列ではなく件数・形式集計とinventory/content commitmentを持ち、PyInstallerという包装形式だけからmalware familyや悪性意図を推定しません。
 
 TOCの`typecode=s`かつname領域が先頭NULの匿名scriptは、TOC順序に束縛した合成名で保持します。元name領域はsizeとSHA-256をinventory commitmentと保持metadataに残し、不透明bytesはpathとして解釈しません。通常名の不正padding、script以外の匿名entry、path衝突、payload境界違反、不正zlib streamは引き続き拒否します。
 
 CABなどの展開後に保持対象memberがない場合、Inno side-loadingの関連付けは`not_candidate`として記録します。空集合を`member_limit_blocked`へ誤分類せず、実際のmember上限超過は別に保持します。
 
-PE imageの直後1 MiB以内にある`Nullsoft`または`Inno Setup` markerは、image内のUPX等のpacker markerと分離してinstaller候補にします。信頼済み7-Zipが設定されていれば手動`--force-container-probe`なしで境界付きinventoryへ送り、parserが対応しないinstallerは空の成功へせず`container_parser_unavailable`として残します。member件数だけでなく宣言総量が上限を超えるarchiveも、app本体、script、設定、PE等を上限内で選択復元します。
+PE imageの直後1 MiB以内にある`Nullsoft`または`Inno Setup` markerは、image内のUPX等のpacker markerと分離してinstaller候補にします。markerだけでは外部parserを開始せず、検証済みloader構造を持つInno候補で、信頼済みinnounpが設定されている場合はinnounpによる一覧化、`install_script.iss`の検証、選択復元を先に行います。innounpのinventoryが完了した場合は同じ入力を7zzで重複処理しません。innounpが未設定またはinventory未完了で信頼済み7zzが設定されている場合は、7zzの境界付きinventory／静的展開へfallbackします。初回の構造判定では未確認でも7zz inventoryからInnoが確認され、innounpをまだ試行していない場合は、innounpの選択復元も追加する併用経路になります。parserが対応しないinstallerは空の成功へせず`container_parser_unavailable`として残します。member件数だけでなく宣言総量が上限を超えるarchiveも、app本体、script、設定、PE等を上限内で選択復元します。
 
 ## 使用 tool
 
-推奨する 7-Zip binary は NSIS decompile 対応 build です。信頼済み archive parser としてだけ使用し、installer は実行しません。
+推奨する7-Zip binaryはNSIS decompile対応buildです。innounpは同伴DLLを必要としないself-containedな配布物を使用します。いずれも信頼済みの静的archive／installer parserとしてだけ使用し、installerや復元memberは実行しません。
 
-外部toolは`PATH`から探索せず、絶対pathで明示した通常fileだけを使います。各processは子孫process containment、active process 8件、memory 1 GiB、stdout／stderr各1 MiB、明示timeout、一時tree最大10,000 entry／1 GiBの内側で実行します。API keyやPython注入環境を継承せず、一時treeのreparse、hardlink、特殊file、path escapeを拒否し、保持する出力は単一handleからsize上限付きで再読込します。これらはkernel sandboxではありません。WebUI／APIのproduction経路では下記の直接path引数を使わず、operatorがSHA-256 pinしたmanifestからjob-private UPX／7zz snapshotを作る`analysis_job_runner.py`を使用します。DIECはproduction契約では無効です。
+外部toolは`PATH`から探索せず、絶対pathで明示した通常fileだけを使います。各processは子孫process containment、active process 8件、memory 1 GiB、stdout／stderr各1 MiB、明示timeout、一時tree最大10,000 entry／1 GiBの内側で実行します。API keyやPython注入環境を継承せず、一時treeのreparse、hardlink、特殊file、path escapeを拒否し、保持する出力は単一handleからsize上限付きで再読込します。これらはkernel sandboxではありません。WebUI／APIのproduction経路では下記の直接path引数を使わず、operatorがraw SHA-256をpinしたmanifestからjob-private UPX／7zz／innounp snapshotを作る`analysis_job_runner.py`を使用します。request JSON、`PATH`探索、起動時downloadからtoolを指定できません。DIECはproduction契約では無効です。
 
 ```powershell
 $Python = 'C:\Tools\Python313\python.exe'
 $SevenZipNSIS = 'C:\Tools\7z-nsis\7z.exe'
 $UPX = 'C:\Tools\upx\upx.exe'
+$InnoUnp = 'C:\Tools\innounp\innounp.exe'
 $DiE = 'C:\Tools\DetectItEasy\diec.exe'
 
 & $Python .\unpackers\static_unpacker.py `
@@ -63,11 +64,12 @@ $DiE = 'C:\Tools\DetectItEasy\diec.exe'
   --artifact-zip C:\analysis\recovered-artifacts.zip `
   --upx $UPX `
   --sevenzip $SevenZipNSIS `
+  --innounp $InnoUnp `
   --archive-password infected `
   --diec $DiE
 ```
 
-`--artifact-zip` を指定した場合だけ、復元 byte を書き出します。archive は解析 password `infected` を使って AES で暗号化します。Git へ追加しないでください。`--force-container-probe` は、レビュー済み inventory hint がある場合だけ使用します。この option は入力を実行せず、設定済み 7-Zip binary に PE/container の parse を要求します。archive password を公開 report へコピーすることはありません。
+この例の`--upx`、`--sevenzip`、`--innounp`、`--diec`は、隔離した解析者向けdirect CLIでだけ使用するpath引数です。WebUI／APIのproduction経路では使わず、前述のoperator manifestとSHA-256 pinを使用してください。`--artifact-zip`を指定した場合だけ、復元byteを書き出します。archiveは解析password `infected`を使ってAESで暗号化します。Gitへ追加しないでください。`--force-container-probe`は、レビュー済みinventory hintがある場合だけ使用します。このoptionは入力を実行せず、設定済み7-Zip binaryにPE/containerのparseを要求します。archive passwordを公開reportへコピーすることはありません。
 
 report には hash、size、format、変換、信頼度、検体を実行していないこと、network 接続を行っていないことを記録します。
 
