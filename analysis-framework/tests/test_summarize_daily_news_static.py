@@ -472,6 +472,76 @@ def _pe_case_document(sha256: str, imports: dict[str, list[str]]) -> dict:
     }
 
 
+def test_managed_review_without_published_address_is_counted_and_linked() -> None:
+    digest = "e" * 64
+    source_date = "2026-09-22"
+    review = _review_document(
+        [
+            _verified_function_review(
+                digest,
+                [
+                    {
+                        "address": None,
+                        "name": "CaptureScreen.Main",
+                        "role": "画面取得補助のmanaged entry point",
+                        "evidence": "VirtualScreenをBitmapへ複写するCIL本文を静的に確認した。",
+                    }
+                ],
+                source="public_followup_cil_static_review",
+            )
+        ],
+        source_date=source_date,
+    )
+    commitment = {
+        "source_date": source_date,
+        "public_followup_reference": (
+            "../../audits/daily-news-20260922/STATIC-FOLLOWUP.md"
+        ),
+    }
+
+    summary = target.build_summary_from_documents(
+        [_pe_case_document(digest, {})],
+        [],
+        source_date,
+        provider_document=None,
+        input_commitment=commitment,
+        function_review_document=review,
+    )
+
+    assert summary["counts"]["function_analysis_complete"] == 1
+    assert summary["counts"]["function_analysis_required"] == 0
+    assert summary["samples"][0]["reviewed_functions"][0]["address"] is None
+    markdown = target.render_markdown(summary)
+    assert "| `-` | `CaptureScreen.Main` |" in markdown
+    assert "../../audits/daily-news-20260922/STATIC-FOLLOWUP.md" in markdown
+    assert "C:\\Users\\" not in markdown
+
+
+def test_public_followup_reference_rejects_absolute_or_unreviewed_path() -> None:
+    summary = {
+        "counts": {
+            "formats": {},
+            "pe": 0,
+            "elf": 0,
+            "macho": 0,
+            "script": 0,
+            "function_analysis_complete": 0,
+            "script_structure_recorded": 0,
+            "function_analysis_required": 0,
+        },
+        "sample_count": 0,
+        "samples": [],
+        "clusters": [],
+        "source_date": "2026-09-22",
+        "input_commitment": {
+            "public_followup_reference": r"C:\Users\Analyst\private\followup.md"
+        },
+    }
+
+    with pytest.raises(ValueError, match="公開follow-up参照"):
+        target.render_markdown(summary)
+
+
 def _netsupport_review(
     sha256: str,
     *,

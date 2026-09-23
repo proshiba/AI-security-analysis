@@ -584,6 +584,11 @@ def test_daily_implementation_pin_includes_static_analyzer() -> None:
     assert "case_features.py" in target.DAILY_IMPLEMENTATION_FILES
     assert "daily_news_c2_review_overrides.json" in target.DAILY_IMPLEMENTATION_FILES
     assert "c2_monitoring_history.py" in target.DAILY_IMPLEMENTATION_FILES
+    assert "summarize_daily_news_static.py" in target.DAILY_IMPLEMENTATION_FILES
+    assert (
+        "daily_news_static_reviews/2026-09-22.json"
+        in target.DAILY_IMPLEMENTATION_FILES
+    )
 
 
 def test_request_schema_is_exact_and_blocks_unbound_network() -> None:

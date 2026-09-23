@@ -89,6 +89,9 @@ FUNCTION_REVIEW_SAFETY = {
 REVIEW_SOURCE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$")
 REVIEW_ADDRESS_RE = re.compile(r"^(?:0x)?[0-9A-Fa-f]{1,16}$")
 REVIEW_FUNCTION_NAME_RE = re.compile(r"^[A-Za-z0-9_?$@:.<>~+\-]{1,256}$")
+PUBLIC_FOLLOWUP_REFERENCE_RE = re.compile(
+    r"^\.\./\.\./audits/daily-news-20[0-9]{6}/STATIC-FOLLOWUP\.md$"
+)
 ABSOLUTE_PATH_RE = re.compile(
     r"(?:^|[\s\x60\"'])(?:[A-Za-z]:[\\/]|\\\\|/(?:Users|home|root|tmp|var|etc|opt|mnt|srv)/)",
     re.IGNORECASE,
@@ -185,23 +188,26 @@ def _review_text(
     return normalized
 
 
-def _normalize_reviewed_functions(value: Any) -> list[dict[str, str]]:
+def _normalize_reviewed_functions(value: Any) -> list[dict[str, str | None]]:
     """検証済みGhidra reviewを公開用4 fieldへfail-closed正規化する。"""
 
     if not isinstance(value, list) or len(value) > MAX_REVIEWED_FUNCTIONS_PER_SAMPLE:
         raise ValueError("function reviewのfunctionsが上限内のlistではありません")
-    normalized: list[dict[str, str]] = []
+    normalized: list[dict[str, str | None]] = []
     seen: set[tuple[str, str]] = set()
     for item in value:
         if not isinstance(item, Mapping) or set(item) != FUNCTION_REVIEW_FUNCTION_KEYS:
             raise ValueError("function review関数のfield集合が不正です")
-        address = _review_text(
-            item.get("address"),
-            "function review address",
-            maximum_bytes=18,
-        )
-        if REVIEW_ADDRESS_RE.fullmatch(address) is None:
-            raise ValueError("function review addressが16進addressではありません")
+        raw_address = item.get("address")
+        address = None
+        if raw_address is not None:
+            address = _review_text(
+                raw_address,
+                "function review address",
+                maximum_bytes=18,
+            )
+            if REVIEW_ADDRESS_RE.fullmatch(address) is None:
+                raise ValueError("function review addressが16進addressではありません")
         name = _review_text(
             item.get("name"),
             "function review name",
@@ -221,7 +227,10 @@ def _normalize_reviewed_functions(value: Any) -> list[dict[str, str]]:
             maximum_bytes=MAX_REVIEW_EVIDENCE_BYTES,
             reject_raw_decompilation=True,
         )
-        key = (address.casefold().removeprefix("0x"), name.casefold())
+        key = (
+            address.casefold().removeprefix("0x") if address is not None else "address_not_published",
+            name.casefold(),
+        )
         if key in seen:
             raise ValueError("function review関数が重複しています")
         seen.add(key)
@@ -1162,6 +1171,29 @@ def render_markdown(summary: dict[str, Any]) -> str:
     for cluster in summary["clusters"]:
         labels = "、".join(f"{name}: {count}" for name, count in cluster["reported_malware"].items())
         lines.append(f"| `{cluster['cluster_key']}` | {cluster['member_count']} | {labels} | {cluster['assessment']} |")
+    commitment = summary.get("input_commitment")
+    followup_reference = (
+        commitment.get("public_followup_reference")
+        if isinstance(commitment, Mapping)
+        else None
+    )
+    if followup_reference is not None:
+        if (
+            not isinstance(followup_reference, str)
+            or PUBLIC_FOLLOWUP_REFERENCE_RE.fullmatch(followup_reference) is None
+        ):
+            raise ValueError("公開follow-up参照が許可済み相対pathではありません")
+        lines.extend(
+            [
+                "",
+                "## 追加公開静的解析",
+                "",
+                (
+                    "- [検証済みの追加静的解析]"
+                    f"({followup_reference})に、親MSIとの関係、process挙動、永続化、設定、通信処理の詳細を記録した。"
+                ),
+            ]
+        )
     reviewed_samples = [item for item in summary["samples"] if item.get("reviewed_functions")]
     if reviewed_samples:
         lines.extend(["", "## 特徴関数レビュー", ""])

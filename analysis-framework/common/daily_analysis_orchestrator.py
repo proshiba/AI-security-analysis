@@ -572,6 +572,8 @@ DAILY_IMPLEMENTATION_FILES = (
     "ghidra_mcp_uds_relay.py",
     "daily_news_malware_intake.py",
     "daily_news_c2_review_overrides.json",
+    "summarize_daily_news_static.py",
+    "daily_news_static_reviews/2026-09-22.json",
     "malwarebazaar_batch.py",
     "malwarebazaar_family_labels.py",
     "analyze_sample.py",
