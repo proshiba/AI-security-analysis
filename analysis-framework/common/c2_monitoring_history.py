@@ -96,6 +96,52 @@ def endpoint_key(value: dict[str, Any]) -> str:
     return "|".join((host, str(port), protocol, transport, path))
 
 
+def _wire_endpoint_key(value: dict[str, Any]) -> str:
+    host = str(value.get("host") or "").casefold().rstrip(".")
+    port = int(value.get("port") or 0)
+    wire = str(value.get("wire") or value.get("protocol") or "tcp").casefold()
+    return "|".join((host, str(port), wire))
+
+
+def _carry_forward_exclusion_sets(plan: dict[str, Any]) -> tuple[set[str], set[str]]:
+    """当日reviewが固定したhost-wide／exact endpoint除外を検証する。"""
+
+    raw = plan.get("carry_forward_exclusions", [])
+    if not isinstance(raw, list):
+        raise ValueError("carry_forward_exclusionsはlistである必要があります")
+    hosts: set[str] = set()
+    endpoints: set[str] = set()
+    canonical: list[tuple[str, str, int, str, str]] = []
+    for item in raw:
+        if not isinstance(item, dict) or set(item) != {"scope", "host", "port", "wire", "reason"}:
+            raise ValueError("carry-forward除外schemaが不正です")
+        scope = item.get("scope")
+        host = str(item.get("host") or "").casefold().rstrip(".")
+        port = item.get("port")
+        wire = str(item.get("wire") or "").casefold()
+        reason = item.get("reason")
+        if (
+            scope not in {"host", "endpoint"}
+            or not host
+            or item.get("host") != host
+            or type(port) is not int
+            or not 0 <= port <= 65535
+            or wire not in {"dns", "tcp"}
+            or (port == 0) != (wire == "dns")
+            or not isinstance(reason, str)
+            or not reason
+        ):
+            raise ValueError("carry-forward除外値が不正です")
+        canonical.append((scope, host, port, wire, reason))
+        if scope == "host":
+            hosts.add(host)
+        else:
+            endpoints.add(_wire_endpoint_key(item))
+    if canonical != sorted(set(canonical)):
+        raise ValueError("carry-forward除外はcanonical順かつ一意である必要があります")
+    return hosts, endpoints
+
+
 def _parse_timestamp(value: object, run_date: str) -> datetime:
     if isinstance(value, str) and value:
         try:
@@ -538,6 +584,7 @@ def carry_forward_active_targets(
     if not isinstance(targets, list):
         raise ValueError("targetsはlistである必要があります")
     by_key = {endpoint_key(target): target for target in targets if isinstance(target, dict)}
+    excluded_hosts, excluded_endpoints = _carry_forward_exclusion_sets(merged)
     carried = 0
     for prior in (active_plan or {}).get("targets", []):
         if not isinstance(prior, dict):
@@ -546,6 +593,9 @@ def carry_forward_active_targets(
             merged.get("onion_excluded_by_policy")
             and str(prior.get("host") or "").casefold().endswith(".onion")
         ):
+            continue
+        prior_host = str(prior.get("host") or "").casefold().rstrip(".")
+        if prior_host in excluded_hosts or _wire_endpoint_key(prior) in excluded_endpoints:
             continue
         key = endpoint_key(prior)
         if key not in by_key:

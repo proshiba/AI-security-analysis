@@ -5,6 +5,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 MODULE_PATH = Path(__file__).resolve().parents[1] / "common" / "validate_daily_analysis.py"
 SPEC = importlib.util.spec_from_file_location("validate_daily_analysis", MODULE_PATH)
 assert SPEC and SPEC.loader
@@ -85,8 +87,8 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
         "source_date": ANALYSIS_DATE,
         "items": [
             {
-                "ioc_type": "domain",
-                "ioc_value": "c2.example",
+                "ioc_type": "url",
+                "ioc_value": "https://c2.example",
                 "category": "c2",
                 "malware": "Fixture",
                 "valid": True,
@@ -98,6 +100,9 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
         ioc_document["items"],
         ANALYSIS_DATE,
     )
+    carry_forward_exclusions = target._daily_infrastructure_projection(
+        ioc_document["items"]
+    )["carry_forward_exclusions"]
     _write_json(
         news / "infrastructure-summary.json",
         {
@@ -107,6 +112,7 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
             "mode": target.DAILY_INFRASTRUCTURE_HANDOFF_MODE,
             "target_commitment_sha256": commitment,
             "target_count": target_count,
+            "carry_forward_exclusions": carry_forward_exclusions,
             "c2_monitoring_reference": target._daily_c2_monitoring_reference(ANALYSIS_DATE),
             "network_contacted": False,
             "http_requests_sent": False,
@@ -263,6 +269,7 @@ def _complete_repository(root: Path, malwarebazaar_count: int = 50) -> Path:
     }
     c2_target_plan = {
         "schema_version": 1,
+        "carry_forward_exclusions": carry_forward_exclusions,
         "daily_source_handoffs": [source_binding],
         "targets": [c2_target],
     }
@@ -481,7 +488,7 @@ def test_daily_handoff_accepts_canonical_policy_excluded_onion_host(tmp_path: Pa
         binding = document["daily_source_handoffs"][0]
         binding["source_target_commitment_sha256"] = source_sha256
         binding["source_target_count"] = source_count
-        binding["policy_excluded_onion_hosts"] = [onion]
+        binding["policy_excluded_endpoints"] = [f"{onion}|0|dns"]
         _write_json(path, document)
 
     result = target.validate_daily_analysis(repository, ANALYSIS_DATE)
@@ -792,7 +799,19 @@ def test_text_integrity_failure_fails_daily_completion(tmp_path: Path) -> None:
     assert validated["quality_gates"][0]["findings"][0]["code"] == "japanese_mojibake"
 
 
-def test_daily_handoff_requires_exact_effective_c2_target(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "replacement",
+    (
+        {"host": "unrelated.example"},
+        {"port": 444},
+        {"port": 0, "protocol": "dns"},
+    ),
+    ids=("host", "port", "wire"),
+)
+def test_daily_handoff_requires_exact_effective_c2_target(
+    tmp_path: Path,
+    replacement: dict[str, object],
+) -> None:
     repository = _complete_repository(tmp_path)
     effective_path = (
         repository
@@ -803,7 +822,7 @@ def test_daily_handoff_requires_exact_effective_c2_target(tmp_path: Path) -> Non
         / "effective-targets.json"
     )
     effective = json.loads(effective_path.read_text(encoding="utf-8"))
-    effective["targets"][0]["host"] = "unrelated.example"
+    effective["targets"][0].update(replacement)
     _write_json(effective_path, effective)
 
     result = target.validate_daily_analysis(repository, ANALYSIS_DATE)

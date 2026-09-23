@@ -23,8 +23,9 @@ from daily_news_malware_intake import (
     DAILY_INFRASTRUCTURE_HANDOFF_MODE,
     DAILY_INFRASTRUCTURE_HANDOFF_SCHEMA_VERSION,
     _daily_c2_monitoring_reference,
+    _daily_infrastructure_projection,
     _daily_infrastructure_target_commitment,
-    _daily_infrastructure_target_hosts,
+    _daily_infrastructure_target_endpoints,
 )
 from validate_text_integrity import validate_text_integrity
 
@@ -110,6 +111,7 @@ def _validate_infrastructure_handoff(
         "mode",
         "target_commitment_sha256",
         "target_count",
+        "carry_forward_exclusions",
         "c2_monitoring_reference",
         "network_contacted",
         "http_requests_sent",
@@ -168,6 +170,7 @@ def _validate_infrastructure_handoff(
             items,
             source_date,
         )
+        expected_exclusions = _daily_infrastructure_projection(items)["carry_forward_exclusions"]
     except (MemoryError, TypeError, ValueError):
         _finding(
             findings,
@@ -180,6 +183,7 @@ def _validate_infrastructure_handoff(
         document.get("target_commitment_sha256") != expected_commitment
         or document.get("target_count") != expected_count
         or isinstance(document.get("target_count"), bool)
+        or document.get("carry_forward_exclusions") != expected_exclusions
     ):
         _finding(
             findings,
@@ -232,6 +236,13 @@ def _validate_infrastructure_c2_binding(
         return
     plan_record = matching_plan[0]
     result_record = matching_result[0]
+    if effective.get("carry_forward_exclusions", []) != handoff.get("carry_forward_exclusions", []):
+        _finding(
+            findings,
+            "daily_infrastructure_carry_forward_exclusion_mismatch",
+            path,
+            "daily sourceのcarry-forward除外判断がC2 laneへ同一値で継承されていません。",
+        )
     plan_required = {
         "schema_version",
         "source_date",
@@ -244,7 +255,7 @@ def _validate_infrastructure_c2_binding(
         "result_target_commitment_sha256",
         "result_target_count",
     }
-    optional = {"policy_excluded_onion_hosts"}
+    optional = {"policy_excluded_endpoints"}
     if (
         not plan_required <= set(plan_record) <= plan_required | optional
         or not result_required <= set(result_record) <= result_required | optional
@@ -256,23 +267,23 @@ def _validate_infrastructure_c2_binding(
             "C2 handoff bindingのfield集合が正規schemaと一致しません。",
         )
         return
-    excluded_hosts = plan_record.get("policy_excluded_onion_hosts", [])
+    excluded_endpoints = plan_record.get("policy_excluded_endpoints", [])
     if (
-        not isinstance(excluded_hosts, list)
+        not isinstance(excluded_endpoints, list)
         or any(
-            not isinstance(host, str)
-            or host != host.casefold().rstrip(".")
-            or not host.endswith(".onion")
-            for host in excluded_hosts
+            not isinstance(endpoint, str)
+            or endpoint != endpoint.casefold()
+            or len(endpoint.split("|")) != 3
+            for endpoint in excluded_endpoints
         )
-        or excluded_hosts != sorted(set(excluded_hosts))
-        or result_record.get("policy_excluded_onion_hosts", []) != excluded_hosts
+        or excluded_endpoints != sorted(set(excluded_endpoints))
+        or result_record.get("policy_excluded_endpoints", []) != excluded_endpoints
     ):
         _finding(
             findings,
             "daily_infrastructure_c2_policy_exclusion_invalid",
             path,
-            "policy除外onion hostの集合またはresult継承が不正です。",
+            "policy除外endpointの集合またはresult継承が不正です。",
         )
         return
     if (
@@ -299,12 +310,12 @@ def _validate_infrastructure_c2_binding(
         )
         return
     try:
-        expected_hosts = set(_daily_infrastructure_target_hosts(items))
-        effective_sha256, effective_count, effective_hosts = daily_effective_target_commitment(
+        expected_endpoints = set(_daily_infrastructure_target_endpoints(items))
+        effective_sha256, effective_count, effective_endpoints = daily_effective_target_commitment(
             effective.get("targets"),
             source_date,
         )
-        result_sha256, result_count, result_hosts = daily_effective_target_commitment(
+        result_sha256, result_count, result_endpoints = daily_effective_target_commitment(
             result.get("results"),
             source_date,
         )
@@ -323,10 +334,10 @@ def _validate_infrastructure_c2_binding(
         or result_count != result_record.get("result_target_count")
         or result_sha256 != effective_sha256
         or result_count != effective_count
-        or set(effective_hosts) & set(excluded_hosts)
-        or set(result_hosts) & set(excluded_hosts)
-        or set(effective_hosts) | set(excluded_hosts) != expected_hosts
-        or set(result_hosts) | set(excluded_hosts) != expected_hosts
+        or set(effective_endpoints) & set(excluded_endpoints)
+        or set(result_endpoints) & set(excluded_endpoints)
+        or set(effective_endpoints) | set(excluded_endpoints) != expected_endpoints
+        or set(result_endpoints) | set(excluded_endpoints) != expected_endpoints
     ):
         _finding(
             findings,

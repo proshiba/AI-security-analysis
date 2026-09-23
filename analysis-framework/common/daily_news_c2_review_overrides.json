@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "reviews": [
+    {
+      "source_date": "2026-09-22",
+      "source_manifest_sha256": "3ad9a051cefde76f9358145590c1632d3ad265418108d28cea2580bc02afcdfa",
+      "rows": [
+        {
+          "ioc_type": "domain",
+          "ioc_value": "kerosand.net",
+          "category": "c2",
+          "malware": "ChainScript",
+          "description_sha256": "d379d4c2642cf9223b717459fc44cc2decfff5281415579f0bbb21d44dbd00be",
+          "disposition": "monitor",
+          "port": 3847,
+          "wire": "tcp"
+        },
+        {
+          "ioc_type": "domain",
+          "ioc_value": "shift-api-control.com",
+          "category": "c2",
+          "malware": "ChainScript",
+          "description_sha256": "caad0f2e192f20d5e7c2b4e1e41406bcd15492fde05906d032744c02285dde0f",
+          "disposition": "monitor",
+          "port": 3847,
+          "wire": "tcp"
+        },
+        {
+          "ioc_type": "domain",
+          "ioc_value": "moweros.net",
+          "category": "c2",
+          "malware": "ChainScript",
+          "description_sha256": "3e94a9ff6db56133b0be2fbd4c35a0dc736b1d830c32a75e50481fcd228470c1",
+          "disposition": "monitor",
+          "port": 3851,
+          "wire": "tcp"
+        },
+        {
+          "ioc_type": "domain",
+          "ioc_value": "bedotiq.net",
+          "category": "c2",
+          "malware": "ChainScript",
+          "description_sha256": "c5031c6f1679dd8a6764df1bc634bd5f4eacfcb365edb58482e0cded19e84c14",
+          "disposition": "monitor",
+          "port": 3854,
+          "wire": "tcp"
+        },
+        {
+          "ioc_type": "domain",
+          "ioc_value": "giperon.net",
+          "category": "c2",
+          "malware": "ChainScript",
+          "description_sha256": "fb88b827e32c7ddb0e99709da93de0cee8c3ba6182f0c564aee3f750eab0c19f",
+          "disposition": "monitor",
+          "port": 3847,
+          "wire": "tcp"
+        },
+        {
+          "ioc_type": "ip",
+          "ioc_value": "176.65.144.127",
+          "category": "c2",
+          "malware": "ChainScript",
+          "description_sha256": "99a3a802b49bc1d764ea01045d746c3ca24b1f94bdd069e60aad8887ce8ab3a0",
+          "disposition": "exclude",
+          "reason": "related_hosting_not_direct_c2",
+          "suppression_scope": "endpoint"
+        },
+        {
+          "ioc_type": "ip",
+          "ioc_value": "176.65.144.40",
+          "category": "c2",
+          "malware": "ChainScript",
+          "description_sha256": "da6468dfd7a2d75b0009ae508217ba4cba63c539cb97679de5f237c92d50411c",
+          "disposition": "exclude",
+          "reason": "related_hosting_not_direct_c2",
+          "suppression_scope": "endpoint"
+        },
+        {
+          "ioc_type": "ip",
+          "ioc_value": "85.137.56.10",
+          "category": "c2",
+          "malware": "ROOFDECK",
+          "description_sha256": "53d794e00deed24807160f2fdaa0ccfa146a0252789d10f48315bc216ef97bc6",
+          "disposition": "exclude",
+          "reason": "payload_staging_not_direct_c2",
+          "suppression_scope": "endpoint"
+        },
+        {
+          "ioc_type": "url",
+          "ioc_value": "https://ethereum-rpc.publicnode.com/",
+          "category": "c2",
+          "malware": "Remus",
+          "description_sha256": "bbdd460ded75cf1c5adf54049078c79460bbaa557960788829193a6fa4ead44e",
+          "disposition": "exclude",
+          "reason": "shared_public_rpc_not_direct_c2",
+          "suppression_scope": "host"
+        }
+      ]
+    }
+  ]
+}

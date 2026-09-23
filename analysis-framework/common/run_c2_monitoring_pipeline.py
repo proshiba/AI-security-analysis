@@ -341,7 +341,7 @@ def validate_daily_handoff_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
         "effective_target_commitment_sha256",
         "effective_target_count",
     }
-    optional = {"policy_excluded_onion_hosts"}
+    optional = {"policy_excluded_endpoints"}
     normalized: list[dict[str, Any]] = []
     dates: list[str] = []
     for record in records:
@@ -350,7 +350,7 @@ def validate_daily_handoff_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
         source_date = record.get("source_date")
         source_count = record.get("source_target_count")
         effective_count = record.get("effective_target_count")
-        excluded_hosts = record.get("policy_excluded_onion_hosts", [])
+        excluded_endpoints = record.get("policy_excluded_endpoints", [])
         if (
             record.get("schema_version") != DAILY_HANDOFF_SCHEMA_VERSION
             or not isinstance(source_date, str)
@@ -362,26 +362,25 @@ def validate_daily_handoff_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
             or effective_count < 0
             or not _is_sha256(record.get("source_target_commitment_sha256"))
             or not _is_sha256(record.get("effective_target_commitment_sha256"))
-            or not isinstance(excluded_hosts, list)
+            or not isinstance(excluded_endpoints, list)
             or any(
-                not isinstance(host, str)
-                or not host
-                or host != host.casefold()
-                or not host.endswith(".onion")
-                for host in excluded_hosts
+                not isinstance(endpoint, str)
+                or endpoint != endpoint.casefold()
+                or len(endpoint.split("|")) != 3
+                for endpoint in excluded_endpoints
             )
-            or excluded_hosts != sorted(set(excluded_hosts))
+            or excluded_endpoints != sorted(set(excluded_endpoints))
         ):
             raise ValueError("daily source handoffの型またはcommitmentが不正です")
-        effective_sha256, observed_count, observed_hosts = daily_effective_target_commitment(
+        effective_sha256, observed_count, observed_endpoints = daily_effective_target_commitment(
             plan.get("targets"),
             source_date,
         )
         if (
             effective_sha256 != record["effective_target_commitment_sha256"]
             or observed_count != effective_count
-            or len(observed_hosts) + len(excluded_hosts) != source_count
-            or bool(set(observed_hosts) & set(excluded_hosts))
+            or len(observed_endpoints) + len(excluded_endpoints) != source_count
+            or bool(set(observed_endpoints) & set(excluded_endpoints))
         ):
             raise ValueError("daily source handoffと実効C2 target集合が一致しません")
         dates.append(source_date)
@@ -442,16 +441,16 @@ def attach_daily_handoff_result_bindings(
     result_records: list[dict[str, Any]] = []
     for handoff in handoffs:
         source_date = handoff["source_date"]
-        excluded_hosts = handoff.get("policy_excluded_onion_hosts", [])
-        result_sha256, result_count, result_hosts = daily_effective_target_commitment(
+        excluded_endpoints = handoff.get("policy_excluded_endpoints", [])
+        result_sha256, result_count, result_endpoints = daily_effective_target_commitment(
             result_targets,
             source_date,
         )
         if (
             result_sha256 != handoff["effective_target_commitment_sha256"]
             or result_count != handoff["effective_target_count"]
-            or len(result_hosts) + len(excluded_hosts) != handoff["source_target_count"]
-            or bool(set(result_hosts) & set(excluded_hosts))
+            or len(result_endpoints) + len(excluded_endpoints) != handoff["source_target_count"]
+            or bool(set(result_endpoints) & set(excluded_endpoints))
         ):
             raise ValueError("daily source handoffとC2 result集合が一致しません")
         result_records.append(
