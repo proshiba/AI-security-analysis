@@ -34,10 +34,13 @@ py -3.13 analysis-framework\common\run_c2_monitoring_pipeline.py `
   --maxmind-cache-dir C:\Users\Administrator\MalwareSamples\maxmind\current `
   --nmap C:\Tools\Nmap\nmap.exe `
   --allow-network `
+  --allow-carry-forward-targets `
   --allow-malware-registration-tasking
 ```
 
 抽出器は`network`、`configured_c2`、`configured_or_observed_c2`、`indicators`、researchの`network.c2`を走査し、C2／control／exfil等の役割だけを採用します。配布専用、kill-switch、`not_c2`、private／loopback IP、`.eth`／`.sol`／XMP `.did`／`.iid`誤endpointは理由付きで`candidate-inventory.json`へ除外記録を残します。`.onion`はユーザー指定により監視対象外です。`--history-root`を省略した場合は`output-directory`の親を使います。統合ランナーは直近の`active-targets.json`も重複排除して統合します。
+
+`--allow-network`だけでは、入力`targets.json`にない前回active endpointを観測しません。carry-forwardによって実効対象が増える場合は、独立した`--allow-carry-forward-targets`がなければMaxMind取得やNmap起動より前にfail-closedで終了します。継続監視を許可しない実行ではこのflagを省略し、当日`targets.json`の完全一致集合だけを対象にします。`monitoring_continuity.carried_forward_target_count`と`carry_forward_targets_authorized_for_invocation`で実効範囲と当該実行の許可を監査できます。
 
 daily解析では`--allow-network`を必須とします。C2へ接続する前にCity/ASN両DBのbuild時刻を確認し、いずれかが24時間以上前なら公式checksumを検証した最新版へ更新します。閾値は`--maxmind-max-build-age-hours`で厳しくできますが、dailyでは24時間を超える値へ変更しません。
 

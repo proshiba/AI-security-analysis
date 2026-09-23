@@ -91,8 +91,11 @@ python .\analysis-framework\common\run_c2_monitoring_pipeline.py `
   --history-root .\analysis-results\research\c2-monitoring `
   --maxmind-cache-dir C:\malware-lab\maxmind\current `
   --nmap C:\Tools\Nmap\nmap.exe `
-  --allow-network
+  --allow-network `
+  --allow-carry-forward-targets
 ```
+
+この継続監視例は、当日plan外の直近active対象も実効集合へ追加することを独立して許可します。当日`targets.json`の完全一致集合だけを許可する場合は`--allow-carry-forward-targets`を省略します。追加対象がある場合はMaxMind取得やNmap起動より前にfail-closedとなり、offline stageに当日件数、追加件数、実効件数が表示されます。
 
 `targets.json`は`protocol_profile_id`だけを保持し、送信byte列、期待header、channel role、SNI、IP pinningはregistryから解決します。IDとhost／portが完全一致しない場合は接続前に拒否し、IP直指定hostはhost自体と単一pinが一致する場合だけ許可します。
 

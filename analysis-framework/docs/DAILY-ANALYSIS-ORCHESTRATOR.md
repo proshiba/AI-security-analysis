@@ -114,10 +114,12 @@ py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py preflight
 
 ## 実行・再開・継続（run、resume、drive）
 
-C2ライブ監視はrequestの network.c2_monitoring=true だけでは開始しません。当該実行でも --allow-live-c2 を指定する二重許可です。省略時はC2候補inventoryとtargetをofflineで生成し、外部C2へ接続せず、stageを再開可能なpartialとして保持します。preflightの authorization.live_c2_deferred_for_invocation=true はこの安全な保留状態を表し、後続の静的validationとS3保管を停止させません。`targets_built_live_monitoring_deferred`、非通信・非実行、妥当なtarget件数、エラーなしの固定契約へ一致する許可待ちは、同じ許可なしresumeで再試行せずattemptsを消費しません。契約外のpartialには通常の再試行上限を適用します。明示許可を付けた同じrequestのresumeではライブ監視と、その更新を受けたvalidationを再実行できます。
+C2ライブ監視はrequestの network.c2_monitoring=true だけでは開始しません。当該実行でも --allow-live-c2 を指定する二重許可です。省略時はC2候補inventoryとtargetをofflineで生成し、外部C2へ接続せず、stageを再開可能なpartialとして保持します。このoffline resultには当日`target_count`、`carry_forward_target_count`、`effective_target_count`を必ず記録するため、operatorはライブ許可前に実効範囲を確認できます。preflightの authorization.live_c2_deferred_for_invocation=true はこの安全な保留状態を表し、後続の静的validationとS3保管を停止させません。`targets_built_live_monitoring_deferred`、非通信・非実行、妥当な3件数、エラーなしの固定契約へ一致する許可待ちは、同じ許可なしresumeで再試行せずattemptsを消費しません。契約外のpartialには通常の再試行上限を適用します。明示許可を付けた同じrequestのresumeではライブ監視と、その更新を受けたvalidationを再実行できます。
+
+直近`active-targets.json`から当日の`targets.json`外のendpointを継続監視する場合は、`--allow-live-c2`とは独立して`--allow-c2-carry-forward`も必要です。追加件数が1件以上あるのに独立許可がない場合、MaxMind取得やC2接触より前に`targets_built_carry_forward_authorization_deferred`で停止します。preflight／planは`authorization.c2_carry_forward_authorized_for_invocation`を表示します。通常の日次targetだけを許可する場合はこのflagを付けません。
 
 ~~~powershell
-py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py run --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects --allow-live-c2
+py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py run --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects --allow-live-c2 --allow-c2-carry-forward
 ~~~
 
 中断、Ghidra chunk上限、容量不足、一時的なS3失敗は、同じrequestとrootで resume します。成功済みstageと再試行不能なpartialは通常再実行しません。ただし上流を再試行するときは、その更新に依存するC2候補生成とvalidationの古い結果をpendingへ戻して再計算します。これにより、後からC2観測等が進んだのに以前の未完了判定だけが残る状態を防ぎます。再計算時も既存attemptsを保持し、上限を緩めません。
@@ -125,7 +127,7 @@ py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py run --req
 driveは新規runまたは既存stateのresumeを自動選択し、Ghidra chunkと再試行可能stageを最大cycle数の範囲で反復します。complete、容量不足、再試行不能partial、最大cycleのいずれかで停止します。容量不足を待機loopで再試行しません。
 
 ~~~powershell
-py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py drive --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects --allow-live-c2 --max-cycles 64
+py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py drive --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects --allow-live-c2 --allow-c2-carry-forward --max-cycles 64
 ~~~
 
 max-cyclesは1～1,024です。各stage自体の既存上限も維持され、通常stageは5回、Ghidra、追随validation、Ghidra完了待ちのprivate archiveは1,024回を超えません。同じstatus、result、errorへ戻り、意味的進捗がない場合はattempt数やtimestampが変化しても停止します。隣接する同一状態だけでなく、A→B→Aのような循環も検知します。
@@ -191,7 +193,7 @@ Windowsの日次Ghidra段階は、OSが返すWindows system directory内の`curl
 ~~~powershell
 py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py status --work-root C:\analysis-lab\work --run-id daily-20260829
 
-py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py verify --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects --allow-live-c2
+py -3.13 -B .\analysis-framework\common\daily_analysis_orchestrator.py verify --request C:\analysis-lab\daily-request.json --repository C:\analysis-lab\repository --intelligence-root C:\analysis-lab\intelligence --private-root C:\analysis-lab\private --work-root C:\analysis-lab\work --ghidra-project-store C:\analysis-lab\ghidra-projects --allow-live-c2 --allow-c2-carry-forward
 ~~~
 
 終了codeは0=complete／ready、20=partial／preflight不足、1=failed、2=契約違反です。partialは検体自体の完了を意味しません。

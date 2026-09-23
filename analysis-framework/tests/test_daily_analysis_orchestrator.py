@@ -697,10 +697,244 @@ def test_live_c2_without_current_permission_builds_targets_but_defers_network(
     assert outcome.result == {
         "status": "targets_built_live_monitoring_deferred",
         "target_count": 3,
+        "carry_forward_target_count": 0,
+        "effective_target_count": 3,
+        "carry_forward_requires_independent_authorization": True,
         "daily_source_date": request.news_source_date,
         "network_contacted": False,
         "sample_executed": False,
     }
+
+
+def test_live_c2_requires_independent_permission_for_carry_forward_targets(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ライブ許可だけでは当日plan外の前日active対象へ接触しない。"""
+
+    import build_all_c2_monitoring_targets
+
+    document = request_document()
+    document["network"]["c2_monitoring"] = True
+    daily_context = replace(context(tmp_path, document), allow_live_c2=True)
+    current_target = {
+        "target_id": "today",
+        "host": "today.example",
+        "port": 443,
+        "protocol": "tcp",
+        "transport": "direct",
+    }
+    prior_target = {
+        "target_id": "prior",
+        "host": "prior.example",
+        "port": 8443,
+        "protocol": "tcp",
+        "transport": "direct",
+    }
+    prior = (
+        daily_context.repository
+        / "analysis-results"
+        / "research"
+        / "c2-monitoring"
+        / "2026-08-28"
+        / "active-targets.json"
+    )
+    prior.parent.mkdir(parents=True)
+    prior.write_text(json.dumps({"targets": [prior_target]}), encoding="utf-8")
+    monkeypatch.setattr(
+        build_all_c2_monitoring_targets,
+        "build_inventory",
+        lambda *_args, **_kwargs: (
+            {
+                "inventory_summary": {"planned_endpoint_count": 1},
+                "targets": [current_target],
+            },
+            {"schema_version": 1, "targets": []},
+        ),
+    )
+    monkeypatch.setattr(
+        target,
+        "_run_fixed_python",
+        lambda *_args, **_kwargs: pytest.fail(
+            "carry-forward独立許可前にC2監視processを起動してはいけません"
+        ),
+    )
+
+    offline = target._production_c2_monitoring(
+        replace(daily_context, allow_live_c2=False)
+    )
+    assert offline.result["status"] == "targets_built_live_monitoring_deferred"
+    assert offline.result["target_count"] == 1
+    assert offline.result["carry_forward_target_count"] == 1
+    assert offline.result["effective_target_count"] == 2
+    assert offline.result["carry_forward_requires_independent_authorization"] is True
+
+    outcome = target._production_c2_monitoring(daily_context)
+
+    assert outcome.status == "partial"
+    assert outcome.retryable is True
+    assert outcome.result == {
+        "status": "targets_built_carry_forward_authorization_deferred",
+        "target_count": 1,
+        "carry_forward_target_count": 1,
+        "effective_target_count": 2,
+        "carry_forward_requires_independent_authorization": True,
+        "daily_source_date": daily_context.request.news_source_date,
+        "network_contacted": False,
+        "sample_executed": False,
+    }
+
+
+def test_carry_forward_permission_is_passed_to_pipeline_independently(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import build_all_c2_monitoring_targets
+
+    document = request_document()
+    document["network"]["c2_monitoring"] = True
+    daily_context = replace(
+        context(tmp_path, document),
+        allow_live_c2=True,
+        allow_c2_carry_forward=True,
+    )
+    current_target = {
+        "target_id": "today",
+        "host": "today.example",
+        "port": 443,
+        "protocol": "tcp",
+        "transport": "direct",
+    }
+    prior_target = {
+        "target_id": "prior",
+        "host": "prior.example",
+        "port": 8443,
+        "protocol": "tcp",
+        "transport": "direct",
+    }
+    prior = (
+        daily_context.repository
+        / "analysis-results"
+        / "research"
+        / "c2-monitoring"
+        / "2026-08-28"
+        / "active-targets.json"
+    )
+    prior.parent.mkdir(parents=True)
+    prior.write_text(json.dumps({"targets": [prior_target]}), encoding="utf-8")
+    monkeypatch.setattr(
+        build_all_c2_monitoring_targets,
+        "build_inventory",
+        lambda *_args, **_kwargs: (
+            {
+                "inventory_summary": {"planned_endpoint_count": 1},
+                "targets": [current_target],
+            },
+            {"schema_version": 1, "targets": []},
+        ),
+    )
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(_context, *, arguments, **_kwargs) -> None:
+        captured["arguments"] = arguments
+        output = (
+            daily_context.repository
+            / "analysis-results"
+            / "research"
+            / "c2-monitoring"
+            / daily_context.request.analysis_date
+        )
+        (output / "monitoring-results.json").write_text(
+            json.dumps(
+                {
+                    "target_count": 2,
+                    "state_counts": {},
+                    "daily_source_handoffs": [],
+                    "monitoring_continuity": {"carried_forward_target_count": 1},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    monkeypatch.setattr(target, "_run_fixed_python", fake_run)
+
+    outcome = target._production_c2_monitoring(daily_context)
+
+    assert outcome.status == "complete"
+    assert "--allow-network" in captured["arguments"]
+    assert "--allow-carry-forward-targets" in captured["arguments"]
+    assert outcome.result["requested_target_count"] == 1
+    assert outcome.result["carry_forward_target_count"] == 1
+
+
+def test_carry_forward_authorization_wait_preserves_attempt_until_both_flags(
+    tmp_path: Path,
+) -> None:
+    daily_context = context(tmp_path)
+
+    def c2(attempt: int) -> target.StageOutcome:
+        if attempt == 1:
+            return target.StageOutcome(
+                "partial",
+                {
+                    "status": "targets_built_carry_forward_authorization_deferred",
+                    "target_count": 1,
+                    "carry_forward_target_count": 1,
+                    "effective_target_count": 2,
+                    "carry_forward_requires_independent_authorization": True,
+                    "network_contacted": False,
+                    "sample_executed": False,
+                },
+                retryable=True,
+            )
+        return target.StageOutcome("complete", {"status": "completed"})
+
+    fake_actions, calls = actions({"c2_monitoring": c2})
+    initial = target.run_daily(
+        daily_context,
+        actions=fake_actions,
+        capacity_probe=ready_capacity,
+    )
+    assert initial["stages"]["c2_monitoring"]["attempts"] == 1
+
+    live_only = target.resume_daily(
+        replace(daily_context, allow_live_c2=True),
+        actions=fake_actions,
+        capacity_probe=ready_capacity,
+    )
+    assert calls["c2_monitoring"] == 1
+    assert live_only["stages"]["c2_monitoring"]["attempts"] == 1
+
+    completed = target.resume_daily(
+        replace(
+            daily_context,
+            allow_live_c2=True,
+            allow_c2_carry_forward=True,
+        ),
+        actions=fake_actions,
+        capacity_probe=ready_capacity,
+    )
+    assert calls["c2_monitoring"] == 2
+    assert completed["stages"]["c2_monitoring"]["status"] == "complete"
+
+
+def test_c2_authorization_wait_rejects_non_integer_scope_without_exception() -> None:
+    record = {
+        "status": "partial",
+        "retryable": True,
+        "error": None,
+        "result": {
+            "status": "targets_built_live_monitoring_deferred",
+            "target_count": "1",
+            "carry_forward_target_count": 1,
+            "effective_target_count": 2,
+            "carry_forward_requires_independent_authorization": True,
+            "network_contacted": False,
+            "sample_executed": False,
+        },
+    }
+
+    assert target._live_c2_authorization_wait(record) is False
 
 
 def test_c2_target_count_must_match_planned_targets(
@@ -1361,8 +1595,53 @@ def test_news_requeue_is_audited_scoped_and_idempotent(tmp_path: Path) -> None:
     for name in ("malwarebazaar_acquisition", "static_analysis", "publication", "ghidra"):
         assert after["stages"][name] == before["stages"][name]
     receipt_root = daily_context.state_root / "repair-receipts" / "news-intake-requeue"
-    assert (receipt_root / "authorization.json").is_file()
-    assert (receipt_root / "completion.json").is_file()
+    assert len(list(receipt_root.glob("*-a.json"))) == 1
+    assert len(list(receipt_root.glob("*-c.json"))) == 1
+
+
+def test_news_requeue_preserves_prior_receipts_for_new_partial(tmp_path: Path) -> None:
+    """同じrunで再び旧partialになっても前回receiptを上書きしない。"""
+
+    daily_context, state_path, _before, state_pin, news_pin = _make_news_requeue_fixture(
+        tmp_path
+    )
+    first = target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=state_pin,
+        expected_news_record_sha256=news_pin,
+    )
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    news = state["stages"]["news_intake"]
+    news.update(
+        status="partial",
+        attempts=news["attempts"] + 1,
+        retryable=False,
+        result={
+            "source_date": daily_context.request.news_source_date,
+            "analysis_date": daily_context.request.analysis_date,
+            "exit_code": 20,
+            "provider_lookups": daily_context.request.network["provider_lookups"],
+            "sample_download": True,
+            "public_promotion": None,
+            "sample_executed": False,
+        },
+        error=None,
+    )
+    state["status"] = "partial"
+    target._atomic_json(state_path, state)
+    second_state_pin = hashlib.sha256(state_path.read_bytes()).hexdigest()
+    second_news_pin = target._sha256_value(news)
+
+    second = target.requeue_news_intake(
+        daily_context,
+        expected_state_sha256=second_state_pin,
+        expected_news_record_sha256=second_news_pin,
+    )
+
+    receipt_root = daily_context.state_root / "repair-receipts" / "news-intake-requeue"
+    assert first["authorization_receipt_sha256"] != second["authorization_receipt_sha256"]
+    assert len(list(receipt_root.glob("*-a.json"))) == 2
+    assert len(list(receipt_root.glob("*-c.json"))) == 2
 
 
 def _set_requeue_fixture_stage_failed(state_path: Path) -> tuple[str, str]:
@@ -1418,11 +1697,12 @@ def test_migration_normalizes_audited_legacy_news_requeue_status(
     legacy = json.loads(state_path.read_text(encoding="utf-8"))
     legacy["status"] = "partial"
     target._atomic_json(state_path, legacy)
-    completion_path = (
-        daily_context.state_root
-        / "repair-receipts"
-        / "news-intake-requeue"
-        / "completion.json"
+    completion_path = next(
+        (
+            daily_context.state_root
+            / "repair-receipts"
+            / "news-intake-requeue"
+        ).glob("*-c.json")
     )
     completion = json.loads(completion_path.read_text(encoding="utf-8"))
     completion["state_sha256_after"] = hashlib.sha256(state_path.read_bytes()).hexdigest()
@@ -1461,11 +1741,12 @@ def test_migration_rejects_tampered_legacy_news_requeue_marker(
     tampered["status"] = "partial"
     tampered["stages"]["news_intake"]["result"]["authorization_receipt_sha256"] = "0" * 64
     target._atomic_json(state_path, tampered)
-    completion_path = (
-        daily_context.state_root
-        / "repair-receipts"
-        / "news-intake-requeue"
-        / "completion.json"
+    completion_path = next(
+        (
+            daily_context.state_root
+            / "repair-receipts"
+            / "news-intake-requeue"
+        ).glob("*-c.json")
     )
     completion = json.loads(completion_path.read_text(encoding="utf-8"))
     completion["state_sha256_after"] = hashlib.sha256(state_path.read_bytes()).hexdigest()
@@ -1630,11 +1911,12 @@ def test_news_requeue_rejects_tampered_completion_or_post_state(tmp_path: Path) 
         expected_state_sha256=state_pin,
         expected_news_record_sha256=news_pin,
     )
-    completion_path = (
-        daily_context.state_root
-        / "repair-receipts"
-        / "news-intake-requeue"
-        / "completion.json"
+    completion_path = next(
+        (
+            daily_context.state_root
+            / "repair-receipts"
+            / "news-intake-requeue"
+        ).glob("*-c.json")
     )
     completion = json.loads(completion_path.read_text(encoding="utf-8"))
     completion["authorization_receipt_sha256"] = "0" * 64
@@ -1697,8 +1979,8 @@ def test_news_requeue_recovers_after_authorization_only_interruption(
             expected_news_record_sha256=news_pin,
         )
     receipt_root = daily_context.state_root / "repair-receipts" / "news-intake-requeue"
-    assert (receipt_root / "authorization.json").is_file()
-    assert not (receipt_root / "completion.json").exists()
+    assert len(list(receipt_root.glob("*-a.json"))) == 1
+    assert not list(receipt_root.glob("*-c.json"))
     assert hashlib.sha256(state_path.read_bytes()).hexdigest() == state_pin
 
     monkeypatch.setattr(target, "_write_state", real_write_state)
@@ -1718,7 +2000,7 @@ def test_news_requeue_recovers_after_state_write_interruption(
     real_atomic = target._atomic_json
 
     def interrupt_completion(path: Path, value) -> None:
-        if path.name == "completion.json":
+        if path.name.endswith("-c.json"):
             raise OSError("fixture interruption")
         real_atomic(path, value)
 
@@ -3489,6 +3771,11 @@ def test_news_adapter_forwards_operator_trusted_tool_pair(
 
     def partial(arguments: list[str]) -> int:
         captured["arguments"] = arguments
+        public_base = Path(arguments[arguments.index("--public-output") + 1])
+        staging = public_base / daily_context.request.news_source_date
+        staging.mkdir(parents=True)
+        for name in target.NEWS_PUBLIC_FILES:
+            (staging / name).write_text(f"{name}\n", encoding="utf-8")
         return 20
 
     monkeypatch.setattr(news_intake, "main", partial)
@@ -3496,6 +3783,10 @@ def test_news_adapter_forwards_operator_trusted_tool_pair(
 
     arguments = captured["arguments"]
     assert outcome.status == "partial"
+    assert outcome.result["exit_code"] == 20
+    assert outcome.result["public_promotion"]["file_count"] == len(
+        target.NEWS_PUBLIC_FILES
+    )
     assert Path(arguments[arguments.index("--trusted-tools-manifest") + 1]) == manifest
     assert arguments[arguments.index("--trusted-tools-manifest-sha256") + 1] == (
         configuration.manifest_sha256
@@ -3504,9 +3795,40 @@ def test_news_adapter_forwards_operator_trusted_tool_pair(
     assert str(manifest) not in json.dumps(daily_context.request.public())
 
 
+def test_partial_news_without_fixed_public_set_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """部分完了でも固定8成果物が揃わなければ公開もstage完了も拒否する。"""
+
+    daily_context = context(tmp_path)
+
+    def incomplete_partial(arguments: list[str]) -> int:
+        public_base = Path(arguments[arguments.index("--public-output") + 1])
+        staging = public_base / daily_context.request.news_source_date
+        staging.mkdir(parents=True)
+        (staging / "README.md").write_text("partial\n", encoding="utf-8")
+        return 20
+
+    monkeypatch.setattr(news_intake, "main", incomplete_partial)
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target._production_news_intake(daily_context)
+    assert captured.value.code == "news_public_staging_invalid"
+    final = (
+        daily_context.repository
+        / "analysis-results"
+        / "research"
+        / "daily-news-malware"
+        / daily_context.request.news_source_date
+    )
+    assert not final.exists()
+
+
+@pytest.mark.parametrize("exit_code", [0, 20])
 def test_news_source_change_does_not_promote_staged_public_results(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    exit_code: int,
 ) -> None:
     daily_context = context(tmp_path)
 
@@ -3518,7 +3840,7 @@ def test_news_source_change_does_not_promote_staged_public_results(
             (staging / name).write_text("staged\n", encoding="utf-8")
         source = next((daily_context.intelligence_root / "tech-memo").rglob("20260829.md"))
         source.write_text("changed\n", encoding="utf-8")
-        return 0
+        return exit_code
 
     monkeypatch.setattr(news_intake, "main", mutate_source)
     with pytest.raises(target.DailyOrchestrationError, match="commitment"):
@@ -3692,6 +4014,20 @@ def test_news_public_staging_promotes_only_fixed_file_set(tmp_path: Path) -> Non
     assert {path.name for path in final.iterdir()} == target.NEWS_PUBLIC_FILES
 
 
+def test_news_public_staging_rejects_extra_file(tmp_path: Path) -> None:
+    daily_context = context(tmp_path)
+    staging_base = daily_context.state_root / "news-public-staging"
+    staging = staging_base / daily_context.request.news_source_date
+    staging.mkdir(parents=True)
+    for name in target.NEWS_PUBLIC_FILES:
+        (staging / name).write_text(f"{name}\n", encoding="utf-8")
+    (staging / "unexpected.json").write_text("{}\n", encoding="utf-8")
+
+    with pytest.raises(target.DailyOrchestrationError) as captured:
+        target._promote_news_public_staging(daily_context, staging_base)
+    assert captured.value.code == "news_public_staging_invalid"
+
+
 def test_archive_preflight_uses_largest_sequential_candidate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -3765,3 +4101,21 @@ def test_preflight_allows_live_c2_to_be_deferred_without_blocking_static_lanes(
     assert report["authorization"]["live_c2_required"] is True
     assert report["authorization"]["live_c2_authorized_for_invocation"] is False
     assert report["authorization"]["live_c2_deferred_for_invocation"] is True
+    assert (
+        report["authorization"]["c2_carry_forward_authorized_for_invocation"]
+        is False
+    )
+    assert (
+        report["authorization"]["c2_carry_forward_requires_independent_authorization"]
+        is True
+    )
+
+    independently_authorized = target.build_preflight_report(
+        replace(daily_context, allow_c2_carry_forward=True)
+    )
+    assert (
+        independently_authorized["authorization"][
+            "c2_carry_forward_authorized_for_invocation"
+        ]
+        is True
+    )

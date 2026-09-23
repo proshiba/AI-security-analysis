@@ -1,14 +1,83 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
+import sys
 
 import pytest
+
+COMMON = Path(__file__).resolve().parents[1] / "common"
+if str(COMMON) not in sys.path:
+    sys.path.insert(0, str(COMMON))
+
 from run_c2_monitoring_pipeline import (
+    effective_target_addition_count,
+    enforce_carry_forward_scope_authorization,
     normalize_public_source_fields,
     render_enriched_report,
     restrict_to_reviewed_profiles,
     stale_build_epochs,
 )
+from monitor_recent_c2 import PlanError
+
+
+def test_effective_target_addition_count_uses_network_endpoint_boundary() -> None:
+    requested = {
+        "targets": [
+            {
+                "target_id": "today",
+                "host": "same.example",
+                "port": 443,
+                "protocol": "tcp",
+                "transport": "direct",
+            }
+        ]
+    }
+    effective = {
+        "targets": [
+            {
+                "target_id": "renamed-metadata-only",
+                "host": "same.example",
+                "port": 443,
+                "protocol": "tcp",
+                "transport": "direct",
+            },
+            {
+                "target_id": "carry-forward",
+                "host": "prior.example",
+                "port": 8443,
+                "protocol": "tcp",
+                "transport": "direct",
+            },
+        ]
+    }
+
+    assert effective_target_addition_count(requested, effective) == 1
+
+
+def test_network_rejects_unapproved_carry_forward_before_probe() -> None:
+    with pytest.raises(PlanError, match="独立した明示許可"):
+        enforce_carry_forward_scope_authorization(
+            additional_target_count=1,
+            allow_network=True,
+            allow_carry_forward_targets=False,
+        )
+
+    enforce_carry_forward_scope_authorization(
+        additional_target_count=1,
+        allow_network=False,
+        allow_carry_forward_targets=False,
+    )
+    enforce_carry_forward_scope_authorization(
+        additional_target_count=1,
+        allow_network=True,
+        allow_carry_forward_targets=True,
+    )
+    enforce_carry_forward_scope_authorization(
+        additional_target_count=0,
+        allow_network=True,
+        allow_carry_forward_targets=False,
+    )
 
 
 def test_render_enriched_report_includes_maxmind_section_once() -> None:

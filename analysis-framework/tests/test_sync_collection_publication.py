@@ -44,7 +44,14 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Pat
         "raw_private_artifacts_retained": True,
         "all_static_analysis_content_retained": True,
     }
-    _write(collection / "manifest.json", {"cases": [{"case_id": f"sha256:{SHA}"}], "complete": True})
+    _write(
+        collection / "manifest.json",
+        {
+            "cases": [{"case_id": f"sha256:{SHA}"}],
+            "complete": True,
+            "family_sources": [{"family": "unclassified", "path": "sources/unclassified"}],
+        },
+    )
     _write(
         collection / "publication-summary.json",
         {
@@ -52,16 +59,60 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Pat
                 {
                     "sha256": SHA,
                     "case_path": relative,
+                    "family": "unclassified",
                     "case_state": "complete",
                     "attribution_basis": "malwarebazaar_reported_signature",
+                    "family_attribution_status": "provider_reported_not_statically_confirmed",
+                    "family_role": "provider_reported_grouping",
                 }
             ]
         },
     )
     (collection / "README.md").write_text(
-        "# 日次collection\n\n## 静的ロジック状態\n\n| 状態 | 件数 |\n|---|---:|\n"
+        "# 日次collection\n\n"
+        "- 提供元報告のみで内部静的ファミリー未確認: `1`\n\n"
+        "## 整理先ラベル内訳\n\n"
+        "| 整理先ラベル | 件数 | 内部静的確認済み | 提供元報告のみ・内部静的未確認 | 未解決 |\n"
+        "|---|---:|---:|---:|---:|\n"
+        "| [unclassified](sources/unclassified/README.md) | 1 | 0 | 1 | 0 |\n\n"
+        "## 静的ロジック状態\n\n| 状態 | 件数 |\n|---|---:|\n"
         "| `function_analysis_required` | 1 |\n\n"
         "個別のPE構造、静的ロジックは各ケースに記録しています。\n",
+        encoding="utf-8",
+    )
+    source_case = {
+        "sha256": SHA,
+        "case_path": relative,
+        "family": "unclassified",
+        "attribution_basis": "malwarebazaar_reported_signature",
+        "family_attribution_status": "provider_reported_not_statically_confirmed",
+        "family_role": "provider_reported_grouping",
+        "publication_stage": "partial_followup_required",
+        "static_logic_status": "characteristic_function_static_analysis_complete_with_documented_limits",
+    }
+    _write(
+        collection / "sources" / "unclassified" / "summary.json",
+        {
+            "schema_version": 1,
+            "family": "unclassified",
+            "family_role": "collection_grouping_label",
+            "count": 1,
+            "family_attribution_status": {"provider_reported_not_statically_confirmed": 1},
+            "cases": [source_case],
+            "sample_executed": False,
+            "network_contacted": False,
+        },
+    )
+    (collection / "sources" / "unclassified" / "README.md").write_text(
+        "# unclassified 収録ケース\n\n"
+        "`unclassified`はこのcollectionの整理先ラベルです。各ケースの内部静的確認済みファミリーとは同義ではありません。\n\n"
+        "- 収録件数: `1`\n"
+        "- 内部静的確認済み: `0`\n"
+        "- 提供元報告のみ（内部静的未確認）: `1`\n"
+        "- 未解決: `0`\n"
+        "- 分類根拠と制約は各ケースを参照してください。\n\n"
+        "- 検体実行: なし\n"
+        "- 外部接続: なし\n",
         encoding="utf-8",
     )
     _write(
@@ -149,7 +200,8 @@ def test_build_collection_projection_downgrades_legacy_na_signature(
     }
     _write(summary_path, summary)
 
-    projected = target.build_collection_projection(repository, collection)["summary"]
+    projection = target.build_collection_projection(repository, collection)
+    projected = projection["summary"]
     item = projected["cases"][0]
 
     assert item["attribution_basis"] == "no_supported_family_evidence"
@@ -160,6 +212,15 @@ def test_build_collection_projection_downgrades_legacy_na_signature(
     assert item["statically_confirmed_family"] is None
     assert item["reported_signature"] == " N/A "
     assert projected["family_attribution_status"] == {"unresolved": 1}
+    source_summary = projection["documents"][collection / "sources" / "unclassified" / "summary.json"]
+    assert source_summary["cases"][0]["family_attribution_status"] == "unresolved"
+    assert source_summary["family_attribution_status"] == {"unresolved": 1}
+    root_readme = projection["readme"].decode("utf-8")
+    assert "- 提供元報告のみで内部静的ファミリー未確認: `0`" in root_readme
+    assert "| [unclassified](sources/unclassified/README.md) | 1 | 0 | 0 | 1 |" in root_readme
+    source_readme = projection["documents"][collection / "sources" / "unclassified" / "README.md"]
+    assert "- 提供元報告のみ（内部静的未確認）: `0`" in source_readme.decode("utf-8")
+    assert "- 未解決: `1`" in source_readme.decode("utf-8")
 
 
 def test_check_then_atomic_write(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -197,7 +258,11 @@ def test_partial_readme_projection_counts_pending_and_preserves_other_sections(
     _write(logic_path, logic)
     before = (collection / "README.md").read_text(encoding="utf-8")
     assert target.synchronize_collection_projection(repository, collection, check=True)["stale_files"] == [
-        "manifest.json", "publication-summary.json", "README.md"
+        "manifest.json",
+        "publication-summary.json",
+        "README.md",
+        "sources/unclassified/summary.json",
+        "sources/unclassified/README.md",
     ]
     target.synchronize_collection_projection(repository, collection, write=True)
     readme = (collection / "README.md").read_text(encoding="utf-8")
@@ -476,6 +541,156 @@ def test_projection_does_not_drop_unrelated_fields(monkeypatch: pytest.MonkeyPat
     projected = target.build_collection_projection(repository, collection)["summary"]
     assert projected["custom"] == {"retained": True}
     assert projected["cases"][0]["custom_case_field"] == "retained"
+
+
+def test_source_projection_refreshes_shared_fields_and_keeps_source_only_field(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """source caseの既知共有fieldはtop投影へ揃え、source固有fieldは保持する。"""
+
+    repository, collection, _case = _fixture(tmp_path, monkeypatch)
+    path = collection / "sources" / "unclassified" / "summary.json"
+    source = json.loads(path.read_text(encoding="utf-8"))
+    source["cases"][0].update(
+        {
+            "publication_stage": "analysis_followup_pending",
+            "static_logic_status": "function_analysis_required",
+            "c2_analysis_finding_count": 99,
+            "source_only": {"retained": True},
+        }
+    )
+    _write(path, source)
+
+    projection = target.build_collection_projection(repository, collection)
+    projected = projection["documents"][path]["cases"][0]
+
+    assert projected["publication_stage"] == "partial_followup_required"
+    assert projected["static_logic_status"] == (
+        "characteristic_function_static_analysis_complete_with_documented_limits"
+    )
+    assert projected["c2_analysis_finding_count"] == 7
+    assert projected["source_only"] == {"retained": True}
+
+
+def test_source_projection_rejects_unknown_shared_field_conflict(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """明示schema外の共有fieldがtop/sourceで競合した場合は推測で上書きしない。"""
+
+    repository, collection, _case = _fixture(tmp_path, monkeypatch)
+    top_path = collection / "publication-summary.json"
+    top = json.loads(top_path.read_text(encoding="utf-8"))
+    top["cases"][0]["future_shared"] = "top"
+    _write(top_path, top)
+    source_path = collection / "sources" / "unclassified" / "summary.json"
+    source = json.loads(source_path.read_text(encoding="utf-8"))
+    source["cases"][0]["future_shared"] = "source"
+    _write(source_path, source)
+
+    with pytest.raises(target.ProjectionError, match="未知共有field"):
+        target.build_collection_projection(repository, collection)
+
+
+def test_source_projection_rejects_unknown_layout_file(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """既知のREADME/summary以外を含むsource layoutは部分更新しない。"""
+
+    repository, collection, _case = _fixture(tmp_path, monkeypatch)
+    (collection / "sources" / "unclassified" / "extra.txt").write_text("extra", encoding="utf-8")
+
+    with pytest.raises(target.ProjectionError, match="既知layout"):
+        target.build_collection_projection(repository, collection)
+
+
+def test_source_projection_rejects_duplicate_case(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """source summary内の重複caseを件数で相殺せず拒否する。"""
+
+    repository, collection, _case = _fixture(tmp_path, monkeypatch)
+    path = collection / "sources" / "unclassified" / "summary.json"
+    source = json.loads(path.read_text(encoding="utf-8"))
+    source["cases"].append(deepcopy(source["cases"][0]))
+    source["count"] = 2
+    source["family_attribution_status"] = {"provider_reported_not_statically_confirmed": 2}
+    _write(path, source)
+
+    with pytest.raises(target.ProjectionError, match="caseが重複"):
+        target.build_collection_projection(repository, collection)
+
+
+def test_source_projection_rejects_count_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """source summaryの明示countとcase配列の不一致を拒否する。"""
+
+    repository, collection, _case = _fixture(tmp_path, monkeypatch)
+    path = collection / "sources" / "unclassified" / "summary.json"
+    source = json.loads(path.read_text(encoding="utf-8"))
+    source["count"] = 2
+    _write(path, source)
+
+    with pytest.raises(target.ProjectionError, match="countとcases件数"):
+        target.build_collection_projection(repository, collection)
+
+
+def test_source_replace_failure_rolls_back_entire_projection(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """source README置換失敗時もrootとsourceの先行置換を全て復元する。"""
+
+    repository, collection, _case = _fixture(tmp_path, monkeypatch)
+    paths = [
+        collection / "manifest.json",
+        collection / "publication-summary.json",
+        collection / "README.md",
+        collection / "sources" / "unclassified" / "summary.json",
+        collection / "sources" / "unclassified" / "README.md",
+    ]
+    before = {path: path.read_bytes() for path in paths}
+    failed_path = paths[-1]
+    real_replace = target.os.replace
+    failed = False
+
+    def fail_source_readme_once(source: str | Path, destination: str | Path) -> None:
+        nonlocal failed
+        source_path = Path(source)
+        if Path(destination) == failed_path and ".rollback." not in source_path.name and not failed:
+            failed = True
+            raise OSError("fixture source README replace failure")
+        real_replace(source, destination)
+
+    monkeypatch.setattr(target.os, "replace", fail_source_readme_once)
+    with pytest.raises(OSError, match="source README replace failure"):
+        target.synchronize_collection_projection(repository, collection, write=True)
+    assert all(path.read_bytes() == before[path] for path in paths)
+
+
+def test_source_change_after_projection_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """投影後にsource summaryが変わった場合はread-only確認でも競合を拒否する。"""
+
+    repository, collection, _case = _fixture(tmp_path, monkeypatch)
+    source_path = collection / "sources" / "unclassified" / "summary.json"
+    original_builder = target.build_collection_projection
+
+    def build_then_change(*args, **kwargs):
+        result = original_builder(*args, **kwargs)
+        source_path.write_text("{}", encoding="utf-8")
+        return result
+
+    monkeypatch.setattr(target, "build_collection_projection", build_then_change)
+    with pytest.raises(target.ProjectionError, match="read-only検証"):
+        target.synchronize_collection_projection(repository, collection, check=True)
 
 
 def test_provider_fields_require_empty_static_family_selection() -> None:

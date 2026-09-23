@@ -882,6 +882,12 @@ def _build_summary_materialized(
         source = labels.get(digest) or aliases.get(digest, {})
         review = reviews.get(digest, {})
         reviewed_functions = list(review.get("functions") or [])
+        source_static_logic_status = static_logic.get("status")
+        effective_function_analysis_status = (
+            "reviewed_function_logic"
+            if reviewed_functions
+            else source_static_logic_status
+        )
         (
             software_identity,
             component_role,
@@ -922,13 +928,15 @@ def _build_summary_materialized(
             "campaign_abuse_context": campaign_abuse_context,
             "maliciousness": maliciousness,
             "analysis_coverage": triage.get("analysis_coverage"),
-            "static_logic_status": static_logic.get("status"),
+            "static_logic_status": source_static_logic_status,
+            "effective_function_analysis_status": effective_function_analysis_status,
             "function_count": max(static_logic.get("coverage", {}).get("function_count", 0), len(reviewed_functions)),
             "call_edge_count": static_logic.get("coverage", {}).get("call_edge_count", 0),
             "function_bodies_reviewed": bool(reviewed_functions) or static_logic.get("coverage", {}).get("function_bodies_reviewed", False),
             "reviewed_functions": reviewed_functions,
             "function_review_source": review.get("source"),
             "limitations": static_logic.get("limitations", []),
+            "limitations_provenance": "source_static_logic",
             "sample_executed": False,
             "network_contacted_by_sample": False,
         }
@@ -977,8 +985,8 @@ def _build_summary_materialized(
             "macho": format_counts["macho"],
             "script": format_counts["script"],
             "function_analysis_complete": sum(bool(item["function_bodies_reviewed"]) for item in samples),
-            "script_structure_recorded": sum(item["static_logic_status"] == "automated_script_structure" for item in samples),
-            "function_analysis_required": sum(item["static_logic_status"] == "function_analysis_required" and not item["function_bodies_reviewed"] for item in samples),
+            "script_structure_recorded": sum(item["effective_function_analysis_status"] == "automated_script_structure" for item in samples),
+            "function_analysis_required": sum(item["effective_function_analysis_status"] == "function_analysis_required" for item in samples),
         },
         "samples": samples,
         "clusters": cluster_rows,
@@ -1124,15 +1132,16 @@ def render_markdown(summary: dict[str, Any]) -> str:
             "関数本体レビューが未完了の検体では、importや文字列だけから挙動成立を断定しない。"
         ), "",
         "## 検体一覧", "",
-        "| SHA-256 | OSINTラベル | 形式 | アーキテクチャ | サイズ | entropy | 静的ロジック状態 |",
-        "|---|---|---|---|---:|---:|---|",
+        "| SHA-256 | OSINTラベル | 形式 | アーキテクチャ | サイズ | entropy | 基礎静的ロジック状態 | 実効関数レビュー状態 |",
+        "|---|---|---|---|---:|---:|---|---|",
     ]
     for item in summary["samples"]:
         arch = item["architecture"]
         arch_text = "/".join(str(value) for value in (arch.get("machine"), arch.get("bits"), arch.get("byte_order")) if value is not None) or "-"
         lines.append(
             f"| `{item['sha256']}` | {item['reported_malware']} | `{item['file_type']}` | "
-            f"`{arch_text}` | {item['size']} | {item['entropy']} | `{item['static_logic_status']}` |"
+            f"`{arch_text}` | {item['size']} | {item['entropy']} | `{item['static_logic_status']}` | "
+            f"`{item['effective_function_analysis_status']}` |"
         )
     lines.extend([
         "", "## ソフトウェア識別・役割・悪用文脈・悪性の分離", "",
@@ -1217,6 +1226,7 @@ def render_markdown(summary: dict[str, Any]) -> str:
     lines.extend([
         "", "## 制約", "",
         "- 関数本体レビュー未完了のバイナリは、追加の逆コンパイルとコールグラフ整理が必要。",
+        "- 各検体のlimitationsは基礎静的解析出力時点の制約であり、review supplementにより補完された実効関数レビュー状態とは分けて保持する。",
         "- プロバイダのファミリ名は帰属の補助情報であり、独自に復元した設定・通信・コード類似性と分けて扱う。",
         "- Authenticodeの静的検証成功は署名対象の完全性を示すが、配置の正当性やオンライン失効確認を自動的には保証しない。",
         "- 検体の通信は発生させていない。公開結果には検体本体と逆コンパイル全文を含めない。", "",
