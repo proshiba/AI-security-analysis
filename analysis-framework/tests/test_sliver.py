@@ -19,6 +19,7 @@ DETECT = importlib.import_module("malware.sliver.detect")
 EXTRACT = importlib.import_module("malware.sliver.extract_config")
 CONTRACT = importlib.import_module("analysis_contract")
 HANDLER_CATALOG = importlib.import_module("handler_catalog")
+CLASSIFY = importlib.import_module("classifiers.classify_sample")
 
 
 def _minimal_amd64_pe() -> bytearray:
@@ -72,6 +73,20 @@ def test_detector_requires_all_independent_clusters_and_go_pe_structure() -> Non
     assert observations["network_contacted"] is False
     assert result["campaigns"][0]["artifact_role"] == "server_operator_or_implant_role_unresolved"
     assert result["campaigns"][0]["malicious_use_confirmed"] is False
+
+
+def test_detector_result_matches_classifier_contract() -> None:
+    detection = CLASSIFY.normalize_detection_result(DETECT.detect(_sample()))
+    assert detection["matched"] is True
+    assert detection["campaigns"][0]["confidence"] == "high"
+    assert detection["campaigns"][0]["malicious_use_confirmed"] is False
+    classification = CLASSIFY.classify_bytes(
+        _sample(),
+        Path("sliver-test.exe"),
+        FRAMEWORK / "registry" / "malware_types.json",
+    )
+    assert classification["malware_type"] == "sliver"
+    assert classification["campaign_type"] == "sliver_framework_binary"
 
 
 def test_detector_rejects_single_marker_go_only_and_missing_cluster() -> None:
