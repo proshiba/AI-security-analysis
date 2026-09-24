@@ -537,10 +537,28 @@ def _malware_specs() -> list[HandlerSpec]:
 
 def _extractor_specs() -> list[HandlerSpec]:
     specs: list[HandlerSpec] = []
+    # 統合adapterのうち、静的依存監査と隔離importを確認済みのものだけを
+    # 自動発見する。未監査の新規adapterは明示的レビューまで対象外にする。
+    integrated_families = (
+        "asyncrat",
+        "dcrat",
+        "njrat",
+        "stealc",
+        "venomrat",
+        "vidar",
+        "xworm",
+    )
     paths = [
         *sorted(EXTRACTORS_ROOT.glob("*/extractor.py")),
+        *[
+            path
+            for path in sorted(EXTRACTORS_ROOT.glob("*/integrated.py"))
+            if path.parent.name in integrated_families
+        ],
         *sorted(EXTRACTORS_ROOT.glob("*.py")),
     ]
+    # 旧extractor.pyのhandler ID互換を保ちつつ、v2やdead-drop意味論を
+    # 実装する統合adapterも独立handlerとして発見する。
     nested = EXTRACTORS_ROOT / "unclassified" / "mx_go" / "extractor.py"
     if nested.is_file():
         paths.append(nested)
@@ -8061,6 +8079,16 @@ def _candidate_handler_specs(
         # family共通config extractorをcampaign固有の詳細解析より先に試す。
         key=lambda item: (item.campaign is not None, item.id),
     )
+    # Vidarの統合adapterは旧抽出器の結果へdead-dropの役割分類を適用する。
+    # 両方を自動実行すると同じURLに矛盾するC2意味付けが付くため、統合版が
+    # 利用可能な場合は旧版を候補選定から外す（旧handler IDは互換用に残す）。
+    if family == "vidar" and any(
+        spec.relative_path == "extractors/vidar/integrated.py" for spec in automatic
+    ):
+        automatic = [
+            spec for spec in automatic
+            if spec.relative_path != "extractors/vidar/extractor.py"
+        ]
     metadata_only = (
         candidate.get("routing_mode") == "candidate_verification"
         and candidate.get("sources") == ["external_metadata"]
