@@ -131,6 +131,7 @@ def test_campaign_case_labels_require_explicit_scope(
         },
     }
     monkeypatch.setattr(campaign_writer, "load_rules", lambda _path: {})
+    monkeypatch.setattr(campaign_writer, "load_reviewed_campaigns", lambda _path: [])
     monkeypatch.setattr(campaign_writer, "_history_by_sha", lambda _repository: {})
     monkeypatch.setattr(
         campaign_writer,

@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import re
+from collections.abc import Sequence
 from typing import Any
 import urllib.parse
 
@@ -205,17 +206,17 @@ def _normalize_match(parent_sha256: str, match: dict[str, Any]) -> dict[str, Any
     }
 
 
-def _artifact_index(path: Path | None, membership: set[str]) -> dict[str, list[dict[str, Any]]]:
+def _artifact_index(paths: Path | Sequence[Path] | None, membership: set[str]) -> dict[str, list[dict[str, Any]]]:
     indexed = {digest: [] for digest in membership}
-    if path is None:
+    if paths is None:
         return indexed
-    manifest = _json(path)
-    for item in manifest.get("downloads") or []:
-        parent = _sha256(item.get("parent_sha256"))
-        if parent not in membership:
-            raise ValueError("artifact manifestにcollection外の親検体があります")
-        indexed[parent].append(
-            {
+    for path in [paths] if isinstance(paths, Path) else paths:
+        manifest = _json(path)
+        for item in manifest.get("downloads") or []:
+            parent = _sha256(item.get("parent_sha256"))
+            if parent not in membership:
+                raise ValueError("artifact manifestにcollection外の親検体があります")
+            record = {
                 "sample_id": _sample_id(item.get("sample_id")),
                 "kind": str(item.get("kind") or "unknown")[:80],
                 "name": _safe_name(item.get("name")),
@@ -225,33 +226,47 @@ def _artifact_index(path: Path | None, membership: set[str]) -> dict[str, list[d
                 "executed": False,
                 "stored_in_repository": False,
             }
-        )
+            if record not in indexed[parent]:
+                indexed[parent].append(record)
     return indexed
 
 
-def _artifact_analysis_index(path: Path | None) -> dict[str, dict[str, Any]]:
+def _artifact_analysis_index(paths: Path | Sequence[Path] | None) -> dict[str, dict[str, Any]]:
     """後段取得物へ適用したローカル静的解析の公開可能な状態だけを抽出する。"""
 
     indexed: dict[str, dict[str, Any]] = {}
-    if path is None:
+    if paths is None:
         return indexed
-    summary = _json(path)
-    for item in summary.get("cases") or []:
-        digest = _sha256(item.get("sha256"))
-        indexed[digest] = {
-            "family": str(item.get("family") or "unknown")[:120],
-            "selected_family": (
-                str(item["selected_family"])[:120]
-                if item.get("selected_family") is not None
-                else None
-            ),
-            "case_state": str(item.get("case_state") or "unknown")[:40],
-            "handler_succeeded": int(item.get("handler_succeeded") or 0),
-            "analysis_stage_failed": bool(item.get("analysis_stage_failed")),
-            "sample_executed": False,
-            "network_contacted": False,
-        }
+    for path in [paths] if isinstance(paths, Path) else paths:
+        summary = _json(path)
+        for item in summary.get("cases") or []:
+            digest = _sha256(item.get("sha256"))
+            record = {
+                "family": str(item.get("family") or "unknown")[:120],
+                "selected_family": (
+                    str(item["selected_family"])[:120]
+                    if item.get("selected_family") is not None
+                    else None
+                ),
+                "case_state": str(item.get("case_state") or "unknown")[:40],
+                "handler_succeeded": int(item.get("handler_succeeded") or 0),
+                "analysis_stage_failed": bool(item.get("analysis_stage_failed")),
+                "sample_executed": False,
+                "network_contacted": False,
+            }
+            if digest in indexed and indexed[digest] != record:
+                raise ValueError("同じ成果物SHA-256へ相反する静的解析結果があります")
+            indexed[digest] = record
     return indexed
+
+
+def _sandbox_config_role(endpoint: str) -> str:
+    """共有Webサービスの設定候補を最終C2 IOCへ誤昇格させない。"""
+
+    host = (urllib.parse.urlsplit(endpoint).hostname or endpoint.split(":", 1)[0]).casefold()
+    if host in {"telegram.me", "t.me", "steamcommunity.com", "community.fandom.com"}:
+        return "shared_service_config_candidate_dual-use"
+    return "c2_candidate_external_sandbox_config"
 
 
 def _source_results(source: dict[str, Any]) -> list[dict[str, Any]]:
@@ -392,7 +407,7 @@ def _merge_iocs(case_root: Path, evidence: dict[str, Any]) -> None:
     retained.extend(
         {
             "value": endpoint,
-            "role": "c2_candidate_external_sandbox_config",
+            "role": _sandbox_config_role(endpoint),
             "confidence": "medium_external_sandbox_exact_hash",
             "classification": "candidate_not_static_confirmed",
             "source": source,
@@ -408,8 +423,8 @@ def publish(
     repository: Path,
     collection_id: str,
     triage_result: Path,
-    artifact_manifest: Path | None,
-    artifact_analysis_summary: Path | None,
+    artifact_manifest: Path | Sequence[Path] | None,
+    artifact_analysis_summary: Path | Sequence[Path] | None,
     *,
     write: bool,
 ) -> dict[str, Any]:
@@ -517,8 +532,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--repository", type=Path, default=Path.cwd())
     parser.add_argument("--collection-id", required=True)
     parser.add_argument("--triage-result", type=Path, required=True)
-    parser.add_argument("--artifact-manifest", type=Path)
-    parser.add_argument("--artifact-analysis-summary", type=Path)
+    parser.add_argument("--artifact-manifest", type=Path, action="append")
+    parser.add_argument("--artifact-analysis-summary", type=Path, action="append")
     parser.add_argument("--write", action="store_true")
     return parser
 
@@ -531,8 +546,8 @@ def main(argv: list[str] | None = None) -> int:
         args.repository,
         args.collection_id,
         args.triage_result.resolve(),
-        args.artifact_manifest.resolve() if args.artifact_manifest else None,
-        args.artifact_analysis_summary.resolve() if args.artifact_analysis_summary else None,
+        [path.resolve() for path in args.artifact_manifest] if args.artifact_manifest else None,
+        [path.resolve() for path in args.artifact_analysis_summary] if args.artifact_analysis_summary else None,
         write=args.write,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))

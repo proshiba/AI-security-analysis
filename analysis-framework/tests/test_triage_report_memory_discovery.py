@@ -208,6 +208,40 @@ def test_extract_report_region_rejects_too_many_candidates() -> None:
         )
 
 
+def test_explicit_extended_report_candidate_limit_is_still_bounded() -> None:
+    report = report_region()
+    report["dumped"] = []
+    for index in range(101):
+        start = 0x47E0000 + index * 0x1000
+        report["dumped"].append(
+            {
+                **report_region()["dumped"][0],
+                "name": (
+                    f"memory/1700-{index}-0x{start:016X}-"
+                    f"0x{start + 0x1000:016X}-memory.dmp"
+                ),
+                "addr": start,
+                "length": 0x1000,
+            }
+        )
+    with pytest.raises(ValueError, match="候補件数"):
+        retrieval.extract_report_memory_candidates(
+            report,
+            expected_sha256=SHA256,
+            sample_id=SAMPLE_ID,
+            task_id=TASK_ID,
+        )
+    assert len(
+        retrieval.extract_report_memory_candidates(
+            report,
+            expected_sha256=SHA256,
+            sample_id=SAMPLE_ID,
+            task_id=TASK_ID,
+            max_candidates=256,
+        )
+    ) == 101
+
+
 def test_extract_report_region_rejects_sample_or_task_mismatch() -> None:
     wrong_sample = report_region()
     wrong_sample["sample"]["id"] = "260623-abcdefghij"
