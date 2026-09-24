@@ -36,6 +36,7 @@ MAX_ELECTRON_SCRIPTS = 64
 MAX_ELECTRON_SCRIPT_BYTES = 8 * 1024 * 1024
 MAX_CIPHERTEXT = 64 * 1024 * 1024
 MAX_TERMINAL_PE = 64 * 1024 * 1024
+MAX_PROTECTED_JSC = 16 * 1024 * 1024
 MAX_JS_ARRAY = 10_000
 MAX_JS_VALUE = 65_536
 MAX_JS_ROTATION = 100_000
@@ -1428,6 +1429,18 @@ def select_asar_members(names: list[str]) -> list[str]:
     return [item[2] for item in sorted(candidates)[:8]]
 
 
+def select_protected_jsc_members(names: list[str]) -> list[str]:
+    """ASAR外部配置のアプリ固有bytenode bytecodeだけを有界に選ぶ。"""
+    candidates = []
+    for name in names[:MAX_MEMBERS]:
+        normalized = safe_archive_member(name).replace("\\", "/").lower()
+        if not normalized.startswith("resources/app.asar.unpacked/protected/"):
+            continue
+        if normalized.endswith(("/app.protected.jsc", "/preload.protected.jsc")):
+            candidates.append((normalized, name))
+    return [name for _, name in sorted(candidates)[:2]]
+
+
 def list_archive(path: Path, executable: Path, timeout: float = 60.0) -> dict:
     """7-Zipでarchive 1件を列挙し、上限付きtype/member metadataを返す。"""
     completed = _run_static_tool_process(
@@ -1539,6 +1552,39 @@ def recover_electron_asars(
                             "payload_chain": payload_report,
                         }
                     )
+                for bytecode_index, bytecode_name in enumerate(
+                    select_protected_jsc_members(listing["members"])
+                ):
+                    try:
+                        bytecode_path = extract_member(
+                            nested,
+                            bytecode_name,
+                            root / f"jsc-{index}-{bytecode_index}",
+                            executable,
+                        )
+                        if not 0 < bytecode_path.stat().st_size <= MAX_PROTECTED_JSC:
+                            raise ValueError("protected bytecode size exceeds bound")
+                        bytecode = _read_static_tool_output(
+                            bytecode_path, root=root, maximum_size=MAX_PROTECTED_JSC
+                        )
+                        digest = hashlib.sha256(bytecode).hexdigest()
+                        artifacts.append(("electron-protected-jsc", bytecode))
+                        item.setdefault("protected_bytecode", []).append(
+                            {
+                                "name": safe_archive_member(bytecode_name),
+                                "size": len(bytecode),
+                                "sha256": digest,
+                                "status": "opaque_bytecode_recovered_not_executed",
+                            }
+                        )
+                    except (OSError, StaticToolExecutionError, ValueError) as exc:
+                        item.setdefault("protected_bytecode", []).append(
+                            {
+                                "name": safe_archive_member(bytecode_name),
+                                "status": "bounded_recovery_failed",
+                                "error": type(exc).__name__,
+                            }
+                        )
                 item["status"] = "asar_recovered" if item.get("asars") else "no_asar"
             except (OSError, StaticToolExecutionError, ValueError) as exc:
                 item.update(status="recovery_failed", error=type(exc).__name__)

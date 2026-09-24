@@ -772,6 +772,124 @@ def test_candidate_status_is_outside_static_step_issue_scan() -> None:
     assert analyzer._static_layer_issues(copy.deepcopy(layer_report)) == []
 
 
+def test_local_decode_candidates_do_not_become_case_level_static_blockers() -> None:
+    """Donut/Bitmapの個別候補negative診断をparser全体の失敗と混同しない。"""
+
+    layer_report = {
+        "steps": [
+            {
+                "status": "succeeded",
+                "report": {
+                    "donut": {
+                        "status": "no_payload_recovered",
+                        "candidates": [
+                            {"status": "decode_failed", "error": "ValueError"},
+                        ],
+                    },
+                    "dotnet_resources": {
+                        "status": "resources_recovered",
+                        "inventory": [
+                            {
+                                "status": "extracted",
+                                "bitmap_payloads": {
+                                    "status": "bitmap_entries_processed",
+                                    "entries": [
+                                        {
+                                            "status": "invalid_bounds",
+                                            "parse_error": "candidate-local diagnostic",
+                                        }
+                                    ],
+                                },
+                            }
+                        ],
+                    },
+                },
+            }
+        ]
+    }
+
+    assert analyzer._static_layer_issues(layer_report) == []
+
+
+def test_verified_wrapper_and_top_level_parser_failures_remain_blocking() -> None:
+    """局所除外をwrapper・resource parser全体の失敗へ拡張しない。"""
+
+    issues = analyzer._static_layer_issues(
+        {
+            "steps": [
+                {
+                    "status": "succeeded",
+                    "report": {
+                        "donut": {"status": "decode_failed"},
+                        "donut_wrapper": {"status": "decode_failed"},
+                        "dotnet_resources": {
+                            "status": "parse_failed",
+                            "inventory": [
+                                {
+                                    "bitmap_payloads": {
+                                        "status": "parse_failed",
+                                        "entries": [{"status": "invalid_bounds"}],
+                                    }
+                                }
+                            ],
+                        },
+                    },
+                }
+            ]
+        }
+    )
+
+    assert issues == [
+        "steps[0].report.donut.status:decode_failed",
+        "steps[0].report.donut_wrapper.status:decode_failed",
+        "steps[0].report.dotnet_resources.inventory[0].bitmap_payloads.status:parse_failed",
+        "steps[0].report.dotnet_resources.status:parse_failed",
+    ]
+
+
+def test_structural_recovery_blocker_allowlist_preserves_real_gaps() -> None:
+    """packed・Inno・PyInstallerの実復元gapだけをstatic issueへ昇格する。"""
+
+    issues = analyzer._static_layer_issues(
+        {
+            "steps": [],
+            "structural_candidates": {
+                "status": "candidates_with_blockers",
+                "candidates": [
+                    {"blockers": ["packed_layer_not_recovered"]},
+                    {
+                        "blockers": [
+                            "archive_extraction_incomplete",
+                            "inno_encrypted_payload_blocked",
+                        ]
+                    },
+                    {
+                        "blockers": [
+                            "pyinstaller_content_validation_not_reported",
+                            "pyinstaller_payloads_not_recovered",
+                            "source_layer_recovery_limit_observed",
+                        ]
+                    },
+                    {
+                        "blockers": [
+                            "embedded_pe_byte_carve_has_no_launch_or_decoder_lineage",
+                        ]
+                    },
+                ],
+            },
+        }
+    )
+
+    assert issues == [
+        "structural_candidates.candidates[0].blockers:packed_layer_not_recovered",
+        "structural_candidates.candidates[1].blockers:archive_extraction_incomplete",
+        "structural_candidates.candidates[1].blockers:inno_encrypted_payload_blocked",
+        "structural_candidates.candidates[2].blockers:pyinstaller_content_validation_not_reported",
+        "structural_candidates.candidates[2].blockers:pyinstaller_payloads_not_recovered",
+        "structural_candidates.candidates[2].blockers:source_layer_recovery_limit_observed",
+    ]
+
+
 def test_analyze_sample_publishes_only_structural_summary_in_report(tmp_path: Path) -> None:
     """標準入口がstatic-layers本体とreportの最小summaryを同時生成する。"""
 

@@ -3106,7 +3106,13 @@ def test_candidate_handlers_are_round_robin_before_global_attempt_limit(
     assert calls == [shared.id, campaign.id] * 48
     assert result["actual_attempt_count"] == catalog.MAX_ASSESSMENT_ATTEMPTS
     assert result["unattempted_attempt_count"] == 32
-    assert result["pair_planning"]["execution_order"] == ("candidate_rank_then_handler_round_robin")
+    assert result["pair_planning"]["execution_order"] == (
+        "candidate_family_first_then_all_handler_first_then_nested_tail_round_robin"
+    )
+    assert (
+        result["pair_planning"]["each_candidate_family_first_attempt_before_second"]
+        is True
+    )
     assert result["pair_planning"]["each_handler_first_attempt_before_second"] is True
 
 
@@ -3118,6 +3124,8 @@ def test_candidate_round_robin_spans_ranked_families(
 
     repository, malware_root = isolated_catalog
     high = _handler_spec(repository, malware_root, "valleyrat", _source("{}"))
+    high_first = replace(high, id="valleyrat:first")
+    high_second = replace(high, id="valleyrat:second")
     low = _handler_spec(repository, malware_root, "asyncrat", _source("{}"))
     layers = [_layer(b"layer-zero", "zero.bin"), _layer(b"layer-one", "one.bin")]
     calls: list[str] = []
@@ -3133,13 +3141,47 @@ def test_candidate_round_robin_spans_ranked_families(
             {**_candidate("valleyrat"), "rank": 1},
         ],
         layers,
-        specs=[low, high],
+        specs=[low, high_second, high_first],
         maximum_attempts=2,
     )
 
     assert calls == ["valleyrat", "asyncrat"]
     assert result["actual_attempt_count"] == 2
-    assert result["unattempted_attempt_count"] == 2
+    assert result["unattempted_attempt_count"] == 4
+
+
+def test_candidate_round_robin_starts_every_handler_before_second_layer(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """family間handler数が不均衡でも、全handler初回を第2層より先にする。"""
+
+    repository, malware_root = isolated_catalog
+    first_family = _handler_spec(repository, malware_root, "valleyrat", _source("{}"))
+    second_family = _handler_spec(repository, malware_root, "asyncrat", _source("{}"))
+    second_a = replace(second_family, id="asyncrat:first")
+    second_b = replace(second_family, id="asyncrat:second")
+    layers = [_layer(b"layer-zero", "zero.bin"), _layer(b"layer-one", "one.bin")]
+    calls: list[str] = []
+
+    def execute(handler, *_args, **_kwargs):
+        calls.append(handler.id)
+        return _mock_completed_handler_result()
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    result = catalog.assess_candidate_handlers(
+        [
+            {**_candidate("asyncrat"), "rank": 2},
+            {**_candidate("valleyrat"), "rank": 1},
+        ],
+        layers,
+        specs=[second_b, first_family, second_a],
+        maximum_attempts=3,
+    )
+
+    assert calls == [first_family.id, second_a.id, second_b.id]
+    assert result["actual_attempt_count"] == 3
+    assert result["unattempted_attempt_count"] == 3
 
 
 def test_attempt_detail_and_verified_output_budgets_return_partial(
@@ -4029,6 +4071,44 @@ def test_asyncrat_handler_preflight_accepts_reviewed_bounded_cil_reader() -> Non
     )
 
 
+def test_purehvnc_shared_extractor_is_pe_only_and_skips_non_pe_worker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """共有extractorのPE契約により、任意data層をworkerへ渡さない。"""
+
+    catalog.clear_handler_caches()
+    try:
+        spec = next(
+            item
+            for item in catalog.discover_handlers()
+            if item.id == "purehvnc:extractors.purehvnc.extractor.py:extract"
+        )
+        worker_calls = 0
+
+        def execute(*_args, **_kwargs):
+            nonlocal worker_calls
+            worker_calls += 1
+            return _mock_completed_handler_result()
+
+        monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+        result = catalog.assess_candidate_handlers(
+            [_candidate("purehvnc")],
+            [_layer(b"plain non-PE data", "plain.bin")],
+            specs=[spec],
+        )
+    finally:
+        catalog.clear_handler_caches()
+
+    assert spec.input_formats == ("pe",)
+    assert spec.input_contract_source == "module_declaration"
+    assert worker_calls == 0
+    assert result["planned_attempt_count"] == result["actual_attempt_count"] == 0
+    assert result["format_incompatible_pair_count"] == 1
+    assert result["families"][0]["skipped_pairs"][0]["blockers"] == [
+        "incompatible_input_format:data"
+    ]
+
+
 @pytest.mark.parametrize(
     ("archive_expression", "member_expression", "mode", "expected"),
     (
@@ -4250,6 +4330,119 @@ def test_valleyrat_handler_dependency_preflight_accepts_reviewed_static_lineage_
     assert preflight["network_allowed"] is False
     assert preflight["filesystem_write_allowed"] is False
     assert preflight["dependency_audit"]["allowance_counts"]["reviewed_source_scoped_call"] >= 24
+
+
+def test_valleyrat_protected_installer_preflight_accepts_bounded_inno_parser() -> None:
+    """Inno parserは固定source・bytes入力・静的method形状だけを許可する。"""
+
+    catalog.clear_handler_caches()
+    try:
+        spec = next(
+            item
+            for item in catalog.discover_handlers()
+            if item.id
+            == (
+                "valleyrat:analysis.framework.malware.valleyrat.campaigns."
+                "protected.installer.bundle.analyze.py:analyze"
+            )
+        )
+        preflight = catalog.preflight_handler_for_assessment(
+            spec,
+            actual_format="pe",
+            input_size=1024 * 1024,
+        )
+    finally:
+        catalog.clear_handler_caches()
+
+    assert preflight["eligible"] is True
+    assert preflight["blockers"] == []
+    assert preflight["sample_execution_allowed"] is False
+    assert preflight["network_allowed"] is False
+    assert preflight["filesystem_write_allowed"] is False
+    assert (
+        preflight["dependency_audit"]["allowance_counts"][
+            "reviewed_source_scoped_call"
+        ]
+        >= 3
+    )
+
+
+@pytest.mark.parametrize(
+    ("constructor", "disassembly", "read_member", "expected"),
+    (
+        (
+            "InnoArchive(bytearray(data))",
+            "archive.ifps.disassembly()",
+            "trial.read_file_and_check(item, password)",
+            True,
+        ),
+        (
+            "InnoArchive(data)",
+            "archive.ifps.disassembly()",
+            "trial.read_file_and_check(item, password)",
+            False,
+        ),
+        (
+            "InnoArchive(bytearray(data))",
+            "archive.ifps.disassembly(1)",
+            "trial.read_file_and_check(item, password)",
+            False,
+        ),
+        (
+            "InnoArchive(bytearray(data))",
+            "archive.ifps.disassembly()",
+            "trial.read_file_and_check(password, item)",
+            False,
+        ),
+    ),
+    ids=("exact", "raw-input", "disassembly-argument", "member-arguments-reordered"),
+)
+def test_valleyrat_inno_review_requires_exact_static_call_shapes(
+    constructor: str,
+    disassembly: str,
+    read_member: str,
+    expected: bool,
+) -> None:
+    source = (
+        "def recover_members(data):\n"
+        f"    archive = {constructor}\n"
+        f"    {disassembly}\n"
+        f"    trial = {constructor}\n"
+        "    item = object()\n"
+        "    password = None\n"
+        f"    return {read_member}\n"
+    )
+    tree = ast.parse(source)
+    scope = tree.body[0]
+    assert isinstance(scope, ast.FunctionDef)
+    calls = {
+        catalog._ast_call_name(node.func): node
+        for node in ast.walk(scope)
+        if isinstance(node, ast.Call)
+    }
+    relative = (
+        "analysis-framework/malware/valleyrat/campaigns/"
+        "protected_installer_bundle/inno_static.py"
+    )
+    keys = (
+        (relative, "reachable:recover_members", "refinery.lib.inno.archive.InnoArchive"),
+        (relative, "reachable:recover_members", "archive.ifps.disassembly"),
+        (relative, "reachable:recover_members", "trial.read_file_and_check"),
+    )
+    selected_calls = (calls["InnoArchive"], calls["archive.ifps.disassembly"], calls["trial.read_file_and_check"])
+    results = [
+        catalog._reviewed_source_call_shape_allowed(
+            call,
+            key[2],
+            tree,
+            scope,
+            {},
+            key=key,
+        )
+        for key, call in zip(keys, selected_calls, strict=True)
+    ]
+
+    assert all(results) is expected
 
 
 def test_valleyrat_dotnet_il_handler_preflight_accepts_fixed_token_tables() -> None:

@@ -1130,9 +1130,9 @@ def build_layout_plan(repository: Path, maximum_path_length: int = 220) -> dict[
     def is_collection_supplement(path: Path) -> bool:
         relative = path.relative_to(results_root)
         return (
-            len(relative.parts) == 4
+            len(relative.parts) >= 4
             and relative.parts[0] == "collections"
-            and relative.parts[2] == "supplements"
+            and "supplements" in relative.parts[2:-1]
         )
 
     source_directories = sorted(

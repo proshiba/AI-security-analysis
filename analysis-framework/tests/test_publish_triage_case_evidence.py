@@ -213,3 +213,67 @@ def test_retrieval_manifest_is_accepted_as_public_exact_hash_source(tmp_path: Pa
     evidence = json.loads((case / "triage-evidence.json").read_text(encoding="utf-8"))
     assert evidence["public_matches"][0]["sample_id"] == "260807-abcdefghij"
     assert evidence["public_matches"][0]["config_endpoints"] == []
+
+
+def test_shared_service_config_is_not_promoted_to_c2_ioc(tmp_path: Path) -> None:
+    repo, case = repository(tmp_path)
+    source = tmp_path / "triage.json"
+    write_json(
+        source,
+        {
+            "results": [{
+                "sha256": SHA256,
+                "matches": [{
+                    "sample_id": "260802-abcdefghij",
+                    "sha256": SHA256,
+                    "visibility": "public_searchable_api",
+                    "triage_url": "https://tria.ge/260802-abcdefghij",
+                    "config_endpoints": [
+                        "https://steamcommunity.com/profiles/123",
+                        "https://community.fandom.com/wikia.php",
+                        "https://203.0.113.4/",
+                    ],
+                }],
+            }],
+        },
+    )
+    publisher.publish(repo, "test-collection", source, None, None, write=True)
+    iocs = json.loads((case / "iocs.json").read_text(encoding="utf-8"))
+    roles = {item["value"]: item["role"] for item in iocs["network"]}
+    assert roles["https://steamcommunity.com/profiles/123"] == "shared_service_config_candidate_dual-use"
+    assert roles["https://community.fandom.com/wikia.php"] == "shared_service_config_candidate_dual-use"
+    assert roles["https://203.0.113.4/"] == "c2_candidate_external_sandbox_config"
+
+
+def test_multiple_artifact_manifests_and_analyses_are_preserved(tmp_path: Path) -> None:
+    repo, case = repository(tmp_path)
+    source = tmp_path / "triage.json"
+    write_json(source, {"results": [{"sha256": SHA256, "matches": []}]})
+    manifests = []
+    summaries = []
+    for index, digest in enumerate((ARTIFACT_SHA256, "c" * 64), start=1):
+        manifest = tmp_path / f"artifacts-{index}.json"
+        summary = tmp_path / f"summary-{index}.json"
+        write_json(manifest, {"downloads": [{
+            "parent_sha256": SHA256,
+            "sample_id": "260802-abcdefghij",
+            "kind": "memory_image",
+            "name": f"memory-{index}.dmp",
+            "artifact_sha256": digest,
+            "size": 100 * index,
+        }]})
+        write_json(summary, {"cases": [{
+            "sha256": digest,
+            "family": "unknown",
+            "case_state": "partial",
+            "handler_succeeded": 0,
+        }]})
+        manifests.append(manifest)
+        summaries.append(summary)
+    result = publisher.publish(repo, "test-collection", source, manifests, summaries, write=True)
+    assert result["recovered_artifacts"] == 2
+    evidence = json.loads((case / "triage-evidence.json").read_text(encoding="utf-8"))
+    assert {item["sha256"] for item in evidence["recovered_artifacts"]} == {
+        ARTIFACT_SHA256,
+        "c" * 64,
+    }

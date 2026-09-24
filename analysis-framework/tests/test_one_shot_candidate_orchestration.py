@@ -491,6 +491,159 @@ def test_candidate_layer_selection_does_not_preconsume_pair_execution_quota(
     assert result["excluded_layers"] == []
 
 
+def test_candidate_layer_selection_prioritizes_pyinstaller_logic_before_dependency_pe(
+    monkeypatch,
+) -> None:
+    """日次PyInstaller fan-outでscript/module/PYZをdependency PEより保持する。"""
+
+    def layer(name: str, data: bytes, transform: str) -> one_shot.StaticLayer:
+        return one_shot.StaticLayer(
+            name=name,
+            data=data,
+            sha256=hashlib.sha256(data).hexdigest(),
+            parent_sha256="f" * 64,
+            depth=1,
+            transform=transform,
+        )
+
+    dependency_a = layer(
+        "dependency-a.dll",
+        b"MZdependency-a",
+        "pyinstaller-pe_name_candidate-000-dependency-a.dll",
+    )
+    supported_dependency = layer(
+        "supported.dll",
+        b"MZsupported-dependency",
+        "pyinstaller-pe_name_candidate-001-supported.dll",
+    )
+    dependency_b = layer(
+        "dependency-b.dll",
+        b"MZdependency-b",
+        "pyinstaller-pe_name_candidate-002-dependency-b.dll",
+    )
+    script = layer(
+        "entrypoint",
+        b"marshal-script",
+        "pyinstaller-python_script-003-entrypoint",
+    )
+    module = layer(
+        "runtime_module",
+        b"marshal-module",
+        "pyinstaller-python_module-004-runtime_module",
+    )
+    pyz = layer(
+        "PYZ.pyz",
+        b"PYZ\0modules",
+        "pyinstaller-pyz_archive-005-PYZ.pyz",
+    )
+    layers = [dependency_a, supported_dependency, dependency_b, script, module, pyz]
+    routing = _candidate_routing("guloader")
+    routing["candidates"][0]["layer_sha256"] = [supported_dependency.sha256]
+    data_spec = _fixture_handler_spec("guloader")
+    pe_spec = replace(data_spec, id="guloader:fixture:pe", input_formats=("pe",))
+    captured: dict[str, object] = {}
+
+    def fake_assess(_candidates, selected_layers, **_kwargs):
+        captured["layers"] = selected_layers
+        return {
+            "schema_version": 1,
+            "status": "no_confirmed_family",
+            "families": [],
+            "executed_sample": False,
+            "network_contacted": False,
+            "filesystem_written_by_handlers": False,
+        }
+
+    monkeypatch.setattr(one_shot, "MAX_ASSESSMENT_LAYERS", 4)
+    monkeypatch.setattr(one_shot, "assess_candidate_handlers", fake_assess)
+    result = one_shot._candidate_handler_assessment(
+        routing=routing,
+        layers=layers,
+        layer_classifications=[],
+        specs=[data_spec, pe_spec],
+        assessment_only=False,
+        artifact_directory=None,
+    )
+
+    selected = captured["layers"]
+    assert isinstance(selected, list)
+    assert [item["sha256"] for item in selected] == [
+        supported_dependency.sha256,
+        script.sha256,
+        module.sha256,
+        pyz.sha256,
+    ]
+    assert result["selected_layer_count"] == 4
+    assert result["selected_total_size"] == sum(
+        len(item.data) for item in (supported_dependency, script, module, pyz)
+    )
+    assert [item["reason"] for item in result["excluded_layers"]] == [
+        "candidate_layer_limit",
+        "candidate_layer_limit",
+    ]
+
+
+def test_candidate_layer_selection_keeps_compatible_pe_before_incompatible_pyinstaller_script(
+    monkeypatch,
+) -> None:
+    """PyInstaller role優先がPE専用handlerの実行可能層を枯渇させない。"""
+
+    pe_data = b"MZ" + (b"\0" * 128)
+    script_data = b"marshal-only-script"
+    pe_layer = one_shot.StaticLayer(
+        name="dependency.dll",
+        data=pe_data,
+        sha256=hashlib.sha256(pe_data).hexdigest(),
+        parent_sha256=None,
+        depth=1,
+        transform="pyinstaller-pe_name_candidate-000-dependency.dll",
+    )
+    script_layer = one_shot.StaticLayer(
+        name="entrypoint",
+        data=script_data,
+        sha256=hashlib.sha256(script_data).hexdigest(),
+        parent_sha256=pe_layer.sha256,
+        depth=1,
+        transform="pyinstaller-python_script-001-entrypoint",
+    )
+    pe_spec = replace(
+        _fixture_handler_spec("guloader"),
+        id="guloader:fixture:pe-only",
+        input_formats=("pe",),
+    )
+    captured: dict[str, object] = {}
+
+    def fake_assess(_candidates, selected_layers, **_kwargs):
+        captured["layers"] = selected_layers
+        return {
+            "schema_version": 1,
+            "status": "no_confirmed_family",
+            "families": [],
+            "executed_sample": False,
+            "network_contacted": False,
+            "filesystem_written_by_handlers": False,
+        }
+
+    monkeypatch.setattr(one_shot, "MAX_ASSESSMENT_LAYERS", 1)
+    monkeypatch.setattr(one_shot, "assess_candidate_handlers", fake_assess)
+    routing = _candidate_routing("guloader")
+    routing["candidates"][0]["layer_sha256"] = [script_layer.sha256]
+    result = one_shot._candidate_handler_assessment(
+        routing=routing,
+        layers=[script_layer, pe_layer],
+        layer_classifications=[],
+        specs=[pe_spec],
+        assessment_only=False,
+        artifact_directory=None,
+    )
+
+    selected = captured["layers"]
+    assert isinstance(selected, list)
+    assert [item["sha256"] for item in selected] == [pe_layer.sha256]
+    assert result["selected_compatible_pair_count"] == 1
+    assert result["excluded_layers"][0]["selection_role"] == "lineage_audit_only"
+
+
 def test_candidate_assessment_preserves_global_router_rank_above_64(
     monkeypatch,
 ) -> None:
@@ -1048,7 +1201,8 @@ def test_candidate_flat_record_preserves_corroboration_and_verified_output() -> 
     assert records[0]["selected_layer_sha256"] == "1" * 64
     assert records[0]["verified_binary_outputs"] == [output]
     assert records[0]["verified_binary_output_audit"]["follow_on_analysis_complete"] is True
-    assert records[0]["result"] == assessment["families"][0]["attempts"][0]["result"]
+    assert records[0]["result"]["selected_layer"] == {"sha256": "1" * 64}
+    assert "selected_layer" not in assessment["families"][0]["attempts"][0]["result"]
     candidate = {
         "family": "valleyrat",
         "source": "detector_candidate",

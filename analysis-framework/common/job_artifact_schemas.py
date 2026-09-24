@@ -398,6 +398,21 @@ def _trusted_tool_identity_schema() -> dict[str, Any]:
 
 def _trusted_tool_provenance_schema() -> dict[str, Any]:
     identity_or_null = {"oneOf": [{"type": "null"}, _trusted_tool_identity_schema()]}
+    current_tools = _strict_object(
+        {
+            "upx": identity_or_null,
+            "sevenzip": identity_or_null,
+            "innounp": identity_or_null,
+            "diec": {"type": "null"},
+        }
+    )
+    legacy_tools = _strict_object(
+        {
+            "upx": identity_or_null,
+            "sevenzip": identity_or_null,
+            "diec": {"type": "null"},
+        }
+    )
     return _strict_object(
         {
             "profile_id": {
@@ -408,13 +423,9 @@ def _trusted_tool_provenance_schema() -> dict[str, Any]:
             },
             "operator_manifest_sha256": {"$ref": "#/$defs/sha256"},
             "snapshot_manifest_sha256": {"$ref": "#/$defs/sha256"},
-            "tools": _strict_object(
-                {
-                    "upx": identity_or_null,
-                    "sevenzip": identity_or_null,
-                    "diec": {"type": "null"},
-                }
-            ),
+            # schema v2で生成済みの成果物はinnounp導入前のexact 3-key形も
+            # 存在する。部分形や未知keyへ広げず、この旧形だけを互換受理する。
+            "tools": {"oneOf": [current_tools, legacy_tools]},
         }
     )
 

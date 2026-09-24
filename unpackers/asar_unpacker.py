@@ -12,6 +12,7 @@ from unpackers.path_safety import safe_member_name
 MAX_HEADER = 16 * 1024 * 1024
 MAX_MEMBER = 256 * 1024 * 1024
 MAX_MEMBERS = 4096
+MAX_DISCOVERED_MEMBERS = 32768
 MAX_TOTAL = 512 * 1024 * 1024
 RETAIN_SUFFIXES = {
     ".js",
@@ -79,12 +80,23 @@ def _walk_files(tree: dict, prefix: str = ""):
 
 
 def recover_asar(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
-    """Inventory an ASAR and return bounded script/config/native artifacts."""
+    """アプリ固有ファイルを優先しつつASARを上限付きで静的調査する。"""
     header, data_offset = asar_header(data)
     inventory: list[dict] = []
     artifacts: list[tuple[str, bytes]] = []
     total = 0
+    application_members: list[tuple[str, dict]] = []
+    dependency_members: list[tuple[str, dict]] = []
+    discovery_limit_reached = False
     for index, (name, node) in enumerate(_walk_files(header["files"])):
+        if index >= MAX_DISCOVERED_MEMBERS:
+            discovery_limit_reached = True
+            break
+        if name.startswith("node_modules/"):
+            dependency_members.append((name, node))
+        else:
+            application_members.append((name, node))
+    for index, (name, node) in enumerate(application_members + dependency_members):
         if index >= MAX_MEMBERS:
             inventory.append({"status": "member_limit_reached"})
             break
@@ -135,5 +147,8 @@ def recover_asar(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         "status": "extracted",
         "data_offset": data_offset,
         "member_count": sum(item.get("status") == "extracted" for item in inventory),
+        "discovered_member_count": len(application_members) + len(dependency_members),
+        "discovery_limit_reached": discovery_limit_reached,
+        "application_member_count": len(application_members),
         "inventory": inventory,
     }, artifacts

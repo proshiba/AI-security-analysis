@@ -62,6 +62,7 @@ def make_trusted_tool_configuration(
     *,
     upx_bytes: bytes = b"synthetic pinned UPX executable",
     sevenzip_bytes: bytes | None = None,
+    innounp_bytes: bytes | None = None,
 ) -> tuple[runner.TrustedToolConfiguration, Path, Path]:
     """repository・input・job root外にtest用operator manifestを作る。"""
 
@@ -73,6 +74,10 @@ def make_trusted_tool_configuration(
     if sevenzip_bytes is not None:
         sevenzip = operator_root / ("7zz.exe" if os.name == "nt" else "7zz")
         sevenzip.write_bytes(sevenzip_bytes)
+    innounp: Path | None = None
+    if innounp_bytes is not None:
+        innounp = operator_root / ("innounp.exe" if os.name == "nt" else "innounp")
+        innounp.write_bytes(innounp_bytes)
 
     def record(path: Path | None) -> dict[str, Any] | None:
         if path is None:
@@ -97,6 +102,7 @@ def make_trusted_tool_configuration(
                 "tools": {
                     "upx": record(upx),
                     "sevenzip": record(sevenzip),
+                    "innounp": record(innounp),
                 },
             },
             ensure_ascii=False,
@@ -263,6 +269,48 @@ def write_summary(
 
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def install_synthetic_production_analyzer(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    observed: dict[str, Path] | None = None,
+) -> None:
+    """契約workerは実行し、full analyzerだけを合成summaryへ差し替える。"""
+
+    original_bounded = runner._run_process_with_bounded_output
+
+    def fake_bounded(command: list[str], **kwargs: Any) -> runner._BoundedProcessResult:
+        if "stdin_payload" in kwargs:
+            return original_bounded(command, **kwargs)
+        output = Path(command[command.index("--output") + 1])
+        if observed is not None:
+            for tool_id in ("upx", "sevenzip", "innounp"):
+                flag = f"--{tool_id}"
+                if flag in command:
+                    observed[tool_id] = Path(command[command.index(flag) + 1])
+        write_summary(output)
+        return runner._BoundedProcessResult(
+            args=command,
+            returncode=0,
+            stdout=b"",
+            stderr=b"",
+            stdout_truncated=False,
+            stderr_truncated=False,
+            stdout_observed_bytes=0,
+            stderr_observed_bytes=0,
+        )
+
+    def validate_synthetic_summary(
+        path: Path,
+        **_: Any,
+    ) -> tuple[dict[str, Any], dict[str, int]]:
+        summary = load_json(path)
+        return summary, dict(summary["counts"])
+
+    monkeypatch.setattr(runner, "validate_analyzer_runtime", lambda: {})
+    monkeypatch.setattr(runner, "_run_process_with_bounded_output", fake_bounded)
+    monkeypatch.setattr(runner, "_validated_summary", validate_synthetic_summary)
 
 
 def test_validated_daily_static_bundle_is_path_free_and_deterministic(
@@ -1521,6 +1569,7 @@ def test_production_root_counts_and_follow_on_status_are_bound_to_contract(
                 "upx": None,
                 "sevenzip": None,
                 "diec": None,
+                "innounp": None,
             },
         },
     }
@@ -1708,6 +1757,7 @@ def test_analysis_bundle_worker_is_isolated_bounded_and_private(
     assert private_request["trusted_tools"] == {
         "upx": None,
         "sevenzip": None,
+        "innounp": None,
         "diec": None,
     }
     assert kwargs["shell"] is False
@@ -1999,6 +2049,7 @@ def test_trusted_tool_manifest_is_pinned_snapshotted_and_forwarded(
     configuration, _manifest, source = make_trusted_tool_configuration(
         tmp_path,
         sevenzip_bytes=b"synthetic pinned 7zz executable",
+        innounp_bytes=b"synthetic pinned innounp executable",
     )
     policy = runner.load_trusted_tool_policy(
         configuration,
@@ -2020,13 +2071,236 @@ def test_trusted_tool_manifest_is_pinned_snapshotted_and_forwarded(
 
     forwarded_upx = Path(argv[argv.index("--upx") + 1])
     forwarded_7zz = Path(argv[argv.index("--sevenzip") + 1])
+    forwarded_innounp = Path(argv[argv.index("--innounp") + 1])
     assert forwarded_upx == bundle.tools["upx"].path
     assert forwarded_7zz == bundle.tools["sevenzip"].path
+    assert forwarded_innounp == bundle.tools["innounp"].path
     assert forwarded_upx != source.resolve()
     assert "--diec" not in argv
     manifest_text = bundle.manifest_path.read_text(encoding="utf-8")
     assert str(source.resolve()) not in manifest_text
     assert bundle.provenance()["tools"] == bundle.identities()
+    root_contract, child_contract, _units = runner.build_expected_analysis_bundle(
+        request,
+        inputs,
+        job_dir / "analysis",
+        family_hint_manifest=None,
+        trusted_tools=bundle,
+    )
+    assert root_contract["settings"]["static_tools"] == bundle.identities()
+    assert child_contract["settings"]["static_tools"] == bundle.identities()
+
+
+def test_trusted_tool_manifest_accepts_only_current_or_exact_legacy_shape(
+    tmp_path: Path,
+) -> None:
+    """legacy 2-keyだけをnull正規化し、job identityは常に3-keyにする。"""
+
+    input_root, jobs_root = make_roots(tmp_path)
+    configuration, manifest, _source = make_trusted_tool_configuration(tmp_path)
+    current = runner.load_trusted_tool_policy(
+        configuration,
+        forbidden_roots=(input_root, jobs_root),
+    )
+    assert current.tools["innounp"] is None
+    assert current.identities()["innounp"] is None
+
+    document = json.loads(manifest.read_text(encoding="utf-8"))
+    current_tools = deepcopy(document["tools"])
+    document["tools"].pop("innounp")
+    manifest.write_text(json.dumps(document), encoding="utf-8")
+    legacy = runner.load_trusted_tool_policy(
+        runner.TrustedToolConfiguration(
+            manifest,
+            hashlib.sha256(manifest.read_bytes()).hexdigest(),
+        ),
+        forbidden_roots=(input_root, jobs_root),
+    )
+    assert legacy.tools["upx"] is not None
+    assert legacy.tools["sevenzip"] is None
+    assert legacy.tools["innounp"] is None
+    assert set(legacy.identities()) == {"upx", "sevenzip", "innounp", "diec"}
+    legacy_job = jobs_root / "legacy-tool-snapshot"
+    legacy_job.mkdir()
+    legacy_bundle = runner.stage_trusted_tool_bundle(legacy, job_dir=legacy_job)
+    assert set(legacy_bundle.manifest_document["tools"]) == {
+        "upx",
+        "sevenzip",
+        "innounp",
+    }
+    request = runner.validate_request_object(request_value("legacy-tool-argv"))
+    inputs, _records = runner.validate_inputs(request, input_root.resolve())
+    argv = runner.build_analyzer_argv(
+        request,
+        inputs,
+        legacy_job / "analysis",
+        trusted_tools=legacy_bundle,
+    )
+    assert "--upx" in argv
+    assert "--sevenzip" not in argv
+    assert "--innounp" not in argv
+
+    invalid_tool_sets = (
+        {"upx": current_tools["upx"]},
+        {"upx": current_tools["upx"], "innounp": None},
+        {**current_tools, "unknown": None},
+        {
+            "upx": current_tools["upx"],
+            "sevenzip": None,
+            "unknown": None,
+        },
+    )
+    for tools in invalid_tool_sets:
+        invalid_document = deepcopy(document)
+        invalid_document["tools"] = tools
+        manifest.write_text(json.dumps(invalid_document), encoding="utf-8")
+        with pytest.raises(runner.JobContractError) as captured:
+            runner.load_trusted_tool_policy(
+                runner.TrustedToolConfiguration(
+                    manifest,
+                    hashlib.sha256(manifest.read_bytes()).hexdigest(),
+                ),
+                forbidden_roots=(input_root, jobs_root),
+            )
+        assert captured.value.code == "trusted_tool_manifest_invalid"
+
+
+def test_rehydrate_trusted_tool_bundle_accepts_only_matching_exact_schema_generations(
+    tmp_path: Path,
+) -> None:
+    """旧exact形をnull正規化し、部分形・未知key・世代混在を拒否する。"""
+
+    input_root, jobs_root = make_roots(tmp_path)
+    configuration, _manifest, _source = make_trusted_tool_configuration(tmp_path)
+    policy = runner.load_trusted_tool_policy(
+        configuration,
+        forbidden_roots=(input_root, jobs_root),
+    )
+    job_dir = jobs_root / "legacy-rehydrate"
+    job_dir.mkdir()
+    bundle = runner.stage_trusted_tool_bundle(policy, job_dir=job_dir)
+    current_document = deepcopy(bundle.manifest_document)
+    legacy_document = deepcopy(current_document)
+    legacy_document["tools"].pop("innounp")
+    legacy_provenance = deepcopy(bundle.provenance())
+    legacy_provenance["tools"].pop("innounp")
+
+    def write_snapshot(document: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+        runner.atomic_json(bundle.manifest_path, document)
+        digest = hashlib.sha256(bundle.manifest_path.read_bytes()).hexdigest()
+        provenance = deepcopy(legacy_provenance)
+        provenance["snapshot_manifest_sha256"] = digest
+        artifacts = {
+            "trusted_static_tools_manifest": bundle.manifest_relative_path,
+            "trusted_static_tools_manifest_sha256": digest,
+        }
+        return {"trusted_static_tools": provenance}, artifacts
+
+    result, artifacts = write_snapshot(legacy_document)
+    resumed = runner.rehydrate_trusted_tool_bundle(job_dir, result, artifacts)
+    assert resumed is not None
+    assert set(resumed.manifest_document["tools"]) == {"upx", "sevenzip"}
+    assert set(resumed.tools) == {"upx", "sevenzip", "innounp"}
+    assert resumed.tools["innounp"] is None
+    assert resumed.provenance()["tools"]["innounp"] is None
+
+    invalid_provenance_tool_sets = (
+        {"upx": legacy_provenance["tools"]["upx"], "diec": None},
+        {**legacy_provenance["tools"], "unknown": None},
+        {**legacy_provenance["tools"], "innounp": None},
+    )
+    for tools in invalid_provenance_tool_sets:
+        invalid_result = deepcopy(result)
+        invalid_result["trusted_static_tools"]["tools"] = tools
+        with pytest.raises(runner.JobContractError) as captured:
+            runner.rehydrate_trusted_tool_bundle(job_dir, invalid_result, artifacts)
+        assert captured.value.code == "trusted_tool_snapshot_changed"
+
+    invalid_snapshot_tool_sets = (
+        {"upx": legacy_document["tools"]["upx"]},
+        {**legacy_document["tools"], "unknown": None},
+    )
+    for tools in invalid_snapshot_tool_sets:
+        invalid_document = deepcopy(legacy_document)
+        invalid_document["tools"] = tools
+        invalid_result, invalid_artifacts = write_snapshot(invalid_document)
+        with pytest.raises(runner.JobContractError) as captured:
+            runner.rehydrate_trusted_tool_bundle(
+                job_dir,
+                invalid_result,
+                invalid_artifacts,
+            )
+        assert captured.value.code == "trusted_tool_snapshot_changed"
+
+    mixed_result, mixed_artifacts = write_snapshot(current_document)
+    with pytest.raises(runner.JobContractError) as captured:
+        runner.rehydrate_trusted_tool_bundle(job_dir, mixed_result, mixed_artifacts)
+    assert captured.value.code == "trusted_tool_snapshot_changed"
+
+
+def test_innounp_snapshot_tampering_and_resume_rehydration(
+    tmp_path: Path,
+) -> None:
+    """pin済みinnounpだけを再開でき、source／snapshot改ざんを拒否する。"""
+
+    input_root, jobs_root = make_roots(tmp_path)
+    configuration, manifest, _source = make_trusted_tool_configuration(
+        tmp_path,
+        upx_bytes=b"synthetic pinned UPX executable",
+        innounp_bytes=b"synthetic pinned innounp executable",
+    )
+    document = json.loads(manifest.read_text(encoding="utf-8"))
+    document["tools"]["upx"] = None
+    manifest.write_text(json.dumps(document), encoding="utf-8")
+    configuration = runner.TrustedToolConfiguration(
+        manifest,
+        hashlib.sha256(manifest.read_bytes()).hexdigest(),
+    )
+    policy = runner.load_trusted_tool_policy(
+        configuration,
+        forbidden_roots=(input_root, jobs_root),
+    )
+    assert policy.tools["upx"] is None
+    assert policy.tools["innounp"] is not None
+
+    job_dir = jobs_root / "innounp-resume"
+    job_dir.mkdir()
+    bundle = runner.stage_trusted_tool_bundle(policy, job_dir=job_dir)
+    result = {"trusted_static_tools": bundle.provenance()}
+    artifacts = {
+        "trusted_static_tools_manifest": bundle.manifest_relative_path,
+        "trusted_static_tools_manifest_sha256": bundle.manifest_sha256,
+    }
+    resumed = runner.rehydrate_trusted_tool_bundle(job_dir, result, artifacts)
+    assert resumed is not None
+    assert resumed.tools["innounp"] is not None
+    assert resumed.tools["innounp"].path == bundle.tools["innounp"].path
+    assert resumed.provenance() == bundle.provenance()
+
+    original = bundle.tools["innounp"].path.read_bytes()
+    os.chmod(bundle.tools["innounp"].path, stat.S_IREAD | stat.S_IWRITE)
+    bundle.tools["innounp"].path.write_bytes(original + b"tampered")
+    with pytest.raises(runner.JobContractError) as captured:
+        runner.rehydrate_trusted_tool_bundle(job_dir, result, artifacts)
+    assert captured.value.code == "trusted_tool_snapshot_changed"
+
+    configuration, manifest, _source = make_trusted_tool_configuration(
+        tmp_path,
+        innounp_bytes=b"source pin before mutation",
+    )
+    source_path = Path(
+        json.loads(manifest.read_text(encoding="utf-8"))["tools"]["innounp"]["path"]
+    )
+    source_path.write_bytes(b"source pin after mutation")
+    with pytest.raises(runner.JobContractError) as captured:
+        runner.load_trusted_tool_policy(
+            configuration,
+            forbidden_roots=(input_root, jobs_root),
+        )
+    assert captured.value.code in {
+        "trusted_tool_binary_invalid",
+        "trusted_tool_binary_pin_mismatch",
+    }
 
 
 def test_trusted_tool_manifest_and_binary_pins_fail_closed(tmp_path: Path) -> None:
@@ -2416,25 +2690,27 @@ def test_complete_job_writes_atomic_machine_readable_artifacts(
 
 def test_complete_job_records_trusted_tool_provenance(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """jobはsnapshotだけをanalyzerへ渡し、resultと公開schemaへprovenanceを残す。"""
 
     input_root, jobs_root = make_roots(tmp_path)
-    configuration, _manifest, source = make_trusted_tool_configuration(tmp_path)
+    configuration, manifest, source = make_trusted_tool_configuration(
+        tmp_path,
+        innounp_bytes=b"synthetic pinned innounp executable",
+    )
+    innounp_source = Path(
+        json.loads(manifest.read_text(encoding="utf-8"))["tools"]["innounp"]["path"]
+    )
     request = runner.validate_request_object(request_value("job-trusted-tool"))
     observed: dict[str, Path] = {}
+    install_synthetic_production_analyzer(monkeypatch, observed=observed)
 
-    def fake_run(argv: list[str], **_: Any) -> SimpleNamespace:
-        observed["upx"] = Path(argv[argv.index("--upx") + 1])
-        write_summary(Path(argv[argv.index("--output") + 1]))
-        return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
-
-    exit_code = runner._run_job_for_test(
+    exit_code = runner.run_job(
         request,
         input_root=input_root,
         jobs_root=jobs_root,
         timeout_seconds=60,
-        run_process=fake_run,
         trusted_tool_configuration=configuration,
     )
 
@@ -2443,12 +2719,83 @@ def test_complete_job_records_trusted_tool_provenance(
     assert exit_code == 0
     assert observed["upx"] != source.resolve()
     assert observed["upx"].is_relative_to(job_dir / "contract-inputs" / "static-tools")
+    assert observed["innounp"] != innounp_source.resolve()
+    assert observed["innounp"].is_relative_to(job_dir / "contract-inputs" / "static-tools")
     assert result["trusted_static_tools"]["profile_id"] == "test-pinned-tools"
     assert result["trusted_static_tools"]["tools"]["upx"]["sha256"] == (hashlib.sha256(source.read_bytes()).hexdigest())
+    assert result["trusted_static_tools"]["tools"]["innounp"]["sha256"] == hashlib.sha256(
+        innounp_source.read_bytes()
+    ).hexdigest()
     assert result["artifacts"]["trusted_static_tools_manifest"] == ("contract-inputs/trusted-static-tools.json")
     assert len(result["artifacts"]["trusted_static_tools_manifest_sha256"]) == 64
     snapshot = runner.read_job_snapshot(jobs_root, "job-trusted-tool")
     assert snapshot["result"]["trusted_static_tools"] == result["trusted_static_tools"]
+    contract = load_json(job_dir / "contract-inputs" / "analysis-contract-bundle.json")
+    identities = result["trusted_static_tools"]["tools"]
+    assert contract["root_analysis_contract"]["settings"]["static_tools"] == identities
+    assert contract["follow_on_analysis_contract"]["settings"]["static_tools"] == identities
+
+    validation_temp = tmp_path / "trusted-tool-revalidation"
+    validation_temp.mkdir()
+    revalidated = runner.revalidate_completed_job(
+        jobs_root,
+        request,
+        temporary_root=validation_temp,
+        expected_timeout_seconds=60,
+    )
+    assert revalidated["result"] == result
+
+
+def test_completed_legacy_trusted_tool_job_revalidates_with_innounp_null(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """innounp導入前のschema v2 jobを旧exact形だけ再検証できる。"""
+
+    input_root, jobs_root = make_roots(tmp_path)
+    configuration, _manifest, _source = make_trusted_tool_configuration(tmp_path)
+    request = runner.validate_request_object(request_value("job-legacy-trusted-tool"))
+    install_synthetic_production_analyzer(monkeypatch)
+
+    assert (
+        runner.run_job(
+            request,
+            input_root=input_root,
+            jobs_root=jobs_root,
+            timeout_seconds=60,
+            trusted_tool_configuration=configuration,
+        )
+        == 0
+    )
+    job_dir = jobs_root / request.job_id
+    tool_manifest_path = job_dir / "contract-inputs" / "trusted-static-tools.json"
+    tool_manifest = load_json(tool_manifest_path)
+    tool_manifest["tools"].pop("innounp")
+    runner.atomic_json(tool_manifest_path, tool_manifest)
+    legacy_manifest_digest = hashlib.sha256(tool_manifest_path.read_bytes()).hexdigest()
+
+    legacy_result = load_json(job_dir / "result.json")
+    legacy_result["trusted_static_tools"]["tools"].pop("innounp")
+    legacy_result["trusted_static_tools"]["snapshot_manifest_sha256"] = (
+        legacy_manifest_digest
+    )
+    legacy_result["artifacts"]["trusted_static_tools_manifest_sha256"] = (
+        legacy_manifest_digest
+    )
+    runner.atomic_json(job_dir / "result.json", legacy_result)
+
+    snapshot = runner.read_job_snapshot(jobs_root, request.job_id)
+    assert "innounp" not in snapshot["result"]["trusted_static_tools"]["tools"]
+    validation_temp = tmp_path / "legacy-trusted-tool-revalidation"
+    validation_temp.mkdir()
+    revalidated = runner.revalidate_completed_job(
+        jobs_root,
+        request,
+        temporary_root=validation_temp,
+        expected_timeout_seconds=60,
+    )
+    assert revalidated["result"] == legacy_result
+    assert not any(validation_temp.iterdir())
 
 
 def test_completed_job_rejects_residual_private_temp_entry(tmp_path: Path) -> None:
@@ -3509,14 +3856,26 @@ def test_input_snapshot_detects_snapshot_mutation(tmp_path: Path) -> None:
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows extended-length path専用")
 def test_input_snapshot_supports_windows_extended_length_destination(tmp_path: Path) -> None:
-    input_root = tmp_path / "inputs"
-    source = input_root / "set" / ("a" * 64 + ".zip")
-    source.parent.mkdir(parents=True)
-    source.write_bytes(b"long-path-snapshot")
     value = request_value("j" * 64, archive_mode="malwarebazaar")
     value["inputs"] = ["set"]
     request = runner.validate_request_object(value)
-    job_dir = tmp_path / "jobs" / request.job_id
+    source_name = "a" * 64 + ".zip"
+    baseline_destination = (
+        tmp_path
+        / "jobs"
+        / request.job_id
+        / "contract-inputs"
+        / "samples"
+        / "000000"
+        / source_name
+    )
+    padding = "p" * max(1, 270 - len(os.fspath(baseline_destination)))
+    test_root = tmp_path / padding
+    input_root = test_root / "inputs"
+    source = input_root / "set" / source_name
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"long-path-snapshot")
+    job_dir = test_root / "jobs" / request.job_id
     job_dir.mkdir(parents=True)
     _, records = runner.validate_inputs(request, input_root.resolve())
     expected_destination = (

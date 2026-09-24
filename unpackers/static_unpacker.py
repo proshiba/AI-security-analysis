@@ -87,6 +87,7 @@ from unpackers.managed_il_triage import (
 )
 from unpackers.managed_proxy_deobfuscator import analyze_managed_protector
 from unpackers.nsis_nhencv1 import recover_nsis_nhencv1
+from unpackers.node_sea_static import recover_node_sea_pe
 from unpackers.nsis_static import (
     NsisMember,
     nsis_listing_public,
@@ -5630,6 +5631,12 @@ def unpack_bytes(
             }
             report["unpack_status"] = "corrupt_or_truncated"
             return report, []
+        artifacts.extend(recovered)
+        report["node_sea"], recovered = recover_node_sea_pe(
+            static_data,
+            max_member_size=max_archive_member_size,
+            max_total_size=max_archive_total_size,
+        )
         artifacts.extend(recovered)
         report["bcrypt_resource"], recovered = recover_bcrypt_resource(static_data)
         artifacts.extend(recovered)

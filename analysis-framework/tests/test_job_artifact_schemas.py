@@ -320,12 +320,44 @@ def test_trusted_tool_provenance_requires_matching_manifest_artifact() -> None:
         "tools": {
             "upx": {"name": "upx.exe", "size": 1234, "sha256": "1" * 64},
             "sevenzip": None,
+            "innounp": None,
             "diec": None,
         },
     }
     payload["artifacts"]["trusted_static_tools_manifest"] = "contract-inputs/trusted-static-tools.json"
     payload["artifacts"]["trusted_static_tools_manifest_sha256"] = "f" * 64
     schemas.validate_job_artifact_document("result", payload)
+
+    legacy_tools = dict(payload["trusted_static_tools"]["tools"])
+    legacy_tools.pop("innounp")
+    payload["trusted_static_tools"]["tools"] = legacy_tools
+    schemas.validate_job_artifact_document("result", payload)
+
+    invalid_tool_sets = (
+        {"upx": legacy_tools["upx"], "diec": None},
+        {**legacy_tools, "unknown": None},
+        {
+            "upx": legacy_tools["upx"],
+            "sevenzip": None,
+            "innounp": None,
+        },
+        {**legacy_tools, "innounp": None, "unknown": None},
+    )
+    for tools in invalid_tool_sets:
+        payload["trusted_static_tools"]["tools"] = tools
+        with pytest.raises(schemas.JobArtifactValidationError):
+            schemas.validate_job_artifact_document("result", payload)
+
+    payload["trusted_static_tools"]["tools"] = {
+        **legacy_tools,
+        "innounp": None,
+    }
+    schemas.validate_job_artifact_document("result", payload)
+
+    payload["trusted_static_tools"]["tools"].pop("diec")
+    with pytest.raises(schemas.JobArtifactValidationError):
+        schemas.validate_job_artifact_document("result", payload)
+    payload["trusted_static_tools"]["tools"]["diec"] = None
 
     payload["artifacts"]["trusted_static_tools_manifest_sha256"] = "0" * 64
     with pytest.raises(schemas.JobArtifactValidationError):

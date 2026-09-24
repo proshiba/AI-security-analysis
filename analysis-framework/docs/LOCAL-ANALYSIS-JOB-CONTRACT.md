@@ -178,24 +178,6 @@ job_artifact_schemas.validate_job_artifact_document(
     "intake-20260810/sample.zip"
   ],
   "family_hint_manifest": "hints/analysis-20260810-0001.json",
-  "trusted_static_tools": {
-    "profile_id": "windows-amd64-20260810",
-    "operator_manifest_sha256": "64文字のSHA-256",
-    "snapshot_manifest_sha256": "64文字のSHA-256",
-    "tools": {
-      "upx": {
-        "name": "upx.exe",
-        "size": 1234567,
-        "sha256": "64文字のSHA-256"
-      },
-      "sevenzip": {
-        "name": "sevenzip.exe",
-        "size": 2345678,
-        "sha256": "64文字のSHA-256"
-      },
-      "diec": null
-    }
-  },
   "options": {
     "archive_mode": "auto",
     "family": "valleyrat",
@@ -221,7 +203,7 @@ job_artifact_schemas.validate_job_artifact_document(
 | `family_hint_manifest` | 任意 | `input-root`相対のstrict JSON。4 MiB以下。通常`inputs`と重複禁止 |
 | `options` | 任意 | 次表のkeyだけを許可 |
 
-未知key、重複JSON key、`NaN`／`Infinity`、UTF-8以外、64 KiBを超える要求fileは拒否されます。要求、registry、manifest、summary、状態JSONは、単一file handleの`fstat`と`上限+1 byte`読取で検証します。hardlink、reparse point、読取中にidentity・size・更新時刻が変わったfileはfail-closedです。
+未知key、重複JSON key、`NaN`／`Infinity`、UTF-8以外、64 KiBを超える要求fileは拒否されます。`trusted_static_tools`を含む外部tool設定はrequestへ追加せず、operator専用CLI契約でだけ指定します。要求、registry、manifest、summary、状態JSONは、単一file handleの`fstat`と`上限+1 byte`読取で検証します。hardlink、reparse point、読取中にidentity・size・更新時刻が変わったfileはfail-closedです。
 
 ### 許可option
 
@@ -256,13 +238,13 @@ productionの解析processは、Windowsでは`KILL_ON_JOB_CLOSE`付きJob Object
 
 ### 明示的に禁止するoption
 
-`allow_network`、`allow_live_c2_check`、`allow_live_c2_emulation`、`allow_authentication`、`allow_malware_registration_tasking`、`collect_jarm`、`password`、`profile_path`、`registry`、`python`、`output`、`upx`、`sevenzip`、`diec`等は使用できません。未知optionもfail-closedです。
+`allow_network`、`allow_live_c2_check`、`allow_live_c2_emulation`、`allow_authentication`、`allow_malware_registration_tasking`、`collect_jarm`、`password`、`profile_path`、`registry`、`python`、`output`、`upx`、`sevenzip`、`innounp`、`diec`等は使用できません。未知optionもfail-closedです。
 
 ### operator管理の信頼済み静的ツール
 
-request JSONから外部実行fileを指定することは禁止したままです。production serviceでUPXまたは7zzを有効にする場合だけ、service operatorが固定したCLI引数`--trusted-tools-manifest`と`--trusted-tools-manifest-sha256`をpairで使います。片方だけの指定、client値の転送、起動ごとの自動探索、`PATH`検索は禁止です。
+request JSONから外部実行fileを指定することは禁止したままです。production serviceでUPX、7zz、innounpのいずれかを有効にする場合だけ、service operatorが固定したCLI引数`--trusted-tools-manifest`と`--trusted-tools-manifest-sha256`をpairで使います。片方だけの指定、client値の転送、起動ごとの自動探索、`PATH`検索は禁止です。
 
-manifestはBOMなしUTF-8、重複keyなし、1 MiB以下のstrict JSONで、top-levelとtool entryの未知fieldを拒否します。`platform`は現在hostと大文字小文字を無視して完全一致し、`tools`は`upx`と`sevenzip`の2 keyだけを持ち、少なくとも1件を有効にします。DIECはproduction契約では意図的に無効です。
+manifestはBOMなしUTF-8、重複keyなし、1 MiB以下のstrict JSONで、top-levelとtool entryの未知fieldを拒否します。`platform`は現在hostと大文字小文字を無視して完全一致します。現行`tools` schemaは`upx`、`sevenzip`、`innounp`のexact 3 keyで、未使用toolも明示的な`null`にし、少なくとも1件を有効にします。移行互換としてexact 2 keyの`upx`／`sevenzip`だけを持つ旧manifestも受理しますが、runner内部では`innounp=null`へ正規化します。新規jobのsnapshot manifestは3 key、root／child契約とresult provenanceは無効な`diec`を含む4 keyです。innounp導入前のschema v2 result provenanceは旧exact 3 keyだけを互換受理し、再開時に`innounp=null`へ正規化します。これら以外の部分形、未知key、現行形と旧形の混在は拒否します。新規manifestは必ず3 keyで作成してください。DIECはproduction契約では意図的に無効です。
 
 ```json
 {
@@ -282,7 +264,8 @@ manifestはBOMなしUTF-8、重複keyなし、1 MiB以下のstrict JSONで、top
       "path": "C:\\malware-lab\\operator-tools\\7zz.exe",
       "size": 2345678,
       "sha256": "64文字の小文字SHA-256"
-    }
+    },
+    "innounp": null
   }
 }
 ```
@@ -303,9 +286,9 @@ py -3.13 .\analysis-framework\common\analysis_job_runner.py run `
   --trusted-tools-manifest-sha256 <manifest-raw-sha256>
 ```
 
-各binaryは絶対path、1～128 MiB、単一link、非reparseの通常fileで、`input-root`、`jobs-root`、repositoryのすべてから分離します。UPXと7zzは追加DLLを同伴しないself-containedな配布物を使います。runnerはmanifest raw SHA-256とbinary size／SHA-256を単一handleで照合し、検証済みsourceをjob-private `contract-inputs/static-tools/<tool-id>/`へ単一handleからcopyします。実行権限を設定したsnapshotだけをanalyzerへ渡し、元pathはargv、解析契約、公開resultへ渡しません。worker前後にmanifest、snapshot tree、binary SHA-256を再検証します。
+各binaryは絶対path、1～128 MiB、単一link、非reparseの通常fileで、`input-root`、`jobs-root`、repositoryのすべてから分離します。UPX、7zz、innounpは追加DLLを同伴しないself-containedな配布物を使います。runnerはmanifest raw SHA-256とbinary size／SHA-256を単一handleで照合し、検証済みsourceをjob-private `contract-inputs/static-tools/<tool-id>/`へ単一handleからcopyします。実行権限を設定したsnapshotだけをanalyzerへ渡し、元pathはargv、解析契約、公開resultへ渡しません。worker前後にmanifest、snapshot tree、binary SHA-256を再検証します。
 
-UPX／7zz processは`analysis/.private-temp/`内を作業directoryとし、credentialやPython注入環境を継承しません。process treeはactive process 8件・memory 1 GiB、stdout／stderrは各1 MiB、一時treeは10,000 entry・合計1 GiB以下です。UPXは120秒、7zz inventoryは60秒、extractは180秒を上限とし、50 ms間隔と終了後にtreeを検証します。抽出fileはsize上限付き単一handleで再読込し、reparse、hardlink、特殊file、path escape、読込中差替えを拒否します。これはparser脆弱性に対するkernel sandboxではないため、低権限account、outbound deny、ACL、container／VMも併用します。
+UPX／7zz／innounp processは`analysis/.private-temp/`内を作業directoryとし、credentialやPython注入環境を継承しません。process treeはactive process 8件・memory 1 GiB、stdout／stderrは各1 MiB、一時treeは10,000 entry・合計1 GiB以下です。UPXは120秒、7zz inventoryは60秒、extractは180秒、innounpはlisting／install script取得を各90秒、選択extractを240秒の上限とし、50 ms間隔と終了後にtreeを検証します。抽出fileはsize上限付き単一handleで再読込し、reparse、hardlink、特殊file、path escape、読込中差替えを拒否します。これはparser脆弱性に対するkernel sandboxではないため、低権限account、outbound deny、ACL、container／VMも併用します。
 
 ## job directoryスキーマ
 
@@ -321,7 +304,7 @@ UPX／7zz processは`analysis/.private-temp/`内を作業directoryとし、crede
     analysis-contract-bundle.json # 入力SHA-256、root契約、子契約
     input-snapshot-manifest.json   # 元identity、snapshot path、size、SHA-256
     trusted-static-tools.json      # operator tool有効時のsnapshot provenance
-    static-tools/<tool-id>/...     # job-private UPX／7zz launcher snapshot
+    static-tools/<tool-id>/...     # job-private UPX／7zz／innounp launcher snapshot
     samples/<index>/...            # 名前衝突を避けた検体snapshot
     inventory/<index>/...          # 解析へ渡さない非選択入力の証跡snapshot
     family-hint-manifest.json      # 指定時だけ
@@ -492,7 +475,7 @@ request／解析契約のversion 1とは独立して、`status.json`、`progress
 
 再検証のconsumerへ元jobを直接渡さず、完了job全体の通常file／directory集合、各fileのsize／SHA-256、合計件数、合計sizeをhard quota内のexact manifestへ固定して、job・repository外のprivate directoryへ複製します。copy前後の元jobとcopyを完全一致で照合し、copyを読取専用化した後はその同じprivate snapshotだけを検証します。返却前にprivate snapshotと元jobをどちらも全体再hashするため、入力検証後のlog処理中に入力だけを差し替えるような成果物間の交差改変も受理しません。
 
-`trusted-static-tools.json`はoperator manifestのraw SHA-256、host platform、job-private launcherの相対path、名前、size、SHA-256を固定します。root／child解析契約の`settings.static_tools`、summary、`result.trusted_static_tools`、artifact manifest SHA-256を独立照合します。toolを無効にしたjobでは`trusted_static_tools`と対応artifact 2 fieldはすべて`null`であり、provenanceとmanifest参照の片方だけを持つresultはschema違反です。公開値へoperatorの絶対pathは含めません。
+`trusted-static-tools.json`はoperator manifestのraw SHA-256、host platform、job-private launcherの相対path、名前、size、SHA-256を固定します。`tools`はUPX／7zzのみの旧operator manifestを使った場合も`upx`、`sevenzip`、`innounp`の3 keyへ正規化します。root／child解析契約の`settings.static_tools`、summary、`result.trusted_static_tools`、artifact manifest SHA-256を独立照合します。toolを無効にしたjobでは`trusted_static_tools`と対応artifact 2 fieldはすべて`null`であり、provenanceとmanifest参照の片方だけを持つresultはschema違反です。公開値へoperatorの絶対pathは含めません。
 
 親caseを`complete`へ昇格した場合、`follow-on-analysis.json`の`promoted_parent_sha256`と、全検証済みreport内の`follow_on_promotion`保持case集合は完全一致しなければなりません。昇格に使えるのは当該親から通常またはshared edgeで到達したchild-contract caseだけで、`depth_limit`、cycle、size／件数上限、別root再利用を別経路の成功で流用しません。runnerはresolved familyの品質gateへ寄与したwrapper群から保持payload集合とoutcomeを再計算し、wrapper内部proof、親proof、子解析契約SHA-256、子report semantic hash、親子edgeを完全一致で再結合します。
 

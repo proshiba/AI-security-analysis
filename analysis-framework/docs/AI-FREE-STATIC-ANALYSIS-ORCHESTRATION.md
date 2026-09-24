@@ -55,7 +55,7 @@ daily入口はrunnerと同じ入力snapshot manifestをread-onlyで再構成し�
 
 runner子processはsanitized environmentで起動し、launcherは標準出力／標準エラーを保持しません。runner自身が上限付きlogと機械可読成果物を管理するため、daily入口が子process出力を無制限に蓄積することはありません。
 
-daily入口はrunnerが検証した`status.json`、`progress.json`、`result.json`のsnapshotと成果物sealを再読込し、job ID、終端状態、process終了コード、summary安全契約を照合します。`executed_sample`、`network_contacted`、`ai_used`を含む安全flagはすべて非実行・非接続を示す必要があります。終了コード`0`は`complete`、`20`は処理済みだが未完了の`partial`としてそのまま上位へ返し、request、snapshot、seal、安全flagの不一致は`2`でfail-closedにします。それ以外のrunner失敗コードも成功へ変換せず伝播します。従来互換の`--sevenzip`へ任意pathを指定した実行は`2`で拒否し、外部toolが必要な場合はoperator管理のmanifestとSHA-256 pinを標準runner側で固定します。
+daily入口はrunnerが検証した`status.json`、`progress.json`、`result.json`のsnapshotと成果物sealを再読込し、job ID、終端状態、process終了コード、summary安全契約を照合します。`executed_sample`、`network_contacted`、`ai_used`を含む安全flagはすべて非実行・非接続を示す必要があります。終了コード`0`は`complete`、`20`は処理済みだが未完了の`partial`としてそのまま上位へ返し、request、snapshot、seal、安全flagの不一致は`2`でfail-closedにします。それ以外のrunner失敗コードも成功へ変換せず伝播します。従来互換の`--sevenzip`へ任意pathを指定した実行は`2`で拒否し、UPX／7zz／innounpが必要な場合はoperator管理のmanifestとSHA-256 pinを標準runner側で固定します。新規manifestは`upx`、`sevenzip`、`innounp`のexact 3 keyを持ち、未使用toolを`null`にします。旧exact 2-key manifestは`innounp=null`へ正規化されます。新規jobのsnapshot manifestは3-key、root／child契約とresult provenanceは無効な`diec`を含む4-keyです。innounp導入前のschema v2 result provenanceは旧exact 3-keyだけを互換受理し、再開時に`innounp=null`へ正規化します。
 
 ## family選択と候補検証
 
@@ -241,7 +241,7 @@ python .\analysis-framework\common\analysis_job_runner.py run `
 
 UIは`schema`出力をrequest formとclient検証の正本にし、option、上限、family一覧を複製しません。production実行ではisolated workerが実際に読んだ入力SHA-256とroot／child解析契約を`contract-inputs/analysis-contract-bundle.json`へ固定し、file hashを`result.json`へ記録します。
 
-UPXと7zzをproductionで使う場合も、client requestへ実行file pathを追加しません。service operatorが別rootで管理するstrict JSON manifestと、そのmanifest raw bytesのSHA-256 pinをrunner CLIへ同時に固定します。runnerはmanifest、host platform、各binaryのsize／SHA-256、単一link、非reparse、input／job／repository rootとの分離を検証し、jobごとの`contract-inputs/static-tools/`へ単一handleからsnapshotして、そのcopyだけをroot解析とfollow-on解析へ渡します。tool identityとsnapshot manifest SHA-256は解析契約と`result.json`へ残します。DIECはproductionの信頼済みtool契約では無効です。詳細なmanifest schemaと運用例は[ローカル静的解析ジョブ契約](LOCAL-ANALYSIS-JOB-CONTRACT.md)を参照してください。
+UPX、7zz、innounpをproductionで使う場合も、client requestへ実行file pathを追加しません。service operatorが別rootで管理するstrict JSON manifestと、そのmanifest raw bytesのSHA-256 pinをrunner CLIへ同時に固定します。runnerはmanifest、host platform、各binaryのsize／SHA-256、単一link、非reparse、input／job／repository rootとの分離を検証し、jobごとの`contract-inputs/static-tools/`へ単一handleからsnapshotして、そのcopyだけをroot解析とfollow-on解析へ渡します。tool identityとsnapshot manifest SHA-256は解析契約と`result.json`へ残します。DIECはproductionの信頼済みtool契約では無効です。詳細なmanifest schemaと運用例は[ローカル静的解析ジョブ契約](LOCAL-ANALYSIS-JOB-CONTRACT.md)を参照してください。
 
 UIは`status.json`、`progress.json`、`result.json`を表示し、解析processの標準出力を無制限に中継しません。`result.json`はrootの`counts`に加え、`derived_counts`、follow-on状態、検証済み`follow-on-analysis.json`と`terminal-payload-acquisition.json`の相対path、終端payload台帳のSHA-256を返します。サービスadapterを実装する場合も、公開する操作はジョブ作成と状態取得に限定し、任意path、任意環境変数、shell、外部通信option、資格情報を受理しません。localhost以外へ公開する場合は、この契約とは別に認証、CSRF対策、rate limit、監査logを設計する必要があります。
 
@@ -251,7 +251,7 @@ serviceは`analysis-framework/requirements.txt`をsystem siteまたは専用venv
 
 production jobは`analysis/.private-temp/`を所有者限定で排他的に作成し、full analyzerと隔離workerの`TEMP`、`TMP`、`TMPDIR`をすべてこのpathへ固定します。handler／follow-on workerはその内側へさらに専用一時directoryを作ります。host側の一時pathは継承しません。process終了後は解析出力treeと同じ件数・合計size・reparse・hardlink上限で再検証し、directory identityが変わっていないこと、内容が空であることを確認して非再帰削除します。残存file、link、差替え、quota超過は成功として公開しません。
 
-UPX／7zzの各processも共通containmentに加え、stdout／stderrを各1 MiB、一時treeを10,000 entry／合計1 GiB以下、active processを8件、memoryを1 GiBへ制限します。一時treeは50 ms間隔と終了後にlink非追跡で検証し、抽出fileは単一handleからsize上限付きで再読込します。tool processへAPI key、Python注入環境、hostの一時pathを渡しません。
+UPX／7zz／innounpの各processも共通containmentに加え、stdout／stderrを各1 MiB、一時treeを10,000 entry／合計1 GiB以下、active processを8件、memoryを1 GiBへ制限します。一時treeは50 ms間隔と終了後にlink非追跡で検証し、抽出fileは単一handleからsize上限付きで再読込します。tool processへAPI key、Python注入環境、hostの一時pathを渡しません。
 
 runner経由のfull analyzerだけでなく、`analyze_sample.py`のdirect CLIが再起動するisolated full analyzer、2段のruntime preflight、入力manifest worker、follow-on workerも、正常終了時まで子孫processを残さない共通containment境界で動作します。Windowsは`KILL_ON_JOB_CLOSE`付きJob Objectへ割り当て、full analyzerとdirect CLIをactive process 32件・job全体4 GiB、各runtime preflightとmanifest workerを4件・1 GiB、follow-on workerを8件・2 GiBへ制限します。direct CLIの明示timeoutは最大24時間、runtime preflightは各30秒、follow-on workerは固定点queueの子timeout以下です。従来入口の`invoke_analysis.py`が起動する各stageも32件・4 GiB、`import_ghidra_project.py`が起動するGhidra headless importも64件・8 GiBの同じ必須境界を使い、割当失敗時は無制限実行へfallbackしません。POSIXは独立process group、`RLIMIT_AS`、`RLIMIT_NPROC`を併用し、親から継承したより厳しい上限を緩めません。
 

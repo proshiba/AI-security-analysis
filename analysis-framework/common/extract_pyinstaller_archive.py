@@ -20,6 +20,7 @@ from pathlib import Path, PurePosixPath
 
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 DEFAULT_MAX_FILES = 128
+HARD_MAX_SELECTIVE_FILES = 128
 DEFAULT_MAX_TOTAL_SIZE = 256 * 1024 * 1024
 DEFAULT_MAX_COMPRESSED_TOTAL_SIZE = 256 * 1024 * 1024
 
@@ -27,8 +28,13 @@ DEFAULT_MAX_ENTRY_SIZE = 64 * 1024 * 1024
 DEFAULT_MAX_TOC_SIZE = 16 * 1024 * 1024
 DEFAULT_MAX_TOC_ENTRIES = 16_384
 HARD_MAX_TOC_ENTRIES = 65_536
-DEFAULT_MAX_RETAINED_ENTRIES = 128
-HARD_MAX_RETAINED_ENTRIES = 128
+# 日次解析の実検体では、entrypoint/PYZを含む194件の高価値候補が
+# 128件上限で切り捨てられていた。保持byte総量は別の128 MiB上限で
+# fail-closedに制御されるため、entry件数だけを静的層の再試行上限と
+# 同じ256件まで拡張する。名前指定の公開selective APIは従来の128件hard
+# capを維持し、この上限拡張をarchive全体の候補保持にだけ適用する。
+DEFAULT_MAX_RETAINED_ENTRIES = 256
+HARD_MAX_RETAINED_ENTRIES = 256
 DEFAULT_SELECTIVE_MAX_TOTAL_SIZE = 128 * 1024 * 1024
 DEFAULT_SELECTIVE_MAX_COMPRESSED_TOTAL_SIZE = 128 * 1024 * 1024
 DEFAULT_FULL_VALIDATION_MAX_TOTAL_SIZE = 256 * 1024 * 1024
@@ -402,8 +408,8 @@ def _validate_selected_entry_limits(
     _positive_limit(max_total_size, "max_total_size")
     _positive_limit(max_compressed_total_size, "max_compressed_total_size")
     _positive_limit(max_entry_size, "max_entry_size")
-    if max_files > HARD_MAX_RETAINED_ENTRIES:
-        raise ValueError(f"max_filesは{HARD_MAX_RETAINED_ENTRIES}以下で指定してください")
+    if max_files > HARD_MAX_SELECTIVE_FILES:
+        raise ValueError(f"max_filesは{HARD_MAX_SELECTIVE_FILES}以下で指定してください")
     if len(selected) > max_files:
         raise MemoryCArchiveError("選択したCArchive entry数が上限を超えました")
 
@@ -477,7 +483,7 @@ def extract_selected_entries_from_bytes(
     max_toc_size: int = DEFAULT_MAX_TOC_SIZE,
     max_toc_entries: int = DEFAULT_MAX_TOC_ENTRIES,
 ) -> tuple[MemoryCArchiveReader, dict[str, bytes]]:
-    """選択したCArchive entryだけを保存せずメモリへ展開する。"""
+    """選択したCArchive entryだけを最大128件まで保存せずメモリへ展開する。"""
 
     reader = MemoryCArchiveReader(data, max_toc_size=max_toc_size, max_entries=max_toc_entries)
     selected = _select_reader_entries(reader, exact_names=exact_names, prefixes=prefixes)
@@ -674,7 +680,7 @@ def analyze_carchive_bytes(
     TOC全体の境界、path衝突、payload range重畳は選択前に検証する。全entryが
     内容検証budget内なら1件ずつ展開してEOF・実サイズ・hashを検証し、非候補bytes
     は即時破棄する。script、module、PYZ、PE名候補、入れ子archiveだけを優先順で
-    128件以下保持する。budget超過時は選択entryだけを検証し、部分状態を明示する。
+    256件以下保持する。budget超過時は選択entryだけを検証し、部分状態を明示する。
     PyInstallerという包装形式だけからmalware familyや悪性意図は推定しない。
     """
 
@@ -1327,7 +1333,15 @@ def main() -> int:
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--name", action="append", default=[])
     parser.add_argument("--prefix", action="append", default=[])
-    parser.add_argument("--max-files", type=int, default=DEFAULT_MAX_FILES)
+    parser.add_argument(
+        "--max-files",
+        type=int,
+        default=DEFAULT_MAX_FILES,
+        help=(
+            "名前／prefixで選択抽出するentry数。"
+            f"既定・hard limitとも{HARD_MAX_SELECTIVE_FILES}件です。"
+        ),
+    )
     parser.add_argument("--max-total-size", type=int, default=DEFAULT_MAX_TOTAL_SIZE)
     parser.add_argument("--max-compressed-total-size", type=int, default=DEFAULT_MAX_COMPRESSED_TOTAL_SIZE)
     parser.add_argument("--max-entry-size", type=int, default=DEFAULT_MAX_ENTRY_SIZE)

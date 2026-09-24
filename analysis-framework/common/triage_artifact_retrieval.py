@@ -168,8 +168,8 @@ def extract_report_memory_candidates(
         raise ValueError("Triage sample IDの形式が不正です")
     if not TASK_ID_RE.fullmatch(task_id):
         raise ValueError("Triage task IDの形式が不正です")
-    if not 1 <= max_candidates <= 100:
-        raise ValueError("report memory候補上限は1件から100件の範囲が必要です")
+    if not 1 <= max_candidates <= 256:
+        raise ValueError("report memory候補上限は1件から256件の範囲が必要です")
     if not 1 <= max_bytes <= DEFAULT_MAX_BYTES:
         raise ValueError("report memory単体上限は1 byteから64 MiBの範囲が必要です")
     if not 1 <= max_total_bytes <= 1024 * 1024 * 1024:
@@ -604,6 +604,29 @@ def _manifest_hashes(path: Path) -> list[str]:
     return [normalize_sha256(value) for value in values]
 
 
+def select_reported_candidates(
+    candidates: list[dict[str, Any]], reference_hashes: list[str]
+) -> list[dict[str, Any]]:
+    """完全一致解析で発見済みの候補をreport参照hashで一意に選ぶ。"""
+
+    if not reference_hashes:
+        return candidates
+    selected: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw in reference_hashes:
+        digest = normalize_sha256(raw)
+        if digest in seen:
+            raise ValueError("同じreport参照SHA-256を重複指定できません")
+        seen.add(digest)
+        matches = [
+            row for row in candidates if row.get("reference_sha256") == digest
+        ]
+        if len(matches) != 1:
+            raise ValueError("report参照SHA-256に一致する公開候補は一意に必要です")
+        selected.append(matches[0])
+    return selected
+
+
 def load_reviewed_candidates(path: Path) -> list[dict[str, Any]]:
     """人手で確認した公開解析のmemory名を、安全なAPI候補へ変換する。"""
 
@@ -963,6 +986,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hash", action="append", default=[])
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--reviewed-candidates", type=Path)
+    parser.add_argument(
+        "--candidate-reference-sha256",
+        action="append",
+        default=[],
+        help="発見済みreport候補の参照hashで取得対象を限定する。取得byteのhashとは異なる。",
+    )
     parser.add_argument("--output-root", required=True, type=Path)
     parser.add_argument("--allow-network", action="store_true")
     parser.add_argument("--download", action="store_true")
@@ -986,6 +1015,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--max-bytes", type=int, default=DEFAULT_MAX_BYTES)
     parser.add_argument("--max-total-bytes", type=int, default=DEFAULT_MAX_TOTAL_BYTES)
+    parser.add_argument(
+        "--report-memory-max-bytes",
+        type=int,
+        default=DEFAULT_MAX_BYTES,
+        help="公開report内のメモリ候補列挙上限。artifact取得上限とは独立。",
+    )
+    parser.add_argument(
+        "--report-memory-max-total-bytes",
+        type=int,
+        default=DEFAULT_MAX_TOTAL_BYTES,
+        help="公開report内の候補サイズ累計上限。artifact取得総量とは独立。",
+    )
+    parser.add_argument(
+        "--report-memory-max-candidates",
+        type=int,
+        default=DEFAULT_MAX_REPORT_MEMORY_CANDIDATES,
+        help="公開report内の候補件数上限。既定100、明示指定時のみ最大256。",
+    )
     parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--password", default="infected")
     return parser
@@ -1003,6 +1050,12 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError("max_bytesは1 byteから64 MiBの範囲が必要です")
     if not 1 <= args.max_total_bytes <= 1024 * 1024 * 1024:
         raise ValueError("max_total_bytesは1から1GiBの範囲が必要です")
+    if not 1 <= args.report_memory_max_bytes <= DEFAULT_MAX_BYTES:
+        raise ValueError("report_memory_max_bytesは1 byteから64 MiBの範囲が必要です")
+    if not 1 <= args.report_memory_max_total_bytes <= 1024 * 1024 * 1024:
+        raise ValueError("report_memory_max_total_bytesは1から1GiBの範囲が必要です")
+    if not 1 <= args.report_memory_max_candidates <= 256:
+        raise ValueError("report_memory_max_candidatesは1から256件の範囲が必要です")
     if not 1 <= args.max_root_samples <= 100:
         raise ValueError("max_root_samplesは1から100の範囲が必要です")
     if not 1 <= args.max_root_sample_bytes <= DEFAULT_MAX_SAMPLE_BYTES:
@@ -1035,8 +1088,9 @@ def main(argv: list[str] | None = None) -> int:
         root_sample_candidates=(
             root_sample_candidates if args.include_root_sample else None
         ),
-        report_memory_max_bytes=args.max_bytes,
-        report_memory_max_total_bytes=args.max_total_bytes,
+        report_memory_max_bytes=args.report_memory_max_bytes,
+        report_memory_max_total_bytes=args.report_memory_max_total_bytes,
+        report_memory_max_candidates=args.report_memory_max_candidates,
     )
     if reviewed_candidates:
         verify_reviewed_candidates(
@@ -1063,6 +1117,10 @@ def main(argv: list[str] | None = None) -> int:
                 }
                 for item in reviewed_candidates
             )
+    discovered_candidate_count = len(candidates)
+    candidates = select_reported_candidates(
+        candidates, args.candidate_reference_sha256
+    )
     root_sample_candidates = _deduplicate_root_sample_candidates(
         root_sample_candidates
     )
@@ -1166,7 +1224,14 @@ def main(argv: list[str] | None = None) -> int:
         "created_at_utc": utc_now(),
         "query_type": "exact_sha256_public_triage_analysis",
         "requested_hashes": len(set(hashes)),
+        "discovered_candidate_count": discovered_candidate_count,
         "candidate_count": len(candidates),
+        "selected_candidate_reference_sha256": args.candidate_reference_sha256,
+        "report_memory_limits": {
+            "max_bytes": args.report_memory_max_bytes,
+            "max_total_bytes": args.report_memory_max_total_bytes,
+            "max_candidates": args.report_memory_max_candidates,
+        },
         "download_attempted": bool(args.download),
         "downloaded_count": len(downloads),
         "downloaded_total_bytes": total_bytes,
