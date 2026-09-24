@@ -81,6 +81,9 @@ def test_collection_supplement_sha_directory_is_not_a_case(short_tmp: Path) -> N
     )
     supplement.mkdir(parents=True)
     (supplement / "README.md").write_text("# 補足解析\n", encoding="utf-8")
+    nested = supplement.parent.parent / "clipboard-hijacker-static" / "supplements" / _sha("c")
+    nested.mkdir(parents=True)
+    (nested / "README.md").write_text("# 入れ子の補足解析\n", encoding="utf-8")
 
     plan = layout.build_layout_plan(repository, maximum_path_length=320)
 
