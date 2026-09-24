@@ -610,7 +610,7 @@ def public_unpack_summary(report: dict) -> dict:
 
 
 def _public_asar_summary(report: dict | None) -> dict | None:
-    """Reduce an ASAR inventory to stable bounded structural metadata."""
+    """ASAR inventoryから上限付きの構造情報を公開用に残す。"""
     if not report:
         return None
     inventory = report.get("inventory") or []
@@ -629,12 +629,15 @@ def _public_asar_summary(report: dict | None) -> dict | None:
         "status": report.get("status"),
         "data_offset": report.get("data_offset"),
         "member_count": report.get("member_count", len(inventory)),
+        "discovered_member_count": report.get("discovered_member_count"),
+        "application_member_count": report.get("application_member_count"),
+        "discovery_limit_reached": report.get("discovery_limit_reached", False),
         "interesting_paths": interesting,
     }
 
 
 def _public_electron_summary(report: dict | None) -> dict | None:
-    """Reduce targeted 7-Zip listings while retaining recovered ASAR facts."""
+    """限定7-Zip復元のASARと実行しないbytecode証跡を残す。"""
     if not report:
         return None
     outer = report.get("outer_listing") or {}
@@ -651,6 +654,7 @@ def _public_electron_summary(report: dict | None) -> dict | None:
                 "status": item.get("status"),
                 "total_members": (item.get("nested_listing") or {}).get("total_members"),
                 "asars": item.get("asars") or [],
+                "protected_bytecode": item.get("protected_bytecode") or [],
             }
             for item in (report.get("nested") or [])[:16]
         ],

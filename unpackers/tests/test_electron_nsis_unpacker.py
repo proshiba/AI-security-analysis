@@ -23,7 +23,22 @@ from unpackers.electron_nsis_unpacker import (
     safe_archive_member,
     select_asar_members,
     select_nested_7z_members,
+    select_protected_jsc_members,
 )
+
+
+def test_select_protected_jsc_members_only_app_bytecode() -> None:
+    """依存ライブラリと任意のJSCを含めず、所定の外部配置2件だけを選ぶ。"""
+    candidates = [
+        "resources\\app.asar.unpacked\\node_modules\\x\\other.jsc",
+        "resources\\app.asar.unpacked\\protected\\preload.protected.jsc",
+        "resources\\app.asar.unpacked\\protected\\app.protected.jsc",
+        "resources\\app.asar.unpacked\\protected\\extra.jsc",
+    ]
+    result = select_protected_jsc_members(candidates)
+    assert len(result) == 2
+    assert result[0].endswith("app.protected.jsc")
+    assert result[1].endswith("preload.protected.jsc")
 from unpackers.static_unpacker import StaticToolCompleted, StaticToolExecutionError
 
 
