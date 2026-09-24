@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "review_type": "verified_static_evidence_supplement",
+  "source_date": "2026-09-22",
+  "safety": {
+    "network_contacted": false,
+    "online_revocation_checked": false,
+    "raw_sample_published": false,
+    "sample_executed": false
+  },
+  "sample_count": 2,
+  "samples": [
+    {
+      "sha256": "7969ccaf1db750bc3b02d51626d6916ecbd0c0cf2f7de3c7bc0be240f5f2978d",
+      "source": "public_followup_cil_static_review",
+      "functions": [
+        {
+          "address": null,
+          "name": "CaptureScreen.Main",
+          "role": "画面取得補助のmanaged entry point",
+          "evidence": "VirtualScreenをBitmapへ複写し、指定された出力先へPNGとして保存するCIL本文を静的に確認した。"
+        }
+      ],
+      "static_evidence": {
+        "schema_version": 1,
+        "status": "verified",
+        "source": "public_followup_cil_static_review",
+        "authenticode": {
+          "present": false,
+          "verified": false,
+          "verification_status": "not_assessed",
+          "online_revocation_checked": false
+        },
+        "pe_version": {},
+        "exports": {
+          "items": []
+        },
+        "imports": {
+          "modules": {}
+        }
+      }
+    },
+    {
+      "sha256": "9fa80577b8b3cb9c3062e5e1986cc9fe0c26eed023f7d430dfa5c60169c15c45",
+      "source": "public_followup_cil_static_review",
+      "functions": [
+        {
+          "address": null,
+          "name": "WinAgentLauncher.Main",
+          "role": "Node.jsエージェント起動補助のmanaged entry point",
+          "evidence": "node.exeとapp\\src\\index.jsを引数へ組み立て、shell不使用・非表示でProcess.StartするCIL本文を静的に確認した。"
+        }
+      ],
+      "static_evidence": {
+        "schema_version": 1,
+        "status": "verified",
+        "source": "public_followup_cil_static_review",
+        "authenticode": {
+          "present": false,
+          "verified": false,
+          "verification_status": "not_assessed",
+          "online_revocation_checked": false
+        },
+        "pe_version": {},
+        "exports": {
+          "items": []
+        },
+        "imports": {
+          "modules": {}
+        }
+      }
+    }
+  ]
+}

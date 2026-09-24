@@ -209,6 +209,7 @@ class DailyContext:
     ghidra_project_store: Path
     request: DailyRequest
     allow_live_c2: bool
+    allow_c2_carry_forward: bool = False
     ghidra_mcp_url: str = DEFAULT_GHIDRA_MCP_URL
     trusted_tool_configuration: analysis_job_runner.TrustedToolConfiguration | None = field(
         default=None,
@@ -571,7 +572,11 @@ DAILY_IMPLEMENTATION_FILES = (
     "daily_analysis_orchestrator.py",
     "ghidra_mcp_uds_relay.py",
     "daily_news_malware_intake.py",
+    "daily_news_c2_review_overrides.json",
+    "summarize_daily_news_static.py",
+    "daily_news_static_reviews/2026-09-22.json",
     "malwarebazaar_batch.py",
+    "malwarebazaar_family_labels.py",
     "analyze_sample.py",
     "analysis_job_runner.py",
     "analysis_contract.py",
@@ -583,10 +588,12 @@ DAILY_IMPLEMENTATION_FILES = (
     "terminal_payload_acquisition.py",
     "follow_on_commitment.py",
     "publish_one_shot_collection.py",
+    "case_features.py",
     "ghidra_function_batch.py",
     "sync_collection_publication.py",
     "collection_followup_planner.py",
     "build_all_c2_monitoring_targets.py",
+    "c2_monitoring_history.py",
     "run_c2_monitoring_pipeline.py",
     "validate_daily_analysis.py",
     "stage_case_analysis_datastore.py",
@@ -918,6 +925,7 @@ def _validate_context(
     work_root: Path,
     ghidra_project_store: Path,
     allow_live_c2: bool,
+    allow_c2_carry_forward: bool = False,
     create_roots: bool,
     ghidra_mcp_url: str = DEFAULT_GHIDRA_MCP_URL,
     trusted_tool_configuration: analysis_job_runner.TrustedToolConfiguration | None = None,
@@ -999,6 +1007,7 @@ def _validate_context(
         ghidra_project_store=ghidra_project_store,
         request=request,
         allow_live_c2=allow_live_c2,
+        allow_c2_carry_forward=allow_c2_carry_forward,
         ghidra_mcp_url=ghidra_mcp_url,
         trusted_tool_configuration=trusted_tool_configuration,
     )
@@ -1439,6 +1448,10 @@ def build_preflight_report(
             "live_c2_required": live_required,
             "live_c2_authorized_for_invocation": context.allow_live_c2,
             "live_c2_deferred_for_invocation": live_deferred,
+            "c2_carry_forward_authorized_for_invocation": (
+                context.allow_c2_carry_forward
+            ),
+            "c2_carry_forward_requires_independent_authorization": True,
             "provider_credential_required": provider_required,
             "provider_credential_ready": provider_ready,
             "sample_download_credential_required": sample_credential_required,
@@ -2132,6 +2145,27 @@ def _news_requeue_receipt_base(
     }
 
 
+def _news_requeue_receipt_paths(
+    context: DailyContext,
+    base: Mapping[str, Any],
+) -> tuple[Path, Path, Path]:
+    """再queueごとにimmutableな識別値から一意のreceipt pathを返す。"""
+
+    receipt_root = context.state_root / "repair-receipts" / "news-intake-requeue"
+    operation_id = _sha256_value(
+        {
+            "schema_version": 1,
+            "operation": "daily_news_intake_requeue_receipt_paths",
+            "receipt_base_sha256": _sha256_value(base),
+        }
+    )[:16]
+    return (
+        receipt_root,
+        receipt_root / f"{operation_id}-a.json",
+        receipt_root / f"{operation_id}-c.json",
+    )
+
+
 def _load_news_requeue_receipt(
     path: Path,
     expected: Mapping[str, Any],
@@ -2200,8 +2234,39 @@ def _legacy_news_requeue_status_mismatch_is_authorized(
     ):
         return False
     receipt_root = context.state_root / "repair-receipts" / "news-intake-requeue"
-    authorization_path = receipt_root / "authorization.json"
-    completion_path = receipt_root / "completion.json"
+    marker = state["stages"]["news_intake"].get("result")
+    authorization_sha256 = (
+        marker.get("authorization_receipt_sha256")
+        if isinstance(marker, Mapping)
+        else None
+    )
+    if not isinstance(authorization_sha256, str) or SHA256_RE.fullmatch(
+        authorization_sha256
+    ) is None:
+        return False
+    _reject_reparse_components(receipt_root, label="news requeue receipt root")
+    try:
+        children = sorted(receipt_root.iterdir(), key=lambda path: path.name.casefold())
+    except OSError:
+        return False
+    if len(children) > 64:
+        return False
+    candidates: list[tuple[Path, Path]] = []
+    for path in children:
+        if path.name == "authorization.json":
+            completion = receipt_root / "completion.json"
+        elif path.name.endswith("-a.json"):
+            completion = receipt_root / f"{path.name[:-7]}-c.json"
+        else:
+            continue
+        try:
+            if _sha256_file(path) == authorization_sha256:
+                candidates.append((path, completion))
+        except (OSError, DailyOrchestrationError):
+            return False
+    if len(candidates) != 1:
+        return False
+    authorization_path, completion_path = candidates[0]
     try:
         authorization_raw = analysis_job_runner.load_json_object_strict(
             authorization_path,
@@ -2453,9 +2518,6 @@ def requeue_news_intake(
                 name: state["stages"][name]["attempts"] for name in downstream_names
             },
         }
-        receipt_root = context.state_root / "repair-receipts" / "news-intake-requeue"
-        authorization_path = receipt_root / "authorization.json"
-        completion_path = receipt_root / "completion.json"
         base = _news_requeue_receipt_base(
             context,
             state_sha256_before=expected_state,
@@ -2464,6 +2526,10 @@ def requeue_news_intake(
             public_snapshot=public_before,
             staging_snapshot=staging_before,
             transition_contract=transition_contract,
+        )
+        receipt_root, authorization_path, completion_path = _news_requeue_receipt_paths(
+            context,
+            base,
         )
         if completion_path.is_file():
             authorization = _load_news_requeue_receipt(
@@ -2936,16 +3002,52 @@ def _live_c2_authorization_wait(record: Mapping[str, Any]) -> bool:
     """通信していない既知の許可待ちだけを、実行失敗と区別する。"""
 
     result = record.get("result")
+    scope_fields = {
+        "carry_forward_target_count",
+        "effective_target_count",
+        "carry_forward_requires_independent_authorization",
+    }
+    scope_fields_present = isinstance(result, Mapping) and any(
+        field in result for field in scope_fields
+    )
+    target_count = result.get("target_count") if isinstance(result, Mapping) else None
+    scope_visibility_valid = isinstance(result, Mapping) and (
+        not scope_fields_present
+        or (
+            type(target_count) is int
+            and type(result.get("carry_forward_target_count")) is int
+            and result["carry_forward_target_count"] >= 0
+            and type(result.get("effective_target_count")) is int
+            and result["effective_target_count"]
+            == target_count + result["carry_forward_target_count"]
+            and result.get("carry_forward_requires_independent_authorization") is True
+        )
+    )
     return (
         record.get("status") == "partial"
         and record.get("retryable") is True
         and record.get("error") is None
         and isinstance(result, Mapping)
-        and result.get("status") == "targets_built_live_monitoring_deferred"
+        and result.get("status")
+        in {
+            "targets_built_live_monitoring_deferred",
+            "targets_built_carry_forward_authorization_deferred",
+        }
         and result.get("network_contacted") is False
         and result.get("sample_executed") is False
         and type(result.get("target_count")) is int
         and result["target_count"] >= 0
+        and scope_visibility_valid
+        and (
+            result.get("status") != "targets_built_carry_forward_authorization_deferred"
+            or (
+                type(result.get("carry_forward_target_count")) is int
+                and result["carry_forward_target_count"] > 0
+                and type(result.get("effective_target_count")) is int
+                and result["effective_target_count"]
+                == result["target_count"] + result["carry_forward_target_count"]
+            )
+        )
     )
 
 
@@ -2988,8 +3090,19 @@ def _execute(context: DailyContext, state: dict[str, Any], actions: DailyActions
             continue
         if _upstream_in_progress(state, name):
             continue
-        if name == "c2_monitoring" and not context.allow_live_c2 and _live_c2_authorization_wait(record):
-            continue
+        if name == "c2_monitoring" and _live_c2_authorization_wait(record):
+            wait_status = record["result"]["status"]
+            if (
+                wait_status == "targets_built_live_monitoring_deferred"
+                and not context.allow_live_c2
+            ) or (
+                wait_status == "targets_built_carry_forward_authorization_deferred"
+                and (
+                    not context.allow_live_c2
+                    or not context.allow_c2_carry_forward
+                )
+            ):
+                continue
         if record["attempts"] >= MAX_STAGE_ATTEMPTS.get(name, MAX_ATTEMPTS):
             record["status"] = "failed"
             record["error"] = {
@@ -3687,7 +3800,10 @@ def _production_news_intake(context: DailyContext) -> StageOutcome:
             "news_intake_failed",
             "日次news取込が固定安全契約を満たしませんでした",
         )
-    publication = _promote_news_public_staging(context, staging_base) if exit_code == 0 else None
+    # exit code 20は解析制限を含む安全な部分完了であり、固定8成果物は
+    # 完了時と同じ厳格な公開境界を満たす。制限はstageのpartial状態と
+    # 成果物内のevidence boundaryに保持したまま、検証済み成果物を失わない。
+    publication = _promote_news_public_staging(context, staging_base)
     return StageOutcome(
         status="complete" if exit_code == 0 else "partial",
         retryable=False,
@@ -4402,6 +4518,7 @@ def _run_fixed_python(
 
 def _production_c2_monitoring(context: DailyContext) -> StageOutcome:
     import build_all_c2_monitoring_targets
+    import c2_monitoring_history
 
     output = context.repository / "analysis-results" / "research" / "c2-monitoring" / context.request.analysis_date
     targets_path = output / "targets.json"
@@ -4451,6 +4568,18 @@ def _production_c2_monitoring(context: DailyContext) -> StageOutcome:
             "c2_target_plan_invalid",
             "C2 target planの件数をtargets実数へ束縛できません",
         )
+    previous_active = c2_monitoring_history.load_latest_active_plan(
+        output.parent,
+        current_run_name=output.name,
+    )
+    _effective_preview, carry_forward_target_count = (
+        c2_monitoring_history.carry_forward_active_targets(plan, previous_active)
+    )
+    scope_visibility = {
+        "carry_forward_target_count": carry_forward_target_count,
+        "effective_target_count": target_count + carry_forward_target_count,
+        "carry_forward_requires_independent_authorization": True,
+    }
     if not context.request.network["c2_monitoring"]:
         return StageOutcome(
             status="partial",
@@ -4458,6 +4587,7 @@ def _production_c2_monitoring(context: DailyContext) -> StageOutcome:
             result={
                 "status": "targets_built_live_monitoring_not_authorized",
                 "target_count": target_count,
+                **scope_visibility,
                 "daily_source_date": context.request.news_source_date,
                 "network_contacted": False,
             },
@@ -4469,31 +4599,48 @@ def _production_c2_monitoring(context: DailyContext) -> StageOutcome:
             result={
                 "status": "targets_built_live_monitoring_deferred",
                 "target_count": target_count,
+                **scope_visibility,
+                "daily_source_date": context.request.news_source_date,
+                "network_contacted": False,
+                "sample_executed": False,
+            },
+        )
+    if carry_forward_target_count and not context.allow_c2_carry_forward:
+        return StageOutcome(
+            status="partial",
+            retryable=True,
+            result={
+                "status": "targets_built_carry_forward_authorization_deferred",
+                "target_count": target_count,
+                **scope_visibility,
                 "daily_source_date": context.request.news_source_date,
                 "network_contacted": False,
                 "sample_executed": False,
             },
         )
     context.maxmind_cache.mkdir(parents=True, exist_ok=True)
+    arguments = [
+        os.fspath(context.repository / "analysis-framework" / "common" / "run_c2_monitoring_pipeline.py"),
+        "--targets",
+        os.fspath(targets_path),
+        "--output-directory",
+        os.fspath(output),
+        "--history-root",
+        os.fspath(output.parent),
+        "--maxmind-cache-dir",
+        os.fspath(context.maxmind_cache),
+        "--refresh-maxmind-databases",
+        "--maxmind-max-build-age-hours",
+        "24",
+        "--allow-network",
+    ]
+    if context.allow_c2_carry_forward:
+        arguments.append("--allow-carry-forward-targets")
     _run_fixed_python(
         context,
         stage="c2_monitoring",
         timeout_seconds=7200,
-        arguments=[
-            os.fspath(context.repository / "analysis-framework" / "common" / "run_c2_monitoring_pipeline.py"),
-            "--targets",
-            os.fspath(targets_path),
-            "--output-directory",
-            os.fspath(output),
-            "--history-root",
-            os.fspath(output.parent),
-            "--maxmind-cache-dir",
-            os.fspath(context.maxmind_cache),
-            "--refresh-maxmind-databases",
-            "--maxmind-max-build-age-hours",
-            "24",
-            "--allow-network",
-        ],
+        arguments=arguments,
     )
     try:
         result = analysis_job_runner.load_json_object_strict(
@@ -4510,6 +4657,13 @@ def _production_c2_monitoring(context: DailyContext) -> StageOutcome:
         result={
             "status": "completed",
             "target_count": result.get("target_count"),
+            "requested_target_count": target_count,
+            "carry_forward_target_count": result.get("monitoring_continuity", {}).get(
+                "carried_forward_target_count"
+            ),
+            "carry_forward_authorized_for_invocation": (
+                context.allow_c2_carry_forward
+            ),
             "state_counts": result.get("state_counts"),
             "daily_source_handoff_count": len(result.get("daily_source_handoffs", [])),
             "network_contacted": True,
@@ -5218,6 +5372,14 @@ def _add_context_arguments(parser: argparse.ArgumentParser, *, request_required:
         help="request側のnetwork.c2_monitoring=trueに加え、現在の実行で限定ライブ監視を明示許可します",
     )
     parser.add_argument(
+        "--allow-c2-carry-forward",
+        action="store_true",
+        help=(
+            "--allow-live-c2とは独立して、直近active planから当日targets外の"
+            "endpointを追加観測することを現在の実行で明示許可します"
+        ),
+    )
+    parser.add_argument(
         "--ghidra-mcp-url",
         default=DEFAULT_GHIDRA_MCP_URL,
         help="operatorが固定したnumeric-loopback Ghidra MCP HTTP endpoint（既定: 127.0.0.1:8089）",
@@ -5406,6 +5568,7 @@ def main(argv: list[str] | None = None) -> int:
             work_root=args.work_root,
             ghidra_project_store=args.ghidra_project_store,
             allow_live_c2=args.allow_live_c2,
+            allow_c2_carry_forward=args.allow_c2_carry_forward,
             create_roots=args.command in {
                 "run",
                 "resume",

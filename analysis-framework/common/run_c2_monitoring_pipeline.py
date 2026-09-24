@@ -17,6 +17,7 @@ from build_all_c2_monitoring_targets import (
 from c2_monitoring_history import (
     apply_monitoring_history,
     carry_forward_active_targets,
+    endpoint_key,
     load_latest_active_plan,
 )
 from maxmind_c2_enrichment import (
@@ -50,6 +51,46 @@ PUBLIC_JSON_FILENAMES = (
     "monitoring-history.json",
     "monitoring-results.json",
 )
+
+
+def effective_target_addition_count(
+    requested_plan: dict[str, Any],
+    effective_plan: dict[str, Any],
+) -> int:
+    """入力planにない実効endpoint数を返す。
+
+    target_idや説明metadataではなく、実際の通信境界であるendpoint keyで比較する。
+    """
+
+    requested_targets = requested_plan.get("targets")
+    effective_targets = effective_plan.get("targets")
+    if not isinstance(requested_targets, list) or not isinstance(effective_targets, list):
+        raise PlanError("targetsはlistである必要があります")
+    requested_keys = {
+        endpoint_key(target) for target in requested_targets if isinstance(target, dict)
+    }
+    effective_keys = {
+        endpoint_key(target) for target in effective_targets if isinstance(target, dict)
+    }
+    return len(effective_keys - requested_keys)
+
+
+def enforce_carry_forward_scope_authorization(
+    *,
+    additional_target_count: int,
+    allow_network: bool,
+    allow_carry_forward_targets: bool,
+) -> None:
+    """当日入力plan外の継続対象を独立許可なしで通信させない。"""
+
+    if additional_target_count < 0:
+        raise PlanError("carry-forward追加対象数が不正です")
+    if allow_network and additional_target_count and not allow_carry_forward_targets:
+        raise PlanError(
+            "当日targets外のcarry-forward対象が"
+            f"{additional_target_count}件あります。ネットワーク開始には"
+            "--allow-carry-forward-targetsによる独立した明示許可が必要です"
+        )
 
 
 def _maxminddb_module() -> Any:
@@ -341,7 +382,7 @@ def validate_daily_handoff_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
         "effective_target_commitment_sha256",
         "effective_target_count",
     }
-    optional = {"policy_excluded_onion_hosts"}
+    optional = {"policy_excluded_endpoints"}
     normalized: list[dict[str, Any]] = []
     dates: list[str] = []
     for record in records:
@@ -350,7 +391,7 @@ def validate_daily_handoff_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
         source_date = record.get("source_date")
         source_count = record.get("source_target_count")
         effective_count = record.get("effective_target_count")
-        excluded_hosts = record.get("policy_excluded_onion_hosts", [])
+        excluded_endpoints = record.get("policy_excluded_endpoints", [])
         if (
             record.get("schema_version") != DAILY_HANDOFF_SCHEMA_VERSION
             or not isinstance(source_date, str)
@@ -362,26 +403,25 @@ def validate_daily_handoff_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
             or effective_count < 0
             or not _is_sha256(record.get("source_target_commitment_sha256"))
             or not _is_sha256(record.get("effective_target_commitment_sha256"))
-            or not isinstance(excluded_hosts, list)
+            or not isinstance(excluded_endpoints, list)
             or any(
-                not isinstance(host, str)
-                or not host
-                or host != host.casefold()
-                or not host.endswith(".onion")
-                for host in excluded_hosts
+                not isinstance(endpoint, str)
+                or endpoint != endpoint.casefold()
+                or len(endpoint.split("|")) != 3
+                for endpoint in excluded_endpoints
             )
-            or excluded_hosts != sorted(set(excluded_hosts))
+            or excluded_endpoints != sorted(set(excluded_endpoints))
         ):
             raise ValueError("daily source handoffの型またはcommitmentが不正です")
-        effective_sha256, observed_count, observed_hosts = daily_effective_target_commitment(
+        effective_sha256, observed_count, observed_endpoints = daily_effective_target_commitment(
             plan.get("targets"),
             source_date,
         )
         if (
             effective_sha256 != record["effective_target_commitment_sha256"]
             or observed_count != effective_count
-            or len(observed_hosts) + len(excluded_hosts) != source_count
-            or bool(set(observed_hosts) & set(excluded_hosts))
+            or len(observed_endpoints) + len(excluded_endpoints) != source_count
+            or bool(set(observed_endpoints) & set(excluded_endpoints))
         ):
             raise ValueError("daily source handoffと実効C2 target集合が一致しません")
         dates.append(source_date)
@@ -442,16 +482,16 @@ def attach_daily_handoff_result_bindings(
     result_records: list[dict[str, Any]] = []
     for handoff in handoffs:
         source_date = handoff["source_date"]
-        excluded_hosts = handoff.get("policy_excluded_onion_hosts", [])
-        result_sha256, result_count, result_hosts = daily_effective_target_commitment(
+        excluded_endpoints = handoff.get("policy_excluded_endpoints", [])
+        result_sha256, result_count, result_endpoints = daily_effective_target_commitment(
             result_targets,
             source_date,
         )
         if (
             result_sha256 != handoff["effective_target_commitment_sha256"]
             or result_count != handoff["effective_target_count"]
-            or len(result_hosts) + len(excluded_hosts) != handoff["source_target_count"]
-            or bool(set(result_hosts) & set(excluded_hosts))
+            or len(result_endpoints) + len(excluded_endpoints) != handoff["source_target_count"]
+            or bool(set(result_endpoints) & set(excluded_endpoints))
         ):
             raise ValueError("daily source handoffとC2 result集合が一致しません")
         result_records.append(
@@ -482,6 +522,14 @@ def main() -> int:
         help="ライブチェック前に許容するMaxMind DB build age。既定値は24時間。",
     )
     parser.add_argument("--allow-network", action="store_true")
+    parser.add_argument(
+        "--allow-carry-forward-targets",
+        action="store_true",
+        help=(
+            "直近active-targets.jsonから当日targets.json外のendpointを追加して"
+            "ライブ観測することを独立して明示許可します"
+        ),
+    )
     parser.add_argument(
         "--normalize-existing-output",
         action="store_true",
@@ -561,14 +609,19 @@ def main() -> int:
 
     try:
         plan = json.loads(args.targets.read_text(encoding="utf-8"))
+        requested_plan = plan
         history_root = (args.history_root or args.output_directory.parent).resolve()
         previous_active = load_latest_active_plan(
             history_root,
             current_run_name=args.output_directory.name,
         )
-        plan, carried_forward = carry_forward_active_targets(plan, previous_active)
+        plan, _carried_forward_before_filter = carry_forward_active_targets(
+            plan,
+            previous_active,
+        )
         if args.reviewed_profiles_only:
             plan = restrict_to_reviewed_profiles(plan)
+        carried_forward = effective_target_addition_count(requested_plan, plan)
         normalize_public_source_fields(plan)
         validate_plan(plan)
         daily_handoffs = validate_daily_handoff_plan(plan)
@@ -576,6 +629,11 @@ def main() -> int:
             args.rat_emulation_evidence,
             args.rat_emulation_evidence_sha256,
             plan,
+        )
+        enforce_carry_forward_scope_authorization(
+            additional_target_count=carried_forward,
+            allow_network=args.allow_network,
+            allow_carry_forward_targets=args.allow_carry_forward_targets,
         )
         acquired, freshness = acquire_private_databases(
             args.maxmind_cache_dir,
@@ -610,6 +668,9 @@ def main() -> int:
             "schema_version": 1,
             "previous_active_plan_found": previous_active is not None,
             "carried_forward_target_count": carried_forward,
+            "carry_forward_targets_authorized_for_invocation": (
+                args.allow_carry_forward_targets
+            ),
             "effective_target_count": len(plan["targets"]),
             "reviewed_profiles_only": args.reviewed_profiles_only,
         }

@@ -197,6 +197,48 @@ def test_profile_records_process_creation_import_hint_without_function_record(tm
     assert "固定コマンドの復元状態:" in rendered
 
 
+@pytest.mark.parametrize(
+    ("source_status", "expected_status", "expected_text"),
+    [
+        ("confirmed_null", "confirmed_null", "lpCommandLineがNULL"),
+        ("recovered_literal", "recovered_literal", "固定コマンドliteralを公開静的証拠で復元"),
+        ("runtime_derived", "runtime_derived", "実行時に導出"),
+        (
+            "unknown_future_status",
+            "not_recovered_from_published_static_evidence",
+            "公開静的証拠から復元できていません",
+        ),
+    ],
+)
+def test_profile_projects_allowlisted_process_command_line_status(
+    tmp_path: Path,
+    source_status: str,
+    expected_status: str,
+    expected_text: str,
+) -> None:
+    """Ghidra証拠の状態だけを投影し、raw commandは複製しない。"""
+
+    case = _case(tmp_path)
+    analysis = json.loads((case / "analysis.json").read_text(encoding="utf-8"))
+    raw_command = "cmd.exe /c private-sentinel"
+    analysis["ghidra_behavior_evidence"] = {
+        "process_creation": {
+            "api": "CreateProcessW",
+            "lp_command_line": None if source_status == "confirmed_null" else raw_command,
+            "command_line_recovery_status": source_status,
+        }
+    }
+    (case / "analysis.json").write_text(json.dumps(analysis), encoding="utf-8")
+
+    profile = build_case_profile(case)
+    rendered = render_features_markdown(profile)
+
+    assert profile["process_creation_assessment"]["fixed_command_recovery_status"] == expected_status
+    assert expected_text in rendered
+    assert raw_command not in json.dumps(profile, ensure_ascii=False)
+    assert raw_command not in rendered
+
+
 def test_profile_records_in_memory_processing_behavior(tmp_path: Path) -> None:
     """network機能がない計算programも実挙動を空欄にしない。"""
 

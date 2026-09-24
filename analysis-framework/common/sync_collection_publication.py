@@ -28,10 +28,48 @@ from analysis_contract import (
     load_json_object_strict,
 )
 from c2_analysis_contract import validate_contract as validate_c2_contract
+from malwarebazaar_family_labels import is_reported_name_placeholder
 from validate_function_analysis import COMPLETE_STATUSES
 from validate_function_analysis import validate_case as validate_function_case
 
 SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
+_ATTRIBUTION_STATUSES = frozenset(
+    {
+        "statically_confirmed",
+        "provider_reported_not_statically_confirmed",
+        "unresolved",
+    }
+)
+_SOURCE_CASE_PROJECTED_FIELDS = frozenset(
+    {
+        "attribution_basis",
+        "blockers",
+        "c2_analysis_complete",
+        "c2_analysis_finding_count",
+        "c2_analysis_outcome",
+        "case_path",
+        "case_state",
+        "confirmed_static_c2_observations",
+        "confirmed_static_management_observations",
+        "confirmed_static_network_observations",
+        "family",
+        "family_attribution_status",
+        "family_role",
+        "file_type",
+        "first_seen",
+        "function_analysis",
+        "handler_failures",
+        "handler_successes",
+        "provider_reported_family",
+        "provider_reported_label",
+        "publication_stage",
+        "reported_signature",
+        "sha256",
+        "static_config_recovered",
+        "static_logic_status",
+        "statically_confirmed_family",
+    }
+)
 _COUNT_FIELDS = {
     "discovered_functions": "discovered_function_inventory_count",
     "characteristic_functions": "characteristic_function_selected_count",
@@ -119,6 +157,96 @@ def _readme_bytes(source: bytes, summary: Mapping[str, Any], case_count: int) ->
     return rendered.encode("utf-8")
 
 
+def _decode_readme(source: bytes, label: str) -> str:
+    try:
+        return source.decode("utf-8-sig").replace("\r\n", "\n")
+    except UnicodeDecodeError as exc:
+        raise ProjectionError(f"{label}がUTF-8ではありません") from exc
+
+
+def _attribution_counts(items: list[Mapping[str, Any]], label: str) -> Counter[str]:
+    counts: Counter[str] = Counter()
+    for item in items:
+        status = item.get("family_attribution_status")
+        if not isinstance(status, str) or status not in _ATTRIBUTION_STATUSES:
+            raise ProjectionError(f"{label}のfamily_attribution_statusが不正です: {status!r}")
+        counts[status] += 1
+    return counts
+
+
+def _root_attribution_readme_bytes(
+    source: bytes,
+    family_items: Mapping[str, list[Mapping[str, Any]]],
+) -> bytes:
+    """collection READMEの帰属集計だけを検証済みcaseから再生成する。"""
+
+    readme = _decode_readme(source, "collection README")
+    all_items = [item for items in family_items.values() for item in items]
+    total_counts = _attribution_counts(all_items, "collection")
+    provider_count = total_counts.get("provider_reported_not_statically_confirmed", 0)
+    provider_pattern = re.compile(
+        r"(?m)^- 提供元報告のみで内部静的ファミリー未確認: `\d+`$"
+    )
+    readme, count = provider_pattern.subn(
+        f"- 提供元報告のみで内部静的ファミリー未確認: `{provider_count}`",
+        readme,
+    )
+    if count != 1:
+        raise ProjectionError("collection READMEの提供元帰属集計を一意に特定できません")
+
+    lines = [
+        "## 整理先ラベル内訳",
+        "",
+        "| 整理先ラベル | 件数 | 内部静的確認済み | 提供元報告のみ・内部静的未確認 | 未解決 |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    for family, items in sorted(
+        family_items.items(), key=lambda value: (-len(value[1]), value[0])
+    ):
+        counts = _attribution_counts(items, f"source {family}")
+        lines.append(
+            f"| [{family}](sources/{family}/README.md) | {len(items)} | "
+            f"{counts.get('statically_confirmed', 0)} | "
+            f"{counts.get('provider_reported_not_statically_confirmed', 0)} | "
+            f"{counts.get('unresolved', 0)} |"
+        )
+    lines.extend(["", ""])
+    pattern = re.compile(r"(?ms)^## 整理先ラベル内訳\n.*?(?=^## 静的ロジック状態\n)")
+    rendered, count = pattern.subn(lambda _match: "\n".join(lines), readme)
+    if count != 1:
+        raise ProjectionError("collection READMEの整理先ラベル内訳を一意に特定できません")
+    return rendered.encode("utf-8")
+
+
+def _source_readme_bytes(
+    source: bytes,
+    family: str,
+    counts: Mapping[str, int],
+    case_count: int,
+) -> bytes:
+    """source READMEの帰属件数を同じsource case集合から再生成する。"""
+
+    readme = _decode_readme(source, f"source README ({family})")
+    if len(re.findall(rf"(?m)^# {re.escape(family)} 収録ケース$", readme)) != 1:
+        raise ProjectionError(f"source READMEの見出しを一意に特定できません: {family}")
+    replacements = {
+        r"(?m)^- 収録件数: `\d+`$": f"- 収録件数: `{case_count}`",
+        r"(?m)^- 内部静的確認済み: `\d+`$": (
+            f"- 内部静的確認済み: `{counts.get('statically_confirmed', 0)}`"
+        ),
+        r"(?m)^- 提供元報告のみ（内部静的未確認）: `\d+`$": (
+            "- 提供元報告のみ（内部静的未確認）: "
+            f"`{counts.get('provider_reported_not_statically_confirmed', 0)}`"
+        ),
+        r"(?m)^- 未解決: `\d+`$": f"- 未解決: `{counts.get('unresolved', 0)}`",
+    }
+    for pattern, replacement in replacements.items():
+        readme, count = re.subn(pattern, replacement, readme)
+        if count != 1:
+            raise ProjectionError(f"source READMEの帰属集計を一意に特定できません: {family}")
+    return readme.encode("utf-8")
+
+
 def _bounded_snapshot(path: Path) -> bytes:
     ensure_no_reparse_components(path)
     with path.open("rb") as stream:
@@ -175,6 +303,179 @@ def _summary_cases(summary: Mapping[str, Any], requested: list[str]) -> dict[str
     return indexed
 
 
+def _safe_family_name(value: object) -> str:
+    if not isinstance(value, str) or not value or value in {".", ".."}:
+        raise ProjectionError(f"source family名が不正です: {value!r}")
+    if Path(value).name != value or "/" in value or "\\" in value:
+        raise ProjectionError(f"source family名が単一directory名ではありません: {value!r}")
+    return value
+
+
+def _manifest_family_sources(
+    manifest: Mapping[str, Any],
+    expected_families: set[str],
+) -> dict[str, PurePosixPath]:
+    raw_sources = manifest.get("family_sources")
+    if not isinstance(raw_sources, list) or not raw_sources:
+        raise ProjectionError("manifest.family_sourcesがありません")
+    sources: dict[str, PurePosixPath] = {}
+    folded: set[str] = set()
+    for raw in raw_sources:
+        if not isinstance(raw, Mapping):
+            raise ProjectionError("manifest.family_sourcesにobjectではない要素があります")
+        family = _safe_family_name(raw.get("family"))
+        if family.casefold() in folded:
+            raise ProjectionError(f"manifest.family_sourcesが重複しています: {family}")
+        folded.add(family.casefold())
+        path_value = raw.get("path")
+        if not isinstance(path_value, str):
+            raise ProjectionError(f"manifest.family_sources.pathが文字列ではありません: {family}")
+        path = PurePosixPath(path_value)
+        if path.is_absolute() or path.parts != ("sources", family):
+            raise ProjectionError(f"manifest.family_sources.pathが既知layoutではありません: {family}")
+        sources[family] = path
+    if set(sources) != expected_families:
+        raise ProjectionError(
+            "manifest.family_sourcesとcaseのfamily集合が不一致です: "
+            f"manifest={sorted(sources)}, cases={sorted(expected_families)}"
+        )
+    return sources
+
+
+def _source_case_index(
+    family: str,
+    document: Mapping[str, Any],
+    expected: Mapping[str, Mapping[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    schema_version = document.get("schema_version")
+    if (
+        isinstance(schema_version, bool)
+        or schema_version != 1
+        or document.get("family") != family
+    ):
+        raise ProjectionError(f"source summaryのschemaまたはfamilyが不正です: {family}")
+    raw_cases = document.get("cases")
+    count = document.get("count")
+    if not isinstance(raw_cases, list) or isinstance(count, bool) or not isinstance(count, int):
+        raise ProjectionError(f"source summaryのcasesまたはcountが不正です: {family}")
+    if count != len(raw_cases):
+        raise ProjectionError(
+            f"source summaryのcountとcases件数が一致しません: {family}: "
+            f"count={count}, cases={len(raw_cases)}"
+        )
+    indexed: dict[str, dict[str, Any]] = {}
+    for raw in raw_cases:
+        if not isinstance(raw, dict):
+            raise ProjectionError(f"source summary.casesにobjectではない要素があります: {family}")
+        digest = str(raw.get("sha256") or "").casefold()
+        if not SHA256_RE.fullmatch(digest):
+            raise ProjectionError(f"source summaryに不正なSHA-256があります: {family}")
+        if digest in indexed:
+            raise ProjectionError(f"source summaryのcaseが重複しています: {family}:{digest}")
+        if raw.get("family") != family:
+            raise ProjectionError(f"source summary caseのfamilyが不一致です: {family}:{digest}")
+        indexed[digest] = raw
+    if count != len(expected):
+        raise ProjectionError(
+            f"source summaryの件数がpublication-summaryと一致しません: {family}: "
+            f"count={count}, expected={len(expected)}"
+        )
+    if set(indexed) != set(expected):
+        raise ProjectionError(f"source summaryとpublication-summaryのcase集合が不一致です: {family}")
+    for digest, raw in indexed.items():
+        if raw.get("case_path") != expected[digest].get("case_path"):
+            raise ProjectionError(f"source summary case_pathが不一致です: {family}:{digest}")
+    aggregate = document.get("family_attribution_status")
+    if not isinstance(aggregate, Mapping):
+        raise ProjectionError(f"source summaryの帰属集計がobjectではありません: {family}")
+    aggregate_total = 0
+    for status, value in aggregate.items():
+        if status not in _ATTRIBUTION_STATUSES or isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ProjectionError(f"source summaryの帰属集計が不正です: {family}:{status}")
+        aggregate_total += value
+    if aggregate_total != count:
+        raise ProjectionError(f"source summaryの帰属集計件数が一致しません: {family}")
+    return indexed
+
+
+def _source_projections(
+    collection_dir: Path,
+    manifest: Mapping[str, Any],
+    expected_items: Mapping[str, Mapping[str, Any]],
+) -> tuple[
+    dict[Path, Mapping[str, Any] | bytes],
+    dict[Path, bytes],
+    dict[str, list[Mapping[str, Any]]],
+]:
+    """既知のsources layoutを検証し、帰属fieldと集計の投影を返す。"""
+
+    families: dict[str, dict[str, Mapping[str, Any]]] = {}
+    folded: set[str] = set()
+    for digest, item in expected_items.items():
+        family = _safe_family_name(item.get("family"))
+        if family.casefold() in folded and family not in families:
+            raise ProjectionError(f"caseのfamily名が大文字小文字だけで競合しています: {family}")
+        folded.add(family.casefold())
+        families.setdefault(family, {})[digest] = item
+    source_paths = _manifest_family_sources(manifest, set(families))
+    sources_root = collection_dir / "sources"
+    ensure_no_reparse_components(sources_root)
+    if not sources_root.is_dir():
+        raise ProjectionError("collection sources directoryがありません")
+    actual_entries = list(sources_root.iterdir())
+    if any(not entry.is_dir() for entry in actual_entries):
+        raise ProjectionError("collection sources直下に未知のfileがあります")
+    actual_families = {entry.name for entry in actual_entries}
+    if actual_families != set(source_paths):
+        raise ProjectionError(
+            f"collection sourcesのdirectory集合が不一致です: actual={sorted(actual_families)}"
+        )
+
+    documents: dict[Path, Mapping[str, Any] | bytes] = {}
+    snapshots: dict[Path, bytes] = {}
+    projected_family_items: dict[str, list[Mapping[str, Any]]] = {}
+    for family in sorted(families):
+        source_dir = collection_dir / Path(*source_paths[family].parts)
+        ensure_no_reparse_components(source_dir)
+        entries = list(source_dir.iterdir())
+        if {entry.name for entry in entries} != {"README.md", "summary.json"} or any(
+            not entry.is_file() for entry in entries
+        ):
+            raise ProjectionError(f"source directoryが既知layoutではありません: {family}")
+        summary_path = source_dir / "summary.json"
+        readme_path = source_dir / "README.md"
+        snapshots[summary_path] = _bounded_snapshot(summary_path)
+        snapshots[readme_path] = _bounded_snapshot(readme_path)
+        summary = load_json_object_strict(summary_path)
+        indexed = _source_case_index(family, summary, families[family])
+        expected_summary = deepcopy(summary)
+        expected_index = {str(item["sha256"]).casefold(): item for item in expected_summary["cases"]}
+        projected_items: list[Mapping[str, Any]] = []
+        for digest in indexed:
+            source_item = expected_index[digest]
+            canonical_item = families[family][digest]
+            for field in tuple(source_item):
+                if field not in canonical_item:
+                    continue
+                if field in _SOURCE_CASE_PROJECTED_FIELDS:
+                    source_item[field] = deepcopy(canonical_item[field])
+                elif source_item[field] != canonical_item[field]:
+                    raise ProjectionError(
+                        f"source summaryの未知共有fieldがpublication-summaryと競合しています: "
+                        f"{family}:{digest}:{field}"
+                    )
+            projected_items.append(source_item)
+        counts = _attribution_counts(projected_items, f"source {family}")
+        expected_summary["count"] = len(projected_items)
+        expected_summary["family_attribution_status"] = dict(sorted(counts.items()))
+        documents[summary_path] = expected_summary
+        documents[readme_path] = _source_readme_bytes(
+            snapshots[readme_path], family, counts, len(projected_items)
+        )
+        projected_family_items[family] = projected_items
+    return documents, snapshots, projected_family_items
+
+
 def _case_directory(repository: Path, item: Mapping[str, Any], digest: str) -> Path:
     raw = item.get("case_path")
     if not isinstance(raw, str) or not raw.strip():
@@ -228,6 +529,15 @@ def _provider_attribution_projection(
         or "provider" in basis
         or "プロバイダ" in basis
     )
+    if selected == [] and is_reported_name_placeholder(summary_item.get("reported_signature")):
+        return {
+            "attribution_basis": "no_supported_family_evidence",
+            "family_attribution_status": "unresolved",
+            "provider_reported_label": None,
+            "provider_reported_family": None,
+            "statically_confirmed_family": None,
+            "family_role": "unclassified_grouping",
+        }
     if selected == [] and provider_basis:
         return {
             "family_attribution_status": "provider_reported_not_statically_confirmed",
@@ -372,6 +682,11 @@ def build_collection_projection(repository: Path, collection_dir: Path) -> dict[
     }
     manifest_expected.update({**common, "complete": all_complete})
     summary_expected.update(common)
+    attribution_status_counts = Counter(
+        str(expected_items[digest].get("family_attribution_status") or "unresolved")
+        for digest in requested
+    )
+    summary_expected["family_attribution_status"] = dict(sorted(attribution_status_counts.items()))
     summary_expected["static_logic_status"] = dict(sorted(status_counts.items()))
     summary_expected["function_analysis"] = {
         "root_cases": len(requested),
@@ -399,11 +714,28 @@ def build_collection_projection(repository: Path, collection_dir: Path) -> dict[
         "managed_method_inventory_count": totals["managed_methods"],
         "ghidra_programs_with_valid_mcp_responses": totals["valid_mcp_programs"],
     }
+    source_documents, family_source_snapshots, family_items = _source_projections(
+        collection_dir,
+        manifest,
+        expected_items,
+    )
+    family_counts = {family: len(items) for family, items in sorted(family_items.items())}
+    if sum(family_counts.values()) != len(requested):
+        raise ProjectionError("source family別件数と対象case数が一致しません")
+    summary_expected["counts"] = family_counts
+    root_readme = _root_attribution_readme_bytes(source_snapshots[readme_path], family_items)
+    documents: dict[Path, Mapping[str, Any] | bytes] = {
+        manifest_path: manifest_expected,
+        summary_path: summary_expected,
+        readme_path: _readme_bytes(root_readme, summary_expected, len(requested)),
+        **source_documents,
+    }
     return {
         "manifest": manifest_expected,
         "summary": summary_expected,
-        "readme": _readme_bytes(source_snapshots[readme_path], summary_expected, len(requested)),
-        "source_snapshots": {**source_snapshots, **case_snapshots},
+        "readme": documents[readme_path],
+        "documents": documents,
+        "source_snapshots": {**source_snapshots, **family_source_snapshots, **case_snapshots},
         "case_count": len(requested),
     }
 
@@ -475,13 +807,9 @@ def synchronize_collection_projection(
         raise ProjectionError("--writeと--checkは同時に指定できません")
     projection = build_collection_projection(repository, collection_dir)
     collection_dir = collection_dir.resolve()
-    paths = {
-        collection_dir / "manifest.json": projection["manifest"],
-        collection_dir / "publication-summary.json": projection["summary"],
-        collection_dir / "README.md": projection["readme"],
-    }
+    paths = projection["documents"]
     stale = [
-        path.name
+        path.relative_to(collection_dir).as_posix()
         for path, expected in paths.items()
         if (_bounded_snapshot(path) != expected if isinstance(expected, bytes) else load_json_object_strict(path) != expected)
     ]

@@ -1,14 +1,83 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
+import sys
 
 import pytest
+
+COMMON = Path(__file__).resolve().parents[1] / "common"
+if str(COMMON) not in sys.path:
+    sys.path.insert(0, str(COMMON))
+
 from run_c2_monitoring_pipeline import (
+    effective_target_addition_count,
+    enforce_carry_forward_scope_authorization,
     normalize_public_source_fields,
     render_enriched_report,
     restrict_to_reviewed_profiles,
     stale_build_epochs,
 )
+from monitor_recent_c2 import PlanError
+
+
+def test_effective_target_addition_count_uses_network_endpoint_boundary() -> None:
+    requested = {
+        "targets": [
+            {
+                "target_id": "today",
+                "host": "same.example",
+                "port": 443,
+                "protocol": "tcp",
+                "transport": "direct",
+            }
+        ]
+    }
+    effective = {
+        "targets": [
+            {
+                "target_id": "renamed-metadata-only",
+                "host": "same.example",
+                "port": 443,
+                "protocol": "tcp",
+                "transport": "direct",
+            },
+            {
+                "target_id": "carry-forward",
+                "host": "prior.example",
+                "port": 8443,
+                "protocol": "tcp",
+                "transport": "direct",
+            },
+        ]
+    }
+
+    assert effective_target_addition_count(requested, effective) == 1
+
+
+def test_network_rejects_unapproved_carry_forward_before_probe() -> None:
+    with pytest.raises(PlanError, match="独立した明示許可"):
+        enforce_carry_forward_scope_authorization(
+            additional_target_count=1,
+            allow_network=True,
+            allow_carry_forward_targets=False,
+        )
+
+    enforce_carry_forward_scope_authorization(
+        additional_target_count=1,
+        allow_network=False,
+        allow_carry_forward_targets=False,
+    )
+    enforce_carry_forward_scope_authorization(
+        additional_target_count=1,
+        allow_network=True,
+        allow_carry_forward_targets=True,
+    )
+    enforce_carry_forward_scope_authorization(
+        additional_target_count=0,
+        allow_network=True,
+        allow_carry_forward_targets=False,
+    )
 
 
 def test_render_enriched_report_includes_maxmind_section_once() -> None:
@@ -134,7 +203,7 @@ def test_daily_handoff_is_bound_to_result_without_network() -> None:
         "targets": [target],
         "daily_source_handoffs": [
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "source_date": source_date,
                 "source_target_commitment_sha256": "a" * 64,
                 "source_target_count": 1,
@@ -200,7 +269,7 @@ def test_daily_handoff_is_bound_to_result_without_network() -> None:
         validate_daily_handoff_plan(wrong_source_count)
 
 
-def test_daily_handoff_accepts_canonical_policy_excluded_onion_hosts() -> None:
+def test_daily_handoff_accepts_canonical_policy_excluded_endpoints() -> None:
     from build_all_c2_monitoring_targets import daily_effective_target_commitment
     from run_c2_monitoring_pipeline import (
         attach_daily_handoff_result_bindings,
@@ -221,15 +290,15 @@ def test_daily_handoff_accepts_canonical_policy_excluded_onion_hosts() -> None:
         [target], source_date
     )
     record = {
-        "schema_version": 1,
+        "schema_version": 2,
         "source_date": source_date,
         "source_target_commitment_sha256": "b" * 64,
         "source_target_count": 3,
         "effective_target_commitment_sha256": effective_sha256,
         "effective_target_count": effective_count,
-        "policy_excluded_onion_hosts": [
-            "first-hidden-service.onion",
-            "second-hidden-service.onion",
+        "policy_excluded_endpoints": [
+            "first-hidden-service.onion|0|dns",
+            "second-hidden-service.onion|0|dns",
         ],
     }
     plan = {"targets": [target], "daily_source_handoffs": [record]}
@@ -249,19 +318,19 @@ def test_daily_handoff_accepts_canonical_policy_excluded_onion_hosts() -> None:
     handoffs = validate_daily_handoff_plan(plan)
     attach_daily_handoff_result_bindings(result, plan, handoffs)
 
-    assert result["daily_source_handoffs"][0]["policy_excluded_onion_hosts"] == record[
-        "policy_excluded_onion_hosts"
+    assert result["daily_source_handoffs"][0]["policy_excluded_endpoints"] == record[
+        "policy_excluded_endpoints"
     ]
     for invalid_hosts in (
-        ["NOT-CANONICAL.onion"],
-        ["not-an-onion.example"],
-        ["duplicate.onion", "duplicate.onion"],
-        ["z.onion", "a.onion"],
+        ["NOT-CANONICAL.onion|0|dns"],
+        ["missing-wire.example|0"],
+        ["duplicate.onion|0|dns", "duplicate.onion|0|dns"],
+        ["z.onion|0|dns", "a.onion|0|dns"],
     ):
         invalid = {
             **plan,
             "daily_source_handoffs": [
-                {**record, "policy_excluded_onion_hosts": invalid_hosts}
+                {**record, "policy_excluded_endpoints": invalid_hosts}
             ],
         }
         with pytest.raises(ValueError, match="型またはcommitment"):

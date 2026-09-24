@@ -52,6 +52,7 @@ from handler_evidence import (  # noqa: E402
 from ioc_markdown import render_submitted_iocs  # noqa: E402
 from malwarebazaar_family_labels import (  # noqa: E402
     REPORTED_FAMILY_ALIASES,
+    is_reported_name_placeholder,
     normalize_reported_name,
 )
 from overall_logic_diagrams import render_overall_logic_markdown  # noqa: E402
@@ -296,7 +297,12 @@ def build_family_attribution(
 ) -> dict[str, Any]:
     """整理先ラベル、provider報告、内部静的確認を混同しない帰属契約を作る。"""
 
-    reported_label = str(metadata.get("signature") or "").strip() or None
+    raw_reported_label = str(metadata.get("signature") or "").strip() or None
+    reported_label = (
+        None
+        if is_reported_name_placeholder(raw_reported_label)
+        else raw_reported_label
+    )
     reported_family = None
     if reported_label:
         reported_family = REPORTED_FAMILY_ALIASES.get(normalize_reported_name(reported_label))

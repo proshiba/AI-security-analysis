@@ -22,6 +22,7 @@ from c2_protocol_probe_profiles import (
 )
 from daily_news_malware_intake import (
     SHARED_SERVICE_HOSTS,
+    _daily_infrastructure_projection,
     _daily_infrastructure_target_commitment,
     is_shared_service_host,
 )
@@ -62,7 +63,7 @@ NON_DNS_SUFFIXES = (".onion", ".eth", ".sol", ".did", ".iid")
 DEFAULT_PORTS = {"http": 80, "https": 443, "ftp": 21}
 IOC_LIST_KEYS = ("network", "configured_c2", "configured_or_observed_c2", "indicators")
 MALWARE_PROTOCOL_HINTS = frozenset(protocol for protocol, _method in PROFILE_METHODS.values())
-DAILY_HANDOFF_SCHEMA_VERSION = 1
+DAILY_HANDOFF_SCHEMA_VERSION = 2
 DAILY_IOC_SUMMARY_GLOB = "research/daily-news-malware/*/ioc-summary.json"
 
 
@@ -255,12 +256,15 @@ def _daily_source_dates(target: dict[str, Any]) -> tuple[str, ...]:
 def _daily_monitoring_target_identity(target: dict[str, Any]) -> dict[str, Any]:
     host = str(target.get("host") or "").casefold().rstrip(".")
     port = target.get("port")
+    protocol = str(target.get("protocol") or "tcp").casefold()
     target_id = target.get("target_id")
     if (
         not host
         or isinstance(port, bool)
         or not isinstance(port, int)
         or not 0 <= port <= 65535
+        or protocol not in {"dns", "tcp"}
+        or (port == 0) != (protocol == "dns")
         or not isinstance(target_id, str)
         or not target_id
     ):
@@ -269,11 +273,15 @@ def _daily_monitoring_target_identity(target: dict[str, Any]) -> dict[str, Any]:
         "target_id": target_id,
         "host": host,
         "port": port,
-        "protocol": str(target.get("protocol") or "tcp").casefold(),
+        "protocol": protocol,
         "transport": str(target.get("transport") or "direct").casefold(),
         "method": str(target.get("method") or "tcp_connect"),
         "http_path": str(target.get("http_path") or ""),
     }
+
+
+def _daily_endpoint_key(host: str, port: int, wire: str) -> str:
+    return f"{host.casefold().rstrip('.')}|{port}|{wire.casefold()}"
 
 
 def daily_effective_target_commitment(
@@ -288,7 +296,7 @@ def daily_effective_target_commitment(
     if normalized_date != source_date:
         raise ValueError("daily handoffのsource_dateがcanonicalではありません")
     identities: list[dict[str, Any]] = []
-    hosts: set[str] = set()
+    endpoint_keys: set[str] = set()
     for target in targets:
         if not isinstance(target, dict):
             raise ValueError("daily handoffのtargetはobjectである必要があります")
@@ -296,7 +304,9 @@ def daily_effective_target_commitment(
             continue
         identity = _daily_monitoring_target_identity(target)
         identities.append(identity)
-        hosts.add(identity["host"])
+        endpoint_keys.add(
+            _daily_endpoint_key(identity["host"], identity["port"], identity["protocol"])
+        )
     identities.sort(
         key=lambda value: json.dumps(
             value,
@@ -314,30 +324,24 @@ def daily_effective_target_commitment(
             "targets": identities,
         }
     )
-    return commitment, len(identities), tuple(sorted(hosts))
+    return commitment, len(identities), tuple(sorted(endpoint_keys))
 
 
 def _daily_ioc_entries(payload: dict[str, Any], source_date: str | None):
     items = payload.get("items")
     if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
         raise ValueError("daily ioc-summaryのitemsが不正です")
-    for index, item in enumerate(items):
-        if item.get("valid") is not True or str(item.get("category") or "") != "c2":
-            continue
-        if str(item.get("ioc_type") or "") not in {"domain", "ip", "url"}:
-            continue
-        # 共有ホストは daily infrastructure target の集合からも外れている
-        # (daily_news_malware_intake 側で同じ判定をしている)。ここで拾うと
-        # 「daily sourceのhostが実効targetへ結合されていない」ゲートに引っ掛かる
-        # ので、両者の集合を一致させる。
-        host, _port, _protocol = _split_endpoint({"value": item.get("ioc_value")})
-        if host and is_shared_service_host(host):
-            continue
+    projection = _daily_infrastructure_projection(items)
+    for item in projection["targets"]:
+        index = item["source_indexes"][0]
         evidence = {
-            "value": item.get("ioc_value"),
+            "value": item["host"],
+            "port": item["port"],
+            "protocol": item["wire"],
             "role": "c2",
             "confidence": "daily_news_ioc_label",
-            "daily_malware": str(item.get("malware") or "unknown"),
+            "daily_malware": "/".join(item["malware"]),
+            "daily_endpoint_pinned": True,
         }
         if source_date is not None:
             evidence["daily_source_date"] = source_date
@@ -376,8 +380,9 @@ def build_inventory(
     duplicate_evidence: list[dict[str, str]] = []
     seen_evidence: dict[tuple[object, ...], str] = {}
     daily_source_handoffs: dict[str, dict[str, Any]] = {}
-    daily_expected_hosts: dict[str, set[str]] = {}
-    daily_policy_excluded_hosts: dict[str, set[str]] = defaultdict(set)
+    daily_expected_endpoints: dict[str, set[str]] = {}
+    daily_policy_excluded_endpoints: dict[str, set[str]] = defaultdict(set)
+    carry_forward_exclusions: list[dict[str, Any]] = []
     daily_input_paths = (
         {
             path
@@ -447,7 +452,12 @@ def build_inventory(
                     "source_target_commitment_sha256": commitment,
                     "source_target_count": target_count,
                 }
-                daily_expected_hosts[source_date] = set()
+                projection = _daily_infrastructure_projection(payload.get("items") or [])
+                daily_expected_endpoints[source_date] = {
+                    _daily_endpoint_key(item["host"], item["port"], item["wire"])
+                    for item in projection["targets"]
+                }
+                carry_forward_exclusions.extend(projection["carry_forward_exclusions"])
             family, sample = "daily-news", None
         else:
             family, sample = _family_and_sample(path, results_root, payload)
@@ -481,16 +491,23 @@ def build_inventory(
                 exclusions.append({**evidence, "reason": "endpoint_parse_failed"})
                 continue
             record_daily_source_date = entry.get("daily_source_date")
+            daily_endpoint_key = None
             if isinstance(record_daily_source_date, str):
-                daily_expected_hosts[record_daily_source_date].add(host)
+                if not isinstance(port, int) or protocol_hint not in {"dns", "tcp"}:
+                    exclusions.append({**evidence, "host": host, "port": port, "reason": "daily_endpoint_not_pinned"})
+                    continue
+                daily_endpoint_key = _daily_endpoint_key(host, port, protocol_hint)
             allowed, host_kind = _host_classification(host)
             if not allowed:
                 if isinstance(record_daily_source_date, str) and host_kind == "onion_excluded_by_policy":
-                    daily_policy_excluded_hosts[record_daily_source_date].add(host)
+                    daily_policy_excluded_endpoints[record_daily_source_date].add(daily_endpoint_key)
                 exclusions.append({**evidence, "host": host, "port": port, "reason": host_kind})
                 continue
-            if port is not None and not 1 <= port <= 65535:
+            if port is not None and not 0 <= port <= 65535:
                 exclusions.append({**evidence, "host": host, "port": port, "reason": "invalid_port"})
+                continue
+            if port == 0 and protocol_hint != "dns":
+                exclusions.append({**evidence, "host": host, "port": port, "reason": "invalid_dns_endpoint"})
                 continue
             confidence_key = json.dumps(
                 entry.get("confidence"),
@@ -530,7 +547,7 @@ def build_inventory(
         )
     known_ports: dict[str, set[int]] = defaultdict(set)
     for record in records:
-        if isinstance(record["port"], int):
+        if isinstance(record["port"], int) and record["port"] > 0:
             known_ports[record["host"]].add(record["port"])
 
     expanded: list[tuple[tuple[str, int, str], dict[str, Any]]] = []
@@ -539,7 +556,11 @@ def build_inventory(
         if not ports:
             ports = [0]
         for port in ports:
-            protocol = "dns" if port == 0 else "tcp"
+            protocol = (
+                str(record.get("protocol_hint") or "").casefold()
+                if isinstance(record.get("daily_source_date"), str)
+                else ("dns" if port == 0 else "tcp")
+            )
             expanded.append(((record["host"], port, protocol), record))
 
     grouped: dict[tuple[str, int, str], list[dict[str, Any]]] = defaultdict(list)
@@ -624,24 +645,27 @@ def build_inventory(
             }
         )
     for source_date, handoff in sorted(daily_source_handoffs.items()):
-        effective_commitment, effective_count, effective_hosts = daily_effective_target_commitment(
+        effective_commitment, effective_count, effective_endpoints = daily_effective_target_commitment(
             targets,
             source_date,
         )
-        excluded_hosts = daily_policy_excluded_hosts[source_date]
-        if set(effective_hosts) & excluded_hosts or set(effective_hosts) | excluded_hosts != daily_expected_hosts[source_date]:
+        excluded_endpoints = daily_policy_excluded_endpoints[source_date]
+        if (
+            set(effective_endpoints) & excluded_endpoints
+            or set(effective_endpoints) | excluded_endpoints != daily_expected_endpoints[source_date]
+        ):
             raise ValueError(
                 f"daily source対象が実効C2 targetへ完全に結合されていません: {source_date}"
             )
-        if len(effective_hosts) + len(excluded_hosts) != handoff["source_target_count"]:
+        if len(effective_endpoints) + len(excluded_endpoints) != handoff["source_target_count"]:
             raise ValueError(
-                f"daily source対象件数と実効C2 host件数が一致しません: {source_date}"
+                f"daily source対象件数と実効C2 endpoint件数が一致しません: {source_date}"
             )
         handoff.update(
             {
                 "effective_target_commitment_sha256": effective_commitment,
                 "effective_target_count": effective_count,
-                "policy_excluded_onion_hosts": sorted(excluded_hosts),
+                "policy_excluded_endpoints": sorted(excluded_endpoints),
             }
         )
     reason_counts = Counter(item["reason"] for item in exclusions)
@@ -683,6 +707,10 @@ def build_inventory(
         "exclusions": exclusions,
         "parse_errors": parse_errors,
     }
+    if not carry_forward_exclusions:
+        carry_forward_exclusions.extend(
+            _daily_infrastructure_projection([])["carry_forward_exclusions"]
+        )
     plan = {
         "schema_version": 1,
         "analysis_window": {
@@ -691,6 +719,13 @@ def build_inventory(
         },
         "collection_scope": "all_historical_c2",
         "onion_excluded_by_policy": True,
+        "carry_forward_exclusions": sorted(
+            {
+                json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":")): item
+                for item in carry_forward_exclusions
+            }.values(),
+            key=lambda item: (item["scope"], item["host"], item["port"], item["wire"], item["reason"]),
+        ),
         "protocol_profile_registry": profile_registry,
         "remus_review_registry": remus_review_registry,
         "inventory_summary": {

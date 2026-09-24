@@ -89,6 +89,9 @@ FUNCTION_REVIEW_SAFETY = {
 REVIEW_SOURCE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$")
 REVIEW_ADDRESS_RE = re.compile(r"^(?:0x)?[0-9A-Fa-f]{1,16}$")
 REVIEW_FUNCTION_NAME_RE = re.compile(r"^[A-Za-z0-9_?$@:.<>~+\-]{1,256}$")
+PUBLIC_FOLLOWUP_REFERENCE_RE = re.compile(
+    r"^\.\./\.\./audits/daily-news-20[0-9]{6}/STATIC-FOLLOWUP\.md$"
+)
 ABSOLUTE_PATH_RE = re.compile(
     r"(?:^|[\s\x60\"'])(?:[A-Za-z]:[\\/]|\\\\|/(?:Users|home|root|tmp|var|etc|opt|mnt|srv)/)",
     re.IGNORECASE,
@@ -185,23 +188,26 @@ def _review_text(
     return normalized
 
 
-def _normalize_reviewed_functions(value: Any) -> list[dict[str, str]]:
+def _normalize_reviewed_functions(value: Any) -> list[dict[str, str | None]]:
     """検証済みGhidra reviewを公開用4 fieldへfail-closed正規化する。"""
 
     if not isinstance(value, list) or len(value) > MAX_REVIEWED_FUNCTIONS_PER_SAMPLE:
         raise ValueError("function reviewのfunctionsが上限内のlistではありません")
-    normalized: list[dict[str, str]] = []
+    normalized: list[dict[str, str | None]] = []
     seen: set[tuple[str, str]] = set()
     for item in value:
         if not isinstance(item, Mapping) or set(item) != FUNCTION_REVIEW_FUNCTION_KEYS:
             raise ValueError("function review関数のfield集合が不正です")
-        address = _review_text(
-            item.get("address"),
-            "function review address",
-            maximum_bytes=18,
-        )
-        if REVIEW_ADDRESS_RE.fullmatch(address) is None:
-            raise ValueError("function review addressが16進addressではありません")
+        raw_address = item.get("address")
+        address = None
+        if raw_address is not None:
+            address = _review_text(
+                raw_address,
+                "function review address",
+                maximum_bytes=18,
+            )
+            if REVIEW_ADDRESS_RE.fullmatch(address) is None:
+                raise ValueError("function review addressが16進addressではありません")
         name = _review_text(
             item.get("name"),
             "function review name",
@@ -221,7 +227,10 @@ def _normalize_reviewed_functions(value: Any) -> list[dict[str, str]]:
             maximum_bytes=MAX_REVIEW_EVIDENCE_BYTES,
             reject_raw_decompilation=True,
         )
-        key = (address.casefold().removeprefix("0x"), name.casefold())
+        key = (
+            address.casefold().removeprefix("0x") if address is not None else "address_not_published",
+            name.casefold(),
+        )
         if key in seen:
             raise ValueError("function review関数が重複しています")
         seen.add(key)
@@ -873,6 +882,12 @@ def _build_summary_materialized(
         source = labels.get(digest) or aliases.get(digest, {})
         review = reviews.get(digest, {})
         reviewed_functions = list(review.get("functions") or [])
+        source_static_logic_status = static_logic.get("status")
+        effective_function_analysis_status = (
+            "reviewed_function_logic"
+            if reviewed_functions
+            else source_static_logic_status
+        )
         (
             software_identity,
             component_role,
@@ -913,13 +928,15 @@ def _build_summary_materialized(
             "campaign_abuse_context": campaign_abuse_context,
             "maliciousness": maliciousness,
             "analysis_coverage": triage.get("analysis_coverage"),
-            "static_logic_status": static_logic.get("status"),
+            "static_logic_status": source_static_logic_status,
+            "effective_function_analysis_status": effective_function_analysis_status,
             "function_count": max(static_logic.get("coverage", {}).get("function_count", 0), len(reviewed_functions)),
             "call_edge_count": static_logic.get("coverage", {}).get("call_edge_count", 0),
             "function_bodies_reviewed": bool(reviewed_functions) or static_logic.get("coverage", {}).get("function_bodies_reviewed", False),
             "reviewed_functions": reviewed_functions,
             "function_review_source": review.get("source"),
             "limitations": static_logic.get("limitations", []),
+            "limitations_provenance": "source_static_logic",
             "sample_executed": False,
             "network_contacted_by_sample": False,
         }
@@ -968,8 +985,8 @@ def _build_summary_materialized(
             "macho": format_counts["macho"],
             "script": format_counts["script"],
             "function_analysis_complete": sum(bool(item["function_bodies_reviewed"]) for item in samples),
-            "script_structure_recorded": sum(item["static_logic_status"] == "automated_script_structure" for item in samples),
-            "function_analysis_required": sum(item["static_logic_status"] == "function_analysis_required" and not item["function_bodies_reviewed"] for item in samples),
+            "script_structure_recorded": sum(item["effective_function_analysis_status"] == "automated_script_structure" for item in samples),
+            "function_analysis_required": sum(item["effective_function_analysis_status"] == "function_analysis_required" for item in samples),
         },
         "samples": samples,
         "clusters": cluster_rows,
@@ -1115,15 +1132,16 @@ def render_markdown(summary: dict[str, Any]) -> str:
             "関数本体レビューが未完了の検体では、importや文字列だけから挙動成立を断定しない。"
         ), "",
         "## 検体一覧", "",
-        "| SHA-256 | OSINTラベル | 形式 | アーキテクチャ | サイズ | entropy | 静的ロジック状態 |",
-        "|---|---|---|---|---:|---:|---|",
+        "| SHA-256 | OSINTラベル | 形式 | アーキテクチャ | サイズ | entropy | 基礎静的ロジック状態 | 実効関数レビュー状態 |",
+        "|---|---|---|---|---:|---:|---|---|",
     ]
     for item in summary["samples"]:
         arch = item["architecture"]
         arch_text = "/".join(str(value) for value in (arch.get("machine"), arch.get("bits"), arch.get("byte_order")) if value is not None) or "-"
         lines.append(
             f"| `{item['sha256']}` | {item['reported_malware']} | `{item['file_type']}` | "
-            f"`{arch_text}` | {item['size']} | {item['entropy']} | `{item['static_logic_status']}` |"
+            f"`{arch_text}` | {item['size']} | {item['entropy']} | `{item['static_logic_status']}` | "
+            f"`{item['effective_function_analysis_status']}` |"
         )
     lines.extend([
         "", "## ソフトウェア識別・役割・悪用文脈・悪性の分離", "",
@@ -1162,6 +1180,29 @@ def render_markdown(summary: dict[str, Any]) -> str:
     for cluster in summary["clusters"]:
         labels = "、".join(f"{name}: {count}" for name, count in cluster["reported_malware"].items())
         lines.append(f"| `{cluster['cluster_key']}` | {cluster['member_count']} | {labels} | {cluster['assessment']} |")
+    commitment = summary.get("input_commitment")
+    followup_reference = (
+        commitment.get("public_followup_reference")
+        if isinstance(commitment, Mapping)
+        else None
+    )
+    if followup_reference is not None:
+        if (
+            not isinstance(followup_reference, str)
+            or PUBLIC_FOLLOWUP_REFERENCE_RE.fullmatch(followup_reference) is None
+        ):
+            raise ValueError("公開follow-up参照が許可済み相対pathではありません")
+        lines.extend(
+            [
+                "",
+                "## 追加公開静的解析",
+                "",
+                (
+                    "- [検証済みの追加静的解析]"
+                    f"({followup_reference})に、親MSIとの関係、process挙動、永続化、設定、通信処理の詳細を記録した。"
+                ),
+            ]
+        )
     reviewed_samples = [item for item in summary["samples"] if item.get("reviewed_functions")]
     if reviewed_samples:
         lines.extend(["", "## 特徴関数レビュー", ""])
@@ -1185,6 +1226,7 @@ def render_markdown(summary: dict[str, Any]) -> str:
     lines.extend([
         "", "## 制約", "",
         "- 関数本体レビュー未完了のバイナリは、追加の逆コンパイルとコールグラフ整理が必要。",
+        "- 各検体のlimitationsは基礎静的解析出力時点の制約であり、review supplementにより補完された実効関数レビュー状態とは分けて保持する。",
         "- プロバイダのファミリ名は帰属の補助情報であり、独自に復元した設定・通信・コード類似性と分けて扱う。",
         "- Authenticodeの静的検証成功は署名対象の完全性を示すが、配置の正当性やオンライン失効確認を自動的には保証しない。",
         "- 検体の通信は発生させていない。公開結果には検体本体と逆コンパイル全文を含めない。", "",

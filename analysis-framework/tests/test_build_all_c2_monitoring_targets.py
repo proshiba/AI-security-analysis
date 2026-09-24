@@ -313,6 +313,93 @@ def _daily_c2_item(value: str, *, ioc_type: str = "domain") -> dict:
     }
 
 
+def test_daily_reviewed_endpoints_preserve_ports_and_exclusions(tmp_path: Path) -> None:
+    results = tmp_path / "analysis-results"
+    source_date = "2026-09-22"
+    items = []
+    for host, port in (
+        ("kerosand.net", 3847),
+        ("shift-api-control.com", 3847),
+        ("moweros.net", 3851),
+        ("bedotiq.net", 3854),
+        ("giperon.net", 3847),
+    ):
+        item = _daily_c2_item(host)
+        item["c2_monitoring_review"] = {
+            "disposition": "monitor",
+            "port": port,
+            "wire": "tcp",
+            "basis": "source_manifest_and_description_bound_review",
+        }
+        items.append(item)
+    items.extend(
+        [
+            _daily_c2_item("fightwa.biz"),
+            _daily_c2_item("http://fightwa.biz:5902", ioc_type="url"),
+            _daily_c2_item("85.137.56.245", ioc_type="ip"),
+        ]
+    )
+    for host, reason in (
+        ("176.65.144.127", "related_hosting_not_direct_c2"),
+        ("176.65.144.40", "related_hosting_not_direct_c2"),
+        ("85.137.56.10", "payload_staging_not_direct_c2"),
+    ):
+        item = _daily_c2_item(host, ioc_type="ip")
+        item["c2_monitoring_review"] = {
+            "disposition": "exclude",
+            "reason": reason,
+            "suppression_scope": "endpoint",
+            "basis": "source_manifest_bound_review",
+        }
+        items.append(item)
+    rpc = _daily_c2_item("https://ethereum-rpc.publicnode.com", ioc_type="url")
+    rpc["c2_monitoring_review"] = {
+        "disposition": "exclude",
+        "reason": "shared_public_rpc_not_direct_c2",
+        "suppression_scope": "host",
+        "basis": "source_manifest_bound_review",
+    }
+    items.append(rpc)
+    _write_daily_summary(results, source_date, items)
+
+    plan, _inventory = build_inventory(
+        results,
+        generated_date=source_date,
+        daily_source_date=source_date,
+    )
+    endpoints = {
+        (item["host"], item["port"], item["protocol"])
+        for item in plan["targets"]
+        if item.get("daily_source_dates") == [source_date]
+    }
+    assert endpoints == {
+        ("bedotiq.net", 3854, "tcp"),
+        ("fightwa.biz", 5902, "tcp"),
+        ("giperon.net", 3847, "tcp"),
+        ("kerosand.net", 3847, "tcp"),
+        ("moweros.net", 3851, "tcp"),
+        ("shift-api-control.com", 3847, "tcp"),
+        ("85.137.56.245", 0, "dns"),
+    }
+    assert not endpoints & {
+        ("176.65.144.127", 0, "dns"),
+        ("176.65.144.40", 0, "dns"),
+        ("85.137.56.10", 0, "dns"),
+        ("ethereum-rpc.publicnode.com", 443, "tcp"),
+    }
+    assert len(plan["carry_forward_exclusions"]) == 7
+    assert {
+        item["host"]
+        for item in plan["carry_forward_exclusions"]
+        if item["scope"] == "host"
+    } == {
+        "ethereum-rpc.publicnode.com",
+        "polygon-bor.publicnode.com",
+        "telegra.ph",
+        "webhook.site",
+    }
+
+
 def test_only_explicit_daily_summary_is_added_to_historical_monitoring(tmp_path: Path) -> None:
     results = tmp_path / "analysis-results"
     historical_date = "2026-07-29"
@@ -376,7 +463,7 @@ def test_explicit_daily_source_records_onion_as_policy_excluded(tmp_path: Path) 
     handoff = plan["daily_source_handoffs"][0]
     assert handoff["source_target_count"] == 2
     assert handoff["effective_target_count"] == 1
-    assert handoff["policy_excluded_onion_hosts"] == ["hiddenserviceexample.onion"]
+    assert handoff["policy_excluded_endpoints"] == ["hiddenserviceexample.onion|0|dns"]
     assert inventory["exclusion_reason_counts"]["onion_excluded_by_policy"] == 1
     assert not any(item["host"].endswith(".onion") for item in plan["targets"])
 
@@ -479,7 +566,14 @@ def test_shared_services_are_excluded_but_per_tenant_hostnames_are_kept(tmp_path
 
     # 何を外したかが成果物から追えること
     assert inventory["policy"]["shared_service_tenant_in_path_excluded"] == [
+        "ethereum-rpc.publicnode.com",
+        "polygon-bor.publicnode.com",
         "telegra.ph",
         "webhook.site",
     ]
+    assert {
+        item["host"]
+        for item in plan["carry_forward_exclusions"]
+        if item["scope"] == "host"
+    } == set(inventory["policy"]["shared_service_tenant_in_path_excluded"])
     assert inventory["exclusion_reason_counts"]["shared_service_tenant_in_path_excluded"] == 2

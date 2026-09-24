@@ -4,6 +4,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
@@ -261,6 +263,56 @@ def test_onion_is_not_carried_forward_when_policy_excludes_it() -> None:
 
     assert carried == 0
     assert [item["host"] for item in merged["targets"]] == ["new.example"]
+
+
+def test_reviewed_carry_forward_exclusions_block_host_and_exact_endpoint() -> None:
+    current_plan = {
+        "schema_version": 1,
+        "carry_forward_exclusions": [
+            {
+                "scope": "endpoint",
+                "host": "85.137.56.10",
+                "port": 0,
+                "wire": "dns",
+                "reason": "payload_staging_not_direct_c2",
+            },
+            {
+                "scope": "host",
+                "host": "ethereum-rpc.publicnode.com",
+                "port": 443,
+                "wire": "tcp",
+                "reason": "shared_public_rpc_not_direct_c2",
+            },
+        ],
+        "targets": [target("new.example")],
+    }
+    staging_dns = target("85.137.56.10")
+    staging_dns.update({"port": 0, "protocol": "dns", "method": "dns_resolve"})
+    staging_tcp = target("85.137.56.10")
+    rpc = target("ethereum-rpc.publicnode.com")
+    previous_plan = {"targets": [staging_dns, staging_tcp, rpc, target("keep.example")]}
+
+    merged, carried = history.carry_forward_active_targets(current_plan, previous_plan)
+
+    assert carried == 2
+    assert {(item["host"], item["port"]) for item in merged["targets"]} == {
+        ("new.example", 443),
+        ("85.137.56.10", 443),
+        ("keep.example", 443),
+    }
+
+
+def test_carry_forward_exclusions_require_canonical_unique_order() -> None:
+    exclusion = {
+        "scope": "host",
+        "host": "ethereum-rpc.publicnode.com",
+        "port": 443,
+        "wire": "tcp",
+        "reason": "shared_public_rpc_not_direct_c2",
+    }
+    plan = {"targets": [], "carry_forward_exclusions": [exclusion, exclusion]}
+    with pytest.raises(ValueError, match="canonical順かつ一意"):
+        history.carry_forward_active_targets(plan, {"targets": []})
 
 
 def rat_activity(*, command_count: int, confirmed: bool) -> dict:
