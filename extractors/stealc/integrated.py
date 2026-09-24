@@ -79,7 +79,24 @@ def extract(data: bytes, source_name: str = "sample.bin") -> dict:
     if not config.get("static_config_recovered"):
         endpoint = extract_v2_static_endpoint(data)
         if endpoint is not None:
-            config["endpoint_profile"] = endpoint.public_dict()
+            # handler sandboxの静的監査は任意object methodを許可しない。
+            # 公開する証拠を明示し、鍵と復号済み全文字列は渡さない。
+            config["endpoint_profile"] = {
+                "generation_candidate": "StealC-v2-or-later",
+                "completeness": "endpoint_base_only",
+                "method": "contiguous_base64_standard_rc4",
+                "c2_base_url": endpoint.base_url,
+                "gate_path": None,
+                "traffic_key_recovered": False,
+                "string_key_sha256": endpoint.key_sha256,
+                "key_file_offset": endpoint.key_offset,
+                "table_count": endpoint.table_count,
+                "decoded_count": endpoint.decoded_count,
+                "protocol_markers": list(endpoint.protocol_markers),
+                "collection_markers": list(endpoint.collection_markers),
+                "executed": False,
+                "network_contacted": False,
+            }
             config["static_endpoint_recovered"] = True
             result["limitations"] = [
                 value

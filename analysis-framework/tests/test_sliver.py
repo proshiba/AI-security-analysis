@@ -60,6 +60,58 @@ def _sample(
     return bytes(data)
 
 
+def _sample_with_code_bound_mtls() -> bytes:
+    """実行不要の合成Go PEにpointer・length一致のmTLS文字列を埋める。"""
+    data = bytearray(0x800)
+    data[:2] = b"MZ"
+    struct.pack_into("<I", data, 0x3C, 0x80)
+    data[0x80:0x84] = b"PE\0\0"
+    struct.pack_into("<H", data, 0x84, 0x8664)
+    struct.pack_into("<H", data, 0x86, 2)
+    struct.pack_into("<H", data, 0x94, 0xF0)
+    struct.pack_into("<H", data, 0x98, 0x20B)
+    struct.pack_into("<Q", data, 0xB0, 0x140000000)
+    section = 0x188
+    data[section : section + 8] = b".text\0\0\0"
+    struct.pack_into("<IIII", data, section + 8, 0x200, 0x1000, 0x200, 0x200)
+    section += 40
+    data[section : section + 8] = b".rdata\0\0"
+    struct.pack_into("<IIII", data, section + 8, 0x200, 0x2000, 0x200, 0x400)
+    url = b"mtls://example.invalid:8888"
+    data[0x420 : 0x420 + len(url)] = url
+    data[0x420 + len(url) : 0x420 + len(url) + 4] = b"BUG:"
+    displacement = 0x2020 - (0x1000 + 7)
+    data[0x200:0x20D] = (
+        b"\x48\x8d\x05"
+        + struct.pack("<i", displacement)
+        + b"\xbb"
+        + struct.pack("<I", len(url))
+        + b"\xc3"
+    )
+    data.extend(_sample()[0x200:])
+    return bytes(data)
+
+
+def test_code_bound_mtls_literal_recovers_exact_go_string_length() -> None:
+    result = EXTRACT.extract_config(_sample_with_code_bound_mtls())
+    assert result["config"]["static_config_recovered"] is False
+    assert result["c2"] == []
+    assert result["config"]["endpoint_candidates"] == ["mtls://example.invalid:8888"]
+    literal = result["embedded_endpoint_literals"][0]
+    assert literal["url"] == "mtls://example.invalid:8888"
+    assert literal["length"] == len("mtls://example.invalid:8888")
+    assert literal["classification"] == "code_bound_literal_not_complete_config"
+
+
+def test_mtls_literal_rejects_wrong_length_and_unbound_string() -> None:
+    wrong_length = bytearray(_sample_with_code_bound_mtls())
+    struct.pack_into("<I", wrong_length, 0x208, 31)
+    assert "embedded_endpoint_literals" not in EXTRACT.extract_config(bytes(wrong_length))
+    no_reference = bytearray(_sample_with_code_bound_mtls())
+    no_reference[0x200] = 0x90
+    assert "embedded_endpoint_literals" not in EXTRACT.extract_config(bytes(no_reference))
+
+
 def test_detector_requires_all_independent_clusters_and_go_pe_structure() -> None:
     result = DETECT.detect(_sample())
     assert result["matched"] is True
