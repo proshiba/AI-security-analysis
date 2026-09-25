@@ -69,3 +69,44 @@ def test_rejects_traversal_and_bad_lengths() -> None:
     malformed = bytearray(fixture_asar())
     malformed[4:8] = struct.pack("<I", 1)
     assert not is_asar(bytes(malformed))
+
+
+def test_application_script_not_hidden_behind_dependency_member_limit() -> None:
+    """大量のnode_modulesより後に並ぶアプリ本体を先に抽出する。"""
+    application = b"console.log('application')"
+    empty_hash = hashlib.sha256(b"").hexdigest()
+    dependencies = {
+        f"module-{index:04d}.js": {
+            "size": 0,
+            "offset": "0",
+            "integrity": {"hash": empty_hash},
+        }
+        for index in range(4096)
+    }
+    header = {
+        "files": {
+            "node_modules": {"files": dependencies},
+            "src": {
+                "files": {
+                    "main.js": {
+                        "size": len(application),
+                        "offset": "0",
+                        "integrity": {
+                            "hash": hashlib.sha256(application).hexdigest()
+                        },
+                    }
+                }
+            },
+        }
+    }
+    raw = json.dumps(header, separators=(",", ":")).encode()
+    data = (
+        struct.pack("<IIII", 4, len(raw) + 8, len(raw) + 4, len(raw))
+        + raw
+        + application
+    )
+    report, artifacts = recover_asar(data)
+    assert report["application_member_count"] == 1
+    assert report["member_count"] == 4096
+    assert ("asar-script", application) in artifacts
+    assert report["inventory"][0]["name"] == "src/main.js"

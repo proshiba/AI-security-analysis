@@ -19,6 +19,65 @@ import triage_artifact_retrieval as retrieval  # noqa: E402
 SHA256 = "a" * 64
 
 
+def test_select_reported_candidates_restricts_to_discovered_exact_hash_rows() -> None:
+    candidates = [
+        {"reference_sha256": "b" * 64, "endpoint_path": "/first"},
+        {"reference_sha256": "c" * 64, "endpoint_path": "/second"},
+    ]
+    assert retrieval.select_reported_candidates(candidates, ["c" * 64]) == [
+        candidates[1]
+    ]
+    with pytest.raises(ValueError, match="一意"):
+        retrieval.select_reported_candidates(candidates, ["d" * 64])
+    with pytest.raises(ValueError, match="重複"):
+        retrieval.select_reported_candidates(candidates, ["c" * 64, "c" * 64])
+
+
+def test_select_reported_candidates_rejects_ambiguous_report_reference() -> None:
+    candidates = [
+        {"reference_sha256": "b" * 64, "endpoint_path": "/first"},
+        {"reference_sha256": "b" * 64, "endpoint_path": "/second"},
+    ]
+    with pytest.raises(ValueError, match="一意"):
+        retrieval.select_reported_candidates(candidates, ["b" * 64])
+
+
+def test_report_discovery_budget_is_independent_of_download_budget(tmp_path: Path) -> None:
+    args = retrieval.build_parser().parse_args(
+        ["--hash", SHA256, "--output-root", str(tmp_path), "--max-total-bytes", "1024"]
+    )
+    assert args.max_total_bytes == 1024
+    assert args.report_memory_max_total_bytes == retrieval.DEFAULT_MAX_TOTAL_BYTES
+
+
+def test_main_uses_separate_report_discovery_budget(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    observed: dict[str, object] = {}
+
+    def discover(*args: object, **kwargs: object) -> tuple[list[dict], list[dict]]:
+        observed.update(kwargs)
+        return [], []
+
+    monkeypatch.setenv("TRIAGE_API_KEY", "test-key")
+    monkeypatch.setattr(retrieval, "discover_candidates", discover)
+    output = tmp_path / "triage"
+    assert retrieval.main(
+        [
+            "--allow-network",
+            "--hash",
+            SHA256,
+            "--output-root",
+            str(output),
+            "--max-total-bytes",
+            "1024",
+        ]
+    ) == 0
+    manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+    assert observed["report_memory_max_total_bytes"] == retrieval.DEFAULT_MAX_TOTAL_BYTES
+    assert manifest["report_memory_limits"]["max_total_bytes"] == retrieval.DEFAULT_MAX_TOTAL_BYTES
+
+
 def overview() -> dict:
     return {
         "sample": {"sha256": SHA256},

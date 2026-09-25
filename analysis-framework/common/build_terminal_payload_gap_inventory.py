@@ -74,7 +74,7 @@ _SIGNATURE_CANDIDATES = {
     "njrat": ["njRAT"],
     "prometei": ["Prometei"],
     "purehvnc": ["PureHVNC", "PureRAT"],
-    "purelogs": ["PureLogs"],
+    "purelogs": ["PureLogsStealer"],
     "quasarrat": ["QuasarRAT"],
     "redlinestealer": ["RedLineStealer"],
     "remcosrat": ["RemcosRAT"],

@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
-from datetime import datetime
+from datetime import UTC, datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +15,7 @@ from typing import Any
 def _read_manifest(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
-        raise ValueError(f"manifest must be an object: {path}")
+        raise TypeError(f"manifest must be an object: {path}")
     return value
 
 
@@ -24,10 +26,23 @@ def _digest(value: object) -> str:
     return digest
 
 
+@lru_cache(maxsize=1)
+def _batch_contract() -> Any:
+    """取得器の選定commitmentとatomic保存契約をそのまま再利用する。"""
+
+    path = Path(__file__).with_name("malwarebazaar_batch.py")
+    spec = importlib.util.spec_from_file_location("malwarebazaar_batch_priority_contract", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("MalwareBazaar取得器の契約を読めません")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def _timestamp(row: dict[str, Any]) -> datetime:
     raw = str(row.get("first_seen") or "")
     try:
-        return datetime.strptime(raw, "%Y-%m-%d %H:%M:%S")
+        return datetime.strptime(raw, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
     except ValueError as exc:
         raise ValueError(f"invalid first_seen: {raw!r}") from exc
 
@@ -42,30 +57,49 @@ def build_priority_plan(
     metadata = [dict(row) for row in base.get("selected_metadata") or [] if isinstance(row, dict)]
     if requested < 1 or len(hashes) != requested or len(metadata) != requested:
         raise ValueError("base manifest does not contain the requested frozen selection")
+    if base.get("selection_only") is False or base.get("downloaded") not in (None, 0) or base.get("items"):
+        raise ValueError("base selection has already started downloading")
+    if (base.get("selection_provenance") or {}).get("terminal_payload_priority"):
+        raise ValueError("base selection has already been priority merged")
+    stored_commitment = base.get("selection_commitment_sha256")
+    if stored_commitment is not None and stored_commitment != _batch_contract()._windows_selection_commitment(base):
+        raise ValueError("base selection commitment is invalid")
     metadata_by_hash = {_digest(row.get("sha256_hash")): row for row in metadata}
     if set(metadata_by_hash) != set(hashes):
         raise ValueError("base selected_hashes and selected_metadata do not match")
 
     additions: list[dict[str, Any]] = []
     already_selected: list[dict[str, str]] = []
+    skipped_non_windows_pe: list[dict[str, str]] = []
     seen_priority: set[str] = set()
     for family, manifest in priority_manifests:
         selected = manifest.get("selected_hashes") or []
         rows = manifest.get("selected_metadata") or []
-        if manifest.get("selection_mode") != "signature_newest" or len(selected) != 1 or len(rows) != 1:
-            raise ValueError(f"priority manifest must contain one frozen signature candidate: {family}")
-        digest = _digest(selected[0])
-        row = dict(rows[0])
-        if _digest(row.get("sha256_hash")) != digest:
-            raise ValueError(f"priority metadata mismatch: {family}")
-        if digest in seen_priority:
-            raise ValueError(f"duplicate priority SHA-256: {digest}")
-        seen_priority.add(digest)
-        if digest in metadata_by_hash:
-            already_selected.append({"family": family, "sha256": digest})
-            continue
-        row["terminal_payload_priority_family"] = family.lower()
-        additions.append(row)
+        if (
+            manifest.get("selection_mode") != "signature_newest"
+            or not selected
+            or len(selected) != len(rows)
+            or len(selected) > requested
+        ):
+            raise ValueError(f"priority manifest must contain bounded frozen signature candidates: {family}")
+        for selected_hash, source_row in zip(selected, rows):
+            if not isinstance(source_row, dict):
+                raise TypeError(f"priority metadata is not an object: {family}")
+            digest = _digest(selected_hash)
+            row = dict(source_row)
+            if _digest(row.get("sha256_hash")) != digest:
+                raise ValueError(f"priority metadata mismatch: {family}")
+            if row.get("file_type") not in {"exe", "dll"} or row.get("file_format") not in (None, "PE"):
+                skipped_non_windows_pe.append({"family": family, "sha256": digest})
+                continue
+            if digest in seen_priority:
+                raise ValueError(f"duplicate priority SHA-256: {digest}")
+            seen_priority.add(digest)
+            if digest in metadata_by_hash:
+                already_selected.append({"family": family, "sha256": digest})
+                continue
+            row["terminal_payload_priority_family"] = family.lower()
+            additions.append(row)
 
     removable = sorted(
         (row for row in metadata if _digest(row.get("sha256_hash")) not in seen_priority),
@@ -85,8 +119,9 @@ def build_priority_plan(
     updated["selected_metadata"] = combined
     provenance = dict(updated.get("selection_provenance") or {})
     provenance["terminal_payload_priority"] = {
-        "policy": "P0 family latest unanalysed candidate replaces oldest general candidate",
+        "policy": "指定ファミリーの最新未解析Windows PE候補で一般選定の最古候補を置換",
         "already_selected": already_selected,
+        "skipped_non_windows_pe": skipped_non_windows_pe,
         "added": [
             {
                 "family": str(row["terminal_payload_priority_family"]),
@@ -107,9 +142,12 @@ def build_priority_plan(
     updated["complete"] = False
     updated["retry_queue"] = []
     updated["items"] = []
+    updated["selection_commitment_sha256"] = _batch_contract()._windows_selection_commitment(updated)
     plan = {
         "requested": requested,
-        "priority_candidate_count": len(priority_manifests),
+        "priority_family_count": len(priority_manifests),
+        "priority_candidate_count": len(seen_priority),
+        "skipped_non_windows_pe_count": len(skipped_non_windows_pe),
         "already_selected_count": len(already_selected),
         "added_count": len(additions),
         "replaced_count": len(removed),
@@ -132,14 +170,21 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     families = args.family or sorted(path.name for path in args.priority_root.iterdir() if path.is_dir())
-    priorities = [
-        (family, _read_manifest(args.priority_root / family / "manifest.json")) for family in families
-    ]
+    priorities = []
+    for family in families:
+        family_root = args.priority_root / family
+        manifest_path = family_root / "manifest.json"
+        if not manifest_path.is_file():
+            nested = sorted(family_root.glob("*/manifest.json"))
+            if len(nested) != 1:
+                raise ValueError(f"priority manifest must be unique: {family}")
+            manifest_path = nested[0]
+        priorities.append((family, _read_manifest(manifest_path)))
     updated, plan = build_priority_plan(_read_manifest(args.base_manifest), priorities)
     if args.write:
-        args.base_manifest.write_text(
-            json.dumps(updated, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
+        batch = _batch_contract()
+        batch._write_json_atomic(args.base_manifest, updated)
+        batch.write_verification_family_hints(args.base_manifest)
     print(json.dumps({**plan, "write_performed": args.write}, ensure_ascii=False, indent=2))
     return 0
 

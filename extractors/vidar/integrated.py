@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from .extractor import extract as _extract_base
-from .semantic import classify_recovered_config
+from extractors.vidar.extractor import extract as _extract_base
+from extractors.vidar.semantic import classify_recovered_config
 
 
 def extract(data: bytes, name: str = "sample") -> dict:

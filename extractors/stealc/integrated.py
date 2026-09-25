@@ -7,6 +7,7 @@ import urllib.parse
 from extractors.stealc.extractor import extract as extract_v1
 from extractors.stealc.structural import classify_module_role, protocol_guidance
 from extractors.stealc.v2_memory import extract_v2_memory_profile
+from extractors.stealc.v2_static_endpoint import extract_v2_static_endpoint
 
 
 def _v2_profile(data: bytes) -> dict | None:
@@ -73,6 +74,53 @@ def extract(data: bytes, source_name: str = "sample.bin") -> dict:
             ]
             result["limitations"].append(
                 "StealC v2の設定は取得済みメモリから静的復元しました。能動通信は実施していません。"
+            )
+
+    if not config.get("static_config_recovered"):
+        endpoint = extract_v2_static_endpoint(data)
+        if endpoint is not None:
+            # handler sandboxの静的監査は任意object methodを許可しない。
+            # 公開する証拠を明示し、鍵と復号済み全文字列は渡さない。
+            config["endpoint_profile"] = {
+                "generation_candidate": "StealC-v2-or-later",
+                "completeness": "endpoint_base_only",
+                "method": "contiguous_base64_standard_rc4",
+                "c2_base_url": endpoint.base_url,
+                "gate_path": None,
+                "traffic_key_recovered": False,
+                "string_key_sha256": endpoint.key_sha256,
+                "key_file_offset": endpoint.key_offset,
+                "table_count": endpoint.table_count,
+                "decoded_count": endpoint.decoded_count,
+                "protocol_markers": list(endpoint.protocol_markers),
+                "collection_markers": list(endpoint.collection_markers),
+                "executed": False,
+                "network_contacted": False,
+            }
+            config["static_endpoint_recovered"] = True
+            result["limitations"] = [
+                value
+                for value in result["limitations"]
+                if not value.startswith("No supported plaintext profile was recovered")
+            ]
+            result["findings"].extend(
+                [
+                    {
+                        "kind": "url",
+                        "value": endpoint.base_url,
+                        "role": "stealc_c2_base_url",
+                        "confidence": "confirmed_static_endpoint_base_only",
+                    },
+                    {
+                        "kind": "domain_or_ip",
+                        "value": _c2_host(endpoint.base_url),
+                        "role": "stealc_c2_host",
+                        "confidence": "confirmed_static_endpoint_base_only",
+                    },
+                ]
+            )
+            result["limitations"].append(
+                "RC4文字列表からC2ベースURLを復元しました。gate path・通信鍵・build IDは未確認で、完全な設定復元ではありません。"
             )
 
     structural_profile = classify_module_role(data)

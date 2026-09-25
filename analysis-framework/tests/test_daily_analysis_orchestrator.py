@@ -171,6 +171,7 @@ def trusted_tool_configuration(
                         "size": sevenzip.stat().st_size,
                         "sha256": hashlib.sha256(sevenzip.read_bytes()).hexdigest(),
                     },
+                    "innounp": None,
                 },
             },
             ensure_ascii=False,

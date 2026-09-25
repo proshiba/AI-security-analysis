@@ -123,7 +123,7 @@ options = request['options']
 trusted_tools = request['trusted_tools']
 if (
     not isinstance(trusted_tools, dict)
-    or set(trusted_tools) != {'upx', 'sevenzip', 'diec'}
+    or set(trusted_tools) != {'upx', 'sevenzip', 'innounp', 'diec'}
     or trusted_tools.get('diec') is not None
     or any(
         value is not None
@@ -132,7 +132,11 @@ if (
             or not value
             or not Path(value).is_absolute()
         )
-        for value in (trusted_tools.get('upx'), trusted_tools.get('sevenzip'))
+        for value in (
+            trusted_tools.get('upx'),
+            trusted_tools.get('sevenzip'),
+            trusted_tools.get('innounp'),
+        )
     )
 ):
     raise ValueError('invalid trusted static tool paths')
@@ -140,6 +144,11 @@ upx = Path(trusted_tools['upx']) if trusted_tools['upx'] is not None else None
 sevenzip = (
     Path(trusted_tools['sevenzip'])
     if trusted_tools['sevenzip'] is not None
+    else None
+)
+innounp = (
+    Path(trusted_tools['innounp'])
+    if trusted_tools['innounp'] is not None
     else None
 )
 paths = analyzer.collect_inputs(
@@ -187,6 +196,7 @@ root_contract = analyzer._build_analysis_contract(
     upx=upx,
     sevenzip=sevenzip,
     diec=None,
+    innounp=innounp,
     force_container_probe=options['force_container_probe'] is True,
     max_static_layers=int(options['max_static_layers']),
     retry_max_static_layers=options['retry_max_static_layers'],
@@ -203,6 +213,7 @@ child_contract = analyzer._build_follow_on_analysis_contract(
     upx=upx,
     sevenzip=sevenzip,
     diec=None,
+    innounp=innounp,
     force_container_probe=options['force_container_probe'] is True,
     max_static_layers=int(options['max_static_layers']),
     retry_max_static_layers=options['retry_max_static_layers'],
@@ -228,7 +239,8 @@ JOB_ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$")
 FAMILY_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 TOOL_PROFILE_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-TRUSTED_STATIC_TOOL_IDS = ("upx", "sevenzip")
+TRUSTED_STATIC_TOOL_IDS = ("upx", "sevenzip", "innounp")
+LEGACY_TRUSTED_STATIC_TOOL_IDS = ("upx", "sevenzip")
 MAX_COMPLETED_JOB_ENTRIES = MAX_ANALYSIS_OUTPUT_ENTRIES + (2 * MAX_TREE_ENTRIES) + 4_096
 MAX_COMPLETED_JOB_BYTES = (
     MAX_TOTAL_INPUT_BYTES
@@ -287,6 +299,7 @@ FORBIDDEN_OPTION_KEYS = frozenset(
         "output",
         "upx",
         "sevenzip",
+        "innounp",
         "diec",
         "command",
         "environment",
@@ -669,6 +682,7 @@ class TrustedToolPolicy:
         return {
             "upx": self.tools["upx"].identity() if self.tools["upx"] else None,
             "sevenzip": (self.tools["sevenzip"].identity() if self.tools["sevenzip"] else None),
+            "innounp": (self.tools["innounp"].identity() if self.tools["innounp"] else None),
             "diec": None,
         }
 
@@ -702,11 +716,12 @@ class TrustedToolBundle:
     manifest_document: Mapping[str, Any] = field(repr=False, compare=False)
 
     def identities(self) -> dict[str, dict[str, Any] | None]:
-        """UPX／7zzと、無効を維持するDIECの契約identityを返す。"""
+        """UPX／7zz／innounpと、無効を維持するDIECの契約identityを返す。"""
 
         return {
             "upx": self.tools["upx"].identity() if self.tools["upx"] else None,
             "sevenzip": (self.tools["sevenzip"].identity() if self.tools["sevenzip"] else None),
+            "innounp": (self.tools["innounp"].identity() if self.tools["innounp"] else None),
             "diec": None,
         }
 
@@ -2120,7 +2135,11 @@ def load_trusted_tool_policy(
         or not isinstance(platform_record, dict)
         or set(platform_record) != {"sys_platform", "machine"}
         or not isinstance(raw_tools, dict)
-        or set(raw_tools) != set(TRUSTED_STATIC_TOOL_IDS)
+        or frozenset(raw_tools)
+        not in {
+            frozenset(TRUSTED_STATIC_TOOL_IDS),
+            frozenset(LEGACY_TRUSTED_STATIC_TOOL_IDS),
+        }
     ):
         raise JobContractError(
             "trusted_tool_manifest_invalid",
@@ -2139,12 +2158,16 @@ def load_trusted_tool_policy(
             "trusted tool manifestのOS／architectureが現在hostと一致しません",
         )
 
+    normalized_raw_tools = {
+        tool_id: raw_tools.get(tool_id)
+        for tool_id in TRUSTED_STATIC_TOOL_IDS
+    }
     forbidden = [root.resolve(strict=False) for root in forbidden_roots]
     forbidden.append(REPOSITORY_ROOT.resolve(strict=True))
     sources: dict[str, TrustedToolSource | None] = {}
     seen_paths: set[str] = set()
     for tool_id in TRUSTED_STATIC_TOOL_IDS:
-        raw = raw_tools[tool_id]
+        raw = normalized_raw_tools[tool_id]
         if raw is None:
             sources[tool_id] = None
             continue
@@ -2224,7 +2247,7 @@ def load_trusted_tool_policy(
     if all(source is None for source in sources.values()):
         raise JobContractError(
             "trusted_tool_manifest_empty",
-            "trusted tool manifestではUPXまたは7zzを1件以上有効にしてください",
+            "trusted tool manifestではUPX、7zz、innounpのいずれかを1件以上有効にしてください",
         )
     return TrustedToolPolicy(
         profile_id=profile_id,
@@ -2385,17 +2408,19 @@ def verify_trusted_tool_bundle(bundle: TrustedToolBundle, *, job_dir: Path) -> N
 
 def _trusted_tool_paths(
     bundle: TrustedToolBundle | None,
-) -> tuple[Path | None, Path | None, Path | None]:
-    """analyzerの既存UPX／7-Zip／DIEC引数順へ安全に変換する。"""
+) -> tuple[Path | None, Path | None, Path | None, Path | None]:
+    """analyzerのUPX／7-Zip／DIEC／innounp引数順へ安全に変換する。"""
 
     if bundle is None:
-        return None, None, None
+        return None, None, None, None
     upx = bundle.tools["upx"]
     sevenzip = bundle.tools["sevenzip"]
+    innounp = bundle.tools["innounp"]
     return (
         upx.path if upx is not None else None,
         sevenzip.path if sevenzip is not None else None,
         None,
+        innounp.path if innounp is not None else None,
     )
 
 
@@ -2409,13 +2434,10 @@ def _expected_trusted_tool_identities(
             "upx": None,
             "sevenzip": None,
             "diec": None,
+            "innounp": None,
         }
     else:
         identities = bundle.identities()
-    # innounpは現在operator manifest対象外だが、analyze_sampleの解析契約は
-    # 利用有無を常に明示する。照合側にも未指定を含め、tool追加時に正しい
-    # fail-closed結果をschema差だけで拒否しない。
-    identities["innounp"] = None
     return identities
 
 
@@ -2480,11 +2502,13 @@ def build_analyzer_argv(
         argv.extend(("--family", options["family"]))
     if family_hint_manifest is not None:
         argv.extend(("--family-hint-manifest", str(family_hint_manifest)))
-    upx, sevenzip, diec = _trusted_tool_paths(trusted_tools)
+    upx, sevenzip, diec, innounp = _trusted_tool_paths(trusted_tools)
     if upx is not None:
         argv.extend(("--upx", str(upx)))
     if sevenzip is not None:
         argv.extend(("--sevenzip", str(sevenzip)))
+    if innounp is not None:
+        argv.extend(("--innounp", str(innounp)))
     if diec is not None:  # pragma: no cover - DIECは意図的に無効化している
         raise JobContractError(
             "trusted_tool_configuration_invalid",
@@ -2672,7 +2696,7 @@ def build_expected_analysis_bundle(
 ) -> tuple[dict[str, Any], dict[str, Any], list[ExpectedInputUnit]]:
     """isolated analyzer workerで契約と入力manifestを一度に固定する。"""
 
-    upx, sevenzip, diec = _trusted_tool_paths(trusted_tools)
+    upx, sevenzip, diec, innounp = _trusted_tool_paths(trusted_tools)
     private_request = json.dumps(
         {
             "schema_version": SCHEMA_VERSION,
@@ -2685,6 +2709,7 @@ def build_expected_analysis_bundle(
             "trusted_tools": {
                 "upx": str(upx) if upx is not None else None,
                 "sevenzip": str(sevenzip) if sevenzip is not None else None,
+                "innounp": str(innounp) if innounp is not None else None,
                 "diec": str(diec) if diec is not None else None,
             },
         },
@@ -6586,11 +6611,30 @@ def rehydrate_trusted_tool_bundle(
         return None
     if (
         not isinstance(provenance, dict)
+        or set(provenance)
+        != {
+            "profile_id",
+            "operator_manifest_sha256",
+            "snapshot_manifest_sha256",
+            "tools",
+        }
         or relative != "contract-inputs/trusted-static-tools.json"
         or not isinstance(expected_digest, str)
         or SHA256_RE.fullmatch(expected_digest) is None
     ):
         raise JobContractError("trusted_tool_snapshot_changed", "trusted tool provenance参照が不正です")
+    provenance_tools = provenance.get("tools")
+    current_provenance_ids = {*TRUSTED_STATIC_TOOL_IDS, "diec"}
+    legacy_provenance_ids = {*LEGACY_TRUSTED_STATIC_TOOL_IDS, "diec"}
+    if not isinstance(provenance_tools, dict):
+        raise JobContractError("trusted_tool_snapshot_changed", "trusted tool provenance schemaが不正です")
+    provenance_ids = set(provenance_tools)
+    if provenance_ids == current_provenance_ids:
+        legacy_provenance = False
+    elif provenance_ids == legacy_provenance_ids:
+        legacy_provenance = True
+    else:
+        raise JobContractError("trusted_tool_snapshot_changed", "trusted tool provenance schemaが不正です")
     path = job_dir / "contract-inputs" / "trusted-static-tools.json"
     payload = _read_regular_file_once(path, max_bytes=MAX_TRUSTED_TOOL_MANIFEST_BYTES)
     if not hmac.compare_digest(hashlib.sha256(payload).hexdigest(), expected_digest):
@@ -6622,12 +6666,30 @@ def rehydrate_trusted_tool_bundle(
             "machine": platform.machine().casefold(),
         }
         or not isinstance(tools, dict)
-        or set(tools) != set(TRUSTED_STATIC_TOOL_IDS)
     ):
         raise JobContractError("trusted_tool_snapshot_changed", "trusted tool manifest fieldが不正です")
+    snapshot_ids = set(tools)
+    if snapshot_ids == set(TRUSTED_STATIC_TOOL_IDS):
+        legacy_snapshot = False
+    elif snapshot_ids == set(LEGACY_TRUSTED_STATIC_TOOL_IDS):
+        legacy_snapshot = True
+    else:
+        raise JobContractError("trusted_tool_snapshot_changed", "trusted tool manifest fieldが不正です")
+    if legacy_snapshot is not legacy_provenance:
+        raise JobContractError(
+            "trusted_tool_snapshot_changed",
+            "trusted tool manifestとprovenanceのschema世代が一致しません",
+        )
+    normalized_tools = dict(tools)
+    normalized_provenance = dict(provenance)
+    normalized_provenance_tools = dict(provenance_tools)
+    if legacy_snapshot:
+        normalized_tools["innounp"] = None
+        normalized_provenance_tools["innounp"] = None
+    normalized_provenance["tools"] = normalized_provenance_tools
     snapshots: dict[str, TrustedToolSnapshot | None] = {}
     for tool_id in TRUSTED_STATIC_TOOL_IDS:
-        item = tools[tool_id]
+        item = normalized_tools[tool_id]
         if item is None:
             snapshots[tool_id] = None
             continue
@@ -6671,7 +6733,7 @@ def rehydrate_trusted_tool_bundle(
         manifest_sha256=expected_digest,
         manifest_document=document,
     )
-    if bundle.provenance() != provenance:
+    if bundle.provenance() != normalized_provenance:
         raise JobContractError("trusted_tool_snapshot_changed", "trusted tool provenanceがmanifestと一致しません")
     verify_trusted_tool_bundle(bundle, job_dir=job_dir)
     return bundle
@@ -6966,8 +7028,12 @@ def _revalidate_completed_job_snapshot(
         progress_time = datetime.fromisoformat(str(progress.get("updated_at_utc")))
     except ValueError as exc:
         raise JobContractError("existing_job_result_mismatch", "既存job timestampを比較できません") from exc
+    normalized_result = dict(result)
+    normalized_result["trusted_static_tools"] = (
+        trusted_tools.provenance() if trusted_tools is not None else None
+    )
     if (
-        result != expected_result
+        normalized_result != expected_result
         or artifacts != expected_artifacts
         or progress != expected_progress
         or status != expected_status
@@ -7226,7 +7292,7 @@ def _add_trusted_tool_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--trusted-tools-manifest",
         type=Path,
-        help="operatorが管理する信頼済みUPX／7zz manifestのpath。request JSONからは指定できません。",
+        help="operatorが管理する信頼済みUPX／7zz／innounp manifestのpath。request JSONからは指定できません。",
     )
     parser.add_argument(
         "--trusted-tools-manifest-sha256",
