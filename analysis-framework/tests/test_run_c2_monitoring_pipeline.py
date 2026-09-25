@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+import json
 import sys
 
 import pytest
@@ -13,12 +14,61 @@ if str(COMMON) not in sys.path:
 from run_c2_monitoring_pipeline import (
     effective_target_addition_count,
     enforce_carry_forward_scope_authorization,
+    load_same_day_observations,
     normalize_public_source_fields,
     render_enriched_report,
     restrict_to_reviewed_profiles,
     stale_build_epochs,
 )
 from monitor_recent_c2 import PlanError
+
+
+def test_same_day_resume_reuses_only_unchanged_wire_targets(tmp_path: Path) -> None:
+    window = {"start": "リポジトリ収録開始", "end": "2026-09-25T23:59:59+09:00"}
+    old = {
+        "target_id": "old",
+        "family": "fixture",
+        "host": "old.example",
+        "port": 443,
+        "protocol": "tcp",
+        "transport": "direct",
+        "method": "tcp_connect",
+        "timeout_seconds": 3.0,
+        "maximum_response_bytes": 256,
+        "sources": ["old-source"],
+    }
+    result = {
+        "target_id": "old",
+        "host": "old.example",
+        "port": 443,
+        "protocol": "tcp",
+        "transport": "direct",
+        "method": "tcp_connect",
+        "observation": {"timestamp_utc": "2026-09-25T00:00:00+00:00", "request_count": 0},
+    }
+    (tmp_path / "effective-targets.json").write_text(
+        json.dumps({"analysis_window": window, "targets": [old]}), encoding="utf-8"
+    )
+    (tmp_path / "monitoring-results.json").write_text(
+        json.dumps({
+            "analysis_window": window,
+            "target_count": 1,
+            "policy": {
+                "network_enabled": True,
+                "one_bounded_probe_per_target": True,
+                "network_execution_backend": "nmap_nse_only",
+            },
+            "results": [result],
+        }), encoding="utf-8"
+    )
+    new = {"target_id": "new", "host": "new.example", "port": 0, "protocol": "dns"}
+    plan = {"analysis_window": window, "targets": [{**old, "sources": ["new-source"]}, new]}
+    assert load_same_day_observations(tmp_path, plan) == {"old": result["observation"]}
+    with pytest.raises(ValueError, match="通信仕様"):
+        load_same_day_observations(
+            tmp_path,
+            {**plan, "targets": [{**old, "timeout_seconds": 5.0}, new]},
+        )
 
 
 def test_effective_target_addition_count_uses_network_endpoint_boundary() -> None:

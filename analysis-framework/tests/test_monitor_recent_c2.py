@@ -37,6 +37,29 @@ def plan() -> dict:
     }
 
 
+def test_monitor_reuses_observation_without_a_second_probe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def unexpected_probe(*_args, **_kwargs):
+        raise AssertionError("同日観測済みtargetを再接続してはいけません")
+
+    monkeypatch.setattr(monitor_recent_c2, "probe_target_with_nmap", unexpected_probe)
+    observation = {
+        "timestamp_utc": "2026-08-02T00:00:00+00:00",
+        "status": "closed",
+        "tcp_status": "closed",
+        "request_count": 0,
+        "target_contact_attempted": True,
+    }
+    result = monitor_recent_c2.monitor(
+        plan(),
+        allow_network=True,
+        reused_observations={"fixture-443": observation},
+    )
+    assert result["target_count"] == 1
+    assert result["results"][0]["observation"] == observation
+
+
 def test_monitoring_plan_accepts_512_targets_and_rejects_513() -> None:
     value = plan()
     template = value["targets"][0]

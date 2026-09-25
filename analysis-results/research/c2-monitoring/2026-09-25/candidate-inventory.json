@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at_utc": "2026-09-25T00:17:49.454623+00:00",
+  "generated_at_utc": "2026-09-25T14:12:11.197954+00:00",
   "scope": "analysis-results配下のiocs.json／indicators.json全履歴（malware／clickfix／research）",
   "policy": {
     "onion_excluded": true,
@@ -15,10 +15,10 @@
       "webhook.site"
     ]
   },
-  "scanned_ioc_file_count": 4004,
+  "scanned_ioc_file_count": 4005,
   "scanned_iocs_json_file_count": 3876,
   "scanned_indicators_json_file_count": 128,
-  "scanned_daily_ioc_summary_file_count": 0,
+  "scanned_daily_ioc_summary_file_count": 1,
   "duplicate_evidence_record_count": 16,
   "duplicate_evidence": [
     {
@@ -87,14 +87,14 @@
     }
   ],
   "parse_error_count": 0,
-  "candidate_evidence_record_count": 576,
-  "ordinary_candidate_host_count": 208,
-  "planned_ordinary_host_count": 208,
-  "planned_endpoint_count": 302,
+  "candidate_evidence_record_count": 589,
+  "ordinary_candidate_host_count": 221,
+  "planned_ordinary_host_count": 221,
+  "planned_endpoint_count": 315,
   "reviewed_protocol_target_count": 21,
   "reviewed_profile_only_target_count": 13,
-  "network_service_endpoint_count": 284,
-  "dns_only_target_count": 18,
+  "network_service_endpoint_count": 287,
+  "dns_only_target_count": 28,
   "rejected_protocol_profile_count": 1,
   "rejected_protocol_profiles": [
     {

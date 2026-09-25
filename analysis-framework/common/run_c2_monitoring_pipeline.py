@@ -75,6 +75,109 @@ def effective_target_addition_count(
     return len(effective_keys - requested_keys)
 
 
+_RESUME_METADATA_FIELDS = frozenset({
+    "analyzed_dates",
+    "associated_case_count",
+    "daily_source_dates",
+    "family",
+    "roles",
+    "sample_sha256s",
+    "selection_basis",
+    "sources",
+})
+
+
+def load_same_day_observations(
+    output_directory: Path,
+    plan: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """同日Nmap観測を厳密照合し、再接続してはいけない対象を返す。"""
+
+    previous_plan = json.loads(
+        (output_directory / "effective-targets.json").read_text(encoding="utf-8")
+    )
+    previous_result = json.loads(
+        (output_directory / "monitoring-results.json").read_text(encoding="utf-8")
+    )
+    policy = previous_result.get("policy")
+    if (
+        not isinstance(policy, dict)
+        or policy.get("network_enabled") is not True
+        or policy.get("one_bounded_probe_per_target") is not True
+        or policy.get("network_execution_backend") != "nmap_nse_only"
+        or previous_plan.get("analysis_window") != plan.get("analysis_window")
+        or previous_result.get("analysis_window") != plan.get("analysis_window")
+    ):
+        raise ValueError("同日Nmap観測の安全境界または解析期間が一致しません")
+    old_targets = previous_plan.get("targets")
+    old_results = previous_result.get("results")
+    new_targets = plan.get("targets")
+    if (
+        not isinstance(old_targets, list)
+        or not isinstance(old_results, list)
+        or not isinstance(new_targets, list)
+        or len(old_targets) != len(old_results)
+        or previous_result.get("target_count") != len(old_results)
+    ):
+        raise ValueError("同日観測の計画と結果の件数が一致しません")
+    old_by_key: dict[str, dict[str, Any]] = {}
+    result_by_id: dict[str, dict[str, Any]] = {}
+    new_by_key: dict[str, dict[str, Any]] = {}
+    for items, destination in (
+        (old_targets, old_by_key),
+        (new_targets, new_by_key),
+    ):
+        for item in items:
+            if not isinstance(item, dict):
+                raise ValueError("同日観測にobject以外の対象があります")
+            key = endpoint_key(item)
+            if key in destination:
+                raise ValueError("同日観測に重複endpointがあります")
+            destination[key] = item
+    for item in old_results:
+        if not isinstance(item, dict) or not isinstance(item.get("target_id"), str):
+            raise ValueError("同日観測に不正な結果があります")
+        target_id = item["target_id"]
+        if target_id in result_by_id:
+            raise ValueError("同日観測に重複target_idがあります")
+        result_by_id[target_id] = item
+    if not old_by_key.keys() <= new_by_key.keys():
+        raise ValueError("同日観測のendpoint集合を安全に継承できません")
+    end_value = plan.get("analysis_window", {}).get("end")
+    try:
+        analysis_end = datetime.fromisoformat(end_value)
+        if analysis_end.tzinfo is None:
+            raise ValueError("解析期間のtimezoneがありません")
+    except (TypeError, ValueError) as exc:
+        raise ValueError("同日観測の解析日が不正です") from exc
+    reused: dict[str, dict[str, Any]] = {}
+    for key, old_target in old_by_key.items():
+        new_target = new_by_key[key]
+        old_result = result_by_id.get(str(old_target.get("target_id")), {})
+        old_wire = {k: v for k, v in old_target.items() if k not in _RESUME_METADATA_FIELDS}
+        new_wire = {k: v for k, v in new_target.items() if k not in _RESUME_METADATA_FIELDS}
+        observation = old_result.get("observation")
+        if (
+            old_wire != new_wire
+            or old_result.get("target_id") != old_target.get("target_id")
+            or old_result.get("method") != old_target.get("method")
+            or any(old_result.get(field) != old_target.get(field) for field in ("host", "port", "protocol", "transport"))
+            or not isinstance(observation, dict)
+            or not isinstance(observation.get("timestamp_utc"), str)
+            or type(observation.get("request_count")) is not int
+            or not 0 <= observation["request_count"] <= 3
+        ):
+            raise ValueError(f"同日観測の通信仕様または記録が変化しました: {key}")
+        try:
+            observed_at = datetime.fromisoformat(observation["timestamp_utc"].replace("Z", "+00:00"))
+            if observed_at.tzinfo is None or observed_at.astimezone(analysis_end.tzinfo).date() != analysis_end.date():
+                raise ValueError("観測日が異なります")
+        except ValueError as exc:
+            raise ValueError(f"同日観測の時刻が一致しません: {key}") from exc
+        reused[str(new_target["target_id"])] = observation
+    return reused
+
+
 def enforce_carry_forward_scope_authorization(
     *,
     additional_target_count: int,
@@ -523,6 +626,11 @@ def main() -> int:
     )
     parser.add_argument("--allow-network", action="store_true")
     parser.add_argument(
+        "--resume-existing-observations",
+        action="store_true",
+        help="同日・同一通信仕様の既観測を再利用し、追加endpointだけを観測する",
+    )
+    parser.add_argument(
         "--allow-carry-forward-targets",
         action="store_true",
         help=(
@@ -635,6 +743,13 @@ def main() -> int:
             allow_network=args.allow_network,
             allow_carry_forward_targets=args.allow_carry_forward_targets,
         )
+        if args.resume_existing_observations and not args.allow_network:
+            raise ValueError("同日観測の再開には--allow-networkが必要です")
+        reused_observations = (
+            load_same_day_observations(args.output_directory, plan)
+            if args.resume_existing_observations
+            else {}
+        )
         acquired, freshness = acquire_private_databases(
             args.maxmind_cache_dir,
             refresh=args.refresh_maxmind_databases,
@@ -643,6 +758,7 @@ def main() -> int:
         result = monitor(
             plan,
             allow_network=args.allow_network,
+            reused_observations=reused_observations,
             allow_application_probes=args.allow_reviewed_application_probes,
             allow_authentication=args.allow_authentication,
             allow_malware_registration=args.allow_malware_registration_tasking,
@@ -668,6 +784,8 @@ def main() -> int:
             "schema_version": 1,
             "previous_active_plan_found": previous_active is not None,
             "carried_forward_target_count": carried_forward,
+            "reused_same_day_observation_count": len(reused_observations),
+            "newly_probed_target_count": len(plan["targets"]) - len(reused_observations),
             "carry_forward_targets_authorized_for_invocation": (
                 args.allow_carry_forward_targets
             ),
