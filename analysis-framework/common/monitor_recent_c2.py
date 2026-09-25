@@ -2687,6 +2687,7 @@ def monitor(
     plan: dict,
     *,
     allow_network: bool = False,
+    reused_observations: dict[str, dict] | None = None,
     allow_application_probes: bool = False,
     allow_purerat_legacy_tls: bool = False,
     allow_authentication: bool = False,
@@ -2703,8 +2704,10 @@ def monitor(
     plan = validate_plan(plan, repository_root=repository_root)
     redline_acknowledgements = frozenset(acknowledged_redline_profiles or ())
     results = []
+    reused_observations = reused_observations or {}
     for target in plan["targets"]:
-        raw = probe_target_with_nmap(
+        reused = reused_observations.get(str(target.get("target_id")))
+        raw = reused if reused is not None else probe_target_with_nmap(
             target,
             allow_network=allow_network,
             allow_application_probes=allow_application_probes,
@@ -2717,7 +2720,7 @@ def monitor(
             private_credential_vault=private_credential_vault,
             nmap_executable=nmap_executable,
         )
-        observation = (
+        observation = dict(reused) if reused is not None else (
             _sanitize_purerat_observation(raw)
             if target.get("method") == "purerat_direct_tls_certificate_pin"
             else _sanitize_observation(raw)
