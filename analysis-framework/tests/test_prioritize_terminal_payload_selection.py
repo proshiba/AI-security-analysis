@@ -3,7 +3,6 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-
 MODULE_PATH = Path(__file__).parents[1] / "common" / "prioritize_terminal_payload_selection.py"
 SPEC = importlib.util.spec_from_file_location("prioritize_terminal_payload_selection", MODULE_PATH)
 assert SPEC and SPEC.loader
@@ -103,3 +102,71 @@ def test_priority_merge_rejects_mismatched_metadata() -> None:
         assert "metadata mismatch" in str(exc)
     else:
         raise AssertionError("mismatched priority metadata must be rejected")
+
+
+def test_priority_merge_accepts_multiple_windows_candidates_and_refreshes_commitment() -> None:
+    base_rows = [
+        _row("a", "2026-09-25 05:00:00"),
+        _row("b", "2026-09-25 04:00:00"),
+        _row("c", "2026-09-25 03:00:00"),
+        _row("d", "2026-09-25 02:00:00"),
+        _row("e", "2026-09-25 01:00:00"),
+    ]
+    base = {
+        "selection_mode": "windows_pe_newest",
+        "requested": 5,
+        "selected_hashes": [row["sha256_hash"] for row in base_rows],
+        "selected_metadata": base_rows,
+        "selection_provenance": {"method": "get_file_type"},
+        "selection_only": True,
+        "downloaded": 0,
+        "items": [],
+    }
+    contract = MODULE._batch_contract()
+    base["selection_commitment_sha256"] = contract._windows_selection_commitment(base)
+    valley_rows = [
+        _row("f", "2026-09-24 23:00:00"),
+        _row("1", "2026-09-24 22:00:00"),
+    ]
+    dcrat_rows = [
+        {**_row("2", "2026-09-24 21:00:00"), "file_type": "zip"},
+        _row("3", "2026-09-24 20:00:00"),
+    ]
+    updated, plan = MODULE.build_priority_plan(
+        base,
+        [
+            ("ValleyRAT", {
+                "selection_mode": "signature_newest",
+                "selected_hashes": [row["sha256_hash"] for row in valley_rows],
+                "selected_metadata": valley_rows,
+            }),
+            ("DcRAT", {
+                "selection_mode": "signature_newest",
+                "selected_hashes": [row["sha256_hash"] for row in dcrat_rows],
+                "selected_metadata": dcrat_rows,
+            }),
+        ],
+    )
+
+    assert plan["priority_candidate_count"] == 3
+    assert plan["skipped_non_windows_pe_count"] == 1
+    assert plan["added_count"] == plan["replaced_count"] == 3
+    assert updated["selected_hashes"] == ["a" * 64, "b" * 64, "f" * 64, "1" * 64, "3" * 64]
+    assert updated["selection_commitment_sha256"] == contract._windows_selection_commitment(updated)
+
+
+def test_priority_merge_rejects_invalid_base_commitment() -> None:
+    row = _row("a", "2026-09-25 05:00:00")
+    base = {
+        "selection_mode": "windows_pe_newest",
+        "requested": 1,
+        "selected_hashes": [row["sha256_hash"]],
+        "selected_metadata": [row],
+        "selection_commitment_sha256": "0" * 64,
+    }
+    try:
+        MODULE.build_priority_plan(base, [_priority("ValleyRAT", row)])
+    except ValueError as exc:
+        assert "commitment is invalid" in str(exc)
+    else:
+        raise AssertionError("invalid frozen selection must be rejected")

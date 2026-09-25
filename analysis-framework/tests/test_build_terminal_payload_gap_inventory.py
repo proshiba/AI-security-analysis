@@ -11,7 +11,7 @@ import pytest
 COMMON = Path(__file__).resolve().parents[1] / "common"
 sys.path.insert(0, str(COMMON))
 
-import build_terminal_payload_gap_inventory as gaps  # noqa: E402
+import build_terminal_payload_gap_inventory as gaps
 
 
 def _sha(character: str) -> str:
@@ -36,6 +36,23 @@ def _case_path(root: Path, family: str, sha256: str) -> Path:
         / "cases"
         / sha256
     )
+
+
+def test_purelogs_priority_uses_observed_provider_signature() -> None:
+    rows = gaps._family_rows(
+        [
+            {
+                "family": "purelogs",
+                "priority": "P1",
+                "observation_date": None,
+                "blockers": ["terminal_layer_not_recovered"],
+                "state": "explicit_unrecovered",
+                "sha256": _sha("a"),
+            }
+        ]
+    )
+
+    assert rows[0]["malwarebazaar_signature_candidates"] == ["PureLogsStealer"]
 
 
 def _fixture_repository(root: Path) -> dict[str, str]:

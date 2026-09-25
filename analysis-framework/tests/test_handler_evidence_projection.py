@@ -729,6 +729,73 @@ def _pair(
     return execution, artifact
 
 
+def _stealc_base_pair(url: str = "http://31.56.19.29") -> tuple[dict, dict]:
+    execution, artifact = _pair(
+        family="stealc",
+        handler_name="base_only",
+        layer_sha256=ROOT_SHA256,
+        parent_sha256=None,
+        host="not-confirmed.example.test",
+    )
+    result = artifact["result"]
+    result["family"] = "stealc"
+    result["executed"] = False
+    result["network_contacted"] = False
+    result["c2"] = []
+    result["findings"] = [
+        {
+            "role": "stealc_c2_base_url",
+            "confidence": "confirmed_static_endpoint_base_only",
+            "value": url,
+        }
+    ]
+    result["config"] = {
+        "static_config_recovered": False,
+        "static_endpoint_recovered": True,
+        "protocol_analysis": {
+            "candidate_infrastructure_only": True,
+            "confirmed_c2": [],
+        },
+        "endpoint_profile": {
+            "c2_base_url": url,
+            "completeness": "endpoint_base_only",
+            "method": "contiguous_base64_standard_rc4",
+            "traffic_key_recovered": False,
+            "executed": False,
+            "network_contacted": False,
+        },
+    }
+    return execution, artifact
+
+
+def test_stealc_base_url_is_candidate_only() -> None:
+    pair = _stealc_base_pair()
+    patterns = handler_evidence.candidate_communication_patterns([pair], family="stealc")
+    assert len(patterns) == 1
+    assert patterns[0]["value"] == "http://31.56.19.29"
+    assert patterns[0]["status"] == "candidate_static_handler_output"
+    assert handler_evidence.confirmed_static_handler_iocs([pair], family="stealc") == []
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://user:secret@example.test/",
+        "https://example.test/path?token=secret",
+        "https://example.test:99999/",
+        "http://bad host/",
+    ],
+)
+def test_stealc_base_url_rejects_non_base_or_secret_url(url: str) -> None:
+    assert handler_evidence.candidate_communication_patterns([_stealc_base_pair(url)], family="stealc") == []
+
+
+def test_stealc_base_url_requires_consistent_partial_evidence() -> None:
+    pair = _stealc_base_pair()
+    pair[1]["result"]["config"]["static_config_recovered"] = True
+    assert handler_evidence.candidate_communication_patterns([pair], family="stealc") == []
+
+
 def test_winning_family_does_not_union_conflicting_family_output() -> None:
     """勝者familyへ別familyのendpoint・候補・handler IDを混入させない。"""
 

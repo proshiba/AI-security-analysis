@@ -8,6 +8,7 @@ import re
 from collections.abc import Iterable, Mapping
 from ipaddress import ip_address
 from typing import Any
+from urllib.parse import urlsplit
 
 from analysis_contract import handler_result_quality
 from handler_catalog import sanitize_public_value
@@ -243,22 +244,19 @@ def trusted_handler_result(
         return False
     artifact_layer = artifact.get("selected_layer")
     result = artifact.get("result")
-    if selected_layer is not None:
-        if (
-            not isinstance(artifact_layer, Mapping)
-            or _sha256_identity(artifact_layer.get("sha256")) != selected_layer
-            or not isinstance(result, Mapping)
-            or _sha256_identity(result.get("sample_sha256")) != selected_layer
-        ):
-            return False
+    if selected_layer is not None and (
+        not isinstance(artifact_layer, Mapping)
+        or _sha256_identity(artifact_layer.get("sha256")) != selected_layer
+        or not isinstance(result, Mapping)
+        or _sha256_identity(result.get("sample_sha256")) != selected_layer
+    ):
+        return False
 
     catalog_family = _artifact_handler_family(artifact)
     if catalog_family is None:
         return False
     reported_family = result.get("family") if isinstance(result, Mapping) else None
-    if reported_family is not None and _family_identity(reported_family) != catalog_family:
-        return False
-    return True
+    return reported_family is None or _family_identity(reported_family) == catalog_family
 
 
 def _trusted_results(
@@ -736,6 +734,70 @@ def _candidate_record(value: object, *, source: str, field: str) -> dict[str, An
     return record
 
 
+def _stealc_endpoint_base_candidate(result: Mapping[str, Any], *, source: str) -> dict[str, Any] | None:
+    """StealCの部分復元URLを、完全C2設定へ昇格させず候補として返す。"""
+
+    if result.get("family") != "stealc" or result.get("executed") is not False or result.get("network_contacted") is not False:
+        return None
+    config = result.get("config")
+    if not isinstance(config, Mapping):
+        return None
+    endpoint = config.get("endpoint_profile")
+    protocol = config.get("protocol_analysis")
+    if (
+        not isinstance(endpoint, Mapping)
+        or not isinstance(protocol, Mapping)
+        or config.get("static_endpoint_recovered") is not True
+        or config.get("static_config_recovered") is not False
+        or endpoint.get("completeness") != "endpoint_base_only"
+        or endpoint.get("method") != "contiguous_base64_standard_rc4"
+        or endpoint.get("traffic_key_recovered") is not False
+        or endpoint.get("executed") is not False
+        or endpoint.get("network_contacted") is not False
+        or protocol.get("candidate_infrastructure_only") is not True
+        or protocol.get("confirmed_c2") != []
+    ):
+        return None
+    value = endpoint.get("c2_base_url")
+    if not isinstance(value, str) or not value or len(value) > 2048:
+        return None
+    sanitized = sanitize_public_value(value)
+    if sanitized != value or any(ord(character) < 0x21 for character in value):
+        return None
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError:
+        return None
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path not in {"", "/"}
+        or parsed.query
+        or parsed.fragment
+        or (port is not None and not 1 <= port <= 65535)
+    ):
+        return None
+    host = parsed.hostname.casefold()
+    try:
+        ip_address(host)
+    except ValueError:
+        if len(host) > 253 or any(ROUTE_CONFIG_DOMAIN_LABEL_RE.fullmatch(label) is None for label in host.split(".")):
+            return None
+    findings = result.get("findings")
+    if not isinstance(findings, list) or not any(
+        isinstance(finding, Mapping)
+        and finding.get("role") == "stealc_c2_base_url"
+        and finding.get("confidence") == "confirmed_static_endpoint_base_only"
+        and finding.get("value") == value
+        for finding in findings
+    ):
+        return None
+    return _candidate_record(value, source=source, field="result.config.endpoint_profile.c2_base_url")
+
+
 def candidate_communication_patterns(
     handler_results: Iterable[tuple[Mapping[str, Any], Mapping[str, Any]]],
     *,
@@ -762,6 +824,18 @@ def candidate_communication_patterns(
                 (f"result.config.{field}", config.get(field))
                 for field in CONFIG_NETWORK_FIELDS
             )
+        endpoint_candidate = _stealc_endpoint_base_candidate(result, source=source)
+        if endpoint_candidate is not None:
+            identity = json.dumps(
+                endpoint_candidate,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            unique[identity] = endpoint_candidate
+            if len(unique) >= MAX_CANDIDATE_PATTERNS:
+                return [unique[key] for key in sorted(unique)]
         for field, values in containers:
             if not isinstance(values, list):
                 continue
