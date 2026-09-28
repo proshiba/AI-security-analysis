@@ -1,6 +1,6 @@
 # AIセキュリティ解析
 
-AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む3,967件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
+AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む4,067件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
 
 > **安全上の前提**: このリポジトリには検体本体、抽出した実行可能ファイル、復号バイナリ、PCAP、Ghidra project、資格情報を保存しません。保存対象はレポート、メタデータ、IOC、テキスト化した逆アセンブル、検知ルール候補など公開可能な成果物に限定します。
 
@@ -244,6 +244,23 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 | Linux複数ペイロードBotローダー（暫定） | 3 | 2026-07-19 | `/proc`競合排除、5次段配布、`pdvr`/`lilin`引数、配布先と最終C2の分離 |
 | Electronペイロードローダー（暫定） | 1 | 2026-07-19 | NSIS/Electron難読化、Defender除外、子Go合成ワークロード |
 | Mirai派生ENS/DoH Bot | 3 | 2026-07-19 | PowerPC/MIPS/ARM、ChaCha20設定、TCP C2、DoH/ENS補助解決、Telnet走査 |
+
+### 2026年9月26日・28日の日次追加履歴
+
+この表は今回追加した100ケースだけの内訳です。格納先のファミリー名と静的に確認した帰属を区別し、過去の履歴表の件数には合算していません。全100ケースで終端ペイロードとC2プロトコルの確認は未完了です。
+
+| 整理先・帰属状態 | 件数 | 最終解析日 |
+|---|---:|---|
+| 未分類・内部帰属未解決 | 60 | 2026-09-28 |
+| 未分類・提供元ラベルのみ | 29 | 2026-09-28 |
+| Vidar・内部静的確認 | 5 | 2026-09-26 |
+| Vidar・提供元報告のみ | 1 | 2026-09-28 |
+| RemusStealer・提供元報告のみ | 2 | 2026-09-26 |
+| PureHVNC・内部静的確認 | 1 | 2026-09-26 |
+| AgentTesla・提供元報告のみ | 1 | 2026-09-28 |
+| NanoCore・提供元報告のみ | 1 | 2026-09-28 |
+
+個別の根拠と未解決事項は[9月26日の50件](analysis-results/collections/malwarebazaar-windows-20260926-0050/README.md)と[9月28日の50件](analysis-results/collections/malwarebazaar-windows-20260928-0050/README.md)から参照できます。
 
 ### ValleyRAT 解析履歴
 

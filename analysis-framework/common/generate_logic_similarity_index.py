@@ -252,6 +252,15 @@ def _jaccard(left: set[str], right: set[str]) -> float:
     return len(left & right) / len(union) if union else 0.0
 
 
+def _normalized_dimensions(dimensions: Mapping[str, Any]) -> dict[str, set[str]]:
+    """比較に使う各軸を、profileごとに一度だけ正規化する。"""
+
+    return {
+        name: _string_set(dimensions.get(name))
+        for name in DIMENSION_WEIGHTS
+    }
+
+
 def compare_profiles(
     left: Mapping[str, Any],
     right: Mapping[str, Any],
@@ -264,13 +273,28 @@ def compare_profiles(
         right_dimensions, Mapping
     ):
         return None
+    return _compare_normalized_profiles(
+        left,
+        right,
+        _normalized_dimensions(left_dimensions),
+        _normalized_dimensions(right_dimensions),
+    )
+
+
+def _compare_normalized_profiles(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+    left_dimensions: Mapping[str, set[str]],
+    right_dimensions: Mapping[str, set[str]],
+) -> dict[str, Any] | None:
+    """正規化済みの軸を比較し、従来と同じ根拠・順位を返す。"""
 
     evidence: list[dict[str, Any]] = []
     weighted_score = 0.0
     available_weight = 0.0
     for name, weight in DIMENSION_WEIGHTS.items():
-        left_values = _string_set(left_dimensions.get(name))
-        right_values = _string_set(right_dimensions.get(name))
+        left_values = left_dimensions[name]
+        right_values = right_dimensions[name]
         if not left_values or not right_values:
             continue
         similarity = _jaccard(left_values, right_values)
@@ -397,11 +421,21 @@ def build_index(repository: Path) -> dict[str, Any]:
         if len(profile["available_dimensions"]) >= 2:
             profiles[str(sha256)] = profile
 
+    # 全pairで同じprofileを繰り返し比較するため、各軸の正規化を一度で済ませる。
+    normalized_profiles = {
+        sha256: _normalized_dimensions(profile["dimensions"])
+        for sha256, profile in profiles.items()
+    }
     pair_selector: BoundedPairSelector[dict[str, Any]] = BoundedPairSelector(
         candidate_limit_per_endpoint=MAX_CANDIDATES_PER_CASE
     )
     for left_sha, right_sha in combinations(sorted(profiles), 2):
-        match = compare_profiles(profiles[left_sha], profiles[right_sha])
+        match = _compare_normalized_profiles(
+            profiles[left_sha],
+            profiles[right_sha],
+            normalized_profiles[left_sha],
+            normalized_profiles[right_sha],
+        )
         if match is not None:
             pair_selector.offer(
                 left=left_sha,

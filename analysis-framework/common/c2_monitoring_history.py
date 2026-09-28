@@ -567,6 +567,9 @@ def load_latest_active_plan(
         reverse=True,
     )
     for directory in directories:
+        # targets.jsonだけの未実行日を「直近の観測run」と誤認しない。
+        if not (directory / "monitoring-results.json").is_file():
+            continue
         for filename in ("active-targets.json", "effective-targets.json", "targets.json"):
             candidate = directory / filename
             if candidate.is_file():

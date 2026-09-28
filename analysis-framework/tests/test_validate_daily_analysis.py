@@ -830,3 +830,90 @@ def test_daily_handoff_requires_exact_effective_c2_target(
     assert result["complete"] is False
     codes = {item["code"] for item in result["lanes"][0]["findings"]}
     assert "daily_infrastructure_c2_target_mismatch" in codes
+
+
+def test_daily_handoff_accepts_independently_reviewed_carry_forward_exclusion(
+    tmp_path: Path,
+) -> None:
+    repository = _complete_repository(tmp_path)
+    effective_path = (
+        repository / "analysis-results" / "research" / "c2-monitoring"
+        / ANALYSIS_DATE / "effective-targets.json"
+    )
+    effective = json.loads(effective_path.read_text(encoding="utf-8"))
+    effective["carry_forward_exclusions"].append(
+        {
+            "scope": "host",
+            "host": "old-distribution.example",
+            "port": 0,
+            "wire": "dns",
+            "reason": "distribution_only_not_c2",
+        }
+    )
+    effective["carry_forward_exclusions"].sort(
+        key=lambda item: (
+            item["scope"], item["host"], item["port"], item["wire"], item["reason"]
+        )
+    )
+    _write_json(effective_path, effective)
+    requested_path = effective_path.with_name("targets.json")
+    requested = json.loads(requested_path.read_text(encoding="utf-8"))
+    requested["carry_forward_exclusions"] = effective["carry_forward_exclusions"]
+    _write_json(requested_path, requested)
+
+    validated = target.validate_daily_analysis(repository, ANALYSIS_DATE)
+
+    assert validated["complete"] is True
+
+
+def test_c2_lane_rejects_unreviewed_effective_carry_forward_exclusion(
+    tmp_path: Path,
+) -> None:
+    repository = _complete_repository(tmp_path)
+    effective_path = (
+        repository / "analysis-results" / "research" / "c2-monitoring"
+        / ANALYSIS_DATE / "effective-targets.json"
+    )
+    effective = json.loads(effective_path.read_text(encoding="utf-8"))
+    effective["carry_forward_exclusions"].append(
+        {
+            "scope": "host",
+            "host": "unreviewed.example",
+            "port": 0,
+            "wire": "dns",
+            "reason": "unreviewed",
+        }
+    )
+    effective["carry_forward_exclusions"].sort(
+        key=lambda item: (
+            item["scope"], item["host"], item["port"], item["wire"], item["reason"]
+        )
+    )
+    _write_json(effective_path, effective)
+
+    c2 = target.validate_c2_live_check(repository, ANALYSIS_DATE)
+
+    assert c2["complete"] is False
+    assert "c2_reviewed_carry_forward_exclusion_mismatch" in {
+        item["code"] for item in c2["findings"]
+    }
+
+
+def test_daily_handoff_rejects_missing_source_carry_forward_exclusion(
+    tmp_path: Path,
+) -> None:
+    repository = _complete_repository(tmp_path)
+    effective_path = (
+        repository / "analysis-results" / "research" / "c2-monitoring"
+        / ANALYSIS_DATE / "effective-targets.json"
+    )
+    effective = json.loads(effective_path.read_text(encoding="utf-8"))
+    effective["carry_forward_exclusions"].pop()
+    _write_json(effective_path, effective)
+
+    news = target.validate_news(repository, ANALYSIS_DATE, ANALYSIS_DATE)
+
+    assert news["complete"] is False
+    assert "daily_infrastructure_carry_forward_exclusion_mismatch" in {
+        item["code"] for item in news["findings"]
+    }
