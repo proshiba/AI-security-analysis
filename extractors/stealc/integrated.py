@@ -46,6 +46,8 @@ def extract(data: bytes, source_name: str = "sample.bin") -> dict:
 
     result = extract_v1(data, source_name)
     config = result["config"]
+    if config.get("profile_selection_error") == "conflicting_profiles":
+        return result
     if not config.get("static_config_recovered"):
         profile = _v2_profile(data)
         if profile is not None:
@@ -70,7 +72,7 @@ def extract(data: bytes, source_name: str = "sample.bin") -> dict:
             result["limitations"] = [
                 value
                 for value in result["limitations"]
-                if not value.startswith("No supported plaintext profile was recovered")
+                if not value.startswith("対応する平文profileは復元できませんでした")
             ]
             result["limitations"].append(
                 "StealC v2の設定は取得済みメモリから静的復元しました。能動通信は実施していません。"
@@ -101,7 +103,7 @@ def extract(data: bytes, source_name: str = "sample.bin") -> dict:
             result["limitations"] = [
                 value
                 for value in result["limitations"]
-                if not value.startswith("No supported plaintext profile was recovered")
+                if not value.startswith("対応する平文profileは復元できませんでした")
             ]
             result["findings"].extend(
                 [

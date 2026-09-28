@@ -22,6 +22,7 @@ WIDE = re.compile(rb"(?:[\x20-\x7e]\x00){4,}")
 FULL_SCAN_LIMIT = 8 * 1024 * 1024
 SAMPLE_WINDOW = 2 * 1024 * 1024
 MAX_STRINGS = 50_000
+MAX_STRING_CHARS = 8_192
 MAX_FINDINGS = 64
 BENIGN_HOSTS = {
     "ns.adobe.com",
@@ -207,10 +208,11 @@ def profile_for(family: str) -> dict:
     return {"family": normalized, **profiles[normalized]}
 
 
-def bounded_strings(data: bytes, limit: int = MAX_STRINGS) -> list[str]:
-    """決定的なwindowから順序付きで重複しないASCII/UTF-16LE文字列を抽出する。"""
+def _bounded_string_scan(data: bytes, limit: int) -> tuple[list[str], dict]:
+    if not isinstance(limit, int) or isinstance(limit, bool) or not 0 <= limit <= MAX_STRINGS:
+        raise ValueError("文字列件数limitが型不正または上限外です")
     if limit <= 0:
-        return []
+        return [], {"string_limit_reached": bool(data), "overlong_string_count": 0}
     if len(data) <= FULL_SCAN_LIMIT:
         windows = [(0, data)]
     else:
@@ -222,15 +224,22 @@ def bounded_strings(data: bytes, limit: int = MAX_STRINGS) -> list[str]:
         ]
 
     candidates: dict[str, list[tuple[int, str]]] = {"ascii": [], "utf-16le": []}
+    overlong_count = 0
+    string_limit_reached = False
     for pattern, encoding in ((ASCII, "ascii"), (WIDE, "utf-16le")):
         seen: set[str] = set()
         for base_offset, sample in windows:
             for match in pattern.finditer(sample):
+                width = 2 if encoding == "utf-16le" else 1
+                if (match.end() - match.start()) // width > MAX_STRING_CHARS:
+                    overlong_count += 1
+                    continue
                 value = match.group().decode(encoding, errors="ignore")
                 if value and value not in seen:
                     seen.add(value)
                     candidates[encoding].append((base_offset + match.start(), value))
                     if len(candidates[encoding]) >= limit:
+                        string_limit_reached = True
                         break
             if len(candidates[encoding]) >= limit:
                 break
@@ -250,7 +259,16 @@ def bounded_strings(data: bytes, limit: int = MAX_STRINGS) -> list[str]:
     )
     selected.extend(remaining[: max(0, limit - len(selected))])
     selected.sort(key=lambda item: (item[0], item[1]))
-    return [value for _offset, value in selected[:limit]]
+    return [value for _offset, value in selected[:limit]], {
+        "string_limit_reached": string_limit_reached,
+        "overlong_string_count": overlong_count,
+    }
+
+
+def bounded_strings(data: bytes, limit: int = MAX_STRINGS) -> list[str]:
+    """決定的windowから有界literalを抽出し、長大なrunは分割せず除外する。"""
+
+    return _bounded_string_scan(data, limit)[0]
 
 
 def _marker_identity(value: str) -> str:
@@ -361,6 +379,10 @@ def _publishable_endpoint(value: str) -> bool:
         (".local", ".invalid", ".example", ".test")
     ):
         return False
+    if host in BENIGN_HOSTS or any(
+        host == item or host.endswith("." + item) for item in BENIGN_HOST_PARTS
+    ):
+        return False
     try:
         return ipaddress.ip_address(host).is_global
     except ValueError:
@@ -376,7 +398,7 @@ def _publishable_endpoint(value: str) -> bool:
 def extract_family(family: str, data: bytes, source_name: str = "sample.bin") -> dict:
     """1プロファイルの設定候補とnetwork指標を上限付きで抽出する。"""
     profile = profile_for(family)
-    strings = bounded_strings(data)
+    strings, scan_diagnostics = _bounded_string_scan(data, MAX_STRINGS)
     lowered = [value.lower() for value in strings]
     joined = "\n".join(lowered)
     marker_hits = _independent_marker_hits(profile["markers"], joined)
@@ -416,7 +438,13 @@ def extract_family(family: str, data: bytes, source_name: str = "sample.bin") ->
         {
             "kind": "network.endpoint",
             "value": value,
-            "role": role,
+            "role": (
+                "host_discovery_service"
+                if value.rsplit(":", 1)[0].strip("[]").lower() in DISCOVERY_HOSTS
+                else "stage_url_candidate"
+                if value.rsplit(":", 1)[0].strip("[]").lower() in DELIVERY_HOSTS
+                else role
+            ),
             "confidence": confidence,
             "source": "bounded_static_strings",
         }
@@ -446,6 +474,18 @@ def extract_family(family: str, data: bytes, source_name: str = "sample.bin") ->
         "scan_scope": "complete_input"
         if len(data) <= FULL_SCAN_LIMIT
         else "deterministic_three_window_sample",
+        "scan_diagnostics": {
+            **scan_diagnostics,
+            "retained_string_count": len(strings),
+            "max_string_chars": MAX_STRING_CHARS,
+            "omitted_finding_count": max(0, len(urls) + len(endpoints) - len(findings)),
+            "scan_complete": bool(
+                len(data) <= FULL_SCAN_LIMIT
+                and not scan_diagnostics["string_limit_reached"]
+                and not scan_diagnostics["overlong_string_count"]
+                and len(urls) + len(endpoints) <= len(findings)
+            ),
+        },
     }
     return build_result(
         profile["family"],
@@ -458,6 +498,7 @@ def extract_family(family: str, data: bytes, source_name: str = "sample.bin") ->
             profile["confirmation"],
             "候補インフラへ接続せず、稼働状態も推定していません。",
             "資格情報、token、URL query、fragmentは公開しません。",
+            "scan_diagnosticsが不完全な走査を示す場合、候補未検出は設定や通信機能の不存在を意味しません。",
         ],
     )
 

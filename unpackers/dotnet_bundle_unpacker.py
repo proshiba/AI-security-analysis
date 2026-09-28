@@ -52,6 +52,17 @@ MAX_RUNTIME_CONTENT_PROBES = 64
 MAX_RUNTIME_CONTENT_PROBE_TOTAL_BYTES = 128 * 1024 * 1024
 MAX_NATIVE_RUNTIME_EXPORTS = 4096
 
+# 予算による未測定・未対応profileは、実際に観測した不一致と分離する。
+# parser拒否、metadata不正、拡張子不整合等は含めず、高優先のまま維持する。
+DEFERRED_RUNTIME_CONTENT_STATUSES = frozenset(
+    {
+        "aggregate_content_probe_budget_exceeded",
+        "content_probe_budget_exceeded",
+        "export_count_budget_exceeded",
+        "unsupported_runtime_profile",
+    }
+)
+
 NATIVE_RUNTIME_REQUIRED_EXPORTS = {
     "coreclr.dll": frozenset(
         {
@@ -311,7 +322,7 @@ def _analysis_selection(
             "pdb_signature_validated": pdb_signature_valid,
         }
         if evidence["status"] == "symbol_content_validated":
-            return _AnalysisAssessment(4, "validated_symbols_bounded_audit", evidence)
+            return _AnalysisAssessment(5, "validated_symbols_bounded_audit", evidence)
         return _AnalysisAssessment(1, "symbol_type_content_mismatch_requires_analysis", evidence)
     if entry.file_type == 1:
         stem = _managed_stem(name)
@@ -325,8 +336,14 @@ def _analysis_selection(
             )
             if evidence["status"] == "runtime_identity_consistent":
                 return _AnalysisAssessment(
-                    3,
+                    4,
                     "managed_runtime_identity_consistent_bounded_audit",
+                    evidence,
+                )
+            if evidence["status"] in DEFERRED_RUNTIME_CONTENT_STATUSES:
+                return _AnalysisAssessment(
+                    3,
+                    "managed_runtime_content_unassessed_requires_analysis",
                     evidence,
                 )
             return _AnalysisAssessment(
@@ -353,8 +370,14 @@ def _analysis_selection(
             )
             if evidence["status"] == "runtime_structure_consistent":
                 return _AnalysisAssessment(
-                    3,
+                    4,
                     "native_runtime_structure_consistent_bounded_audit",
+                    evidence,
+                )
+            if evidence["status"] in DEFERRED_RUNTIME_CONTENT_STATUSES:
+                return _AnalysisAssessment(
+                    3,
+                    "native_runtime_content_unassessed_requires_analysis",
                     evidence,
                 )
             return _AnalysisAssessment(
@@ -818,8 +841,9 @@ def recover_dotnet_bundle(
         ),
     }
     report["analysis_selection"] = (
-        "全entryを型・SHA-256・content assessment付きで台帳化し、アプリ・設定、runtime名の不整合、"
-        "非標準依存関係、content整合runtimeの順に固定件数・byte予算内で再帰解析する"
+        "全entryを型・SHA-256・content assessment付きで台帳化し、アプリ・設定、runtime名の観測済み不整合、"
+        "非標準依存関係、予算・未対応profileで未評価のruntime、content整合runtime、symbolsの順に"
+        "固定件数・byte予算内で再帰解析する。未評価の証拠は維持し、整合・安全とはみなさない"
     )
     if recovered_entries != len(entries):
         report["status"] = "partially_recovered"

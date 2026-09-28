@@ -57,6 +57,24 @@ def make_roots(tmp_path: Path, *, data: bytes = b"MZ synthetic static bytes") ->
     return input_root, jobs_root
 
 
+@pytest.fixture
+def short_smoke_root(short_tmp: Path) -> Any:
+    """人工smokeの固定snapshotだけを終了後に書込み可能へ戻す。"""
+    yield short_tmp
+    snapshot = (short_tmp / "jobs" / "job-real-smoke" / "contract-inputs"
+                / "samples" / "000000" / "sample.bin")
+    try:
+        information = snapshot.lstat()
+    except FileNotFoundError:
+        return
+    snapshot.resolve().relative_to(short_tmp.resolve())
+    if (not stat.S_ISREG(information.st_mode) or information.st_nlink != 1
+            or getattr(information, "st_file_attributes", 0) & 0x400):
+        raise RuntimeError("人工snapshotの後片付け対象が通常単一fileではありません")
+    # 検証中のreadonly保護は保持し、短い専用rootのfixture teardown直前だけ解除する。
+    os.chmod(snapshot, stat.S_IREAD | stat.S_IWRITE)
+
+
 def make_trusted_tool_configuration(
     tmp_path: Path,
     *,
@@ -3534,9 +3552,11 @@ def test_validate_job_performs_runtime_probe_without_job_write(
 
 
 def test_real_analyzer_runs_with_sanitized_environment(
-    tmp_path: Path,
+    short_smoke_root: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """短い人工rootで本番CLIを検証し、Windowsの製品側path上限は維持する。"""
+    tmp_path = short_smoke_root
     runner.validate_analyzer_runtime.cache_clear()
     try:
         runner.validate_analyzer_runtime()

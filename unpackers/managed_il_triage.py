@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Bounded, execution-free .NET metadata and CIL triage.
+""".NET metadataとCILを実行せず、有界に棚卸しする。
 
-The module treats the input as an inert byte string.  It never asks the CLR to
-load an assembly, executes or emulates CIL, extracts a resource to disk, or
-performs network I/O.  Technique assessments are conservative prioritization
-hints and are not protector attribution.
+入力は不活性なbyte列として扱い、CLR load、CIL実行・emulation、resourceの
+disk展開、通信は行わない。手法評価は保守的な調査優先度でありprotector帰属ではない。
+token参照は命令列上の関係だけを示し、到達性や実行時dispatchを保証しない。
 """
 
 from __future__ import annotations
@@ -24,13 +23,34 @@ from typing import Any
 import warnings
 
 try:
+    from .managed_metadata import MetadataResolver, DEFAULT_MAX_ROWS, DEFAULT_MAX_TOTAL_ROWS
+except ImportError:  # 単独CLI
+    from managed_metadata import MetadataResolver, DEFAULT_MAX_ROWS, DEFAULT_MAX_TOTAL_ROWS
+
+try:
+    from .managed_resource_snapshot import prepare_resource_snapshot, revalidated_resource_scan
+except ImportError:  # 単独CLIまたは新依存が不足した状態
+    try:
+        from managed_resource_snapshot import prepare_resource_snapshot, revalidated_resource_scan
+    except ImportError:
+        prepare_resource_snapshot = revalidated_resource_scan = None
+
+try:
+    from .managed_constructor_guard import preflight_clr_declarations
+except ImportError:  # 単独CLIまたは新依存が不足した状態
+    try:
+        from managed_constructor_guard import preflight_clr_declarations
+    except ImportError:
+        preflight_clr_declarations = None
+
+try:
     import dnfile
-except ImportError:  # pragma: no cover - dependency status is tested by patching
+except ImportError:  # pragma: no cover - 依存状態はpatchで試験する。
     dnfile = None
 
 try:
     from dncil.cil.body.reader import read_method_body_from_bytes
-except ImportError:  # pragma: no cover - dependency status is tested by patching
+except ImportError:  # pragma: no cover - 依存状態はpatchで試験する。
     read_method_body_from_bytes = None
 
 
@@ -43,6 +63,7 @@ DEFAULT_MAX_METADATA_STRINGS = 40_000
 DEFAULT_MAX_METADATA_STRING_BYTES = 8 * 1024 * 1024
 DEFAULT_MAX_METADATA_SCAN_BYTES = 16 * 1024 * 1024
 DEFAULT_MAX_RESOURCES = 1_024
+DEFAULT_MAX_REFERENCES = 20_000
 DEFAULT_MAX_RESOURCE_BYTES = 64 * 1024 * 1024
 DEFAULT_DISPATCHER_SWITCH_TARGETS = 16
 MAX_NAME_LENGTH = 512
@@ -138,6 +159,7 @@ def _base_result(size: int) -> dict[str, Any]:
         "marker_hits": [],
         "techniques": {},
         "static_method_plan": [],
+        "static_references": [],
     }
 
 
@@ -476,74 +498,84 @@ def _high_fanout_switch_count(instructions: list[Any], threshold: int) -> int:
     return count
 
 
-def _resource_inventory(
-    data: bytes,
-    pe: Any,
-    max_resources: int,
-    max_resource_bytes: int,
-) -> tuple[list[dict[str, Any]], dict[str, int], list[str]]:
-    table = _table(pe, "ManifestResource")
-    rows, declared, truncated, table_error = _bounded_rows(table, max_resources)
+def _static_references(instructions: list[Any], caller_token: str,
+                       resolver: MetadataResolver, limit: int,
+                       header_size: int) -> tuple[list[dict[str, Any]], int]:
+    """命令列上のcall／field参照を保持し、到達性や実行時calleeは推測しない。"""
+    references = []
+    total = 0
+    fields = {"ldfld", "ldflda", "stfld", "ldsfld", "ldsflda", "stsfld"}
+    for instruction in instructions:
+        opcode = _safe_text(getattr(getattr(instruction, "opcode", None), "name", "")).lower()
+        if opcode not in _CALLS | fields | {"calli", "ldftn", "ldvirtftn"}:
+            continue
+        total += 1
+        if len(references) >= limit:
+            continue
+        kind = "field" if opcode in fields else "indirect_signature" if opcode == "calli" else "method"
+        target = resolver.resolve(getattr(instruction, "operand", None), kind=kind)
+        offset = getattr(instruction, "offset", None)
+        code_offset = (offset - header_size if isinstance(offset, int) and not isinstance(offset, bool)
+                       and offset >= header_size else None)
+        references.append({"caller_token": caller_token, "opcode": opcode,
+                           "code_offset": code_offset, "target": target,
+                           "edge_kind": "field_reference" if kind == "field" else
+                                        "function_pointer_reference" if opcode in {"ldftn", "ldvirtftn"} else
+                                        "indirect_call" if opcode == "calli" else "lexical_call"})
+    return references, total
+
+
+def _consumed_metadata_coverage(resolver, work, scan):
+    """元resolverのcoverageを変えず、最新のsource照合を別scopeで公開する。"""
+    coverage = resolver.coverage()
+    resource_coverage = scan.coverage()
+    fresh_work = resource_coverage["work"]
+    accepted = (work["accepted"] is True and resource_coverage["input_binding_verified"] is True
+                and fresh_work["shared_snapshot_reused"] is True)
+    coverage["shared_snapshot"] = {**work, "accepted": accepted,
+                                   "resource_consumer_source_work": dict(fresh_work)}
+    if not accepted:
+        coverage["complete"] = False
+    return coverage
+
+
+def _preparation_failed_coverage(reason="resource_snapshot_preparation_failed"):
+    """新依存の失敗をcompleteやno-resourceへ丸めない固定公開診断。"""
+    return {"status": "partial", "inventory_complete": False,
+            "embedded_scan_complete": False, "input_binding_verified": False,
+            "reason_counts": {reason: 1}}
+
+
+def _resource_inventory_scope(data: bytes, pe: Any, max_resources: int,
+                        max_resource_bytes: int, *, resource_scan=None):
+    """再照合したdescriptorだけを消費し、旧RVA変換へfallbackしない。"""
+    if resource_scan is None:
+        resource_scan, _, _ = prepare_resource_snapshot(
+            data, pe, max_resources=max_resources, max_resource_bytes=max_resource_bytes)
+    fresh = revalidated_resource_scan(data, resource_scan)
+    coverage = fresh.coverage()
     resources: list[dict[str, Any]] = []
     used = 0
-    exhausted: list[str] = []
-    if truncated:
-        exhausted.append("resources")
-    if table_error:
-        exhausted.append("resource_table_parse_error")
-    try:
-        base_rva = int(pe.net.struct.ResourcesRva)
-    except (AttributeError, TypeError, ValueError):
-        base_rva = 0
-
-    for index, row in enumerate(rows, 1):
-        item: dict[str, Any] = {
-            "index": index,
-            "name": _safe_text(getattr(row, "Name", "")),
-            "kind": "external"
-            if getattr(row, "Implementation", None) is not None
-            else "internal",
-            "declared_size": None,
-            "sha256": None,
-            "entropy": None,
-            "status": "not_hashed",
-        }
-        if item["kind"] == "external":
-            item["status"] = "external_reference"
-            resources.append(item)
-            continue
-        try:
-            header_rva = base_rva + int(row.Offset)
-            header_offset = int(pe.get_offset_from_rva(header_rva))
-            if not 0 <= header_offset <= len(data) - 4:
-                raise ValueError("resource header outside input")
-            declared_size = struct.unpack_from("<I", data, header_offset)[0]
-            item["declared_size"] = declared_size
-            data_offset = header_offset + 4
-            if declared_size > len(data) - data_offset:
-                raise ValueError("resource data truncated")
-            if declared_size > max_resource_bytes - used:
-                item["status"] = "resource_byte_budget_exceeded"
-                exhausted.append("resource_bytes")
-            else:
-                content = data[data_offset : data_offset + declared_size]
-                item["sha256"] = hashlib.sha256(content).hexdigest()
-                item["entropy"] = _entropy(content)
-                item["status"] = "hashed_full_resource"
-                used += declared_size
-        except Exception as error:
-            item["status"] = "malformed_resource"
-            item["parse_error"] = type(error).__name__
+    for descriptor in fresh._descriptors:
+        item = {"index": descriptor.row_index, "name": _safe_text(descriptor.name),
+                "kind": "external" if descriptor.kind == "linked" else "internal",
+                "declared_size": None, "sha256": None, "entropy": None,
+                "status": "external_reference" if descriptor.kind == "linked" else "hashed_full_resource"}
+        if descriptor.kind == "embedded":
+            content = data[descriptor.body_offset:descriptor.body_offset + descriptor.body_size]
+            item.update(declared_size=descriptor.body_size,
+                        sha256=hashlib.sha256(content).hexdigest(), entropy=_entropy(content))
+            used += descriptor.body_size
         resources.append(item)
-    return (
-        resources,
-        {
-            "resources_declared": declared,
-            "resources_enumerated": len(resources),
-            "resource_bytes_hashed": used,
-        },
-        sorted(set(exhausted)),
-    )
+    return (resources, {"resources_declared": coverage["counts"]["declared_resources"],
+                        "resources_enumerated": len(resources), "resource_bytes_hashed": used},
+            [] if coverage["inventory_complete"] else ["resource_inventory"], fresh)
+
+
+def _resource_inventory(data: bytes, pe: Any, max_resources: int, max_resource_bytes: int):
+    """従来3tuple契約を維持する。再検証なしの旧RVA fallbackは持たない。"""
+    resources, counts, exhausted, _ = _resource_inventory_scope(data, pe, max_resources, max_resource_bytes)
+    return resources, counts, exhausted
 
 
 def _technique(status: str, confidence: str, evidence: list[str]) -> dict[str, Any]:
@@ -709,22 +741,19 @@ def analyze_managed_pe(
     max_metadata_scan_bytes: int = DEFAULT_MAX_METADATA_SCAN_BYTES,
     max_resources: int = DEFAULT_MAX_RESOURCES,
     max_resource_bytes: int = DEFAULT_MAX_RESOURCE_BYTES,
+    max_references: int = DEFAULT_MAX_REFERENCES,
     dispatcher_switch_targets: int = DEFAULT_DISPATCHER_SWITCH_TARGETS,
 ) -> dict[str, Any]:
-    """Statically inventory a managed PE under explicit parsing budgets.
+    """明示した予算でmanaged PEを静的に棚卸しする。
 
-    ``data`` is never CLR-loaded, executed, emulated, or written to disk.  CIL
-    method bodies are parsed from bounded byte slices and resources are only
-    represented by metadata, SHA-256, and entropy.  A partial result is returned
-    when a budget is exhausted or an individual method is malformed.
-
-    ``max_method_bytes`` bounds the exact header-plus-declared-code slice before
-    dncil parses a method. ``max_instructions`` is applied only after dncil has
-    constructed that method's instruction collection; the returned report records
-    this parser-boundary limitation explicitly.
+    ``data``をCLRへloadせず、実行・emulation・disk保存しない。CILは有界な
+    byte範囲からparseし、resourceはmetadata、SHA-256、entropyだけを返す。
+    ``max_method_bytes``はdncil前のbyte上限、``max_instructions``は単一method
+    のdncil構築後の集計上限である。参照の未解決や字句的callは結果へ保持し、
+    metadata表／参照件数の上限はpartial理由として記録する。
     """
-    if not isinstance(data, bytes):
-        raise TypeError("data must be bytes")
+    if type(data) is not bytes:
+        raise TypeError("dataにはexact bytesを指定してください")
     budgets = {
         "max_input_bytes": max_input_bytes,
         "max_types": max_types,
@@ -736,6 +765,7 @@ def analyze_managed_pe(
         "max_metadata_scan_bytes": max_metadata_scan_bytes,
         "max_resources": max_resources,
         "max_resource_bytes": max_resource_bytes,
+        "max_references": max_references,
         "dispatcher_switch_targets": dispatcher_switch_targets,
     }
     if any(
@@ -743,6 +773,10 @@ def analyze_managed_pe(
         for value in budgets.values()
     ):
         raise ValueError("all budgets must be positive integers")
+    if max_resources > 4_096 or max_resource_bytes > 64 * 1024 * 1024:
+        raise ValueError("resourceの上限は固定hard上限以下にしてください")
+    if max_references > DEFAULT_MAX_REFERENCES:
+        raise ValueError("静的参照の上限は既定値以下にしてください")
 
     result = _base_result(len(data))
     result["budgets"] = {
@@ -761,6 +795,23 @@ def analyze_managed_pe(
         result["static_method_plan"] = plan_managed_methods(result)
         return result
     try:
+        if preflight_clr_declarations is None:
+            raise ValueError("metadata_constructor_preflight_dependency_missing")
+        metadata_preflight = preflight_clr_declarations(
+            data, max_input_bytes=min(DEFAULT_MAX_INPUT_BYTES, max_input_bytes))
+    except Exception:
+        metadata_preflight = {"status": "partial", "accepted": False,
+                              "scope": "constructor_declarations_only", "input_bound": False,
+                              "reason_counts": {"preflight_dependency_failed": 1}}
+    result["metadata_preflight"] = metadata_preflight
+    if not metadata_preflight["accepted"]:
+        result["status"] = "analyzed_partial_budget"
+        result["budget_exhausted"] = ["metadata_constructor_preflight"]
+        result["resource_coverage"] = _preparation_failed_coverage()
+        result["reference_metadata_coverage"] = {"complete": False, "shared_snapshot": {"accepted": False}}
+        result["static_method_plan"] = plan_managed_methods(result)
+        return result
+    try:
         pe = dnfile.dnPE(data=data, clr_lazy_load=True)
     except Exception as error:
         result["status"] = "parse_failed"
@@ -772,7 +823,36 @@ def analyze_managed_pe(
         result["static_method_plan"] = plan_managed_methods(result)
         return result
 
-    budget_exhausted: list[str] = []
+    # 既存TypeDef／ownerの属性参照より前に、同じ13table予算を確立する。
+    try:
+        if prepare_resource_snapshot is None or revalidated_resource_scan is None:
+            raise ValueError("resource_snapshot_dependency_missing")
+        resource_scan, resolver, shared_work = prepare_resource_snapshot(
+            data, pe, max_resources=max_resources, max_resource_bytes=max_resource_bytes,
+            max_rows=min(DEFAULT_MAX_ROWS, max(max_methods, max_types)),
+            max_total_rows=min(DEFAULT_MAX_TOTAL_ROWS, max_references * 4))
+        # ここでは本文hashを計算せず、最初のmetadata参照前にsourceだけ再照合する。
+        resource_scan = revalidated_resource_scan(data, resource_scan)
+        result["resource_coverage"] = resource_scan.coverage()
+        resource_counts = {"resources_declared": result["resource_coverage"]["counts"]["declared_resources"],
+                           "resources_enumerated": 0, "resource_bytes_hashed": 0}
+        resource_budgets = [] if result["resource_coverage"]["inventory_complete"] else ["resource_inventory"]
+        result["reference_metadata_coverage"] = _consumed_metadata_coverage(resolver, shared_work, resource_scan)
+    except Exception:
+        result["status"] = "analyzed_partial_budget"
+        result["budget_exhausted"] = ["resource_snapshot"]
+        result["resource_coverage"] = _preparation_failed_coverage()
+        result["reference_metadata_coverage"] = {"complete": False, "shared_snapshot": {"accepted": False}}
+        result["static_method_plan"] = plan_managed_methods(result)
+        return result
+    if not result["reference_metadata_coverage"]["shared_snapshot"]["accepted"]:
+        result["status"] = "analyzed_partial_budget"
+        result["budget_exhausted"] = ["resource_inventory", "reference_metadata"]
+        result["counts"] = resource_counts
+        result["static_method_plan"] = plan_managed_methods(result)
+        return result
+
+    budget_exhausted: list[str] = list(resource_budgets)
     metadata_table_errors: list[dict[str, str]] = []
     type_table = _table(pe, "TypeDef")
     type_rows, types_declared, type_truncated, type_error = _bounded_rows(
@@ -809,11 +889,28 @@ def analyze_managed_pe(
     result["marker_hits"] = marker_hits
     result["metadata_scan"] = {**name_metrics, **scan_metrics}
 
-    resources, resource_counts, resource_budgets = _resource_inventory(
-        data, pe, max_resources, max_resource_bytes
-    )
-    result["resources"] = resources
+    # 既存metadata walk後に再照合し、変更されたsnapshotから参照解決しない。
+    try:
+        resources, resource_counts, resource_budgets, resource_scan = _resource_inventory_scope(
+            data, pe, max_resources, max_resource_bytes, resource_scan=resource_scan)
+        result["resources"] = resources
+        result["resource_coverage"] = resource_scan.coverage()
+        result["reference_metadata_coverage"] = _consumed_metadata_coverage(resolver, shared_work, resource_scan)
+    except Exception:
+        result["resources"] = []
+        result["resource_coverage"] = _preparation_failed_coverage("resource_consumer_revalidation_failed")
+        result["reference_metadata_coverage"] = {"complete": False, "shared_snapshot": {"accepted": False}}
+        result["status"] = "analyzed_partial_budget"
+        result["budget_exhausted"] = sorted(set(budget_exhausted + ["resource_inventory", "reference_metadata"]))
+        result["static_method_plan"] = plan_managed_methods(result)
+        return result
     budget_exhausted.extend(resource_budgets)
+    if not result["reference_metadata_coverage"]["shared_snapshot"]["accepted"]:
+        result["status"] = "analyzed_partial_budget"
+        result["budget_exhausted"] = sorted(set(budget_exhausted + ["reference_metadata"]))
+        result["counts"] = resource_counts
+        result["static_method_plan"] = plan_managed_methods(result)
+        return result
 
     method_table = _table(pe, "MethodDef")
     method_rows, methods_declared, method_truncated, method_error = _bounded_rows(
@@ -823,6 +920,9 @@ def analyze_managed_pe(
         budget_exhausted.append("methods")
     if method_error:
         metadata_table_errors.append({"table": "MethodDef", "error": method_error})
+    if not result["reference_metadata_coverage"]["complete"]:
+        budget_exhausted.append("reference_metadata")
+    references_total = 0
     totals = {
         "types_declared": types_declared,
         "types_enumerated": len(type_rows),
@@ -929,6 +1029,13 @@ def analyze_managed_pe(
             ):
                 totals[key] += metrics[key]
             totals["instructions_counted"] += metrics["instructions"]
+            references, reference_count = _static_references(
+                counted, method["token"], resolver,
+                max_references - len(result["static_references"]), header_size,
+            )
+            references_total += reference_count
+            result["static_references"].extend(references)
+            method["static_reference_count"] = reference_count
             proxy = (
                 name not in {".ctor", ".cctor"}
                 and metrics["instructions"] <= 8
@@ -974,6 +1081,19 @@ def analyze_managed_pe(
     result["metadata_table_errors"] = metadata_table_errors[:32]
     result["metadata_table_errors_truncated"] = len(metadata_table_errors) > 32
     result["counts"] = totals
+    if references_total > len(result["static_references"]):
+        budget_exhausted.append("static_references")
+    result["reference_coverage"] = {
+        "scope": "lexical_CIL_references_not_reachability_or_runtime_dispatch",
+        "total_in_counted_instructions": references_total,
+        "retained": len(result["static_references"]),
+        "omitted": references_total - len(result["static_references"]),
+        "unresolved_retained": sum(item["target"]["status"] != "resolved"
+                                   for item in result["static_references"]),
+        "body_scan_complete": not (budget_exhausted or totals["malformed_method_bodies"]
+                                   or metadata_table_errors),
+        "runtime_targets_complete": False,
+    }
     result["techniques"] = _assess_techniques(
         marker_hits, totals, result["dispatcher_candidates"], resources
     )
@@ -986,7 +1106,7 @@ def analyze_managed_pe(
 
 
 def plan_managed_methods(result: dict[str, Any]) -> list[dict[str, Any]]:
-    """Return an ordered, static-only deep-analysis plan for a triage result."""
+    """トリアージ結果から、実行しない深掘り解析の順序付き計画を返す。"""
     plan: list[dict[str, Any]] = []
     safety = [
         "do_not_CLR_load_or_execute",
@@ -1094,12 +1214,12 @@ def _reject_input_output_alias(input_path: Path, output_path: Path) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the command-line parser for bounded managed-IL triage."""
+    """上限付きmanaged CILトリアージのCLI引数parserを作成する。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--input", required=True, type=Path, help="managed PE to read as inert bytes"
+        "--input", required=True, type=Path, help="実行せずbyte列として読み取るmanaged PE"
     )
-    parser.add_argument("--output", required=True, type=Path, help="JSON report path")
+    parser.add_argument("--output", required=True, type=Path, help="JSON報告の出力先")
     parser.add_argument("--max-input-bytes", type=int, default=DEFAULT_MAX_INPUT_BYTES)
     parser.add_argument("--max-types", type=int, default=DEFAULT_MAX_TYPES)
     parser.add_argument("--max-methods", type=int, default=DEFAULT_MAX_METHODS)
@@ -1121,6 +1241,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--max-metadata-scan-bytes", type=int, default=DEFAULT_MAX_METADATA_SCAN_BYTES
     )
     parser.add_argument("--max-resources", type=int, default=DEFAULT_MAX_RESOURCES)
+    parser.add_argument("--max-references", type=int, default=DEFAULT_MAX_REFERENCES,
+                        help="保持する静的token参照の上限")
     parser.add_argument(
         "--max-resource-bytes", type=int, default=DEFAULT_MAX_RESOURCE_BYTES
     )
@@ -1133,7 +1255,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run static managed-IL triage and write a metadata-only JSON report."""
+    """静的managed CILトリアージを行い、byte本体を含まないJSON報告を保存する。"""
     parser = build_parser()
     args = parser.parse_args(argv)
     _reject_input_output_alias(args.input, args.output)
@@ -1148,6 +1270,7 @@ def main(argv: list[str] | None = None) -> int:
         "max_metadata_scan_bytes": args.max_metadata_scan_bytes,
         "max_resources": args.max_resources,
         "max_resource_bytes": args.max_resource_bytes,
+        "max_references": args.max_references,
         "dispatcher_switch_targets": args.dispatcher_switch_targets,
     }
     if args.input.stat().st_size > args.max_input_bytes:

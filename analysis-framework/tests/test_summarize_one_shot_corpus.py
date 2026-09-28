@@ -1138,3 +1138,94 @@ def test_optional_gap_artifact_hash_mismatch_is_excluded(tmp_path: Path) -> None
 
     assert summary["counts"]["unique_valid_cases"] == 0
     assert summary["invalid_cases"][0]["reason_codes"] == ["integrity:artifact_hash_mismatch_classification_json"]
+
+
+@pytest.mark.parametrize("required", [0, 1, 0.0, 1.0, "true", [], {}])
+def test_typed_config_required_excludes_invalid_record(short_tmp: Path, required) -> None:
+    """bool以外のrequirementを有効分母・confirmed分子へ混入させない。"""
+    run = short_tmp / "r"
+    _write_case(run, SHA_A, config_required=required)
+    _write_run_summary(run, [SHA_A])
+    summary = corpus.summarize_runs([run])
+    assert summary["counts"]["unique_valid_cases"] == 0
+    assert summary["rates"]["confirmed_config_all_cases"]["numerator"] == 0
+
+
+@pytest.mark.parametrize("target", ["report.json", "analysis_contract", "orchestration.json",
+    "candidate-handler-assessment.json", "route-config-candidates.json", "static-logic.json"])
+@pytest.mark.parametrize("version", [True, 1.0, 2.0])
+def test_typed_schema_requires_exact_supported_integer(short_tmp: Path, target: str, version) -> None:
+    """manifestとsealが一致していてもschema型の同値解釈を拒否する。"""
+    run = short_tmp / "r"
+    _write_case(run, SHA_A)
+    case = run / "cases" / SHA_A
+    report = json.loads((case / "report.json").read_text(encoding="utf-8"))
+    if target in {"report.json", "analysis_contract"}:
+        document = report if target == "report.json" else report["analysis_contract"]
+        document["schema_version"] = version
+    else:
+        path = case / target
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["schema_version"] = version
+        report["artifact_sha256"][target] = _write_json(path, document)
+    analysis_contract.seal_report(report)
+    _write_json(case / "report.json", report)
+    _write_run_summary(run, [SHA_A])
+    assert corpus.summarize_runs([run])["counts"]["unique_valid_cases"] == 0
+
+
+@pytest.mark.parametrize("version", [True, 1.0, "1", None, 99])
+def test_typed_run_schema_rejected_before_collection(short_tmp: Path, version) -> None:
+    """run分母のversionにもexact int境界を適用する。"""
+    run = short_tmp / "r"
+    _write_run_summary(run, [])
+    value = json.loads((run / "summary.json").read_text(encoding="utf-8"))
+    value["schema_version"] = version
+    _write_json(run / "summary.json", value)
+    with pytest.raises(corpus.CorpusSummaryError, match="one-shot summary"):
+        corpus.summarize_runs([run])
+
+
+@pytest.mark.parametrize("version", [True, 1.0, "1", None, 99])
+def test_typed_static_layer_schema_remains_unknown(version) -> None:
+    """追加診断の不明versionを利用可能profileと扱わない。"""
+    value = _static_layers_document()
+    value["schema_version"] = version
+    assert corpus._static_limit_summary(value)["availability"] == "unknown_invalid_schema"
+
+
+def test_typed_registry_version_three_float_rejected() -> None:
+    """registryの3.0をschema 3へ暗黙変換しない。"""
+    with pytest.raises(corpus.CorpusSummaryError):
+        corpus._registered_family_ids({"schema_version": 3.0, "malware_types": {"valleyrat": {}}})
+
+
+@pytest.mark.parametrize("container", ["root", "layer_record", "classification", "evaluation", "detection"])
+@pytest.mark.parametrize("version", [1, 99, True])
+def test_declared_unreviewed_classification_is_unknown(short_tmp: Path, container: str, version) -> None:
+    """未宣言legacyは保ち、宣言された未review profileだけを不明へ分離する。"""
+    run = short_tmp / "r"
+    _write_case(run, SHA_A)
+    value = _classification_document(SHA_A, [{"matched": True, "terminal": True}])
+    layer = value["layer_classifications"][0]
+    classification = layer["classification"]
+    evaluation = classification["detector_evaluations"][0]
+    selected = {"root": value, "layer_record": layer, "classification": classification,
+        "evaluation": evaluation, "detection": evaluation["detection"]}[container]
+    selected["schema_version"] = version
+    _replace_case_artifacts(run, SHA_A, classification_json=value)
+    _write_run_summary(run, [SHA_A])
+    summary = corpus.summarize_runs([run])
+    assert summary["counts"]["unique_valid_cases"] == 1
+    assert summary["cases"][0]["automation_gap"]["status"] == "unknown_invalid_schema"
+
+
+def test_undeclared_classification_current_contract_is_preserved(short_tmp: Path) -> None:
+    """通常producerのversion未宣言構造を勝手にinvalid化しない。"""
+    run = short_tmp / "r"
+    _write_case(run, SHA_A)
+    value = _classification_document(SHA_A, [{"matched": True, "terminal": True}])
+    _replace_case_artifacts(run, SHA_A, classification_json=value)
+    _write_run_summary(run, [SHA_A])
+    summary = corpus.summarize_runs([run])
+    assert summary["cases"][0]["automation_gap"]["status"] == "terminal_config_recovered"

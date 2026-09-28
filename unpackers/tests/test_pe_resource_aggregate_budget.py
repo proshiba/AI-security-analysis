@@ -131,6 +131,7 @@ def test_oversized_resource_is_partial_and_propagates_to_coverage(
         "imports_known": True,
         "low_import_heuristics_applied": True,
         "resources_complete": False,
+        "managed_lexical_references_complete": None,
         "limitations": ["resource_scan_resource_entry_size_budget"],
     }
 

@@ -115,6 +115,10 @@ def test_malformed_and_oversized_artifacts_are_rejected() -> None:
         {"max_layer_size": 0},
         {"max_total_size": 0},
         {"max_compression_ratio": 0},
+        {"max_compression_ratio": float("nan")},
+        {"max_compression_ratio": float("inf")},
+        {"max_compression_ratio": float("-inf")},
+        {"max_compression_ratio": True},
         {"max_archive_members": 0},
     ],
 )

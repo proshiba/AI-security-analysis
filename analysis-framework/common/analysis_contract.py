@@ -1237,9 +1237,9 @@ def case_integrity_errors(
             normalize_sha256_digest(contract.get("sha256"))
         except ValueError:
             errors.append("analysis_contract_sha256_invalid")
-        if contract.get("schema_version") != 1:
+        if type(contract.get("schema_version")) is not int or contract.get("schema_version") != 1:
             errors.append("analysis_contract_schema_invalid")
-        if contract.get("pipeline_contract_version") != PIPELINE_CONTRACT_VERSION:
+        if type(contract.get("pipeline_contract_version")) is not int or contract.get("pipeline_contract_version") != PIPELINE_CONTRACT_VERSION:
             errors.append("pipeline_contract_version_invalid")
         settings = contract.get("settings")
         if not isinstance(settings, Mapping):

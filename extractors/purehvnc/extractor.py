@@ -1,4 +1,4 @@
-"""Extract native PureHVNC and managed PureRAT configuration without execution."""
+"""検体を実行せずnative PureHVNCとmanaged PureRATの設定を抽出する。"""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ MAX_FALLBACK_STRINGS = 16_384
 
 
 def read_varint(data: bytes, offset: int) -> tuple[int, int]:
-    """Read one protobuf varint and return its value and next offset."""
+    """protobuf varintを1個読み、値と次のoffsetを返す。"""
     value = 0
     for shift in range(0, 70, 7):
         if offset >= len(data):
@@ -57,7 +57,7 @@ def read_varint(data: bytes, offset: int) -> tuple[int, int]:
 
 
 def parse_protobuf(data: bytes) -> dict[int, list[Any]]:
-    """Parse protobuf wire types used by the reviewed PureRAT configuration."""
+    """確認済みPureRAT設定で使うprotobuf wire typeを境界付きで解析する。"""
     if not isinstance(data, bytes) or len(data) > MAX_CONFIG_CLEAR_BYTES:
         raise ValueError("protobuf input exceeds the static-analysis limit")
     fields: dict[int, list[Any]] = defaultdict(list)
@@ -176,7 +176,7 @@ def _normalise_config_fields(fields: dict[int, list[Any]]) -> dict[int, list[Any
 def _valid_config_fields(fields: dict[int, list[Any]]) -> bool:
     """hostとportの構文を満たすmessageだけを設定候補にする。"""
 
-    if not fields.get(1) or not fields.get(2):
+    if not fields.get(1) or len(fields[1]) != 1 or not fields.get(2):
         return False
     host_value = fields[1][0]
     if not isinstance(host_value, bytes):
@@ -219,20 +219,22 @@ def _iter_nested_messages(data: bytes) -> Iterator[tuple[bytes, dict[int, list[A
         if digest in seen:
             continue
         seen.add(digest)
+        # 成功・失敗ともuniqueな構造解析を既存の128件枠へ一度だけ計上する。
+        count += 1
+        if count > MAX_CONFIG_MESSAGE_CANDIDATES:
+            raise ValueError("managed PureRAT nested message candidate limit exceeded")
         try:
             parsed = parse_protobuf(raw)
         except ValueError:
             continue
+        # 深さ上限の先は構造確認だけ。未評価messageを設定候補へ昇格しない。
+        if depth > MAX_CONFIG_NESTING:
+            raise ValueError("managed PureRAT nested message depth limit exceeded")
         try:
             fields = _normalise_config_fields(parsed)
         except ValueError:
             fields = parsed
-        count += 1
-        if count > MAX_CONFIG_MESSAGE_CANDIDATES:
-            raise ValueError("managed PureRAT nested message candidate limit exceeded")
         yield raw, fields
-        if depth >= MAX_CONFIG_NESTING:
-            continue
         for values in parsed.values():
             for value in values:
                 if isinstance(value, bytes) and 2 <= len(value) <= MAX_CONFIG_CLEAR_BYTES:
@@ -247,7 +249,15 @@ def _config_identity(fields: dict[int, list[Any]]) -> tuple[Any, ...]:
         values: list[tuple[str, Any]] = []
         for value in fields[number]:
             if isinstance(value, bytes):
-                values.append(("bytes_sha256", sha256_bytes(value)))
+                # 単一hostだけを既存出力と同じ表記へ正規化する。
+                # port順、証明書、未知field、複数hostのbyte同一性は変えない。
+                identity_value = (
+                    value.decode("utf-8").lower().rstrip(".").encode("utf-8")
+                    if number == 1 and len(fields[number]) == 1
+                    and not value.endswith(b"..") and all(octet < 128 for octet in value)
+                    else value
+                )
+                values.append(("bytes_sha256", sha256_bytes(identity_value)))
             elif isinstance(value, int) and not isinstance(value, bool):
                 values.append(("integer", value))
             else:
@@ -307,7 +317,7 @@ def _iter_bounded_embedded_strings(data: bytes) -> Iterator[str]:
 
 
 def decode_config_blob(strings: list[str]) -> tuple[bytes, dict[int, list[Any]]]:
-    """Locate Base64/GZip protobuf data and return its nested PureRAT message."""
+    """Base64／GZip／protobuf候補を検証し、一意なPureRAT設定messageを返す。"""
     configurations: dict[
         tuple[Any, ...],
         tuple[bytes, dict[int, list[Any]]],
@@ -324,6 +334,13 @@ def decode_config_blob(strings: list[str]) -> tuple[bytes, dict[int, list[Any]]]
         except ValueError:
             continue
         for raw, fields in _iter_nested_messages(clear):
+            if len(fields.get(1, [])) > 1:
+                # 旧host/port条件で受理されるmessageだけを単一host契約の違反にする。
+                # 任意wrapperを設定と推測せず、他candidateからも相反を隠さない。
+                first_host_fields = dict(fields)
+                first_host_fields[1] = fields[1][:1]
+                if _valid_config_fields(first_host_fields):
+                    raise ValueError("managed PureRAT host field multiplicity is unsupported")
             if _valid_config_fields(fields):
                 identity = _config_identity(fields)
                 if identity not in configurations:
@@ -336,12 +353,12 @@ def decode_config_blob(strings: list[str]) -> tuple[bytes, dict[int, list[Any]]]
 
 
 def _text(value: Any) -> str:
-    """Decode one protobuf byte string for a publish-safe value."""
+    """protobufのbyte列を公開用文字列へ変換する。"""
     return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else str(value)
 
 
 def certificate_metadata(value: str) -> dict[str, Any]:
-    """Return public PKCS#12 certificate metadata without exposing its private key."""
+    """秘密鍵を公開せずPKCS#12証明書の公開metadataだけを返す。"""
     try:
         from cryptography.hazmat.primitives.serialization import Encoding, pkcs12
 
@@ -363,7 +380,7 @@ def certificate_metadata(value: str) -> dict[str, Any]:
 
 
 def extract_managed_config(data: bytes) -> dict[str, Any]:
-    """Extract the managed PureRAT protobuf config and certificate fingerprints."""
+    """managed PureRATの厳密protobuf設定と公開証明書fingerprintを抽出する。"""
     if len(data) > MAX_MANAGED_TERMINAL_BYTES:
         raise _ManagedMetadataError("managed_input_size_exceeded")
     metadata_error: _ManagedMetadataError | None = None
@@ -413,7 +430,7 @@ def extract_managed_config(data: bytes) -> dict[str, Any]:
 
 
 def _valid_ipv4(value: str) -> bool:
-    """Return true for a usable IPv4 literal."""
+    """未指定・multicastではない妥当なIPv4 literalかを返す。"""
     try:
         address = ipaddress.ip_address(value)
     except ValueError:
@@ -422,7 +439,7 @@ def _valid_ipv4(value: str) -> bool:
 
 
 def native_endpoint_candidates(strings: list[str], adjacency: int = 2) -> list[str]:
-    """Associate native IP and port strings while rejecting unrelated port-like text."""
+    """隣接native IP／portを相関し、無関係なport風文字列を除外する。"""
     if adjacency < 0:
         raise ValueError("adjacency must be non-negative")
     endpoints: set[str] = set()
@@ -444,7 +461,7 @@ def native_endpoint_candidates(strings: list[str], adjacency: int = 2) -> list[s
 
 
 def extract_native_config(data: bytes) -> dict[str, Any]:
-    """Extract a conservative native 10FX-framed PureHVNC endpoint profile."""
+    """native 10FX PureHVNCの確認済みmarkerとendpoint候補を保守的に抽出する。"""
     strings = extract_strings(data, minimum=3)
     upper = data.upper()
     upper_strings = [value.upper() for value in strings]
@@ -480,7 +497,7 @@ def extract_native_config(data: bytes) -> dict[str, Any]:
 
 
 def extract_direct_config(data: bytes) -> tuple[dict[str, Any], str]:
-    """Extract config from an already recovered terminal payload."""
+    """回収済み終端payloadからmanaged設定またはnative候補を抽出する。"""
     try:
         return extract_managed_config(data), "confirmed"
     except ValueError:
@@ -488,7 +505,7 @@ def extract_direct_config(data: bytes) -> tuple[dict[str, Any], str]:
 
 
 def extract_chrd_carrier(data: bytes) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Recover a CHRD/Donut carrier and extract its terminal managed PureRAT config."""
+    """CHRD／Donut carrierを静的復元し、managed終端のPureRAT設定を抽出する。"""
     from unpackers.chrd_donut_unpacker import unpack_chrd_donut
 
     chain = unpack_chrd_donut(data)
@@ -504,8 +521,8 @@ def extract_chrd_carrier(data: bytes) -> tuple[dict[str, Any], dict[str, Any]]:
 
 
 def extract(data: bytes, name: str = "sample") -> dict:
-    """Extract direct or CHRD-wrapped PureRAT/PureHVNC configuration."""
-    limitations = ["Static extraction only; no payload execution or C2 contact was performed."]
+    """直接またはCHRD経由の設定を復元し、managed成功だけを標準契約へ反映する。"""
+    limitations = ["静的抽出だけを実施し、payload実行やC2への接続は行っていない。"]
     try:
         config, confidence = extract_direct_config(data)
     except ValueError:
@@ -515,10 +532,14 @@ def extract(data: bytes, name: str = "sample") -> dict:
                 confidence = "confirmed"
             except (ValueError, RuntimeError, OSError, pefile.PEFormatError) as error:
                 config, confidence = {"variant": "unrecognized", "endpoints": []}, "unverified"
-                limitations.append(f"CHRD carrier recovery failed validation: {type(error).__name__}.")
+                limitations.append(f"CHRD carrierの復元検証に失敗した: {type(error).__name__}。")
         else:
             config, confidence = {"variant": "unrecognized", "endpoints": []}, "unverified"
-            limitations.append("No supported managed protobuf, native 10FX, or CHRD carrier profile was found.")
+            limitations.append("対応するmanaged protobuf、native 10FX、CHRD carrier profileを確認できなかった。")
+    # native候補や未復元結果を標準config復元へ広げない。family確証は別detectorで相関する。
+    managed_recovered = config.get("variant") == "managed_purerat" and confidence == "confirmed"
+    config["static_config_recovered"] = managed_recovered
+    config["decoded_config_recovered"] = managed_recovered
     config["source_name"] = name
     findings = [
         {
@@ -530,4 +551,20 @@ def extract(data: bytes, name: str = "sample") -> dict:
         }
         for endpoint in config.get("endpoints", [])
     ]
-    return build_result("purehvnc", data, config, findings, limitations)
+    result = build_result("purehvnc", data, config, findings, limitations)
+    result["c2"] = [
+        {
+            "host": config["c2_host"],
+            "port": port,
+            "role": "c2",
+            "confidence": "confirmed_static_configuration",
+            "evidence": {
+                "kind": "managed_base64_gzip_protobuf_config",
+                "variant": "managed_purerat",
+                "host_and_ports_validated": True,
+                "endpoint_correlated": True,
+            },
+        }
+        for port in config["c2_ports"]
+    ] if managed_recovered else []
+    return result

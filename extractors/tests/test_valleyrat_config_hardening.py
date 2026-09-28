@@ -396,13 +396,13 @@ def test_vvas_decoder_skips_malformed_candidate_and_rejects_ambiguity() -> None:
 
 
 def test_vvas_decoder_excludes_loopback_slot_without_losing_external_slots() -> None:
-    """b336型の第3placeholderだけを除外し、外部slot 1/2を維持する。"""
+    """raw候補の:zf前置文脈を分離し、第3placeholder除外と外部slot 1/2を維持する。"""
 
     stored = (
         ":zf|1:lc|1:dd|1:3t|10801:3o|1.0.0.721:3p|1:2t|10801:2o|"
         "43.64.57.301:2p|1:1t|10801:1o|43.64.57.301:1p|"
     )
-    decoded, evidence = extractor._decode_vvas_reversed_config([stored])
+    decoded, evidence = extractor._decode_vvas_raw_candidate_config([stored])
     assert decoded == {
         "endpoint_1": "103.75.46.34:10801",
         "endpoint_2": "103.75.46.34:10801",

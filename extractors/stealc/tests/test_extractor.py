@@ -53,8 +53,8 @@ def test_extract_marks_a_decoded_profile_as_static_config(monkeypatch) -> None:
     profile = DecodedProfile(
         "fixture", "https://node.example", "/gate.php", "/dll/", "A", 60
     )
-    monkeypatch.setattr("extractors.stealc.extractor.extract_rc4_profile", lambda _data: profile)
-    monkeypatch.setattr("extractors.stealc.extractor.extract_xor_profile", lambda _data: None)
+    monkeypatch.setattr("extractors.stealc.extractor._recover_rc4_profile", lambda _data: profile)
+    monkeypatch.setattr("extractors.stealc.extractor._recover_xor_profile", lambda _data: None)
     result = extract(b"MZ", "fixture.exe")
     assert result["config"]["static_config_recovered"] is True
     assert result["config"]["profile"]["c2_url"] == "https://node.example/gate.php"

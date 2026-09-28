@@ -365,7 +365,7 @@ def _registered_family_ids(value: Mapping[str, Any]) -> frozenset[str]:
     """canonical registryから公開可能なfamily IDだけを厳格に取得する。"""
 
     families = value.get("malware_types")
-    if value.get("schema_version") != 3 or not isinstance(families, Mapping):
+    if type(value.get("schema_version")) is not int or value.get("schema_version") != 3 or not isinstance(families, Mapping):
         raise CorpusSummaryError(
             "family_registry_schema_invalid",
             "既知family registryのschemaが不正です。",
@@ -453,7 +453,7 @@ def _regular_directory(path: Path, *, code: str) -> Path:
 def _validate_run_summary(value: Mapping[str, Any]) -> dict[str, Any]:
     """one-shot summaryの母数と安全flagをfail-closedで検証する。"""
 
-    if value.get("schema_version") != 1:
+    if type(value.get("schema_version")) is not int or value.get("schema_version") != 1:
         raise CorpusSummaryError(
             "run_summary_schema_invalid",
             "one-shot summaryのschema versionが不正です。",
@@ -532,7 +532,7 @@ def _validate_run_summary(value: Mapping[str, Any]) -> dict[str, Any]:
 def _validate_report(report: Mapping[str, Any], digest: str) -> None:
     """report seal、case identity、安全flag、最小状態契約を検証する。"""
 
-    if report.get("schema_version") != 1 or analysis_contract.verify_report_semantics(report):
+    if type(report.get("schema_version")) is not int or report.get("schema_version") != 1 or analysis_contract.verify_report_semantics(report):
         raise CorpusSummaryError(
             "report_semantics_invalid",
             "case reportのschemaまたは意味sealが不正です。",
@@ -588,7 +588,7 @@ def _validate_report(report: Mapping[str, Any], digest: str) -> None:
             "case reportのblocker一覧が不正です。",
         )
     contract = report.get("analysis_contract")
-    if not isinstance(contract, Mapping) or contract.get("schema_version") != 1:
+    if not isinstance(contract, Mapping) or type(contract.get("schema_version")) is not int or contract.get("schema_version") != 1:
         raise CorpusSummaryError(
             "report_analysis_contract_invalid",
             "case reportの解析契約が不正です。",
@@ -656,7 +656,7 @@ def _case_artifact(
 
 
 def _validate_orchestration(value: Mapping[str, Any], digest: str) -> None:
-    if value.get("schema_version") not in SUPPORTED_ORCHESTRATION_SCHEMAS or value.get("sample_sha256") != digest:
+    if type(value.get("schema_version")) is not int or value.get("schema_version") not in SUPPORTED_ORCHESTRATION_SCHEMAS or value.get("sample_sha256") != digest:
         raise CorpusSummaryError(
             "orchestration_identity_invalid",
             "orchestrationのschemaまたはcase identityが不正です。",
@@ -714,7 +714,7 @@ def _validate_orchestration(value: Mapping[str, Any], digest: str) -> None:
             "候補config回収状態がbooleanではありません。",
         )
     config_gate = quality_gates.get("config")
-    if not isinstance(config_gate, Mapping) or config_gate.get("required") not in {True, False, None}:
+    if not isinstance(config_gate, Mapping) or (config_gate.get("required") is not None and type(config_gate.get("required")) is not bool):
         raise CorpusSummaryError(
             "orchestration_config_gate_invalid",
             "config品質gateが不正です。",
@@ -730,7 +730,7 @@ def _validate_orchestration(value: Mapping[str, Any], digest: str) -> None:
 
 
 def _validate_candidate_assessment(value: Mapping[str, Any]) -> None:
-    if value.get("schema_version") != 1 or any(
+    if type(value.get("schema_version")) is not int or value.get("schema_version") != 1 or any(
         value.get(key) is not False
         for key in ("executed_sample", "network_contacted", "filesystem_written_by_handlers")
     ):
@@ -759,7 +759,8 @@ def _validate_candidate_assessment(value: Mapping[str, Any]) -> None:
 def _validate_route(value: Mapping[str, Any], digest: str) -> None:
     safety = value.get("safety")
     if (
-        value.get("schema_version") != 1
+        type(value.get("schema_version")) is not int
+        or value.get("schema_version") != 1
         or value.get("sha256") != digest
         or not isinstance(safety, Mapping)
         or any(
@@ -1111,7 +1112,8 @@ def _static_limit_summary(value: Mapping[str, Any] | None) -> dict[str, Any]:
         }
     events = value.get("limit_events")
     valid = bool(
-        value.get("schema_version") == 1
+        type(value.get("schema_version")) is int
+        and value.get("schema_version") == 1
         and value.get("executed_sample") is False
         and value.get("network_contacted") is False
         and isinstance(events, list)
@@ -1155,6 +1157,9 @@ def _valleyrat_detector_summary(
             "state": "unknown_legacy_schema",
             **empty,
         }
+    # 現producerはversion未宣言。宣言済みprofileを推測で互換扱いしない。
+    if "schema_version" in value:
+        return {"availability": "unknown_invalid_schema", "state": "unknown_invalid_schema", **empty}
     layers = value.get("layer_classifications")
     if not isinstance(layers, list) or not layers or len(layers) > MAX_CASE_OBSERVATIONS:
         return {
@@ -1180,6 +1185,9 @@ def _valleyrat_detector_summary(
             invalid = True
             continue
         classification = layer_record.get("classification")
+        if "schema_version" in layer_record or isinstance(classification, Mapping) and "schema_version" in classification:
+            invalid = True
+            continue
         evaluations = classification.get("detector_evaluations") if isinstance(classification, Mapping) else None
         if not isinstance(evaluations, list):
             invalid = True
@@ -1191,11 +1199,17 @@ def _valleyrat_detector_summary(
             missing_evaluations += 1
             continue
         evaluation = valley_evaluations[0]
+        if "schema_version" in evaluation:
+            invalid = True
+            continue
         evaluated += 1
         if evaluation.get("error") not in (None, ""):
             detector_errors += 1
             continue
         detection = evaluation.get("detection")
+        if isinstance(detection, Mapping) and "schema_version" in detection:
+            invalid = True
+            continue
         detector_matched = evaluation.get("detector_matched")
         if (
             not isinstance(detection, Mapping)
@@ -1589,7 +1603,7 @@ def _case_record(
     _validate_orchestration(orchestration, digest)
     _validate_candidate_assessment(candidate)
     _validate_route(route, digest)
-    if static_logic.get("schema_version") != 1 or static_logic.get("sha256") != digest:
+    if type(static_logic.get("schema_version")) is not int or static_logic.get("schema_version") != 1 or static_logic.get("sha256") != digest:
         raise CorpusSummaryError(
             "static_logic_identity_invalid",
             "static logicのschemaまたはcase identityが不正です。",

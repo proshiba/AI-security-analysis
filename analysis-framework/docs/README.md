@@ -12,6 +12,15 @@
 ## 現行基盤
 
 - [AI非依存の一括静的解析オーケストレーション](AI-FREE-STATIC-ANALYSIS-ORCHESTRATION.md)
+- [AI非依存の静的解析改善と再解析の進め方](STATIC-AUTOMATION-IMPROVEMENTS-20260927.md)
+- [静的設定選択の完全性と相反拒否](STATIC-CONFIG-SELECTION-BOUNDARIES.md)
+- [固定sourceのGit改行保持](STATIC-SOURCE-PACKAGING.md)
+- [起動前の静的監査で重複計算を抑える](STATIC-PREFLIGHT-CACHE.md)
+- [CLR構築前の宣言検査](MANAGED-CONSTRUCTOR-PREFLIGHT.md)
+- [CLRリソース宣言の入力照合と共有予算](MANAGED-RESOURCE-INPUT-BOUNDARY.md)
+- [C2解析契約内のファイル参照の境界](C2-CONTRACT-PATH-BOUNDARY.md)
+- [過去の未完了記録を対象とする読取専用監査](AUTOMATION-FAILURE-INVENTORY.md)
+- [人間レビュー用の有界再解析計画](AUTOMATION-REANALYSIS-PLAN.md)
 - [ValleyRAT AI非依存設定抽出の100件holdout受入試験](VALLEYRAT-AI-FREE-HOLDOUT.md)
 - [識別・解析・公開・保管を接続する解析lifecycleの自動化](ANALYSIS-LIFECYCLE-AUTOMATION.md)
 - [複数の解析lifecycleを統括する解析全体オーケストレータ](ANALYSIS-ORCHESTRATOR.md)

@@ -145,5 +145,6 @@ def test_unpacker_disables_import_dependent_packing_heuristics(
         "imports_known": False,
         "low_import_heuristics_applied": False,
         "resources_complete": True,
+        "managed_lexical_references_complete": None,
         "limitations": ["import_directory_parse_failed"],
     }

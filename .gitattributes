@@ -1,1 +1,13 @@
 analysis-framework/malware/redlinestealer/active_profiles.json text eol=lf
+
+# 固定SHAと全AST契約を持つ通常sourceは、Gitによる改行変換だけを停止する。
+# text diffを維持し、既存の検証済みbyte列とsource pinを変更しない。
+unpackers/managed_resources.py -text diff whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+unpackers/dnfile_resource_adapter.py -text diff whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+unpackers/clr_input_binding.py -text diff whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+unpackers/managed_resource_snapshot.py -text diff whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+unpackers/managed_constructor_guard.py -text diff whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+unpackers/managed_il_triage.py -text diff whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+unpackers/managed_proxy_deobfuscator.py -text diff whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+analysis-framework/common/dotnet_rat_config.py -text diff whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+unpackers/managed_metadata.py -text diff whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

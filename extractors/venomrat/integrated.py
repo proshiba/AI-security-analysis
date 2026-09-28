@@ -131,29 +131,42 @@ def structural_evidence(data: bytes) -> dict[str, object]:
     }
 
 
-def _validated_dynamic_url(value: object) -> str | None:
+def _validated_dynamic_url(value: object, scope: object = None) -> str | None:
+    """非nullの動的設定値は明示されたoriginだけを受理し、完全locatorへ昇格しない。"""
+
     if value is None:
         return None
-    if not isinstance(value, str) or len(value) > 2_048:
-        raise ValueError("動的設定URLの型または長さが不正です")
-    parsed = urlsplit(value)
+    if (
+        not isinstance(value, str)
+        or not 1 <= len(value) <= 2_048
+        or scope != "origin_only"
+        or any(ord(character) <= 0x20 for character in value)
+        or "?" in value
+        or "#" in value
+    ):
+        raise ValueError("動的設定originの明示契約が不正です")
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("動的設定originの形式が不正です") from exc
     if (
         parsed.scheme.casefold() not in {"http", "https"}
         or not parsed.hostname
         or parsed.username is not None
         or parsed.password is not None
         or not valid_host(parsed.hostname)
+        or parsed.path not in {"", "/"}
+        or parsed.query
+        or parsed.fragment
     ):
-        raise ValueError("動的設定URLが許可形式ではありません")
-    try:
-        port = parsed.port
-    except ValueError as exc:
-        raise ValueError("動的設定URLのportが不正です") from exc
+        raise ValueError("動的設定originが許可形式ではありません")
     if port is not None and not 1 <= port <= 65_535:
-        raise ValueError("動的設定URLのportが範囲外です")
+        raise ValueError("動的設定originのportが範囲外です")
     host = parsed.hostname.casefold().rstrip(".")
-    netloc = f"{host}:{port}" if port is not None else host
-    return urlunsplit((parsed.scheme.casefold(), netloc, parsed.path, "", ""))
+    authority = f"[{host}]" if ":" in host else host
+    netloc = f"{authority}:{port}" if port is not None else authority
+    return urlunsplit((parsed.scheme.casefold(), netloc, "/", "", ""))
 
 
 def _validated_recovery(data: bytes) -> dict[str, object]:
@@ -163,7 +176,8 @@ def _validated_recovery(data: bytes) -> dict[str, object]:
         raise ValueError("設定復元結果がobjectではありません")
     digest = hashlib.sha256(data).hexdigest()
     if (
-        recovered.get("schema_version") != 1
+        type(recovered.get("schema_version")) is not int
+        or recovered.get("schema_version") != 1
         or recovered.get("family") != "venomrat"
         or recovered.get("sha256") != digest
         or recovered.get("terminal_managed_client") is not True
@@ -221,15 +235,18 @@ def _validated_recovery(data: bytes) -> dict[str, object]:
         raise ValueError("versionが不正です")
     if group is not None and (not isinstance(group, str) or len(group) > 512):
         raise ValueError("groupが不正です")
+    dynamic_url = _validated_dynamic_url(
+        recovered.get("dynamic_config_url"), recovered.get("dynamic_config_url_scope")
+    )
     return {
         "version": version,
         "install": recovered.get("install"),
         "group": group,
         "anti_analysis": recovered.get("anti_analysis"),
         "endpoints": endpoints,
-        "dynamic_config_url": _validated_dynamic_url(
-            recovered.get("dynamic_config_url")
-        ),
+        "dynamic_config_url": dynamic_url,
+        "dynamic_config_url_scope": "origin_only" if dynamic_url is not None else None,
+        "dynamic_config_locator_complete": False,
         "certificate": {
             "sha256": certificate_sha256,
             "size": certificate_size,
@@ -248,7 +265,14 @@ def extract(data: bytes, name: str = "sample") -> dict:
     recovery_status = "not_attempted_structural_mismatch"
     if structural["matched"] is True:
         try:
-            recovery = _validated_recovery(data)
+            candidate_recovery = _validated_recovery(data)
+            dynamic_url = _validated_dynamic_url(
+                candidate_recovery.get("dynamic_config_url"),
+                candidate_recovery.get("dynamic_config_url_scope"),
+            )
+            recovery = {**candidate_recovery, "dynamic_config_url": dynamic_url,
+                "dynamic_config_url_scope": "origin_only" if dynamic_url is not None else None,
+                "dynamic_config_locator_complete": False}
             recovery_status = "recovered_hmac_verified"
         except (ImportError, OSError, ValueError):
             recovery_status = "rejected_or_not_recovered"
@@ -274,6 +298,9 @@ def extract(data: bytes, name: str = "sample") -> dict:
                     "role": "dynamic_config_resolver",
                     "confidence": "confirmed_static_config",
                     "source": "hmac_verified_dotnet_settings",
+                    "value_scope": "origin_only",
+                    "retrieval_locator_complete": False,
+                    "terminal_c2_endpoint": False,
                 }
             )
         certificate = recovery["certificate"]
@@ -308,6 +335,8 @@ def extract(data: bytes, name: str = "sample") -> dict:
                 "version": None,
                 "endpoints": [],
                 "dynamic_config_url": None,
+                "dynamic_config_url_scope": None,
+                "dynamic_config_locator_complete": False,
                 "certificate": {
                     "sha256": None,
                     "size": None,
@@ -324,7 +353,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "検体は実行せず、外部hostへ接続していません。",
             "CLR metadataとVenom固有の難読化field集合が一致しない入力では設定復元を試行しません。",
             "設定値はHMAC-SHA256を検証してからAES-256-CBCで復号し、認証失敗時は候補値を公開しません。",
-            "dynamic_config_urlは時点付きで別取得し、復号設定と混同しないでください。",
+            "dynamic_config_urlはoriginだけの文脈情報です。取得用完全URL、確定した終端C2、ライブ観測先へ転用しません。",
             "証明書不一致だけでは非C2と判定しません。",
         ],
     )

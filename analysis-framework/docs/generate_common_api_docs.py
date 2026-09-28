@@ -24,9 +24,25 @@ MODULE_SOURCES = {
     "analysis_resume_planner": "analysis-framework/common/analysis_resume_planner.py",
     "analyze_sample": "analysis-framework/common/analyze_sample.py",
     "extract_pyinstaller_archive": "analysis-framework/common/extract_pyinstaller_archive.py",
+    "ghidra_function_batch": "analysis-framework/common/ghidra_function_batch.py",
     "static_implementation_commitment": (
         "analysis-framework/common/static_implementation_commitment.py"
     ),
+    "dotnet_rat_config": "analysis-framework/common/dotnet_rat_config.py",
+    "extractors.profiled_family": "extractors/profiled_family.py",
+    "unpackers.profiled_transform": "unpackers/profiled_transform.py",
+    "static_layer_pipeline": "analysis-framework/common/static_layer_pipeline.py",
+    "unpackers.managed_il_triage": "unpackers/managed_il_triage.py",
+    "unpackers.managed_proxy_deobfuscator": "unpackers/managed_proxy_deobfuscator.py",
+    "unpackers.managed_metadata": "unpackers/managed_metadata.py",
+    "unpackers.managed_resources": "unpackers/managed_resources.py",
+    "unpackers.dnfile_resource_adapter": "unpackers/dnfile_resource_adapter.py",
+    "unpackers.clr_input_binding": "unpackers/clr_input_binding.py",
+    "unpackers.managed_resource_snapshot": "unpackers/managed_resource_snapshot.py",
+    "unpackers.managed_constructor_guard": "unpackers/managed_constructor_guard.py",
+    "automation_failure_inventory": "analysis-framework/common/automation_failure_inventory.py",
+    "automation_reanalysis_plan": "analysis-framework/common/automation_reanalysis_plan.py",
+    "unpackers.managed_tripledes_gzip": "unpackers/managed_tripledes_gzip.py",
 }
 REPOSITORY_PATH_PLACEHOLDER = "<repo-root>"
 
@@ -64,15 +80,37 @@ def _signature(member: object) -> str | None:
             str(inspect.signature(member)),
             replacement=REPOSITORY_PATH_PLACEHOLDER,
         )
+        for original, symbolic in _callable_default_replacements(member).items():
+            signature = signature.replace(original, symbolic)
         return escape(signature)
     except (TypeError, ValueError):
         return None
+
+
+def _callable_default_replacements(member: object) -> dict[str, str]:
+    """関数の既定値だけを修飾名へ固定し、process固有アドレスを除く。"""
+
+    try:
+        parameters = inspect.signature(member).parameters.values()
+    except (TypeError, ValueError):
+        return {}
+    replacements: dict[str, str] = {}
+    for parameter in parameters:
+        default = parameter.default
+        if inspect.isfunction(default) or inspect.ismethod(default) or inspect.isbuiltin(default):
+            module = getattr(default, "__module__", "")
+            name = getattr(default, "__qualname__", getattr(default, "__name__", ""))
+            if isinstance(module, str) and isinstance(name, str):
+                replacements[repr(default)] = f"{module}.{name}".strip(".")
+    return replacements
 
 
 def _render_routine(renderer: pydoc.HTMLDoc, public_name: str, member: object) -> str:
     """公開alias名をanchorと表示名へ固定してroutineを描画する。"""
 
     rendered = renderer.docroutine(member)
+    for original, symbolic in _callable_default_replacements(member).items():
+        rendered = rendered.replace(escape(original), escape(symbolic))
     internal_name = getattr(member, "__name__", public_name)
     if internal_name != public_name:
         rendered = rendered.replace(
@@ -140,10 +178,14 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description="静的解析自動化APIの日本語文書を同期")
     parser.add_argument("--check", action="store_true", help="書き込まず差分だけを検査")
+    parser.add_argument(
+        "--module", action="append", choices=sorted(MODULE_SOURCES),
+        help="指定した固定moduleだけを生成・照合（繰り返し指定可）",
+    )
     args = parser.parse_args()
     different: list[str] = []
     output_root = REPOSITORY / "docs" / "pydoc"
-    for module_name in MODULE_SOURCES:
+    for module_name in dict.fromkeys(args.module or MODULE_SOURCES):
         target = output_root / f"{module_name}.html"
         rendered = render_module(module_name)
         if args.check:

@@ -1,0 +1,25 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>unpackers.go_decoder_shape — API仕様</title></head><body>
+<h1>unpackers.go_decoder_shape</h1>
+<p><a href="../../unpackers/go_decoder_shape.py">実装</a></p>
+<pre>Go decoderの全本文・branch・runtime callをレビュー済みshapeへ照合する。
+
+実行、CPU emulation、file書込み、networkを行わない。
+関数名乱数・検体SHA・復号keyをshapeの選択には使用しない。</pre>
+<h2>ShapeError</h2>
+<pre>未知または壊れたshapeをfail-closedで拒否する。</pre>
+<h2>function_shape</h2>
+<dl><dt><a name="-function_shape"><strong>function_shape</strong></a>(
+    instructions: 'list[dict]',
+    function: 'dict',
+    functions: 'list[dict]',
+    read_va=None,
+    *,
+    deadline: 'float | None' = None,
+    clock: 'Callable[[], float]' = &lt;built-in function monotonic&gt;
+) -&gt; 'dict'</dt><dd><span class="code">連続全命令を照合可能な形式へ正規化し、強い全本文digestを返す。</span></dd></dl>
+
+<h2>require_reviewed_shape</h2>
+<dl><dt><a name="-require_reviewed_shape"><strong>require_reviewed_shape</strong></a>(value: 'dict', profiles: 'list[dict]') -&gt; 'dict'</dt><dd><span class="code">全本文とreview済みshapeが一致する場合だけprofileを返す。</span></dd></dl>
+
+</body></html>

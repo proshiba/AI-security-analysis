@@ -20,6 +20,27 @@ from typing import Any, Iterable
 import warnings
 
 try:
+    from .managed_metadata import MetadataResolver
+except ImportError:  # 単独CLI
+    from managed_metadata import MetadataResolver
+
+try:
+    from .managed_resource_snapshot import prepare_resource_snapshot, revalidated_resource_scan
+except ImportError:  # 単独CLIまたは新依存が不足した状態
+    try:
+        from managed_resource_snapshot import prepare_resource_snapshot, revalidated_resource_scan
+    except ImportError:
+        prepare_resource_snapshot = revalidated_resource_scan = None
+
+try:
+    from .managed_constructor_guard import preflight_clr_declarations
+except ImportError:  # 単独CLIまたは新依存が不足した状態
+    try:
+        from managed_constructor_guard import preflight_clr_declarations
+    except ImportError:
+        preflight_clr_declarations = None
+
+try:
     import dnfile
 except ImportError:  # pragma: no cover - 依存関係がない環境
     dnfile = None
@@ -60,6 +81,8 @@ def decrypt_eaz_proxy_table(
     addend: int = 848_575_190,
 ) -> bytes:
     """確認済みEazfuscator系word変換を適用する。"""
+    if len(data) > MAX_PROXY_RECORDS * 8:
+        raise ValueError("プロキシ変換byte数が安全上限を超えています")
     if not data or len(data) % 4:
         raise ValueError("プロキシresource長は4の倍数である必要があります")
     output = bytearray(len(data))
@@ -104,16 +127,31 @@ def parse_proxy_records(clear: bytes) -> list[dict[str, Any]]:
     if len(clear) // 8 > MAX_PROXY_RECORDS:
         raise ValueError("プロキシrecord数が安全上限を超えています")
     records = []
+    seen_fields: dict[int, int] = {}
     for offset in range(0, len(clear), 8):
         field_token, encoded_target = struct.unpack_from("<II", clear, offset)
         callvirt = bool(encoded_target & 0x40000000)
         target_token = encoded_target & 0xBFFFFFFF
+        reasons = []
+        if field_token >> 24 != 0x04 or not field_token & 0xFFFFFF:
+            reasons.append("invalid_field_token")
+        if target_token >> 24 not in {0x06, 0x0A, 0x2B} or not target_token & 0xFFFFFF:
+            reasons.append("invalid_method_token")
+        if field_token in seen_fields:
+            reasons.append("duplicate_field_mapping")
+            earlier = records[seen_fields[field_token]]
+            earlier["valid"] = False
+            if "duplicate_field_mapping" not in earlier["invalid_reasons"]:
+                earlier["invalid_reasons"].append("duplicate_field_mapping")
+        else:
+            seen_fields[field_token] = len(records)
         records.append({
             "index": offset // 8,
             "field_token": f"0x{field_token:08x}",
             "target_token": f"0x{target_token:08x}",
             "call_kind": "callvirt" if callvirt else "call",
-            "valid": field_token >> 24 == 0x04 and target_token >> 24 in {0x06, 0x0A, 0x2B},
+            "valid": not reasons,
+            "invalid_reasons": reasons,
         })
     return records
 
@@ -131,29 +169,63 @@ def resource_summary(name: str, content: bytes) -> dict[str, Any]:
     }
 
 
+def _consumed_metadata_coverage(resolver, work, scan):
+    """元resolverのcoverageを変えず、最新のsource照合を別scopeで公開する。"""
+    coverage = resolver.coverage()
+    resource_coverage = scan.coverage()
+    fresh_work = resource_coverage["work"]
+    accepted = (work["accepted"] is True and resource_coverage["input_binding_verified"] is True
+                and fresh_work["shared_snapshot_reused"] is True)
+    coverage["shared_snapshot"] = {**work, "accepted": accepted,
+                                   "resource_consumer_source_work": dict(fresh_work)}
+    if not accepted:
+        coverage["complete"] = False
+    return coverage
+
+
+def _preparation_failed_coverage():
+    """新依存の失敗をcompleteやno-resourceへ丸めない固定公開診断。"""
+    return {"status": "partial", "inventory_complete": False,
+            "embedded_scan_complete": False, "input_binding_verified": False,
+            "reason_counts": {"resource_snapshot_preparation_failed": 1}}
+
+
+def _resource_blob_scope(data: bytes, pe: Any, *, resource_scan=None):
+    """最新のsource証明済みdescriptorだけから本文を取得する。"""
+    if resource_scan is None:
+        resource_scan, _, _ = prepare_resource_snapshot(
+            data, pe, max_resources=MAX_RESOURCE_COUNT, max_resource_bytes=MAX_RESOURCE_BYTES)
+    fresh = revalidated_resource_scan(data, resource_scan)
+    resources = [(descriptor.name, data[descriptor.body_offset:descriptor.body_offset + descriptor.body_size])
+                 for descriptor in fresh._descriptors if descriptor.kind == "embedded"]
+    return resources, fresh
+
+
 def _resource_blobs(data: bytes, pe: Any) -> Iterable[tuple[str, bytes]]:
-    table = getattr(getattr(pe.net, "mdtables", None), "ManifestResource", None)
-    rows = getattr(table, "rows", ()) or ()
-    base_rva = int(pe.net.struct.ResourcesRva)
-    for index, row in enumerate(rows):
-        if index >= MAX_RESOURCE_COUNT:
-            break
-        if getattr(row, "Implementation", None) is not None:
-            continue
-        header_offset = int(pe.get_offset_from_rva(base_rva + int(row.Offset)))
-        if not 0 <= header_offset <= len(data) - 4:
-            continue
-        size = struct.unpack_from("<I", data, header_offset)[0]
-        start = header_offset + 4
-        if size <= MAX_RESOURCE_BYTES and size <= len(data) - start:
-            yield str(row.Name), data[start : start + size]
+    """従来Iterable契約を維持し、再検証済み本文だけをyieldする。"""
+    resources, _ = _resource_blob_scope(data, pe)
+    yield from resources
 
 
-def analyze_proxy_resources(resources: Iterable[tuple[str, bytes]], *, include_records: bool = False) -> dict[str, Any]:
+def analyze_proxy_resources(resources: Iterable[tuple[str, bytes]], *, include_records: bool = False,
+                            metadata_resolver: MetadataResolver | None = None) -> dict[str, Any]:
     """resource群から妥当な動的プロキシ表候補を抽出する。"""
     candidates = []
-    for name, content in resources:
+    rejected = []
+    budget_exhausted = []
+    total_bytes = 0
+    for resource_index, (name, content) in enumerate(resources):
+        if resource_index >= MAX_RESOURCE_COUNT:
+            budget_exhausted.append("resources")
+            break
+        total_bytes += len(content)
+        if total_bytes > MAX_RESOURCE_BYTES:
+            budget_exhausted.append("resource_bytes")
+            break
         if len(content) < 64 or len(content) % 8:
+            continue
+        if len(content) > MAX_PROXY_RECORDS * 8:
+            budget_exhausted.append("proxy_records")
             continue
         for transform in EAZ_PROXY_TRANSFORMS:
             try:
@@ -167,7 +239,22 @@ def analyze_proxy_resources(resources: Iterable[tuple[str, bytes]], *, include_r
                 continue
             valid_count = sum(bool(record["valid"]) for record in records)
             ratio = valid_count / len(records)
+            # 率だけで不正recordを含む表全体を採用しない。
             if valid_count < 8 or ratio < 0.95:
+                continue
+            reasons = Counter(reason for record in records for reason in record["invalid_reasons"])
+            if metadata_resolver is not None:
+                for record in records:
+                    record["field_resolution"] = metadata_resolver.resolve(int(record["field_token"], 16), kind="field")
+                    record["target_resolution"] = metadata_resolver.resolve(int(record["target_token"], 16))
+                reasons.update(resolution["reason"] for record in records
+                               for resolution in (record["field_resolution"], record["target_resolution"])
+                               if resolution["status"] != "resolved")
+            if reasons:
+                rejected.append({"resource_sha256": hashlib.sha256(content).hexdigest(),
+                                 "transform_profile": transform["profile"], "record_count": len(records),
+                                 "reason_counts": dict(sorted(reasons.items())),
+                                 "status": "rejected_not_verified_proxy_table"})
                 continue
             item = {
                 "resource_name": name,
@@ -180,20 +267,30 @@ def analyze_proxy_resources(resources: Iterable[tuple[str, bytes]], *, include_r
                 "valid_record_ratio": round(ratio, 4),
                 "call_count": sum(record["call_kind"] == "call" for record in records),
                 "callvirt_count": sum(record["call_kind"] == "callvirt" for record in records),
+                "validation_level": "metadata_declaration_validated_candidate" if metadata_resolver else "syntactic_candidate_only",
+                "runtime_dispatch_verified": False,
+                "protector_attribution_confirmed": False,
             }
             if include_records:
                 item["records"] = records
             candidates.append(item)
             break
+    if metadata_resolver is not None and not metadata_resolver.coverage()["complete"]:
+        budget_exhausted.append("reference_metadata")
     return {
-        "status": "matched" if candidates else "not_matched",
+        "status": "partial_budget" if budget_exhausted else "matched" if candidates else "not_matched",
         "profile": "eazfuscator_dynamic_proxy_multi_variant" if candidates else None,
         "candidates": candidates,
+        "rejected_candidates": rejected,
+        "budget_exhausted": sorted(set(budget_exhausted)),
+        "metadata_coverage": metadata_resolver.coverage() if metadata_resolver else None,
     }
 
 
 def analyze_managed_protector(data: bytes, *, include_records: bool = False) -> dict[str, Any]:
     """managed PEを実行せずprotector profileを抽出する。"""
+    if type(data) is not bytes:
+        raise TypeError("dataにはexact bytesを指定してください")
     result = {
         "schema_version": 1,
         "analysis": "static_managed_proxy_deobfuscation",
@@ -214,19 +311,54 @@ def analyze_managed_protector(data: bytes, *, include_records: bool = False) -> 
         result["status"] = "dependency_missing"
         return result
     try:
+        if preflight_clr_declarations is None:
+            raise ValueError("metadata_constructor_preflight_dependency_missing")
+        metadata_preflight = preflight_clr_declarations(data)
+    except Exception:
+        metadata_preflight = {"status": "partial", "accepted": False,
+                              "scope": "constructor_declarations_only", "input_bound": False,
+                              "reason_counts": {"preflight_dependency_failed": 1}}
+    result["metadata_preflight"] = metadata_preflight
+    if not metadata_preflight["accepted"]:
+        result["status"] = "partial_budget"
+        result["budget_exhausted"] = ["metadata_constructor_preflight"]
+        result["resource_coverage"] = _preparation_failed_coverage()
+        result["reference_metadata_coverage"] = {"complete": False, "shared_snapshot": {"accepted": False}}
+        return result
+    try:
         with _contained_parser_diagnostics():
-            pe = dnfile.dnPE(data=data)
+            pe = dnfile.dnPE(data=data, clr_lazy_load=True)
         if not getattr(pe, "net", None):
             result["status"] = "not_managed_pe"
             return result
-        resources = list(_resource_blobs(data, pe))
+        try:
+            if prepare_resource_snapshot is None or revalidated_resource_scan is None:
+                raise ValueError("resource_snapshot_dependency_missing")
+            resource_scan, resolver, shared_work = prepare_resource_snapshot(
+                data, pe, max_resources=MAX_RESOURCE_COUNT, max_resource_bytes=MAX_RESOURCE_BYTES)
+            resources, resource_scan = _resource_blob_scope(data, pe, resource_scan=resource_scan)
+            result["resource_coverage"] = resource_scan.coverage()
+            result["reference_metadata_coverage"] = _consumed_metadata_coverage(resolver, shared_work, resource_scan)
+        except Exception:
+            result["status"] = "partial_budget"
+            result["budget_exhausted"] = ["resource_snapshot"]
+            result["resource_coverage"] = _preparation_failed_coverage()
+            result["reference_metadata_coverage"] = {"complete": False, "shared_snapshot": {"accepted": False}}
+            return result
         result["resource_inventory"] = [resource_summary(name, content) for name, content in resources]
-        proxy = analyze_proxy_resources(resources, include_records=include_records)
+        proxy = analyze_proxy_resources(resources, include_records=include_records, metadata_resolver=resolver)
+        proxy["metadata_coverage"] = result["reference_metadata_coverage"]
+        if (not result["resource_coverage"]["inventory_complete"]
+                or not result["reference_metadata_coverage"]["shared_snapshot"]["accepted"]):
+            proxy["status"] = "partial_budget"
+            proxy["budget_exhausted"] = sorted(set(proxy["budget_exhausted"] + ["resource_inventory"]))
         result["proxy_analysis"] = proxy
-        result["status"] = "matched" if proxy["status"] == "matched" else "no_match"
-        if proxy["status"] == "matched":
+        result["status"] = ("partial_budget" if proxy["status"] == "partial_budget" or not resolver.coverage()["complete"]
+                            else "matched" if proxy["status"] == "matched" else "no_match")
+        if proxy["candidates"]:
             result["limitations"] = [
-                "動的プロキシ表は復元済みだが、呼出し先本体の仮想化解除は別工程です。",
+                "proxy表の変換候補とmetadata宣言を照合済みですが、実行時dispatchとprotector帰属は未確認です。",
+                "MethodSpecのgeneric引数はsignature上の境界と数だけを確認し、generic制約や実行時型選択は検証しません。",
                 "暗号化assembly resourceのsample固有鍵はこのprofileでは復元しません。",
             ]
     except Exception as error:

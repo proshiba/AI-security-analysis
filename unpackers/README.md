@@ -15,9 +15,12 @@
 | PyInstaller CArchive | cookie／TOC／全entry境界・path衝突・圧縮stream終端・実sizeをmemory上で検証 | script、module、PYZ、PE、入れ子archiveの優先保持と全inventory commitment |
 | UPX | 隔離した入力に対して信頼済み UPX utility を実行 | UPX が file を検証できた場合の unpack 済み PE |
 | PE resource と overlay | offset と size を parse し、有効な PE 範囲を carve | child PE/resource |
+| Go Windows AMD64の明示的な5段byte変換 | Go1.20以降のpclntab、関数境界、定数copy、review済み数学blockのregister幅・使用関係・順序を照合 | 親子SHA-256付きの構造検証済みPE候補 |
 | PE `.data` の逆順fragment＋affine XOR Donut wrapper | `.data`末尾のkey／size、4・8分割の境界、zero padding、既知Donut loader prologue、復号instanceを上限付きで照合 | 認証済みDonut shellcodeを子レイヤーへ送り、終端moduleを再帰解析 |
 | GDPF PDF overlay | EOFのlittle-endian size、GDPF footer、PE overlay境界、%PDF- magicを同時検証 | 実在する場合だけPDFデコイを子レイヤー化 |
 | .NET ResourceSet | object を deserialize せず serialized resource を parse | string、byte array、image |
+| .NET single-file bundle | manifest境界、圧縮終端、宣言sizeとSHA-256を照合し、固定件数・byte上限内で選定 | 本体・設定・依存候補と、省略理由付き全entry台帳 |
+| .NET resourceのTripleDES-CBC＋4-byte prefix付きGZIP | framework API署名、CIL local定義・使用、正常CFG、16/24-byte keyとAssembly.Load sinkを照合 | 独立した子解析へ渡すPE/CLR境界検証済み候補 |
 | .NET bitmap steganography | 上限付き RGB column traversal を再現 | 埋め込み managed PE |
 | AutoIt A3X | script が手順を明示する場合に literal、RC4、LZNT1 を decode | 埋め込み PE |
 | JavaScript string array 難読化 | array を parse し、rotation を解き、alias を decode して literal を畳み込み | 可読化した script と URL |
@@ -33,11 +36,15 @@
 
 `reverse_chunk_affine_xor_donut_pe.py` は、`.data` に一意な候補と認証済みDonut instanceがある場合だけ子shellcodeを返します。復元されたshellcodeと終端moduleは `static_layer_pipeline.py` が親子SHA-256を付けて再帰解析します。Donutの既知prologueとinstanceの検証は両方必要で、wrapper構造だけをfamilyまたはC2の確定根拠にしません。
 
+`go_embedded_pe.py` は、Windows AMD64のGo wrapperにある明示的なcopy source、size、literal prefix、decoder callと、レビュー済みの5段変換（偶奇byte変換、全体反転、隣接交換、index依存減算、index依存XOR）だけを静的に再構成します。検体SHA、module名、関数名の乱数部分、鍵の一覧には依存しません。命令の実行、CPU emulation、ネットワーク、外部process、ファイル書込みは使用しません。復号先はPE header、全sectionのfile境界、AMD64、実行可能section内のentryを再検証します。入力32 MiB、出力8 MiB、関数8,192件、関数body512 KiB、names領域1 MiB、候補table8件、copy候補4件、経過10秒を上限とし、曖昧なcopyや演算blockの変更は拒否します。reportは演算blockのRVA、親子hash、sizeだけを残し、生鍵・復号byte・元module名を公開しません。復元はchild候補の取得であり、制御フロー全体の意味的完了、終端到達、ファミリー確定、C2確認ではありません。Goという言語や包装形式だけからmalware familyを推定しません。
+
 collection単位の再開では `analysis-framework/common/collection_followup_planner.py` が、公開済みreportの契約と登録済みblockerだけを読み、未完了caseを再試行可能性別に分類します。同一証拠で解消できないblockerは無益に再実行せず、新しいterminal evidenceまたは対応実装を待つ計画として残します。
 
 CABはparserを呼ぶ前に`MSCF` headerとversion、予約field、cabinet実size、単一volume、folder・file・data block件数、file/folder offset、宣言size、path衝突を検証します。None/MSZIPはこの予算検証後に`cabarchive`へ渡します。LZXはwindow 15–21と全blockの非zero checksumも検証し、`cabarchive`が正確に`LZX compression not supported`を返した場合だけ`binary-refinery`へ切り替えます。LZX固有のpeak memory事前判定は、入力CAB、全folderの復号cache、全memberの`bytes`化、最大decoder window、member・folder・block metadataを合算し、さらにPython runtimeと周辺解析用に256 MiBを予約します。この保守的な見積りが1 GiBを1 byteでも超える場合はdecoder起動前に拒否し、判定内訳と残余byte数を正常時の機械可読contractへ記録します。展開後もfolder/member sizeとmember tableを再照合し、全条件が一致した場合だけ結果を保持します。一時file、外部process、検体・payloadの実行、network通信は使わず、検証失敗時に7-Zipへ迂回しません。checksumを持たないLZX CAB、multi-volume CAB、Quantum圧縮、重複pathは安全側に拒否します。
 
 PyInstaller CArchiveは最大16,384件（hard limit 65,536件）のTOCを先に全検証します。既定budget内では全entryを1件ずつ展開してzlib EOF、宣言size、実size、SHA-256、形式を検証し、非候補bytesは直ちに破棄します。archive全体を自動解析する`analyze_carchive_bytes()`で後段へ保持する候補は最大256件で、caller指定、Python script、module、PYZ、PE名候補、入れ子archiveの順です。一方、名前またはprefixを指定する`extract_selected_entries_from_bytes()`、`analyze()`、standalone CLIの`--max-files`は既定・hard limitとも128件を維持します。256件への拡張はarchive全体の自動候補保持だけに適用され、選択抽出APIの契約を広げません。1 entryは64 MiB、保持総量は128 MiB、全内容検証は256 MiB／120秒を上限とし、超過や高価値候補の未保持は`partial`とblockerへ残します。公開reportは全entry列ではなく件数・形式集計とinventory/content commitmentを持ち、PyInstallerという包装形式だけからmalware familyや悪性意図を推定しません。
+
+`dotnet_bundle_unpacker.py`は、本体・設定、観測済みのruntime内容不整合、非runtime依存、予算不足または未対応profileで未評価のruntime、内容整合を確認したruntime、形式確認済みsymbolsの順で候補を選定します。予算で未評価だったことを内容不一致や安全確認へ読み替えません。parser拒否、metadata不正、未知statusは高優先のままです。32候補／128MiBの選定上限、64件／128MiB／単体32MiBのruntime内容probe上限を維持し、未選定entryのSHA-256・size・省略理由と`selection_complete=false`を残します。復元と構造照合は、ファミリー特定・C2取得・全解析完了を意味しません。
 
 TOCの`typecode=s`かつname領域が先頭NULの匿名scriptは、TOC順序に束縛した合成名で保持します。元name領域はsizeとSHA-256をinventory commitmentと保持metadataに残し、不透明bytesはpathとして解釈しません。通常名の不正padding、script以外の匿名entry、path衝突、payload境界違反、不正zlib streamは引き続き拒否します。
 
@@ -45,7 +52,13 @@ CABなどの展開後に保持対象memberがない場合、Inno side-loadingの
 
 PE imageの直後1 MiB以内にある`Nullsoft`または`Inno Setup` markerは、image内のUPX等のpacker markerと分離してinstaller候補にします。markerだけでは外部parserを開始せず、検証済みloader構造を持つInno候補で、信頼済みinnounpが設定されている場合はinnounpによる一覧化、`install_script.iss`の検証、選択復元を先に行います。innounpのinventoryが完了した場合は同じ入力を7zzで重複処理しません。innounpが未設定またはinventory未完了で信頼済み7zzが設定されている場合は、7zzの境界付きinventory／静的展開へfallbackします。初回の構造判定では未確認でも7zz inventoryからInnoが確認され、innounpをまだ試行していない場合は、innounpの選択復元も追加する併用経路になります。parserが対応しないinstallerは空の成功へせず`container_parser_unavailable`として残します。member件数だけでなく宣言総量が上限を超えるarchiveも、app本体、script、設定、PE等を上限内で選択復元します。
 
+Go復元では、数学blockの存在順だけでは受理しません。`go_decoder_shape.py` がdecoder全本文の連続coverage、命令位置・size・opcode、hardware register幅と使用関係（単項imulの暗黙RAX/RDXを含む）、全内部branchの相対target、Go関数表へ結び付けたruntime callを照合します。有界compiler switchは比較上限と全jump-table targetをfile-backed bytesから検証し、table改変も拒否します。`profiles/go_decoder_shapes.json` のレビュー済み全本文fingerprintと数学blockの両方へ一致する場合だけ復号します。runtime.printint/uint直前の一回の印字literal以外の即値は保持します。全mathをskipする分岐、追加byte演算、未知callee／compiler形状は、出力PEが成立しても拒否します。この保守的なregistryは対象SHAや鍵の特例ではありませんが、未レビューの難読化variantを広く復元できるという保証でもありません。
+
 ## 使用 tool
+
+`managed_tripledes_gzip.py` は、literal resource、Base64の16/24-byte keyと8-byte IV、CBC/PKCS7の設定を同じlocalの定義・使用に結び付けます。framework AssemblyRefの名前・公開鍵tokenとMemberRefの完全signatureを検証し、同名の検体内methodや`Assembly.Load(string)`を解釈しません。`TransformFinalBlock`と`CryptoStream`のread/copy方式に対応し、4-byte prefixを除いたMemoryStream、GZipStream、正のread件数をwriteするloop、`ToArray`から`Assembly.Load(byte[])`への受渡しが必要です。正常CFGで各localの一意な定義が使用を支配することを検証し、迂回branch、配列への未レビューの変更・alias、曖昧なresource、重複／file外のresource範囲を拒否します。
+
+入力32 MiB、resource4 MiB、復号出力8 MiB、method4,096件、単一body256 KiB、body合計2 MiB、resource256件、各参照表16,384件、経過10秒が上限です。GZIPのprefix宣言長、単一stream終端、PEの全sectionとCLR metadata境界を再確認します。prefixの検証は静的container検証であり、親コードが長さを実行時検査したという意味ではありません。例外経路の意味的完了は保証せず、復元結果だけでfamily、C2、終端到達を確定しません。親子hash、size、MethodDef token/RVA、sinkと必要命令のbody offsetを記録し、生key／IV、resource名、復号byteは公開reportに含めません。検体・CIL・CLRの実行、CPU emulation、通信、外部process、file書込みは行いません。
 
 推奨する7-Zip binaryはNSIS decompile対応buildです。innounpは同伴DLLを必要としないself-containedな配布物を使用します。いずれも信頼済みの静的archive／installer parserとしてだけ使用し、installerや復元memberは実行しません。
 
@@ -130,6 +143,7 @@ report では次の blocker class を使用します。
 ```powershell
 & $Python -m pytest .\unpackers\tests -q
 & $Python -m pydoc unpackers.static_unpacker
+& $Python -m pydoc unpackers.go_embedded_pe
 & $Python -m pydoc unpackers.opaque_native_entry
 & $Python -m pydoc unpackers.javascript_obfuscator
 & $Python -m pydoc unpackers.javascript_dropper_unpacker
@@ -204,3 +218,15 @@ python unpackers/msi_static_inventory.py `
 ```
 
 入力サイズは既定で256MiBを上限とし、SHA-256はストリーム単位で計算する。出力には絶対パスを残さず、入力ファイル名、`File`、`CustomAction`、`InstallExecuteSequence`、`Media`、カスタムアクションのsource IDから実ファイル名への対応を含む。Windows Installerのインストール処理は呼び出さない。
+
+## コード参照に基づくGo・ARX20包装の静的復元
+
+`go_embedded_pe.py`は、x64 PEのGo関数表、`main.main`のコピー引数、復号関数の5段の数学処理を照合する。コピー先頭の短いprefix、参照元、長さ、鍵は各入力の命令列から取得する。復号結果のPE境界と実行可能section内のentryを検証してから、通常の静的layer解析へ渡す。Go本体、復元PE、CPU命令を実行しない。
+
+`arx20_chunk_unpacker.py`と`arx20_static_route.py`は、indexとchunkの呼出し、状態wordの配置、20-roundの算術演算・feedforward・counterをレビュー済みcompiler-shapeで照合する。参照RVA・sigma・鍵・nonceは各入力から取得し、検体SHAだけで復号器を選択しない。未知compiler-shape、演算改変、範囲外・重複chunk、過大宣言、候補数超過を拒否する。巨大overlayを探索・復号範囲へ含めない。
+
+ARX20の入力上限は64MiB、全候補合計の暗号処理量は1MiB、呼出し時間は8秒。時間・処理量の上限に達した場合は部分的な成功結果を返さず、通常の非一致と区別して記録する。Donut候補はinstance、module宣言長、非圧縮条件、最終PEを検証し、未対応の圧縮を無制限に伸長しない。Donut候補は後段の既存静的parserへ渡す。
+
+どちらも包装の復元と親子hashの証拠を生成する機能である。復元成功だけでファミリー、C2、終端解析完了、稼働状態へ昇格させない。これらは後段の設定抽出と関数参照の確認により個別に判断する。
+
+無害なPEと非実行の命令fixtureによる回帰テストは、`test_go_embedded_pe.py`、`test_arx20_chunk_unpacker.py`、`test_arx20_static_route.py`を参照する。実検体binary・復号済みpayload・生の鍵はテストfixtureへ含めない。

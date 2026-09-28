@@ -88,7 +88,8 @@ def test_venomrat_validated_config_is_sufficient_handler_evidence(
             "group": "start",
             "anti_analysis": "false",
             "endpoints": [{"host": "c2.example.test", "port": 2794}],
-            "dynamic_config_url": "https://resolver.example.test/raw/config",
+            "dynamic_config_url": "https://resolver.example.test/",
+            "dynamic_config_url_scope": "origin_only",
             "certificate": {
                 "sha256": "a" * 64,
                 "size": 573,
@@ -105,6 +106,12 @@ def test_venomrat_validated_config_is_sufficient_handler_evidence(
 
     assert result["config"]["recovery_status"] == "recovered_hmac_verified"
     assert result["config"]["version"] == "Venom RAT v6.0.3"
+    assert result["config"]["dynamic_config_url_scope"] == "origin_only"
+    assert result["config"]["dynamic_config_locator_complete"] is False
+    origin_finding = next(item for item in result["findings"] if item["role"] == "dynamic_config_resolver")
+    assert origin_finding["value_scope"] == "origin_only"
+    assert origin_finding["retrieval_locator_complete"] is False
+    assert origin_finding["terminal_c2_endpoint"] is False
     assert {item["role"] for item in result["findings"]} == {
         "configured_c2",
         "dynamic_config_resolver",

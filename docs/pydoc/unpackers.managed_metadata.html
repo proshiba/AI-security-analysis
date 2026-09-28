@@ -1,0 +1,28 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>unpackers.managed_metadata — API仕様</title></head><body>
+<h1>unpackers.managed_metadata</h1>
+<p><a href="../../unpackers/managed_metadata.py">実装</a></p>
+<pre>有界なCLR token／signature参照解決。CLRやCILを実行しない。
+
+解決結果はmetadata上の宣言を示すだけで、実行時dispatch、到達性、framework
+assemblyの真正性、protector帰属を証明しない。名前や生signatureは結果へ出さない。</pre>
+<h2>MetadataResolver</h2>
+<pre>上限内のmetadata行をsnapshot化し、method／field tokenを保守的に解決する。</pre>
+<pre>MetadataResolver(pe: &#x27;Any&#x27;, *, max_rows: &#x27;int&#x27; = 20000, max_total_rows: &#x27;int&#x27; = 80000) -&gt; &#x27;None&#x27;</pre>
+<dl><dt><a name="-coverage"><strong>coverage</strong></a>(self) -&gt; 'dict[str, Any]'</dt><dd><span class="code">参照表の保持件数と不完全理由を返し、生行や名前は公開しない。</span></dd></dl>
+
+<dl><dt><a name="-match_framework_member"><strong>match_framework_member</strong></a>(self, operand: 'Any', profile_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">限定framework&nbsp;APIの参照宣言を照合し、実行時真正性や無例外性は保証しない。<br>
+&nbsp;<br>
+AssemblyRefのexact&nbsp;name／public&nbsp;key&nbsp;token&nbsp;pair、neutral&nbsp;culture、flags、<br>
+対応version、owner、member、has-this、generic数、戻値と全引数を確認する。<br>
+生のowner名・member名・signature・keyは結果へ含めない。成功してもreceiverの<br>
+producer、実行時dispatch、副作用の不在、nonthrowingは別の証明を要する。<br>
+declaring_type_profileはレビュー済みownerの固定IDであり、receiver型の適合を<br>
+自動確認しない。callerはproducer宣言・assembly&nbsp;versionとの整合を別途確認する。</span></dd></dl>
+
+<dl><dt><a name="-resolve"><strong>resolve</strong></a>(self, operand: 'Any', *, kind: 'str' = 'method') -&gt; 'dict[str, Any]'</dt><dd><span class="code">tokenを解決し、不正・未対応・上限を理由付きで保持する。</span></dd></dl>
+
+<h2>token_value</h2>
+<dl><dt><a name="-token_value"><strong>token_value</strong></a>(operand: 'Any') -&gt; 'int | None'</dt><dd><span class="code">dncil風operandをuint32&nbsp;tokenへ限定し、不正値は未解決として返す。</span></dd></dl>
+
+</body></html>

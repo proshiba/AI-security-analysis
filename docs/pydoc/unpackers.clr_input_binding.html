@@ -1,0 +1,18 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>unpackers.clr_input_binding — API仕様</title></head><body>
+<h1>unpackers.clr_input_binding</h1>
+<p><a href="../../unpackers/clr_input_binding.py">実装</a></p>
+<pre>元bytesからPE/CLR宣言と固定metadata table位置を独立照合する。IOやparser callbackなし。</pre>
+<h2>canonical_metadata_streams</h2>
+<dl><dt><a name="-canonical_metadata_streams"><strong>canonical_metadata_streams</strong></a>(data, offset, size, version_length, stream_count)</dt><dd><span class="code">rootが宣言したstream&nbsp;header位置だけを返す。padding中のlookalikeは探索しない。</span></dd></dl>
+
+<h2>canonical_table_layout</h2>
+<dl><dt><a name="-canonical_table_layout"><strong>canonical_table_layout</strong></a>(data, offset, size)</dt><dd><span class="code">#~&nbsp;v2.0のraw宣言だけで全table位置を計算する。rowや未知callbackを評価しない。</span></dd></dl>
+
+<h2>unique_file_span</h2>
+<dl><dt><a name="-unique_file_span"><strong>unique_file_span</strong></a>(sections, rva, size)</dt></dl>
+
+<h2>verify_pe_clr_input</h2>
+<dl><dt><a name="-verify_pe_clr_input"><strong>verify_pe_clr_input</strong></a>(data, pe)</dt><dd><span class="code">DOS→NT→directory14→raw&nbsp;section→COR20を照合する。最初一致APIを呼ばない。</span></dd></dl>
+
+</body></html>

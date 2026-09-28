@@ -78,6 +78,67 @@ def _source(result_expression: str, formats: tuple[str, ...] = ("data",)) -> str
     )
 
 
+@pytest.mark.parametrize("statement, expression", [
+    ("from extractors.safe_pkg.codec import transform", "transform(data)"),
+    ("import extractors.safe_pkg.codec as codec", "codec.transform(data)"),
+    ("from extractors.safe_pkg import codec", "codec.transform(data)"),
+])
+def test_reachable_delayed_import_has_verified_package_closure(
+    isolated_catalog, statement, expression,
+) -> None:
+    """到達する遅延importはsourceとmodule結合を同じ隔離manifestへ保持する。"""
+
+    repository, malware_root = isolated_catalog
+    package = repository / "extractors" / "safe_pkg"
+    package.mkdir()
+    (package.parent / "__init__.py").write_text("", encoding="utf-8")
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    (package / "codec.py").write_text(
+        "def transform(data):\n    return {'marker_hits': ['bound-delayed']}\n",
+        encoding="utf-8",
+    )
+    spec = _handler_spec(repository, malware_root, "delayed_family", (
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        f"def extract_config(data):\n    {statement}\n    return {expression}\n"
+    ))
+    preflight = catalog.preflight_handler_for_assessment(spec, actual_format="data", input_size=4)
+    assert preflight["eligible"] is True, preflight["blockers"]
+    assert {item["name"] for item in preflight["dependency_audit"]["module_bindings"]} >= {
+        "extractors", "extractors.safe_pkg", "extractors.safe_pkg.codec",
+    }
+    result = catalog.execute_handler_bounded_for_assessment(
+        spec, b"test", "harmless.bin", actual_format="data", timeout_seconds=30,
+    )
+    assert result["status"] == "completed", result
+    assert result["execution"]["result"]["marker_hits"] == ["bound-delayed"]
+
+
+def test_unreachable_delayed_import_is_not_added_to_verified_closure(isolated_catalog) -> None:
+    """未到達関数のimportを権限やdependencyへ広げない。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(repository, malware_root, "unreachable_delayed", (
+        _source("{'marker_hits': ['safe']}")
+        + "def unused():\n    import socket\n    return socket.socket()\n"
+    ))
+    preflight = catalog.preflight_handler_for_assessment(spec, actual_format="data", input_size=4)
+    assert preflight["eligible"] is True, preflight["blockers"]
+    assert not any(item["name"] == "socket" for item in preflight["dependency_audit"]["module_bindings"])
+
+
+def test_reachable_delayed_network_import_still_fails_closed(isolated_catalog) -> None:
+    """遅延importの結合改善でもネットワークAPIの許可を追加しない。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(repository, malware_root, "unsafe_delayed", (
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        "def extract_config(data):\n    import socket\n    return socket.socket()\n"
+    ))
+    preflight = catalog.preflight_handler_for_assessment(spec, actual_format="data", input_size=4)
+    assert preflight["eligible"] is False
+    assert preflight["blockers"]
+
+
 def test_handler_discovery_streams_one_source_tree_and_clears_ast_cache(
     isolated_catalog,
     monkeypatch: pytest.MonkeyPatch,

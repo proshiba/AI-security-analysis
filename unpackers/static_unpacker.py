@@ -38,6 +38,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from unpackers.asar_unpacker import is_asar, recover_asar
+from unpackers.arx20_static_route import recover_arx20_static_route
 from unpackers.bcrypt_resource import recover_bcrypt_resource
 from unpackers.bin101_nibble_rc4 import recover_bin101_payload
 from unpackers.bounded_pe_scan import (
@@ -86,6 +87,7 @@ from unpackers.managed_il_triage import (
     analyze_managed_pe,
 )
 from unpackers.managed_proxy_deobfuscator import analyze_managed_protector
+from unpackers.managed_tripledes_gzip import recover_managed_tripledes_gzip
 from unpackers.nsis_nhencv1 import recover_nsis_nhencv1
 from unpackers.node_sea_static import recover_node_sea_pe
 from unpackers.nsis_static import (
@@ -103,10 +105,14 @@ from unpackers.onyx_qt_loader import (
     recover_onyx_qt_payload,
 )
 from unpackers.opaque_native_entry import analyze_opaque_native_pe
-from unpackers.profiled_transform import recover_profiled_transforms
+from unpackers.profiled_transform import (
+    MAX_RETAINED_ARTIFACT_BYTES,
+    recover_profiled_transforms,
+)
 from unpackers.reverse_chunk_affine_xor_donut_pe import (
     recover_reverse_chunk_affine_xor_donut_pe,
 )
+from unpackers.go_embedded_pe import recover_go_embedded_pe
 from unpackers.rotated_xor_donut import legacy_report_from_attempt
 from unpackers.rzk_lece_unpacker import (
     ENCODED_LECE_MAGIC,
@@ -1995,12 +2001,11 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
     managed_protector = None
     if is_dotnet:
         managed_il = analyze_managed_pe(data)
-        # Preserve counts, marker provenance, resource hashes, dispatcher
-        # candidates, and the method plan while avoiding tens of thousands of
-        # per-token rows in recursive public reports.  Analysts can invoke the
-        # dedicated CLI for the private full inventory.
+        # 件数、markerの由来、resource hash、dispatcher候補とmethod計画を残す。
+        # 個々のtoken参照は公開再帰reportへ複製せず、専用CLIの私有inventoryで保持する。
         managed_il.pop("types", None)
         managed_il.pop("methods", None)
+        managed_il.pop("static_references", None)
         malformed = managed_il.get("malformed_method_bodies")
         if isinstance(malformed, list) and len(malformed) > 128:
             managed_il["malformed_method_bodies"] = malformed[:128]
@@ -2015,11 +2020,26 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         coverage_limitations.extend(
             f"resource_scan_{reason}" for reason in resource_scan["exhausted_reasons"]
         )
+    managed_references_complete = None
+    if is_dotnet:
+        # lexical参照の全走査だけを判定し、runtime dispatchの不明状態とは分ける。
+        reference_scan = managed_il.get("reference_coverage")
+        metadata_coverage = managed_il.get("reference_metadata_coverage")
+        managed_references_complete = (
+            managed_il.get("status") == "analyzed"
+            and isinstance(reference_scan, dict)
+            and reference_scan.get("body_scan_complete") is True
+            and isinstance(metadata_coverage, dict)
+            and metadata_coverage.get("complete") is True
+        )
+        if not managed_references_complete:
+            coverage_limitations.append("managed_lexical_reference_coverage_incomplete")
     analysis_coverage = {
         "status": "partial" if coverage_limitations else "complete",
         "imports_known": import_analysis_complete,
         "low_import_heuristics_applied": import_analysis_complete,
         "resources_complete": resource_scan["status"] == "complete",
+        "managed_lexical_references_complete": managed_references_complete,
         "limitations": coverage_limitations,
     }
     return (
@@ -5640,6 +5660,12 @@ def unpack_bytes(
         artifacts.extend(recovered)
         report["bcrypt_resource"], recovered = recover_bcrypt_resource(static_data)
         artifacts.extend(recovered)
+        report["go_embedded_pe"], recovered = recover_go_embedded_pe(static_data)
+        artifacts.extend(recovered)
+        report["managed_tripledes_gzip"], recovered = recover_managed_tripledes_gzip(
+            static_data
+        )
+        artifacts.extend(recovered)
         bin101_recovery = recover_bin101_payload(static_data)
         if bin101_recovery is not None:
             report["bin101_nibble_rc4_loader"] = bin101_recovery.metadata()
@@ -5678,6 +5704,10 @@ def unpack_bytes(
         artifacts.extend(recovered)
         report["reverse_chunk_affine_xor_donut_pe"], recovered = (
             recover_reverse_chunk_affine_xor_donut_pe(static_data)
+        )
+        artifacts.extend(recovered)
+        report["arx20_chunk_reassembly"], recovered = recover_arx20_static_route(
+            static_data
         )
         artifacts.extend(recovered)
         if report["pe"]["is_dotnet"]:
@@ -6001,12 +6031,17 @@ def unpack_bytes(
         else:
             report["detached_idat"], recovered = recover_detached_idat_stream(data)
             artifacts.extend(recovered)
-            report["profiled_transforms"], recovered = recover_profiled_transforms(
-                static_data,
-                input_format=kind,
-                source_name=name,
-            )
-            artifacts.extend(recovered)
+    if not iso9660_candidate:
+        # 宣言型変換はこのlayerの原本bytesへ適用し、入力hashと親hashを一致させる。
+        # 正規化PEは独立childとして再帰評価し、compact→profileの中間関係を省略しない。
+        report["profiled_transforms"], recovered = recover_profiled_transforms(
+            data,
+            input_format=kind,
+            source_name=name,
+            max_artifact_bytes=min(MAX_RETAINED_ARTIFACT_BYTES, max_archive_total_size),
+        )
+        artifacts.extend(recovered)
+        if kind == "data":
             legacy_attempt = next(
                 (
                     item

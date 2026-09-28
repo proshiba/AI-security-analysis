@@ -1,49 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>Python: module extractors.purehvnc.extractor</title>
+<title>Python: extractors.purehvnc.extractor</title>
 </head><body>
 
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.purehvnc.html" class="white">purehvnc</a>.extractor</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="../../extractors/purehvnc/extractor.py">extractors/purehvnc/extractor.py</a></td></tr></table>
-    <p><span class="code">Extract&nbsp;native&nbsp;PureHVNC&nbsp;and&nbsp;managed&nbsp;PureRAT&nbsp;configuration&nbsp;without&nbsp;execution.</span></p>
+<td class="extra"><a href=".">索引</a><br><a href="../../extractors/purehvnc/extractor.py">実装</a></td></tr></table>
+    <p><span class="code">検体を実行せずnative&nbsp;PureHVNCとmanaged&nbsp;PureRATの設定を抽出する。</span></p>
 <p>
 <table class="section">
 <tr class="decor pkg-content-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">参照module</strong></td></tr>
 
 <tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><table><tr><td class="multicolumn"><a href="base64.html">base64</a><br>
-<a href="dnfile.html">dnfile</a><br>
-</td><td class="multicolumn"><a href="gzip.html">gzip</a><br>
+<a href="binascii.html">binascii</a><br>
+</td><td class="multicolumn"><a href="dnfile.html">dnfile</a><br>
 <a href="ipaddress.html">ipaddress</a><br>
 </td><td class="multicolumn"><a href="pefile.html">pefile</a><br>
 <a href="re.html">re</a><br>
-</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
+</td><td class="multicolumn"><a href="zlib.html">zlib</a><br>
+</td></tr></table></td></tr></table><p>
 <table class="section">
 <tr class="decor functions-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">公開関数</strong></td></tr>
 
 <tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-certificate_metadata"><strong>certificate_metadata</strong></a>(value: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Return&nbsp;public&nbsp;PKCS#12&nbsp;certificate&nbsp;metadata&nbsp;without&nbsp;exposing&nbsp;its&nbsp;private&nbsp;key.</span></dd></dl>
- <dl><dt><a name="-decode_config_blob"><strong>decode_config_blob</strong></a>(strings: 'list[str]') -&gt; 'tuple[bytes, dict[int, list[Any]]]'</dt><dd><span class="code">Locate&nbsp;Base64/GZip&nbsp;protobuf&nbsp;data&nbsp;and&nbsp;return&nbsp;its&nbsp;nested&nbsp;PureRAT&nbsp;message.</span></dd></dl>
- <dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">Extract&nbsp;direct&nbsp;or&nbsp;CHRD-wrapped&nbsp;PureRAT/PureHVNC&nbsp;configuration.</span></dd></dl>
- <dl><dt><a name="-extract_chrd_carrier"><strong>extract_chrd_carrier</strong></a>(data: 'bytes') -&gt; 'tuple[dict[str, Any], dict[str, Any]]'</dt><dd><span class="code">Recover&nbsp;a&nbsp;CHRD/Donut&nbsp;carrier&nbsp;and&nbsp;extract&nbsp;its&nbsp;terminal&nbsp;managed&nbsp;PureRAT&nbsp;config.</span></dd></dl>
- <dl><dt><a name="-extract_direct_config"><strong>extract_direct_config</strong></a>(data: 'bytes') -&gt; 'tuple[dict[str, Any], str]'</dt><dd><span class="code">Extract&nbsp;config&nbsp;from&nbsp;an&nbsp;already&nbsp;recovered&nbsp;terminal&nbsp;payload.</span></dd></dl>
- <dl><dt><a name="-extract_managed_config"><strong>extract_managed_config</strong></a>(data: 'bytes') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Extract&nbsp;the&nbsp;managed&nbsp;PureRAT&nbsp;protobuf&nbsp;config&nbsp;and&nbsp;certificate&nbsp;fingerprints.</span></dd></dl>
- <dl><dt><a name="-extract_native_config"><strong>extract_native_config</strong></a>(data: 'bytes') -&gt; 'dict[str, Any]'</dt><dd><span class="code">Extract&nbsp;a&nbsp;conservative&nbsp;native&nbsp;10FX-framed&nbsp;PureHVNC&nbsp;endpoint&nbsp;profile.</span></dd></dl>
+<td class="singlecolumn"><dl><dt><a name="-certificate_metadata"><strong>certificate_metadata</strong></a>(value: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">秘密鍵を公開せずPKCS#12証明書の公開metadataだけを返す。</span></dd></dl>
+ <dl><dt><a name="-decode_config_blob"><strong>decode_config_blob</strong></a>(strings: 'list[str]') -&gt; 'tuple[bytes, dict[int, list[Any]]]'</dt><dd><span class="code">Base64／GZip／protobuf候補を検証し、一意なPureRAT設定messageを返す。</span></dd></dl>
+ <dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">直接またはCHRD経由の設定を復元し、managed成功だけを標準契約へ反映する。</span></dd></dl>
+ <dl><dt><a name="-extract_chrd_carrier"><strong>extract_chrd_carrier</strong></a>(data: 'bytes') -&gt; 'tuple[dict[str, Any], dict[str, Any]]'</dt><dd><span class="code">CHRD／Donut&nbsp;carrierを静的復元し、managed終端のPureRAT設定を抽出する。</span></dd></dl>
+ <dl><dt><a name="-extract_direct_config"><strong>extract_direct_config</strong></a>(data: 'bytes') -&gt; 'tuple[dict[str, Any], str]'</dt><dd><span class="code">回収済み終端payloadからmanaged設定またはnative候補を抽出する。</span></dd></dl>
+ <dl><dt><a name="-extract_managed_config"><strong>extract_managed_config</strong></a>(data: 'bytes') -&gt; 'dict[str, Any]'</dt><dd><span class="code">managed&nbsp;PureRATの厳密protobuf設定と公開証明書fingerprintを抽出する。</span></dd></dl>
+ <dl><dt><a name="-extract_native_config"><strong>extract_native_config</strong></a>(data: 'bytes') -&gt; 'dict[str, Any]'</dt><dd><span class="code">native&nbsp;10FX&nbsp;PureHVNCの確認済みmarkerとendpoint候補を保守的に抽出する。</span></dd></dl>
  <dl><dt><a name="-iter_dotnet_user_strings"><strong>iter_dotnet_user_strings</strong></a>(data: 'bytes') -&gt; 'Iterator[str]'</dt><dd><span class="code">有効な#US&nbsp;heapがある.NET&nbsp;PEだけから範囲内の文字列を返す。</span></dd></dl>
- <dl><dt><a name="-native_endpoint_candidates"><strong>native_endpoint_candidates</strong></a>(strings: 'list[str]', adjacency: 'int' = 2) -&gt; 'list[str]'</dt><dd><span class="code">Associate&nbsp;native&nbsp;IP&nbsp;and&nbsp;port&nbsp;strings&nbsp;while&nbsp;rejecting&nbsp;unrelated&nbsp;port-like&nbsp;text.</span></dd></dl>
- <dl><dt><a name="-parse_protobuf"><strong>parse_protobuf</strong></a>(data: 'bytes') -&gt; 'dict[int, list[Any]]'</dt><dd><span class="code">Parse&nbsp;protobuf&nbsp;wire&nbsp;types&nbsp;used&nbsp;by&nbsp;the&nbsp;reviewed&nbsp;PureRAT&nbsp;configuration.</span></dd></dl>
- <dl><dt><a name="-read_varint"><strong>read_varint</strong></a>(data: 'bytes', offset: 'int') -&gt; 'tuple[int, int]'</dt><dd><span class="code">Read&nbsp;one&nbsp;protobuf&nbsp;varint&nbsp;and&nbsp;return&nbsp;its&nbsp;value&nbsp;and&nbsp;next&nbsp;offset.</span></dd></dl>
+ <dl><dt><a name="-native_endpoint_candidates"><strong>native_endpoint_candidates</strong></a>(strings: 'list[str]', adjacency: 'int' = 2) -&gt; 'list[str]'</dt><dd><span class="code">隣接native&nbsp;IP／portを相関し、無関係なport風文字列を除外する。</span></dd></dl>
+ <dl><dt><a name="-parse_protobuf"><strong>parse_protobuf</strong></a>(data: 'bytes') -&gt; 'dict[int, list[Any]]'</dt><dd><span class="code">確認済みPureRAT設定で使うprotobuf&nbsp;wire&nbsp;typeを境界付きで解析する。</span></dd></dl>
+ <dl><dt><a name="-read_varint"><strong>read_varint</strong></a>(data: 'bytes', offset: 'int') -&gt; 'tuple[int, int]'</dt><dd><span class="code">protobuf&nbsp;varintを1個読み、値と次のoffsetを返す。</span></dd></dl>
 </td></tr></table><p>
 <table class="section">
 <tr class="decor data-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">定数</strong></td></tr>
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>Iterator</strong> = typing.Iterator</td></tr></table>
+<td class="singlecolumn"><strong>HANDLER_CONTRACT</strong> = {'input_formats': ['pe'], 'minimum_evidence_score': 1}<br>
+<strong>MAX_CONFIG_BASE64_CHARS</strong> = 8388608<br>
+<strong>MAX_CONFIG_CLEAR_BYTES</strong> = 4194304<br>
+<strong>MAX_CONFIG_COMPRESSED_BYTES</strong> = 6291456<br>
+<strong>MAX_CONFIG_DECODE_CANDIDATES</strong> = 64<br>
+<strong>MAX_CONFIG_MESSAGE_CANDIDATES</strong> = 128<br>
+<strong>MAX_CONFIG_NESTING</strong> = 3<br>
+<strong>MAX_CONFIG_PROTOBUF_FIELDS</strong> = 4096<br>
+<strong>MAX_FALLBACK_STRINGS</strong> = 16384<br>
+<strong>MAX_MANAGED_TERMINAL_BYTES</strong> = 16777216<br>
+<strong>MAX_MANAGED_USER_STRINGS</strong> = 16384</td></tr></table>
 </body></html>

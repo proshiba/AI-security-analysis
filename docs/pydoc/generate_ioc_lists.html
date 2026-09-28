@@ -1,165 +1,95 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Python: module generate_ioc_lists</title>
-</head><body>
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>generate_ioc_lists — API仕様</title></head><body>
+<h1>generate_ioc_lists</h1>
+<p><a href="../../analysis-framework/common/generate_ioc_lists.py">実装</a></p>
+<pre>公開済み解析ごとに、決定的な IOC 専用 Markdown 一覧を生成する。</pre>
+<h2>Indicator</h2>
+<pre>根拠と確度を持つ、公開可能な単一の指標。</pre>
+<pre>Indicator(type: &#x27;str&#x27;, value: &#x27;str&#x27;, role: &#x27;str&#x27;, confidence: &#x27;str&#x27;, source: &#x27;str&#x27;) -&gt; None</pre>
+<h2>analysis_directories</h2>
+<dl><dt><a name="-analysis_directories"><strong>analysis_directories</strong></a>(results_root: 'Path', history: 'dict[str, dict]') -&gt; 'list[Path]'</dt><dd><span class="code">固定レイアウトの&nbsp;case、campaign、research、collection&nbsp;source&nbsp;を列挙する。</span></dd></dl>
 
-<table class="heading">
-<tr class="heading-text decor">
-<td class="title">&nbsp;<br><strong class="title">generate_ioc_lists</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis-daily-20260727%5Canalysis-framework%5Ccommon%5Cgenerate_ioc_lists.py">c:\users\administrator\ai-security-analysis-daily-20260727\analysis-framework\common\generate_ioc_lists.py</a></td></tr></table>
-    <p><span class="code">公開済み解析ごとに、決定的な&nbsp;IOC&nbsp;専用&nbsp;Markdown&nbsp;一覧を生成する。</span></p>
-<p>
-<table class="section">
-<tr class="decor pkg-content-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+<h2>build_parser</h2>
+<dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">決定的な&nbsp;IOC&nbsp;一覧生成用&nbsp;CLI&nbsp;を構築する。</span></dd></dl>
 
-<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="argparse.html">argparse</a><br>
-<a href="hashlib.html">hashlib</a><br>
-</td><td class="multicolumn"><a href="ipaddress.html">ipaddress</a><br>
-<a href="json.html">json</a><br>
-</td><td class="multicolumn"><a href="re.html">re</a><br>
-<a href="urllib.html">urllib</a><br>
-</td><td class="multicolumn"><a href="yaml.html">yaml</a><br>
-</td></tr></table></td></tr></table><p>
-<table class="section">
-<tr class="decor index-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+<h2>canonical_case_ioc_rendering</h2>
+<dl><dt><a name="-canonical_case_ioc_rendering"><strong>canonical_case_ioc_rendering</strong></a>(directory: 'Path') -&gt; 'tuple[str, int] | None'</dt><dd><span class="code">publisher形式のiocs.jsonがあれば、それだけを信頼してMarkdownへ描画する。</span></dd></dl>
 
-<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl>
-<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
-</dt><dd>
-<dl>
-<dt class="heading-text"><a href="generate_ioc_lists.html#Indicator">Indicator</a>
-</dt></dl>
-</dd>
-</dl>
- <p>
-<table class="section">
-<tr class="decor title-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><a name="Indicator">class <strong>Indicator</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+<h2>clickfix_case_ioc_rendering</h2>
+<dl><dt><a name="-clickfix_case_ioc_rendering"><strong>clickfix_case_ioc_rendering</strong></a>(directory: 'Path') -&gt; 'tuple[str, int] | None'</dt><dd><span class="code">ClickFix&nbsp;caseでは構造化IOCだけを信頼し、本文中の共有基盤を昇格しない。</span></dd></dl>
 
-<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
-<td class="decor title-decor" colspan=2><span class="code"><a href="#Indicator">Indicator</a>(<br>
-&nbsp;&nbsp;&nbsp;&nbsp;type:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;value:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;role:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;confidence:&nbsp;'str',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;source:&nbsp;'str'<br>
-)&nbsp;-&amp;gt;&nbsp;None<br>
-&nbsp;<br>
-根拠と確度を持つ、公開可能な単一の指標。<br>&nbsp;</span></td></tr>
-<tr><td>&nbsp;</td>
-<td class="singlecolumn">Methods defined here:<br>
-<dl><dt><a name="Indicator-__delattr__"><strong>__delattr__</strong></a>(self, name)</dt><dd><span class="code">Implement&nbsp;delattr(self,&nbsp;name).</span></dd></dl>
-
-<dl><dt><a name="Indicator-__eq__"><strong>__eq__</strong></a>(self, other)</dt><dd><span class="code">Return&nbsp;self==value.</span></dd></dl>
-
-<dl><dt><a name="Indicator-__hash__"><strong>__hash__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;hash(self).</span></dd></dl>
-
-<dl><dt><a name="Indicator-__init__"><strong>__init__</strong></a>(
-    self,
-    type: 'str',
-    value: 'str',
-    role: 'str',
-    confidence: 'str',
-    source: 'str'
-) -&gt; None</dt><dd><span class="code">Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</span></dd></dl>
-
-<dl><dt><a name="Indicator-__replace__"><strong>__replace__</strong></a> = _replace(self, /, **changes)<span class="grey"><span class="heading-text"> from <a href="dataclasses.html">dataclasses</a></span></span></dt></dl>
-
-<dl><dt><a name="Indicator-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><span class="code">Return&nbsp;repr(self).</span></dd></dl>
-
-<dl><dt><a name="Indicator-__setattr__"><strong>__setattr__</strong></a>(self, name, value)</dt><dd><span class="code">Implement&nbsp;setattr(self,&nbsp;name,&nbsp;value).</span></dd></dl>
-
-<hr>
-Data descriptors defined here:<br>
-<dl><dt><strong>__dict__</strong></dt>
-<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
-</dl>
-<dl><dt><strong>__weakref__</strong></dt>
-<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
-</dl>
-<hr>
-Data and other attributes defined here:<br>
-<dl><dt><strong>__annotations__</strong> = {'confidence': 'str', 'role': 'str', 'source': 'str', 'type': 'str', 'value': 'str'}</dl>
-
-<dl><dt><strong>__dataclass_fields__</strong> = {'confidence': Field(name='confidence',type='str',default=&lt;data...appingproxy({}),kw_only=False,_field_type=_FIELD), 'role': Field(name='role',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'source': Field(name='source',type='str',default=&lt;dataclas...appingproxy({}),kw_only=False,_field_type=_FIELD), 'type': Field(name='type',type='str',default=&lt;dataclasse...appingproxy({}),kw_only=False,_field_type=_FIELD), 'value': Field(name='value',type='str',default=&lt;dataclass...appingproxy({}),kw_only=False,_field_type=_FIELD)}</dl>
-
-<dl><dt><strong>__dataclass_params__</strong> = _DataclassParams(init=True,repr=True,eq=True,ord...rue,kw_only=False,slots=False,weakref_slot=False)</dl>
-
-<dl><dt><strong>__match_args__</strong> = ('type', 'value', 'role', 'confidence', 'source')</dl>
-
-</td></tr></table></td></tr></table><p>
-<table class="section">
-<tr class="decor functions-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
-
-<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-analysis_directories"><strong>analysis_directories</strong></a>(results_root: 'Path', history: 'dict[str, dict]') -&gt; 'list[Path]'</dt><dd><span class="code">固定レイアウトの&nbsp;case、campaign、research、collection&nbsp;source&nbsp;を列挙する。</span></dd></dl>
- <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">決定的な&nbsp;IOC&nbsp;一覧生成用&nbsp;CLI&nbsp;を構築する。</span></dd></dl>
- <dl><dt><a name="-canonical_case_ioc_rendering"><strong>canonical_case_ioc_rendering</strong></a>(directory: 'Path') -&gt; 'tuple[str, int] | None'</dt><dd><span class="code">publisher形式のiocs.jsonがあれば、それだけを信頼してMarkdownへ描画する。</span></dd></dl>
- <dl><dt><a name="-clickfix_case_ioc_rendering"><strong>clickfix_case_ioc_rendering</strong></a>(directory: 'Path') -&gt; 'tuple[str, int] | None'</dt><dd><span class="code">ClickFix&nbsp;caseでは構造化IOCだけを信頼し、本文中の共有基盤を昇格しない。</span></dd></dl>
- <dl><dt><a name="-collect_indicators"><strong>collect_indicators</strong></a>(
+<h2>collect_indicators</h2>
+<dl><dt><a name="-collect_indicators"><strong>collect_indicators</strong></a>(
     directory: 'Path',
     repository: 'Path',
     history: 'dict[str, dict]'
 ) -&gt; 'list[Indicator]'</dt><dd><span class="code">単一解析について、保守的かつ公開可能な指標をすべて収集する。</span></dd></dl>
- <dl><dt><a name="-confidence_from_text"><strong>confidence_from_text</strong></a>(text: 'str', default: 'str' = 'recorded') -&gt; 'str'</dt><dd><span class="code">明示された確度表現を、短い正規化ラベルへ変換する。</span></dd></dl>
- <dl><dt><a name="-directory_hash_indicator"><strong>directory_hash_indicator</strong></a>(directory: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">SHA-256&nbsp;形式のケースディレクトリ名を、提出検体ハッシュとして扱う。</span></dd></dl>
- <dl><dt><a name="-generate"><strong>generate</strong></a>(repository: 'Path', *, write: 'bool' = False, check: 'bool' = False) -&gt; 'dict'</dt><dd><span class="code">IOC一覧の差分を計画し、明示時だけ生成または同期検証する。</span></dd></dl>
- <dl><dt><a name="-history_indicators"><strong>history_indicators</strong></a>(
+
+<h2>confidence_from_text</h2>
+<dl><dt><a name="-confidence_from_text"><strong>confidence_from_text</strong></a>(text: 'str', default: 'str' = 'recorded') -&gt; 'str'</dt><dd><span class="code">明示された確度表現を、短い正規化ラベルへ変換する。</span></dd></dl>
+
+<h2>directory_hash_indicator</h2>
+<dl><dt><a name="-directory_hash_indicator"><strong>directory_hash_indicator</strong></a>(directory: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">SHA-256&nbsp;形式のケースディレクトリ名を、提出検体ハッシュとして扱う。</span></dd></dl>
+
+<h2>generate</h2>
+<dl><dt><a name="-generate"><strong>generate</strong></a>(repository: 'Path', *, write: 'bool' = False, check: 'bool' = False) -&gt; 'dict'</dt><dd><span class="code">IOC一覧の差分を計画し、明示時だけ生成または同期検証する。</span></dd></dl>
+
+<h2>history_indicators</h2>
+<dl><dt><a name="-history_indicators"><strong>history_indicators</strong></a>(
     directory: 'Path',
     repository: 'Path',
     history: 'dict[str, dict]'
 ) -&gt; 'list[Indicator]'</dt><dd><span class="code">解析履歴で確認済みの検体ハッシュと&nbsp;C2&nbsp;項目を指標へ変換する。</span></dd></dl>
- <dl><dt><a name="-indicator_type"><strong>indicator_type</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">正規化済みの値を、公開可能な&nbsp;IOC&nbsp;種別へ分類する。</span></dd></dl>
- <dl><dt><a name="-indicators_from_config"><strong>indicators_from_config</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">設定&nbsp;JSON&nbsp;出力から、正規化済み抽出結果だけを読み取る。</span></dd></dl>
- <dl><dt><a name="-indicators_from_indicators_json"><strong>indicators_from_indicators_json</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">新しいcase&nbsp;`indicators.json`&nbsp;の公開対象配列だけを読み取る。</span></dd></dl>
- <dl><dt><a name="-indicators_from_ioc_json"><strong>indicators_from_ioc_json</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">ケース内の構造化&nbsp;IOC&nbsp;文書から、対応する指標を抽出する。</span></dd></dl>
- <dl><dt><a name="-indicators_from_reviewed_findings"><strong>indicators_from_reviewed_findings</strong></a>(
+
+<h2>indicator_type</h2>
+<dl><dt><a name="-indicator_type"><strong>indicator_type</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">正規化済みの値を、公開可能な&nbsp;IOC&nbsp;種別へ分類する。</span></dd></dl>
+
+<h2>indicators_from_config</h2>
+<dl><dt><a name="-indicators_from_config"><strong>indicators_from_config</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">設定&nbsp;JSON&nbsp;出力から、正規化済み抽出結果だけを読み取る。</span></dd></dl>
+
+<h2>indicators_from_indicators_json</h2>
+<dl><dt><a name="-indicators_from_indicators_json"><strong>indicators_from_indicators_json</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">新しいcase&nbsp;`indicators.json`&nbsp;の公開対象配列だけを読み取る。</span></dd></dl>
+
+<h2>indicators_from_ioc_json</h2>
+<dl><dt><a name="-indicators_from_ioc_json"><strong>indicators_from_ioc_json</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">ケース内の構造化&nbsp;IOC&nbsp;文書から、対応する指標を抽出する。</span></dd></dl>
+
+<h2>indicators_from_reviewed_findings</h2>
+<dl><dt><a name="-indicators_from_reviewed_findings"><strong>indicators_from_reviewed_findings</strong></a>(
     hashes: 'Iterable[str]',
     findings: 'Iterable[dict]'
 ) -&gt; 'list[Indicator]'</dt><dd><span class="code">横断報告用に、確認済みハッシュと構造化所見を正規化する。</span></dd></dl>
- <dl><dt><a name="-indicators_from_text"><strong>indicators_from_text</strong></a>(text: 'str', role: 'str', confidence: 'str', source: 'str') -&gt; 'list[Indicator]'</dt><dd><span class="code">明示的に関連する文章片からハッシュとネットワーク指標を抽出する。</span></dd></dl>
- <dl><dt><a name="-load_history"><strong>load_history</strong></a>(path: 'Path') -&gt; 'dict[str, dict]'</dt><dd><span class="code">正規化した結果ディレクトリ別に、解析履歴の項目を索引化する。</span></dd></dl>
- <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">IOC一覧をdry-run、明示書込み、または同期検証する。</span></dd></dl>
- <dl><dt><a name="-merge_indicators"><strong>merge_indicators</strong></a>(values: 'Iterable[Indicator]') -&gt; 'list[Indicator]'</dt><dd><span class="code">より強い根拠と確度を優先しながら、指標を重複排除する。</span></dd></dl>
- <dl><dt><a name="-normalize_value"><strong>normalize_value</strong></a>(value: 'str') -&gt; 'tuple[str, str] | None'</dt><dd><span class="code">単一の候補を正規化し、種別と安全な値を返す。</span></dd></dl>
- <dl><dt><a name="-read_relevant_markdown"><strong>read_relevant_markdown</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">明示的な&nbsp;IOC、C2、ネットワーク、設定の見出し配下だけから値を抽出する。</span></dd></dl>
- <dl><dt><a name="-render_index"><strong>render_index</strong></a>(results_root: 'Path', reports: 'list[tuple[Path, int]]') -&gt; 'str'</dt><dd><span class="code">解析単位の&nbsp;IOC&nbsp;一覧を横断する日本語索引を描画する。</span></dd></dl>
- <dl><dt><a name="-render_ioc_list"><strong>render_ioc_list</strong></a>(values: 'list[Indicator]') -&gt; 'str'</dt><dd><span class="code">挙動説明を混在させず、日本語見出しの&nbsp;IOC&nbsp;表を描画する。</span></dd></dl>
- <dl><dt><a name="-reseal_tracked_ioc_list"><strong>reseal_tracked_ioc_list</strong></a>(directory: 'Path') -&gt; 'None'</dt><dd><span class="code">追跡済みIOC-LIST.mdのhashだけを更新し、reportを再封印する。</span></dd></dl>
- <dl><dt><a name="-sanitize_url"><strong>sanitize_url</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">IOC&nbsp;のパスを維持しながら、認証情報、クエリ、フラグメントを除去する。</span></dd></dl>
-</td></tr></table><p>
-<table class="section">
-<tr class="decor data-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
 
-<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>CAMPAIGN_SUPPORT_DIRECTORIES</strong> = {'docs', 'rules', 'scripts', 'tools'}<br>
-<strong>CASE_HASH_RE</strong> = re.compile('(?i)^[0-9a-f]{64}$', re.IGNORECASE)<br>
-<strong>CONFIDENCE_ORDER</strong> = {'confirmed': 5, 'high': 5, 'inferred': 3, 'low': 2, 'medium': 4, 'recorded': 3, 'unverified': 1}<br>
-<strong>DOMAIN_RE</strong> = re.compile('(?i)^(?:[a-z0-9-]+\\.)+[a-z]{2,63}$', re.IGNORECASE)<br>
-<strong>EMPTY_VALUES</strong> = {'', '-', 'n/a', 'none', 'none recovered', 'not available', ...}<br>
-<strong>ENDPOINT_RE</strong> = re.compile('(?i)(?&lt;![\\w.-])((?:[a-z0-9-]+\\.)+[...{3}\\d{1,3}):(\\d{1,5})(?:/tcp)?', re.IGNORECASE)<br>
-<strong>EXCLUSION_MARKERS</strong> = ('not an ioc', 'not a standalone ioc', 'not_c2', 'context_only', 'context only', '単独hashだけでは悪性判定不可', '単独ではioc', 'iocとして扱わない', 'signed host', 'sideload host', 'valid signature', '署名付きhost', '有効署名', '悪性iocではない', 'c2から除外', '正規アプリ側', 'block iocとしては低品質', 'legitimate ', 'shared edge', 'cloudflare edge', ...)<br>
-<strong>HASH_RE</strong> = re.compile('(?i)(?&lt;![0-9a-f])([0-9a-f]{64}|[0-9a-f]{40}|[0-9a-f]{32})(?![0-9a-f])', re.IGNORECASE)<br>
-<strong>IOC_CONFIDENCE_LABELS</strong> = {'confirmed': '確認済み', 'high': '高', 'inferred': '推定', 'low': '低', 'medium': '中', 'recorded': '記録済み', 'unverified': '未検証'}<br>
-<strong>IOC_HEADER</strong> = '| 種別 (Type) | 値 (Value) | 役割 (Role) | 確度 (Confidence) | 根拠 (Source) |'<br>
-<strong>IOC_ROLE_LABELS</strong> = {'delivery': '配布'}<br>
-<strong>IOC_SEPARATOR</strong> = '|---|---|---|---|---|'<br>
-<strong>IOC_TYPE_LABELS</strong> = {'domain': 'ドメイン', 'endpoint': '接続先', 'ethereum_address': 'Ethereumアドレス'}<br>
-<strong>IP_RE</strong> = re.compile('(?&lt;![\\d.])(?:\\d{1,3}\\.){3}\\d{1,3}(?![\\d.])')<br>
-<strong>Iterable</strong> = typing.Iterable<br>
-<strong>NON_IOC_MARKERS</strong> = {'context_only', 'dual-use', 'not_c2', 'not_ioc'}<br>
-<strong>NON_IOC_ROLES</strong> = {'certificate_service', 'documentation_reference', 'host_discovery_service'}<br>
-<strong>PUBLIC_RESOLVER_IPS</strong> = {'1.1.1.1', '119.29.29.29', '8.8.4.4', '8.8.8.8', '9.9.9.9'}<br>
-<strong>REFERENCE_HOSTS</strong> = {'any.run', 'app.any.run', 'bazaar.abuse.ch', 'github.com', 'gitlab.com', 'tria.ge', ...}<br>
-<strong>RELEVANT_HEADING</strong> = re.compile('(?i)(ioc|c2|network|infrastructure|e...|通信|ネットワーク|インフラ|エンドポイント|設定|侵害指標)', re.IGNORECASE)<br>
-<strong>SOURCE_ORDER</strong> = {'README': 2, 'analysis_history': 4, 'config.json': 5, 'directory': 6, 'iocs.json': 5}<br>
-<strong>URL_RE</strong> = re.compile('(?i)https?://[^\\s&lt;&gt;\\"\'`|]+', re.IGNORECASE)</td></tr></table>
+<h2>indicators_from_text</h2>
+<dl><dt><a name="-indicators_from_text"><strong>indicators_from_text</strong></a>(text: 'str', role: 'str', confidence: 'str', source: 'str') -&gt; 'list[Indicator]'</dt><dd><span class="code">明示的に関連する文章片からハッシュとネットワーク指標を抽出する。</span></dd></dl>
+
+<h2>invalidated_ioc_rendering</h2>
+<dl><dt><a name="-invalidated_ioc_rendering"><strong>invalidated_ioc_rendering</strong></a>(directory: 'Path') -&gt; 'tuple[str, int] | None'</dt><dd><span class="code">監査で無効化したIOCを旧資料から再抽出しない。</span></dd></dl>
+
+<h2>load_history</h2>
+<dl><dt><a name="-load_history"><strong>load_history</strong></a>(path: 'Path') -&gt; 'dict[str, dict]'</dt><dd><span class="code">正規化した結果ディレクトリ別に、解析履歴の項目を索引化する。</span></dd></dl>
+
+<h2>main</h2>
+<dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">IOC一覧をdry-run、明示書込み、または同期検証する。</span></dd></dl>
+
+<h2>merge_indicators</h2>
+<dl><dt><a name="-merge_indicators"><strong>merge_indicators</strong></a>(values: 'Iterable[Indicator]') -&gt; 'list[Indicator]'</dt><dd><span class="code">より強い根拠と確度を優先しながら、指標を重複排除する。</span></dd></dl>
+
+<h2>normalize_value</h2>
+<dl><dt><a name="-normalize_value"><strong>normalize_value</strong></a>(value: 'str') -&gt; 'tuple[str, str] | None'</dt><dd><span class="code">単一の候補を正規化し、種別と安全な値を返す。</span></dd></dl>
+
+<h2>read_relevant_markdown</h2>
+<dl><dt><a name="-read_relevant_markdown"><strong>read_relevant_markdown</strong></a>(path: 'Path') -&gt; 'list[Indicator]'</dt><dd><span class="code">明示的な&nbsp;IOC、C2、ネットワーク、設定の見出し配下だけから値を抽出する。</span></dd></dl>
+
+<h2>render_index</h2>
+<dl><dt><a name="-render_index"><strong>render_index</strong></a>(results_root: 'Path', reports: 'list[tuple[Path, int]]') -&gt; 'str'</dt><dd><span class="code">解析単位の&nbsp;IOC&nbsp;一覧を横断する日本語索引を描画する。</span></dd></dl>
+
+<h2>render_ioc_list</h2>
+<dl><dt><a name="-render_ioc_list"><strong>render_ioc_list</strong></a>(values: 'list[Indicator]') -&gt; 'str'</dt><dd><span class="code">挙動説明を混在させず、日本語見出しの&nbsp;IOC&nbsp;表を描画する。</span></dd></dl>
+
+<h2>reseal_tracked_ioc_list</h2>
+<dl><dt><a name="-reseal_tracked_ioc_list"><strong>reseal_tracked_ioc_list</strong></a>(directory: 'Path') -&gt; 'None'</dt><dd><span class="code">追跡済みIOC-LIST.mdのhashだけを更新し、reportを再封印する。</span></dd></dl>
+
+<h2>sanitize_url</h2>
+<dl><dt><a name="-sanitize_url"><strong>sanitize_url</strong></a>(value: 'str') -&gt; 'str | None'</dt><dd><span class="code">IOC&nbsp;のパスを維持しながら、認証情報、クエリ、フラグメントを除去する。</span></dd></dl>
+
 </body></html>

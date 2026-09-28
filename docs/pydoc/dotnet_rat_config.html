@@ -1,0 +1,56 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>dotnet_rat_config — API仕様</title></head><body>
+<h1>dotnet_rat_config</h1>
+<p><a href="../../analysis-framework/common/dotnet_rat_config.py">実装</a></p>
+<pre>AsyncRAT／VenomRAT／DCRatのSettings静的初期化から公開可能な設定を復元する。</pre>
+<h2>ConfigRecoveryError</h2>
+<pre>設定metadata、暗号形式、または認証tagが期待形状と一致しない。</pre>
+<h2>SettingsLiteralAssessment</h2>
+<pre>候補値を非公開領域へ隔離した、Settings初期化の静的評価結果。
+
+公開には`settings_literal_diagnostics`を使う。repr、標準JSONの文字列表現、
+state projectionへliteral値やfield名を含めず、候補値は内部consumerだけが扱う。</pre>
+<pre>SettingsLiteralAssessment(diagnostics: &#x27;dict[str, Any]&#x27;, private_literals: &#x27;dict[str, str]&#x27;) -&gt; &#x27;None&#x27;</pre>
+<h2>assess_settings_literals</h2>
+<dl><dt><a name="-assess_settings_literals"><strong>assess_settings_literals</strong></a>(
+    data: 'bytes',
+    settings_type: 'str' = 'Client.Settings'
+) -&gt; 'SettingsLiteralAssessment'</dt><dd><span class="code">未解決効果を残しながら、fieldごとに隣接literal代入を静的観測する。<br>
+&nbsp;<br>
+completeは従来strict契約の成立、partialは実行時の最終値を証明しない観測、<br>
+rejectedはmetadata／body／token／上限の不成立を表す。分岐やEHは解釈せず、<br>
+call、newobj、address&nbsp;escapeの効果を未知のままにする。候補は非公開であり、<br>
+公開には`settings_literal_diagnostics`だけを使用する。通常recoverは使わない。</span></dd></dl>
+
+<h2>decrypt_obfuscated_chacha_setting</h2>
+<dl><dt><a name="-decrypt_obfuscated_chacha_setting"><strong>decrypt_obfuscated_chacha_setting</strong></a>(ciphertext: 'str', master_key: 'str') -&gt; 'str'</dt><dd><span class="code">12-byte&nbsp;nonce前置のreview済みChaCha20設定を復号する。</span></dd></dl>
+
+<h2>decrypt_setting</h2>
+<dl><dt><a name="-decrypt_setting"><strong>decrypt_setting</strong></a>(ciphertext: 'str', master_key: 'str', salt: 'bytes') -&gt; 'str'</dt><dd><span class="code">AsyncRAT系の有界なHMAC-SHA256＋AES-256-CBC設定を認証後に復号する。</span></dd></dl>
+
+<h2>main</h2>
+<dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt></dl>
+
+<h2>read_bounded_method_body</h2>
+<dl><dt><a name="-read_bounded_method_body"><strong>read_bounded_method_body</strong></a>(data: 'bytes', pe: 'dnfile.dnPE', rva: 'int') -&gt; 'object'</dt><dd><span class="code">不正な巨大code&nbsp;sizeをdncilへ渡さずmethod&nbsp;bodyを解析する。</span></dd></dl>
+
+<h2>recover</h2>
+<dl><dt><a name="-recover"><strong>recover</strong></a>(data: 'bytes', family: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">指定familyのreview済みfield&nbsp;mappingで公開可能な設定だけを返す。</span></dd></dl>
+
+<h2>settings_literal_diagnostics</h2>
+<dl><dt><a name="-settings_literal_diagnostics"><strong>settings_literal_diagnostics</strong></a>(assessment: 'SettingsLiteralAssessment') -&gt; 'dict[str, Any]'</dt><dd><span class="code">候補literal、field名、例外本文を含まない独立した公開診断copyを返す。</span></dd></dl>
+
+<h2>settings_literals</h2>
+<dl><dt><a name="-settings_literals"><strong>settings_literals</strong></a>(data: 'bytes', settings_type: 'str' = 'Client.Settings') -&gt; 'dict[str, str]'</dt><dd><span class="code">一意な直線cctorの隣接literal代入と既知field参照を構文的に回収する。<br>
+&nbsp;<br>
+stack、CLR、分岐を実行しない。参照は同じcctorで先に確定した同型のfieldに<br>
+限定し、前方参照、重複代入、分岐、例外handlerはfail-closedで拒否する。<br>
+partial評価の候補を、この成功mapへ渡すことはない。</span></dd></dl>
+
+<h2>static_salt</h2>
+<dl><dt><a name="-static_salt"><strong>static_salt</strong></a>(data: 'bytes', initializer_type: 'str') -&gt; 'bytes'</dt><dd><span class="code">exact&nbsp;framework宣言と隣接receiver構文で限定ASCII&nbsp;saltだけを回収する。<br>
+&nbsp;<br>
+宣言一致はruntime&nbsp;assembly、dispatch、副作用、nonthrowingの証明ではない。<br>
+getter→literal→GetBytes→Salt→ret以外の構文・未知callは一切評価しない。</span></dd></dl>
+
+</body></html>

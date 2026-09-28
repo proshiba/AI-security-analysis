@@ -17,6 +17,7 @@ _COMMON_MODULE_NAME = re.compile(r"[a-z][a-z0-9_]*")
 _COMMON_IMPORT_LOCK = threading.RLock()
 _COMMON_DEPENDENCIES = {
     "remus_c2_profile": ("safe_private_output",),
+    "remus_disk_config": ("remus_memory_config",),
 }
 
 
@@ -28,7 +29,9 @@ def _common_directory() -> Path:
     try:
         common.relative_to(repository)
     except ValueError as exc:
-        raise ImportError("analysis-framework/commonがrepository外を指しています") from exc
+        raise ImportError(
+            "analysis-framework/commonがrepository外を指しています"
+        ) from exc
     if not common.is_dir():
         raise ImportError("analysis-framework/commonがdirectoryではありません")
     return common
@@ -131,6 +134,104 @@ def _terminal_memory_report(data: bytes) -> dict | None:
     return report
 
 
+def _terminal_disk_report(data: bytes) -> dict | None:
+    """BSS初期化型を既存memory profileと分離し、コード形で検証する。"""
+
+    try:
+        module = _load_common_module("remus_disk_config")
+    except (ImportError, OSError):
+        return None
+    try:
+        report = module.extract_remus_disk_config(data)
+    except module.RemusDiskConfigLimitError:
+        # 時間上限を通常の非一致や成功へ丸めない。
+        raise
+    except module.RemusDiskConfigError:
+        return None
+    if report.get("status") != "extracted":
+        return None
+    config = report.get("config")
+    if not isinstance(config, dict) or not isinstance(config.get("endpoints"), list):
+        return None
+    return report
+
+
+def _attach_terminal_disk_config(result: dict, report: dict) -> dict:
+    """静的HTTP設定を保持し、family・resolver・live確認は別判定にする。"""
+
+    result["supports_family_attribution"] = False
+    result["terminal_family_confirmed"] = False
+    result["attribution_scope"] = "component_handler_route"
+    disk_config = report["config"]
+    endpoints = disk_config["endpoints"]
+    selected = disk_config["selected_index"]
+    values = [
+        f"[{item['host']}]:{item['port']}"
+        if ":" in item["host"]
+        else f"{item['host']}:{item['port']}"
+        for item in endpoints
+    ]
+    uris = [item["uri"] for item in endpoints]
+    promoted = set(values) | set(uris)
+    result["findings"] = [
+        item for item in result["findings"] if item.get("value") not in promoted
+    ]
+    result["findings"].extend(
+        {
+            "kind": "network.endpoint",
+            "value": value,
+            "role": "selected_c2" if item["slot_index"] == selected else "fallback_c2",
+            "confidence": "confirmed_static_config",
+            "source": "native_bss_chacha20_postxor_code_profile",
+        }
+        for item, value in zip(endpoints, values, strict=True)
+    )
+    config = result["config"]
+    config["urls"] = uris
+    config["endpoints"] = values
+    config["static_config_recovered"] = True
+    config["candidate_infrastructure_recovered"] = True
+    config["family_attribution_confirmed"] = False
+    config["c2_liveness_confirmed"] = False
+    config["disk_config_analysis"] = report
+    config["resolvers"] = [disk_config["resolver"]]
+    protocol = config["protocol_analysis"]
+    protocol["confirmed_c2"] = []
+    protocol["static_confirmed_c2"] = values
+    protocol["candidate_infrastructure"] = [
+        item for item in protocol["candidate_infrastructure"] if item not in promoted
+    ]
+    protocol["terminal_protocol_recovered"] = False
+    reasons = [
+        {
+            "code": "family_attribution_not_independently_confirmed",
+            "message_ja": "code/configの一致だけでファミリー帰属を確定しません。",
+        },
+        {
+            "code": "registration_values_not_recovered",
+            "message_ja": "tag/expとreview済みHTTP Hostが未抽出のため、能動profileを生成しません。",
+        },
+        {
+            "code": "blockchain_resolver_result_not_retrieved",
+            "message_ja": "RPC resolverが現在返す追加C2は未取得です。",
+        },
+    ]
+    protocol["active_profile_generation"] = {
+        "status": "blocked",
+        "blocked_reasons": reasons,
+        "profile": None,
+    }
+    protocol["active_probe_blocked_reasons"] = reasons
+    result["limitations"].extend(
+        [
+            "BSS初期化コード、3slot、selector切替とHTTP sinkから静的設定を復元しましたが、現在の稼働を確認していません。",
+            "RPC URIは接続先解決用のresolverであり、C2 endpointへ含めません。RPCが現在返す追加C2も未取得です。",
+            "このcode/config profileだけでRemusの独立帰属を確定せず、既知検体のlabelや設定を他検体へ継承しません。",
+        ]
+    )
+    return result
+
+
 def _build_protocol_profile(result: dict, report: dict) -> dict | None:
     """common builderで受動profileとfail-closedの能動判定を生成する。"""
 
@@ -163,7 +264,7 @@ def _attach_terminal_memory_config(result: dict, report: dict) -> dict:
     memory_config = report["config"]
     selected_index = memory_config["selector"]["selected_index"]
     endpoints = memory_config["endpoints"]
-    endpoint_values = [f'{item["host"]}:{item["port"]}' for item in endpoints]
+    endpoint_values = [f"{item['host']}:{item['port']}" for item in endpoints]
     endpoint_uris = [item["uri"] for item in endpoints]
     promoted_values = set(endpoint_values) | set(endpoint_uris)
 
@@ -177,9 +278,7 @@ def _attach_terminal_memory_config(result: dict, report: dict) -> dict:
             "kind": "network.endpoint",
             "value": value,
             "role": (
-                "selected_c2"
-                if item["slot_index"] == selected_index
-                else "fallback_c2"
+                "selected_c2" if item["slot_index"] == selected_index else "fallback_c2"
             ),
             "confidence": "confirmed_static_config",
             "source": "remus_chacha20_config",
@@ -215,9 +314,7 @@ def _attach_terminal_memory_config(result: dict, report: dict) -> dict:
         }
         protocol["terminal_protocol_recovered"] = False
         protocol["active_profile_generation"] = active_generation
-        protocol["active_probe_blocked_reasons"] = active_generation[
-            "blocked_reasons"
-        ]
+        protocol["active_probe_blocked_reasons"] = active_generation["blocked_reasons"]
         result["limitations"].extend(
             [
                 "静的C2設定は保持しましたが、protocol profile生成に失敗したため能動判定を許可しません。",
@@ -267,5 +364,10 @@ def extract(data: bytes, name: str = "sample") -> dict:
     result = attach_protocol_guidance(result, "remusstealer")
     report = _terminal_memory_report(data)
     if report is None:
-        return result
+        disk_report = _terminal_disk_report(data)
+        return (
+            result
+            if disk_report is None
+            else _attach_terminal_disk_config(result, disk_report)
+        )
     return _attach_terminal_memory_config(result, report)

@@ -1,80 +1,49 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Python: module unpackers.electron_nsis_unpacker</title>
-</head><body>
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>unpackers.electron_nsis_unpacker — API仕様</title></head><body>
+<h1>unpackers.electron_nsis_unpacker</h1>
+<p><a href="../../unpackers/electron_nsis_unpacker.py">実装</a></p>
+<pre>梱包されたJavaScriptやPEを実行せずElectron NSIS payloadを静的復元する。</pre>
+<h2>characterize_terminal_pe</h2>
+<dl><dt><a name="-characterize_terminal_pe"><strong>characterize_terminal_pe</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">復元した終端PEについて秘密値を含まない構造profileを返す。</span></dd></dl>
 
-<table class="heading">
-<tr class="heading-text decor">
-<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.electron_nsis_unpacker</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="../../unpackers/electron_nsis_unpacker.py">unpackers/electron_nsis_unpacker.py</a></td></tr></table>
-    <p><span class="code">梱包されたJavaScriptやPEを実行せずElectron&nbsp;NSIS&nbsp;payloadを静的復元する。</span></p>
-<p>
-<table class="section">
-<tr class="decor pkg-content-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+<h2>deobfuscate_generated_alphabet_rc4</h2>
+<dl><dt><a name="-deobfuscate_generated_alphabet_rc4"><strong>deobfuscate_generated_alphabet_rc4</strong></a>(data: 'bytes') -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">JavaScriptを実行せず、生成alphabet/RC4文字列配列を復号する。</span></dd></dl>
 
-<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="cryptography.hazmat.primitives.ciphers.algorithms.html">cryptography.hazmat.primitives.ciphers.algorithms</a><br>
-<a href="ast.html">ast</a><br>
-<a href="base64.html">base64</a><br>
-</td><td class="multicolumn"><a href="hashlib.html">hashlib</a><br>
-<a href="json.html">json</a><br>
-<a href="cryptography.hazmat.primitives.ciphers.modes.html">cryptography.hazmat.primitives.ciphers.modes</a><br>
-</td><td class="multicolumn"><a href="os.html">os</a><br>
-<a href="pefile.html">pefile</a><br>
-<a href="re.html">re</a><br>
-</td><td class="multicolumn"><a href="tempfile.html">tempfile</a><br>
-</td></tr></table></td></tr></table><p>
-<table class="section">
-<tr class="decor functions-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+<h2>electron_asar_preflight</h2>
+<dl><dt><a name="-electron_asar_preflight"><strong>electron_asar_preflight</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">Electron専用size/member上限をblob抽出前に検証する。</span></dd></dl>
 
-<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-characterize_terminal_pe"><strong>characterize_terminal_pe</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">復元した終端PEについて秘密値を含まない構造profileを返す。</span></dd></dl>
- <dl><dt><a name="-deobfuscate_generated_alphabet_rc4"><strong>deobfuscate_generated_alphabet_rc4</strong></a>(data: 'bytes') -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">JavaScriptを実行せず、生成alphabet/RC4文字列配列を復号する。</span></dd></dl>
- <dl><dt><a name="-electron_asar_preflight"><strong>electron_asar_preflight</strong></a>(data: 'bytes') -&gt; 'dict'</dt><dd><span class="code">Electron専用size/member上限をblob抽出前に検証する。</span></dd></dl>
- <dl><dt><a name="-extract_member"><strong>extract_member</strong></a>(
+<h2>extract_member</h2>
+<dl><dt><a name="-extract_member"><strong>extract_member</strong></a>(
     path: 'Path',
     member: 'str',
     output: 'Path',
     executable: 'Path',
     timeout: 'float' = 180.0
 ) -&gt; 'Path'</dt><dd><span class="code">検証済みarchive&nbsp;member&nbsp;1件を抽出し、一意なlocal&nbsp;pathを返す。</span></dd></dl>
- <dl><dt><a name="-list_archive"><strong>list_archive</strong></a>(path: 'Path', executable: 'Path', timeout: 'float' = 60.0) -&gt; 'dict'</dt><dd><span class="code">7-Zipでarchive&nbsp;1件を列挙し、上限付きtype/member&nbsp;metadataを返す。</span></dd></dl>
- <dl><dt><a name="-recover_electron_asars"><strong>recover_electron_asars</strong></a>(data: 'bytes', executable: 'Path') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">app&nbsp;bundle全体を展開せず、入れ子Electron&nbsp;ASARを静的復元する。</span></dd></dl>
- <dl><dt><a name="-recover_payload_from_asar"><strong>recover_payload_from_asar</strong></a>(
+
+<h2>list_archive</h2>
+<dl><dt><a name="-list_archive"><strong>list_archive</strong></a>(path: 'Path', executable: 'Path', timeout: 'float' = 60.0) -&gt; 'dict'</dt><dd><span class="code">7-Zipでarchive&nbsp;1件を列挙し、上限付きtype/member&nbsp;metadataを返す。</span></dd></dl>
+
+<h2>recover_electron_asars</h2>
+<dl><dt><a name="-recover_electron_asars"><strong>recover_electron_asars</strong></a>(data: 'bytes', executable: 'Path') -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">app&nbsp;bundle全体を展開せず、入れ子Electron&nbsp;ASARを静的復元する。</span></dd></dl>
+
+<h2>recover_payload_from_asar</h2>
+<dl><dt><a name="-recover_payload_from_asar"><strong>recover_payload_from_asar</strong></a>(
     data: 'bytes',
     *,
     parsed_asar: 'tuple[dict, list[tuple[str, bytes]]] | None' = None
 ) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">ASARからAESで包まれた終端PE&nbsp;1件を静的解析だけで復元する。</span></dd></dl>
- <dl><dt><a name="-safe_archive_member"><strong>safe_archive_member</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">未信頼7-Zip&nbsp;member&nbsp;path&nbsp;1件を正規化し検証する。</span></dd></dl>
- <dl><dt><a name="-select_asar_members"><strong>select_asar_members</strong></a>(names: 'list[str]') -&gt; 'list[str]'</dt><dd><span class="code">標準pathを優先し、上限付きapp.asar候補を返す。</span></dd></dl>
- <dl><dt><a name="-select_nested_7z_members"><strong>select_nested_7z_members</strong></a>(names: 'list[str]') -&gt; 'list[str]'</dt><dd><span class="code">NSIS一覧から上限付きの入れ子7z候補を返す。</span></dd></dl>
-</td></tr></table><p>
-<table class="section">
-<tr class="decor data-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
 
-<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>MAX_ARCHIVE</strong> = 268435456<br>
-<strong>MAX_ASAR</strong> = 67108864<br>
-<strong>MAX_ASAR_CONTAINER_NODES</strong> = 2048<br>
-<strong>MAX_ASAR_DEPTH</strong> = 64<br>
-<strong>MAX_CIPHERTEXT</strong> = 67108864<br>
-<strong>MAX_ELECTRON_SCRIPTS</strong> = 64<br>
-<strong>MAX_ELECTRON_SCRIPT_BYTES</strong> = 8388608<br>
-<strong>MAX_JS_ARRAY</strong> = 10000<br>
-<strong>MAX_JS_ROTATION</strong> = 100000<br>
-<strong>MAX_JS_VALUE</strong> = 65536<br>
-<strong>MAX_MEMBERS</strong> = 512<br>
-<strong>MAX_PE_IMPORT_DESCRIPTORS</strong> = 256<br>
-<strong>MAX_PE_IMPORT_SYMBOLS_PER_DLL</strong> = 2048<br>
-<strong>MAX_PE_STRINGS_PER_ENCODING</strong> = 4096<br>
-<strong>MAX_PE_STRING_SCAN</strong> = 8388608<br>
-<strong>MAX_SCRIPT</strong> = 2097152<br>
-<strong>MAX_STATIC_TOOL_TEMP_BYTES</strong> = 1073741824<br>
-<strong>MAX_STATIC_TOOL_TEMP_ENTRIES</strong> = 10000<br>
-<strong>MAX_TERMINAL_PE</strong> = 67108864</td></tr></table>
+<h2>safe_archive_member</h2>
+<dl><dt><a name="-safe_archive_member"><strong>safe_archive_member</strong></a>(name: 'str') -&gt; 'str'</dt><dd><span class="code">未信頼7-Zip&nbsp;member&nbsp;path&nbsp;1件を正規化し検証する。</span></dd></dl>
+
+<h2>select_asar_members</h2>
+<dl><dt><a name="-select_asar_members"><strong>select_asar_members</strong></a>(names: 'list[str]') -&gt; 'list[str]'</dt><dd><span class="code">標準pathを優先し、上限付きapp.asar候補を返す。</span></dd></dl>
+
+<h2>select_nested_7z_members</h2>
+<dl><dt><a name="-select_nested_7z_members"><strong>select_nested_7z_members</strong></a>(names: 'list[str]') -&gt; 'list[str]'</dt><dd><span class="code">NSIS一覧から上限付きの入れ子7z候補を返す。</span></dd></dl>
+
+<h2>select_protected_jsc_members</h2>
+<dl><dt><a name="-select_protected_jsc_members"><strong>select_protected_jsc_members</strong></a>(names: 'list[str]') -&gt; 'list[str]'</dt><dd><span class="code">ASAR外部配置のアプリ固有bytenode&nbsp;bytecodeだけを有界に選ぶ。</span></dd></dl>
+
 </body></html>

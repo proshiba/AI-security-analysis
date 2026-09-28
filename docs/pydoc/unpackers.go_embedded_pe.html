@@ -1,0 +1,18 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>unpackers.go_embedded_pe — API仕様</title></head><body>
+<h1>unpackers.go_embedded_pe</h1>
+<p><a href="../../unpackers/go_embedded_pe.py">実装</a></p>
+<pre>Go関数表と明示的なbyte復号処理から埋込みPEを有界静的回収する。
+
+Go、復元PE、CPU命令を実行せず、ファイル書込みや外部通信もしない。
+包装形式の復元を、終端到達・ファミリー・C2の確認とは扱わない。</pre>
+<h2>GoRecoveryError</h2>
+<pre>不正構造や上限超過の理由だけを保持する安全な例外。</pre>
+<h2>recover_go_embedded_pe</h2>
+<dl><dt><a name="-recover_go_embedded_pe"><strong>recover_go_embedded_pe</strong></a>(
+    data: 'bytes',
+    *,
+    clock: 'Callable[[], float]' = &lt;built-in function monotonic&gt;
+) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">Go1.20以降の関数表と確認済み復号数学が一致する場合だけPEを返す。</span></dd></dl>
+
+</body></html>
