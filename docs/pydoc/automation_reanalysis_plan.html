@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>automation_reanalysis_plan — API仕様</title></head><body>
+<h1>automation_reanalysis_plan</h1>
+<p><a href="../../analysis-framework/common/automation_reanalysis_plan.py">実装</a></p>
+<pre>監査済みmetadataから、人間レビュー必須の有界再解析候補だけを純粋に計画する。</pre>
+<h2>ReanalysisPlanError</h2>
+<pre>検証失敗を、入力値を含まない固定error codeで表す。</pre>
+<h2>build_plan</h2>
+<dl><dt><a name="-build_plan"><strong>build_plan</strong></a>(
+    document: 'Mapping[str, Any]',
+    current_document: 'Mapping[str, Any]',
+    catalog: 'Mapping[str, Any]',
+    *,
+    catalog_sha256: 'str',
+    max_candidates: 'int' = 64,
+    max_repairs: 'int' = 128
+) -&gt; 'dict[str, Any]'</dt><dd><span class="code">現在の検証済み監査snapshotと一致する記録だけから、実行権限のない候補計画を生成する。</span></dd></dl>
+
+<h2>main</h2>
+<dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">固定metadataの現在snapshotを再検証し、private保存向けJSONを標準出力へ返す。</span></dd></dl>
+
+</body></html>

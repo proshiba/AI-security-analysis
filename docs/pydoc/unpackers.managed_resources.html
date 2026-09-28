@@ -1,0 +1,24 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>unpackers.managed_resources — API仕様</title></head><body>
+<h1>unpackers.managed_resources</h1>
+<p><a href="../../unpackers/managed_resources.py">実装</a></p>
+<pre>CLR resource宣言の有界な静的descriptor。本文・名前は公開coverageへ含めない。</pre>
+<h2>describe_clr_resources</h2>
+<dl><dt><a name="-describe_clr_resources"><strong>describe_clr_resources</strong></a>(
+    data: 'bytes',
+    pe: 'Any',
+    *,
+    max_resources: 'int' = 4096,
+    max_resource_bytes: 'int' = 67108864,
+    max_total_bytes: 'int' = 67108864,
+    max_table_rows: 'int' = 20000,
+    max_total_rows: 'int' = 80000,
+    max_sections: 'int' = 96,
+    max_string_heap_bytes: 'int' = 16777216,
+    row_snapshot: '_RowSnapshot | None' = None
+) -&gt; '_ResourceScan'</dt><dd><span class="code">静的resource&nbsp;inventoryだけを検証し、partialならdescriptor全体を破棄する。<br>
+&nbsp;<br>
+row_snapshotは同一data/PEの内部共有入口。公開coverageから逆構成して使わない。<br>
+linked&nbsp;resource本文は取得せず、framework/runtime真正性も一切検証しない。</span></dd></dl>
+
+</body></html>

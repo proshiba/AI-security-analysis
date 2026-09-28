@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import sys
+import pytest
 
 
 MODULE = Path(__file__).resolve().parents[1] / "common" / "c2_analysis_contract.py"
@@ -138,3 +139,131 @@ def test_case_loader_reads_valid_contract(tmp_path: Path) -> None:
     )
     result = target.validate_case(case, DIGEST, repository=repository)
     assert result["complete"] is True
+# 既存のtest_c2_analysis_contract.pyへ追加する人工dictだけの回帰試験案。
+
+
+def test_schema_version_bool_and_float_cannot_complete_or_defer() -> None:
+    for version in (True, 1.0):
+        documents = (
+            _complete_contract(),
+            _complete_contract("no_c2_capability_verified"),
+            target.build_unresolved_contract(DIGEST, "fixture"),
+        )
+        for document in documents:
+            document["schema_version"] = version
+            result = target.validate_contract(document, DIGEST)
+            assert any(item["code"] == "c2_contract_schema" for item in result["findings"])
+            assert result["complete"] is False
+            assert result["daily_ready"] is False
+            assert result["deferred"] is False
+            assert result["outcome"] == document["c2"]["outcome"]
+
+
+def test_schema_version_integer_one_preserves_existing_outcomes() -> None:
+    documents = (
+        _complete_contract(),
+        _complete_contract("no_c2_capability_verified"),
+        target.build_unresolved_contract(DIGEST, "fixture"),
+    )
+    for document in documents:
+        assert type(document["schema_version"]) is int
+        result = target.validate_contract(document, DIGEST)
+        unresolved = document["c2"]["outcome"] == "unresolved"
+        assert result["complete"] is (not unresolved)
+        assert result["daily_ready"] is True
+        assert result["deferred"] is unresolved
+        assert result["outcome"] == document["c2"]["outcome"]
+        assert not any(item["code"] == "c2_contract_schema" for item in result["findings"])
+
+
+def test_schema_version_unknown_remains_invalid_without_outcome_promotion() -> None:
+    for version in (False, 0, 0.0, -1, 1.5, 2, 99, None, "1", [], {}):
+        documents = (
+            _complete_contract(),
+            _complete_contract("no_c2_capability_verified"),
+            target.build_unresolved_contract(DIGEST, "fixture"),
+        )
+        for document in documents:
+            document["schema_version"] = version
+            result = target.validate_contract(document, DIGEST)
+            assert any(item["code"] == "c2_contract_schema" for item in result["findings"])
+            assert result["complete"] is False
+            assert result["daily_ready"] is False
+            assert result["deferred"] is False
+            assert result["outcome"] == document["c2"]["outcome"]
+
+
+def test_schema_version_absent_does_not_gain_legacy_fallback() -> None:
+    documents = (
+        _complete_contract(),
+        _complete_contract("no_c2_capability_verified"),
+        target.build_unresolved_contract(DIGEST, "fixture"),
+    )
+    for document in documents:
+        document.pop("schema_version")
+        result = target.validate_contract(document, DIGEST)
+        assert any(item["code"] == "c2_contract_schema" for item in result["findings"])
+        assert result["complete"] is False
+        assert result["daily_ready"] is False
+        assert result["deferred"] is False
+        assert result["outcome"] == document["c2"]["outcome"]
+
+
+@pytest.mark.parametrize("invalid", [None, True, 1, 1.0, [], {}])
+@pytest.mark.parametrize("field,code", [
+    ("phase_status", "c2_phase_status"),
+    ("terminal_status", "terminal_payload_status_invalid"),
+    ("outcome", "c2_outcome_invalid"),
+    ("confidence", "c2_protocol_confidence_low"),
+    ("priority", "c2_deep_analysis_priority"),
+])
+def test_malformed_json_enum_is_reported_without_stopping_validation(field, code, invalid) -> None:
+    """JSONの非文字列enumを固定findingへ変換し、後続caseの検証を停止させない。"""
+    document = (
+        target.build_unresolved_contract(DIGEST, "fixture")
+        if field == "priority" else _complete_contract()
+    )
+    if field == "phase_status":
+        document["phase_evidence"][0]["status"] = invalid
+    elif field == "terminal_status":
+        document["terminal_payload"]["status"] = invalid
+    elif field == "outcome":
+        document["c2"]["outcome"] = invalid
+    elif field == "confidence":
+        document["c2"]["protocol"]["confidence"] = invalid
+    else:
+        document["deep_analysis"]["priority"] = invalid
+    # 任意Python objectではなく、静的なJSON入力として生成できる形だけを渡す。
+    document = json.loads(json.dumps(document, allow_nan=False))
+    result = target.validate_contract(document, DIGEST)
+    assert any(item["code"] == code for item in result["findings"])
+    assert result["complete"] is False
+    assert result["daily_ready"] is False
+    assert result["deferred"] is False
+    if field == "outcome":
+        assert result["outcome"] == "invalid"
+    assert target.validate_contract(_complete_contract(), DIGEST)["complete"] is True
+
+
+@pytest.mark.parametrize("invalid", [None, True, 1, 1.0, [], {}])
+def test_unresolved_terminal_status_nonstring_cannot_be_daily_deferred(invalid) -> None:
+    """型不適合を正常な未解決と混同せず、日次繰越の条件から除外する。"""
+    document = target.build_unresolved_contract(DIGEST, "fixture")
+    document["terminal_payload"]["status"] = invalid
+    result = target.validate_contract(json.loads(json.dumps(document)), DIGEST)
+    assert result["complete"] is False
+    assert result["daily_ready"] is False
+    assert result["deferred"] is False
+    assert result["outcome"] == "unresolved"
+    assert any(item["code"] == "terminal_payload_status_invalid" for item in result["findings"])
+
+
+def test_missing_unresolved_terminal_status_cannot_be_daily_deferred() -> None:
+    document = target.build_unresolved_contract(DIGEST, "fixture")
+    del document["terminal_payload"]["status"]
+    result = target.validate_contract(document, DIGEST)
+    assert result["complete"] is False
+    assert result["daily_ready"] is False
+    assert result["deferred"] is False
+    assert result["outcome"] == "unresolved"
+    assert any(item["code"] == "terminal_payload_status_invalid" for item in result["findings"])

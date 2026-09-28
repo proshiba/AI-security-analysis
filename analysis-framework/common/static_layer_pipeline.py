@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import heapq
+import math
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -164,9 +165,10 @@ class StaticLayerPolicy:
         if (
             not isinstance(self.max_compression_ratio, (int, float))
             or isinstance(self.max_compression_ratio, bool)
+            or not math.isfinite(self.max_compression_ratio)
             or self.max_compression_ratio <= 0
         ):
-            raise ValueError("max_compression_ratioは正数で指定してください")
+            raise ValueError("max_compression_ratioは有限の正数で指定してください")
 
     def public(self) -> dict[str, int | float]:
         """公開レポート用の上限値を返す。"""

@@ -14,9 +14,9 @@ def _base_result() -> dict:
         "config": {"source_name": "fixture", "profile": None, "static_config_recovered": False},
         "findings": [],
         "limitations": [
-            "Static extraction only; the sample was not executed.",
-            "No recovered endpoint was contacted or assigned a liveness state.",
-            "No supported plaintext profile was recovered; packing or another StealC generation may require a separately authorized unpacking workflow.",
+            "静的抽出だけを実施し、検体は実行していません。",
+            "復元したendpointへ接続せず、稼働状態も判定していません。",
+            "対応する平文profileは復元できませんでした。packingや別世代のStealCでは、別途承認された展開手順が必要になる場合があります。",
         ],
         "credentials_published": False,
         "executed": False,
@@ -54,6 +54,7 @@ def test_v2_memory_profile_is_normalized(monkeypatch) -> None:
     assert profile["active_probe"]["max_requests"] == 2
     assert result["network_contacted"] is False
     assert any(item["role"] == "stealc_c2_url" for item in result["findings"])
+    assert not any(value.startswith("対応する平文profileは復元できませんでした") for value in result["limitations"])
 
 
 def test_v1_success_is_not_overwritten(monkeypatch) -> None:

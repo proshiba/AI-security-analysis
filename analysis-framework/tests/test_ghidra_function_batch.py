@@ -1599,24 +1599,62 @@ def test_entry_inventory_change_does_not_retry_without_confirmed_save(
     assert calls == ["analyze"]
 
 
+def _entry_stability_client(monkeypatch: pytest.MonkeyPatch, *, functions: object, total: object | None = None) -> tuple[object, list[float]]:
+    """実時計・MCPを使わず、背景解析の遅延と静穏期間を試験する。"""
+
+    clock = [0.0]
+    monkeypatch.setattr(target.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(target.time, "sleep", lambda seconds: clock.__setitem__(0, clock[0] + seconds))
+
+    def inventory() -> list[dict[str, object]]:
+        return functions(clock[0]) if callable(functions) else functions
+
+    def count() -> int:
+        return total(clock[0]) if callable(total) else (len(inventory()) if total is None else total)
+
+    class Client:
+        timeout = 3600
+
+        def post(self, endpoint: str, body: object, **query: object) -> object:
+            assert endpoint == "/run_analysis"
+            assert body == {}
+            assert query["program"] == "/project/program"
+            assert 0 < query["transport_timeout"] <= 180
+            return {"success": True}
+
+        def get(self, endpoint: str, **query: object) -> object:
+            assert query["program"] == "/project/program"
+            assert 0 < query["transport_timeout"] <= 180
+            if endpoint == "/analysis_status":
+                return {"analyzed": True, "analyzing": False, "function_count": count()}
+            if endpoint == "/get_metadata":
+                return {"function_count": str(count())}
+            raise AssertionError(endpoint)
+
+    monkeypatch.setattr(
+        target, "_all_functions_with_coverage",
+        lambda *_args, **_kwargs: (inventory(), {"complete": True, "item_count": len(inventory())}),
+    )
+    return Client(), clock
+
+
 def test_entry_inventory_growth_requires_stable_superset(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """入口関数の自動発見は単調増加し、連続2回一致した場合だけ受理する。"""
+    """入口関数の自動発見は単調増加し、10秒静穏が続いた場合だけ受理する。"""
 
     initial = [{"address": "1000", "name": "entry"}]
     grown = initial + [{"address": "2000", "name": "discovered"}]
-    coverage = {"complete": True, "item_count": 2}
-    monkeypatch.setattr(
-        target, "_all_functions_with_coverage",
-        lambda *_args: (grown, coverage),
-    )
+    client, clock = _entry_stability_client(monkeypatch, functions=grown)
     actual, actual_coverage, reads = target._stabilize_recovered_function_inventory(
-        object(), "/project/program", initial, grown, {"complete": True}
+        client, "/project/program", initial, grown, {"complete": True}
     )
     assert actual == grown
-    assert actual_coverage == coverage
-    assert reads == 1
+    assert actual_coverage["item_count"] == 2
+    assert actual_coverage["inventory_stability"]["complete"] is True
+    assert actual_coverage["inventory_stability"]["quiet_seconds_observed"] == 10
+    assert reads == 6
+    assert clock == [10]
 
 
 def test_entry_inventory_growth_rejects_contraction(
@@ -1626,14 +1664,197 @@ def test_entry_inventory_growth_rejects_contraction(
 
     initial = [{"address": "1000"}]
     grown = initial + [{"address": "2000"}]
-    monkeypatch.setattr(
-        target, "_all_functions_with_coverage",
-        lambda *_args: (initial, {"complete": True}),
-    )
+    client, _clock = _entry_stability_client(monkeypatch, functions=initial)
     with pytest.raises(target.GhidraMcpInventoryChanged, match="縮小"):
         target._stabilize_recovered_function_inventory(
-            object(), "/project/program", initial, grown, {"complete": True}
+            client, "/project/program", initial, grown, {"complete": True}
         )
+
+
+def test_entry_inventory_delayed_growth_does_not_cache_one_function(monkeypatch: pytest.MonkeyPatch) -> None:
+    """analyzed=trueでも遅延した1→295関数の発見を待ち、1件を早期確定しない。"""
+
+    initial = [{"address": "1000", "name": "entry"}]
+    grown = initial + [{"address": f"{0x2000 + index * 0x10:x}"} for index in range(294)]
+    client, clock = _entry_stability_client(
+        monkeypatch, functions=lambda now: initial if now < 6 else grown,
+        total=lambda now: 1 if now < 6 else 313,
+    )
+    functions, coverage, reads = target._stabilize_recovered_function_inventory(
+        client, "/project/program", initial, initial, {"complete": True}, timeout_seconds=30,
+    )
+    assert len(functions) == 295
+    assert clock == [16]
+    assert reads == 9
+    assert coverage["derived_external_function_count"] == 18
+    assert coverage["inventory_stability"]["analysis_status_function_count"] == 313
+
+
+def test_entry_inventory_count_disagreement_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """statusとmetadataが不一致のままなら小inventoryをcompleteとして保存しない。"""
+
+    initial = [{"address": "1000"}]
+    client, clock = _entry_stability_client(monkeypatch, functions=initial)
+    original_get = client.get
+
+    def disagree(endpoint: str, **query: object) -> object:
+        if endpoint == "/get_metadata":
+            return {"function_count": "313"}
+        return original_get(endpoint, **query)
+
+    monkeypatch.setattr(client, "get", disagree)
+    with pytest.raises(TimeoutError, match="安定"):
+        target._stabilize_recovered_function_inventory(
+            client, "/project/program", initial, initial, {"complete": True}, timeout_seconds=12,
+        )
+    assert clock == [12]
+
+
+def test_entry_inventory_busy_resets_quiet_window(monkeypatch: pytest.MonkeyPatch) -> None:
+    """解析中に戻れば安定時間をリセットし、停止から改めて10秒待つ。"""
+
+    initial = [{"address": "1000"}]
+    client, clock = _entry_stability_client(monkeypatch, functions=initial)
+    original_get = client.get
+
+    def busy(endpoint: str, **query: object) -> object:
+        value = original_get(endpoint, **query)
+        if endpoint == "/analysis_status" and 6 <= clock[0] < 8:
+            return {**value, "analyzing": True}
+        return value
+
+    monkeypatch.setattr(client, "get", busy)
+    _functions, coverage, _reads = target._stabilize_recovered_function_inventory(
+        client, "/project/program", initial, initial, {"complete": True}, timeout_seconds=30,
+    )
+    assert clock == [18]
+    assert coverage["inventory_stability"]["quiet_seconds_observed"] == 10
+
+
+def test_entry_inventory_requires_reanalysis_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    """再解析の応答が不明なら静穏した一覧だけで成功扱いしない。"""
+
+    initial = [{"address": "1000"}]
+    client, clock = _entry_stability_client(monkeypatch, functions=initial)
+    monkeypatch.setattr(client, "post", lambda *_args, **_kwargs: {})
+    with pytest.raises(target.GhidraMcpError, match="成功"):
+        target._stabilize_recovered_function_inventory(
+            client, "/project/program", initial, initial, {"complete": True},
+        )
+    assert clock == [0]
+
+
+def test_inventory_page_transport_respects_stability_deadline(monkeypatch: pytest.MonkeyPatch) -> None:
+    """関数一覧の各ページも大きなclient既定timeoutではなく残deadlineに拘束する。"""
+
+    clock = [5.0]
+    calls: list[dict[str, object]] = []
+    monkeypatch.setattr(target.time, "monotonic", lambda: clock[0])
+
+    class Client:
+        timeout = 3600
+
+        def get(self, endpoint: str, **query: object) -> object:
+            assert endpoint == "/list_functions_enhanced"
+            assert query["program"] == "/project/program"
+            assert query["transport_timeout"] == 2.5
+            calls.append(query)
+            return {"functions": [{"address": "1000"}], "count": 1}
+
+    functions, coverage = target._all_functions_with_coverage(Client(), "/project/program", deadline=7.5)
+    assert len(functions) == 1
+    assert coverage["complete"] is True
+    assert len(calls) == 1
+
+
+def test_inventory_page_expired_deadline_makes_no_request(monkeypatch: pytest.MonkeyPatch) -> None:
+    """deadline到達後は残りの関数ページを要求しない。"""
+
+    monkeypatch.setattr(target.time, "monotonic", lambda: 5.0)
+
+    class Client:
+        def get(self, *_args: object, **_kwargs: object) -> object:
+            raise AssertionError("期限後にMCP requestを行ってはならない")
+
+    with pytest.raises(TimeoutError, match="deadline"):
+        target._all_functions_with_coverage(Client(), "/project/program", deadline=5.0)
+
+
+def test_entry_recovered_cache_requires_bound_quiescence_proof(monkeypatch: pytest.MonkeyPatch) -> None:
+    """旧complete cacheや別program・偽件数の静穏証拠は再利用しない。"""
+
+    initial = [{"address": "1000"}]
+    client, _clock = _entry_stability_client(monkeypatch, functions=initial, total=4)
+    _functions, coverage, _reads = target._stabilize_recovered_function_inventory(
+        client, "/project/program", initial, initial, {"complete": True},
+    )
+    base = {"program_selector": "/project/program", "ghidra_function_inventory_count": 1,
+            "entry_point_function_recovery": {"status": "recovered"}, "retrieval_coverage": {"functions": coverage}}
+    assert target._recovered_inventory_stability_complete(base)
+    legacy_coverage = {key: value for key, value in coverage.items() if key != "inventory_stability"}
+    assert not target._recovered_inventory_stability_complete({**base, "retrieval_coverage": {"functions": legacy_coverage}})
+    for field, value in (("program_selector", "/other"), ("quiet_seconds_observed", float("nan")),
+                         ("analysis_status_function_count", 1), ("stable_observation_count", True),
+                         ("run_analysis_acknowledged", False), ("analyzing", True)):
+        proof = {**coverage["inventory_stability"], field: value}
+        assert not target._recovered_inventory_stability_complete({**base, "retrieval_coverage": {"functions": {**coverage, "inventory_stability": proof}}})
+
+
+def test_legacy_recovered_cache_nonempty_program_still_waits_for_stability(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """旧entry-only cacheを再開しても、1件が存在するだけで再度早期確定しない。"""
+
+    data = _pe_with_entry()
+    digest = hashlib.sha256(data).hexdigest()
+    private_output = tmp_path / "private"
+    snapshot = target._immutable_staging_snapshot(private_output, digest, data)
+    item = target.ProgramObject(
+        sha256=digest, input_path=snapshot.path, size=len(data),
+        relationships=[{"case_sha256": digest, "depth": 0, "transform": "root"}],
+        input_snapshot=snapshot,
+    )
+    program = f"/Malware/Test/{digest[:8]}/{snapshot.path.name}"
+    cached = _bind_native_call_graph({
+        "status": "complete", "mcp_responses_valid": True,
+        "analysis_mode": "native_ghidra_with_optional_cil", "program_selector": program,
+        "ghidra_function_inventory_count": 1, "function_inventory_count": 0,
+        "managed_method_count": 0, "functions": [], "characteristic_function_ids": [],
+        "entry_point_function_recovery": {"status": "recovered", "final_function_count": 1},
+        "retrieval_coverage": {"functions": {
+            "endpoint": "/list_functions_enhanced", "program_selector": program,
+            "item_count": 1, "terminal_short_page_observed": True, "complete": True,
+            "metadata_function_count": 1, "count_matches_metadata": True,
+        }},
+    })
+    target._persist_program_result(private_output / "objects" / digest / "program-result.json", cached)
+
+    class Client:
+        def get(self, endpoint: str, **query: object) -> object:
+            assert query.get("program") == program
+            if endpoint == "/analysis_status":
+                return {"analyzed": True, "analyzing": False, "function_count": 1}
+            if endpoint == "/get_metadata":
+                return "Function Count: 1\n"
+            if endpoint == "/list_functions_enhanced":
+                return {"functions": [{"address": "00401000", "name": "entry", "isExternal": False}], "count": 1}
+            if endpoint == "/get_entry_points":
+                return "entry @ 00401000 [external entry]"
+            if endpoint in {"/list_imports", "/list_exports", "/list_strings", "/list_segments"}:
+                return []
+            raise AssertionError(endpoint)
+
+    def must_wait(_client: object, selector: str, initial: object, _observed: object, _coverage: object, **kwargs: object) -> object:
+        assert selector == program
+        assert len(initial) == 1
+        assert kwargs == {"timeout_seconds": 30}
+        raise RuntimeError("旧entry-only cacheは静穏確認へ到達しました")
+
+    monkeypatch.setattr(target, "_is_managed_pe", lambda _data: False)
+    monkeypatch.setattr(target, "_managed_cil_records", lambda *_args: [])
+    monkeypatch.setattr(target, "_stabilize_recovered_function_inventory", must_wait)
+    with pytest.raises(RuntimeError, match="静穏確認へ到達"):
+        target.analyze_program(Client(), item, private_output, "/Malware/Test", analysis_timeout=30)
 
 
 @pytest.mark.parametrize("timeout", [0, -1, float("nan"), float("inf"), True])
@@ -8414,10 +8635,12 @@ def test_refresh_requires_reanalysis_when_legacy_function_inventory_was_truncate
         )
 
 
+@pytest.mark.parametrize("quiet_proof", [False, True])
 def test_refresh_updates_stale_metadata_after_validated_entry_recovery(
     tmp_path: Path,
+    quiet_proof: bool,
 ) -> None:
-    """入口関数復元前の0件metadataを再取得し、復元後inventoryへ拘束する。"""
+    """旧0件metadataは修正するが、入口復元後の静穏証拠なしではpartialを維持する。"""
 
     digest = "d" * 64
     program = f"/Malware/Test/{digest}.quarantine.bin"
@@ -8490,6 +8713,20 @@ def test_refresh_updates_stale_metadata_after_validated_entry_recovery(
             }
         },
     }
+    if quiet_proof:
+        function_coverage = result["retrieval_coverage"]["functions"]
+        target._bind_function_metadata_coverage(function_coverage, "Function Count: 4", 1)
+        function_coverage["item_count"] = 1
+        function_coverage["inventory_stability"] = {
+            "schema_version": 1, "complete": True, "program_selector": program,
+            "run_analysis_acknowledged": True, "analyzing": False, "analyzed": True,
+            "quiet_seconds_required": 10.0, "quiet_seconds_observed": 12.0,
+            "stable_observation_count": 7, "analysis_status_function_count": 4,
+            "metadata_function_count": 4, "non_external_function_count": 1,
+        }
+        original_raw = target.load_json_object_strict(object_dir / "ghidra-raw-index.json")
+        original_raw["retrieval_coverage"]["functions"] = json.loads(json.dumps(function_coverage))
+        target._json_dump(object_dir / "ghidra-raw-index.json", original_raw)
     _bind_native_call_graph(result, selector=program)
     raw = target.load_json_object_strict(object_dir / "ghidra-raw-index.json")
     raw["ghidra_call_graph"] = json.loads(json.dumps(result["ghidra_call_graph"]))
@@ -8529,7 +8766,9 @@ def test_refresh_updates_stale_metadata_after_validated_entry_recovery(
     assert coverage["metadata_function_count"] == 4
     assert coverage["item_count"] == 1
     assert coverage["derived_external_function_count"] == 3
-    assert target._function_inventory_coverage_complete(saved) is True
+    assert saved["status"] == ("complete" if quiet_proof else "partial")
+    assert saved["all_static_analysis_content_retained"] is quiet_proof
+    assert target._function_inventory_coverage_complete(saved) is quiet_proof
 
 
 def test_storage_budget_observation_is_path_private_and_fail_closed(

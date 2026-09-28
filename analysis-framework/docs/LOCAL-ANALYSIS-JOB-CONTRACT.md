@@ -197,13 +197,15 @@ job_artifact_schemas.validate_job_artifact_document(
 
 | key | 必須 | 契約 |
 |---|---|---|
-| `schema_version` | 必須 | 現在は整数`1`のみ |
+| `schema_version` | 必須 | 現在は整数`1`のみ。boolの`true`や浮動小数の`1.0`、文字列の`"1"`は拒否 |
 | `job_id` | 必須 | 1～64文字の小文字英数字、`.`、`_`、`-`。既存IDの再利用禁止 |
 | `inputs` | 必須 | 1～64件のroot相対path。大文字小文字だけが異なる重複も拒否 |
 | `family_hint_manifest` | 任意 | `input-root`相対のstrict JSON。4 MiB以下。通常`inputs`と重複禁止 |
 | `options` | 任意 | 次表のkeyだけを許可 |
 
 未知key、重複JSON key、`NaN`／`Infinity`、UTF-8以外、64 KiBを超える要求fileは拒否されます。`trusted_static_tools`を含む外部tool設定はrequestへ追加せず、operator専用CLI契約でだけ指定します。要求、registry、manifest、summary、状態JSONは、単一file handleの`fstat`と`上限+1 byte`読取で検証します。hardlink、reparse point、読取中にidentity・size・更新時刻が変わったfileはfail-closedです。
+
+生成するrequest JSON Schemaはversionに`type: integer`と`const: 1`を指定します。JSON Schemaで整数と同じ数値として扱われる表記も、runnerではdecode後の型が正確なPython `int`であることを最終確認します。受付検証は解析jobをdispatchする許可と別の段階です。
 
 ### 許可option
 

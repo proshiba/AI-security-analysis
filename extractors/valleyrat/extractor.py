@@ -600,6 +600,67 @@ def _vvas_configuration_identity(
     return hashlib.sha256(serialized).hexdigest()
 
 
+def _decode_vvas_raw_candidate_config(
+    strings: list[str],
+) -> tuple[dict[str, str], dict[str, object]]:
+    """非PEのroute候補だけで、完全delimiter設定の前置文脈を分離する。
+
+    mapped／resource定数のexact parserとpublic APIは変更しない。
+    suffix、異delimiter、隠れたp/o/t fieldを捨てて救済しない。
+    """
+
+    _empty, empty_evidence = _decode_vvas_reversed_config([])
+    if type(strings) is not list or len(strings) > MAXIMUM_STRING_COUNT:
+        return {}, {
+            **empty_evidence,
+            "status": "raw_candidate_scan_limit_rejected",
+            "raw_candidate_scope": "non_pe_route_candidate_only",
+            "raw_candidate_scan_complete": False,
+        }
+    characters = 0
+    for value in strings:
+        if type(value) is not str or len(value) > MAXIMUM_STRING_LENGTH:
+            return {}, {
+                **empty_evidence,
+                "status": "raw_candidate_scan_limit_rejected",
+                "raw_candidate_scope": "non_pe_route_candidate_only",
+                "raw_candidate_scan_complete": False,
+            }
+        characters += len(value)
+        if characters > MAXIMUM_STRING_CHARACTERS:
+            return {}, {
+                **empty_evidence,
+                "status": "raw_candidate_scan_limit_rejected",
+                "raw_candidate_scope": "non_pe_route_candidate_only",
+                "raw_candidate_scan_complete": False,
+            }
+    candidates: list[str] = []
+    stripped = 0
+    for value in strings:
+        start = next(
+            (index for index, character in enumerate(value) if character in {"|", "~"}),
+            None,
+        )
+        if start is None:
+            continue
+        delimiter = value[start]
+        other = "~" if delimiter == "|" else "|"
+        if value[-1] != delimiter or other in value:
+            continue
+        prefix = value[:start]
+        if re.search(r":[0-9]+[pot]|[pot][0-9]+:", prefix, re.IGNORECASE) is not None:
+            continue
+        candidates.append(value[start:])
+        stripped += int(start != 0)
+    decoded, evidence = _decode_vvas_reversed_config(candidates)
+    return decoded, {
+        **evidence,
+        "raw_candidate_scope": "non_pe_route_candidate_only",
+        "raw_candidate_scan_complete": True,
+        "raw_prefix_stripped_count": stripped,
+    }
+
+
 def decode_vvas_reversed_config(strings: list[str]) -> dict[str, str]:
     """一意に検証できたvvaS反転key/value設定だけを返す。"""
 
@@ -2888,7 +2949,7 @@ def probe_vvas_config(data: bytes, *, input_format: str) -> dict[str, object]:
             limited = dict(unmatched)
             limited["analysis_limits"] = {"string_scan": string_scan}
             return limited
-        decoded, decode_evidence = _decode_vvas_reversed_config(strings)
+        decoded, decode_evidence = _decode_vvas_raw_candidate_config(strings)
     if not decoded or decode_evidence["status"] != "decoded_unique":
         if input_format != "pe":
             return unmatched
@@ -3090,7 +3151,7 @@ def _recover_xor_vvas(
                     "raw_payload_included": False,
                 },
             )
-        decoded, evidence = _decode_vvas_reversed_config(strings)
+        decoded, evidence = _decode_vvas_raw_candidate_config(strings)
         if decoded and evidence["status"] == "decoded_unique":
             identity = evidence.get("configuration_identity_sha256")
             if isinstance(identity, str):
@@ -4228,15 +4289,33 @@ def _extract_native_loader_lineage(
     observations: dict[str, object] = {}
     if native is not None:
         native_observation = dict(native.observation)
+        native_record_valid = (
+            type(native_observation.get("schema_version")) is int
+            and native_observation.get("schema_version") == 1
+            and type(native_observation.get("status")) is str
+            and native_observation.get("status") in {
+                "validated_native_loader_to_valleyrat_terminal_lineage",
+                "native_loader_candidate_terminal_unproven",
+            }
+            and native_observation.get("matched") is True
+            and native_observation.get("endpoint_values_included") is False
+            and native_observation.get("raw_payload_included") is False
+            and native_observation.get("sample_executed") is False
+            and native_observation.get("network_contacted") is False
+        )
         terminal = native_observation.get("terminal")
         confirmed = bool(
-            isinstance(native.terminal_component, bytes)
+            native_record_valid
+            and native_observation.get("status") == "validated_native_loader_to_valleyrat_terminal_lineage"
+            and isinstance(native.terminal_component, bytes)
             and native.terminal_component
             and native_observation.get("supports_family_attribution") is True
             and native_observation.get("terminal_family_confirmed") is True
             and native_observation.get("terminal_network_lineage_proven") is True
             and native_observation.get("terminal_protocol_lineage_proven") is True
             and isinstance(terminal, dict)
+            and terminal.get("family") == "valleyrat"
+            and terminal.get("endpoint_values_included") is False
             and terminal.get("static_config_recovered") is True
             and terminal.get("candidate_only") is False
         )
@@ -4254,6 +4333,10 @@ def _extract_native_loader_lineage(
             )
             if (
                 terminal_result.get("family") != "valleyrat"
+                or terminal_result.get("sample_sha256") != sha256_bytes(native.terminal_component)
+                or terminal_result.get("executed") is not False
+                or terminal_result.get("network_contacted") is not False
+                or terminal_result.get("credentials_published") is not False
                 or not isinstance(terminal_config, dict)
                 or terminal_config.get("static_config_recovered") is not True
                 or terminal_config.get("terminal_family_confirmed") is not True
@@ -4289,9 +4372,26 @@ def _extract_native_loader_lineage(
                 "data": native.terminal_component,
             }
             return result, {}, ()
-        observations["native_loader_lineage"] = native_observation
+        native_route_valid = bool(
+            native_record_valid
+            and native_observation.get("status") == "native_loader_candidate_terminal_unproven"
+            and native_observation.get("supports_family_attribution") is False
+            and native_observation.get("terminal_family_confirmed") is False
+            and native_observation.get("terminal_network_lineage_proven") is False
+            and native_observation.get("terminal_protocol_lineage_proven") is False
+            and isinstance(terminal, dict)
+            and terminal.get("family") is None
+            and terminal.get("endpoint_values_included") is False
+            and terminal.get("static_config_recovered") is False
+            and terminal.get("candidate_only") is True
+            and type(terminal.get("endpoint_count")) is int
+            and terminal.get("endpoint_count") == 0
+        )
+        if native_route_valid:
+            observations["native_loader_lineage"] = native_observation
         if (
-            native_observation.get("supports_family_attribution") is False
+            native_route_valid
+            and native_observation.get("supports_family_attribution") is False
             and native_observation.get("terminal_family_confirmed") is False
             and native_observation.get("follow_on_candidate_set_complete") is True
             and native_observation.get("raw_payload_included") is False
@@ -4316,10 +4416,31 @@ def _extract_native_loader_lineage(
     silverfox = analyze_silverfox_loader_lineage(data)
     if silverfox is not None:
         silverfox_observation = dict(silverfox.observation)
-        observations["silverfox_loader_lineage"] = silverfox_observation
+        silverfox_record_valid = (
+            type(silverfox_observation.get("schema_version")) is int
+            and silverfox_observation.get("schema_version") == 1
+            and type(silverfox_observation.get("status")) is str
+            and silverfox_observation.get("status") in {
+                "validated_silverfox_style_infection_loader_lineage",
+                "silverfox_style_loader_candidate_incomplete_lineage",
+            }
+            and silverfox_observation.get("matched") is True
+            and silverfox_observation.get("supports_family_attribution") is False
+            and silverfox_observation.get("terminal_family_confirmed") is False
+            and silverfox_observation.get("terminal_network_lineage_proven") is False
+            and silverfox_observation.get("terminal_protocol_lineage_proven") is False
+            and silverfox_observation.get("candidate_only") is True
+            and silverfox_observation.get("endpoint_values_included") is False
+            and silverfox_observation.get("raw_payload_included") is False
+            and silverfox_observation.get("sample_executed") is False
+            and silverfox_observation.get("network_contacted") is False
+        )
+        if silverfox_record_valid:
+            observations["silverfox_loader_lineage"] = silverfox_observation
         component = silverfox.recovered_component
         if (
-            isinstance(component, bytes)
+            silverfox_record_valid
+            and isinstance(component, bytes)
             and component
             and silverfox_observation.get("status")
             == "validated_silverfox_style_infection_loader_lineage"
@@ -4399,7 +4520,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
     if xor_b1_downloader is not None:
         return xor_b1_downloader
     wide_pipe = _extract_wide_pipe_config(data, name)
-    if wide_pipe is not None:
+    if wide_pipe is not None and wide_pipe["config"].get("terminal_family_confirmed") is True:
         return wide_pipe
     (
         native_terminal,
@@ -4411,6 +4532,12 @@ def extract(data: bytes, name: str = "sample") -> dict:
     )
     if native_terminal is not None:
         return native_terminal
+    if wide_pipe is not None:
+        # 未確定wide設定で既知loaderの復元済み子を打ち切らない。
+        # 元候補objectを変更せず、終端確証のない子はfollow-onだけへ渡す。
+        result = {**wide_pipe, "config": {**wide_pipe["config"], **native_loader_observations}}
+        _attach_final_payloads(result, loader_follow_ons)
+        return result
     mapped_candidates: tuple[_VvasMappedConfigCandidate, ...] = ()
     mapped_decoded: dict[str, str] = {}
     mapped_recovery: dict[str, object] = {}
@@ -4517,7 +4644,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "string_scan": string_scan,
         }
     else:
-        decoded, vvas_recovery = _decode_vvas_reversed_config(strings)
+        decoded, vvas_recovery = _decode_vvas_raw_candidate_config(strings)
     static_config_confirmed = False
     candidate_config_recovered = False
     if decoded and nvml_recovery is None:

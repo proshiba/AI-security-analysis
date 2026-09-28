@@ -1,9 +1,9 @@
-"""Offline StealC v1 string and configuration extractor.
+"""StealC v1の文字列と設定をオフラインで静的抽出する。
 
-The module supports the two statically recoverable v1 layouts observed in the
-reviewed corpus: Base64 plus RC4 skip-key strings and paired XOR buffers passed
-through ``push size; push key; push ciphertext`` call sites.  It parses bytes
-only; it never loads the PE, executes code, or contacts a recovered endpoint.
+監査済みcorpusで確認した、静的復元可能なv1の2配置に対応する。
+Base64とRC4 skip-keyの文字列、および
+``push size; push key; push ciphertext`` call siteで渡すpaired XOR bufferを扱う。
+bytesを解析するだけで、PEのOSへのロード、コード実行、復元endpointへの接続は行わない。
 """
 
 from __future__ import annotations
@@ -59,9 +59,13 @@ REVIEWED_PROTECTED_WRAPPER_SHA256 = frozenset(
 RANDOMIZED_SECTION_NAME = re.compile(r"[a-z]{8}\Z")
 
 
+class _ProfileConflictError(ValueError):
+    """完全な設定同士の相反を、未完成候補と区別する固定理由。"""
+
+
 @dataclass(frozen=True)
 class DecodedProfile:
-    """Normalized StealC configuration recovered from one string scheme."""
+    """一つの文字列方式から復元し、正規化したStealC設定。"""
 
     method: str
     base_url: str
@@ -73,21 +77,20 @@ class DecodedProfile:
 
     @property
     def c2_url(self) -> str:
-        """Return the configured HTTP gate URL."""
+        """設定されたHTTP gate URLを返す。"""
         return urllib.parse.urljoin(self.base_url.rstrip("/") + "/", self.gate_path.lstrip("/"))
 
     @property
     def dll_url(self) -> str:
-        """Return the configured dependency directory URL."""
+        """設定された依存ファイルdirectoryのURLを返す。"""
         return urllib.parse.urljoin(self.base_url.rstrip("/") + "/", self.dll_path.lstrip("/"))
 
 
 def rc4_skip(data: bytes, key: bytes) -> bytes:
-    """Decrypt StealC's RC4 skip-key variant.
+    """StealCのRC4 skip-key変種を復号する。
 
-    The observed implementation retains the ciphertext byte when the normal
-    RC4 XOR would produce NUL.  This avoids embedded NULs in decrypted C strings
-    while still advancing the RC4 state.
+    確認した実装は、通常のRC4 XORがNULになる場合に元の暗号文byteを保持する。
+    RC4状態は進めたまま、復号済みC文字列へのNUL混入を避ける。
     """
     if not key:
         raise ValueError("RC4 key must not be empty")
@@ -193,11 +196,10 @@ def _protected_wrapper_profile(
     image: pefile.PE,
     sample_sha256: str,
 ) -> dict | None:
-    """Bind reviewed wrapper hashes to the exact byte-level PE topology.
+    """監査済みwrapperのhashを、bytesに基づく厳密なPE配置へ束縛する。
 
-    The wrapper alone is not treated as recovered StealC configuration or a
-    terminal-family proof. A structural result is returned only when both the
-    reviewed exact hash and the reviewed seven-section shape match.
+    wrapperだけを復元済みStealC設定や終端familyの証明として扱わない。
+    監査済みの厳密hashと7-section配置の両方が一致した場合だけ構造結果を返す。
     """
 
     if sample_sha256 not in REVIEWED_PROTECTED_WRAPPER_SHA256:
@@ -319,7 +321,7 @@ def _protected_wrapper_profile(
 
 
 def extract_protected_wrapper_profile(data: bytes) -> dict | None:
-    """Return reviewed protected-wrapper evidence without unpacking it."""
+    """展開せず、監査済みprotected wrapperの証拠を返す。"""
 
     image = _pe(data)
     if image is None:
@@ -352,7 +354,7 @@ def _key_candidates(values: list[bytes]) -> list[bytes]:
 
 
 def _base64_candidates(values: list[bytes]) -> list[bytes]:
-    """Return bounded, unique syntactically valid Base64 values."""
+    """構文が妥当なBase64値を、重複排除と件数上限付きで返す。"""
     candidates: list[bytes] = []
     seen: set[bytes] = set()
     for value in values:
@@ -368,7 +370,7 @@ def _base64_candidates(values: list[bytes]) -> list[bytes]:
 
 
 def _even_sample(values: list[bytes], limit: int) -> list[bytes]:
-    """Return a deterministic first-to-last sample bounded by ``limit``."""
+    """先頭から末尾までを一定間隔で選び、``limit``件以内で返す。"""
     if limit <= 0 or not values:
         return []
     if len(values) <= limit:
@@ -428,7 +430,7 @@ def _profile_from_strings(strings: list[str], method: str, key: str | None = Non
     build_id = strings[dll_index + 1] if dll_index + 1 < len(strings) else None
     if build_id and (len(build_id) > 64 or "\\" in build_id or "/" in build_id):
         build_id = None
-    return DecodedProfile(
+    profile = DecodedProfile(
         method=method,
         base_url=base_url,
         gate_path=strings[gate_index],
@@ -437,10 +439,60 @@ def _profile_from_strings(strings: list[str], method: str, key: str | None = Non
         decoded_count=len(strings),
         string_key=key,
     )
+    identity = (
+        profile.method,
+        profile.base_url,
+        profile.gate_path,
+        profile.dll_path,
+        profile.build_id,
+        profile.decoded_count,
+        profile.string_key,
+    )
+    # 最初の不完全な配置は従来通り拒否し、同じ復号列の後続完全候補だけを照合する。
+    for candidate_base in range(base_index + 1, len(strings)):
+        if not strings[candidate_base].startswith(("http://", "https://")):
+            continue
+        candidate_gate = next(
+            (
+                index
+                for index in range(candidate_base + 1, min(len(strings), candidate_base + 8))
+                if strings[index].startswith("/") and strings[index].lower().endswith(".php")
+            ),
+            None,
+        )
+        if candidate_gate is None:
+            continue
+        candidate_dll = next(
+            (
+                index
+                for index in range(candidate_gate + 1, min(len(strings), candidate_gate + 8))
+                if strings[index].startswith("/") and strings[index].endswith("/")
+            ),
+            None,
+        )
+        if candidate_dll is None:
+            continue
+        candidate_build = strings[candidate_dll + 1] if candidate_dll + 1 < len(strings) else None
+        if candidate_build and (
+            len(candidate_build) > 64 or "\\" in candidate_build or "/" in candidate_build
+        ):
+            candidate_build = None
+        candidate_identity = (
+            method,
+            strings[candidate_base],
+            strings[candidate_gate],
+            strings[candidate_dll],
+            candidate_build,
+            len(strings),
+            key,
+        )
+        if candidate_identity != identity:
+            raise _ProfileConflictError("conflicting_profiles")
+    return profile
 
 
-def extract_rc4_profile(data: bytes) -> DecodedProfile | None:
-    """Recover a Base64/RC4 skip-key StealC profile from PE data."""
+def _recover_rc4_profile(data: bytes) -> DecodedProfile | None:
+    """既存の有限RC4探索内の完全設定を選び、既知相反を固定例外にする。"""
     image = _pe(data)
     if image is None:
         return None
@@ -455,20 +507,35 @@ def extract_rc4_profile(data: bytes) -> DecodedProfile | None:
         score, _strings = _decode_base64_values(probe, key)
         ranked.append((score, index, key))
     ranked.sort(key=lambda item: (-item[0], item[1]))
-    best_score, best_key, best_strings = 0, None, []
+    candidates: dict[tuple, DecodedProfile] = {}
     for _probe_score, _index, key in ranked[:MAX_FINAL_KEYS]:
         score, strings = _decode_base64_values(encoded, key)
-        if score > best_score:
-            best_score, best_key, best_strings = score, key, strings
-    if best_key is None or best_score < 100 or len(best_strings) < 50:
-        return None
-    return _profile_from_strings(
-        best_strings, "v1-base64-rc4-skip-key", best_key.decode("ascii")
-    )
+        if score < 100 or len(strings) < 50:
+            continue
+        profile = _profile_from_strings(
+            strings, "v1-base64-rc4-skip-key", key.decode("ascii")
+        )
+        if profile is None:
+            continue
+        # scoreだけで未完成候補を優先せず、既存の全設定・証拠fieldを照合する。
+        identity = (
+            profile.method,
+            profile.base_url,
+            profile.gate_path,
+            profile.dll_path,
+            profile.build_id,
+            profile.decoded_count,
+            profile.string_key,
+        )
+        if identity not in candidates:
+            candidates[identity] = profile
+    if len(candidates) > 1:
+        raise _ProfileConflictError("conflicting_profiles")
+    return next(iter(candidates.values())) if candidates else None
 
 
-def extract_xor_profile(data: bytes) -> DecodedProfile | None:
-    """Recover a paired-buffer XOR StealC profile from x86 PE call sites."""
+def _recover_xor_profile(data: bytes) -> DecodedProfile | None:
+    """x86 PEのcall siteからpaired-buffer XORのStealC profileを復元する。"""
     image = _pe(data)
     if image is None or image.OPTIONAL_HEADER.Magic != 0x10B:
         return None
@@ -497,10 +564,31 @@ def extract_xor_profile(data: bytes) -> DecodedProfile | None:
     return _profile_from_strings(decoded, "v1-paired-buffer-xor")
 
 
+def extract_rc4_profile(data: bytes) -> DecodedProfile | None:
+    """完全なRC4 profileを返す。既知相反は従来の未回復None契約で返す。"""
+    try:
+        return _recover_rc4_profile(data)
+    except _ProfileConflictError:
+        return None
+
+
+def extract_xor_profile(data: bytes) -> DecodedProfile | None:
+    """完全なXOR profileを返す。既知相反は従来の未回復None契約で返す。"""
+    try:
+        return _recover_xor_profile(data)
+    except _ProfileConflictError:
+        return None
+
+
 def extract(data: bytes, source_name: str = "sample.bin") -> dict:
-    """Return publish-safe StealC configuration and IOC findings."""
-    profile = extract_rc4_profile(data) or extract_xor_profile(data)
-    protected_wrapper = None if profile is not None else extract_protected_wrapper_profile(data)
+    """公開可能なStealC設定とIOC所見を返し、既知相反はfallbackしない。"""
+    profile_conflict = False
+    try:
+        profile = _recover_rc4_profile(data) or _recover_xor_profile(data)
+    except _ProfileConflictError:
+        profile = None
+        profile_conflict = True
+    protected_wrapper = None if profile is not None or profile_conflict else extract_protected_wrapper_profile(data)
     config: dict = {
         "source_name": source_name,
         "profile": None,
@@ -509,18 +597,21 @@ def extract(data: bytes, source_name: str = "sample.bin") -> dict:
     }
     findings: list[dict] = []
     limitations = [
-        "Static extraction only; the sample was not executed.",
-        "No recovered endpoint was contacted or assigned a liveness state.",
+        "静的抽出だけを実施し、検体は実行していません。",
+        "復元したendpointへ接続せず、稼働状態も判定していません。",
     ]
-    if profile is None and protected_wrapper is None:
+    if profile_conflict:
+        config["profile_selection_error"] = "conflicting_profiles"
+        limitations.append("相反する完全設定を検出したため、別key・方式へfallbackせず未解決とします。")
+    elif profile is None and protected_wrapper is None:
         limitations.append(
-            "No supported plaintext profile was recovered; packing or another StealC generation may require a separately authorized unpacking workflow."
+            "対応する平文profileは復元できませんでした。packingや別世代のStealCでは、別途承認された展開手順が必要になる場合があります。"
         )
     elif protected_wrapper is not None:
         limitations.extend(
             [
-                "The exact sample and reviewed .taggant wrapper topology match the protected-wrapper cluster.",
-                "The wrapper does not identify the exact protector version or recover the terminal payload, configuration, or C2.",
+                "検体の厳密hashと監査済み.taggant wrapperの配置がprotected wrapper clusterに一致しました。",
+                "wrapperだけではprotectorの厳密versionを特定できず、終端payload・設定・C2も復元できません。",
             ]
         )
     else:

@@ -173,13 +173,13 @@ def test_one_shot_innounp_is_sealed_and_forwarded(
 
 
 def test_archive_password_has_no_public_digest_and_disables_resume(
-    tmp_path: Path,
+    short_tmp: Path,
 ) -> None:
     """外装credentialは公開派生値を残さず、同値でもcase再利用を行わない。"""
 
-    sample = tmp_path / "archive-password-resume.bin"
+    sample = short_tmp / "archive-password-resume.bin"
     sample.write_bytes(b"credential-bound resume fixture")
-    output = tmp_path / "archive-password-resume-output"
+    output = short_tmp / "archive-password-resume-output"
     password = "low-entropy-private-password"
     password_digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
 
@@ -211,13 +211,13 @@ def test_archive_password_has_no_public_digest_and_disables_resume(
 
 
 def test_inno_password_has_no_public_digest_and_disables_direct_root_resume(
-    tmp_path: Path,
+    short_tmp: Path,
 ) -> None:
     """Inno credential設定時も秘密比較を行わずroot caseを必ず再解析する。"""
 
-    sample = tmp_path / "inno-password-resume.bin"
+    sample = short_tmp / "inno-password-resume.bin"
     sample.write_bytes(b"inno credential-bound resume fixture")
-    output = tmp_path / "inno-password-resume-output"
+    output = short_tmp / "inno-password-resume-output"
     password = "low-entropy-inno-password"
     password_digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
     common = {
@@ -241,13 +241,13 @@ def test_inno_password_has_no_public_digest_and_disables_direct_root_resume(
 
 
 def test_empty_archive_password_keeps_verified_resume(
-    tmp_path: Path,
+    short_tmp: Path,
 ) -> None:
     """credentialを使わない実行では既存の厳格resumeを維持する。"""
 
-    sample = tmp_path / "uncredentialed-resume.bin"
+    sample = short_tmp / "uncredentialed-resume.bin"
     sample.write_bytes(b"uncredentialed resume fixture")
-    output = tmp_path / "uncredentialed-resume-output"
+    output = short_tmp / "uncredentialed-resume-output"
     common = {
         "registry": analyzer.DEFAULT_REGISTRY,
         "password": "",

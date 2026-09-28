@@ -129,6 +129,18 @@ class ProtocolEvidenceError(ValueError):
     """CLR metadataまたはreview対象methodが期待形状と一致しない。"""
 
 
+class ProtocolMethodAmbiguityError(ProtocolEvidenceError):
+    """複数の同名候補は別variantへのfallbackで解消しない。"""
+
+
+def _validate_input_bytes(data: bytes) -> None:
+    """hash・parserより前にimmutable bytesのhard上限を共通検証する。"""
+    if type(data) is not bytes:
+        raise ProtocolEvidenceError("protocol_input_not_exact_bytes")
+    if len(data) > MAXIMUM_INPUT_BYTES:
+        raise ProtocolEvidenceError("protocol_input_size_limit_exceeded")
+
+
 def _method_owners(pe: dnfile.dnPE) -> dict[int, str]:
     owners: dict[int, str] = {}
     typedef = getattr(getattr(pe.net, "mdtables", None), "TypeDef", None)
@@ -181,6 +193,7 @@ def _runtime_literal(value: str) -> str:
 def extract_method_records(data: bytes) -> list[dict[str, Any]]:
     """選択に必要なmethodについて、秘密値を出さないCIL要約を返す。"""
 
+    _validate_input_bytes(data)
     try:
         pe = dnfile.dnPE(data=data)
     except Exception as exc:
@@ -393,7 +406,9 @@ def _select_record(records: list[dict[str, Any]], owner: str, name: str) -> dict
     candidates = [item for item in records if item.get("owner") == owner and item.get("name") == name]
     if not candidates:
         raise ProtocolEvidenceError(f"review対象methodがありません: {owner}.{name}")
-    return max(candidates, key=lambda item: len(item.get("path_keys") or []))
+    if len(candidates) != 1:
+        raise ProtocolMethodAmbiguityError("protocol_method_selection_ambiguous")
+    return candidates[0]
 
 
 def summarize_records(records: list[dict[str, Any]], family: str, sample_sha256: str) -> dict[str, Any]:
@@ -493,12 +508,15 @@ def summarize_records(records: list[dict[str, Any]], family: str, sample_sha256:
 def recover(data: bytes, family: str, expected_sha256: str) -> dict[str, Any]:
     """hash確認済みPEからprotocol証拠を復元する。"""
 
+    _validate_input_bytes(data)
     actual = hashlib.sha256(data).hexdigest()
     if actual != expected_sha256.casefold():
         raise ProtocolEvidenceError(f"sample SHA-256が一致しません: expected={expected_sha256}, actual={actual}")
     records = extract_method_records(data)
     try:
         result = summarize_records(records, family, actual)
+    except ProtocolMethodAmbiguityError:
+        raise
     except ProtocolEvidenceError:
         if family != "asyncrat":
             raise

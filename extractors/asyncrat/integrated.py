@@ -9,6 +9,7 @@ import sys
 from functools import cache
 from pathlib import Path
 from types import ModuleType
+from urllib.parse import urlsplit, urlunsplit
 
 import dnfile
 
@@ -223,12 +224,38 @@ def structural_evidence(data: bytes) -> dict[str, object]:
     return result
 
 
+def _validated_dynamic_url(value: object, scope: object = None) -> str | None:
+    """公開しない動的設定値もorigin-onlyの明示契約と実形状を確認する。"""
+
+    if value is None:
+        return None
+    if (not isinstance(value, str) or not 1 <= len(value) <= 2_048 or scope != "origin_only"
+        or any(ord(character) <= 0x20 for character in value) or "?" in value or "#" in value):
+        raise ValueError("動的設定originの明示契約が不正です")
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("動的設定originの形式が不正です") from exc
+    if (parsed.scheme.casefold() not in {"http", "https"} or not parsed.hostname
+        or parsed.username is not None or parsed.password is not None or not valid_host(parsed.hostname)
+        or parsed.path not in {"", "/"} or parsed.query or parsed.fragment):
+        raise ValueError("動的設定originが許可形式ではありません")
+    if port is not None and not 1 <= port <= 65_535:
+        raise ValueError("動的設定originのportが範囲外です")
+    host = parsed.hostname.casefold().rstrip(".")
+    authority = f"[{host}]" if ":" in host else host
+    netloc = f"{authority}:{port}" if port is not None else authority
+    return urlunsplit((parsed.scheme.casefold(), netloc, "/", "", ""))
+
+
 def _validated_recovery(data: bytes) -> dict[str, object]:
     module = _load_common_module("dotnet_rat_config")
     recovered = module.recover(data, "asyncrat")
     digest = hashlib.sha256(data).hexdigest()
     if (
         not isinstance(recovered, dict)
+        or type(recovered.get("schema_version")) is not int
         or recovered.get("schema_version") != 1
         or recovered.get("family") != "asyncrat"
         or recovered.get("sha256") != digest
@@ -334,6 +361,9 @@ def _validated_recovery(data: bytes) -> dict[str, object]:
         raise ValueError("AsyncRAT versionが不正です")
     if not isinstance(group, str) or len(group) > 512:
         raise ValueError("AsyncRAT groupが不正です")
+    dynamic_url = _validated_dynamic_url(
+        recovered.get("dynamic_config_url"), recovered.get("dynamic_config_url_scope")
+    )
     return {
         "config_mode": config_mode,
         "version": version,
@@ -341,7 +371,9 @@ def _validated_recovery(data: bytes) -> dict[str, object]:
         "group": group,
         "anti_analysis": recovered.get("anti_analysis"),
         "endpoints": normalized,
-        "dynamic_config_present": recovered.get("dynamic_config_url") is not None,
+        "dynamic_config_present": dynamic_url is not None,
+        "dynamic_config_url_scope": "origin_only" if dynamic_url is not None else None,
+        "dynamic_config_locator_complete": False,
         "certificate": {
             "sha256": cert_hash,
             "size": cert_size,
@@ -1088,6 +1120,9 @@ def extract(data: bytes, name: str = "sample") -> dict:
         "static_config_recovered": recovery is not None,
         "c2_protocol_recovered": protocol is not None,
         "c2_liveness_confirmed": False,
+        "dynamic_config_present": False,
+        "dynamic_config_url_scope": None,
+        "dynamic_config_locator_complete": False,
     }
     if recovery is not None:
         config.update(recovery)
@@ -1100,7 +1135,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "検体、managed CIL、pluginを実行せず、外部hostへ接続していません。",
             "Settings field、packet field、登録、heartbeat、dispatcherが一致しない入力は拒否します。",
             "暗号化SettingsはCILで確定したAESまたはChaCha20方式を静的再現し、平文developer buildは既知のCIL形状とplaceholderを追加確認します。",
-            "動的設定URLは存在有無だけを公開し、値やqueryを公開しません。",
+            "動的設定URLはorigin-only契約を検証した存在有無とscopeだけを公開し、値やqueryを公開しません。取得用完全URL、確定した終端C2、ライブ観測先へ転用しません。",
             "証明書不一致だけでは非C2と判定しません。",
         ],
     )

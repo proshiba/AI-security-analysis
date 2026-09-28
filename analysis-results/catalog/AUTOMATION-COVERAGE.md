@@ -11,11 +11,11 @@
 - AST監査＋runtime import確認済みscript-only handler: 90件（97.83%）
 - 品質policy宣言済み: 90件 / 安全handler＋品質policy: 90件
 - 安全handlerはあるが品質policy未宣言: 0件
-- handler実装: 宣言103件 / AST監査通過103件 / runtime import確認済み103件 / 停止0件
+- handler実装: 宣言110件 / AST監査通過110件 / runtime import確認済み110件 / 停止0件
 - automatic handlerがAST監査またはruntime importで停止: 0件
 - handlerによる候補検証のみ: 8件
-- 実行したformat別preflight: 1029件（上限2048件）
-- 実行した検体なしruntime import確認: 103件（計画103件）
+- 実行したformat別preflight: 1051件（上限2048件）
+- 実行した検体なしruntime import確認: 110件（計画110件）
 
 | family | 状態 | detector | 品質policy | 宣言handler | 安全handler | blocker |
 |---|---|---:|---:|---:|---:|---|
@@ -23,7 +23,7 @@
 | agenttesla | fully_routable | あり | あり | 2 | 2 | なし |
 | amadey | fully_routable | あり | あり | 1 | 1 | なし |
 | amosstealer | fully_routable | あり | あり | 1 | 1 | なし |
-| asyncrat | fully_routable | あり | あり | 1 | 1 | なし |
+| asyncrat | fully_routable | あり | あり | 2 | 2 | なし |
 | atlascross | fully_routable | あり | あり | 1 | 1 | なし |
 | blackhorse_miner_agent | fully_routable | あり | あり | 1 | 1 | なし |
 | blazetrack | fully_routable | あり | あり | 1 | 1 | なし |
@@ -34,7 +34,7 @@
 | condi | fully_routable | あり | あり | 1 | 1 | なし |
 | credential_phishing_html | fully_routable | あり | あり | 1 | 1 | なし |
 | darkcomet | fully_routable | あり | あり | 1 | 1 | なし |
-| dcrat | fully_routable | あり | あり | 1 | 1 | なし |
+| dcrat | fully_routable | あり | あり | 2 | 2 | なし |
 | donutloader | fully_routable | あり | あり | 1 | 1 | なし |
 | dotnet_resource_loader | fully_routable | あり | あり | 1 | 1 | なし |
 | dysphoria | fully_routable | あり | あり | 1 | 1 | なし |
@@ -67,7 +67,7 @@
 | mirai_ens_doh_bot | fully_routable | あり | あり | 1 | 1 | なし |
 | mx-go | fully_routable | あり | あり | 1 | 1 | なし |
 | nanocore | fully_routable | あり | あり | 1 | 1 | なし |
-| njrat | fully_routable | あり | あり | 1 | 1 | なし |
+| njrat | fully_routable | あり | あり | 2 | 2 | なし |
 | noodlerat | fully_routable | あり | あり | 1 | 1 | なし |
 | npm_supply_chain | fully_routable | あり | あり | 1 | 1 | なし |
 | nsis_obfuscated_loader | fully_routable | あり | あり | 1 | 1 | なし |
@@ -98,19 +98,19 @@
 | sobfox_launcher | candidate_verification_only | なし | あり | 1 | 1 | detector_missing |
 | softbot | fully_routable | あり | あり | 1 | 1 | なし |
 | spyglace | fully_routable | あり | あり | 1 | 1 | なし |
-| stealc | fully_routable | あり | あり | 1 | 1 | なし |
+| stealc | fully_routable | あり | あり | 2 | 2 | なし |
 | suomi_agent | fully_routable | あり | あり | 1 | 1 | なし |
 | tbot_iot_bot | fully_routable | あり | あり | 1 | 1 | なし |
 | tor_openssh_backdoor | manual_only_without_detector | なし | なし | 0 | 0 | detector_and_automatic_handler_missing |
 | traffmonetizer_deployer | fully_routable | あり | あり | 1 | 1 | なし |
 | unclassified | manual_only_without_detector | なし | なし | 0 | 0 | detector_and_automatic_handler_missing |
 | valleyrat | fully_routable | あり | あり | 11 | 11 | なし |
-| venomrat | fully_routable | あり | あり | 1 | 1 | なし |
-| vidar | fully_routable | あり | あり | 1 | 1 | なし |
+| venomrat | fully_routable | あり | あり | 2 | 2 | なし |
+| vidar | fully_routable | あり | あり | 2 | 2 | なし |
 | wannacry | fully_routable | あり | あり | 1 | 1 | なし |
 | windows_script_stager | fully_routable | あり | あり | 1 | 1 | なし |
 | xmrig | fully_routable | あり | あり | 1 | 1 | なし |
-| xworm | fully_routable | あり | あり | 1 | 1 | なし |
+| xworm | fully_routable | あり | あり | 2 | 2 | なし |
 
 ## 判定の意味
 

@@ -2982,6 +2982,11 @@ _LEGACY_DYNAMIC_LOCAL_DEPENDENCIES: dict[
             "validated_common_module_loader",
         ),
         (
+            "analysis-framework/common/remus_disk_config.py",
+            ("extract_remus_disk_config",),
+            "validated_common_module_loader",
+        ),
+        (
             "analysis-framework/common/remus_c2_profile.py",
             ("build_remus_c2_profile",),
             "validated_common_module_loader",
@@ -4018,6 +4023,26 @@ _REVIEWED_SOURCE_CALLS = {
     ): "hash検証済みdynamic dependencyの監査済みsymbol",
     (
         "extractors/remusstealer/extractor.py",
+        "reachable:_terminal_disk_report",
+        "module.extract_remus_disk_config",
+    ): "コード形・3slot設定・HTTPsink・resolver分離を有界確認する監査済みsymbol",
+    (
+        "analysis-framework/common/remus_disk_config.py",
+        "reachable:_candidate",
+        "time.monotonic",
+    ): "全候補合計8秒の解析上限を判定する単調時計の読み取りのみ",
+    (
+        "analysis-framework/common/remus_disk_config.py",
+        "reachable:extract_remus_disk_config",
+        "time.monotonic",
+    ): "全候補合計8秒の解析上限を判定する単調時計の読み取りのみ",
+    (
+        "analysis-framework/common/remus_disk_config.py",
+        "reachable:_instructions",
+        "machine.disasm",
+    ): "x64に固定したCapstoneで検証済みsection内bytesを最大4096命令まで静的逆アセンブル",
+    (
+        "extractors/remusstealer/extractor.py",
         "reachable:_build_protocol_profile",
         "module.build_remus_c2_profile",
     ): "hash検証済みdynamic dependencyの監査済みsymbol",
@@ -4099,6 +4124,558 @@ _APPROVED_CALLBACK_PARAMETERS = frozenset(
         ("unpackers/managed_il_triage.py", "wrapper", "function"),
     }
 )
+
+# opaque receiverの一般推論は広げず、レビュー済みmanaged helperだけを固定する。
+_MANAGED_RESOURCE_SOURCE_COMMITMENTS = {
+    "unpackers/managed_resources.py": "3e1804c709b57670a6a78bfd6292ed78896057c85b2427212310ea4ecd158ea9",
+    "unpackers/dnfile_resource_adapter.py": "ecd84fd4738500967063afa4c9376eb54b6e3c4d211e26810ca28a774b537015",
+    "unpackers/clr_input_binding.py": "208255eedd5fff2c85dc17778825d804c5dc1c78b34ed3eca459f83250fd9892",
+    "unpackers/managed_resource_snapshot.py": "df28a45fd2d6d52a328636268dd4d483f81da05b55fb44cedc0f0853ae615d5d",
+    "unpackers/managed_constructor_guard.py": "ce841314eaae64cf85cb97865868694427c06f3bae5493a6272412ca4e84657f",
+}
+_MANAGED_RESOURCE_PURE_CALL_SHAPES = {
+    ("managed_resource_snapshot.py", "shared_metadata_state", "id"): ("id(table)",),
+    ("managed_resources.py", "_snapshot_rows", "getattr"): (
+        "getattr(getattr(pe, 'net', None), 'mdtables', None)", "getattr(pe, 'net', None)",
+        "getattr(metadata, name, None)", "getattr(table, 'num_rows', None)", "getattr(table, 'rows', None)",
+    ),
+    ("managed_resources.py", "_private_name", "getattr"): ("getattr(row, 'Name', None)", "getattr(value, 'value', None)"),
+    ("managed_resources.py", "_linked_scope", "getattr"): ("getattr(reference, 'table', None)", "getattr(reference, 'row_index', None)"),
+    ("managed_resources.py", "_check_shared_snapshot", "getattr"): (
+        "getattr(metadata, name, None)", "getattr(table, 'rows', None)", "getattr(table, 'num_rows', None)",
+    ),
+    ("managed_resources.py", "describe_clr_resources", "getattr"): ("getattr(row, 'Implementation')",),
+    ("dnfile_resource_adapter.py", "<module>", "issubclass"): ("issubclass(_LAZY_LIST, list)",),
+    ("dnfile_resource_adapter.py", "container_count", "list.__len__"): ("list.__len__(source)",),
+    ("dnfile_resource_adapter.py", "bind_strings_heap", "object.__getattribute__"): (
+        "object.__getattribute__(root.struct, '__file_offset__')", "object.__getattribute__(header, '__file_offset__')",
+        "object.__getattribute__(heap, '__data__')", "object.__getattribute__(table_header, '__file_offset__')",
+    ),
+    ("dnfile_resource_adapter.py", "_trusted_functions_intact", "getattr"): ("getattr(row_class, '__bool__', None)", "getattr(row_class, '__len__', None)"),
+    ("dnfile_resource_adapter.py", "preflight_lazy_table", "getattr"): ("getattr(metadata, name, None)",),
+    ("dnfile_resource_adapter.py", "materialize_lazy_row", "list.__getitem__"): ("list.__getitem__(source, index)",),
+    ("dnfile_resource_adapter.py", "materialize_lazy_row", "object.__getattribute__"): (
+        "object.__getattribute__(cached, '_loaded')", "object.__getattribute__(row, 'struct')",
+        "object.__getattribute__(row, '_data')", "object.__getattribute__(row, '_tables_rowcnt')",
+        "object.__getattribute__(row, '_strings')", "object.__getattribute__(row, '_guids')",
+        "object.__getattribute__(row, '_blobs')", "object.__getattribute__(row, '_full_loader')",
+    ),
+    ("dnfile_resource_adapter.py", "project_manifest_row", "object.__getattribute__"): (
+        "object.__getattribute__(row, 'struct')", "object.__getattribute__(row, '_data')", "object.__getattribute__(heap, '__data__')",
+    ),
+    ("dnfile_resource_adapter.py", "project_manifest_row", "getattr"): ("getattr(metadata, scope, None)",),
+    ("clr_input_binding.py", "verify_pe_clr_input", "getattr"): ("getattr(header, name)",),
+}
+_MANAGED_RESOURCE_REFLECTION_SHAPES = {
+    ("managed_resource_snapshot.py", "resolver_from_resource_snapshot"): ("MetadataResolver.__bases__",),
+    ("dnfile_resource_adapter.py", "<module>"): (
+        "_PARSE_ROWS.__code__", "_PARSE_ROW.__code__", "_LAZY_LIST.__getitem__.__code__",
+        "_ROW_INIT.__code__", "_ROW_SETUP.__code__", "_ROW_SET_DATA.__code__",
+        "cls._row_class._compute_format.__code__", "stream.MetaDataTables.parse.__code__",
+    ),
+    ("dnfile_resource_adapter.py", "_bound_method"): ("value.__self__", "value.__func__"),
+    ("dnfile_resource_adapter.py", "_trusted_functions_intact"): (
+        "_LAZY_GETITEM.__code__", "_PARSE_ROWS.__code__", "_PARSE_ROW.__code__", "_ROW_INIT.__code__",
+        "_ROW_SETUP.__code__", "_ROW_SET_DATA.__code__", "row_class._compute_format.__code__",
+    ),
+    ("dnfile_resource_adapter.py", "preflight_lazy_table"): (
+        "loader.__code__", "loader.__globals__", "stream.__dict__", "loader.__closure__",
+    ),
+}
+
+
+@cache
+def _managed_resource_expression_template(expression: str) -> str:
+    return ast.dump(ast.parse(expression, mode="eval").body, include_attributes=False)
+
+
+def _managed_resource_expression_matches(node: ast.AST, expressions: tuple[str, ...]) -> bool:
+    value = ast.dump(node, include_attributes=False)
+    return any(value == _managed_resource_expression_template(expression) for expression in expressions)
+
+
+def _managed_resource_parameters_intact(scope: ast.AST) -> bool:
+    if not isinstance(scope, ast.FunctionDef):
+        return isinstance(scope, ast.Module)
+    protected = {"data", "pe", "metadata", "row", "source", "snapshot", "row_snapshot", "reference", "scan", "value", "owner", "function"}
+    arguments = {item.arg for item in (*scope.args.posonlyargs, *scope.args.args, *scope.args.kwonlyargs)}
+    return all(_parameter_is_not_rebound(scope, name) for name in protected & arguments)
+
+
+def _managed_resource_allocator_shape(call: ast.Call, tree: ast.Module, scope: ast.AST) -> bool:
+    """object.__new__はこの固定factoryの固定classだけ。汎用allocator許可にはしない。"""
+    if (not isinstance(scope, ast.FunctionDef) or scope.name != "resolver_from_resource_snapshot"
+            or not _managed_resource_expression_matches(call, ("object.__new__(MetadataResolver)",))
+            or not _expression_binding_is_intact(call.func, tree, scope)
+            or not _expression_binding_is_intact(call.args[0], tree, scope)
+            or not _managed_resource_parameters_intact(scope)):
+        return False
+    imports = [item for item in ast.walk(tree) if isinstance(item, ast.ImportFrom)
+               and any(alias.name == "MetadataResolver" for alias in item.names)]
+    if (len(imports) != 2 or {(item.module, item.level) for item in imports} != {("managed_metadata", 0), ("managed_metadata", 1)}
+            or any(alias.name == "MetadataResolver" and alias.asname is not None for item in imports for alias in item.names)):
+        return False
+    assignments = [node for node in _nodes_in_lexical_scope(scope) if isinstance(node, ast.Assign)
+                   and any("resolver" in _target_binding_paths(target) for target in node.targets)]
+    if (len(assignments) != 1 or len(assignments[0].targets) != 1
+            or not isinstance(assignments[0].targets[0], ast.Name) or assignments[0].targets[0].id != "resolver"
+            or ast.dump(assignments[0].value, include_attributes=False) != ast.dump(call, include_attributes=False)):
+        return False
+    mutations = _scope_non_import_bindings(tree) | _scope_non_import_bindings(scope)
+    return not any(value.startswith(("MetadataResolver.", "MetadataResolver[", "object.", "object[")) for value in mutations)
+
+
+_MANAGED_RESOURCE_CONSUMER_COMMITMENTS = {
+    "unpackers/managed_il_triage.py": "8a39383fac40269b30b2387c9d11ddf5ba2a0588f3eaa11d46b8058c0795d752",
+    "unpackers/managed_proxy_deobfuscator.py": "66a06326274d86f4706ee9caed4c41b4461a3c0e28dab2d8535ffbc42b2edf56",
+}
+_MANAGED_RESOURCE_CONSUMER_ASSIGNMENTS = {
+    "unpackers/managed_il_triage.py": (
+        "analyze_managed_pe", "_resource_inventory_scope", "_resource_inventory",
+        (
+            "pe = dnfile.dnPE(data=data, clr_lazy_load=True)",
+            "resource_scan, resolver, shared_work = prepare_resource_snapshot(data, pe, max_resources=max_resources, max_resource_bytes=max_resource_bytes, max_rows=min(DEFAULT_MAX_ROWS, max(max_methods, max_types)), max_total_rows=min(DEFAULT_MAX_TOTAL_ROWS, max_references * 4))",
+            "resource_scan = revalidated_resource_scan(data, resource_scan)",
+            "resources, resource_counts, resource_budgets, resource_scan = _resource_inventory_scope(data, pe, max_resources, max_resource_bytes, resource_scan=resource_scan)",
+        ),
+        "resource_scan, _, _ = prepare_resource_snapshot(data, pe, max_resources=max_resources, max_resource_bytes=max_resource_bytes)",
+        "_resource_inventory_scope(data, pe, max_resources, max_resource_bytes, resource_scan=resource_scan)",
+        "_resource_inventory_scope(data, pe, max_resources, max_resource_bytes)",
+    ),
+    "unpackers/managed_proxy_deobfuscator.py": (
+        "analyze_managed_protector", "_resource_blob_scope", "_resource_blobs",
+        (
+            "pe = dnfile.dnPE(data=data, clr_lazy_load=True)",
+            "resource_scan, resolver, shared_work = prepare_resource_snapshot(data, pe, max_resources=MAX_RESOURCE_COUNT, max_resource_bytes=MAX_RESOURCE_BYTES)",
+            "resources, resource_scan = _resource_blob_scope(data, pe, resource_scan=resource_scan)",
+        ),
+        "resource_scan, _, _ = prepare_resource_snapshot(data, pe, max_resources=MAX_RESOURCE_COUNT, max_resource_bytes=MAX_RESOURCE_BYTES)",
+        "_resource_blob_scope(data, pe, resource_scan=resource_scan)",
+        "_resource_blob_scope(data, pe)",
+    ),
+}
+
+
+def _managed_resource_assignment_sequence(scope: ast.AST, names: frozenset[str]) -> tuple[str, ...] | None:
+    """receiverの全束縛を順序付きASTへ射影し、別形式の再代入を拒否する。"""
+    result = []
+    for node in _nodes_in_lexical_scope(scope):
+        targets = node.targets if isinstance(node, (ast.Assign, ast.Delete)) else (
+            (node.target,) if isinstance(node, (ast.AnnAssign, ast.AugAssign, ast.NamedExpr, ast.For, ast.AsyncFor, ast.comprehension)) else ())
+        paths = set().union(*(_target_binding_paths(target) for target in targets)) if targets else set()
+        if any(path == name or path.startswith((name + ".", name + "[")) for path in paths for name in names):
+            if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+                return None
+            result.append(ast.dump(node, include_attributes=False))
+        if isinstance(node, ast.ExceptHandler) and node.name in names:
+            return None
+        if isinstance(node, (ast.With, ast.AsyncWith)) and any(
+                item.optional_vars is not None and _target_binding_paths(item.optional_vars) & names for item in node.items):
+            return None
+    return tuple(result)
+
+
+def _managed_resource_statement_template(statement: str) -> str:
+    return ast.dump(ast.parse(statement).body[0], include_attributes=False)
+
+
+
+_MANAGED_CONSTRUCTOR_CALLS = {
+    "unpackers/managed_il_triage.py": "preflight_clr_declarations(data, max_input_bytes=min(DEFAULT_MAX_INPUT_BYTES, max_input_bytes))",
+    "unpackers/managed_proxy_deobfuscator.py": "preflight_clr_declarations(data)",
+}
+
+
+def _managed_constructor_guard_contract(tree: ast.Module) -> bool:
+    """新guardのexact入力／builtin結合／固定down-only予約だけを拘束する。"""
+    functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
+    expected = {"_integer", "_result", "preflight_clr_declarations"}
+    if len(functions) != 3 or {node.name for node in functions} != expected:
+        return False
+    imports = [node for node in ast.walk(tree) if isinstance(node, (ast.Import, ast.ImportFrom))]
+    if (len(imports) != 2 or not any(isinstance(node, ast.ImportFrom) and node.module is None and node.level == 1
+            and [(item.name, item.asname) for item in node.names] == [("clr_input_binding", "binding")] for node in imports)
+            or not any(isinstance(node, ast.Import) and [(item.name, item.asname) for item in node.names]
+                       == [("clr_input_binding", "binding")] for node in imports)):
+        return False
+    constants = ("MAX_INPUT_BYTES = 512 * 1024 * 1024", "MAX_TABLE_ROWS = 20_000",
+                 "MAX_TOTAL_ROWS = 80_000", 'SCOPE = "constructor_declarations_only"')
+    if _managed_resource_assignment_sequence(tree, frozenset({"MAX_INPUT_BYTES", "MAX_TABLE_ROWS", "MAX_TOTAL_ROWS", "SCOPE"})) != tuple(
+            _managed_resource_statement_template(value) for value in constants):
+        return False
+    protected = frozenset({"binding", *expected})
+    critical = {"type", "int", "bytes", "len", "bool", "sum", "any", "zip", "dict", "tuple", "range", "max", "min", "enumerate"}
+    for scope in (tree, *functions):
+        if _managed_resource_assignment_sequence(scope, protected) != ():
+            return False
+        if isinstance(scope, ast.FunctionDef):
+            for argument in (*scope.args.posonlyargs, *scope.args.args, *scope.args.kwonlyargs):
+                if argument.arg in protected or not _parameter_is_not_rebound(scope, argument.arg):
+                    return False
+            for call in (node for node in _nodes_in_lexical_scope(scope) if isinstance(node, ast.Call)):
+                root = (_ast_call_name(call.func) or "").split(".", 1)[0]
+                if root in critical and not _expression_binding_is_intact(call.func, tree, scope):
+                    return False
+    by_name = {node.name: node for node in functions}
+    templates = (
+        'def _integer(data, offset, width):\n    return int.from_bytes(data[offset:offset + width], "little")',
+        'def _result(reason, limits, tables=0, rows=0):\n    return {"status": "partial" if reason else "validated", "accepted": not bool(reason), "scope": SCOPE, "input_bound": not bool(reason), "counts": {"tables_declared": tables, "rows_declared": rows}, "limits": limits, "reason_counts": {reason: 1} if reason else {}}',
+    )
+    if any(ast.dump(by_name[ast.parse(value).body[0].name], include_attributes=False)
+           != _managed_resource_statement_template(value) for value in templates):
+        return False
+    function = by_name["preflight_clr_declarations"]
+    arguments = function.args
+    if (arguments.posonlyargs or [item.arg for item in arguments.args] != ["data"]
+            or arguments.vararg or arguments.kwarg or arguments.defaults
+            or [item.arg for item in arguments.kwonlyargs] != ["max_input_bytes", "max_table_rows", "max_total_rows"]
+            or [ast.dump(node, include_attributes=False) for node in arguments.kw_defaults]
+               != [ast.dump(ast.Name(id=name, ctx=ast.Load()), include_attributes=False)
+                   for name in ("MAX_INPUT_BYTES", "MAX_TABLE_ROWS", "MAX_TOTAL_ROWS")]):
+        return False
+    body = function.body[1:] if ast.get_docstring(function) is not None else function.body
+    prefix = ast.parse('''
+limits = {"max_input_bytes": MAX_INPUT_BYTES, "max_table_rows": MAX_TABLE_ROWS, "max_total_rows": MAX_TOTAL_ROWS}
+values = (max_input_bytes, max_table_rows, max_total_rows)
+hard = (MAX_INPUT_BYTES, MAX_TABLE_ROWS, MAX_TOTAL_ROWS)
+if any(type(value) is not int or not 0 < value <= cap for value, cap in zip(values, hard)):
+    return _result("preflight_budget_invalid", limits)
+limits = dict(zip(("max_input_bytes", "max_table_rows", "max_total_rows"), values))
+if type(data) is not bytes:
+    return _result("preflight_input_type_invalid", limits)
+if len(data) > max_input_bytes:
+    return _result("preflight_input_byte_budget", limits)
+''').body
+    if [ast.dump(node, include_attributes=False) for node in body[:len(prefix)]] != [
+            ast.dump(node, include_attributes=False) for node in prefix]:
+        return False
+    cap = ast.parse('''
+mask = _integer(data, table_offset + 8, 8)
+numbers = tuple(number for number in range(64) if mask & 1 << number)
+if any(number not in binding._SCHEMA for number in numbers) or 24 + 4 * len(numbers) > table_size:
+    return _result("preflight_metadata_layout_unsupported", limits)
+declared = tuple(_integer(data, table_offset + 24 + 4 * index, 4) for index in range(len(numbers)))
+total = sum(declared)
+if any(value > max_table_rows for value in declared):
+    return _result("preflight_metadata_table_row_budget", limits, len(numbers), total)
+if total > max_total_rows:
+    return _result("preflight_metadata_total_row_budget", limits, len(numbers), total)
+canonical = binding.canonical_table_layout(data, table_offset, table_size)
+''').body
+    sequence = [ast.dump(node, include_attributes=False) for node in body]
+    expected_cap = [ast.dump(node, include_attributes=False) for node in cap]
+    return sum(sequence[index:index + len(expected_cap)] == expected_cap for index in range(len(sequence))) == 1
+
+
+def _managed_constructor_consumer_contract(tree: ast.Module, relative: str) -> bool:
+    """固定2callerのexact入力→拒否return→constructor→shared13順序を検証する。"""
+    expression = _MANAGED_CONSTRUCTOR_CALLS.get(relative)
+    profile = _MANAGED_RESOURCE_CONSUMER_ASSIGNMENTS.get(relative)
+    if expression is None or profile is None:
+        return False
+    functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
+    entries = [node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == profile[0]]
+    if len(entries) != 1 or not isinstance(entries[0], ast.FunctionDef):
+        return False
+    entry = entries[0]
+    imports = [node for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
+               and any(item.name == "preflight_clr_declarations" for item in node.names)]
+    if (len(imports) != 2 or {node.level for node in imports} != {0, 1}
+            or any(node.module != "managed_constructor_guard" or [(item.name, item.asname) for item in node.names]
+                   != [("preflight_clr_declarations", None)] for node in imports)):
+        return False
+    fallback = _managed_resource_statement_template("preflight_clr_declarations = None")
+    if _managed_resource_assignment_sequence(tree, frozenset({"preflight_clr_declarations"})) != (fallback,):
+        return False
+    for scope in functions:
+        if (_managed_resource_assignment_sequence(scope, frozenset({"preflight_clr_declarations"})) != ()
+                or any(item.arg == "preflight_clr_declarations" for item in
+                       (*scope.args.posonlyargs, *scope.args.args, *scope.args.kwonlyargs))
+                or ("data" in {item.arg for item in (*scope.args.posonlyargs, *scope.args.args, *scope.args.kwonlyargs)}
+                    and not _parameter_is_not_rebound(scope, "data"))):
+            return False
+    if not any(isinstance(node, ast.ExceptHandler) and isinstance(node.type, ast.Name) and node.type.id == "ImportError"
+               and any(ast.dump(item, include_attributes=False) == fallback for item in node.body) for node in ast.walk(tree)):
+        return False
+    all_calls = [(scope, call) for scope in functions for call in _nodes_in_lexical_scope(scope)
+                 if isinstance(call, ast.Call) and _ast_call_name(call.func) == "preflight_clr_declarations"]
+    if (len(all_calls) != 1 or all_calls[0][0] is not entry
+            or not _managed_resource_expression_matches(all_calls[0][1], (expression,))):
+        return False
+    type_gate = _managed_resource_statement_template('if type(data) is not bytes:\n    raise TypeError("dataにはexact bytesを指定してください")')
+    body = entry.body[1:] if ast.get_docstring(entry) is not None else entry.body
+    if not body or ast.dump(body[0], include_attributes=False) != type_gate:
+        return False
+    guard = _managed_resource_statement_template(f'''
+try:
+    if preflight_clr_declarations is None:
+        raise ValueError("metadata_constructor_preflight_dependency_missing")
+    metadata_preflight = {expression}
+except Exception:
+    metadata_preflight = {{"status": "partial", "accepted": False, "scope": "constructor_declarations_only",
+                          "input_bound": False, "reason_counts": {{"preflight_dependency_failed": 1}}}}
+''')
+    reject = ('result["status"] = "analyzed_partial_budget"' if relative.endswith("managed_il_triage.py")
+              else 'result["status"] = "partial_budget"')
+    reject += '''
+result["budget_exhausted"] = ["metadata_constructor_preflight"]
+result["resource_coverage"] = _preparation_failed_coverage()
+result["reference_metadata_coverage"] = {"complete": False, "shared_snapshot": {"accepted": False}}
+'''
+    if relative.endswith("managed_il_triage.py"):
+        reject += 'result["static_method_plan"] = plan_managed_methods(result)\n'
+    reject += "return result"
+    rejected = _managed_resource_statement_template("if not metadata_preflight['accepted']:\n" + "\n".join("    " + line for line in reject.strip().splitlines()))
+    indices = [index for index, node in enumerate(body) if ast.dump(node, include_attributes=False) == guard]
+    if len(indices) != 1:
+        return False
+    index = indices[0]
+    if len(body) <= index + 3:
+        return False
+    projection = _managed_resource_statement_template('result["metadata_preflight"] = metadata_preflight')
+    if (ast.dump(body[index + 1], include_attributes=False) != projection
+            or ast.dump(body[index + 2], include_attributes=False) != rejected):
+        return False
+    constructor = body[index + 3]
+    if not isinstance(constructor, ast.Try) or not constructor.body:
+        return False
+    statement = constructor.body[0]
+    if relative.endswith("managed_proxy_deobfuscator.py"):
+        if (not isinstance(statement, ast.With) or len(statement.items) != 1 or statement.items[0].optional_vars is not None
+                or not _managed_resource_expression_matches(statement.items[0].context_expr, ("_contained_parser_diagnostics()",))
+                or len(statement.body) != 1):
+            return False
+        statement = statement.body[0]
+    if ast.dump(statement, include_attributes=False) != _managed_resource_statement_template(profile[3][0]):
+        return False
+    constructors = [node for node in ast.walk(tree) if isinstance(node, ast.Call) and _ast_call_name(node.func) == "dnfile.dnPE"]
+    if len(constructors) != 1:
+        return False
+    allowed = (
+        f"metadata_preflight = {expression}",
+        'metadata_preflight = {"status": "partial", "accepted": False, "scope": "constructor_declarations_only", "input_bound": False, "reason_counts": {"preflight_dependency_failed": 1}}',
+    )
+    if _managed_resource_assignment_sequence(entry, frozenset({"metadata_preflight"})) != tuple(
+            _managed_resource_statement_template(value) for value in allowed):
+        return False
+    return all(_expression_binding_is_intact(ast.Name(id=name, ctx=ast.Load()), tree, entry)
+               for name in ("type", "bytes", "TypeError"))
+
+
+def _managed_resource_consumer_contract(tree: ast.Module, relative: str) -> bool:
+    """固定2consumerのdnPE起点、tuple要素、全callerとnamespaceを検証する。
+
+    従来wrapperは直接試験専用の互換入口であり、handlerの安全入口に昇格しない。
+    helperの名前やsource pinだけから任意receiverを許可する契約ではない。
+    """
+    profile = _MANAGED_RESOURCE_CONSUMER_ASSIGNMENTS.get(relative)
+    if profile is None or not _managed_constructor_consumer_contract(tree, relative):
+        return False
+    entry, scope_name, wrapper, assignments, preparation, scoped_call, wrapper_call = profile
+    functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
+    if any(name not in functions for name in (entry, scope_name, wrapper, "_consumed_metadata_coverage")):
+        return False
+    namespaces = frozenset({"prepare_resource_snapshot", "revalidated_resource_scan", "dnfile", "MetadataResolver"})
+    imports = [node for node in _nodes_in_lexical_scope(tree) if isinstance(node, ast.ImportFrom)
+               and any(alias.name in namespaces for alias in node.names)]
+    resource_imports = [node for node in imports if any(alias.name == "prepare_resource_snapshot" for alias in node.names)]
+    if (len(resource_imports) != 2 or {node.level for node in resource_imports} != {0, 1}
+            or any(node.module != "managed_resource_snapshot" or tuple((alias.name, alias.asname) for alias in node.names)
+                   != (("prepare_resource_snapshot", None), ("revalidated_resource_scan", None)) for node in resource_imports)):
+        return False
+    dn_imports = [node for node in _nodes_in_lexical_scope(tree) if isinstance(node, ast.Import)
+                  and any(alias.name == "dnfile" for alias in node.names)]
+    if len(dn_imports) != 1 or tuple((alias.name, alias.asname) for alias in dn_imports[0].names) != (("dnfile", None),):
+        return False
+    allowed_fallbacks = {
+        _managed_resource_statement_template("prepare_resource_snapshot = revalidated_resource_scan = None"),
+        _managed_resource_statement_template("dnfile = None"),
+    }
+    seen_fallbacks = []
+    for active in (tree, *functions.values()):
+        for node in _nodes_in_lexical_scope(active):
+            targets = node.targets if isinstance(node, (ast.Assign, ast.Delete)) else (
+                (node.target,) if isinstance(node, (ast.AnnAssign, ast.AugAssign, ast.NamedExpr, ast.For, ast.AsyncFor, ast.comprehension)) else ())
+            paths = set().union(*(_target_binding_paths(target) for target in targets)) if targets else set()
+            if active is not tree and any(path.startswith((name + ".", name + "[")) for path in paths
+                                           for name in {"resource_scan", "resolver", "shared_work", "scan", "work"}):
+                return False
+            if any(path == name or path.startswith((name + ".", name + "[")) for path in paths for name in namespaces):
+                if active is not tree or ast.dump(node, include_attributes=False) not in allowed_fallbacks:
+                    return False
+                if not any(isinstance(parent, ast.ExceptHandler) and isinstance(parent.type, ast.Name)
+                           and parent.type.id == "ImportError" and node in parent.body for parent in ast.walk(tree)):
+                    return False
+                seen_fallbacks.append(ast.dump(node, include_attributes=False))
+        if isinstance(active, ast.FunctionDef):
+            parameters = {item.arg for item in (*active.args.posonlyargs, *active.args.args, *active.args.kwonlyargs)}
+            for name in parameters & {"data", "pe", "resolver", "work", "scan", "max_resources", "max_resource_bytes"}:
+                if not _parameter_is_not_rebound(active, name):
+                    return False
+    if len(seen_fallbacks) != len(allowed_fallbacks) or set(seen_fallbacks) != allowed_fallbacks:
+        return False
+    if _managed_resource_assignment_sequence(functions[entry], frozenset({"pe", "resource_scan", "resolver", "shared_work"})) != tuple(
+            _managed_resource_statement_template(value) for value in assignments):
+        return False
+    if _managed_resource_assignment_sequence(functions[scope_name], frozenset({"resource_scan", "fresh"})) != (
+            _managed_resource_statement_template(preparation),
+            _managed_resource_statement_template("fresh = revalidated_resource_scan(data, resource_scan)")):
+        return False
+    expected_callers = sorted([(entry, scoped_call), (wrapper, wrapper_call)])
+    callers = []
+    coverage_callers = []
+    for function in functions.values():
+        for call in (node for node in _nodes_in_lexical_scope(function) if isinstance(node, ast.Call)):
+            name = _ast_call_name(call.func)
+            if name == scope_name:
+                callers.append((function.name, ast.unparse(call)))
+            elif name == "_consumed_metadata_coverage":
+                if function.name != entry or not _managed_resource_expression_matches(call, ("_consumed_metadata_coverage(resolver, shared_work, resource_scan)",)):
+                    return False
+                coverage_callers.append(call)
+    return sorted(callers) == expected_callers and len(coverage_callers) == (2 if relative.endswith("managed_il_triage.py") else 1)
+
+
+def _managed_resource_consumer_call_shape(call: ast.Call, tree: ast.Module, scope: ast.AST,
+                                         relative: str, context: str) -> tuple[str, str] | None:
+    """固定contextのscan/resolverを、実装監査すべきclassまたはfactoryへ結ぶ。"""
+    name = _ast_call_name(call.func)
+    if (name not in {"preflight_clr_declarations", "prepare_resource_snapshot", "revalidated_resource_scan", "resource_scan.coverage",
+                     "fresh.coverage", "resolver.coverage", "scan.coverage"}
+            or not isinstance(scope, ast.FunctionDef) or context != f"reachable:{scope.name}"
+            or not _managed_resource_consumer_contract(tree, relative)):
+        return None
+    return _managed_resource_consumer_dispatch_shape(call, tree, scope, relative, context)
+
+
+def _managed_resource_consumer_dispatch_shape(call: ast.Call, tree: ast.Module, scope: ast.AST,
+                                         relative: str, context: str) -> tuple[str, str] | None:
+    """契約通過後の固定contextだけをclass／factoryへ射影する純粋dispatch。"""
+    name = _ast_call_name(call.func)
+    if (name not in {"preflight_clr_declarations", "prepare_resource_snapshot", "revalidated_resource_scan", "resource_scan.coverage",
+                     "fresh.coverage", "resolver.coverage", "scan.coverage"}
+            or not isinstance(scope, ast.FunctionDef) or context != f"reachable:{scope.name}"
+            or relative not in _MANAGED_RESOURCE_CONSUMER_ASSIGNMENTS):
+        return None
+    entry, scope_name, _wrapper, assignments, preparation, _scoped_call, _wrapper_call = _MANAGED_RESOURCE_CONSUMER_ASSIGNMENTS[relative]
+    if name == "preflight_clr_declarations" and scope.name == entry:
+        return "managed_constructor_guard", "preflight_clr_declarations"
+    if name == "prepare_resource_snapshot":
+        statement = assignments[1] if scope.name == entry else preparation if scope.name == scope_name else None
+        if statement is not None and _managed_resource_expression_matches(call, (ast.unparse(ast.parse(statement).body[0].value),)):
+            return "managed_resource_snapshot", "prepare_resource_snapshot"
+    if name == "revalidated_resource_scan" and scope.name in {entry, scope_name} and _managed_resource_expression_matches(call, ("revalidated_resource_scan(data, resource_scan)",)):
+        return "managed_resource_snapshot", "revalidated_resource_scan"
+    if name == "resource_scan.coverage" and scope.name == entry and _managed_resource_expression_matches(call, ("resource_scan.coverage()",)):
+        return "managed_resources", "coverage"
+    if name == "fresh.coverage" and scope.name == scope_name and _managed_resource_expression_matches(call, ("fresh.coverage()",)):
+        return "managed_resources", "coverage"
+    if scope.name == "_consumed_metadata_coverage" and _managed_resource_expression_matches(call, ("resolver.coverage()", "scan.coverage()")):
+        return ("managed_metadata" if name == "resolver.coverage" else "managed_resources"), "coverage"
+    if name == "resolver.coverage" and scope.name == entry and _managed_resource_expression_matches(call, ("resolver.coverage()",)):
+        return "managed_metadata", "coverage"
+    return None
+
+
+_MANAGED_READER_SOURCE_COMMITMENTS = {
+    "analysis-framework/common/dotnet_rat_config.py": "9b8a75d54962e55a2dc06a7a96c37257cfd67058943c6dd0a25d3357042b4b26",
+    "unpackers/managed_metadata.py": "ed6b3e221bcc4a0b91b46c382446573de735c414cb307c71ee575ea1657f68fe",
+}
+_MANAGED_READER_SOURCE_CALLS = {
+    ("analysis-framework/common/dotnet_rat_config.py", "reachable:_collect_settings_literals", "literal_reader.read"):
+        ("analysis-framework/common/dotnet_rat_config.py", "_LiteralReader", "read"),
+    ("analysis-framework/common/dotnet_rat_config.py", "reachable:static_salt", "literal_reader.read"):
+        ("analysis-framework/common/dotnet_rat_config.py", "_LiteralReader", "read"),
+    ("analysis-framework/common/dotnet_rat_config.py", "reachable:static_salt", "resolver.coverage"):
+        ("unpackers/managed_metadata.py", "MetadataResolver", "coverage"),
+    ("analysis-framework/common/dotnet_rat_config.py", "reachable:static_salt", "resolver.match_framework_member"):
+        ("unpackers/managed_metadata.py", "MetadataResolver", "match_framework_member"),
+}
+
+
+def _managed_reader_factory_origin(tree: ast.Module, scope: ast.AST, type_parameter: str) -> bool:
+    """固定factoryの第5要素を、差替えなしで受け取るtupleだけを許可する。"""
+    expected = ast.parse(f"_settings_initializer(data, {type_parameter})", mode="eval").body
+    matches = []
+    for node in _nodes_in_lexical_scope(scope):
+        if isinstance(node, ast.Assign) and any("literal_reader" in _target_binding_paths(target) for target in node.targets):
+            if (len(node.targets) != 1 or not isinstance(node.targets[0], ast.Tuple)
+                    or len(node.targets[0].elts) != 5 or not all(isinstance(item, ast.Name) for item in node.targets[0].elts)
+                    or node.targets[0].elts[0].id != "pe" or node.targets[0].elts[-1].id != "literal_reader"
+                    or ast.dump(node.value, include_attributes=False) != ast.dump(expected, include_attributes=False)):
+                return False
+            matches.append(node)
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign, ast.NamedExpr, ast.For, ast.AsyncFor, ast.comprehension)):
+            if "literal_reader" in _target_binding_paths(node.target):
+                return False
+        elif isinstance(node, ast.Delete) and any("literal_reader" in _target_binding_paths(target) for target in node.targets):
+            return False
+    factories = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "_settings_initializer"]
+    if len(matches) != 1 or len(factories) != 1:
+        return False
+    returns = [node for node in _nodes_in_lexical_scope(factories[0]) if isinstance(node, ast.Return)]
+    return bool(len(returns) == 1 and isinstance(returns[0].value, ast.Tuple) and len(returns[0].value.elts) == 5
+                and ast.dump(returns[0].value.elts[-1], include_attributes=False)
+                == ast.dump(ast.parse("_LiteralReader(pe)", mode="eval").body, include_attributes=False)
+                and _parameter_is_not_rebound(scope, "data") and _parameter_is_not_rebound(scope, type_parameter))
+
+
+def _managed_reader_parameter_origin(tree: ast.Module, scope: ast.AST) -> bool:
+    """strictとprivate assessmentの2callerを全検証し、入口全体の許可には使わない。"""
+    if not all(_parameter_is_not_rebound(scope, name) for name in
+               ("pe", "owners", "instructions", "settings_type", "literal_reader")):
+        return False
+    expected = ast.parse("_collect_settings_literals(pe, owners, _straight_line_initializer(body), settings_type, literal_reader)", mode="eval").body
+    callers = []
+    for function in (node for node in tree.body if isinstance(node, ast.FunctionDef)):
+        for call in (node for node in _nodes_in_lexical_scope(function) if isinstance(node, ast.Call)):
+            if _ast_call_name(call.func) != "_collect_settings_literals":
+                continue
+            if (function.name not in {"settings_literals", "assess_settings_literals"}
+                    or ast.dump(call, include_attributes=False) != ast.dump(expected, include_attributes=False)
+                    or not _managed_reader_factory_origin(tree, function, "settings_type")):
+                return False
+            callers.append(function.name)
+    return sorted(callers) == ["assess_settings_literals", "settings_literals"]
+
+
+def _managed_reader_call_shape(node: ast.Call, tree: ast.Module, scope: ast.AST,
+                               key: tuple[str, str, str]) -> bool:
+    """固定consumerのreceiver、引数、profile、factoryとnamespaceを照合する。"""
+    if not isinstance(scope, ast.FunctionDef) or node.keywords or any(isinstance(item, ast.Starred) for item in node.args):
+        return False
+    for active in (tree, scope):
+        for binding in _nodes_in_lexical_scope(active):
+            if isinstance(binding, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.NamedExpr, ast.For, ast.AsyncFor, ast.comprehension)):
+                targets = binding.targets if isinstance(binding, ast.Assign) else (binding.target,)
+                if any(_target_binding_paths(target) & {"_LiteralReader", "_settings_initializer", "MetadataResolver"} for target in targets):
+                    return False
+    mutations = _scope_non_import_bindings(tree) | _scope_non_import_bindings(scope)
+    if any(value.startswith(("literal_reader.", "literal_reader[", "resolver.", "resolver[", "_LiteralReader.",
+                             "_settings_initializer.", "MetadataResolver.")) for value in mutations):
+        return False
+    name = key[2]
+    if name == "literal_reader.read":
+        expression = "literal_reader.read(operand)" if scope.name == "_collect_settings_literals" else "literal_reader.read(operands[1])"
+        if ast.dump(node, include_attributes=False) != ast.dump(ast.parse(expression, mode="eval").body, include_attributes=False):
+            return False
+        return (_managed_reader_parameter_origin(tree, scope) if scope.name == "_collect_settings_literals"
+                else _managed_reader_factory_origin(tree, scope, "initializer_type"))
+    origin = _simple_name_origin(scope, "resolver")
+    expected_origin = ast.parse("MetadataResolver(pe)", mode="eval").body
+    imports = [item for item in _nodes_in_lexical_scope(scope) if isinstance(item, ast.ImportFrom)
+               and item.module == "unpackers.managed_metadata" and item.level == 0
+               and any(alias.name == "MetadataResolver" and alias.asname is None for alias in item.names)]
+    if (origin is None or ast.dump(origin, include_attributes=False) != ast.dump(expected_origin, include_attributes=False)
+            or len(imports) != 1 or not _expression_binding_is_intact(origin.func, tree, scope)
+            or not _managed_reader_factory_origin(tree, scope, "initializer_type")):
+        return False
+    expressions = ("resolver.coverage()",) if name == "resolver.coverage" else (
+        "resolver.match_framework_member(operands[0], 'system_text_encoding_get_ascii_v1')",
+        "resolver.match_framework_member(operands[2], 'system_text_encoding_get_bytes_string_v1')",
+    )
+    return any(ast.dump(node, include_attributes=False) == ast.dump(ast.parse(value, mode="eval").body, include_attributes=False)
+               for value in expressions)
 
 _REVIEWED_IMPORT_NAMESPACE_MUTATIONS = frozenset(
     {
@@ -4956,6 +5533,51 @@ def _reviewed_source_call_shape_allowed(
     }
     if supplied_strings & _DANGEROUS_REFLECTION_ATTRIBUTES:
         return False
+    if key in {
+        ("analysis-framework/common/remus_disk_config.py", "reachable:_candidate", "time.monotonic"),
+        ("analysis-framework/common/remus_disk_config.py", "reachable:extract_remus_disk_config", "time.monotonic"),
+    }:
+        return bool(
+            not node.args
+            and not node.keywords
+            and _expanded_call_name(node, aliases) == "time.monotonic"
+            and _expression_binding_is_intact(node.func, tree, scope)
+        )
+    if key == (
+        "analysis-framework/common/remus_disk_config.py",
+        "reachable:_instructions",
+        "machine.disasm",
+    ):
+        # decoderは固定x64、入力はsectionの有界readだけ。CPU命令を実行しない。
+        origin = _simple_name_origin(scope, "machine")
+        raw_origin = _simple_name_origin(scope, "raw")
+        expected_origin = ast.parse("capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_64)", mode="eval").body
+        expected_raw = ast.parse("_read(data, image, rva, size, executable=True)", mode="eval").body
+        expected_call = ast.parse("machine.disasm(raw, rva)", mode="eval").body
+        return bool(
+            origin is not None
+            and raw_origin is not None
+            and ast.dump(origin, include_attributes=False) == ast.dump(expected_origin, include_attributes=False)
+            and ast.dump(raw_origin, include_attributes=False) == ast.dump(expected_raw, include_attributes=False)
+            and ast.dump(node, include_attributes=False) == ast.dump(expected_call, include_attributes=False)
+            and isinstance(origin, ast.Call)
+            and _expression_binding_is_intact(origin.func, tree, scope)
+            and all(_parameter_is_not_rebound(scope, parameter) for parameter in ("data", "image", "rva", "size"))
+        )
+    if key == (
+        "extractors/remusstealer/extractor.py",
+        "reachable:_terminal_disk_report",
+        "module.extract_remus_disk_config",
+    ):
+        origin = _simple_name_origin(scope, "module")
+        expected_origin = ast.parse("_load_common_module('remus_disk_config')", mode="eval").body
+        expected_call = ast.parse("module.extract_remus_disk_config(data)", mode="eval").body
+        return bool(
+            origin is not None
+            and ast.dump(origin, include_attributes=False) == ast.dump(expected_origin, include_attributes=False)
+            and ast.dump(node, include_attributes=False) == ast.dump(expected_call, include_attributes=False)
+            and _parameter_is_not_rebound(scope, "data")
+        )
     inno_source = (
         "analysis-framework/malware/valleyrat/campaigns/protected_installer_bundle/inno_static.py"
     )
@@ -5692,8 +6314,152 @@ def _binding_local_call_target(
     return target, ".".join(remainder) or None, error
 
 
+def _complete_shadowed_import_module_bindings(module_bindings, trees, files, import_audited_sources, issues):
+    """callerのalias辞書を変更せず、同一source・symbolのnamespaceだけ補完する。"""
+    if (type(import_audited_sources) is not frozenset
+            or any(type(source) is not type(REPOSITORY_ROOT) or source not in files or source not in trees
+                   for source in import_audited_sources)):
+        issues.add("shadowed_import_import_audit_snapshot_unavailable")
+        return
+    pending = list(sorted(module_bindings))
+    processed = set()
+    maximum = MAX_ASSESSMENT_IMPORT_FILES * 4
+
+    def include(name, target):
+        target = target.resolve(strict=True)
+        if target not in files:
+            issues.add("shadowed_import_source_not_audited:" + name)
+            return
+        if target not in import_audited_sources:
+            issues.add("shadowed_import_source_not_import_audited:" + name)
+            return
+        proposed = (target, target.name == "__init__.py")
+        previous = module_bindings.get(name)
+        if previous is not None and previous != proposed:
+            issues.add("ambiguous_local_module_binding:" + name)
+            return
+        if previous is None:
+            if len(module_bindings) >= maximum:
+                issues.add("import_module_binding_limit")
+                return
+            module_bindings[name] = proposed
+            pending.append(name)
+
+    def resolve(source, canonical, symbol):
+        target, error = _resolve_local_module_path(source, canonical)
+        if error:
+            issues.add("import:" + error)
+            return None
+        if target is None:
+            if not _approved_external_module(canonical):
+                issues.add("shadowed_import_unresolved:" + canonical)
+                return None
+            return ("external", canonical, symbol), []
+        target = target.resolve(strict=True)
+        if target not in files:
+            issues.add("shadowed_import_source_not_audited:" + canonical)
+            return None
+        if target not in import_audited_sources:
+            issues.add("shadowed_import_source_not_import_audited:" + canonical)
+            return None
+        entries = []
+        for index in range(1, len(canonical.split(".")) + 1):
+            parent_name = ".".join(canonical.split(".")[:index])
+            parent, parent_error = _resolve_local_module_path(source, parent_name)
+            if parent_error:
+                issues.add("import:" + parent_error)
+                return None
+            if parent is not None:
+                parent = parent.resolve(strict=True)
+                if parent not in files:
+                    issues.add("shadowed_import_source_not_audited:" + parent_name)
+                    return None
+                if parent not in import_audited_sources:
+                    issues.add("shadowed_import_source_not_import_audited:" + parent_name)
+                    return None
+                entries.append((parent_name, parent))
+        effective = target
+        effective_symbol = symbol
+        if target.name == "__init__.py" and symbol and symbol.isidentifier():
+            child_name = canonical + "." + symbol
+            child, child_error = _resolve_local_module_path(source, child_name)
+            if child_error:
+                issues.add("import:" + child_error)
+                return None
+            if child is not None:
+                child = child.resolve(strict=True)
+                if child not in files:
+                    issues.add("shadowed_import_source_not_audited:" + child_name)
+                    return None
+                if child not in import_audited_sources:
+                    issues.add("shadowed_import_source_not_import_audited:" + child_name)
+                    return None
+                entries.append((child_name, child))
+                effective, effective_symbol = child, None
+        return ("local", effective, effective_symbol), entries
+
+    while pending:
+        name = pending.pop(0)
+        if name in processed:
+            continue
+        processed.add(name)
+        source, is_package = module_bindings[name]
+        tree = trees.get(source)
+        if tree is None or source not in files:
+            issues.add("shadowed_import_source_not_audited:" + name)
+            continue
+        if source not in import_audited_sources:
+            issues.add("shadowed_import_source_not_import_audited:" + name)
+            continue
+        package = name.split(".") if is_package else name.split(".")[:-1]
+        occurrences = {}
+        for node in _nodes_in_lexical_scope(tree):
+            if not isinstance(node, (ast.Import, ast.ImportFrom)):
+                continue
+            for alias in node.names:
+                if alias.name == "*":
+                    issues.add("shadowed_import_star_not_supported:" + name)
+                    continue
+                local_name = alias.asname or (alias.name.split(".")[0] if isinstance(node, ast.Import) else alias.name)
+                if isinstance(node, ast.Import):
+                    canonical, symbol = alias.name, None
+                else:
+                    symbol = alias.name
+                    if node.level:
+                        if node.level > len(package):
+                            occurrences.setdefault(local_name, []).append(None)
+                            continue
+                        prefix = package[:len(package) - node.level + 1]
+                        canonical = ".".join(prefix + ((node.module or "").split(".") if node.module else []))
+                    else:
+                        canonical = node.module or ""
+                item = resolve(source, canonical, symbol)
+                if item is not None and isinstance(node, ast.Import) and alias.asname is None:
+                    # full moduleの監査は保持し、実際にbindするrootだけを比較する。
+                    identity, entries = item
+                    root_name = alias.name.split(".")[0]
+                    if identity[0] == "external":
+                        item = ("external", root_name, None), entries
+                    else:
+                        root = resolve(source, root_name, None)
+                        item = None if root is None else (root[0], entries + root[1])
+                occurrences.setdefault(local_name, []).append(item)
+        for alias, values in occurrences.items():
+            concrete = [item for item in values if item is not None]
+            if not concrete:
+                issues.add("shadowed_import_context_unavailable:" + name + ":" + alias)
+                continue
+            identities = {item[0] for item in concrete}
+            if len(identities) != 1:
+                issues.add("shadowed_import_alias_target_conflict:" + name + ":" + alias)
+                continue
+            for _identity, entries in concrete:
+                for canonical, target in entries:
+                    include(canonical, target)
+
+
 def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict[str, Any]:
-    """reachable local helperをfile間で追跡し、importせず副作用callを監査する。"""
+    """到達可能なローカルhelperをfile間で追跡し、importせず副作用callを監査する。"""
 
     issues: set[str] = set()
     files: dict[Path, str] = {}
@@ -5711,18 +6477,35 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
     alias_cache: dict[ast.Module, dict[str, str]] = {}
     definition_cache: dict[ast.Module, dict[str, ast.AST]] = {}
     scope_symbol_cache: dict[ast.AST, tuple[set[str], set[str], set[str]]] = {}
+    resource_profile_cache: dict[tuple[Path, ast.AST], bool] = {}
+
+    consumer_contract_cache: dict[tuple[ast.Module, str], bool] = {}
+
+    def managed_consumer_call_shape(call: ast.Call, tree: ast.Module, scope: ast.AST,
+                                    relative: str, context: str) -> tuple[str, str] | None:
+        key = (tree, relative)
+        if key not in consumer_contract_cache:
+            consumer_contract_cache[key] = _managed_resource_consumer_contract(tree, relative)
+        if not consumer_contract_cache[key]:
+            return None
+        return _managed_resource_consumer_dispatch_shape(call, tree, scope, relative, context)
 
     def bindings(scope: ast.AST) -> dict[str, _ImportBinding]:
-        return binding_cache.setdefault(scope, _detailed_import_bindings(scope))
+        if scope not in binding_cache:
+            binding_cache[scope] = _detailed_import_bindings(scope)
+        return binding_cache[scope]
 
     def aliases(tree: ast.Module) -> dict[str, str]:
-        return alias_cache.setdefault(tree, _import_aliases(tree))
+        if tree not in alias_cache:
+            alias_cache[tree] = _import_aliases(tree)
+        return alias_cache[tree]
 
     def definitions(tree: ast.Module) -> dict[str, ast.AST]:
-        return definition_cache.setdefault(
-            tree,
-            {node.name: node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.ClassDef))},
-        )
+        if tree not in definition_cache:
+            definition_cache[tree] = {
+                node.name: node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.ClassDef))
+            }
+        return definition_cache[tree]
 
     def scope_symbols(scope: ast.AST) -> tuple[set[str], set[str], set[str]]:
         cached = scope_symbol_cache.get(scope)
@@ -5778,6 +6561,13 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
                 return None
             files[resolved] = hashlib.sha256(content).hexdigest()
             trees[resolved] = tree
+            expected = _MANAGED_RESOURCE_SOURCE_COMMITMENTS.get(relative)
+            if expected is not None and files[resolved] != expected:
+                issues.add(f"managed_resource_source_commitment_mismatch:{relative}")
+            if relative == "unpackers/managed_constructor_guard.py" and not _managed_constructor_guard_contract(tree):
+                issues.add("managed_resource_constructor_guard_contract_rejected")
+            if relative in _MANAGED_RESOURCE_CONSUMER_COMMITMENTS and not _managed_constructor_consumer_contract(tree, relative):
+                issues.add(f"managed_resource_consumer_origin_or_commitment_rejected:{relative}")
             return tree
         return trees.get(resolved)
 
@@ -5824,8 +6614,10 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
         result = ".".join((*base, *suffix))
         return result or None
 
-    def audit_imports(source: Path, tree: ast.Module, depth: int) -> None:
-        bindings = _detailed_import_bindings(tree)
+    def audit_imports(source: Path, scope: ast.AST, depth: int) -> None:
+        """到達済みの字句scopeだけから、実importに必要な正規module結合を記録する。"""
+
+        bindings = _detailed_import_bindings(scope)
         for binding in bindings.values():
             imported = binding.imported_module
             target, error = _resolve_local_module_path(
@@ -5848,6 +6640,7 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
                         continue
                     register_module_binding(canonical, target)
                     audit_module(target, depth + 1)
+                    audit_imported_submodule(source, canonical, target, binding, depth)
                     continue
                 parts = imported.split(".")
                 for index in range(1, len(parts) + 1):
@@ -5864,6 +6657,7 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
                         audit_module(module_target, depth + 1)
                 register_module_binding(imported, target)
                 audit_module(target, depth + 1)
+                audit_imported_submodule(source, imported, target, binding, depth)
                 continue
             if binding.level:
                 issues.add(f"unresolved_local_import:{imported or binding.symbol}")
@@ -5871,6 +6665,25 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
                 allow("approved_external_import", imported)
             else:
                 issues.add(f"unresolved_local_or_unapproved_import:{imported}")
+
+    def audit_imported_submodule(
+        source: Path,
+        canonical: str,
+        target: Path,
+        binding: _ImportBinding,
+        depth: int,
+    ) -> None:
+        """from package import moduleの明示された内部子moduleだけを追加監査する。"""
+
+        if target.name != "__init__.py" or not binding.symbol or not binding.symbol.isidentifier():
+            return
+        module_name = f"{canonical}.{binding.symbol}"
+        module_target, module_error = _resolve_local_module_path(source, module_name)
+        if module_error:
+            issues.add(f"import:{module_error}")
+        elif module_target is not None:
+            register_module_binding(module_name, module_target)
+            audit_module(module_target, depth + 1)
 
     def audit_target(source: Path, symbol: str | None, depth: int, context: str) -> None:
         nonlocal local_calls_followed
@@ -5915,6 +6728,90 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
             audit_definition(source, tree, node, depth + 1, context)
         else:
             audit_function(source, tree, node.name, depth + 1, context)
+
+    def audit_managed_class(source: Path, class_name: str, method: str,
+                            depth: int, context: str, *, fixed_resource_allocator_entry: bool = False) -> bool:
+        """固定SHAのclass本体、constructor、選択methodを省略せず到達監査する。"""
+        tree = register_file(source, depth)
+        if tree is None:
+            return False
+        relative = _relative_audit_path(source)
+        expected = _MANAGED_READER_SOURCE_COMMITMENTS.get(relative)
+        if expected is None or files.get(source.resolve(strict=True)) != expected:
+            issues.add(f"{context}:managed_reader_source_commitment_mismatch:{relative}")
+            return False
+        classes = [node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == class_name]
+        if (len(classes) != 1 or classes[0].bases or classes[0].keywords or classes[0].decorator_list
+                or any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                       and (node.decorator_list or node.name in {"__getattr__", "__getattribute__", "__new__", "__del__"})
+                       for node in classes[0].body)):
+            issues.add(f"{context}:managed_reader_class_shape_rejected:{class_name}")
+            return False
+        if fixed_resource_allocator_entry and (relative != "unpackers/managed_metadata.py"
+                or class_name != "MetadataResolver" or method not in {"coverage", "resolve"}):
+            issues.add(f"{context}:managed_resource_allocator_class_selection_rejected")
+            return False
+        selected = []
+        for name in {"__init__", method}:
+            methods = [node for node in classes[0].body if isinstance(node, ast.FunctionDef) and node.name == name]
+            if len(methods) != 1:
+                issues.add(f"{context}:managed_reader_method_missing:{class_name}.{name}")
+                return False
+            selected.append(methods[0])
+        selection_depth = depth if fixed_resource_allocator_entry else depth + 1
+        audit_definition(source, tree, classes[0], selection_depth, context)
+        for definition in selected:
+            audit_definition(source, tree, definition, selection_depth, context)
+        return not issues
+
+    def resource_profile_intact(source: Path, tree: ast.Module, scope: ast.AST) -> bool:
+        key = (source, scope)
+        if key in resource_profile_cache:
+            return resource_profile_cache[key]
+        relative = _relative_audit_path(source)
+        expected = _MANAGED_RESOURCE_SOURCE_COMMITMENTS.get(relative)
+        valid = bool(expected is not None and files.get(source.resolve(strict=True)) == expected
+                     and _managed_resource_parameters_intact(scope))
+        resource_profile_cache[key] = valid
+        return valid
+
+    def audit_resource_class(source: Path, class_name: str, depth: int, context: str) -> bool:
+        tree = register_file(source, depth)
+        if tree is None or not resource_profile_intact(source, tree, tree):
+            return False
+        classes = [node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == class_name]
+        if (len(classes) != 1 or classes[0].bases or classes[0].keywords or classes[0].decorator_list
+                or any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                       and (node.decorator_list or node.name in {"__getattr__", "__getattribute__", "__new__", "__setattr__", "__del__"})
+                       for node in classes[0].body)):
+            issues.add(f"{context}:managed_resource_class_shape_rejected:{class_name}")
+            return False
+        if any(isinstance(node, ast.AsyncFunctionDef) for node in classes[0].body):
+            issues.add(f"managed_resource_async_method_unsupported:{_relative_audit_path(source)}:{class_name}")
+        method_names = [node.name for node in classes[0].body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        if len(method_names) != len(set(method_names)):
+            # seen keyで同名methodの一方が隠れても、固定クラスの成功へ昇格させない。
+            issues.add(f"managed_resource_duplicate_method_name:{_relative_audit_path(source)}:{class_name}")
+        audit_definition(source, tree, classes[0], depth + 1, context)
+        for method in (node for node in classes[0].body if isinstance(node, ast.FunctionDef)):
+            audit_definition(source, tree, method, depth + 1, f"reachable:{class_name}.{method.name}")
+        return not issues
+
+    def resource_reflection_allowed(source: Path, tree: ast.Module, scope: ast.AST, node: ast.Attribute) -> bool:
+        relative = _relative_audit_path(source)
+        if not resource_profile_intact(source, tree, scope):
+            return False
+        scope_name = scope.name if isinstance(scope, ast.FunctionDef) else "<module>"
+        expressions = _MANAGED_RESOURCE_REFLECTION_SHAPES.get((source.name, scope_name), ())
+        if _managed_resource_expression_matches(node, expressions):
+            return True
+        if (relative == "unpackers/dnfile_resource_adapter.py" and node.attr == "__getattribute__"
+                and _managed_resource_expression_matches(node, ("object.__getattribute__",))):
+            shapes = _MANAGED_RESOURCE_PURE_CALL_SHAPES.get((source.name, scope_name, "object.__getattribute__"), ())
+            parents = [call for call in _nodes_in_lexical_scope(scope) if isinstance(call, ast.Call) and call.func is node]
+            return len(parents) == 1 and _managed_resource_expression_matches(parents[0], shapes)
+        return False
 
     def audit_call(
         source: Path,
@@ -6116,6 +7013,153 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
             allow("reviewed_repository_data_snapshot", name or "")
             return
         reviewed_source_key = (relative, context, name or "")
+        raw_name = _ast_call_name(call.func) or ""
+        resource_modules = {"managed_resource_snapshot", "managed_resources", "dnfile_resource_adapter", "clr_input_binding", "managed_constructor_guard"}
+        imported_resource = any(module in (name or "").split(".") for module in resource_modules)
+        consumer_receiver = raw_name in {"preflight_clr_declarations", "prepare_resource_snapshot", "revalidated_resource_scan", "resource_scan.coverage",
+                                         "fresh.coverage", "resolver.coverage", "scan.coverage"}
+        imported_consumer_helper = (any(module in (name or "").split(".") for module in
+                                        {"managed_il_triage", "managed_proxy_deobfuscator"})
+                                    and (name or "").rsplit(".", 1)[-1] in {
+                                        "_resource_inventory", "_resource_inventory_scope", "_resource_blobs",
+                                        "_resource_blob_scope", "_consumed_metadata_coverage"})
+        if imported_consumer_helper and relative not in _MANAGED_RESOURCE_CONSUMER_COMMITMENTS:
+            issues.add(f"{context}:managed_resource_unreviewed_consumer_helper:{name}")
+            return
+        if relative in _MANAGED_RESOURCE_CONSUMER_COMMITMENTS and (consumer_receiver or imported_resource):
+            expected = _MANAGED_RESOURCE_CONSUMER_COMMITMENTS[relative]
+            target = managed_consumer_call_shape(call, tree, scope, relative, context)
+            if files.get(source.resolve(strict=True)) != expected or target is None:
+                issues.add(f"{context}:managed_resource_consumer_origin_or_commitment_rejected:{raw_name}")
+                return
+            module, symbol = target
+            callee = REPOSITORY_ROOT / "unpackers" / f"{module}.py"
+            if module in {"managed_resource_snapshot", "managed_constructor_guard"}:
+                callee_tree = register_file(callee, depth + 1)
+                if callee_tree is not None:
+                    audit_module(callee, depth + 1)
+                    audit_function(callee, callee_tree, symbol, depth + 1, context)
+            elif module == "managed_metadata":
+                audit_managed_class(callee, "MetadataResolver", symbol, depth + 1, context)
+            else:
+                audit_resource_class(callee, "_ResourceScan", depth + 1, context)
+            allow("reviewed_managed_resource_consumer_source_call", raw_name)
+            return
+        if imported_resource and relative not in _MANAGED_RESOURCE_SOURCE_COMMITMENTS:
+            # 新moduleを名前だけで任意handlerや任意receiverへの一般安全入口にしない。
+            issues.add(f"{context}:managed_resource_unreviewed_caller:{name}")
+            return
+        if relative in _MANAGED_RESOURCE_SOURCE_COMMITMENTS:
+            scope_name = scope.name if isinstance(scope, ast.FunctionDef) else "<module>"
+            if not resource_profile_intact(source, tree, scope):
+                issues.add(f"{context}:managed_resource_origin_or_commitment_rejected:{name}")
+                return
+            if isinstance(call.func, ast.Attribute) and call.func.attr == "__new__":
+                if (relative != "unpackers/managed_resource_snapshot.py"
+                        or name != "object.__new__" or not _managed_resource_allocator_shape(call, tree, scope)):
+                    issues.add(f"{context}:managed_resource_allocator_shape_rejected")
+                    return
+                target = REPOSITORY_ROOT / "unpackers" / "managed_metadata.py"
+                for method in ("coverage", "resolve"):
+                    audit_managed_class(target, "MetadataResolver", method, depth + 1, context,
+                                        fixed_resource_allocator_entry=True)
+                allow("reviewed_managed_resource_fixed_allocator", name)
+                return
+            if (relative == "unpackers/managed_resource_snapshot.py" and scope_name == "_incomplete_scan"
+                    and name == "scan.coverage" and _managed_resource_expression_matches(call, ("scan.coverage()",))):
+                target = REPOSITORY_ROOT / "unpackers" / "managed_resources.py"
+                if audit_resource_class(target, "_ResourceScan", depth + 1, context):
+                    allow("reviewed_managed_resource_projection", name)
+                return
+            if (relative == "unpackers/managed_resource_snapshot.py" and scope_name == "revalidated_resource_scan"
+                    and name == "fresh.coverage" and _managed_resource_expression_matches(call, ("fresh.coverage()",))):
+                origin = _simple_name_origin(scope, "fresh")
+                expression = "resources.describe_clr_resources(data, scan._row_snapshot.pe, row_snapshot=scan._row_snapshot, **budgets)"
+                if origin is None or not _managed_resource_expression_matches(origin, (expression,)):
+                    issues.add(f"{context}:managed_resource_projection_origin_rejected")
+                    return
+                target = REPOSITORY_ROOT / "unpackers" / "managed_resources.py"
+                if audit_resource_class(target, "_ResourceScan", depth + 1, context):
+                    allow("reviewed_managed_resource_projection", name)
+                return
+            if (relative == "unpackers/managed_resources.py" and name == "self.coverage"
+                    and scope_name == "__getstate__" and _managed_resource_expression_matches(call, ("self.coverage()",))):
+                if audit_resource_class(source, "_ResourceScan", depth + 1, context):
+                    allow("reviewed_managed_resource_projection", name)
+                return
+            shapes = _MANAGED_RESOURCE_PURE_CALL_SHAPES.get((source.name, scope_name, name or ""))
+            if shapes is not None:
+                if (not _managed_resource_expression_matches(call, shapes)
+                        or not _expression_binding_is_intact(call.func, tree, scope)):
+                    issues.add(f"{context}:managed_resource_call_shape_rejected:{name}")
+                    return
+                allow("reviewed_managed_resource_provenance_call", name or "")
+                return
+        if relative == "unpackers/managed_metadata.py" and isinstance(scope, ast.FunctionDef):
+            # method到達に伴う内部pure callも、固定実装と式だけへ限定する。
+            internal_shapes = {
+                ("__init__", "id"): ("id(table)",),
+                ("_coded_token", "id"): ("id(table)",),
+                ("_coded_token", "getattr"): ("getattr(reference, 'table', None)",),
+                ("__init__", "getattr"): ("getattr(source, name, None)",),
+                ("_signature", "getattr"): ("getattr(row, 'Signature', None)",),
+                ("_framework_assembly_identity", "getattr"): (
+                    "getattr(row, field, None)", "getattr(row, 'Culture', None)",
+                    "getattr(getattr(row, 'struct', None), 'Flags', None)", "getattr(row, 'PublicKey', None)",
+                ),
+                ("_framework_type_identity", "getattr"): ("getattr(row, 'ResolutionScope', None)",),
+                ("match_framework_member", "getattr"): ("getattr(row, 'Signature', None)",),
+                ("resolve", "getattr"): ("getattr(row, 'Method', None)", "getattr(row, 'Instantiation', None)"),
+                ("_exception_type", "isascii"): ("name[0].isascii()",),
+                ("_exception_type", "character.isascii"): ("character.isascii()",),
+            }
+            shapes = internal_shapes.get((scope.name, name or ""))
+            if shapes is not None and any(ast.dump(call, include_attributes=False) == ast.dump(ast.parse(value, mode="eval").body,
+                                                                                             include_attributes=False) for value in shapes):
+                if (files.get(source.resolve(strict=True)) != _MANAGED_READER_SOURCE_COMMITMENTS.get(relative)
+                        or (name in {"id", "getattr"} and not _expression_binding_is_intact(call.func, tree, scope))):
+                    issues.add(f"{context}:managed_reader_internal_shape_rejected:{name}")
+                    return
+                allow("reviewed_managed_reader_pure_call", name or "")
+                return
+        managed_target = _MANAGED_READER_SOURCE_CALLS.get(reviewed_source_key)
+        if managed_target is not None:
+            # source hashだけで許可せず、calleeとfactoryの実装到達監査も必要とする。
+            expected = _MANAGED_READER_SOURCE_COMMITMENTS.get(relative)
+            if expected is None or files.get(source.resolve(strict=True)) != expected:
+                issues.add(f"{context}:managed_reader_source_commitment_mismatch:{relative}")
+                return
+            if not _managed_reader_call_shape(call, tree, scope, reviewed_source_key):
+                issues.add(f"{context}:managed_reader_call_shape_rejected:{name}")
+                return
+            target_relative, class_name, method = managed_target
+            target = REPOSITORY_ROOT.joinpath(*target_relative.split("/"))
+            if relative == "analysis-framework/common/dotnet_rat_config.py":
+                audit_function(source, tree, "_settings_initializer", depth + 1, context)
+            if audit_managed_class(target, class_name, method, depth + 1, context):
+                allow("reviewed_managed_reader_source_call", name or "")
+            return
+        if (relative == "unpackers/managed_metadata.py" and isinstance(scope, ast.FunctionDef)
+                and scope.name == "_framework_signature_type" and name in {"reader.byte", "reader.unsigned"}):
+            parents = [item for item in tree.body if isinstance(item, ast.ClassDef) and scope in item.body]
+            if (len(parents) != 1 or parents[0].name != "MetadataResolver" or call.args or call.keywords
+                    or not _parameter_is_not_rebound(scope, "reader")):
+                issues.add(f"{context}:managed_reader_internal_shape_rejected:{name}")
+                return
+            if audit_managed_class(source, "_SignatureReader", name.rsplit(".", 1)[-1], depth + 1, context):
+                allow("reviewed_managed_reader_internal_call", name)
+            return
+        if (relative == "unpackers/managed_metadata.py" and isinstance(scope, ast.FunctionDef)
+                and scope.name == "type_reference" and name == "self.resolver._row"):
+            expected_call = ast.parse("self.resolver._row((table << 24) | (coded >> 2))", mode="eval").body
+            parents = [item for item in tree.body if isinstance(item, ast.ClassDef) and scope in item.body]
+            if (len(parents) != 1 or parents[0].name != "_SignatureReader"
+                    or ast.dump(call, include_attributes=False) != ast.dump(expected_call, include_attributes=False)):
+                issues.add(f"{context}:managed_reader_internal_shape_rejected:{name}")
+                return
+            if audit_managed_class(source, "MetadataResolver", "_row", depth + 1, context):
+                allow("reviewed_managed_reader_internal_call", name)
+            return
         reviewed_source_reason = _REVIEWED_SOURCE_CALLS.get(reviewed_source_key)
         reason = _forbidden_call_reason(call, module_aliases)
         if reason and not (
@@ -6610,10 +7654,13 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
         if definition_key in visited_definitions:
             return
         visited_definitions.add(definition_key)
+        if definition is not tree:
+            audit_imports(source, definition, depth)
         active_nodes = _nodes_in_lexical_scope(definition)
         for node in active_nodes:
             if isinstance(node, ast.Attribute) and node.attr in _DANGEROUS_REFLECTION_ATTRIBUTES:
-                issues.add(f"{context}:forbidden_reflection_attribute:{node.attr}")
+                if not resource_reflection_allowed(source, tree, definition, node):
+                    issues.add(f"{context}:forbidden_reflection_attribute:{node.attr}")
             elif isinstance(node, ast.Name) and node.id == "__builtins__":
                 issues.add(f"{context}:forbidden_reflection_name:__builtins__")
 
@@ -6702,7 +7749,8 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
         module_nodes = _nodes_in_lexical_scope(tree)
         for node in module_nodes:
             if isinstance(node, ast.Attribute) and node.attr in _DANGEROUS_REFLECTION_ATTRIBUTES:
-                issues.add(f"import_time:forbidden_reflection_attribute:{node.attr}")
+                if not resource_reflection_allowed(resolved, tree, tree, node):
+                    issues.add(f"import_time:forbidden_reflection_attribute:{node.attr}")
             elif isinstance(node, ast.Name) and node.id == "__builtins__":
                 issues.add("import_time:forbidden_reflection_name:__builtins__")
         module_imports = bindings(tree)
@@ -6737,6 +7785,21 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
         for call in _top_level_calls(tree):
             audit_call(resolved, tree, call, depth, "import_time", tree)
 
+        # source pinだけで許可せず、固定5moduleの全helperと全class methodを本文監査する。
+        if _relative_audit_path(resolved) in _MANAGED_RESOURCE_SOURCE_COMMITMENTS:
+            if any(isinstance(definition, ast.AsyncFunctionDef) for definition in tree.body):
+                issues.add(f"managed_resource_async_function_unsupported:{_relative_audit_path(resolved)}")
+            function_names = [definition.name for definition in tree.body
+                              if isinstance(definition, (ast.FunctionDef, ast.AsyncFunctionDef))]
+            if len(function_names) != len(set(function_names)):
+                # 同名の先定義をname辞書が隠す形状は、pin更新後も未監査成功にしない。
+                issues.add(f"managed_resource_duplicate_function_name:{_relative_audit_path(resolved)}")
+            for definition in tree.body:
+                if isinstance(definition, ast.FunctionDef):
+                    audit_function(resolved, tree, definition.name, depth, "managed_resource_closed_closure")
+                elif isinstance(definition, ast.ClassDef):
+                    audit_resource_class(resolved, definition.name, depth, "managed_resource_closed_closure")
+
         relative = _relative_audit_path(resolved)
         for dependency, symbols, audit_reason in _LEGACY_DYNAMIC_LOCAL_DEPENDENCIES.get(relative, ()):
             target = REPOSITORY_ROOT / dependency
@@ -6750,6 +7813,9 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
 
     root_tree = register_file(path, 0)
     if root_tree is not None:
+        if (_relative_audit_path(path) in _MANAGED_RESOURCE_CONSUMER_COMMITMENTS
+                and callable_name != _MANAGED_RESOURCE_CONSUMER_ASSIGNMENTS[_relative_audit_path(path)][0]):
+            issues.add("handler_entry:managed_resource_consumer_helper_is_not_a_safe_entry")
         audit_module(path, 0)
         audit_function(path, root_tree, callable_name, 0, "handler_entry")
     file_records = [
@@ -6767,6 +7833,7 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
             key=lambda item: _relative_audit_path(item[0]),
         )
     ]
+    _complete_shadowed_import_module_bindings(module_bindings, trees, files, frozenset(visited_imports), issues)
     module_binding_records = [
         {
             "name": name,

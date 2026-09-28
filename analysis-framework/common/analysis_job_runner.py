@@ -1010,7 +1010,7 @@ def validate_request_object(value: Mapping[str, Any]) -> JobRequest:
         raise JobContractError("missing_request_key", f"必須keyがありません: {', '.join(sorted(missing))}")
     if unknown:
         raise JobContractError("unknown_request_key", f"未許可のtop-level keyです: {', '.join(sorted(unknown))}")
-    if value.get("schema_version") != SCHEMA_VERSION:
+    if type(value.get("schema_version")) is not int or value.get("schema_version") != SCHEMA_VERSION:
         raise JobContractError("unsupported_schema_version", f"schema_versionは{SCHEMA_VERSION}だけを許可します")
 
     job_id = value.get("job_id")
@@ -1189,7 +1189,7 @@ def job_request_json_schema() -> dict[str, Any]:
         "additionalProperties": False,
         "required": sorted(REQUIRED_TOP_LEVEL_KEYS),
         "properties": {
-            "schema_version": {"const": SCHEMA_VERSION},
+            "schema_version": {"type": "integer", "const": SCHEMA_VERSION},
             "job_id": {
                 "type": "string",
                 "minLength": 1,

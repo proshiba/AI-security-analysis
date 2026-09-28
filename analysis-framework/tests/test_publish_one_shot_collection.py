@@ -3259,3 +3259,69 @@ def test_collection_display_metadata_is_not_hardcoded_to_date_or_exe() -> None:
         "first_seen_oldest": "2026-07-23 23:00:00",
         "type_summary": "DLL 1件、EXE 1件",
     }
+
+
+@pytest.mark.parametrize("version", [True, False, 1.0, 0, 0.0, "1", None, 2, 99])
+def test_nested_analysis_contract_requires_exact_schema_integer(short_tmp: Path, version) -> None:
+    """人工metadataの対応versionはexact intだけに限定し、statusは昇格しない。"""
+    source, report_value = valid_source_case(short_tmp)
+    report_value["analysis_contract"]["schema_version"] = version
+    analysis_contract.seal_report(report_value)
+    assert analysis_contract.case_integrity_errors(
+        source, report_value, expected_digest="a" * 64, require_resumable=False,
+    ) == ["analysis_contract_schema_invalid"]
+    assert report_value["case_state"]["complete"] is False
+    assert report_value["case_state"]["resumable"] is False
+
+
+def test_nested_analysis_contract_undeclared_schema_stays_invalid(short_tmp: Path) -> None:
+    """欠如をlegacy v1へ補完せず既存の固定errorを維持する。"""
+    source, report_value = valid_source_case(short_tmp)
+    del report_value["analysis_contract"]["schema_version"]
+    analysis_contract.seal_report(report_value)
+    assert analysis_contract.case_integrity_errors(
+        source, report_value, require_resumable=False,
+    ) == ["analysis_contract_schema_invalid"]
+    assert "schema_version" not in report_value["analysis_contract"]
+
+
+def test_nested_analysis_contract_normal_version_one_preserved(short_tmp: Path) -> None:
+    """通常v1の人工fixtureはfield/quality/statusを変えない。"""
+    source, report_value = valid_source_case(short_tmp)
+    before = copy.deepcopy(report_value)
+    assert analysis_contract.case_integrity_errors(source, report_value, require_resumable=False) == []
+    assert report_value == before
+
+
+@pytest.mark.parametrize("version", [2.0, True, False, 0, 1, 3, "2", None, [], {}])
+def test_pipeline_contract_requires_exact_current_integer(short_tmp: Path, version) -> None:
+    """pipeline版番号は値が等しいfloatや旧版を受理せず、品質状態も変えない。"""
+    source, report_value = valid_source_case(short_tmp)
+    report_value["analysis_contract"]["pipeline_contract_version"] = version
+    analysis_contract.seal_report(report_value)
+    before = copy.deepcopy(report_value)
+    assert analysis_contract.case_integrity_errors(
+        source, report_value, expected_digest="a" * 64, require_resumable=False,
+    ) == ["pipeline_contract_version_invalid"]
+    assert report_value == before
+
+
+def test_pipeline_contract_missing_version_is_not_inferred(short_tmp: Path) -> None:
+    """欠けたpipeline版番号を現在版へ推測補完しない。"""
+    source, report_value = valid_source_case(short_tmp)
+    del report_value["analysis_contract"]["pipeline_contract_version"]
+    analysis_contract.seal_report(report_value)
+    before = copy.deepcopy(report_value)
+    assert analysis_contract.case_integrity_errors(
+        source, report_value, require_resumable=False,
+    ) == ["pipeline_contract_version_invalid"]
+    assert report_value == before
+
+
+def test_pipeline_contract_exact_current_integer_is_preserved(short_tmp: Path) -> None:
+    """現在版のexact intは、既存の人工caseの意味を変更せず受理する。"""
+    source, report_value = valid_source_case(short_tmp)
+    assert type(report_value["analysis_contract"]["pipeline_contract_version"]) is int
+    before = copy.deepcopy(report_value)
+    assert analysis_contract.case_integrity_errors(source, report_value, require_resumable=False) == []
+    assert report_value == before

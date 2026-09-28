@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "profile_id": "go5-full-shape-01",
+      "algorithm": "go_full_decoder_shape_v1",
+      "shape_sha256": "62a1739e0ce3df2775549a5442e634852b7b22f9fba8f0cdbe0962ed2a4d72cf",
+      "function_size": 43776,
+      "instruction_count": 8516,
+      "switch_table_count": 10,
+      "description": "全decoder本文、内部branch、runtime call、暗黙register、switch表を静的レビューしたcompiler形状"
+    },
+    {
+      "profile_id": "go5-full-shape-02",
+      "algorithm": "go_full_decoder_shape_v1",
+      "shape_sha256": "3c233410d07f0dd2aafa73ceb65ca9e757c11f05369574a2a2446894384282e5",
+      "function_size": 31456,
+      "instruction_count": 6089,
+      "switch_table_count": 0,
+      "description": "全decoder本文、内部branch、runtime call、暗黙register、switch表を静的レビューしたcompiler形状"
+    },
+    {
+      "profile_id": "go5-full-shape-03",
+      "algorithm": "go_full_decoder_shape_v1",
+      "shape_sha256": "7ee63d705bab4be805030ba7062af9c075f214657b226c71a2dfa7ab4a0e9b4c",
+      "function_size": 31424,
+      "instruction_count": 6078,
+      "switch_table_count": 0,
+      "description": "全decoder本文、内部branch、runtime call、暗黙register、switch表を静的レビューしたcompiler形状"
+    },
+    {
+      "profile_id": "go5-full-shape-04",
+      "algorithm": "go_full_decoder_shape_v1",
+      "shape_sha256": "faea7b1682ef822bdaab4da37a2dd3fee4116ac87a0ff49058a360cadaf8cd5d",
+      "function_size": 26336,
+      "instruction_count": 5106,
+      "switch_table_count": 0,
+      "description": "全decoder本文、内部branch、runtime call、暗黙register、switch表を静的レビューしたcompiler形状"
+    },
+    {
+      "profile_id": "go5-full-shape-05",
+      "algorithm": "go_full_decoder_shape_v1",
+      "shape_sha256": "5678cd4b10dfbc40306fec6bf74aee53896484ed4638ee7739297482e46179ca",
+      "function_size": 41792,
+      "instruction_count": 8660,
+      "switch_table_count": 0,
+      "description": "全decoder本文、内部branch、runtime call、暗黙register、switch表を静的レビューしたcompiler形状"
+    },
+    {
+      "profile_id": "go5-full-shape-06",
+      "algorithm": "go_full_decoder_shape_v1",
+      "shape_sha256": "928f81168781f6206dee325f2694e609252a67e96f5fa2e51a2785622a557de0",
+      "function_size": 31456,
+      "instruction_count": 6091,
+      "switch_table_count": 0,
+      "description": "全decoder本文、内部branch、runtime call、暗黙register、switch表を静的レビューしたcompiler形状"
+    }
+  ],
+  "limitations": [
+    "検体SHA・decoder乱数名・復号keyは照合に使用しない",
+    "数学blockの一致と全本文shape一致の両方を必須とする",
+    "未知のcompiler形状は有効な子PEが得られそうでも拒否し、追加静的レビューを要する",
+    "包装形式や復元PE候補からfamily・C2・終端を確定しない"
+  ]
+}

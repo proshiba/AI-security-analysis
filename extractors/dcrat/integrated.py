@@ -9,6 +9,7 @@ import sys
 from functools import cache
 from pathlib import Path
 from types import ModuleType
+from urllib.parse import urlsplit, urlunsplit
 
 from extractors.common import build_result, extract_strings, valid_host
 
@@ -95,12 +96,38 @@ def structural_evidence(data: bytes) -> dict[str, object]:
     }
 
 
+def _validated_dynamic_url(value: object, scope: object = None) -> str | None:
+    """非nullの動的設定値は明示されたoriginだけを受理し、完全locatorへ昇格しない。"""
+
+    if value is None:
+        return None
+    if (not isinstance(value, str) or not 1 <= len(value) <= 2_048 or scope != "origin_only"
+        or any(ord(character) <= 0x20 for character in value) or "?" in value or "#" in value):
+        raise ValueError("動的設定originの明示契約が不正です")
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("動的設定originの形式が不正です") from exc
+    if (parsed.scheme.casefold() not in {"http", "https"} or not parsed.hostname
+        or parsed.username is not None or parsed.password is not None or not valid_host(parsed.hostname)
+        or parsed.path not in {"", "/"} or parsed.query or parsed.fragment):
+        raise ValueError("動的設定originが許可形式ではありません")
+    if port is not None and not 1 <= port <= 65_535:
+        raise ValueError("動的設定originのportが範囲外です")
+    host = parsed.hostname.casefold().rstrip(".")
+    authority = f"[{host}]" if ":" in host else host
+    netloc = f"{authority}:{port}" if port is not None else authority
+    return urlunsplit((parsed.scheme.casefold(), netloc, "/", "", ""))
+
+
 def _validated_recovery(data: bytes) -> dict[str, object]:
     module = _load_common_module("dotnet_rat_config")
     recovered = module.recover(data, "dcrat")
     digest = hashlib.sha256(data).hexdigest()
     if (
         not isinstance(recovered, dict)
+        or type(recovered.get("schema_version")) is not int
         or recovered.get("schema_version") != 1
         or recovered.get("family") != "dcrat"
         or recovered.get("sha256") != digest
@@ -159,13 +186,18 @@ def _validated_recovery(data: bytes) -> dict[str, object]:
         or certificate.get("certificate_mismatch_excludes_c2") is not False
     ):
         raise ValueError("DCRat証明書pinが不正です")
+    dynamic_url = _validated_dynamic_url(
+        recovered.get("dynamic_config_url"), recovered.get("dynamic_config_url_scope")
+    )
     return {
         "version": recovered.get("version"),
         "install": recovered.get("install"),
         "group": recovered.get("group"),
         "anti_analysis": recovered.get("anti_analysis"),
         "endpoints": normalized,
-        "dynamic_config_url": recovered.get("dynamic_config_url"),
+        "dynamic_config_url": dynamic_url,
+        "dynamic_config_url_scope": "origin_only" if dynamic_url is not None else None,
+        "dynamic_config_locator_complete": False,
         "certificate": {
             "sha256": cert_hash,
             "size": cert_size,
@@ -288,11 +320,22 @@ def extract(data: bytes, name: str = "sample") -> dict:
     status = "not_attempted_structural_mismatch"
     if structural["matched"] is True:
         try:
-            recovery = _validated_recovery(data)
-            protocol = _validated_protocol(data, digest)
-            status = "recovered_hmac_and_protocol_verified"
+            candidate_recovery = _validated_recovery(data)
+            dynamic_url = _validated_dynamic_url(
+                candidate_recovery.get("dynamic_config_url"),
+                candidate_recovery.get("dynamic_config_url_scope"),
+            )
+            candidate_recovery = {**candidate_recovery, "dynamic_config_url": dynamic_url,
+                "dynamic_config_url_scope": "origin_only" if dynamic_url is not None else None,
+                "dynamic_config_locator_complete": False}
+            candidate_protocol = _validated_protocol(data, digest)
         except (ImportError, OSError, ValueError):
             status = "rejected_or_not_recovered"
+        else:
+            # 設定とprotocolが双方の安全契約を通過するまで公開状態へcommitしない。
+            recovery = candidate_recovery
+            protocol = candidate_protocol
+            status = "recovered_hmac_and_protocol_verified"
     findings = []
     if recovery is not None:
         findings.extend(
@@ -315,6 +358,12 @@ def extract(data: bytes, name: str = "sample") -> dict:
                 "source": "hmac_verified_dotnet_settings",
             }
         )
+        dynamic_url = recovery.get("dynamic_config_url")
+        if dynamic_url is not None:
+            findings.append({"kind": "url", "value": dynamic_url,
+                "role": "dynamic_config_resolver", "confidence": "confirmed_static_config",
+                "source": "hmac_verified_dotnet_settings", "value_scope": "origin_only",
+                "retrieval_locator_complete": False, "terminal_c2_endpoint": False})
     config = {
         "source_name": name,
         "structural_assessment": structural,
@@ -324,6 +373,9 @@ def extract(data: bytes, name: str = "sample") -> dict:
         "static_config_recovered": recovery is not None,
         "c2_protocol_recovered": protocol is not None,
         "c2_liveness_confirmed": False,
+        "dynamic_config_url": None,
+        "dynamic_config_url_scope": None,
+        "dynamic_config_locator_complete": False,
     }
     if recovery is not None:
         config.update(recovery)
@@ -338,6 +390,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "設定値はHMAC-SHA256を検証してからAES-256-CBCで復号します。",
             "providerのAsyncRATラベルは分類根拠に使用しません。",
             "Ghidraのnative decompilerはmanaged CILの意味復元へ使用していません。",
+            "dynamic_config_urlはoriginだけの文脈情報です。取得用完全URL、確定した終端C2、ライブ観測先へ転用しません。",
         ],
     )
     result["static_config_recovered"] = recovery is not None

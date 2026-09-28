@@ -1086,6 +1086,7 @@ def _run_progress_document(
             "minimum_free_space_not_met",
             "max_new_programs_reached",
             "postprocessing_in_progress",
+            "publication_deferred",
             "program_analysis_incomplete",
             "program_timeout",
         }
@@ -1097,6 +1098,14 @@ def _run_progress_document(
         not inventory_prepared or not pending or postprocessing_pending
     ):
         raise ValueError("未完了programにはpending checkpointが必要です")
+    if stop_reason == "publication_deferred" and (
+        not inventory_prepared
+        or not postprocessing_pending
+        or pending
+        or resume_mode != "postprocessing_only"
+        or complete_programs != unique_pe_programs
+    ):
+        raise ValueError("公開保留には全program検証済みの後処理checkpointが必要です")
     return {
         "schema_version": RUN_PROGRESS_SCHEMA_VERSION,
         "collection_id": collection_id,
@@ -2644,6 +2653,8 @@ def _bind_function_metadata_coverage(
 def _function_inventory_coverage_complete(result: Mapping[str, Any]) -> bool:
     """program-resultが全native関数の終端取得と件数拘束を持つか返す。"""
 
+    if not _recovered_inventory_stability_complete(result):
+        return False
     coverage = result.get("retrieval_coverage")
     evidence = coverage.get("functions") if isinstance(coverage, Mapping) else None
     inventory_count = result.get("ghidra_function_inventory_count")
@@ -3250,6 +3261,7 @@ def load_prepared_inputs(
             if result_snapshot is None or not (
                 cached.get("status") == "complete" and cached.get("mcp_responses_valid") is True
                 and _limited_status_unavailable_complete(cached)
+                and _recovered_inventory_stability_complete(cached)
             ):
                 raise FileNotFoundError(f"再開用PE cacheがありません: {digest}")
             _assert_snapshot_unchanged(
@@ -3328,6 +3340,8 @@ def validate_prepared_scope(
 def _all_functions_with_coverage(
     client: GhidraMcpClient,
     program: str,
+    *,
+    deadline: float | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """list_functionsをcursor／offset終端まで取得し、有界な完全性証跡を返す。"""
 
@@ -3345,6 +3359,11 @@ def _all_functions_with_coverage(
             "program": program,
         }
         query["offset" if cursor is None else "cursor"] = offset if cursor is None else cursor
+        if deadline is not None:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("Ghidra関数inventory安定確認のdeadlineを超えました")
+            query["transport_timeout"] = min(float(getattr(client, "timeout", remaining)), remaining)
         page = client.get("/list_functions_enhanced", **query)
         raw_values = _page_values(page, "/list_functions_enhanced")
         if any(not isinstance(value, Mapping) for value in raw_values):
@@ -4241,24 +4260,141 @@ def _stabilize_recovered_function_inventory(
     initial_functions: list[dict[str, Any]],
     observed_functions: list[dict[str, Any]],
     observed_coverage: dict[str, Any],
+    *,
+    timeout_seconds: int = 180,
 ) -> tuple[list[dict[str, Any]], dict[str, Any], int]:
-    """入口関数復元後、単調な自動発見だけを連続2回の一致で受理する。"""
+    """入口復元後の再解析と10秒の静穏期間を確認し、遅延発見を早期確定しない。"""
+
+    if type(timeout_seconds) is not int or timeout_seconds <= 0:
+        raise ValueError("inventory安定確認の待機上限は正の整数秒で指定してください")
+    quiet_seconds = 10.0
+    deadline = time.monotonic() + timeout_seconds
+
+    def request_timeout() -> float:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Ghidra入口復元後のinventoryが待機上限内に安定しません")
+        return min(float(getattr(client, "timeout", timeout_seconds)), remaining)
+
+    # create_functionはauto-analysisの完了を意味しない。明示的再解析の成功を
+    # 確認し、その後もstatus/metadata/inventoryの同一snapshotが静穏期間続くまで待つ。
+    rerun = client.post(
+        "/run_analysis", {}, program=program, transport_timeout=request_timeout(),
+    )
+    if not isinstance(rerun, Mapping) or rerun.get("success") is not True:
+        raise GhidraMcpError("入口復元後の明示的auto-analysis成功を確認できません")
 
     initial = set(_function_inventory_identity(initial_functions))
     previous = set(_function_inventory_identity(observed_functions))
     if not initial.issubset(previous):
         raise GhidraMcpInventoryChanged("entry point関数復元後に既知関数が消失しました")
-    if previous == initial:
-        return observed_functions, observed_coverage, 0
-    for refresh_attempt in range(1, 4):
-        current_functions, current_coverage = _all_functions_with_coverage(client, program)
+    stable_since: float | None = None
+    stable_count = 0
+    previous_signature: tuple[Any, ...] | None = None
+    refresh_attempt = 0
+    while time.monotonic() < deadline:
+        before = client.get("/analysis_status", program=program, transport_timeout=request_timeout())
+        metadata_before = client.get("/get_metadata", program=program, transport_timeout=request_timeout())
+        current_functions, current_coverage = _all_functions_with_coverage(client, program, deadline=deadline)
+        metadata_after = client.get("/get_metadata", program=program, transport_timeout=request_timeout())
+        after = client.get("/analysis_status", program=program, transport_timeout=request_timeout())
+        refresh_attempt += 1
         current = set(_function_inventory_identity(current_functions))
         if not previous.issubset(current):
             raise GhidraMcpInventoryChanged("entry point関数復元後のinventoryが縮小・置換されました")
-        if current == previous:
-            return current_functions, current_coverage, refresh_attempt
         previous = current
-    raise GhidraMcpInventoryChanged("entry point関数復元後のinventoryが安定しません")
+        status_before_count = _analysis_status_function_count(before)
+        status_after_count = _analysis_status_function_count(after)
+        metadata_before_count = _metadata_function_count(metadata_before)
+        metadata_after_count = _metadata_function_count(metadata_after)
+        idle = all(
+            isinstance(value, Mapping)
+            and value.get("analyzing") is False
+            and value.get("analyzed") is True
+            and value.get("should_ask_to_analyze", False) is False
+            for value in (before, after)
+        )
+        # status/metadataは外部関数込み、inventoryは非外部関数。両APIの総数を
+        # 一致させ、非外部inventoryは総数以下であることを確認する。
+        consistent = bool(
+            idle
+            and status_before_count is not None
+            and status_before_count == status_after_count == metadata_before_count == metadata_after_count
+            and len(current_functions) <= status_before_count
+            and current_coverage.get("complete") is True
+        )
+        signature = (_function_inventory_identity(current_functions), status_before_count)
+        now = time.monotonic()
+        if not consistent:
+            stable_since = None
+            stable_count = 0
+            previous_signature = None
+        elif signature != previous_signature:
+            stable_since = now
+            stable_count = 1
+            previous_signature = signature
+        else:
+            stable_count += 1
+            if stable_since is not None and now - stable_since >= quiet_seconds:
+                coverage = dict(current_coverage)
+                _bind_function_metadata_coverage(coverage, metadata_after, len(current_functions))
+                coverage["inventory_stability"] = {
+                    "schema_version": 1,
+                    "complete": True,
+                    "program_selector": program,
+                    "run_analysis_acknowledged": True,
+                    "analyzing": False,
+                    "analyzed": True,
+                    "quiet_seconds_required": quiet_seconds,
+                    "quiet_seconds_observed": now - stable_since,
+                    "stable_observation_count": stable_count,
+                    "analysis_status_function_count": status_after_count,
+                    "metadata_function_count": metadata_after_count,
+                    "non_external_function_count": len(current_functions),
+                }
+                return current_functions, coverage, refresh_attempt
+        remaining = deadline - time.monotonic()
+        if remaining > 0:
+            time.sleep(min(2.0, remaining))
+    raise TimeoutError("Ghidra入口復元後のinventoryが待機上限内に安定しません")
+
+
+def _recovered_inventory_stability_complete(result: Mapping[str, Any]) -> bool:
+    """入口復元済みの旧cacheを、背景解析の静穏証拠なしでは再利用しない。"""
+
+    recovery = result.get("entry_point_function_recovery")
+    if not isinstance(recovery, Mapping) or recovery.get("status") != "recovered":
+        return True
+    coverage = result.get("retrieval_coverage")
+    functions = coverage.get("functions") if isinstance(coverage, Mapping) else None
+    proof = functions.get("inventory_stability") if isinstance(functions, Mapping) else None
+    if not isinstance(proof, Mapping):
+        return False
+    count = result.get("ghidra_function_inventory_count")
+    total = proof.get("metadata_function_count")
+    elapsed = proof.get("quiet_seconds_observed")
+    observations = proof.get("stable_observation_count")
+    return bool(
+        type(proof.get("schema_version")) is int and proof.get("schema_version") == 1
+        and proof.get("complete") is True
+        and isinstance(proof.get("program_selector"), str)
+        and str(proof.get("program_selector")).startswith("/")
+        and proof.get("program_selector") == result.get("program_selector")
+        and proof.get("run_analysis_acknowledged") is True
+        and proof.get("analyzing") is False
+        and proof.get("analyzed") is True
+        and proof.get("quiet_seconds_required") == 10.0
+        and type(elapsed) in (int, float) and math.isfinite(elapsed) and elapsed >= 10.0
+        and type(observations) is int and observations >= 2
+        and type(count) is int and count > 0
+        and type(proof.get("non_external_function_count")) is int
+        and proof.get("non_external_function_count") == count
+        and type(total) is int and total >= count
+        and type(proof.get("analysis_status_function_count")) is int
+        and proof.get("analysis_status_function_count") == total
+        and type(functions.get("metadata_function_count")) is int
+        and functions.get("metadata_function_count") == total
+    )
 
 
 def _call_graph_degrees(call_graph: Mapping[str, Any]) -> tuple[Counter[str], Counter[str], dict[str, list[str]]]:
@@ -6185,10 +6321,18 @@ def _wait_for_analysis(
             program=program,
             transport_timeout=min(float(getattr(client, "timeout", timeout_seconds)), remaining),
         )
-        if isinstance(value, Mapping):
-            last = dict(value)
-            if not bool(value.get("analyzing")):
-                return last
+        if time.monotonic() >= deadline:
+            raise TimeoutError(f"Ghidra auto-analysis timeout: {program}")
+        if not isinstance(value, Mapping):
+            raise GhidraMcpError("Ghidra解析状態の応答がobjectではありません")
+        last = dict(value)
+        if "error" in value:
+            raise GhidraMcpError(f"Ghidra解析状態の本文にエラーがあります: {value['error']}")
+        if type(value.get("analyzing")) is not bool:
+            raise GhidraMcpError("Ghidra解析状態のanalyzingが明示booleanではありません")
+        # idleは観測時点の状態であり、全queue・関数・検体解析の完了ではない。
+        if value["analyzing"] is False:
+            return last
         remaining = deadline - time.monotonic()
         if remaining > 0:
             time.sleep(min(2, remaining))
@@ -6386,12 +6530,14 @@ def analyze_program(
 
     output_dir = private_output / "objects" / item.sha256
     result_path = output_dir / "program-result.json"
+    entry_recovery_stability_refresh_required = False
     try:
         result_present = result_path.lstat() is not None
     except FileNotFoundError:
         result_present = False
     if result_present:
         cached, _result_snapshot = _load_program_result(result_path)
+        entry_recovery_stability_refresh_required = not _recovered_inventory_stability_complete(cached)
         call_graph_complete = _call_graph_retrieval_coverage_complete(cached)
         if _unavailable_zero_function_recovery_terminal(cached) and call_graph_complete:
             return cached
@@ -6399,6 +6545,7 @@ def analyze_program(
         cached_complete = bool(
             legacy_complete
             and _function_inventory_coverage_complete(cached)
+            and _recovered_inventory_stability_complete(cached)
             and _zero_function_opcode_hash_cache_compatible(cached)
             and call_graph_complete
             and _limited_status_unavailable_complete(cached)
@@ -6704,6 +6851,33 @@ def analyze_program(
             "final_function_count": len(functions),
             "program_selector": program,
         }
+        if entry_recovery_stability_refresh_required and analysis_mode == "native_ghidra_with_optional_cil":
+            # 旧cacheにはcreate済みentryが1件だけ残り得る。nonemptyになっただけで
+            # recovery不要へ格下げせず、同じ再解析・静穏確認を行ってから再確定する。
+            functions, function_coverage, reads = _stabilize_recovered_function_inventory(
+                client, program, functions, functions, function_coverage,
+                timeout_seconds=analysis_timeout,
+            )
+            metadata_before_entry_point_function_recovery = metadata_raw
+            metadata_raw = _program_get("/get_metadata")
+            status = _program_get("/analysis_status")
+            total = function_coverage["inventory_stability"]["metadata_function_count"]
+            if (
+                _metadata_function_count(metadata_raw) != total
+                or _analysis_status_function_count(status) != total
+                or not isinstance(status, Mapping)
+                or status.get("analyzing") is not False
+                or status.get("analyzed") is not True
+            ):
+                raise GhidraMcpInventoryChanged("旧entry復元cacheの再検証直後に解析状態・関数総数が変化しました")
+            _bind_function_metadata_coverage(function_coverage, metadata_raw, len(functions))
+            entry_function_recovery.update({
+                "status": "recovered",
+                "reason": "legacy_entry_recovery_quiescence_revalidated",
+                "final_function_count": len(functions),
+                "inventory_growth_stabilization_reads": reads,
+                "inventory_stability_revalidated": True,
+            })
         entry_function_recovery_raw = dict(entry_function_recovery)
     elif analysis_mode != "native_ghidra_with_optional_cil":
         entry_function_recovery = {
@@ -6736,6 +6910,7 @@ def analyze_program(
             recovered_functions, recovered_coverage, stabilization_reads = (
                 _stabilize_recovered_function_inventory(
                     client, program, functions, recovered_functions, recovered_coverage,
+                    timeout_seconds=analysis_timeout,
                 )
             )
             if stabilization_reads:
@@ -6748,6 +6923,16 @@ def analyze_program(
                 entry_function_recovery_raw["inventory_refresh_metadata_changed"] = True
             metadata_before_entry_point_function_recovery = metadata_raw
             metadata_raw = _program_get("/get_metadata")
+            status = _program_get("/analysis_status")
+            stable_total = recovered_coverage["inventory_stability"]["metadata_function_count"]
+            if (
+                _metadata_function_count(metadata_raw) != stable_total
+                or _analysis_status_function_count(status) != stable_total
+                or not isinstance(status, Mapping)
+                or status.get("analyzing") is not False
+                or status.get("analyzed") is not True
+            ):
+                raise GhidraMcpInventoryChanged("入口復元後の安定確認直後に解析状態・関数総数が変化しました")
             _bind_function_metadata_coverage(
                 recovered_coverage,
                 metadata_raw,
@@ -6974,7 +7159,10 @@ def refresh_complete_program_artifacts(
         recovered_function_coverage_refresh_required = bool(
             isinstance(recovery, Mapping)
             and recovery.get("status") == "recovered"
-            and not _function_inventory_coverage_complete(result)
+            and (
+                not _function_inventory_coverage_complete(result)
+                or not _recovered_inventory_stability_complete(result)
+            )
         )
         paging_cache_terminal = all(
             (
@@ -7118,6 +7306,15 @@ def refresh_complete_program_artifacts(
                     metadata_for_coverage,
                     len(items),
                 )
+                old_functions_coverage = result.get("retrieval_coverage", {}).get("functions", {})
+                old_stability = old_functions_coverage.get("inventory_stability") if isinstance(old_functions_coverage, Mapping) else None
+                if (
+                    _recovered_inventory_stability_complete(result)
+                    and isinstance(old_stability, Mapping)
+                    and _function_inventory_identity(items) == _function_inventory_identity(cached_functions)
+                    and _metadata_function_count(metadata_for_coverage) == old_stability.get("metadata_function_count")
+                ):
+                    endpoint_coverage["inventory_stability"] = dict(old_stability)
             retrieved[name] = items
             coverage[name] = endpoint_coverage
             totals[name] += len(items)
@@ -7195,8 +7392,13 @@ def refresh_complete_program_artifacts(
         result.pop("call_graph_augmented_from_decompilation", None)
         result["retrieval_coverage"] = coverage
         result["all_static_analysis_content_retained"] = True
+        stability_complete = _recovered_inventory_stability_complete(result)
+        if not stability_complete:
+            # metadataだけの修正で旧entry-only成果を再び完了へ昇格させない。
+            result["all_static_analysis_content_retained"] = False
+            raw_index["all_static_analysis_content_retained"] = False
         result["status"] = (
-            "partial" if _native_zero_function_recovery_pending(result) else "complete"
+            "partial" if _native_zero_function_recovery_pending(result) or not stability_complete else "complete"
         )
         result.pop("call_graph_retrieval", None)
         _atomic_private_json(raw_index_path, raw_index)
@@ -11822,8 +12024,11 @@ def publish_cases(
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    """全入力を準備・解析・公開し、collection集計を返す。"""
+    """全入力を準備・解析し、明示保留がなければ検証後に公開する。"""
 
+    defer_publication = getattr(args, "defer_publication", False)
+    if type(defer_publication) is not bool:
+        raise ValueError("defer_publicationはbooleanで指定してください")
     repository = _resolve_without_reparse(args.repository)
     collection_dir = _resolve_without_reparse(args.collection)
     sample_root = _resolve_without_reparse(args.sample_root)
@@ -12017,6 +12222,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 cached_complete = False
             if cached_complete and not _limited_status_unavailable_complete(cached):
                 cached_complete = False
+            if cached_complete and not _recovered_inventory_stability_complete(cached):
+                cached_complete = False
             native_zero_recovery_pending = _native_zero_function_recovery_pending(cached)
             if cached_complete and native_zero_recovery_pending and item.input_snapshot is None:
                 cached = _terminalize_unavailable_native_zero_function_recovery(
@@ -12027,7 +12234,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             elif native_zero_recovery_pending:
                 cached_complete = False
         if postprocessing_only and not cached_complete:
-            if cached is None or cached.get("status") != "partial" or cached.get("mcp_responses_valid") is not True:
+            legacy_entry_quiescence_refresh = bool(
+                cached is not None
+                and cached.get("status") == "complete"
+                and cached.get("mcp_responses_valid") is True
+                and not _recovered_inventory_stability_complete(cached)
+                and item.input_snapshot is not None
+            )
+            if not legacy_entry_quiescence_refresh and (
+                cached is None or cached.get("status") != "partial" or cached.get("mcp_responses_valid") is not True
+            ):
                 raise ValueError("postprocessing-only checkpointに検証不能なprogram cacheがあります")
             # 前回の後処理が部分解析を発見した場合、準備済み入力から再解析する。
             # 不明なcacheを完了扱いしたり、後処理をそのまま再開したりしない。
@@ -12285,6 +12501,28 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     if not private_validation["complete"]:
         raise RuntimeError(f"生の静的解析成果物に欠落があります: {private_validation['invalid_programs']}")
+    if defer_publication:
+        # 私有成果の完全性検証は省略せず、公開・collection検証・集計更新だけを保留する。
+        # 同じflagでの再開もこの境界へ戻る。flag省略時の既存公開経路は変更しない。
+        progress = _run_progress_document(
+            collection_id=collection_dir.name,
+            status="ghidra_chunk_pending",
+            stop_reason="publication_deferred",
+            retryable=True,
+            inventory_prepared=True,
+            prepared_inventory_sha256=prepared_inventory_sha256,
+            unique_pe_programs=len(ordered),
+            complete_programs=len(results),
+            cached_programs=cached_programs,
+            newly_analyzed_programs=newly_analyzed,
+            pending_programs=[],
+            postprocessing_pending=True,
+            prepared_inputs_reused=effective_reuse,
+            resume_mode="postprocessing_only",
+            disk_space=storage_observation,
+        )
+        _write_run_progress(private_output, progress)
+        return progress
     publication = publish_cases(
         repository,
         collection_dir,
@@ -12454,6 +12692,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--reuse-prepared-inputs",
         action="store_true",
         help="SHA-256検証済みghidra-input cacheから再開します",
+    )
+    parser.add_argument(
+        "--defer-publication",
+        action="store_true",
+        help="全programと私有成果を検証後も公開せず、未完了の後処理checkpointを保存します",
     )
     parser.add_argument(
         "--max-new-programs",

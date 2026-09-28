@@ -64,13 +64,19 @@ def _bundle(
         else:
             stored = content
             compressed_size = 0
+        # 大きい無害fixtureでもmanifest offsetの隙間を保持する。
+        required_size = cursor + len(stored) + 8
+        if required_size > len(image):
+            image.extend(b"\0" * (required_size - len(image)))
         image[cursor : cursor + len(stored)] = stored
         if major >= 6:
             manifest_entries.extend(
                 struct.pack("<qqqB", cursor, len(content), compressed_size, file_type)
             )
         else:
-            manifest_entries.extend(struct.pack("<qqB", cursor, len(content), file_type))
+            manifest_entries.extend(
+                struct.pack("<qqB", cursor, len(content), file_type)
+            )
         manifest_entries.extend(_encoded_string(name))
         cursor += len(stored) + 8
         recovered_total += len(content)
@@ -213,7 +219,9 @@ def test_compressed_entry_rejects_trailing_data() -> None:
 
 
 @pytest.mark.parametrize("major", [2, 6])
-def test_runtime_name_without_matching_content_is_selected_for_analysis(major: int) -> None:
+def test_runtime_name_without_matching_content_is_selected_for_analysis(
+    major: int,
+) -> None:
     """runtime名で偽装したentryをv2/v6のどちらでも除外しない。"""
 
     app = b"MZapplication"
@@ -245,18 +253,24 @@ def test_runtime_name_without_matching_content_is_selected_for_analysis(major: i
         ("dotnet-bundle-runtime_config_json", config),
     ]
     runtime_item = next(
-        item for item in report["inventory"] if item["name"] == "System.Private.CoreLib.dll"
+        item
+        for item in report["inventory"]
+        if item["name"] == "System.Private.CoreLib.dll"
     )
     assert runtime_item["analysis_selected"] is True
     assert runtime_item["analysis_selection_reason"] == (
         "managed_runtime_name_content_mismatch_requires_analysis"
     )
-    assert runtime_item["analysis_content_evidence"]["managed_metadata_validated"] is False
+    assert (
+        runtime_item["analysis_content_evidence"]["managed_metadata_validated"] is False
+    )
     assert runtime_item["sha256"]
 
 
 @pytest.mark.parametrize("major", [2, 6])
-def test_content_consistent_runtime_is_still_selected_for_bounded_audit(major: int) -> None:
+def test_content_consistent_runtime_is_still_selected_for_bounded_audit(
+    major: int,
+) -> None:
     """identityが整合しても名前は偽装可能なため、予算内では再帰解析する。"""
 
     runtime = _managed_runtime_fixture()
@@ -313,7 +327,10 @@ def test_content_consistent_runtime_is_omitted_only_by_explicit_budget() -> None
     assert runtime_item["analysis_candidate_reason"] == (
         "managed_runtime_identity_consistent_bounded_audit"
     )
-    assert runtime_item["analysis_selection_reason"] == "analysis_count_budget_inventory_only"
+    assert (
+        runtime_item["analysis_selection_reason"]
+        == "analysis_count_budget_inventory_only"
+    )
     assert report["analysis_budget"]["budget_exhausted"] is True
     assert report["analysis_budget"]["selection_complete"] is False
     assert report["analysis_budget"]["omitted_unique_artifact_count"] == 1
@@ -508,6 +525,7 @@ def test_analysis_budget_cannot_expand_fixed_cap(
     assert error_fragment in report["error"]
     assert artifacts == []
 
+
 def test_rejects_traversal_path() -> None:
     data = _bundle([("../payload.dll", 1, b"MZfixture", False)])
 
@@ -536,3 +554,289 @@ def test_parse_reports_header_and_manifest_offsets() -> None:
     assert 0 < report["marker_offset"] < report["header_offset"]
     assert report["manifest_end_offset"] <= len(data)
     assert entries[0].relative_path == "payload.dll"
+
+
+@pytest.mark.parametrize(
+    "status",
+    ["aggregate_content_probe_budget_exceeded", "content_probe_budget_exceeded"],
+)
+def test_managed_unassessed_content_is_not_reported_as_mismatch_or_safe(
+    monkeypatch: pytest.MonkeyPatch, status: str
+) -> None:
+    """未測定の根拠を保存し、非runtime依存より後だが整合runtimeより先へ置く。"""
+    evidence = {
+        "status": status,
+        "managed_metadata_validated": False,
+        "assembly_identity_matches_basename": False,
+        "module_identity_matches_basename": False,
+    }
+    monkeypatch.setattr(
+        bundle_unpacker,
+        "_managed_runtime_content_evidence",
+        lambda *_args, **_kwargs: evidence,
+    )
+    entry = bundle_unpacker.BundleEntry(1, 4, 0, 1, "System.Library.dll")
+    assessment = bundle_unpacker._analysis_selection(
+        entry, set(), b"data", runtime_content_probe_allowed=False
+    )
+    assert assessment.priority == 3
+    assert assessment.reason == "managed_runtime_content_unassessed_requires_analysis"
+    assert assessment.evidence == evidence
+    assert assessment.evidence["status"] != "runtime_identity_consistent"
+    assert assessment.evidence["managed_metadata_validated"] is False
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        "identity_parser_rejected",
+        "managed_metadata_invalid",
+        "runtime_identity_mismatch",
+        "extension_mismatch",
+        "identity_table_cardinality_invalid",
+        "identity_length_invalid",
+        "unverified",
+        "unknown_status",
+    ],
+)
+def test_managed_measured_failure_and_unknown_status_keep_high_priority(
+    monkeypatch: pytest.MonkeyPatch, status: str
+) -> None:
+    """実測不一致・parser拒否・未知statusを予算未評価へ弱めない。"""
+    evidence = {"status": status, "managed_metadata_validated": False}
+    monkeypatch.setattr(
+        bundle_unpacker,
+        "_managed_runtime_content_evidence",
+        lambda *_args, **_kwargs: evidence,
+    )
+    entry = bundle_unpacker.BundleEntry(1, 4, 0, 1, "System.Library.dll")
+    assessment = bundle_unpacker._analysis_selection(
+        entry, set(), b"data", runtime_content_probe_allowed=True
+    )
+    assert assessment.priority == 1
+    assert (
+        assessment.reason == "managed_runtime_name_content_mismatch_requires_analysis"
+    )
+    assert assessment.evidence == evidence
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        "aggregate_content_probe_budget_exceeded",
+        "content_probe_budget_exceeded",
+        "export_count_budget_exceeded",
+        "unsupported_runtime_profile",
+    ],
+)
+def test_native_unassessed_content_preserves_incomplete_evidence(
+    monkeypatch: pytest.MonkeyPatch, status: str
+) -> None:
+    """nativeの予算不足・未対応profileも整合扱いにせず候補へ残す。"""
+    evidence = {
+        "status": status,
+        "required_export_profile_matches": False,
+        "export_identity_matches_basename": False,
+    }
+    monkeypatch.setattr(
+        bundle_unpacker,
+        "_native_runtime_content_evidence",
+        lambda *_args, **_kwargs: evidence,
+    )
+    entry = bundle_unpacker.BundleEntry(1, 4, 0, 2, "coreclr.dll")
+    assessment = bundle_unpacker._analysis_selection(
+        entry, set(), b"data", runtime_content_probe_allowed=False
+    )
+    assert assessment.priority == 3
+    assert assessment.reason == "native_runtime_content_unassessed_requires_analysis"
+    assert assessment.evidence == evidence
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        "native_parser_rejected",
+        "pe_is_not_dll",
+        "runtime_structure_mismatch",
+        "extension_mismatch",
+        "unverified",
+        "unknown_status",
+    ],
+)
+def test_native_measured_failure_and_unknown_status_keep_high_priority(
+    monkeypatch: pytest.MonkeyPatch, status: str
+) -> None:
+    """native parserの測定済み拒否と未知状態は疑わしい候補として先行させる。"""
+    evidence = {"status": status, "pe_dll_validated": False}
+    monkeypatch.setattr(
+        bundle_unpacker,
+        "_native_runtime_content_evidence",
+        lambda *_args, **_kwargs: evidence,
+    )
+    entry = bundle_unpacker.BundleEntry(1, 4, 0, 2, "coreclr.dll")
+    assessment = bundle_unpacker._analysis_selection(
+        entry, set(), b"data", runtime_content_probe_allowed=True
+    )
+    assert assessment.priority == 1
+    assert assessment.reason == "native_runtime_name_content_mismatch_requires_analysis"
+    assert assessment.evidence == evidence
+
+
+def test_default_probe_budget_does_not_push_out_small_nonruntime_dependencies() -> None:
+    """既定64probe/32artifactのまま、末尾の小さい依存を未評価runtimeより優先する。"""
+    runtime = _managed_runtime_fixture()
+    entries = [
+        (
+            f"runtime{index}/System.Private.CoreLib.dll",
+            1,
+            runtime + struct.pack("<I", index),
+            False,
+        )
+        for index in range(100)
+    ]
+    dependency_a = b"MZbenign-protocol-dependency"
+    dependency_b = b"MZbenign-distribution-dependency"
+    entries += [
+        ("Acme.App.dll", 1, b"MZbenign-main", False),
+        ("Acme.App.runtimeconfig.json", 4, b"{}", False),
+        ("Acme.Protocol.dll", 1, dependency_a, False),
+        ("Acme.Distribution.dll", 1, dependency_b, False),
+    ]
+    report, artifacts = recover_dotnet_bundle(_bundle(entries))
+    assert report["analysis_artifact_count"] == 32
+    assert report["status"] == "analysis_budget_partial"
+    assert report["analysis_budget"]["selection_complete"] is False
+    assert report["analysis_budget"]["maximum_artifacts"] == 32
+    assert report["runtime_content_assessment_budget"]["performed_probe_count"] == 64
+    assert (
+        report["runtime_content_assessment_budget"][
+            "aggregate_budget_omitted_probe_count"
+        ]
+        == 36
+    )
+    assert ("dotnet-bundle-assembly", dependency_a) in artifacts
+    assert ("dotnet-bundle-assembly", dependency_b) in artifacts
+    deferred = [
+        item
+        for item in report["inventory"]
+        if item["analysis_content_evidence"]["status"]
+        == "aggregate_content_probe_budget_exceeded"
+    ]
+    assert len(deferred) == 36
+    assert all(item["analysis_priority"] == 3 for item in deferred)
+    assert all(
+        item["analysis_candidate_reason"]
+        == "managed_runtime_content_unassessed_requires_analysis"
+        for item in deferred
+    )
+    assert all(
+        item["analysis_content_evidence"]["managed_metadata_validated"] is False
+        for item in deferred
+    )
+
+
+def test_actual_metadata_invalid_runtime_still_precedes_nonruntime_dependency() -> None:
+    """名前偽装の実測metadata不正は高優先を維持する。"""
+    disguised = b"MZnot-managed-runtime"
+    dependency = b"MZdependency"
+    report, artifacts = recover_dotnet_bundle(
+        _bundle(
+            [
+                ("ThirdParty.Helper.dll", 1, dependency, False),
+                ("System.Counterfeit.dll", 1, disguised, False),
+            ]
+        ),
+        max_analysis_artifacts=1,
+    )
+    assert artifacts == [("dotnet-bundle-assembly", disguised)]
+    assert (
+        report["inventory"][1]["analysis_content_evidence"]["status"]
+        == "managed_metadata_invalid"
+    )
+    assert report["inventory"][1]["analysis_priority"] == 1
+    assert (
+        report["inventory"][0]["analysis_selection_reason"]
+        == "analysis_count_budget_inventory_only"
+    )
+
+
+def test_small_count_budget_still_reserves_main_and_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """2件へ縮小した予算では本体と設定を優先し、依存の省略証拠を維持する。"""
+    monkeypatch.setattr(bundle_unpacker, "MAX_RUNTIME_CONTENT_PROBES", 0)
+    entries = [
+        ("System.Unprobed.dll", 1, b"MZruntime", False),
+        ("Acme.Helper.dll", 1, b"MZhelper", False),
+        ("Acme.App.dll", 1, b"MZmain", False),
+        ("Acme.App.runtimeconfig.json", 4, b"{}", False),
+    ]
+    report, artifacts = recover_dotnet_bundle(
+        _bundle(entries), max_analysis_artifacts=2
+    )
+    assert artifacts == [
+        ("dotnet-bundle-assembly", b"MZmain"),
+        ("dotnet-bundle-runtime_config_json", b"{}"),
+    ]
+    assert report["analysis_budget"]["selection_complete"] is False
+    assert report["analysis_budget"]["omitted_unique_artifact_count"] == 2
+    assert (
+        report["inventory"][0]["analysis_content_evidence"]["status"]
+        == "aggregate_content_probe_budget_exceeded"
+    )
+    assert (
+        report["inventory"][1]["analysis_selection_reason"]
+        == "analysis_count_budget_inventory_only"
+    )
+
+
+def test_unassessed_priority_cannot_bypass_byte_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """優先度を変えてもbyte上限を超える依存・未評価runtimeは展開対象へ追加しない。"""
+    monkeypatch.setattr(bundle_unpacker, "MAX_RUNTIME_CONTENT_PROBES", 0)
+    main, config = b"MZmain", b"{}"
+    entries = [
+        ("System.Unprobed.dll", 1, b"MZruntime" * 10, False),
+        ("ThirdParty.Helper.dll", 1, b"MZhelper" * 10, False),
+        ("Acme.App.dll", 1, main, False),
+        ("Acme.App.runtimeconfig.json", 4, config, False),
+    ]
+    report, artifacts = recover_dotnet_bundle(
+        _bundle(entries), max_analysis_bytes=len(main) + len(config)
+    )
+    assert artifacts == [
+        ("dotnet-bundle-assembly", main),
+        ("dotnet-bundle-runtime_config_json", config),
+    ]
+    assert report["analysis_budget"]["selected_bytes"] == len(main) + len(config)
+    assert all(
+        item["analysis_selection_reason"] == "analysis_byte_budget_inventory_only"
+        for item in report["inventory"][:2]
+    )
+
+
+def test_zero_probe_budget_does_not_call_metadata_or_native_parsers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """未測定statusを返すだけでparserや検体コードを迂回実行しない。"""
+    monkeypatch.setattr(bundle_unpacker, "MAX_RUNTIME_CONTENT_PROBES", 0)
+
+    def forbidden_parser(**_kwargs):
+        raise AssertionError("予算外でparserを呼びました")
+
+    monkeypatch.setattr(bundle_unpacker.dnfile, "dnPE", forbidden_parser)
+    monkeypatch.setattr(bundle_unpacker.pefile, "PE", forbidden_parser)
+    entries = [
+        ("System.Unprobed.dll", 1, b"MZmanaged", False),
+        ("coreclr.dll", 2, b"MZnative", False),
+    ]
+    report, artifacts = recover_dotnet_bundle(_bundle(entries))
+    assert len(artifacts) == 2
+    assert all(
+        item["analysis_content_evidence"]["status"]
+        == "aggregate_content_probe_budget_exceeded"
+        for item in report["inventory"]
+    )
+    assert all(item["analysis_priority"] == 3 for item in report["inventory"])
+    assert report["runtime_content_assessment_budget"]["performed_probe_count"] == 0

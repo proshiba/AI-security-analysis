@@ -11,7 +11,6 @@ from pathlib import Path
 
 import pytest
 
-
 FRAMEWORK = Path(__file__).parents[1]
 REPOSITORY = FRAMEWORK.parent
 for import_root in (str(FRAMEWORK), str(REPOSITORY)):
@@ -83,7 +82,9 @@ def _elf(*markers: bytes) -> bytes:
     return ident + header + b"\0".join(markers)
 
 
-def _vidar_blob(*, metadata: bool = True, artifacts: bool = True) -> bytes:
+def _vidar_blob(
+    *, metadata: bool = True, artifacts: bool = True, untagged_primary: bool = False
+) -> bytes:
     """反復XOR fieldを持つ最小Vidar設定fixtureを作る。"""
 
     key = b"0123456789abcdef"
@@ -99,8 +100,15 @@ def _vidar_blob(*, metadata: bool = True, artifacts: bool = True) -> bytes:
     store(0, 0x031, 0x071, b"fixture")
     store(0x072, 0, 0x100, b"https://198.51.100.4/gate")
     if metadata:
-        store(0x072, 0x101, 0x141, b"tag")
+        if not untagged_primary:
+            store(0x072, 0x101, 0x141, b"tag")
         store(0x072, 0x142, 0x242, b"FixtureAgent/1")
+    if untagged_primary:
+        second = 0x072 + 0x243
+        store(second, 0, 0x100, b"https://t.me/fixture_not_real")
+        if metadata:
+            store(second, 0x101, 0x141, b"tag")
+            store(second, 0x142, 0x242, b"FixtureAgent/1")
     suffix = b" information.txt passwords.txt wallets" if artifacts else b""
     return bytes(blob) + suffix
 
@@ -176,9 +184,9 @@ NEGATIVE_FIXTURES = {
             "<input type='password'></form></html>"
         ).encode().replace(b"Microsoft", b"generic"),
         (
-            "<html>Microsoft Sign in<form method='post' action='https://login.example.invalid/'>"
-            "<input type='password'></form></html>"
-        ).encode(),
+            b"<html>Microsoft Sign in<form method='post' action='https://login.example.invalid/'>"
+            b"<input type='password'></form></html>"
+        ),
         (
             f"<html>Microsoft Sign in<form method='post' action='{PHISHING_ACTION}'>"
             "<input type='password'>"
@@ -211,14 +219,66 @@ def test_vidar_complete_config_does_not_require_output_artifact_names() -> None:
     assert result["observations"]["output_artifact_hits"] == []
 
 
+def test_vidar_untagged_primary_requires_tagged_following_record() -> None:
+    """先頭の空tagは後続設定とuser-agentの構造証拠でのみ受理する。"""
+
+    sample = _vidar_blob(artifacts=False, untagged_primary=True)
+    result = MODULES["vidar"].detect(sample, Path("generic.bin"))
+    assert result["matched"] is True
+    assert result["observations"]["untagged_primary_record_supported"] is True
+    assert result["observations"]["record_metadata_complete"] is True
+    assert result["observations"]["decoded_record_count"] == 2
+    assert result["observations"]["sample_executed"] is False
+    assert result["observations"]["network_contacted"] is False
+
+
+@pytest.mark.parametrize(
+    "missing_length_offset",
+    [0x072 + 0x242, 0x072 + 0x243 + 0x141, 0x072 + 0x243 + 0x242],
+)
+def test_vidar_untagged_primary_rejects_missing_following_metadata(
+    missing_length_offset: int,
+) -> None:
+    """欠落したagent、空の後続tagを先頭recordの例外で通さない。"""
+
+    sample = bytearray(_vidar_blob(artifacts=False, untagged_primary=True))
+    sample[missing_length_offset] = 0
+    result = MODULES["vidar"].detect(bytes(sample), Path("generic.bin"))
+    assert result["matched"] is False
+    assert result["campaigns"] == []
+
+
+def test_vidar_empty_tag_after_first_record_is_rejected() -> None:
+    """空tagの許容位置を先頭以外へ広げない。"""
+
+    sample = bytearray(_vidar_blob(artifacts=False, untagged_primary=True))
+    start = 0x072
+    stride = 0x243
+    first = bytes(sample[start : start + stride])
+    second = bytes(sample[start + stride : start + 2 * stride])
+    sample[start : start + stride] = second
+    sample[start + stride : start + 2 * stride] = first
+    result = MODULES["vidar"].detect(bytes(sample), Path("generic.bin"))
+    assert result["matched"] is False
+
+
+def test_vidar_untagged_primary_without_following_record_is_rejected() -> None:
+    """先頭URLとagentだけでは空tag形式の帰属根拠が足りない。"""
+
+    sample = bytearray(_vidar_blob(artifacts=False, untagged_primary=True))
+    sample[0x072 + 0x243 + 0x100] = 0
+    result = MODULES["vidar"].detect(bytes(sample), Path("generic.bin"))
+    assert result["matched"] is False
+
+
 def test_invalid_phishing_action_port_is_rejected_without_exception() -> None:
     """不正portを持つactionでもparserから例外を漏らさない。"""
 
     sample = (
-        "<html>Microsoft Sign in<form method='post' "
-        "action='https://smartforms.dev:999999/submit/6a5ac8f0c184545ccc22c342'>"
-        "<input type='password'></form></html>"
-    ).encode()
+        b"<html>Microsoft Sign in<form method='post' "
+        b"action='https://smartforms.dev:999999/submit/6a5ac8f0c184545ccc22c342'>"
+        b"<input type='password'></form></html>"
+    )
     result = MODULES["credential_phishing_html"].detect(sample, Path("broken.html"))
     assert result["matched"] is False
 
@@ -241,6 +301,31 @@ def test_html_declaration_errors_fail_closed_without_raw_content(malformed) -> N
     assert result["matched"] is False
     assert result["observations"]["parse_error"] == "AssertionError"
     assert "declaration" not in json.dumps(result)
+
+
+@pytest.mark.parametrize("declaration", [b"<![", b"<![CDATA[unfinished", b"<![if IE unfinished"])
+def test_incomplete_marked_html_declaration_fails_closed(declaration) -> None:
+    """未閉鎖marked宣言を通常dataへ黙って変換して陽性にしない。"""
+
+    result = MODULES["credential_phishing_html"].detect(
+        POSITIVE_FIXTURES["credential_phishing_html"] + declaration, Path("broken.html"),
+    )
+    assert result["matched"] is False
+    assert result["observations"]["parse_error"] in {"AssertionError", "ValueError"}
+
+
+@pytest.mark.parametrize("suffix", [
+    b"<![CDATA[harmless]]>", b"<![if IE]>legacy<![endif]>",
+    b"<!-- <![bad declaration]> -->", b"<script>var text='<![bad declaration]>';</script>",
+])
+def test_valid_or_literal_marked_html_declarations_preserve_detection(suffix) -> None:
+    """正しい宣言とコメント・script内の文字列を破損宣言と混同しない。"""
+
+    result = MODULES["credential_phishing_html"].detect(
+        POSITIVE_FIXTURES["credential_phishing_html"] + suffix, Path("valid.html"),
+    )
+    assert result["matched"] is True
+    assert result["observations"]["parse_error"] is None
 
 
 def test_phishing_tag_limit_fails_closed() -> None:

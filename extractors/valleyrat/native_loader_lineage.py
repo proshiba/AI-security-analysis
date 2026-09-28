@@ -1402,6 +1402,8 @@ def analyze_native_loader_lineage(
     follow_on_components: dict[bytes, bytes] = {}
     follow_on_total_size = 0
     follow_on_candidate_set_complete = True
+    lineage_depth_exhausted = False
+    depth_context_probe_failed = False
     while queue and len(visited) < MAXIMUM_RECOVERED_COMPONENTS:
         current, stages, depth = queue.popleft()
         identity = hashlib.sha256(current).digest()
@@ -1421,6 +1423,20 @@ def analyze_native_loader_lineage(
                 terminal_paths.append((current, stages, terminal))
                 continue
         if depth >= MAXIMUM_LINEAGE_DEPTH:
+            # 未証明loader候補の先を走査していないため、一意な終端とは扱わない。
+            # 上限では構造predicateだけを確認し、復号stageを追加訪問しない。
+            try:
+                context = _load_context(current)
+                # KBND footerは既存loader grammarの候補signalであり、family/C2証拠ではない。
+                loader_candidate = current.endswith(b"KBND") or (
+                    context is not None and _structural_cluster(context) is not None
+                )
+            except Exception:  # noqa: BLE001 - 追加する静的parser境界だけを未完了へ閉じる
+                loader_candidate = True
+                depth_context_probe_failed = True
+            if loader_candidate:
+                lineage_depth_exhausted = True
+                follow_on_candidate_set_complete = False
             continue
         context = root if depth == 0 else _load_context(current)
         if context is None:
@@ -1471,6 +1487,7 @@ def analyze_native_loader_lineage(
         len(unique_terminals) == 1
         and ambiguous_stage_count == 0
         and not queue
+        and not lineage_depth_exhausted
     )
     selected = next(iter(unique_terminals.values())) if confirmed else None
     matched = bool(cluster is not None or matched_stage_count)
@@ -1487,6 +1504,10 @@ def analyze_native_loader_lineage(
         missing.append("multiple_loader_stage_interpretations_ambiguous")
     if queue:
         missing.append("native_loader_lineage_component_limit_exhausted")
+    if lineage_depth_exhausted:
+        missing.append("native_loader_lineage_depth_limit_exhausted")
+    if depth_context_probe_failed:
+        missing.append("native_loader_lineage_depth_context_probe_failed")
     if not follow_on_candidate_set_complete:
         missing.append("follow_on_candidate_set_incomplete")
     if selected is not None:

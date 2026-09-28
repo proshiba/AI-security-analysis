@@ -174,8 +174,8 @@ def test_wrapper_profile_fails_closed_on_contract_mutation(
 def test_extract_maps_reviewed_wrapper_to_tier_two_only(monkeypatch: pytest.MonkeyPatch) -> None:
     data, image = _wrapper_fixture()
     _patch_entropy(monkeypatch)
-    monkeypatch.setattr(extractor, "extract_rc4_profile", lambda _data: None)
-    monkeypatch.setattr(extractor, "extract_xor_profile", lambda _data: None)
+    monkeypatch.setattr(extractor, "_recover_rc4_profile", lambda _data: None)
+    monkeypatch.setattr(extractor, "_recover_xor_profile", lambda _data: None)
     monkeypatch.setattr(extractor, "_pe", lambda _data: image)
     monkeypatch.setattr(extractor, "sha256_bytes", lambda _data: REVIEWED_SHA256)
 
@@ -194,8 +194,8 @@ def test_extract_maps_reviewed_wrapper_to_tier_two_only(monkeypatch: pytest.Monk
 def test_extract_keeps_unreviewed_wrapper_at_tier_zero(monkeypatch: pytest.MonkeyPatch) -> None:
     data, image = _wrapper_fixture()
     _patch_entropy(monkeypatch)
-    monkeypatch.setattr(extractor, "extract_rc4_profile", lambda _data: None)
-    monkeypatch.setattr(extractor, "extract_xor_profile", lambda _data: None)
+    monkeypatch.setattr(extractor, "_recover_rc4_profile", lambda _data: None)
+    monkeypatch.setattr(extractor, "_recover_xor_profile", lambda _data: None)
     monkeypatch.setattr(extractor, "_pe", lambda _data: image)
     monkeypatch.setattr(extractor, "sha256_bytes", lambda _data: "0" * 64)
 

@@ -6,8 +6,9 @@ from __future__ import annotations
 import argparse
 from collections.abc import Iterable
 import json
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import re
+import stat
 from typing import Any
 
 
@@ -46,18 +47,88 @@ def _nonempty_strings(value: object) -> bool:
     )
 
 
-def _repository_path(
-    repository: Path | None,
-    value: object,
-) -> Path | None:
+_REPOSITORY_PATH_CHARACTER_LIMIT = 4096
+_REPOSITORY_PATH_COMPONENT_LIMIT = 128
+_WINDOWS_REPARSE_POINT = 0x400
+
+
+def _repository_path(repository: Path | None, value: object) -> Path | None:
+    """未信頼参照を事前限定する。root／その親は信頼済み local 非reparse。
+
+    同時 filesystem 変更に対する sandbox／強い TOCTOU 保証ではない。
+    """
     if repository is None or not isinstance(value, str) or not value.strip():
         return None
-    candidate = (repository / value).resolve()
-    try:
-        candidate.relative_to(repository.resolve())
-    except ValueError:
+    if len(value) > _REPOSITORY_PATH_CHARACTER_LIMIT or "\x00" in value:
         return None
-    return candidate
+    try:
+        if not isinstance(repository, Path) or not repository.is_absolute():
+            return None
+        if ".." in repository.parts or str(repository).replace("\\", "/").startswith("//"):
+            return None
+        if value.replace("\\", "/").startswith("//"):
+            return None
+        windows = PureWindowsPath(value)
+        reference = Path(value)
+        if repository.drive:
+            if len(repository.drive) != 2 or repository.drive[1] != ":":
+                return None
+            if (windows.drive and not windows.root) or (windows.root and not windows.drive):
+                return None
+        elif windows.drive:
+            return None
+        candidate = repository / reference
+        relative = candidate.relative_to(repository)
+        if len(relative.parts) > _REPOSITORY_PATH_COMPONENT_LIMIT:
+            return None
+        depth = 0
+        for part in relative.parts:
+            if repository.drive and part != "..":
+                if (part.endswith((".", " "))
+                        or any(character in '<>:"|?*' or ord(character) < 32 for character in part)):
+                    return None
+                device = part.split(".", 1)[0].rstrip(" ").upper()
+                if (device in {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+                        or (len(device) == 4 and device[:3] in {"COM", "LPT"}
+                            and device[3] in "123456789¹²³")):
+                    return None
+            if part == "..":
+                depth -= 1
+                if depth < 0:
+                    return None
+            else:
+                depth += 1
+        # この段階まで filesystem を参照しない。root は caller の信頼境界。
+        root_info = repository.lstat()
+        if (not stat.S_ISDIR(root_info.st_mode)
+                or stat.S_ISLNK(root_info.st_mode)
+                or getattr(root_info, "st_file_attributes", 0) & _WINDOWS_REPARSE_POINT):
+            return None
+        current = repository
+        for index, part in enumerate(relative.parts):
+            if part == "..":
+                current = current.parent
+                continue
+            current = current / part
+            info = current.lstat()
+            if (stat.S_ISLNK(info.st_mode)
+                    or getattr(info, "st_file_attributes", 0) & _WINDOWS_REPARSE_POINT):
+                return None
+            if index != len(relative.parts) - 1 and not stat.S_ISDIR(info.st_mode):
+                return None
+        resolved = current.resolve()
+        resolved.relative_to(repository.resolve())
+        return resolved
+    except (OSError, ValueError, RuntimeError):
+        return None
+
+
+def _repository_file_present(resolved: Path | None) -> bool:
+    """file確認の失敗を例外で漏らさず、既存path findingへ正規化する。"""
+    try:
+        return resolved is not None and resolved.is_file()
+    except (OSError, ValueError, RuntimeError):
+        return False
 
 
 def build_unresolved_contract(
@@ -148,7 +219,7 @@ def validate_contract(
     expected = str(expected_sha256).strip().lower()
     if not SHA256_RE.fullmatch(expected):
         raise ValueError("expected_sha256が不正です")
-    if document.get("schema_version") != SCHEMA_VERSION:
+    if type(document.get("schema_version")) is not int or document.get("schema_version") != SCHEMA_VERSION:
         _finding(findings, "c2_contract_schema", "schema_versionが対応値ではありません。")
     if document.get("sha256") != expected:
         _finding(findings, "c2_contract_sha256", "sha256が対象検体と一致しません。")
@@ -175,7 +246,7 @@ def validate_contract(
             _finding(findings, "c2_phase_missing", f"必須phaseがありません: {phase}")
             continue
         status = item.get("status")
-        if status not in PHASE_STATUSES:
+        if not isinstance(status, str) or status not in PHASE_STATUSES:
             _finding(findings, "c2_phase_status", f"phase statusが不正です: {phase}")
         elif status == "blocked":
             _finding(findings, "c2_phase_blocked", f"phaseが未解決です: {phase}")
@@ -188,7 +259,9 @@ def validate_contract(
         terminal = {}
     if terminal.get("reached") is not True:
         _finding(findings, "terminal_payload_not_reached", "終端payloadまで到達していません。")
-    if terminal.get("status") not in {"recovered", "no_additional_payload_verified"}:
+    if not isinstance(terminal.get("status"), str):
+        _finding(findings, "terminal_payload_status_invalid", "終端payloadの状態は文字列である必要があります。")
+    elif terminal.get("status") not in {"recovered", "no_additional_payload_verified"}:
         _finding(findings, "terminal_payload_unresolved", "終端payloadの状態が未解決です。")
     blockers = terminal.get("blockers")
     if blockers not in (None, []) and not isinstance(blockers, list):
@@ -201,7 +274,7 @@ def validate_contract(
         _finding(findings, "c2_result_missing", "c2結果がありません。")
         c2 = {}
     outcome = c2.get("outcome")
-    if outcome not in C2_OUTCOMES:
+    if not isinstance(outcome, str) or outcome not in C2_OUTCOMES:
         _finding(findings, "c2_outcome_invalid", "c2.outcomeが不正です。")
     elif outcome == "unresolved":
         _finding(findings, "c2_outcome_unresolved", "C2解析が未解決です。")
@@ -229,7 +302,7 @@ def validate_contract(
             _finding(findings, "c2_protocol_unconfirmed", "malware protocolレベルの確認がありません。")
         if not isinstance(protocol.get("method"), str) or not protocol["method"].strip():
             _finding(findings, "c2_protocol_method_missing", "protocol確認方法がありません。")
-        if protocol.get("confidence") not in {"medium", "high"}:
+        if not isinstance(protocol.get("confidence"), str) or protocol.get("confidence") not in {"medium", "high"}:
             _finding(findings, "c2_protocol_confidence_low", "protocol確認の確度が不足しています。")
         if protocol.get("tcp_open_only") is not False:
             _finding(findings, "c2_tcp_open_only", "TCP openだけでは確認済みC2にできません。")
@@ -254,7 +327,7 @@ def validate_contract(
             continue
         for value in values:
             resolved = _repository_path(repository, value)
-            if repository is not None and (resolved is None or not resolved.is_file()):
+            if repository is not None and not _repository_file_present(resolved):
                 _finding(findings, f"c2_automation_{key}_path", f"repository内のfileを確認できません: {value}")
     if automation.get("reusable_logic_recorded") is not True:
         _finding(findings, "c2_automation_not_reusable", "解析ロジックが再利用可能なscriptへ反映されていません。")
@@ -266,7 +339,7 @@ def validate_contract(
             deep_analysis = {}
         if deep_analysis.get("status") != "deferred_for_deep_analysis":
             _finding(findings, "c2_deep_analysis_status", "未解決検体の繰越状態が不正です。")
-        if deep_analysis.get("priority") not in {"critical", "high", "normal", "low"}:
+        if not isinstance(deep_analysis.get("priority"), str) or deep_analysis.get("priority") not in {"critical", "high", "normal", "low"}:
             _finding(findings, "c2_deep_analysis_priority", "追加解析の優先度がありません。")
         if not isinstance(deep_analysis.get("queue"), str) or not deep_analysis["queue"].strip():
             _finding(findings, "c2_deep_analysis_queue", "追加解析queueがありません。")
@@ -301,7 +374,7 @@ def validate_contract(
         "complete": complete,
         "daily_ready": daily_ready,
         "deferred": daily_ready and not complete,
-        "outcome": outcome if outcome in C2_OUTCOMES else "invalid",
+        "outcome": outcome if isinstance(outcome, str) and outcome in C2_OUTCOMES else "invalid",
         "finding_count": len(findings),
         "daily_blocking_finding_count": len(blocking_for_daily),
         "findings": findings,
