@@ -222,6 +222,39 @@ def test_previous_active_targets_are_carried_forward_and_deduplicated() -> None:
     assert len(merged_again["targets"]) == 2
 
 
+def test_latest_active_plan_skips_unobserved_plan_only_day(tmp_path: Path) -> None:
+    previous = tmp_path / "2026-09-25"
+    previous.mkdir()
+    (previous / "monitoring-results.json").write_text("{}", encoding="utf-8")
+    (previous / "active-targets.json").write_text(
+        json.dumps({"targets": [target("observed.example")]}), encoding="utf-8"
+    )
+    pending = tmp_path / "2026-09-26"
+    pending.mkdir()
+    (pending / "targets.json").write_text(
+        json.dumps({"targets": [target("unobserved.example")]}), encoding="utf-8"
+    )
+
+    loaded = history.load_latest_active_plan(tmp_path, current_run_name="2026-09-28")
+
+    assert loaded is not None
+    assert [item["host"] for item in loaded["targets"]] == ["observed.example"]
+
+
+def test_latest_active_plan_keeps_legacy_targets_fallback(tmp_path: Path) -> None:
+    previous = tmp_path / "2026-09-25"
+    previous.mkdir()
+    (previous / "monitoring-results.json").write_text("{}", encoding="utf-8")
+    (previous / "targets.json").write_text(
+        json.dumps({"targets": [target("legacy.example")]}), encoding="utf-8"
+    )
+
+    loaded = history.load_latest_active_plan(tmp_path, current_run_name="2026-09-28")
+
+    assert loaded is not None
+    assert [item["host"] for item in loaded["targets"]] == ["legacy.example"]
+
+
 def test_previous_daily_handoff_tags_are_not_carried_into_current_run() -> None:
     current_handoff = {"source_date": "2026-08-24"}
     previous_handoff = {"source_date": "2026-08-23"}

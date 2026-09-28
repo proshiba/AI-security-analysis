@@ -1,6 +1,1005 @@
 # 過去に解析したマルウェア検体の履歴。
 # 検体本体・復号バイナリ・PCAPは保存せず、公開可能な結果メタデータのみを記録する。
 analyses:
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 0468b99f0c8e9fabcdd22f2aab3d93368574b58646df1e0b2b6cfaadb78c19d1
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/0468b99f0c8e9fabcdd22f2aab3d93368574b58646df1e0b2b6cfaadb78c19d1/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 0b53c6be1660255ab37d975bd6b035c241c844cbdf93a1100ba7ec19a6a4db20
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/0b53c6be1660255ab37d975bd6b035c241c844cbdf93a1100ba7ec19a6a4db20/
+
+  - malware_type: "Vidar"
+    analyzed_at: 2026-09-26
+    sample_sha256: 12e48cbda8754709214b9bca2656add17cded1e2494280a46c9a714a98e8b529
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/vidar/versions/unknown/cases/12e48cbda8754709214b9bca2656add17cded1e2494280a46c9a714a98e8b529/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 12f7a3dd2c0c1e94ae0336a024d757485d714769bb8a99ac28f9c8d05a1cb7bd
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/12f7a3dd2c0c1e94ae0336a024d757485d714769bb8a99ac28f9c8d05a1cb7bd/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 15e04b5c91bf4962d00817e8bb740d5816696bd0e959bf9726c9170d6d6ee78f
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/15e04b5c91bf4962d00817e8bb740d5816696bd0e959bf9726c9170d6d6ee78f/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 18e4b49fd7e15ca846c6346ce58268ff206974eefde55ef5998a2e9cd3b203e2
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/18e4b49fd7e15ca846c6346ce58268ff206974eefde55ef5998a2e9cd3b203e2/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 1d070d9693f34aa230b6ca34e500accaf33b421aafcaf2e290cfd53495fe3403
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/1d070d9693f34aa230b6ca34e500accaf33b421aafcaf2e290cfd53495fe3403/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 2dade2f99d5058f68c38d45e07e0d3f5ad2574e1aeb9eeeac32d93027f6c5624
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/2dade2f99d5058f68c38d45e07e0d3f5ad2574e1aeb9eeeac32d93027f6c5624/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 3058d3bbae2b2cfe8617ea8cf464629bed7abb425ddb18c9a39564ce87debab2
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/3058d3bbae2b2cfe8617ea8cf464629bed7abb425ddb18c9a39564ce87debab2/
+
+  - malware_type: "Vidar"
+    analyzed_at: 2026-09-26
+    sample_sha256: 33d83bc61a527cd0b9c7f82beaefc2c0a3905c6dff8d9e650842c28adda92ecc
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/vidar/versions/unknown/cases/33d83bc61a527cd0b9c7f82beaefc2c0a3905c6dff8d9e650842c28adda92ecc/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 3d840c7ce6282cc73f917b95d79813c47820d37897c8128cfa24995eda3fac22
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/3d840c7ce6282cc73f917b95d79813c47820d37897c8128cfa24995eda3fac22/
+
+  - malware_type: "Vidar"
+    analyzed_at: 2026-09-26
+    sample_sha256: 3d8a22b4d6c4b43688658788facc7373c284d61fbc1815e988d3ebbc55676ff7
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/vidar/versions/unknown/cases/3d8a22b4d6c4b43688658788facc7373c284d61fbc1815e988d3ebbc55676ff7/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 47ed6570cb96e73c8d423c261248aaa86b0a371be1e09e3d8d35f411d968746a
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/47ed6570cb96e73c8d423c261248aaa86b0a371be1e09e3d8d35f411d968746a/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 49902b8647bd496b3dd9537bcab438ce9aa31a36faf0b51efab712e09b70d56c
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/49902b8647bd496b3dd9537bcab438ce9aa31a36faf0b51efab712e09b70d56c/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 4c6da38f097af893a122a7f24e2788a31a91c0d97b4ea24dab0aded0b97725a0
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/4c6da38f097af893a122a7f24e2788a31a91c0d97b4ea24dab0aded0b97725a0/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 557d08df35639c87683d146da715c9310eb50a994c2ef794fe9a4a96285bb1eb
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/557d08df35639c87683d146da715c9310eb50a994c2ef794fe9a4a96285bb1eb/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 5670fca71d976d6929d6a46be024114bb7908a26a8e3319770c85a61938269be
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/5670fca71d976d6929d6a46be024114bb7908a26a8e3319770c85a61938269be/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 576b1934db203a45e0ba66325f99761b92256069adfe513aaf29b73ff473e994
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/576b1934db203a45e0ba66325f99761b92256069adfe513aaf29b73ff473e994/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 5b17328bba54ece3257294c6b1e964c87d411ca5b8b6ac9b62579502b8332f36
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/5b17328bba54ece3257294c6b1e964c87d411ca5b8b6ac9b62579502b8332f36/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 655af29c787ad6a0fe47de5ec4d80900a52206ee710e18722a2780e874244cf1
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/655af29c787ad6a0fe47de5ec4d80900a52206ee710e18722a2780e874244cf1/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 6585dd7ac6ad21db91c1d2b515e7caff8f297dd3081d0958a49ffcdc58b37625
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/6585dd7ac6ad21db91c1d2b515e7caff8f297dd3081d0958a49ffcdc58b37625/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 65e5f373448c5b9c628508b13bfd951ac53d656ddbba13143373292a0b3dde11
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/65e5f373448c5b9c628508b13bfd951ac53d656ddbba13143373292a0b3dde11/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 67dbba47c2a15f0f1d004923a41f2ee8e912405cb0decff0dd9d4ae268df692c
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/67dbba47c2a15f0f1d004923a41f2ee8e912405cb0decff0dd9d4ae268df692c/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 6ebead7b716ce87dbee3ae89ce5aea3cf34a3f2628e5911b09963c0e9d81985c
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/6ebead7b716ce87dbee3ae89ce5aea3cf34a3f2628e5911b09963c0e9d81985c/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 715b07757808181b3b2046fe4c2f373049688ee41342c701aa99577241b252e5
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/715b07757808181b3b2046fe4c2f373049688ee41342c701aa99577241b252e5/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 76dbfc90cc9071aecfccf8fc7a866aa4c5cc5e26a229d9ab887eee67256435b3
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/76dbfc90cc9071aecfccf8fc7a866aa4c5cc5e26a229d9ab887eee67256435b3/
+
+  - malware_type: "RemusStealer（提供元報告・未確認）"
+    analyzed_at: 2026-09-26
+    sample_sha256: 82c0d91ad3828533bbbeb1d05b1a22102f7da53f68a0b3cea7588b0c7ee43add
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/remusstealer/versions/unknown/cases/82c0d91ad3828533bbbeb1d05b1a22102f7da53f68a0b3cea7588b0c7ee43add/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: 8c4b50eaa759672d99ee2350e03aaffb1381ee524bd77290f919e45d1f2f823d
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/8c4b50eaa759672d99ee2350e03aaffb1381ee524bd77290f919e45d1f2f823d/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: a1cd581c687e1f8d9995d50b4200b6db4010c2c7d76b5b48642ae4ed0a55019e
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/a1cd581c687e1f8d9995d50b4200b6db4010c2c7d76b5b48642ae4ed0a55019e/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: aa332ac502318a11aefd2bfa5377d11b88fa9947a12cd91637123e2172239f71
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/aa332ac502318a11aefd2bfa5377d11b88fa9947a12cd91637123e2172239f71/
+
+  - malware_type: "PureHVNC"
+    analyzed_at: 2026-09-26
+    sample_sha256: ac539250130b7cf448b92ce158af90c036eda8aaca405417be065ee42968a34f
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/purehvnc/versions/unknown/cases/ac539250130b7cf448b92ce158af90c036eda8aaca405417be065ee42968a34f/
+
+  - malware_type: "Vidar"
+    analyzed_at: 2026-09-26
+    sample_sha256: b3641aec8ccd21475f2256c68836ffcf44b5e1764f916c8d18faf97c0d6f45ac
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/vidar/versions/unknown/cases/b3641aec8ccd21475f2256c68836ffcf44b5e1764f916c8d18faf97c0d6f45ac/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: b4fcedc6b983d17293163e7f39c5ee07493dac1317a1933b8b52290da691d541
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/b4fcedc6b983d17293163e7f39c5ee07493dac1317a1933b8b52290da691d541/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: b8a1a859adecefdec0e57d65371f792ed8b9440e5a27f363a0dcf8375addbfd9
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/b8a1a859adecefdec0e57d65371f792ed8b9440e5a27f363a0dcf8375addbfd9/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: c661f5ccf73bbb004a1ad5cd7e7d3c0e60ad6d62992413b61137e40886d8255f
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/c661f5ccf73bbb004a1ad5cd7e7d3c0e60ad6d62992413b61137e40886d8255f/
+
+  - malware_type: "RemusStealer（提供元報告・未確認）"
+    analyzed_at: 2026-09-26
+    sample_sha256: c6cfd2879bb5486a9d14de7f48430ba3e03520cf2c62267c7200e26783e84165
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/remusstealer/versions/unknown/cases/c6cfd2879bb5486a9d14de7f48430ba3e03520cf2c62267c7200e26783e84165/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: cecdc6860e4122b2540cd52e671332a3e07f35a04d6dd09591a1652a4aa23851
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/cecdc6860e4122b2540cd52e671332a3e07f35a04d6dd09591a1652a4aa23851/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: d418ac6af6706816e0c23e60c24cb29925026ee193e4655648025d7ccd7c900b
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/d418ac6af6706816e0c23e60c24cb29925026ee193e4655648025d7ccd7c900b/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: d5c33f17716a15178ec2bbe0e30271ed4b6652391a8ed085677ef2ad79864728
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/d5c33f17716a15178ec2bbe0e30271ed4b6652391a8ed085677ef2ad79864728/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: d886a422b288e22fdab3b66b4f91d6589700e639900e1bf04b2fb87af92f61e9
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/d886a422b288e22fdab3b66b4f91d6589700e639900e1bf04b2fb87af92f61e9/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: dd37e789ab8c3788ed0b5899eff5fdcb7caf6265190d4ee643fbe0ec59eae7c2
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/dd37e789ab8c3788ed0b5899eff5fdcb7caf6265190d4ee643fbe0ec59eae7c2/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: df42076544c6cae3e306029a6b4f82abb418857e1db3938f8ac0ba994841478e
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/df42076544c6cae3e306029a6b4f82abb418857e1db3938f8ac0ba994841478e/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: e482bb05fd3f02da69dc2df98077358c96bca532c77a53b87dd7b00732606cb0
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/e482bb05fd3f02da69dc2df98077358c96bca532c77a53b87dd7b00732606cb0/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: e4eff0598023a539ffe527c32575c36e3357b5ef2a589a4b369eb1ab606ac67d
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/e4eff0598023a539ffe527c32575c36e3357b5ef2a589a4b369eb1ab606ac67d/
+
+  - malware_type: "Vidar"
+    analyzed_at: 2026-09-26
+    sample_sha256: eb034f148ad141e8ffd40f9107649caf0a923c2f988e943f0163fa0fa52b5363
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/vidar/versions/unknown/cases/eb034f148ad141e8ffd40f9107649caf0a923c2f988e943f0163fa0fa52b5363/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: ef54c39c5433ab9e782ad8933d8120ac10ff4ea53788e26ab366a1b24cb1d0e5
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/ef54c39c5433ab9e782ad8933d8120ac10ff4ea53788e26ab366a1b24cb1d0e5/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: efaac0749d981772f92b3a98099a1e08c3f0d310eade130615fd72caa3e4d0df
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/efaac0749d981772f92b3a98099a1e08c3f0d310eade130615fd72caa3e4d0df/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: f5c9e4ad8ca1843aaa87eb0e3ea160e8256c5da50349ac186bb7ee83704224f2
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/f5c9e4ad8ca1843aaa87eb0e3ea160e8256c5da50349ac186bb7ee83704224f2/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: f684c35a999317a0bcedfa8ff17f5ec653b00b97a5ae7befe50578c679c3dd82
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/f684c35a999317a0bcedfa8ff17f5ec653b00b97a5ae7befe50578c679c3dd82/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-26
+    sample_sha256: ff0d26663c374bc2935e1ee926ab4c62ac8c74f2e545326b7e469fa0f6472631
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/ff0d26663c374bc2935e1ee926ab4c62ac8c74f2e545326b7e469fa0f6472631/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 04ef5c970c0f02f7644930b79c63fd915a68e0b996fdb8cd481a6ef1395a57b5
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/04ef5c970c0f02f7644930b79c63fd915a68e0b996fdb8cd481a6ef1395a57b5/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 0593552ee0df53f8e2fb80f5748606403989d14536d076d4328e4956f5455a46
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/0593552ee0df53f8e2fb80f5748606403989d14536d076d4328e4956f5455a46/
+
+  - malware_type: "Vidar（提供元報告・未確認）"
+    analyzed_at: 2026-09-28
+    sample_sha256: 0f085328fc54df5bf77c16d30a838d7dcaf629f5cabf29eddbbb683bcc64d83b
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/vidar/versions/unknown/cases/0f085328fc54df5bf77c16d30a838d7dcaf629f5cabf29eddbbb683bcc64d83b/
+
+  - malware_type: "AgentTesla（提供元報告・未確認）"
+    analyzed_at: 2026-09-28
+    sample_sha256: 156587f7d2c1c5bec5deaeabf16cbce6c23bad000f47bb3f1c93ccc68fb347e3
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/agenttesla/versions/unknown/cases/156587f7d2c1c5bec5deaeabf16cbce6c23bad000f47bb3f1c93ccc68fb347e3/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 15a4fc6c055faab1a1fee79d5e53bdb34ce4ab6631ff6110f46aeaa74a3a6f3d
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/15a4fc6c055faab1a1fee79d5e53bdb34ce4ab6631ff6110f46aeaa74a3a6f3d/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 1987abcfd3a4c0b0929d2c2295255543eeacd2fe641b47e065f30d59efbbd5db
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/1987abcfd3a4c0b0929d2c2295255543eeacd2fe641b47e065f30d59efbbd5db/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 1e0302d5e1e7cd1bd6f30d9744d91fa7c2d9580e8edccf3feae842f619093d48
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/1e0302d5e1e7cd1bd6f30d9744d91fa7c2d9580e8edccf3feae842f619093d48/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 2547138e7138b87794fa01aa287fff646cedc5b486ec855de526a36d0222f846
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/2547138e7138b87794fa01aa287fff646cedc5b486ec855de526a36d0222f846/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 2e9abac78aa184685c44e3b9dadaf347fdc9a2844f35df8961049ea9869ff3cc
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/2e9abac78aa184685c44e3b9dadaf347fdc9a2844f35df8961049ea9869ff3cc/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 33a65343384128e0851130c0fc9a38e9eb7d85f9efc4a6c60a5cc148383edd4d
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/33a65343384128e0851130c0fc9a38e9eb7d85f9efc4a6c60a5cc148383edd4d/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 3ea2740322db4a5c4066ef2f09618937eda3f10717fde2ba2df76b6c4da81aa7
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/3ea2740322db4a5c4066ef2f09618937eda3f10717fde2ba2df76b6c4da81aa7/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 4cbf9e936c1a19566f2f42cc7e4a96bce640ac47519696242e7ea1271364ab26
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/4cbf9e936c1a19566f2f42cc7e4a96bce640ac47519696242e7ea1271364ab26/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 5044a47978851eaf608c27d3ba94199efbb9da8bb251d2c5134ae4ae340cf91e
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/5044a47978851eaf608c27d3ba94199efbb9da8bb251d2c5134ae4ae340cf91e/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 505822f97d4b1443dadc5885dfd7239f5c2397b4d839aa9e3d5922248214224c
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/505822f97d4b1443dadc5885dfd7239f5c2397b4d839aa9e3d5922248214224c/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 52f3a917a988edf3cd5b32260681e8f7496a20582cf8a845cbb570775032af04
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/52f3a917a988edf3cd5b32260681e8f7496a20582cf8a845cbb570775032af04/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 53849ec8dad42768758ad70fdb3985876e1eebcac190400407297b0f8951d702
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/53849ec8dad42768758ad70fdb3985876e1eebcac190400407297b0f8951d702/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 63fbba458b97c088fb010f3edc2114aa3ebc7680b2f977e1e3622faf349ac4b7
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/63fbba458b97c088fb010f3edc2114aa3ebc7680b2f977e1e3622faf349ac4b7/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 65117fae4f2948dd3780cfb678741b74905769c833f15c95b897c8cd82691e1b
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/65117fae4f2948dd3780cfb678741b74905769c833f15c95b897c8cd82691e1b/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 692581e015122cbee3e114e510c07982731fd084eaf1a875482b122163d01e1e
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/692581e015122cbee3e114e510c07982731fd084eaf1a875482b122163d01e1e/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 6cde4b452b8c6bc6970bf8ba8e97eac192571bdd34d044c53664b43672bf58be
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/6cde4b452b8c6bc6970bf8ba8e97eac192571bdd34d044c53664b43672bf58be/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 7649390df5fa485bdda14dde21d921c60bed28bed7990293239bfd2ae16663e9
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7649390df5fa485bdda14dde21d921c60bed28bed7990293239bfd2ae16663e9/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 79ecd4c13a4183b93051522f5fb8aafc8414e03e71529f993f91dbc59d23450d
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/79ecd4c13a4183b93051522f5fb8aafc8414e03e71529f993f91dbc59d23450d/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 7a391650af7b60189621d30486291cbb7bf78e06a4e80b277b28954a08d5908b
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7a391650af7b60189621d30486291cbb7bf78e06a4e80b277b28954a08d5908b/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 7c1deaf3dd4d11811fff1d221fe4944a89cd98d8e48f3435c6fe374aadc9ec45
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/7c1deaf3dd4d11811fff1d221fe4944a89cd98d8e48f3435c6fe374aadc9ec45/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 809bfb1f22505bc6d2fe5399958e00c2a3c90bded7bac9c281a4c83e5725af07
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/809bfb1f22505bc6d2fe5399958e00c2a3c90bded7bac9c281a4c83e5725af07/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 8137187c5c9266b90bb5db000ff7e50cb25214dd8fb3236653abbddb468081ea
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/8137187c5c9266b90bb5db000ff7e50cb25214dd8fb3236653abbddb468081ea/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 8175404d65b17083a4e74d510322dfbcd1f515388d0534070adaeba477eff034
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/8175404d65b17083a4e74d510322dfbcd1f515388d0534070adaeba477eff034/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 844a4999b58ebdcc662203defb19b1ea711d6e39022eb5d05147a810bb743282
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/844a4999b58ebdcc662203defb19b1ea711d6e39022eb5d05147a810bb743282/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 8a2747987dfdd3a901246b568c3e104d7cbd9ab89038ef570191db53dc8da5db
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/8a2747987dfdd3a901246b568c3e104d7cbd9ab89038ef570191db53dc8da5db/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 8d6900eebd2285296af800a615c4c50dad42cdf4742bdaceafc15d2ffcaefe20
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/8d6900eebd2285296af800a615c4c50dad42cdf4742bdaceafc15d2ffcaefe20/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 92e29d3fc00ab0cb637db589807a1df9f8a9ce55d50a90bababf6a23f866a077
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/92e29d3fc00ab0cb637db589807a1df9f8a9ce55d50a90bababf6a23f866a077/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: 99a9b6e21b5ef54733a1385425e3d58f56e285d609eea91432963aa4ca3d076c
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/99a9b6e21b5ef54733a1385425e3d58f56e285d609eea91432963aa4ca3d076c/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: a1cd95fad79767dacffc857a5ce261ebba4adf9fe44ed59b9810831dd94e0689
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/a1cd95fad79767dacffc857a5ce261ebba4adf9fe44ed59b9810831dd94e0689/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: a34f61dbd587218e511007fa3add7df230ad62889cee53b9051f727fa05fb2c0
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/a34f61dbd587218e511007fa3add7df230ad62889cee53b9051f727fa05fb2c0/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: a43565efdc71fc93f0267a6937a22d8ec0598bf666a329299436401c619e5f6b
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/a43565efdc71fc93f0267a6937a22d8ec0598bf666a329299436401c619e5f6b/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: af1311d7cf8a15a8a9457a9d27bff4f17857c7492eb54d926884b5eb61bb0f8d
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/af1311d7cf8a15a8a9457a9d27bff4f17857c7492eb54d926884b5eb61bb0f8d/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: b26dd99ccd0684758816ba11c6916dbf6670e9550afd5b3994c06a3cee06e09d
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/b26dd99ccd0684758816ba11c6916dbf6670e9550afd5b3994c06a3cee06e09d/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: bc4633b53ce18d54ef98e80e72f0e53a63398dab48c01c3eb1a49f7ec57e0af8
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/bc4633b53ce18d54ef98e80e72f0e53a63398dab48c01c3eb1a49f7ec57e0af8/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: c1bb5ff5410a6d4d1f6bfb05cd0cf452caa2315230a4972683ec2bdbab8858b7
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/c1bb5ff5410a6d4d1f6bfb05cd0cf452caa2315230a4972683ec2bdbab8858b7/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: cd543fd18b85e702564d6300e58e50f5b6264d444b4ed4b31f4d2d75b8f8c117
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/cd543fd18b85e702564d6300e58e50f5b6264d444b4ed4b31f4d2d75b8f8c117/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: cdcd92f9e3af2925829eaf9e8d366ae2e750bded64d212484995378eb1839025
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/cdcd92f9e3af2925829eaf9e8d366ae2e750bded64d212484995378eb1839025/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: d2308ce690cdcc2a36398b46275c093afb4cfb8360324516f331cde41b5280e3
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/d2308ce690cdcc2a36398b46275c093afb4cfb8360324516f331cde41b5280e3/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: d3f2e5be790d05fc0230865c875dddd2c17be3d289b093353840a4656162e800
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/d3f2e5be790d05fc0230865c875dddd2c17be3d289b093353840a4656162e800/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: e1c289d5b8dcab62f8dad6179bf64ef621b6931de3aafb451a68a8a6cb7c2a7f
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/e1c289d5b8dcab62f8dad6179bf64ef621b6931de3aafb451a68a8a6cb7c2a7f/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: e6a22232324c004a57898e82cdc2a48dc34b4847476979c551f0b1db46b428b6
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/e6a22232324c004a57898e82cdc2a48dc34b4847476979c551f0b1db46b428b6/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: e70ccc297a10f6c7b1ed610d42ad089c9a322824a2f2ce0e06bf5382c0ce81da
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/e70ccc297a10f6c7b1ed610d42ad089c9a322824a2f2ce0e06bf5382c0ce81da/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: e90612572911324615788f50df787658e32e6f81da2830564caf8172c70f34d9
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/e90612572911324615788f50df787658e32e6f81da2830564caf8172c70f34d9/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: eddadcfa6a279e28a604d8cfe6d688ec463f95204c68f73cad399ddf8764628d
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/eddadcfa6a279e28a604d8cfe6d688ec463f95204c68f73cad399ddf8764628d/
+
+  - malware_type: "未分類"
+    analyzed_at: 2026-09-28
+    sample_sha256: f19c9c45a0ec3b7286c920db12cb280f751d7a3d6deca808dce90339539f682a
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は unresolved。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/f19c9c45a0ec3b7286c920db12cb280f751d7a3d6deca808dce90339539f682a/
+
+  - malware_type: "NanoCore（提供元報告・未確認）"
+    analyzed_at: 2026-09-28
+    sample_sha256: fa0104544c2a72a4d7f62297ab0c23146b9d793af0d2c9c32f0c71d4ddeffaa9
+    analysis_level: partial_static_analysis
+    campaign_type: unresolved
+    matched_patterns: []
+    c2: []
+    notes: "日次検体の静的解析。帰属状態は provider_reported_not_statically_confirmed。検体は実行しておらず、終端payload・C2・代表関数の未解決事項は個別caseを参照。"
+    result_path: analysis-results/malware/nanocore/versions/unknown/cases/fa0104544c2a72a4d7f62297ab0c23146b9d793af0d2c9c32f0c71d4ddeffaa9/
   - malware_type: "ValleyRAT（提供元報告・未確認）"
     analyzed_at: 2026-09-05
     sample_sha256: 966b1fea9cdc54843a728b1a870bfb7d2f8109085b6114455d6e2635ab1ad40f

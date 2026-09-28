@@ -19,6 +19,7 @@ from build_all_c2_monitoring_targets import (
     daily_effective_target_commitment,
 )
 from c2_analysis_contract import validate_case as validate_case_c2_analysis
+from c2_monitoring_history import _carry_forward_exclusion_sets
 from daily_news_malware_intake import (
     DAILY_INFRASTRUCTURE_HANDOFF_MODE,
     DAILY_INFRASTRUCTURE_HANDOFF_SCHEMA_VERSION,
@@ -236,12 +237,24 @@ def _validate_infrastructure_c2_binding(
         return
     plan_record = matching_plan[0]
     result_record = matching_result[0]
-    if effective.get("carry_forward_exclusions", []) != handoff.get("carry_forward_exclusions", []):
+    # daily source由来の除外は完全に保持する。別途監査した過去active対象の
+    # 除外はC2 laneだけに追加できるが、同じcanonical schemaを必須にする。
+    source_exclusions = handoff.get("carry_forward_exclusions")
+    effective_exclusions = effective.get("carry_forward_exclusions")
+    try:
+        _carry_forward_exclusion_sets({"carry_forward_exclusions": effective_exclusions})
+        exclusions_match = (
+            isinstance(source_exclusions, list)
+            and all(item in effective_exclusions for item in source_exclusions)
+        )
+    except (TypeError, ValueError):
+        exclusions_match = False
+    if not exclusions_match:
         _finding(
             findings,
             "daily_infrastructure_carry_forward_exclusion_mismatch",
             path,
-            "daily sourceのcarry-forward除外判断がC2 laneへ同一値で継承されていません。",
+            "daily sourceの除外判断がC2 laneへ保持されていないか、追加除外が不正です。",
         )
     plan_required = {
         "schema_version",
@@ -944,6 +957,24 @@ def validate_c2_live_check(repository: Path, analysis_date: str) -> dict[str, An
             "c2_effective_target_count_mismatch",
             effective_path,
             "今回の実効監視対象件数がライブ観測結果件数と一致しません。",
+        )
+    requested_path = root / "targets.json"
+    requested_plan = _json(requested_path, findings)
+    try:
+        _carry_forward_exclusion_sets(requested_plan)
+        _carry_forward_exclusion_sets(effective_plan)
+        exclusions_bound = (
+            requested_plan.get("carry_forward_exclusions", [])
+            == effective_plan.get("carry_forward_exclusions", [])
+        )
+    except (TypeError, ValueError):
+        exclusions_bound = False
+    if not exclusions_bound:
+        _finding(
+            findings,
+            "c2_reviewed_carry_forward_exclusion_mismatch",
+            effective_path,
+            "独立レビューしたcarry-forward除外が入力計画と実効計画で一致しません。",
         )
 
     history_path = root / "monitoring-history.json"

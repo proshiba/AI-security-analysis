@@ -96,6 +96,42 @@
           "suppression_scope": "host"
         }
       ]
+    },
+    {
+      "source_date": "2026-09-26",
+      "source_manifest_sha256": "a60816d0acbed68f2b744377967050a9f3d33bce3d9bbdecd64e6041e722e4b4",
+      "rows": [
+        {
+          "ioc_type": "url",
+          "ioc_value": "http://apm.hexin.cn/trace",
+          "category": "c2",
+          "malware": "ValleyRAT",
+          "description_sha256": "4748e42f0b7e3e98a5a23b2aee5e9bed853b42c90d82d00fe63d8a49cd316084",
+          "disposition": "exclude",
+          "reason": "telemetry_candidate_not_confirmed_direct_c2",
+          "suppression_scope": "host"
+        },
+        {
+          "ioc_type": "domain",
+          "ioc_value": "apm.hexin.cn",
+          "category": "c2",
+          "malware": "ValleyRAT",
+          "description_sha256": "8a547c8d857fa8fbad1c92e65706fba6c2657957bbd7b94b47d8cc5db99b8440",
+          "disposition": "exclude",
+          "reason": "telemetry_candidate_not_confirmed_direct_c2",
+          "suppression_scope": "host"
+        },
+        {
+          "ioc_type": "ip",
+          "ioc_value": "58.220.49.156",
+          "category": "c2",
+          "malware": "ValleyRAT",
+          "description_sha256": "3bab035fc1699e72022ab6cc035139e751b4d1a97df7a65028c912dfcc51c056",
+          "disposition": "exclude",
+          "reason": "telemetry_context_not_confirmed_direct_c2",
+          "suppression_scope": "endpoint"
+        }
+      ]
     }
   ]
 }

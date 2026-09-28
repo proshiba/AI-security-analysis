@@ -145,6 +145,56 @@ def test_cross_family_without_code_or_strong_layer_evidence_is_suppressed() -> N
     assert compare_profiles(left, right) is None
 
 
+def test_compare_profiles_preserves_mixed_and_invalid_dimension_values() -> None:
+    """list以外を無視し、数字・大文字・空白を従来どおり正規化する。"""
+
+    left = {
+        "sha256": LEFT_SHA,
+        "family": "test",
+        "dimensions": {
+            "execution_stages": [" Stage ", 1, 1.5, None, {"bad": 1}],
+            "layer_chain": "invalid_non_list",
+            "capabilities": ["NETWORK:FTP", 2],
+        },
+    }
+    right = {
+        "sha256": RIGHT_SHA,
+        "family": "test",
+        "dimensions": {
+            "execution_stages": ["stage", "1", 1.5],
+            "layer_chain": ["ignored"],
+            "capabilities": ["network:ftp", 2.0],
+        },
+    }
+
+    assert compare_profiles(left, right) == {
+        "left_sha256": LEFT_SHA,
+        "right_sha256": RIGHT_SHA,
+        "same_family": True,
+        "score": 0.7778,
+        "level": "中",
+        "independent_evidence_axes": 2,
+        "evidence": [
+            {
+                "dimension": "execution_stages",
+                "label_ja": "実行段階",
+                "similarity": 1.0,
+                "shared": ["1", "1.5", "stage"],
+                "shared_total": 3,
+            },
+            {
+                "dimension": "capabilities",
+                "label_ja": "機能・挙動",
+                "similarity": 0.3333,
+                "shared": ["network:ftp"],
+                "shared_total": 1,
+            },
+        ],
+        "assessment": "類似候補。campaignまたはactorの同一性を意味しません。",
+    }
+    assert compare_profiles({"dimensions": []}, right) is None
+
+
 def test_generate_writes_and_then_passes_check(tmp_path: Path) -> None:
     repository = tmp_path / "repository"
     catalog_dir = repository / "analysis-results" / "catalog"
@@ -258,9 +308,19 @@ def test_build_index_bounds_candidates_before_global_ranking(
         encoding="utf-8",
     )
 
+    original_string_set = logic_similarity._string_set
+    normalization_calls = 0
+
+    def counted_string_set(values: object) -> set[str]:
+        nonlocal normalization_calls
+        normalization_calls += 1
+        return original_string_set(values)
+
+    monkeypatch.setattr(logic_similarity, "_string_set", counted_string_set)
     index = logic_similarity.build_index(repository)
 
     assert index["counts"]["candidate_pairs_before_limit"] == 15
+    assert normalization_calls == 6 * len(logic_similarity.DIMENSION_WEIGHTS)
     assert index["counts"]["candidate_pairs_retained_for_ranking"] <= 12
     assert index["counts"]["candidate_pairs_omitted_before_ranking"] >= 3
     assert (
