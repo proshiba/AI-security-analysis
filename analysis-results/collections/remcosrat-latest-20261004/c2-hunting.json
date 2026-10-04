@@ -1,0 +1,741 @@
+{
+  "schema_version": 1,
+  "family": "remcosrat",
+  "endpoints": [
+    {
+      "host": "102.220.160.103",
+      "host_kind": "ipv4",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:102.220.160.103 port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "102.220.160.103:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "e0b49707dbaee5f28289d879925518d9e721518424960b95f03cea8a9db4cffe"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "102.220.161.52",
+      "host_kind": "ipv4",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:102.220.161.52 port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "102.220.161.52:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "5c8f690e459743b93d4e1bf5e983a910987183e249f43953f9c69e68cf395a8b"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "102.220.161.73",
+      "host_kind": "ipv4",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:102.220.161.73 port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "102.220.161.73:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "884b343d88a044fbcab9a2a7f3f7b627632ebc6b94b21a99d74795a655a9e599"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "102.220.163.40",
+      "host_kind": "ipv4",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:102.220.163.40 port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "102.220.163.40:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "fa35ebddd896a6afa8f39ab44c68abdfb0c9e9f282992cb453cad4d1e47e22da"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "102.220.163.42",
+      "host_kind": "ipv4",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:102.220.163.42 port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "102.220.163.42:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "e1724e0fe5ff7272bb6a986236a142488f393ed79cdf157188093c33244fef10"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "130.12.182.176",
+      "host_kind": "ipv4",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:130.12.182.176 port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "130.12.182.176:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "1b4301527d7483884ff7650990dbfa988a5e1596dc30a84cb6cb90576d0a7344"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "130.12.182.176",
+      "host_kind": "ipv4",
+      "port": 3000,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:130.12.182.176 port:3000"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "130.12.182.176:3000",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "1b4301527d7483884ff7650990dbfa988a5e1596dc30a84cb6cb90576d0a7344"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "130.12.182.185",
+      "host_kind": "ipv4",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:130.12.182.185 port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "130.12.182.185:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "7373f6b7dbe3324f1c03d055630383740fa0eeb303008e3a9b590c73b1c7a90e"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "130.12.182.201",
+      "host_kind": "ipv4",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:130.12.182.201 port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "130.12.182.201:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "dbaa9ab27c21211a6112a019cddc5dc569cb7e8495ce5f882d165cee83f04033"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "130.12.182.217",
+      "host_kind": "ipv4",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:130.12.182.217 port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "130.12.182.217:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "d5cb53bcccb914476b5928c57e04a67213876bc00b8332b557d5972dcefaca33"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "154.12.117.217",
+      "host_kind": "ipv4",
+      "port": 2408,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:154.12.117.217 port:2408"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "154.12.117.217:2408",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "e7de6197ad8312d8722b477d3ca988e196f17be5f5498eedc4b8d3c6c3791993"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "155.103.69.174",
+      "host_kind": "ipv4",
+      "port": 4981,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:155.103.69.174 port:4981"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "155.103.69.174:4981",
+      "sources": [
+        "confirmed_static_configuration",
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "9f0df64cc8a15b2c96e639a975acb9f54ff26721dc60a8035d4bbc65476485e7"
+      ],
+      "locally_confirmed_static_configuration": true
+    },
+    {
+      "host": "155.103.70.196",
+      "host_kind": "ipv4",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:155.103.70.196 port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "155.103.70.196:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "39b1e49d0e441253c070c8d5777a7221067daca57e94fa0b57a57ba194d3ca5b"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "172.94.15.100",
+      "host_kind": "ipv4",
+      "port": 6075,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:172.94.15.100 port:6075"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "172.94.15.100:6075",
+      "sources": [
+        "confirmed_static_configuration",
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "7250576a3cb7164bf383d89683267604dd1a5d36e1a35f22b5bef2d9f29402e5"
+      ],
+      "locally_confirmed_static_configuration": true
+    },
+    {
+      "host": "23.132.164.3",
+      "host_kind": "ipv4",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:23.132.164.3 port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "23.132.164.3:2404",
+      "sources": [
+        "confirmed_static_configuration",
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "f1610df683fc2543d951f5f83ffc425963a4cc71562a47637987adbf2788d3d1"
+      ],
+      "locally_confirmed_static_configuration": true
+    },
+    {
+      "host": "31.57.184.17",
+      "host_kind": "ipv4",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:31.57.184.17 port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "31.57.184.17:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "42c94c2c132e6b425f5df001f59d7323d8bdb0bd7bafc354ea412f44daf430f6"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "31.57.184.6",
+      "host_kind": "ipv4",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:31.57.184.6 port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "31.57.184.6:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "441a5a269b7efc3440f84a87b25ec1f25285d00a60b8933cca5e64483c381826"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "45.88.91.194",
+      "host_kind": "ipv4",
+      "port": 60508,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:45.88.91.194 port:60508"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "45.88.91.194:60508",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "4c62c64802dca499b6d26134503540478f82f7a179cfb921ffe79504f6beb932"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "45.88.91.194",
+      "host_kind": "ipv4",
+      "port": 60509,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:45.88.91.194 port:60509"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "45.88.91.194:60509",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "4c62c64802dca499b6d26134503540478f82f7a179cfb921ffe79504f6beb932"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "74.201.173.189",
+      "host_kind": "ipv4",
+      "port": 15702,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "ip:74.201.173.189 port:15702"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "74.201.173.189:15702",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "bc95ba9c18b4a42ef16cd467844465c1cac9d3ede338f4b0c63bc8b30fdfc360"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "bk.aerovisioncity.com",
+      "host_kind": "dns",
+      "port": 54198,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:bk.aerovisioncity.com port:54198"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "bk.aerovisioncity.com:54198",
+      "sources": [
+        "confirmed_static_configuration",
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "9fe3245959f6b42e7ac6a25308a439d89851933563cc868f4eeb1e9824be95ee",
+        "ff962f5399670baa9c0fd44f146d5d125da63b05f2dbbcfc77915889b21601ad"
+      ],
+      "locally_confirmed_static_configuration": true
+    },
+    {
+      "host": "catground1957.casacam.net",
+      "host_kind": "dns",
+      "port": 7788,
+      "tls_enabled": true,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:catground1957.casacam.net port:7788"
+      ],
+      "source": "confirmed_static_configuration",
+      "endpoint": "catground1957.casacam.net:7788",
+      "sources": [
+        "confirmed_static_configuration",
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "3797d5082f3612a2493ce6430ed09a61922573f6871401f95b0d2e735a12ada1"
+      ],
+      "locally_confirmed_static_configuration": true
+    },
+    {
+      "host": "channel-facts.duckdns.org",
+      "host_kind": "dns",
+      "port": 56151,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:channel-facts.duckdns.org port:56151"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "channel-facts.duckdns.org:56151",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "47628bf5d571084ccd174e03c02efb2e2211b69d88a12445829344b1cdeea945"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "channel-factsbk.duckdns.org",
+      "host_kind": "dns",
+      "port": 60196,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:channel-factsbk.duckdns.org port:60196"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "channel-factsbk.duckdns.org:60196",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "47628bf5d571084ccd174e03c02efb2e2211b69d88a12445829344b1cdeea945"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "karouts3ustyer1.duckdns.org",
+      "host_kind": "dns",
+      "port": 37690,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:karouts3ustyer1.duckdns.org port:37690"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "karouts3ustyer1.duckdns.org:37690",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "61e37f0bc48504ca6634042698187e8e6c7363c6be09e3b4fe03343b62acc92c"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "karouts3ustyer2.duckdns.org",
+      "host_kind": "dns",
+      "port": 37690,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:karouts3ustyer2.duckdns.org port:37690"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "karouts3ustyer2.duckdns.org:37690",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "61e37f0bc48504ca6634042698187e8e6c7363c6be09e3b4fe03343b62acc92c"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "karouts3ustyer3.duckdns.org",
+      "host_kind": "dns",
+      "port": 37690,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:karouts3ustyer3.duckdns.org port:37690"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "karouts3ustyer3.duckdns.org:37690",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "61e37f0bc48504ca6634042698187e8e6c7363c6be09e3b4fe03343b62acc92c"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "karouts3ustyer4.duckdns.org",
+      "host_kind": "dns",
+      "port": 37690,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:karouts3ustyer4.duckdns.org port:37690"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "karouts3ustyer4.duckdns.org:37690",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "61e37f0bc48504ca6634042698187e8e6c7363c6be09e3b4fe03343b62acc92c"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "karouts3ustyer5.duckdns.org",
+      "host_kind": "dns",
+      "port": 37690,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:karouts3ustyer5.duckdns.org port:37690"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "karouts3ustyer5.duckdns.org:37690",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "61e37f0bc48504ca6634042698187e8e6c7363c6be09e3b4fe03343b62acc92c"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "onetouchfromlifeto.ddns.net",
+      "host_kind": "dns",
+      "port": 4489,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:onetouchfromlifeto.ddns.net port:4489"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "onetouchfromlifeto.ddns.net:4489",
+      "sources": [
+        "confirmed_static_configuration",
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "9121ef0f2d7b2cc3c887420ecb1eae214db9cb780433d11565ab8c98a6ad99ec"
+      ],
+      "locally_confirmed_static_configuration": true
+    },
+    {
+      "host": "www.albader-group.cam",
+      "host_kind": "dns",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:www.albader-group.cam port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "www.albader-group.cam:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "935336441e5aa15e107d320faf279be7588a45e35947035a4d647045966c5520"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "www.albader-groupbackup.cam",
+      "host_kind": "dns",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:www.albader-groupbackup.cam port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "www.albader-groupbackup.cam:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "935336441e5aa15e107d320faf279be7588a45e35947035a4d647045966c5520"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "www.albader-groupbackup1.cam",
+      "host_kind": "dns",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:www.albader-groupbackup1.cam port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "www.albader-groupbackup1.cam:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "935336441e5aa15e107d320faf279be7588a45e35947035a4d647045966c5520"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "www.edibeckconsult.cam",
+      "host_kind": "dns",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:www.edibeckconsult.cam port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "www.edibeckconsult.cam:2404",
+      "sources": [
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "935336441e5aa15e107d320faf279be7588a45e35947035a4d647045966c5520"
+      ],
+      "locally_confirmed_static_configuration": false
+    },
+    {
+      "host": "zeife.giize.com",
+      "host_kind": "dns",
+      "port": 2404,
+      "tls_enabled": null,
+      "monitor_eligible": true,
+      "shodan_queries": [
+        "hostname:zeife.giize.com port:2404"
+      ],
+      "source": "external_sandbox_reported_configuration",
+      "endpoint": "zeife.giize.com:2404",
+      "sources": [
+        "confirmed_static_configuration",
+        "external_sandbox_reported_configuration"
+      ],
+      "parent_sha256": [
+        "13045b384561af13da3cbea5be0440e1939e3765b66fbd43a4f64990f60f072c"
+      ],
+      "locally_confirmed_static_configuration": true
+    }
+  ],
+  "configured_certificate_pivots": [
+    {
+      "sha256": "334f7074f9eb57f009d82aa363d12079b10d40d352b7a47df409f282f2fd38b5",
+      "source": "configured_peer_certificate_not_live_observation",
+      "shodan_query": "ssl.cert.fingerprint.sha256:334f7074f9eb57f009d82aa363d12079b10d40d352b7a47df409f282f2fd38b5",
+      "censys_query": "services.tls.certificates.leaf_data.fingerprint:334f7074f9eb57f009d82aa363d12079b10d40d352b7a47df409f282f2fd38b5",
+      "parent_sha256": [
+        "3797d5082f3612a2493ce6430ed09a61922573f6871401f95b0d2e735a12ada1"
+      ]
+    },
+    {
+      "sha256": "381dde7342bfd09f216037ba2fbcc4de5349fd5a9bde0adcfcbae3f4ec613aa3",
+      "source": "configured_peer_certificate_not_live_observation",
+      "shodan_query": "ssl.cert.fingerprint.sha256:381dde7342bfd09f216037ba2fbcc4de5349fd5a9bde0adcfcbae3f4ec613aa3",
+      "censys_query": "services.tls.certificates.leaf_data.fingerprint:381dde7342bfd09f216037ba2fbcc4de5349fd5a9bde0adcfcbae3f4ec613aa3",
+      "parent_sha256": [
+        "9f0df64cc8a15b2c96e639a975acb9f54ff26721dc60a8035d4bbc65476485e7"
+      ]
+    },
+    {
+      "sha256": "5fefab09eab4f5c9640b02064611f98ec9b8a02f2676057cda9e7da234450eac",
+      "source": "configured_peer_certificate_not_live_observation",
+      "shodan_query": "ssl.cert.fingerprint.sha256:5fefab09eab4f5c9640b02064611f98ec9b8a02f2676057cda9e7da234450eac",
+      "censys_query": "services.tls.certificates.leaf_data.fingerprint:5fefab09eab4f5c9640b02064611f98ec9b8a02f2676057cda9e7da234450eac",
+      "parent_sha256": [
+        "7250576a3cb7164bf383d89683267604dd1a5d36e1a35f22b5bef2d9f29402e5"
+      ]
+    },
+    {
+      "sha256": "7d06175014b1e78f3270d38dae74c02d903106eabea6fe34934ebe5e055d42f7",
+      "source": "configured_peer_certificate_not_live_observation",
+      "shodan_query": "ssl.cert.fingerprint.sha256:7d06175014b1e78f3270d38dae74c02d903106eabea6fe34934ebe5e055d42f7",
+      "censys_query": "services.tls.certificates.leaf_data.fingerprint:7d06175014b1e78f3270d38dae74c02d903106eabea6fe34934ebe5e055d42f7",
+      "parent_sha256": [
+        "9121ef0f2d7b2cc3c887420ecb1eae214db9cb780433d11565ab8c98a6ad99ec"
+      ]
+    },
+    {
+      "sha256": "a60dde327dfcfd9b05086eb875d172b95f2e8ecff093f8a881dcdbd8af581f46",
+      "source": "configured_peer_certificate_not_live_observation",
+      "shodan_query": "ssl.cert.fingerprint.sha256:a60dde327dfcfd9b05086eb875d172b95f2e8ecff093f8a881dcdbd8af581f46",
+      "censys_query": "services.tls.certificates.leaf_data.fingerprint:a60dde327dfcfd9b05086eb875d172b95f2e8ecff093f8a881dcdbd8af581f46",
+      "parent_sha256": [
+        "9fe3245959f6b42e7ac6a25308a439d89851933563cc868f4eeb1e9824be95ee"
+      ]
+    },
+    {
+      "sha256": "f85cbb2278aec97c94262447373feca642adf5112f7f726c7f9f6af35de60594",
+      "source": "configured_peer_certificate_not_live_observation",
+      "shodan_query": "ssl.cert.fingerprint.sha256:f85cbb2278aec97c94262447373feca642adf5112f7f726c7f9f6af35de60594",
+      "censys_query": "services.tls.certificates.leaf_data.fingerprint:f85cbb2278aec97c94262447373feca642adf5112f7f726c7f9f6af35de60594",
+      "parent_sha256": [
+        "f1610df683fc2543d951f5f83ffc425963a4cc71562a47637987adbf2788d3d1"
+      ]
+    }
+  ],
+  "network_signature": {
+    "status": "not_generated_without_packet_capture",
+    "reason": "設定値やsandbox要約だけからbanner、JA3/JARM、packet framingを推測しない"
+  },
+  "active_scan_performed": false,
+  "network_contacted": false
+}

@@ -1,0 +1,684 @@
+{
+  "schema_version": 1,
+  "family": "remcosrat",
+  "selection": {
+    "signature": "RemcosRAT",
+    "selected_at": "2026-10-04T14:07:10.697795+00:00",
+    "requested": 50,
+    "newest_first": true
+  },
+  "samples": [
+    {
+      "sha256": "37ad621bd1713295abb9630d8dd8a6e62b805ac08b2c2bc7952b6b2ca6c81418",
+      "first_seen": "2026-10-04 07:16:05",
+      "provider_file_type": "js",
+      "inner_size": 4244896,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 2,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "d3fd27b5a26302626d8eac3b2fea3ab0370b5918b97f5f3e310137ad00bdebcc",
+      "first_seen": "2026-10-03 13:27:04",
+      "provider_file_type": "bat",
+      "inner_size": 6200,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "bd9473af26d1b51858979f97eb5ade588e959b8f8759d77cb14344606b3dbe9e",
+      "first_seen": "2026-10-03 10:52:50",
+      "provider_file_type": "msi",
+      "inner_size": 802816,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "c1fa1986e9f47abe8c9d2280802409cf4c04d9f482424880c09dcb02472acf9c",
+      "first_seen": "2026-10-02 15:19:30",
+      "provider_file_type": "xlsx",
+      "inner_size": 1058304,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "18724bc0736c8f667c7e93960240effd22a56c6c727554f81b3b244e46c0d05e",
+      "first_seen": "2026-10-02 14:58:18",
+      "provider_file_type": "zip",
+      "inner_size": 2198812,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 3,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "bc95ba9c18b4a42ef16cd467844465c1cac9d3ede338f4b0c63bc8b30fdfc360",
+      "first_seen": "2026-10-02 08:22:24",
+      "provider_file_type": "js",
+      "inner_size": 2433092,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": [
+        "74.201.173.189:15702"
+      ]
+    },
+    {
+      "sha256": "9121ef0f2d7b2cc3c887420ecb1eae214db9cb780433d11565ab8c98a6ad99ec",
+      "first_seen": "2026-10-02 08:06:54",
+      "provider_file_type": "exe",
+      "inner_size": 1065984,
+      "input_role": "pe_root_candidate",
+      "static_family_confirmed": true,
+      "config_status": "not_recovered",
+      "terminal_artifact_count": 1,
+      "external_public_analysis_match_count": 3,
+      "external_reported_config_endpoints": [
+        "onetouchfromlifeto.ddns.net:4489"
+      ]
+    },
+    {
+      "sha256": "ceb2f87c77c15df3f39436c65f844260131324b04d221ff388ceb3c4cafa4838",
+      "first_seen": "2026-10-02 07:36:12",
+      "provider_file_type": "bat",
+      "inner_size": 5968,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 3,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "c8d90a20bf1289f7bc270c6fe164d46e1c3fae0a28a4b11a51f8738a39bb1314",
+      "first_seen": "2026-10-02 06:51:05",
+      "provider_file_type": "hta",
+      "inner_size": 14872,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 3,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "76ccc559edd679c1de7f433a1441af1b0301270b37ac79ee8baae34f1322e11f",
+      "first_seen": "2026-10-02 06:07:31",
+      "provider_file_type": "xls",
+      "inner_size": 1058304,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 3,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "fea7e1f777d2a24b8a1b8ca4691d1f3e927b215b33534f1b943d07032cb8fc38",
+      "first_seen": "2026-10-01 14:54:03",
+      "provider_file_type": "vbs",
+      "inner_size": 78999,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 2,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "94933b78c619629d1195723465a47de5eb1d1fed39688b32c6455b09e984b5c2",
+      "first_seen": "2026-10-01 14:52:43",
+      "provider_file_type": "js",
+      "inner_size": 522,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 2,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "526c7ef03783d60a7466a555b59f0f662f1abd533ced35f8a1d99df0832b88bc",
+      "first_seen": "2026-10-01 14:51:55",
+      "provider_file_type": "js",
+      "inner_size": 462,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 2,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "f384332bfcb641396e2ee8de2309a0d1600f569debc8a6bc66588e4f2a4581c4",
+      "first_seen": "2026-10-01 14:51:51",
+      "provider_file_type": "js",
+      "inner_size": 31590,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "ff962f5399670baa9c0fd44f146d5d125da63b05f2dbbcfc77915889b21601ad",
+      "first_seen": "2026-10-01 14:50:39",
+      "provider_file_type": "js",
+      "inner_size": 4863354,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": [
+        "bk.aerovisioncity.com:54198"
+      ]
+    },
+    {
+      "sha256": "9fe3245959f6b42e7ac6a25308a439d89851933563cc868f4eeb1e9824be95ee",
+      "first_seen": "2026-10-01 14:50:15",
+      "provider_file_type": "js",
+      "inner_size": 1254390,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": true,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 1,
+      "external_public_analysis_match_count": 2,
+      "external_reported_config_endpoints": [
+        "bk.aerovisioncity.com:54198"
+      ]
+    },
+    {
+      "sha256": "48bafd8afafc39606bbb84ef22a896cdf468ae8595c581bad9ac96f7e2e5134e",
+      "first_seen": "2026-10-01 14:49:38",
+      "provider_file_type": "js",
+      "inner_size": 6074272,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "0e4f681e69ffd345f984f1cc2a8d34f80f006bc5a6b51bbb54fcb67a6339c687",
+      "first_seen": "2026-10-01 14:48:06",
+      "provider_file_type": "js",
+      "inner_size": 5164950,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "4c62c64802dca499b6d26134503540478f82f7a179cfb921ffe79504f6beb932",
+      "first_seen": "2026-10-01 14:22:22",
+      "provider_file_type": "vbe",
+      "inner_size": 3143193,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": [
+        "45.88.91.194:60508",
+        "45.88.91.194:60509"
+      ]
+    },
+    {
+      "sha256": "e7de6197ad8312d8722b477d3ca988e196f17be5f5498eedc4b8d3c6c3791993",
+      "first_seen": "2026-10-01 06:49:50",
+      "provider_file_type": "hta",
+      "inner_size": 14883,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 3,
+      "external_reported_config_endpoints": [
+        "154.12.117.217:2408"
+      ]
+    },
+    {
+      "sha256": "3b408e5bd496ec69350d67ae11b7d9335692935d59ae098919fe2bf9b3ce22f5",
+      "first_seen": "2026-10-01 06:29:54",
+      "provider_file_type": "xls",
+      "inner_size": 577024,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "a0b056570801f3bc3469f3f2f28bd3952fa9e94648797a46656fc16a1fb87303",
+      "first_seen": "2026-10-01 05:56:39",
+      "provider_file_type": "js",
+      "inner_size": 5467370,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "7250576a3cb7164bf383d89683267604dd1a5d36e1a35f22b5bef2d9f29402e5",
+      "first_seen": "2026-10-01 04:43:23",
+      "provider_file_type": "exe",
+      "inner_size": 1236480,
+      "input_role": "pe_root_candidate",
+      "static_family_confirmed": true,
+      "config_status": "not_recovered",
+      "terminal_artifact_count": 1,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": [
+        "172.94.15.100:6075"
+      ]
+    },
+    {
+      "sha256": "212f8f40b7451d925ef733cdd8d565d0070082b17f08cee182e150ee42d4783c",
+      "first_seen": "2026-10-01 01:22:56",
+      "provider_file_type": "vbs",
+      "inner_size": 138334,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "13045b384561af13da3cbea5be0440e1939e3765b66fbd43a4f64990f60f072c",
+      "first_seen": "2026-10-01 01:05:07",
+      "provider_file_type": "js",
+      "inner_size": 3445220,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": true,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 1,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": [
+        "zeife.giize.com:2404"
+      ]
+    },
+    {
+      "sha256": "c2791fd5366675b995d332565998f6fc84bbcca2af6567f8cc21f6aabd8d54b1",
+      "first_seen": "2026-09-30 23:13:37",
+      "provider_file_type": "vbs",
+      "inner_size": 137666,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "9f0df64cc8a15b2c96e639a975acb9f54ff26721dc60a8035d4bbc65476485e7",
+      "first_seen": "2026-09-30 15:34:19",
+      "provider_file_type": "js",
+      "inner_size": 782324,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": true,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 1,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": [
+        "155.103.69.174:4981"
+      ]
+    },
+    {
+      "sha256": "61e37f0bc48504ca6634042698187e8e6c7363c6be09e3b4fe03343b62acc92c",
+      "first_seen": "2026-09-30 12:30:07",
+      "provider_file_type": "vbs",
+      "inner_size": 195484,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 3,
+      "external_reported_config_endpoints": [
+        "karouts3ustyer1.duckdns.org:37690",
+        "karouts3ustyer2.duckdns.org:37690",
+        "karouts3ustyer3.duckdns.org:37690",
+        "karouts3ustyer4.duckdns.org:37690",
+        "karouts3ustyer5.duckdns.org:37690"
+      ]
+    },
+    {
+      "sha256": "47628bf5d571084ccd174e03c02efb2e2211b69d88a12445829344b1cdeea945",
+      "first_seen": "2026-09-30 12:09:56",
+      "provider_file_type": "js",
+      "inner_size": 445348,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 2,
+      "external_reported_config_endpoints": [
+        "channel-facts.duckdns.org:56151",
+        "channel-factsbk.duckdns.org:60196"
+      ]
+    },
+    {
+      "sha256": "3797d5082f3612a2493ce6430ed09a61922573f6871401f95b0d2e735a12ada1",
+      "first_seen": "2026-09-30 10:11:42",
+      "provider_file_type": "exe",
+      "inner_size": 660480,
+      "input_role": "remcos_terminal_pe",
+      "static_family_confirmed": true,
+      "config_status": "recovered",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 3,
+      "external_reported_config_endpoints": [
+        "catground1957.casacam.net:7788"
+      ]
+    },
+    {
+      "sha256": "441a5a269b7efc3440f84a87b25ec1f25285d00a60b8933cca5e64483c381826",
+      "first_seen": "2026-09-30 08:30:05",
+      "provider_file_type": "vbe",
+      "inner_size": 192054,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": [
+        "31.57.184.6:2404"
+      ]
+    },
+    {
+      "sha256": "6d0dfa5f615eebb72e30c06fce44b0597a212a91fc55a4bed216bfe71bc00b99",
+      "first_seen": "2026-09-30 08:29:56",
+      "provider_file_type": "vbs",
+      "inner_size": 137483,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "e1724e0fe5ff7272bb6a986236a142488f393ed79cdf157188093c33244fef10",
+      "first_seen": "2026-09-30 08:29:54",
+      "provider_file_type": "vbs",
+      "inner_size": 196306,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": [
+        "102.220.163.42:2404"
+      ]
+    },
+    {
+      "sha256": "5c8f690e459743b93d4e1bf5e983a910987183e249f43953f9c69e68cf395a8b",
+      "first_seen": "2026-09-30 08:29:51",
+      "provider_file_type": "vbe",
+      "inner_size": 191969,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 2,
+      "external_reported_config_endpoints": [
+        "102.220.161.52:2404"
+      ]
+    },
+    {
+      "sha256": "42c94c2c132e6b425f5df001f59d7323d8bdb0bd7bafc354ea412f44daf430f6",
+      "first_seen": "2026-09-30 08:29:39",
+      "provider_file_type": "vbe",
+      "inner_size": 192422,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": [
+        "31.57.184.17:2404"
+      ]
+    },
+    {
+      "sha256": "884b343d88a044fbcab9a2a7f3f7b627632ebc6b94b21a99d74795a655a9e599",
+      "first_seen": "2026-09-30 08:29:37",
+      "provider_file_type": "vbs",
+      "inner_size": 195931,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 3,
+      "external_reported_config_endpoints": [
+        "102.220.161.73:2404"
+      ]
+    },
+    {
+      "sha256": "d5cb53bcccb914476b5928c57e04a67213876bc00b8332b557d5972dcefaca33",
+      "first_seen": "2026-09-30 08:29:35",
+      "provider_file_type": "vbe",
+      "inner_size": 191408,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 3,
+      "external_reported_config_endpoints": [
+        "130.12.182.217:2404"
+      ]
+    },
+    {
+      "sha256": "e0b49707dbaee5f28289d879925518d9e721518424960b95f03cea8a9db4cffe",
+      "first_seen": "2026-09-30 08:29:33",
+      "provider_file_type": "vbe",
+      "inner_size": 192407,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 2,
+      "external_reported_config_endpoints": [
+        "102.220.160.103:2404"
+      ]
+    },
+    {
+      "sha256": "fa35ebddd896a6afa8f39ab44c68abdfb0c9e9f282992cb453cad4d1e47e22da",
+      "first_seen": "2026-09-30 08:29:30",
+      "provider_file_type": "vbe",
+      "inner_size": 192261,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 3,
+      "external_reported_config_endpoints": [
+        "102.220.163.40:2404"
+      ]
+    },
+    {
+      "sha256": "1b4301527d7483884ff7650990dbfa988a5e1596dc30a84cb6cb90576d0a7344",
+      "first_seen": "2026-09-30 08:29:28",
+      "provider_file_type": "vbe",
+      "inner_size": 192026,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": [
+        "130.12.182.176:2404",
+        "130.12.182.176:3000"
+      ]
+    },
+    {
+      "sha256": "39b1e49d0e441253c070c8d5777a7221067daca57e94fa0b57a57ba194d3ca5b",
+      "first_seen": "2026-09-30 08:29:24",
+      "provider_file_type": "vbe",
+      "inner_size": 191988,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": [
+        "155.103.70.196:2404"
+      ]
+    },
+    {
+      "sha256": "7373f6b7dbe3324f1c03d055630383740fa0eeb303008e3a9b590c73b1c7a90e",
+      "first_seen": "2026-09-30 08:29:22",
+      "provider_file_type": "vbe",
+      "inner_size": 192612,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 2,
+      "external_reported_config_endpoints": [
+        "130.12.182.185:2404"
+      ]
+    },
+    {
+      "sha256": "dbaa9ab27c21211a6112a019cddc5dc569cb7e8495ce5f882d165cee83f04033",
+      "first_seen": "2026-09-30 08:29:11",
+      "provider_file_type": "vbe",
+      "inner_size": 191979,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": [
+        "130.12.182.201:2404"
+      ]
+    },
+    {
+      "sha256": "f06cb320794d6ba8d2501c854c18675903e0f26923d52fe4a7403d887ac3dd88",
+      "first_seen": "2026-09-30 08:29:04",
+      "provider_file_type": "vbs",
+      "inner_size": 197278,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "935336441e5aa15e107d320faf279be7588a45e35947035a4d647045966c5520",
+      "first_seen": "2026-09-30 08:28:53",
+      "provider_file_type": "vbs",
+      "inner_size": 1186614,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 3,
+      "external_reported_config_endpoints": [
+        "www.albader-group.cam:2404",
+        "www.albader-groupbackup.cam:2404",
+        "www.albader-groupbackup1.cam:2404",
+        "www.edibeckconsult.cam:2404"
+      ]
+    },
+    {
+      "sha256": "f1610df683fc2543d951f5f83ffc425963a4cc71562a47637987adbf2788d3d1",
+      "first_seen": "2026-09-30 08:28:35",
+      "provider_file_type": "js",
+      "inner_size": 961734,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": true,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 1,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": [
+        "23.132.164.3:2404"
+      ]
+    },
+    {
+      "sha256": "c30320dc2e8dbe9f076ab6542c66d50217beb2c05b29f520e8e2cb91036a3e17",
+      "first_seen": "2026-09-30 08:28:04",
+      "provider_file_type": "js",
+      "inner_size": 5472322,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "a95daf49b0fa4e3437bdecfbc6efad40b0215010e0cf8860f95ac7fdc925ba66",
+      "first_seen": "2026-09-30 08:27:51",
+      "provider_file_type": "js",
+      "inner_size": 31910,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "a34cbf303f2b2df21ed42eb7b64d04efd712aef07e3c003d41382d02f4a64202",
+      "first_seen": "2026-09-30 08:27:45",
+      "provider_file_type": "js",
+      "inner_size": 5470950,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    },
+    {
+      "sha256": "7bdadf37d76e6ef6294c232818216e491790851b98c2e4c0167b50e809d86e41",
+      "first_seen": "2026-09-30 08:27:43",
+      "provider_file_type": "js",
+      "inner_size": 5772598,
+      "input_role": "non_pe_delivery_layer",
+      "static_family_confirmed": false,
+      "config_status": "terminal_pe_not_present_at_root",
+      "terminal_artifact_count": 0,
+      "external_public_analysis_match_count": 1,
+      "external_reported_config_endpoints": []
+    }
+  ],
+  "safety": {
+    "sample_executed": false,
+    "network_contacted": false,
+    "precollected_provider_metadata_consumed": true,
+    "precollected_terminal_artifacts_consumed": true,
+    "plaintext_sample_written": false,
+    "raw_config_published": false,
+    "credentials_published": false,
+    "private_key_published": false
+  }
+}

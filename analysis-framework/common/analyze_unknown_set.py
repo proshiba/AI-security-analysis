@@ -15,9 +15,10 @@ import sys
 from urllib.parse import urlsplit, urlunsplit
 
 REPO = Path(__file__).parents[2]
+FRAMEWORK = REPO / "analysis-framework"
 SRC = REPO / "analysis-framework" / "src"
 COMMON = REPO / "analysis-framework" / "common"
-for location in (REPO, SRC, COMMON):
+for location in (REPO, FRAMEWORK, SRC, COMMON):
     if str(location) not in sys.path:
         sys.path.insert(0, str(location))
 
@@ -130,7 +131,10 @@ MAX_LAYER_SIZE = 64 * 1024 * 1024
 MAX_LAYERS = 48
 ROOT_FULL_SCAN_LIMIT = 32 * 1024 * 1024
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
-FAMILY_ID_RE = re.compile(r"^[a-z0-9_]+$")
+# registryのディレクトリ名には ``mx-go`` のようなハイフン付きIDもある。
+# pathは直後に ``malware/<family>/detect.py`` との完全一致を要求するため、
+# separatorやdotは許可せず、ハイフンだけを安全な文字として追加する。
+FAMILY_ID_RE = re.compile(r"^[a-z0-9_-]+$")
 STRICT_INTERNAL_FORMATS = {
     "agenttesla": {"pe"},
     "stealc": {"pe"},

@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "family": "remcosrat",
+  "configs": [
+    {
+      "parent_sha256": "9121ef0f2d7b2cc3c887420ecb1eae214db9cb780433d11565ab8c98a6ad99ec",
+      "source_kind": "triage_terminal_artifact",
+      "artifact_sha256": "b9ceccaf181e7cbcebb3a2f446694308ca09b0bb0daad9b535b7b02797aed961",
+      "version_candidates": [
+        "3.8.0 Pro"
+      ],
+      "c2": [
+        {
+          "endpoint": "onetouchfromlifeto.ddns.net:4489",
+          "host": "onetouchfromlifeto.ddns.net",
+          "host_kind": "dns",
+          "port": 4489,
+          "tls_enabled": true,
+          "third_field_kind": "tls_flag",
+          "monitor_eligible": true,
+          "role": "interactive_c2",
+          "confidence": "confirmed_static_configuration"
+        }
+      ],
+      "botnet": "ONETOUCH",
+      "connect_interval_seconds": 1,
+      "initial_connect_delay_seconds": 0,
+      "field_count": 60,
+      "schema_profile": "published_56_field_or_later",
+      "peer_certificate_sha256": "7d06175014b1e78f3270d38dae74c02d903106eabea6fe34934ebe5e055d42f7",
+      "agent_certificate_sha256": "3bb78535cc9555ff19fe3556aaa41c78a0a45c64d49ba2bc564507648a8e77a1",
+      "private_key_present": true,
+      "private_key_published": false
+    },
+    {
+      "parent_sha256": "9fe3245959f6b42e7ac6a25308a439d89851933563cc868f4eeb1e9824be95ee",
+      "source_kind": "triage_terminal_artifact",
+      "artifact_sha256": "02a7e185ea9c52b8d74941df755d9d040044da39bc7bf5b4dde0fe4d2c1eecce",
+      "version_candidates": [
+        "7.3.1 Pro"
+      ],
+      "c2": [
+        {
+          "endpoint": "bk.aerovisioncity.com:54198",
+          "host": "bk.aerovisioncity.com",
+          "host_kind": "dns",
+          "port": 54198,
+          "tls_enabled": true,
+          "third_field_kind": "tls_flag",
+          "monitor_eligible": true,
+          "role": "interactive_c2",
+          "confidence": "confirmed_static_configuration"
+        }
+      ],
+      "botnet": "CON64",
+      "connect_interval_seconds": 1,
+      "initial_connect_delay_seconds": 0,
+      "field_count": 58,
+      "schema_profile": "published_56_field_or_later",
+      "peer_certificate_sha256": "a60dde327dfcfd9b05086eb875d172b95f2e8ecff093f8a881dcdbd8af581f46",
+      "agent_certificate_sha256": "58ceecc42e538bd91334ff2ee5f0501e908078ab83905bc147a09ba109c01137",
+      "private_key_present": true,
+      "private_key_published": false
+    },
+    {
+      "parent_sha256": "7250576a3cb7164bf383d89683267604dd1a5d36e1a35f22b5bef2d9f29402e5",
+      "source_kind": "triage_terminal_artifact",
+      "artifact_sha256": "678c85cdc0ecb31927806b1131be55f745ff6cdfcf832a5f9ed4fd8081cb7448",
+      "version_candidates": [
+        "7.3.1 Pro"
+      ],
+      "c2": [
+        {
+          "endpoint": "172.94.15.100:6075",
+          "host": "172.94.15.100",
+          "host_kind": "ipv4",
+          "port": 6075,
+          "tls_enabled": true,
+          "third_field_kind": "tls_flag",
+          "monitor_eligible": true,
+          "role": "interactive_c2",
+          "confidence": "confirmed_static_configuration"
+        }
+      ],
+      "botnet": "RemoteHost",
+      "connect_interval_seconds": 1,
+      "initial_connect_delay_seconds": 0,
+      "field_count": 58,
+      "schema_profile": "published_56_field_or_later",
+      "peer_certificate_sha256": "5fefab09eab4f5c9640b02064611f98ec9b8a02f2676057cda9e7da234450eac",
+      "agent_certificate_sha256": "44c6404fbb17fd798632d9ae9ea83080d77d23e2700c6330d8ea658e7f28b7bc",
+      "private_key_present": true,
+      "private_key_published": false
+    },
+    {
+      "parent_sha256": "13045b384561af13da3cbea5be0440e1939e3765b66fbd43a4f64990f60f072c",
+      "source_kind": "triage_terminal_artifact",
+      "artifact_sha256": "b4dc793c54e32a8987a411d17e67511f65bd297cee2237c418950386e63a6815",
+      "version_candidates": [
+        "7.3.1 Pro"
+      ],
+      "c2": [
+        {
+          "endpoint": "zeife.giize.com:2404",
+          "host": "zeife.giize.com",
+          "host_kind": "dns",
+          "port": 2404,
+          "tls_enabled": false,
+          "third_field_kind": "tls_flag",
+          "monitor_eligible": true,
+          "role": "interactive_c2",
+          "confidence": "confirmed_static_configuration"
+        }
+      ],
+      "botnet": "RemoteHost",
+      "connect_interval_seconds": 1,
+      "initial_connect_delay_seconds": 0,
+      "field_count": 58,
+      "schema_profile": "published_56_field_or_later",
+      "peer_certificate_sha256": null,
+      "agent_certificate_sha256": null,
+      "private_key_present": false,
+      "private_key_published": false
+    },
+    {
+      "parent_sha256": "9f0df64cc8a15b2c96e639a975acb9f54ff26721dc60a8035d4bbc65476485e7",
+      "source_kind": "triage_terminal_artifact",
+      "artifact_sha256": "6f3ac78109bb86b7cad6342b2194f93ae3916bb221adba9e344f01493128a642",
+      "version_candidates": [
+        "3.8.0 Pro"
+      ],
+      "c2": [
+        {
+          "endpoint": "155.103.69.174:4981",
+          "host": "155.103.69.174",
+          "host_kind": "ipv4",
+          "port": 4981,
+          "tls_enabled": true,
+          "third_field_kind": "tls_flag",
+          "monitor_eligible": true,
+          "role": "interactive_c2",
+          "confidence": "confirmed_static_configuration"
+        }
+      ],
+      "botnet": "RemoteHost",
+      "connect_interval_seconds": 1,
+      "initial_connect_delay_seconds": 0,
+      "field_count": 60,
+      "schema_profile": "published_56_field_or_later",
+      "peer_certificate_sha256": "381dde7342bfd09f216037ba2fbcc4de5349fd5a9bde0adcfcbae3f4ec613aa3",
+      "agent_certificate_sha256": "3bb78535cc9555ff19fe3556aaa41c78a0a45c64d49ba2bc564507648a8e77a1",
+      "private_key_present": true,
+      "private_key_published": false
+    },
+    {
+      "parent_sha256": "3797d5082f3612a2493ce6430ed09a61922573f6871401f95b0d2e735a12ada1",
+      "source_kind": "root_pe",
+      "artifact_sha256": "3797d5082f3612a2493ce6430ed09a61922573f6871401f95b0d2e735a12ada1",
+      "version_candidates": [
+        "7.3.1 Pro"
+      ],
+      "c2": [
+        {
+          "endpoint": "catground1957.casacam.net:7788",
+          "host": "catground1957.casacam.net",
+          "host_kind": "dns",
+          "port": 7788,
+          "tls_enabled": true,
+          "third_field_kind": "tls_flag",
+          "monitor_eligible": true,
+          "role": "interactive_c2",
+          "confidence": "confirmed_static_configuration"
+        }
+      ],
+      "botnet": "godofeste",
+      "connect_interval_seconds": 1,
+      "initial_connect_delay_seconds": 0,
+      "field_count": 58,
+      "schema_profile": "published_56_field_or_later",
+      "peer_certificate_sha256": "334f7074f9eb57f009d82aa363d12079b10d40d352b7a47df409f282f2fd38b5",
+      "agent_certificate_sha256": "c2f8b798a7539fcbf5d569d324f5a5e54a0979e2913856d1e76abaaa20d709c8",
+      "private_key_present": true,
+      "private_key_published": false
+    },
+    {
+      "parent_sha256": "f1610df683fc2543d951f5f83ffc425963a4cc71562a47637987adbf2788d3d1",
+      "source_kind": "triage_terminal_artifact",
+      "artifact_sha256": "5bbd30248edb4452b12bcd4b672d5ce945910c7ae595cc85c5808241155b00aa",
+      "version_candidates": [
+        "7.3.1 Pro"
+      ],
+      "c2": [
+        {
+          "endpoint": "23.132.164.3:2404",
+          "host": "23.132.164.3",
+          "host_kind": "ipv4",
+          "port": 2404,
+          "tls_enabled": true,
+          "third_field_kind": "tls_flag",
+          "monitor_eligible": true,
+          "role": "interactive_c2",
+          "confidence": "confirmed_static_configuration"
+        }
+      ],
+      "botnet": "RemoteHost",
+      "connect_interval_seconds": 1,
+      "initial_connect_delay_seconds": 0,
+      "field_count": 58,
+      "schema_profile": "published_56_field_or_later",
+      "peer_certificate_sha256": "f85cbb2278aec97c94262447373feca642adf5112f7f726c7f9f6af35de60594",
+      "agent_certificate_sha256": "e27d3de5b08a8e899b05f828f62dda581df1d36d29a3e198703617a6e20d1ac2",
+      "private_key_present": true,
+      "private_key_published": false
+    }
+  ],
+  "raw_config_published": false,
+  "credentials_published": false,
+  "private_key_published": false
+}

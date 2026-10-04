@@ -628,7 +628,7 @@ def select_reported_candidates(
 
 
 def load_reviewed_candidates(path: Path) -> list[dict[str, Any]]:
-    """人手で確認した公開解析のmemory名を、安全なAPI候補へ変換する。"""
+    """レビュー済みmemoryまたは本ツールの発見候補を安全なAPI候補へ変換する。"""
 
     document = json.loads(path.read_text(encoding="utf-8-sig"))
     rows = document.get("candidates") if isinstance(document, dict) else document
@@ -647,15 +647,35 @@ def load_reviewed_candidates(path: Path) -> list[dict[str, Any]]:
             raise ValueError("reviewed candidateのsample ID形式が不正です")
         if not TASK_ID_RE.fullmatch(task_id):
             raise ValueError("reviewed candidateのtask ID形式が不正です")
-        if not resource.startswith("memory/") or resource.count("/") != 1:
-            raise ValueError("reviewed candidateはmemory直下の成果物に限定されます")
-        safe_name = safe_basename(resource)
-        if not safe_name.lower().endswith("memory.dmp"):
-            raise ValueError("reviewed candidateはmemory.dmpに限定されます")
-        endpoint = (
-            f"/samples/{sample_id}/{task_id}/memory/"
-            f"{urllib.parse.quote(safe_name, safe='')}"
-        )
+        discovered_kind = str(row.get("kind") or "")
+        discovered_endpoint = str(row.get("endpoint_path") or "")
+        if discovered_kind in {"memory_image", "dumped_file"} and discovered_endpoint:
+            safe_name = safe_basename(resource)
+            if not resource or resource != safe_name:
+                raise ValueError("発見済みcandidateのnameはbasenameに限定されます")
+            endpoint_kind = "memory" if discovered_kind == "memory_image" else "files"
+            endpoint = (
+                f"/samples/{sample_id}/{task_id}/{endpoint_kind}/"
+                f"{urllib.parse.quote(safe_name, safe='')}"
+            )
+            if discovered_endpoint != endpoint:
+                raise ValueError("発見済みcandidateのAPI pathが再構成値と一致しません")
+            reference_sha256 = normalize_sha256(row.get("reference_sha256"))
+            kind = discovered_kind
+            selection = "reviewed_discovery_manifest"
+        else:
+            if not resource.startswith("memory/") or resource.count("/") != 1:
+                raise ValueError("reviewed candidateはmemory直下の成果物に限定されます")
+            safe_name = safe_basename(resource)
+            if not safe_name.lower().endswith("memory.dmp"):
+                raise ValueError("reviewed candidateはmemory.dmpに限定されます")
+            endpoint = (
+                f"/samples/{sample_id}/{task_id}/memory/"
+                f"{urllib.parse.quote(safe_name, safe='')}"
+            )
+            reference_sha256 = hashlib.sha256(resource.encode()).hexdigest()
+            kind = "memory_image"
+            selection = "reviewed_report_memory"
         if endpoint in seen:
             continue
         seen.add(endpoint)
@@ -664,11 +684,11 @@ def load_reviewed_candidates(path: Path) -> list[dict[str, Any]]:
                 "parent_sha256": digest,
                 "sample_id": sample_id,
                 "task_id": task_id,
-                "kind": "memory_image",
+                "kind": kind,
                 "name": safe_name,
                 "endpoint_path": endpoint,
-                "reference_sha256": hashlib.sha256(resource.encode()).hexdigest(),
-                "selection": "reviewed_report_memory",
+                "reference_sha256": reference_sha256,
+                "selection": selection,
             }
         )
     return candidates
@@ -1071,6 +1091,13 @@ def main(argv: list[str] | None = None) -> int:
     reviewed_candidates: list[dict[str, Any]] = []
     if args.reviewed_candidates:
         reviewed_candidates = load_reviewed_candidates(args.reviewed_candidates.resolve())
+        if args.candidate_reference_sha256:
+            # 巨大な発見manifestを再利用する場合も、指定された候補の親だけを
+            # APIで再検証する。選択自体は完全一致参照SHAでfail-closedに行う。
+            reviewed_candidates = select_reported_candidates(
+                reviewed_candidates,
+                args.candidate_reference_sha256,
+            )
         hashes.extend(item["parent_sha256"] for item in reviewed_candidates)
     if not hashes:
         raise ValueError("--hashまたは--manifestでSHA-256を指定してください")

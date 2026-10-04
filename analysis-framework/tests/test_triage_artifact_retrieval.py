@@ -308,6 +308,46 @@ def test_load_reviewed_candidates_builds_memory_endpoint(tmp_path: Path) -> None
     )
 
 
+def test_load_reviewed_candidates_accepts_own_dumped_file_manifest(tmp_path: Path) -> None:
+    manifest = tmp_path / "discovery.json"
+    name = "0x00080000000246f0-20.dat"
+    reference = "a" * 64
+    endpoint = f"/samples/260802-abcdefghij/behavioral2/files/{name}"
+    manifest.write_text(
+        json.dumps(
+            {
+                "query_type": "exact_sha256_public_triage_analysis",
+                "candidates": [
+                    {
+                        "parent_sha256": SHA256,
+                        "sample_id": "260802-abcdefghij",
+                        "task_id": "behavioral2",
+                        "kind": "dumped_file",
+                        "name": name,
+                        "endpoint_path": endpoint,
+                        "reference_sha256": reference,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    candidates = retrieval.load_reviewed_candidates(manifest)
+    assert candidates == [
+        {
+            "parent_sha256": SHA256,
+            "sample_id": "260802-abcdefghij",
+            "task_id": "behavioral2",
+            "kind": "dumped_file",
+            "name": name,
+            "endpoint_path": endpoint,
+            "reference_sha256": reference,
+            "selection": "reviewed_discovery_manifest",
+        }
+    ]
+
+
 @pytest.mark.parametrize(
     "name",
     ["../memory.dmp", "memory/../memory.dmp", "files/proc-memory.dmp", "memory/not-a-dump"],

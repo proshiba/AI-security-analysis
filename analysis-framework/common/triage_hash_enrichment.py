@@ -40,7 +40,12 @@ def collection_partial_hashes(collection: Path) -> list[str]:
 def collection_hashes(collection: Path) -> list[str]:
     """collectionに属する全SHA-256を、公開段階に依存せず返す。"""
 
-    summary_path = collection / "publication-summary.json"
+    if collection.is_file():
+        manifest_path = collection
+        summary_path = collection.with_name("publication-summary.json")
+    else:
+        manifest_path = collection / "manifest.json"
+        summary_path = collection / "publication-summary.json"
     if summary_path.is_file():
         summary = json.loads(summary_path.read_text(encoding="utf-8"))
         hashes = [str(case.get("sha256") or "").lower() for case in summary.get("cases") or []]
@@ -48,7 +53,7 @@ def collection_hashes(collection: Path) -> list[str]:
         if valid:
             return valid
 
-    manifest = json.loads((collection / "manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     hashes = []
     for case in manifest.get("cases") or []:
         value = str(case.get("sha256") or "").lower()
@@ -56,6 +61,23 @@ def collection_hashes(collection: Path) -> list[str]:
             value = str(case.get("case_id") or "").lower().removeprefix("sha256:")
         if SHA256_RE.fullmatch(value):
             hashes.append(value)
+    # MalwareBazaarの固定集合manifestも同じCLIへ直接渡せるようにする。
+    # selected_hashesを正本とし、旧manifestではitems.sha256へ限定してfallbackする。
+    if not hashes:
+        selected = manifest.get("selected_hashes")
+        if isinstance(selected, list):
+            hashes.extend(
+                str(value).lower()
+                for value in selected
+                if SHA256_RE.fullmatch(str(value).lower())
+            )
+    if not hashes:
+        for item in manifest.get("items") or []:
+            if not isinstance(item, dict):
+                continue
+            value = str(item.get("sha256") or "").lower()
+            if SHA256_RE.fullmatch(value):
+                hashes.append(value)
     return sorted(set(hashes))
 
 
