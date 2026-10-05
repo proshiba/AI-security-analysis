@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "family": "remcosrat",
+  "counts": {
+    "selected": 50,
+    "archive_verified": 50,
+    "root_pe": 3,
+    "root_non_pe_delivery": 47,
+    "static_family_confirmed": 7,
+    "root_config_recovered": 1,
+    "terminal_artifact_config_recovered": 6,
+    "config_recovered": 7,
+    "confirmed_unique_c2": 7,
+    "external_public_analysis_matched": 50,
+    "external_config_reported": 26,
+    "external_unique_config_endpoints": 35
+  },
+  "version_distribution_locally_validated": {
+    "3.8.0 Pro": 2,
+    "7.3.1 Pro": 5
+  },
+  "tls_distribution_locally_validated_endpoints": {
+    "disabled": 1,
+    "enabled": 6
+  },
+  "locally_confirmed_static_c2": [
+    "155.103.69.174:4981",
+    "172.94.15.100:6075",
+    "23.132.164.3:2404",
+    "bk.aerovisioncity.com:54198",
+    "catground1957.casacam.net:7788",
+    "onetouchfromlifeto.ddns.net:4489",
+    "zeife.giize.com:2404"
+  ],
+  "external_sandbox_reported_c2": [
+    "102.220.160.103:2404",
+    "102.220.161.52:2404",
+    "102.220.161.73:2404",
+    "102.220.163.40:2404",
+    "102.220.163.42:2404",
+    "130.12.182.176:2404",
+    "130.12.182.176:3000",
+    "130.12.182.185:2404",
+    "130.12.182.201:2404",
+    "130.12.182.217:2404",
+    "154.12.117.217:2408",
+    "155.103.69.174:4981",
+    "155.103.70.196:2404",
+    "172.94.15.100:6075",
+    "23.132.164.3:2404",
+    "31.57.184.17:2404",
+    "31.57.184.6:2404",
+    "45.88.91.194:60508",
+    "45.88.91.194:60509",
+    "74.201.173.189:15702",
+    "bk.aerovisioncity.com:54198",
+    "catground1957.casacam.net:7788",
+    "channel-facts.duckdns.org:56151",
+    "channel-factsbk.duckdns.org:60196",
+    "karouts3ustyer1.duckdns.org:37690",
+    "karouts3ustyer2.duckdns.org:37690",
+    "karouts3ustyer3.duckdns.org:37690",
+    "karouts3ustyer4.duckdns.org:37690",
+    "karouts3ustyer5.duckdns.org:37690",
+    "onetouchfromlifeto.ddns.net:4489",
+    "www.albader-group.cam:2404",
+    "www.albader-groupbackup.cam:2404",
+    "www.albader-groupbackup1.cam:2404",
+    "www.edibeckconsult.cam:2404",
+    "zeife.giize.com:2404"
+  ],
+  "evidence_boundary": {
+    "local_static_configuration_confirms_family": true,
+    "external_sandbox_label_alone_confirms_family": false,
+    "configured_endpoint_confirms_current_liveness": false,
+    "configured_peer_certificate_is_live_certificate_observation": false
+  },
+  "safety": {
+    "sample_executed": false,
+    "network_contacted": false,
+    "precollected_provider_metadata_consumed": true,
+    "precollected_terminal_artifacts_consumed": true,
+    "plaintext_sample_written": false,
+    "raw_config_published": false,
+    "credentials_published": false,
+    "private_key_published": false
+  }
+}

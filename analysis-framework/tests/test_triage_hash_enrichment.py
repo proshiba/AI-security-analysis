@@ -65,6 +65,31 @@ def test_collection_hashes_falls_back_to_manifest_case_id(tmp_path: Path) -> Non
     assert module.collection_hashes(collection) == [digest]
 
 
+def test_collection_hashes_accepts_fixed_acquisition_manifest_file(tmp_path: Path) -> None:
+    digest_a = "d" * 64
+    digest_b = "e" * 64
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "selected_hashes": [digest_b, digest_a, "invalid"],
+                "items": [{"sha256": "f" * 64}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert module.collection_hashes(manifest) == [digest_a, digest_b]
+
+
+def test_collection_hashes_falls_back_to_acquisition_items(tmp_path: Path) -> None:
+    digest = "f" * 64
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({"items": [{"sha256": digest}]}), encoding="utf-8")
+
+    assert module.collection_hashes(manifest) == [digest]
+
+
 def test_run_rejects_invalid_hash() -> None:
     try:
         module.run(["invalid"], "key", 1.0)
