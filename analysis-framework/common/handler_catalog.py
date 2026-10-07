@@ -4406,7 +4406,7 @@ _MANAGED_RESOURCE_CONSUMER_COMMITMENTS = {
 }
 _FORMBOOK_MANAGED_RESOURCE_CONSUMER_COMMITMENTS = {
     "analysis-framework/malware/formbook_loader/managed_resource_stage.py":
-        "a489c3a209cdb7e01889292b70aca503a9e1434a15cae15522cda8bceb4eb7e0",
+        "c7cb34ebce0535e6fe265c441c77576fd4fccd6700db97466f0301f965a02e75",
 }
 _FORMBOOK_MANAGED_RESOURCE_CALLS = {
     ("_framework_types", "resolver._coded_token"): (
