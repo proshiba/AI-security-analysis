@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "collection_id": "remcosrat-latest-20261004",
   "family": "remcosrat",
   "selection": {
     "signature": "RemcosRAT",
@@ -671,6 +672,8 @@
       "external_reported_config_endpoints": []
     }
   ],
+  "cases": [],
+  "family_sources": [],
   "safety": {
     "sample_executed": false,
     "network_contacted": false,
