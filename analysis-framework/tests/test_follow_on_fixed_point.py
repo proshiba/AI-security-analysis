@@ -127,6 +127,108 @@ def test_zero_output_negative_proof_is_strict_and_legacy_rebuildable() -> None:
             one_shot._retained_outputs_from_wrapper(invalid)
 
 
+def test_non_retained_output_audit_is_valid_but_blocks_follow_on() -> None:
+    """親保持失敗は壊れたschemaと混同せず、payload昇格だけを拒否する。"""
+
+    audit = _audit(
+        0,
+        binary_values_seen=1,
+        binary_bytes_seen=64,
+        traversal_items=4,
+        observed_output_count=1,
+        retained_for_follow_on_analysis=False,
+        observation_scope='wrapper_hash_metadata_only',
+        reasons=['artifact_retention_failed'],
+    )
+    wrapper = {
+        'verified_binary_outputs': [],
+        'verified_binary_output_audit': audit,
+    }
+    assert one_shot._retained_outputs_from_wrapper(wrapper) == []
+    assert one_shot._wrapper_follow_on_promotion_eligible(wrapper) is False
+
+    for updates in (
+        {'reasons': []},
+        {'binary_values_seen': 0},
+        {'binary_bytes_seen': 0},
+        {'follow_on_analysis_complete': True},
+        {'observation_scope': 'parent_rehashed_case_artifact'},
+    ):
+        invalid = {
+            **wrapper,
+            'verified_binary_output_audit': {**audit, **updates},
+        }
+        with pytest.raises(ValueError, match='auditのschema'):
+            one_shot._retained_outputs_from_wrapper(invalid)
+
+
+def test_recovered_payload_role_is_accepted_for_follow_on() -> None:
+    """検証済み中間子をterminalへ昇格せずfixed-point入力として受理する。"""
+
+    wrapper = _wrapper(b'MZ recovered child')
+    wrapper['verified_binary_outputs'][0]['role'] = 'recovered_payload'
+
+    outputs = one_shot._retained_outputs_from_wrapper(wrapper)
+
+    assert len(outputs) == 1
+    assert outputs[0]['role'] == 'recovered_payload'
+
+
+def test_case_scan_reports_valid_non_retained_output_without_schema_error(
+    tmp_path: Path,
+) -> None:
+    """保持失敗をinvalid metadataへ潰さず、再試行可能なpartial理由にする。"""
+
+    parent = 'a' * 64
+    case_dir = tmp_path / 'cases' / parent
+    case_dir.mkdir(parents=True)
+    audit = _audit(
+        0,
+        binary_values_seen=1,
+        binary_bytes_seen=64,
+        traversal_items=4,
+        observed_output_count=1,
+        retained_for_follow_on_analysis=False,
+        observation_scope='wrapper_hash_metadata_only',
+        reasons=['artifact_retention_failed'],
+    )
+    (case_dir / 'report.json').write_text(
+        json.dumps({'handler_executions': []}),
+        encoding='utf-8',
+    )
+    (case_dir / 'candidate-handler-assessment.json').write_text(
+        json.dumps(
+            {
+                'families': [
+                    {
+                        'attempts': [
+                            {
+                                'result': {
+                                    'verified_binary_outputs': [],
+                                    'verified_binary_output_audit': audit,
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ),
+        encoding='utf-8',
+    )
+
+    records, errors, read_count, read_bytes = one_shot._case_retained_payloads(
+        tmp_path,
+        parent,
+        maximum_records=64,
+        maximum_read_bytes=256 * 1024 * 1024,
+    )
+
+    assert records == []
+    assert errors == ['verified_output_not_retained']
+    assert read_count == 0
+    assert read_bytes == 0
+
+
 @pytest.mark.parametrize(
     ('change',),
     [

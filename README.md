@@ -1,6 +1,6 @@
 # AIセキュリティ解析
 
-AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む4,067件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
+AIを補助的に使い、マルウェア検体の静的解析、キャンペーン分類、C2／IOC整理、検知ルール作成材料の管理を行うためのリポジトリです。現在は既知・暫定マルウェアファミリ、未分類検体、サプライチェーン調査を含む4,068件のSHA-256 caseを扱い、解析コードは `analysis-framework/`、公開可能な解析結果は `analysis-results/`、過去解析の索引は `analysis_history.yaml` に分離しています。ファミリ別のOSINT、版根拠、全case一覧は [解析成果物](analysis-results/README.md) を参照してください。
 
 > **安全上の前提**: このリポジトリには検体本体、抽出した実行可能ファイル、復号バイナリ、PCAP、Ghidra project、資格情報を保存しません。保存対象はレポート、メタデータ、IOC、テキスト化した逆アセンブル、検知ルール候補など公開可能な成果物に限定します。
 
@@ -210,6 +210,7 @@ python .\analysis-framework\common\generate_ioc_lists.py --repository . --check
 
 | マルウェア種 | 解析回数 | 最後の解析日 | 主な解析パターン |
 |---|---:|---|---|
+| 未分類Python Socket.IO RAT | 1 | 2026-10-03 | VBS→公式uv→Python、Socket.IO C2、Startup LNK、keylogger・画面・遠隔入力・shell・双方向file転送 |
 | ValleyRAT | 13 | 2026-07-27 | 従来パターン、`iso_pdfcore8_winos_proxy_sideload` |
 | ValleyRAT（提供元報告・未確認） | 6 | 2026-09-05 | EXE 5件・IMG 1件の追加静的解析。終端通信・登録・timerは未解決 |
 | AgentTesla | 11 | 2026-07-29 | `unicode_marker_powershell_png_stage`, `javascript_aes_inmemory_dotnet`, `fromcharcode_eval_loader`, `rar_wrapped_javascript`, `japanese_invoice_malspam_js_luajit_donut_ftp` |

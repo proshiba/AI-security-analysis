@@ -15,17 +15,15 @@ import sys
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 
 from c2_protocol_probe_profiles import (
     PROFILE_METHODS,
     ProtocolProfileError,
-    canonical_profile_object_sha256,
     profile_registry_metadata,
     remus_review_registry_metadata,
     resolve_profile,
     validate_redline_profile_binding,
-    validate_xloader_profile_evidence,
 )
 from darkcomet_profile_evidence import (
     DarkCometEvidenceError,
@@ -91,8 +89,6 @@ ALLOWED_METHODS = {
     "remus_registration_task",
     "darkcomet_server_first_idtype",
     "redline_checkconnect_soap11",
-    "xloader_v8_get_registration",
-    "formbook_reviewed_route_head",
 }
 ACTIVE_PROFILE_METHODS = {
     "winos_heartbeat",
@@ -108,10 +104,40 @@ ACTIVE_PROFILE_METHODS = {
     "remus_registration_task",
     "darkcomet_server_first_idtype",
     "redline_checkconnect_soap11",
-    "xloader_v8_get_registration",
 }
 PROFILE_REQUIRED_PROTOCOLS = frozenset(protocol for protocol, _method in PROFILE_METHODS.values())
 ALLOWED_TRANSPORTS = {"direct", "tor-socks5"}
+PASSIVE_ONLY_FAMILY_ALIASES = frozenset(
+    {
+        "formbook",
+        "formbook-loader",
+        "formbook-stealer",
+        "formbook_loader",
+        "guloader-xloader-payload",
+        "guloader_xloader_payload",
+        "xloader",
+    }
+)
+PASSIVE_ONLY_APPLICATION_METHODS = frozenset(
+    {"formbook_reviewed_route_head", "xloader_v8_get_registration"}
+)
+APPLICATION_LAYER_METHODS = frozenset(
+    {
+        "asyncrat_tls_messagepack",
+        "formbook_reviewed_route_head",
+        "ftp_authenticated",
+        "http_get",
+        "lumma_v6_registration_task",
+        "purerat_tls_prelude",
+        "redline_checkconnect_soap11",
+        "remus_registration_task",
+        "stealc_v2_registration_task",
+        "venomrat_tls_messagepack",
+        "vvas_checkin",
+        "winos_heartbeat",
+        "xloader_v8_get_registration",
+    }
+)
 METHOD_CEILINGS = {
     "dns_resolve": 0.05,
     "tcp_connect": 0.25,
@@ -226,6 +252,14 @@ def validate_plan(plan: dict, *, repository_root: Path | None = None) -> dict:
         protocol = target.get("protocol", "tcp")
         method = target.get("method", "tcp_connect")
         transport = target.get("transport", "direct")
+        family = str(target.get("family", "")).casefold()
+        if method in PASSIVE_ONLY_APPLICATION_METHODS or (
+            family in PASSIVE_ONLY_FAMILY_ALIASES
+            and method in APPLICATION_LAYER_METHODS
+        ):
+            raise PlanError(
+                "FormBook／XLoaderはpassive_onlyのためapplication-layer送信methodを使用できません"
+            )
         if protocol not in ALLOWED_PROTOCOLS:
             raise PlanError(f"protocolが許可されていません: {protocol}")
         if method not in ALLOWED_METHODS:
@@ -390,61 +424,6 @@ def validate_plan(plan: dict, *, repository_root: Path | None = None) -> dict:
                     raise PlanError(
                         "RedLine targetのtimeout/request/response上限が固定値と一致しません"
                     )
-            if method == "xloader_v8_get_registration":
-                evidence_sha256 = target.get("protocol_profile_evidence_sha256")
-                if (
-                    target.get("protocol_profile_evidence_source")
-                    != profile.get("review_evidence_source")
-                    or evidence_sha256 != profile.get("review_evidence_sha256")
-                    or target.get("protocol_profile_review_id")
-                    != profile.get("review_id")
-                    or target.get("protocol_profile_payload_sha256")
-                    != canonical_profile_object_sha256(profile)
-                    or target.get(
-                        "protocol_profile_private_material_reference"
-                    )
-                    != profile.get("private_material_reference")
-                    or target.get("protocol_profile_private_material_sha256")
-                    != profile.get("private_material_sha256")
-                    or target.get(
-                        "protocol_profile_selector_path_table_sha256"
-                    )
-                    != profile.get("selector_path_table_sha256")
-                    or target.get(
-                        "protocol_profile_synthetic_template_id"
-                    )
-                    != profile.get("synthetic_template_id")
-                    or target.get(
-                        "protocol_profile_pkt2_inner_plaintext_sha256"
-                    )
-                    != profile.get("pkt2_inner_plaintext_sha256")
-                    or target.get("protocol_profile_request_sha256")
-                    != profile.get("request_sha256")
-                ):
-                    raise PlanError(
-                        "XLoader profile/private material/selector/synthetic/request/review pinが完全一致しません"
-                    )
-                try:
-                    validate_xloader_profile_evidence(
-                        profile,
-                        repository_root=repository_root,
-                        expected_sha256=evidence_sha256,
-                    )
-                except ProtocolProfileError as exc:
-                    raise PlanError(
-                        f"XLoader review証拠を再検証できません: {exc}"
-                    ) from exc
-                if (
-                    type(target.get("timeout_seconds")) is not float
-                    or target.get("timeout_seconds") != 3.0
-                    or type(target.get("maximum_request_bytes")) is not int
-                    or target.get("maximum_request_bytes") != 4096
-                    or type(target.get("maximum_response_bytes")) is not int
-                    or target.get("maximum_response_bytes") != 8192
-                ):
-                    raise PlanError(
-                        "XLoader targetのtimeout/request/response上限が固定値と一致しません"
-                    )
         elif profile_id is not None:
             raise PlanError("protocol_profile_idはレビュー済みactive methodだけに使用できます")
         if method == "protocol_profile_required":
@@ -484,7 +463,6 @@ def validate_plan(plan: dict, *, repository_root: Path | None = None) -> dict:
             "remus_registration_task": "remusstealer",
             "darkcomet_server_first_idtype": "darkcomet",
             "redline_checkconnect_soap11": "redlinestealer",
-            "xloader_v8_get_registration": "xloader_http_get_pkt2",
         }.get(method)
         if expected_protocol and protocol != expected_protocol:
             raise PlanError(f"{method}にはprotocol={expected_protocol}が必要です")
@@ -1514,37 +1492,6 @@ def _load_redline_active_probe_module():
     return module
 
 
-def _load_xloader_active_probe_module():
-    """XLoader固有active probeをpackage相対import付きで読み込む。"""
-
-    family_root = (
-        Path(__file__).parents[1]
-        / "malware"
-        / "formbook_loader"
-    )
-    package_name = "_monitor_formbook_loader"
-    module_name = f"{package_name}.xloader_active_probe"
-    existing = sys.modules.get(module_name)
-    if existing is not None:
-        return existing
-    package = sys.modules.get(package_name)
-    if package is None:
-        package = ModuleType(package_name)
-        package.__path__ = [str(family_root)]  # type: ignore[attr-defined]
-        package.__package__ = package_name
-        sys.modules[package_name] = package
-    spec = importlib.util.spec_from_file_location(
-        module_name,
-        family_root / "xloader_active_probe.py",
-    )
-    if spec is None or spec.loader is None:
-        raise RuntimeError("XLoader active probe moduleを読み込めません")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
 def _normalize_bounded_active_result(result: dict) -> dict:
     """family結果へ共通のrequest budget・送受信量・非公開flagを補う。"""
 
@@ -1685,113 +1632,24 @@ def _xloader_registration_observation(
     private_material_path: Path | None,
     repository_root: Path | None,
 ) -> dict:
-    """XLoader v8のreview済みreal C2へ合成PKT2を1 GETだけ送る。"""
+    """互換入口でもXLoaderの外部登録GETを常に拒否する。"""
 
-    disabled = {
-        "timestamp_utc": datetime.now(UTC).isoformat(),
-        "alive": False,
-        "c2_confirmed": False,
-        "target_contact_attempted": False,
-        "target_connection_established": False,
-        "application_data_sent": False,
-        "protocol_response_received": False,
-        "registration_attempted": False,
-        "task_poll_attempted": False,
-        "request_count": 0,
-    }
-    if not allow_network:
-        return _normalize_bounded_active_result(
-            {**disabled, "status": "network_disabled"}
-        )
-    if not allow_xloader_registration:
-        return _normalize_bounded_active_result(
-            {**disabled, "status": "xloader_registration_disabled"}
-        )
-    if private_material_path is None:
-        return _normalize_bounded_active_result(
-            {**disabled, "status": "xloader_private_material_missing"}
-        )
-    profile = resolve_profile(
-        target["protocol_profile_id"],
-        target["host"],
-        target["port"],
-        expected_registry_sha256=target.get(
-            "protocol_profile_registry_sha256"
-        ),
+    return _normalize_bounded_active_result(
+        {
+            "timestamp_utc": datetime.now(UTC).isoformat(),
+            "status": "passive_only_application_probe_blocked",
+            "alive": False,
+            "c2_confirmed": False,
+            "target_contact_attempted": False,
+            "target_connection_established": False,
+            "application_data_sent": False,
+            "protocol_response_received": False,
+            "registration_attempted": False,
+            "task_poll_attempted": False,
+            "request_count": 0,
+            "passive_only_policy_enforced": True,
+        }
     )
-    try:
-        module = _load_xloader_active_probe_module()
-        private_material = module.load_private_material(
-            private_material_path,
-            repository_root=repository_root,
-        )
-        result = module.probe_reviewed_xloader_registration(
-            profile,
-            private_material=private_material,
-            allow_network=True,
-            allow_xloader_registration=True,
-            allow_xloader_candidate_check=False,
-            expected_profile_sha256=target[
-                "protocol_profile_payload_sha256"
-            ],
-            expected_profile_registry_sha256=target[
-                "protocol_profile_registry_sha256"
-            ],
-            expected_private_material_sha256=target[
-                "protocol_profile_private_material_sha256"
-            ],
-            expected_selector_path_table_sha256=target[
-                "protocol_profile_selector_path_table_sha256"
-            ],
-            expected_synthetic_template_id=target[
-                "protocol_profile_synthetic_template_id"
-            ],
-            expected_pkt2_inner_plaintext_sha256=target[
-                "protocol_profile_pkt2_inner_plaintext_sha256"
-            ],
-            expected_request_sha256=target[
-                "protocol_profile_request_sha256"
-            ],
-            expected_review_id=target["protocol_profile_review_id"],
-            expected_profile_id=target["protocol_profile_id"],
-        )
-    except ConnectionRefusedError:
-        return _normalize_bounded_active_result(
-            {
-                **disabled,
-                "status": "closed",
-                "target_contact_attempted": True,
-                "registration_attempted": True,
-            }
-        )
-    except TimeoutError:
-        return _normalize_bounded_active_result(
-            {
-                **disabled,
-                "status": "timeout",
-                "target_contact_attempted": True,
-                "registration_attempted": True,
-            }
-        )
-    except OSError as exc:
-        return _normalize_bounded_active_result(
-            {
-                **disabled,
-                "status": "xloader_network_error",
-                "target_contact_attempted": True,
-                "registration_attempted": True,
-                "error_type": type(exc).__name__,
-            }
-        )
-    except (ValueError, RuntimeError, json.JSONDecodeError) as exc:
-        return _normalize_bounded_active_result(
-            {
-                **disabled,
-                "status": "xloader_profile_or_material_error",
-                "error_type": type(exc).__name__,
-            }
-        )
-    return _normalize_bounded_active_result(result)
 
 
 def _dns_observation(target: dict, allow_network: bool) -> dict:
@@ -2038,6 +1896,7 @@ def assess_observation(target: dict, observation: dict) -> dict:
         "malware_registration_tasking_disabled",
         "reviewed_checkconnect_not_authorized",
         "profile_acknowledgement_missing_or_mismatch",
+        "passive_only_application_probe_blocked",
         "redline_checkconnect_probe_error",
         "xloader_registration_disabled",
         "xloader_private_material_missing",
@@ -2827,7 +2686,12 @@ def monitor(
             ),
             "private_authentication_enabled": allow_authentication,
             "reviewed_malware_registration_enabled": allow_malware_registration,
-            "reviewed_xloader_registration_enabled": allow_xloader_registration,
+            "reviewed_xloader_registration_enabled": False,
+            "xloader_registration_override_ignored": bool(
+                allow_xloader_registration
+            ),
+            "passive_only_families": ["formbook", "xloader"],
+            "passive_only_application_requests_blocked": True,
             "private_credential_vault_used": private_credential_vault is not None,
             "xloader_private_material_used": False,
             "authentication_attempted_count": sum(
@@ -3205,7 +3069,7 @@ def main() -> int:
     parser.add_argument(
         "--allow-xloader-registration",
         action="store_true",
-        help="review済みreal-C2 XLoader profileの合成PKT2登録GET 1要求を許可します。",
+        help="互換引数。XLoaderはpassive_onlyのため、指定しても登録GETを許可しません。",
     )
     parser.add_argument(
         "--private-credential-vault",

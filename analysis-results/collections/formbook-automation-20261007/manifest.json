@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "collection_id": "formbook-automation-20261007",
+  "analyzed_at": "2026-10-07",
+  "scope": "formbook_xloader_ai_free_static_automation",
+  "root_sample_count": 404,
+  "static_analysis_attempted_root_count": 404,
+  "analysis_complete_root_count": 0,
+  "confirmed_protocol_c2_root_count": 0,
+  "provider_selected_root_count": 401,
+  "official_versioned_root_count": 3,
+  "membership": {
+    "representation": "sorted_unique_sha256_lf_with_trailing_lf",
+    "sha256": "61c07b81ad316e4a3fd21d3dc3fe38ee1b3d021cc6d404e45168735925cc9043",
+    "member_list_published": false,
+    "reason": "検体集合はリポジトリ外の暗号化解析領域で保持し、公開成果物には再現可能な集合commitmentだけを残す"
+  },
+  "selection_boundary": {
+    "provider_family_label_is_confirmation": false,
+    "candidate_set_complete": false,
+    "candidate_set_truncated": true,
+    "candidate_set_truncation_reason": "提供元照会がmax-results上限で打ち切られた",
+    "latest_provider_query_count": 100,
+    "latest_provider_overlap_with_prior_400": 99,
+    "latest_provider_new_root_count": 1,
+    "excluded_alias_collision_count": 3,
+    "excluded_alias_collision_format": "android_apk"
+  },
+  "artifacts": {
+    "human_readable_report": "README.md",
+    "machine_readable_summary": "summary.json"
+  },
+  "cases": [],
+  "family_sources": [],
+  "safety": {
+    "samples_executed": false,
+    "recovered_payloads_executed": false,
+    "live_c2_contacted": false,
+    "external_stage_downloads": 1,
+    "external_stage_download_policy": "statically_proven_payload_stage_url_one_get_no_redirect",
+    "ai_used_for_automation_benchmark": false
+  }
+}

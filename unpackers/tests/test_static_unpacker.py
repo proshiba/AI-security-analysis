@@ -20,6 +20,69 @@ from unpackers import static_unpacker as unpacker
 from unpackers.inno_static import InnoCandidateAssessment
 
 
+def test_zip_routes_equation_ole_stage_into_fixed_point(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """復号済みOOXMLからEquation stageを子レイヤーへ渡す。"""
+
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as archive:
+        archive.writestr("[Content_Types].xml", b"<Types/>")
+    decoded_stage = b"synthetic-equation-stage"
+    monkeypatch.setattr(
+        unpacker,
+        "recover_equation_ole",
+        lambda _data: (
+            {"status": "equation_ole_stage_recovered", "network_contacted": False},
+            [("equation-ole-decoded-stage", decoded_stage)],
+        ),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(stream.getvalue(), "sample.xlsx")
+
+    assert report["equation_ole"]["status"] == "equation_ole_stage_recovered"
+    assert ("equation-ole-decoded-stage", decoded_stage) in artifacts
+
+
+def test_ole_routes_equation_stage_without_executing_office(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Equation OLEの検証済みstageをOffice実行なしで保持する。"""
+
+    decoded_stage = b"synthetic-equation-stage"
+    monkeypatch.setattr(
+        unpacker,
+        "recover_default_password_ooxml",
+        lambda *_args, **_kwargs: ({"status": "not_office_encrypted_ooxml"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_equation_ole",
+        lambda _data: (
+            {"status": "equation_ole_stage_recovered", "network_contacted": False},
+            [("equation-ole-decoded-stage", decoded_stage)],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_vba_modules",
+        lambda *_args, **_kwargs: ({"status": "vba_not_detected"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_ole_streams",
+        lambda *_args, **_kwargs: ({"status": "no_artifact_recovered"}, []),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(
+        b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1fixture",
+        "oleObject1.bin",
+    )
+
+    assert report["equation_ole"]["status"] == "equation_ole_stage_recovered"
+    assert ("equation-ole-decoded-stage", decoded_stage) in artifacts
+
+
 def test_static_tool_process_drops_host_secret_environment(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -272,6 +335,13 @@ def test_hash_entropy_format_and_names() -> None:
     assert unpacker.detect_format(b"ER\x02\x00" + b"\0" * 28, "x") == "apple-disk-image"
     assert unpacker.detect_format(b"Rar!\x1a\x07\x01\x00", "x") == "rar"
     assert unpacker.detect_format(b"var x = 1", "x.js") == "script"
+    assert (
+        unpacker.detect_format(
+            b"<?xml version='1.0'?><job><script language='JScript'>x</script></job>",
+            "carrier.wsf",
+        )
+        == "script"
+    )
     assert unpacker.detect_format(b"%PDF-1.7\n%%EOF", "x") == "pdf"
     assert unpacker.detect_format("// loader".encode("utf-16"), "x") == "script"
     assert unpacker.safe_member_name("a/b") == "a/b"
@@ -772,6 +842,28 @@ def test_macho_and_encoded_blob() -> None:
     assert blobs == [("base64-zip", stream.getvalue())]
     noise = __import__("base64").b64encode(b"MZ" + b"A" * 256)
     assert unpacker.recover_encoded_blobs(b"x='" + noise + b"'") == []
+
+
+def test_large_base64_powershell_stage_is_recovered_for_fixed_point_analysis() -> None:
+    """commentと長いhere-stringで始まるPowerShellもscript childへ渡す。"""
+
+    powershell = (
+        "# synthetic state-machine loader\r\n"
+        "$State = [pscustomobject]@{ PayloadRaw = @'\r\n"
+        + ("QUFB" * 40_000)
+        + "\r\n'@ }\r\n"
+        "function Convert-Payload { param([string]$Encoded)\r\n"
+        "  $decoded = [Convert]::FromBase64String($Encoded)\r\n"
+        "  $aes = New-Object System.Security.Cryptography.AesManaged\r\n"
+        "  $aes.Mode = [System.Security.Cryptography.CipherMode]::CBC\r\n"
+        "}\r\n"
+    ).encode()
+    encoded = __import__("base64").b64encode(powershell)
+
+    assert unpacker.recover_encoded_blobs(b"var stage='" + encoded + b"';") == [
+        ("base64-script", powershell)
+    ]
+    assert unpacker.detect_format(powershell, "root::base64-script") == "script"
 
 
 def test_chunked_echo_base64_reassembly() -> None:
@@ -2129,6 +2221,74 @@ def test_pe_bcrypt_resource_report_and_artifact_reach_static_layers(
         "terminal_promotion_eligible": False,
     }
     assert artifacts == [("bcrypt-resource-shellcode", b"decoded")]
+
+
+def test_managed_smartassembly_strings_reach_fixed_point_layers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """managed文字列tableをreportと再帰artifactの両方へ渡す。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": False,
+                "is_dotnet": True,
+                "sections": [],
+                "packer_markers": [],
+                "overlay_size": 0,
+            },
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_dotnet_resources",
+        lambda _data: ({"status": "not_recovered"}, []),
+    )
+    recovered = b'["https://candidate.invalid/path"]'
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_smartassembly_strings",
+        lambda _data: (
+            {
+                "status": "recovered_string_table",
+                "network_indicator_candidates_are_c2_confirmation": False,
+            },
+            [("managed-smartassembly-strings-json", recovered)],
+        ),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(b"MZfixture", "fixture.exe")
+
+    assert report["managed_smartassembly_strings"]["status"] == (
+        "recovered_string_table"
+    )
+    assert ("managed-smartassembly-strings-json", recovered) in artifacts
+
+
+def test_managed_handoff_image_is_inspected_without_clr_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HOI1を通常data扱いで捨てず、静的構造reportへ残す。"""
+
+    observed: list[bytes] = []
+
+    def fake_inspect(data: bytes) -> dict[str, object]:
+        observed.append(data)
+        return {"status": "parsed", "executed": False, "clr_loaded": False}
+
+    monkeypatch.setattr(unpacker, "inspect_managed_handoff_image", fake_inspect)
+    report, _artifacts = unpacker.unpack_bytes(b"HOI1fixture", "handoff.bin")
+
+    assert observed == [b"HOI1fixture"]
+    assert report["managed_handoff_image"] == {
+        "status": "parsed",
+        "executed": False,
+        "clr_loaded": False,
+    }
 
 
 def test_nsis_probe_does_not_hide_decompiled_script_with_archive_password(

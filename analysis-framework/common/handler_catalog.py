@@ -23,7 +23,7 @@ import time
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from dataclasses import asdict, dataclass
-from functools import cache
+from functools import cache, lru_cache
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit, urlunsplit
@@ -135,6 +135,7 @@ KNOWN_INPUT_FORMATS = frozenset(
         "rar",
         "autoit-a3x",
         "ole",
+        "rtf",
         "script",
         "java-class",
     }
@@ -173,6 +174,7 @@ class _AssessmentInvariantPreflight:
     blockers: tuple[str, ...]
     source_sha256: str | None
     dependency_audit: Mapping[str, Any]
+    commitment_sha256: str
 
 
 _ASSESSMENT_INVARIANT_PREFLIGHT_CACHE: dict[
@@ -542,6 +544,7 @@ def _extractor_specs() -> list[HandlerSpec]:
     integrated_families = (
         "asyncrat",
         "dcrat",
+        "formbook",
         "njrat",
         "stealc",
         "venomrat",
@@ -795,6 +798,7 @@ def clear_handler_caches() -> None:
     """同一process内の次回batchが変更済みsourceを再読込できるようにする。"""
 
     _module_tree.cache_clear()
+    _nodes_in_lexical_scope.cache_clear()
     _relative_audit_path.cache_clear()
     _resolve_local_module_path.cache_clear()
     load_handler.cache_clear()
@@ -1052,7 +1056,7 @@ def _verified_binary_kind(data: bytes) -> str:
 
 
 def _verified_binary_role(path: Sequence[str], parent: Mapping[str, Any] | None) -> str | None:
-    """raw resultの明示的なterminal/final役割だけを採用する。"""
+    """raw resultの明示的な終端または静的復元済み役割だけを採用する。"""
 
     aliases = {
         "terminal_payload": "terminal_payload",
@@ -1061,6 +1065,9 @@ def _verified_binary_role(path: Sequence[str], parent: Mapping[str, Any] | None)
         "final_payload": "final_payload",
         "final_payload_bytes": "final_payload",
         "final_payload_data": "final_payload",
+        "recovered_payload": "recovered_payload",
+        "recovered_payload_bytes": "recovered_payload",
+        "recovered_payload_data": "recovered_payload",
     }
     normalized_path = tuple(segment.strip().casefold().replace("-", "_") for segment in path)
     if len(normalized_path) == 1:
@@ -1082,7 +1089,7 @@ def _verified_binary_role(path: Sequence[str], parent: Mapping[str, Any] | None)
         if (
             leaf in {"data", "bytes"}
             and isinstance(supplied, str)
-            and supplied in {"terminal_payload", "final_payload"}
+            and supplied in {"terminal_payload", "final_payload", "recovered_payload"}
         ):
             return supplied
         if len(normalized_path) == 2 and leaf in {"data", "bytes"}:
@@ -1153,7 +1160,7 @@ def _verified_binary_outputs(
     *,
     artifact_root: Path | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """raw handler resultを有界走査し、実体hash済みterminal/final payloadだけを返す。"""
+    """raw handler resultを有界走査し、役割明示済みbinaryだけを返す。"""
 
     outputs: list[dict[str, Any]] = []
     output_keys: set[tuple[str, str, str]] = set()
@@ -2401,7 +2408,7 @@ def _validated_artifact_destination(
 
     if artifact_directory is None:
         return None
-    from analysis_contract import ensure_no_reparse_components
+    from analysis_contract import _extended_length_path, ensure_no_reparse_components
 
     directory = Path(artifact_directory)
     if not directory.is_absolute():
@@ -2422,7 +2429,10 @@ def _validated_artifact_destination(
         or any(part in {"", ".", ".."} for part in normalized.split("/"))
     ):
         raise ValueError("artifact_path_prefixが不正です")
-    return resolved, normalized
+    # 親processだけが所有する保存先は、WindowsのLongPathsEnabledに依存せず
+    # full SHA-256 file名を作成できるI/O pathへ変換する。公開metadataは下の
+    # 相対prefixのままなのでhost pathを露出しない。
+    return _extended_length_path(resolved), normalized
 
 
 def _read_verified_artifact(
@@ -2533,7 +2543,7 @@ def _retain_worker_outputs(
                 size = output.get("size")
                 verification = output.get("verification")
                 if (
-                    role not in {"terminal_payload", "final_payload"}
+                    role not in {"terminal_payload", "final_payload", "recovered_payload"}
                     or kind not in VERIFIED_BINARY_KINDS
                     or not isinstance(digest, str)
                     or re.fullmatch(r"[0-9a-f]{64}", digest) is None
@@ -2582,6 +2592,8 @@ def _retain_worker_outputs(
                 retained.append({**output, "path": public_path})
             except (OSError, ValueError, HandlerLoadError):
                 reasons.add("artifact_retention_failed")
+    elif observed:
+        reasons.add("artifact_retention_not_requested")
     if len(observed) > MAX_VERIFIED_BINARY_OUTPUTS:
         reasons.add("maximum_verified_outputs")
     worker_audit = execution.get("verified_binary_output_audit")
@@ -2949,9 +2961,11 @@ _APPROVED_EXTERNAL_MODULE_ROOTS = frozenset(
         "cryptography",
         "dncil",
         "dnfile",
+        "msoffcrypto",
         "nrv2e",
         "numpy",
         "olefile",
+        "oletools",
         "pefile",
         "pyzipper",
         "refinery",
@@ -3075,6 +3089,7 @@ _APPROVED_EXTERNAL_CALLS = frozenset(
         "gzip.decompress",
         "hashlib.md5",
         "hashlib.pbkdf2_hmac",
+        "hashlib.sha1",
         "hashlib.sha256",
         "hmac.compare_digest",
         "hmac.new",
@@ -3094,6 +3109,7 @@ _APPROVED_EXTERNAL_CALLS = frozenset(
         "logging.disable",
         "logging.getLogger",
         "math.log2",
+        "math.isfinite",
         "warnings.catch_warnings",
         "warnings.simplefilter",
         "olefile.OleFileIO",
@@ -3464,6 +3480,81 @@ _REVIEWED_SOURCE_CALLS = {
         "reachable:recover_strings_from_bytes",
         "decoder.disasm",
     ): "検体bytes内の実行sectionをCapstoneで静的disassemble",
+    (
+        "analysis-framework/malware/formbook_loader/native_stage0.py",
+        "reachable:_discover_dispatcher",
+        "decoder.disasm",
+    ): "128 MiB以下のx86 PE entryから最大4 KiB、dispatcherから最大128 KiBだけを静的decodeする",
+    (
+        "analysis-framework/malware/formbook_loader/native_stage0.py",
+        "reachable:_stage_score",
+        "decoder.disasm",
+    ): "復号候補のentry先頭最大512 byteだけを静的decodeして一意性を検証する",
+    (
+        "analysis-framework/malware/formbook_loader/native_xloader.py",
+        "reachable:_ambiguous_frame_prologues",
+        "disasm",
+    ): "128 MiB以下の入力で標準frame候補ごとに最大1 KiBだけをx86-32として静的decodeする",
+    (
+        "analysis-framework/malware/formbook_loader/native_xloader.py",
+        "reachable:_scan_builder_function",
+        "disasm",
+    ): "検証済み標準frame候補ごとに最大1 KiBだけをx86-32として静的decodeする",
+    (
+        "analysis-framework/malware/formbook_loader/native_xloader.py",
+        "reachable:_bounded_function_instructions",
+        "disasm",
+    ): "呼出側上限以下の標準frame関数だけをx86-32として静的decodeする",
+    (
+        "analysis-framework/malware/formbook_loader/native_xloader.py",
+        "reachable:_instruction_writes_ebx_family",
+        "instruction.regs_access",
+    ): "Capstone命令objectのregister read/write集合だけを取得する",
+    (
+        "analysis-framework/malware/formbook_loader/native_xloader.py",
+        "reachable:_update_known_byte_registers",
+        "instruction.regs_access",
+    ): "builderおよび20-byte鍵helper内の低位byte register定数を失効判定するためread/write集合だけを取得する",
+    (
+        "analysis-framework/malware/formbook_loader/native_xloader.py",
+        "reachable:_recover_base_key_helper",
+        "immediate_words.setdefault",
+    ): "最大20-byte鍵のstack DWORD候補を局所dictへ集約する",
+    (
+        "analysis-framework/malware/formbook_loader/native_xloader.py",
+        "reachable:_recover_base_key_helper",
+        "xor_words.setdefault",
+    ): "最大20-byte鍵のstack XOR候補を局所dictへ集約する",
+    (
+        "analysis-framework/malware/formbook_loader/native_xloader.py",
+        "reachable:discover_stack_string_builder_call_targets",
+        "call_owners.setdefault",
+    ): "最大256件の検証済みbuilder call所有者を局所dictへ集約する",
+    (
+        "analysis-framework/malware/formbook_loader/native_xloader.py",
+        "reachable:discover_stack_string_builder_call_targets",
+        "grouped.setdefault",
+    ): "最大256件の検証済みbuilderをdirect call target別に局所集約する",
+    (
+        "analysis-framework/malware/formbook_loader/native_xloader.py",
+        "reachable:decode_stack_string_builders",
+        "call_owners.setdefault",
+    ): "検証済みbuilder call所有者を局所dictへ集約する",
+    (
+        "analysis-framework/malware/formbook_loader/native_c2_dataflow.py",
+        "reachable:_written_registers",
+        "instruction.regs_access",
+    ): "有界に静的decodeしたCapstone命令のregister read/write集合だけを取得する",
+    (
+        "analysis-framework/malware/formbook_loader/native_c2_dataflow.py",
+        "reachable:_cached_bounded_instructions",
+        "cache.retain_instructions",
+    ): "型確認済みの局所cacheへentry・命令・byte上限内の静的命令列だけを保持する",
+    (
+        "analysis-framework/malware/formbook_loader/extract_config.py",
+        "reachable:_extract_native_xloader_inventory",
+        "to_report",
+    ): "同じ入力bytesから得たnative C2 dataflow結果を秘密値除外済みreportへ変換する",
     (
         "analysis-framework/common/recover_ror13_peb_api_hashes.py",
         "reachable:review_bytes",
@@ -3862,6 +3953,14 @@ _REVIEWED_SOURCE_CALLS = {
         "engine.disasm",
     ): ("復元済みraw stage先頭1,024 byteだけを静的decodeしx64命令被覆を検証する有界Capstone呼出し"),
     (
+        "analysis-framework/malware/formbook_loader/native_c2_dataflow.py",
+        "reachable:_bounded_cfg_instructions",
+        "engine.disasm",
+    ): (
+        "入力PEの単一関数window内でcount=1の命令だけをdecodeし、"
+        "block・命令件数上限付きCFGをfail-closedで構築するCapstone呼出し"
+    ),
+    (
         "extractors/valleyrat/extractor.py",
         "reachable:_vvas_function_summary",
         "collections.deque",
@@ -4037,6 +4136,31 @@ _REVIEWED_SOURCE_CALLS = {
         "time.monotonic",
     ): "全候補合計8秒の解析上限を判定する単調時計の読み取りのみ",
     (
+        "analysis-framework/malware/formbook_loader/managed_resource_stage.py",
+        "reachable:_deadline",
+        "time.monotonic",
+    ): "method／resource／instruction上限に加えて全解析5秒上限を判定する単調時計の読み取りのみ",
+    (
+        "analysis-framework/malware/formbook_loader/managed_resource_stage.py",
+        "reachable:recover_managed_resource_stage",
+        "time.monotonic",
+    ): "constructor前preflight後の全解析5秒deadlineを一度だけ設定する単調時計の読み取りのみ",
+    (
+        "analysis-framework/malware/formbook_loader/native_xloader.py",
+        "reachable:auto_decode_stack_string_builders_with_cache",
+        "time.monotonic",
+    ): "同一handler内の命令snapshotを20秒で失効させる単調時計の読み取りのみ",
+    (
+        "analysis-framework/malware/formbook_loader/native_xloader.py",
+        "reachable:__setitem__",
+        "time.monotonic",
+    ): "命令object一時cacheの蓄積を同じ20秒期限で停止する単調時計の読み取りのみ",
+    (
+        "analysis-framework/malware/formbook_loader/native_c2_dataflow.py",
+        "reachable:_validated_call_scope_instruction_cache",
+        "time.monotonic",
+    ): "SHA結合済み命令snapshotの20秒期限を検証する単調時計の読み取りのみ",
+    (
         "analysis-framework/common/remus_disk_config.py",
         "reachable:_instructions",
         "machine.disasm",
@@ -4129,7 +4253,7 @@ _APPROVED_CALLBACK_PARAMETERS = frozenset(
 _MANAGED_RESOURCE_SOURCE_COMMITMENTS = {
     "unpackers/managed_resources.py": "3e1804c709b57670a6a78bfd6292ed78896057c85b2427212310ea4ecd158ea9",
     "unpackers/dnfile_resource_adapter.py": "ecd84fd4738500967063afa4c9376eb54b6e3c4d211e26810ca28a774b537015",
-    "unpackers/clr_input_binding.py": "208255eedd5fff2c85dc17778825d804c5dc1c78b34ed3eca459f83250fd9892",
+    "unpackers/clr_input_binding.py": "f680cc2c9fd8e88ad89f50b6d6a75352d78533e646d48db3576c7907a0cac940",
     "unpackers/managed_resource_snapshot.py": "df28a45fd2d6d52a328636268dd4d483f81da05b55fb44cedc0f0853ae615d5d",
     "unpackers/managed_constructor_guard.py": "ce841314eaae64cf85cb97865868694427c06f3bae5493a6272412ca4e84657f",
 }
@@ -4194,6 +4318,57 @@ def _managed_resource_expression_matches(node: ast.AST, expressions: tuple[str, 
     return any(value == _managed_resource_expression_template(expression) for expression in expressions)
 
 
+def _formbook_managed_resource_call_shape(
+    call: ast.Call,
+    tree: ast.Module,
+    scope: ast.AST,
+    relative: str,
+    context: str,
+) -> tuple[str, str] | None:
+    """FormBook decoderの固定snapshot／resolver呼出しだけをcalleeへ結ぶ。"""
+
+    if (
+        relative not in _FORMBOOK_MANAGED_RESOURCE_CONSUMER_COMMITMENTS
+        or not isinstance(scope, ast.FunctionDef)
+        or context != f"reachable:{scope.name}"
+    ):
+        return None
+    name = _ast_call_name(call.func) or ""
+    profile = _FORMBOOK_MANAGED_RESOURCE_CALLS.get((scope.name, name))
+    arguments = {
+        item.arg
+        for item in (
+            *scope.args.posonlyargs,
+            *scope.args.args,
+            *scope.args.kwonlyargs,
+        )
+    }
+    receiver_intact = (
+        name == "resolver._coded_token"
+        and "resolver" in arguments
+        and _parameter_is_not_rebound(scope, "resolver")
+        and _managed_resource_assignment_sequence(
+            scope,
+            frozenset({"resolver"}),
+        )
+        == ()
+    )
+    if profile is None or not (
+        receiver_intact
+        or _expression_binding_is_intact(call.func, tree, scope)
+    ):
+        return None
+    if any(
+        not _parameter_is_not_rebound(scope, parameter)
+        for parameter in arguments & {"data", "scan", "resolver"}
+    ):
+        return None
+    for expression, module, symbol in profile:
+        if _managed_resource_expression_matches(call, (expression,)):
+            return module, symbol
+    return None
+
+
 def _managed_resource_parameters_intact(scope: ast.AST) -> bool:
     if not isinstance(scope, ast.FunctionDef):
         return isinstance(scope, ast.Module)
@@ -4228,6 +4403,63 @@ def _managed_resource_allocator_shape(call: ast.Call, tree: ast.Module, scope: a
 _MANAGED_RESOURCE_CONSUMER_COMMITMENTS = {
     "unpackers/managed_il_triage.py": "8a39383fac40269b30b2387c9d11ddf5ba2a0588f3eaa11d46b8058c0795d752",
     "unpackers/managed_proxy_deobfuscator.py": "66a06326274d86f4706ee9caed4c41b4461a3c0e28dab2d8535ffbc42b2edf56",
+}
+_FORMBOOK_MANAGED_RESOURCE_CONSUMER_COMMITMENTS = {
+    "analysis-framework/malware/formbook_loader/managed_resource_stage.py":
+        "c7cb34ebce0535e6fe265c441c77576fd4fccd6700db97466f0301f965a02e75",
+}
+_FORMBOOK_MANAGED_RESOURCE_CALLS = {
+    ("_framework_types", "resolver._coded_token"): (
+        (
+            'resolver._coded_token(row.ResolutionScope, {"AssemblyRef"})',
+            "managed_metadata",
+            "_coded_token",
+        ),
+    ),
+    ("_framework_references", "resolver._coded_token"): (
+        (
+            'resolver._coded_token(row.Class, {"TypeRef"})',
+            "managed_metadata",
+            "_coded_token",
+        ),
+    ),
+    ("_resource_values", "revalidated_resource_scan"): (
+        (
+            "revalidated_resource_scan(data, scan)",
+            "managed_resource_snapshot",
+            "revalidated_resource_scan",
+        ),
+    ),
+    ("recover_managed_resource_stage", "preflight_clr_declarations"): (
+        (
+            (
+                "preflight_clr_declarations(data, max_input_bytes=MAX_INPUT_BYTES, "
+                "max_table_rows=MAX_METADATA_ROWS, "
+                "max_total_rows=MAX_TOTAL_METADATA_ROWS)"
+            ),
+            "managed_constructor_guard",
+            "preflight_clr_declarations",
+        ),
+    ),
+    ("recover_managed_resource_stage", "prepare_resource_snapshot"): (
+        (
+            (
+                "prepare_resource_snapshot(data, pe, max_resources=MAX_RESOURCES, "
+                "max_resource_bytes=MAX_RESOURCE_BYTES, "
+                "max_rows=MAX_METADATA_ROWS, "
+                "max_total_rows=MAX_TOTAL_METADATA_ROWS)"
+            ),
+            "managed_resource_snapshot",
+            "prepare_resource_snapshot",
+        ),
+    ),
+    ("recover_managed_resource_stage", "revalidated_resource_scan"): (
+        (
+            "revalidated_resource_scan(data, scan)",
+            "managed_resource_snapshot",
+            "revalidated_resource_scan",
+        ),
+    ),
 }
 _MANAGED_RESOURCE_CONSUMER_ASSIGNMENTS = {
     "unpackers/managed_il_triage.py": (
@@ -5536,6 +5768,31 @@ def _reviewed_source_call_shape_allowed(
     if key in {
         ("analysis-framework/common/remus_disk_config.py", "reachable:_candidate", "time.monotonic"),
         ("analysis-framework/common/remus_disk_config.py", "reachable:extract_remus_disk_config", "time.monotonic"),
+        (
+            "analysis-framework/malware/formbook_loader/managed_resource_stage.py",
+            "reachable:_deadline",
+            "time.monotonic",
+        ),
+        (
+            "analysis-framework/malware/formbook_loader/managed_resource_stage.py",
+            "reachable:recover_managed_resource_stage",
+            "time.monotonic",
+        ),
+        (
+            "analysis-framework/malware/formbook_loader/native_xloader.py",
+            "reachable:auto_decode_stack_string_builders_with_cache",
+            "time.monotonic",
+        ),
+        (
+            "analysis-framework/malware/formbook_loader/native_xloader.py",
+            "reachable:__setitem__",
+            "time.monotonic",
+        ),
+        (
+            "analysis-framework/malware/formbook_loader/native_c2_dataflow.py",
+            "reachable:_validated_call_scope_instruction_cache",
+            "time.monotonic",
+        ),
     }:
         return bool(
             not node.args
@@ -5728,6 +5985,185 @@ def _reviewed_source_call_shape_allowed(
             and len(node.args) == 2
             and ast.dump(node.args[0], include_attributes=False) == ast.dump(expected_code, include_attributes=False)
             and ast.dump(node.args[1], include_attributes=False) == ast.dump(expected_base, include_attributes=False)
+        )
+    native_xloader_source = (
+        "analysis-framework/malware/formbook_loader/native_xloader.py"
+    )
+    if key is not None and key[0] == native_xloader_source:
+        context = key[1]
+        if key[2] == "disasm":
+            expected_limit = (
+                "maximum_size"
+                if context == "reachable:_bounded_function_instructions"
+                else "MAX_BUILDER_FUNCTION_SIZE"
+            )
+            expected_end = ast.parse(
+                f"min(len(data), function_start + {expected_limit})",
+                mode="eval",
+            ).body
+            expected_call = ast.parse(
+                "_disassembler().disasm(data[function_start:end], function_start)",
+                mode="eval",
+            ).body
+            end_origin = _simple_name_origin(scope, "end")
+            decoder = next(
+                (
+                    item
+                    for item in tree.body
+                    if isinstance(item, ast.FunctionDef)
+                    and item.name == "_disassembler"
+                ),
+                None,
+            )
+            decoder_valid = bool(
+                isinstance(decoder, ast.FunctionDef)
+                and len(decoder.body) == 3
+                and isinstance(decoder.body[0], ast.Assign)
+                and len(decoder.body[0].targets) == 1
+                and isinstance(decoder.body[0].targets[0], ast.Name)
+                and decoder.body[0].targets[0].id == "engine"
+                and isinstance(decoder.body[0].value, ast.Call)
+                and _expanded_call_name(decoder.body[0].value, aliases)
+                == "capstone.Cs"
+                and ast.dump(
+                    decoder.body[0].value,
+                    include_attributes=False,
+                )
+                == ast.dump(
+                    ast.parse(
+                        "Cs(CS_ARCH_X86, CS_MODE_32)", mode="eval"
+                    ).body,
+                    include_attributes=False,
+                )
+                and isinstance(decoder.body[1], ast.Assign)
+                and ast.dump(
+                    decoder.body[1], include_attributes=False
+                )
+                == ast.dump(
+                    ast.parse("engine.detail = True").body[0],
+                    include_attributes=False,
+                )
+                and isinstance(decoder.body[2], ast.Return)
+                and isinstance(decoder.body[2].value, ast.Name)
+                and decoder.body[2].value.id == "engine"
+            )
+            parameters = (
+                ["data", "prologues"]
+                if context == "reachable:_ambiguous_frame_prologues"
+                else ["data", "function_start"]
+            )
+            if expected_limit == "maximum_size":
+                parameters.append("maximum_size")
+            return bool(
+                decoder_valid
+                and end_origin is not None
+                and ast.dump(end_origin, include_attributes=False)
+                == ast.dump(expected_end, include_attributes=False)
+                and ast.dump(node, include_attributes=False)
+                == ast.dump(expected_call, include_attributes=False)
+                and all(
+                    _parameter_is_not_rebound(scope, parameter)
+                    for parameter in parameters
+                )
+            )
+        if key[2] == "instruction.regs_access":
+            expected = ast.parse(
+                "instruction.regs_access()", mode="eval"
+            ).body
+            return bool(
+                ast.dump(node, include_attributes=False)
+                == ast.dump(expected, include_attributes=False)
+                and _parameter_is_not_rebound(scope, "instruction")
+            )
+        expected_setdefault = {
+            (
+                "reachable:_recover_base_key_helper",
+                "immediate_words.setdefault",
+            ): "immediate_words.setdefault(displacement, set())",
+            (
+                "reachable:_recover_base_key_helper",
+                "xor_words.setdefault",
+            ): "xor_words.setdefault(stack_destination[0], set())",
+            (
+                "reachable:discover_stack_string_builder_call_targets",
+                "call_owners.setdefault",
+            ): "call_owners.setdefault(candidate.call_offset, set())",
+            (
+                "reachable:discover_stack_string_builder_call_targets",
+                "grouped.setdefault",
+            ): "grouped.setdefault(candidate.decrypt_call_target, [])",
+            (
+                "reachable:decode_stack_string_builders",
+                "call_owners.setdefault",
+            ): "call_owners.setdefault(candidate.call_offset, set())",
+        }.get((context, key[2]))
+        if expected_setdefault is not None:
+            return ast.dump(node, include_attributes=False) == ast.dump(
+                ast.parse(expected_setdefault, mode="eval").body,
+                include_attributes=False,
+            )
+        return False
+    if key == (
+        "analysis-framework/malware/formbook_loader/native_c2_dataflow.py",
+        "reachable:_written_registers",
+        "instruction.regs_access",
+    ):
+        expected = ast.parse(
+            "instruction.regs_access()", mode="eval"
+        ).body
+        return bool(
+            ast.dump(node, include_attributes=False)
+            == ast.dump(expected, include_attributes=False)
+            and _parameter_is_not_rebound(scope, "instruction")
+        )
+    if key == (
+        "analysis-framework/malware/formbook_loader/native_c2_dataflow.py",
+        "reachable:_cached_bounded_instructions",
+        "cache.retain_instructions",
+    ):
+        expected = ast.parse(
+            "cache.retain_instructions(function_offset, instructions)",
+            mode="eval",
+        ).body
+        return bool(
+            ast.dump(node, include_attributes=False)
+            == ast.dump(expected, include_attributes=False)
+            and _parameter_is_not_rebound(scope, "data")
+            and _parameter_is_not_rebound(scope, "function_offset")
+            and _parameter_is_not_rebound(scope, "cache")
+        )
+    if key == (
+        "analysis-framework/malware/formbook_loader/extract_config.py",
+        "reachable:_extract_native_xloader_inventory",
+        "to_report",
+    ):
+        expected = ast.parse(
+            (
+                "analyze_native_c2_dataflow(data, _decoded=decoded, "
+                "_instruction_cache=instruction_cache).to_report()"
+            ),
+            mode="eval",
+        ).body
+        expected_binding = _managed_resource_statement_template(
+            "decoded, instruction_cache = "
+            "auto_decode_stack_string_builders_with_cache(data)"
+        )
+        return bool(
+            ast.dump(node, include_attributes=False)
+            == ast.dump(expected, include_attributes=False)
+            and _parameter_is_not_rebound(scope, "data")
+            and _managed_resource_assignment_sequence(
+                scope,
+                frozenset({"decoded", "instruction_cache"}),
+            )
+            == (expected_binding,)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Call)
+            and _expression_binding_is_intact(
+                node.func.value.func,
+                tree,
+                scope,
+            )
         )
     if key == (
         "extractors/xworm/integrated.py",
@@ -6059,8 +6495,9 @@ def _function_definition_runtime_expressions(
     return tuple(value for value in values if isinstance(value, ast.AST))
 
 
+@lru_cache(maxsize=256)
 def _nodes_in_lexical_scope(scope: ast.AST) -> tuple[ast.AST, ...]:
-    """nested function/classへ越境せず現在のlexical scopeだけを列挙する。"""
+    """現在のlexical scopeだけを列挙し、直近のASTへ有界memo化する。"""
 
     nodes: list[ast.AST] = []
 
@@ -7018,6 +7455,12 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
         imported_resource = any(module in (name or "").split(".") for module in resource_modules)
         consumer_receiver = raw_name in {"preflight_clr_declarations", "prepare_resource_snapshot", "revalidated_resource_scan", "resource_scan.coverage",
                                          "fresh.coverage", "resolver.coverage", "scan.coverage"}
+        formbook_resource_receiver = raw_name in {
+            "preflight_clr_declarations",
+            "prepare_resource_snapshot",
+            "revalidated_resource_scan",
+            "resolver._coded_token",
+        }
         imported_consumer_helper = (any(module in (name or "").split(".") for module in
                                         {"managed_il_triage", "managed_proxy_deobfuscator"})
                                     and (name or "").rsplit(".", 1)[-1] in {
@@ -7025,6 +7468,41 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
                                         "_resource_blob_scope", "_consumed_metadata_coverage"})
         if imported_consumer_helper and relative not in _MANAGED_RESOURCE_CONSUMER_COMMITMENTS:
             issues.add(f"{context}:managed_resource_unreviewed_consumer_helper:{name}")
+            return
+        if (
+            relative in _FORMBOOK_MANAGED_RESOURCE_CONSUMER_COMMITMENTS
+            and (formbook_resource_receiver or imported_resource)
+        ):
+            expected = _FORMBOOK_MANAGED_RESOURCE_CONSUMER_COMMITMENTS[relative]
+            target = _formbook_managed_resource_call_shape(
+                call,
+                tree,
+                scope,
+                relative,
+                context,
+            )
+            if files.get(source.resolve(strict=True)) != expected or target is None:
+                issues.add(
+                    f"{context}:formbook_managed_resource_origin_or_commitment_rejected:"
+                    f"{raw_name}"
+                )
+                return
+            module, symbol = target
+            callee = REPOSITORY_ROOT / "unpackers" / f"{module}.py"
+            if module in {"managed_resource_snapshot", "managed_constructor_guard"}:
+                callee_tree = register_file(callee, depth + 1)
+                if callee_tree is not None:
+                    audit_module(callee, depth + 1)
+                    audit_function(callee, callee_tree, symbol, depth + 1, context)
+            else:
+                audit_managed_class(
+                    callee,
+                    "MetadataResolver",
+                    symbol,
+                    depth + 1,
+                    context,
+                )
+            allow("reviewed_formbook_managed_resource_source_call", raw_name)
             return
         if relative in _MANAGED_RESOURCE_CONSUMER_COMMITMENTS and (consumer_receiver or imported_resource):
             expected = _MANAGED_RESOURCE_CONSUMER_COMMITMENTS[relative]
@@ -7903,23 +8381,76 @@ def _dependency_audit_root_source_sha256(
     return digest
 
 
+def _assessment_invariant_commitment(
+    spec: HandlerSpec,
+    blockers: tuple[str, ...],
+    source_sha256: str | None,
+    dependency_audit: Mapping[str, Any],
+) -> str:
+    """cache対象の契約・否定結果・依存manifestを改変検知用hashへ束縛する。"""
+
+    try:
+        encoded = json.dumps(
+            {
+                "spec": spec.public(),
+                "blockers": list(blockers),
+                "source_sha256": source_sha256,
+                "dependency_audit": dependency_audit,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    except (TypeError, ValueError) as exc:
+        raise HandlerLoadError("assessment invariant commitment is unavailable") from exc
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def _revalidate_cached_assessment_invariant(
     spec: HandlerSpec,
     cached: _AssessmentInvariantPreflight,
 ) -> None:
-    """cache済み監査を全依存fileの現在のbytesとidentityへ再結合する。"""
+    """肯定・否定を問わずcache済み監査を現在の全依存へ再結合する。"""
 
-    if not isinstance(cached, _AssessmentInvariantPreflight) or cached.spec != spec or cached.blockers:
+    if not isinstance(cached, _AssessmentInvariantPreflight) or cached.spec != spec:
         raise HandlerLoadError("cached assessment invariant is not reusable")
+    if (
+        type(cached.blockers) is not tuple
+        or any(not isinstance(value, str) or not value for value in cached.blockers)
+        or cached.blockers != tuple(sorted(set(cached.blockers)))
+    ):
+        raise HandlerLoadError("cached assessment blockers are invalid")
     if (
         not isinstance(cached.source_sha256, str)
         or re.fullmatch(r"[0-9a-f]{64}", cached.source_sha256) is None
         or not isinstance(cached.dependency_audit, Mapping)
+        or not isinstance(cached.commitment_sha256, str)
+        or re.fullmatch(r"[0-9a-f]{64}", cached.commitment_sha256) is None
     ):
         raise HandlerLoadError("cached assessment invariant is invalid")
     audit = cached.dependency_audit
-    if audit.get("issues") != []:
-        raise HandlerLoadError("cached dependency audit is not blocker-free")
+    issues = audit.get("issues")
+    if (
+        not isinstance(issues, list)
+        or any(not isinstance(value, str) or not value for value in issues)
+        or issues != sorted(set(issues))
+        or any(value not in cached.blockers for value in issues)
+    ):
+        raise HandlerLoadError("cached dependency audit issues are invalid")
+    expected_commitment = _assessment_invariant_commitment(
+        spec,
+        cached.blockers,
+        cached.source_sha256,
+        audit,
+    )
+    if expected_commitment != cached.commitment_sha256:
+        raise HandlerLoadError("cached assessment invariant commitment changed")
+    if (
+        audit.get("maximum_import_depth") != MAX_ASSESSMENT_IMPORT_DEPTH
+        or audit.get("maximum_import_files") != MAX_ASSESSMENT_IMPORT_FILES
+    ):
+        raise HandlerLoadError("cached dependency audit limits are invalid")
 
     source_snapshots = _validated_dependency_source_snapshots(
         audit.get("files"),
@@ -8024,23 +8555,30 @@ def _preflight_handler_invariants_for_assessment(
     except Exception as exc:  # noqa: BLE001 - 解析不能もfail-closedにする
         blockers.append(str(sanitize_public_value(f"preflight_error:{type(exc).__name__}:{exc}")))
 
+    normalized_blockers = tuple(sorted(set(blockers)))
     return _AssessmentInvariantPreflight(
         spec=spec,
-        blockers=tuple(sorted(set(blockers))),
+        blockers=normalized_blockers,
         source_sha256=source_sha256,
         dependency_audit=dependency_audit,
+        commitment_sha256=_assessment_invariant_commitment(
+            spec,
+            normalized_blockers,
+            source_sha256,
+            dependency_audit,
+        ),
     )
 
 
 def _cached_preflight_handler_invariants_for_assessment(
     spec: HandlerSpec,
 ) -> tuple[_AssessmentInvariantPreflight, bool, bool]:
-    """全依存の再検証に成功した監査だけをprocess cacheから返す。"""
+    """全依存の再検証に成功した肯定・否定監査をprocess cacheから返す。"""
 
     cached = _ASSESSMENT_INVARIANT_PREFLIGHT_CACHE.get(spec)
     revalidation_attempted = False
     if cached is not None:
-        if cached.spec != spec or cached.blockers:
+        if cached.spec != spec:
             _ASSESSMENT_INVARIANT_PREFLIGHT_CACHE.pop(spec, None)
         else:
             revalidation_attempted = True
@@ -8052,10 +8590,14 @@ def _cached_preflight_handler_invariants_for_assessment(
                 return cached, True, True
 
     invariant = _preflight_handler_invariants_for_assessment(spec)
-    if not invariant.blockers:
-        _ASSESSMENT_INVARIANT_PREFLIGHT_CACHE[spec] = invariant
-    else:
+    try:
+        _revalidate_cached_assessment_invariant(spec, invariant)
+    except HandlerLoadError:
+        # root／依存snapshotが不完全な失敗は再利用しない。次のassessmentで
+        # 状態を取り直し、staleな否定結果にも依存しない。
         _ASSESSMENT_INVARIANT_PREFLIGHT_CACHE.pop(spec, None)
+    else:
+        _ASSESSMENT_INVARIANT_PREFLIGHT_CACHE[spec] = invariant
     return invariant, False, revalidation_attempted
 
 

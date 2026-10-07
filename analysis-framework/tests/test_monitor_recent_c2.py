@@ -100,12 +100,20 @@ def test_tls_success_separates_reachability_from_c2_confidence(
         }
 
     monkeypatch.setattr(monitor_recent_c2, "probe_target_with_nmap", fake_probe)
-    result = monitor_recent_c2.monitor(plan(), allow_network=True)
+    result = monitor_recent_c2.monitor(
+        plan(),
+        allow_network=True,
+        allow_xloader_registration=True,
+    )
     assessment = result["results"][0]["assessment"]
     assert assessment["state"] == "tls_endpoint_reachable_c2_not_confirmed"
     assert assessment["reachability_confidence"] == 0.95
     assert assessment["c2_operational_confidence"] == 0.40
     assert result["policy"]["malware_checkin_sent"] is False
+    assert result["policy"]["reviewed_xloader_registration_enabled"] is False
+    assert result["policy"]["xloader_registration_override_ignored"] is True
+    assert result["policy"]["passive_only_families"] == ["formbook", "xloader"]
+    assert result["policy"]["passive_only_application_requests_blocked"] is True
 
 
 def test_banner_body_and_sensitive_http_headers_are_not_published() -> None:
@@ -149,6 +157,55 @@ def test_rejects_ranges_payloads_and_unsafe_tor(target_patch: dict) -> None:
     value["targets"][0].update(target_patch)
     with pytest.raises(monitor_recent_c2.PlanError):
         monitor_recent_c2.validate_plan(value)
+
+
+@pytest.mark.parametrize(
+    "target_patch",
+    [
+        {"family": "unknown", "method": "formbook_reviewed_route_head"},
+        {"family": "unknown", "method": "xloader_v8_get_registration"},
+        {
+            "family": "formbook",
+            "protocol": "https",
+            "method": "http_get",
+            "http_path": "/known-route/",
+        },
+        {
+            "family": "xloader",
+            "protocol": "http",
+            "method": "http_get",
+            "http_path": "/registration/",
+        },
+    ],
+)
+def test_passive_only_plan_rejects_application_layer_methods(
+    target_patch: dict,
+) -> None:
+    value = plan()
+    value["targets"][0].update(target_patch)
+    with pytest.raises(monitor_recent_c2.PlanError, match="passive_only"):
+        monitor_recent_c2.validate_plan(value)
+
+
+@pytest.mark.parametrize(
+    ("family", "method", "protocol"),
+    [
+        ("formbook", "tcp_connect", "tcp"),
+        ("xloader", "tls_handshake", "tls"),
+        ("formbook-stealer", "passive_banner", "tcp"),
+    ],
+)
+def test_passive_only_plan_preserves_transport_and_server_first_observation(
+    family: str,
+    method: str,
+    protocol: str,
+) -> None:
+    value = plan()
+    value["targets"][0].update(
+        {"family": family, "method": method, "protocol": protocol}
+    )
+    checked = monitor_recent_c2.validate_plan(value)
+    assert checked["targets"][0]["method"] == method
 
 
 def test_onion_requires_loopback_tor_and_tcp_connect() -> None:

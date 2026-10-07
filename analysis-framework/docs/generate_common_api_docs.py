@@ -32,6 +32,7 @@ MODULE_SOURCES = {
     "extractors.profiled_family": "extractors/profiled_family.py",
     "unpackers.profiled_transform": "unpackers/profiled_transform.py",
     "static_layer_pipeline": "analysis-framework/common/static_layer_pipeline.py",
+    "triage_family_search": "analysis-framework/common/triage_family_search.py",
     "unpackers.managed_il_triage": "unpackers/managed_il_triage.py",
     "unpackers.managed_proxy_deobfuscator": "unpackers/managed_proxy_deobfuscator.py",
     "unpackers.managed_metadata": "unpackers/managed_metadata.py",

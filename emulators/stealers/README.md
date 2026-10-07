@@ -13,7 +13,7 @@
 | Vidar | 静的profile照合後に使うpassive sink | なし | 行わない |
 | AMOS | 同一campaign IDの`/ledger/`と`/ledger/live/` sink | route形状だけ | 行わない |
 
-FormBookのterminal wire protocolは一般化していません。review済みXLoader v8 profileについては、別の[`xloader_emulator.py`](../../analysis-framework/malware/formbook_loader/xloader_emulator.py)がofflineで復号とno-op command生成を検証します。
+このlabのFormBook実装はpassive sinkだけです。FormBook legacyのFBNG登録・command応答、XLoader 2.5公開モデルのKey0／Key1／Key2通信と3層real-C2候補復号、XLoader 8.1以降の保存済み応答は、別の[`formbook_protocol.py`](../../analysis-framework/malware/formbook_loader/formbook_protocol.py)がofflineで復号・構造検証します。review済みXLoader v8 profileのloopback往復は[`xloader_emulator.py`](../../analysis-framework/malware/formbook_loader/xloader_emulator.py)がno-op commandだけを生成して検証します。いずれも外部C2への送信機能ではありません。
 
 ## 安全境界
 

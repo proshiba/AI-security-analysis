@@ -20,7 +20,7 @@ if str(COMMON_ROOT) not in sys.path:
 
 import bounded_process  # noqa: E402
 import handler_catalog as catalog  # noqa: E402
-from analysis_contract import handler_result_quality  # noqa: E402
+from analysis_contract import artifact_hashes, handler_result_quality, resolve_case_artifact  # noqa: E402
 
 
 @pytest.fixture
@@ -1601,6 +1601,101 @@ def test_bounded_handler_retains_raw_payload_only_after_parent_rehash(
     assert execution["verified_binary_output_audit"]["observation_scope"] == ("parent_rehashed_case_artifact")
 
 
+def test_bounded_handler_retains_recovered_payload_as_nonterminal_output(
+    isolated_catalog,
+    tmp_path: Path,
+) -> None:
+    """静的復元した中間子を明示roleで保持し、同じhash検証境界を適用する。"""
+
+    repository, malware_root = isolated_catalog
+    payload = b"MZ" + b"R" * 62
+    source = (
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        "def extract_config(data):\n"
+        f'    return {{"recovered_payload": {{"name": "child.exe", "data": {payload!r}}}}}\n'
+    )
+    spec = _handler_spec(repository, malware_root, "candidate_family", source)
+    artifact_directory = tmp_path / "retained"
+    artifact_directory.mkdir()
+
+    bounded = catalog.execute_handler_bounded_for_assessment(
+        spec,
+        b"input",
+        "sample.bin",
+        actual_format="data",
+        artifact_directory=artifact_directory,
+        artifact_path_prefix="p",
+    )
+
+    assert bounded["status"] == "completed"
+    execution = bounded["execution"]
+    digest = hashlib.sha256(payload).hexdigest()
+    assert (artifact_directory / f"{digest}.exe").read_bytes() == payload
+    assert execution["verified_binary_outputs"] == [
+        {
+            "role": "recovered_payload",
+            "kind": "pe",
+            "path": f"p/{digest}.exe",
+            "sha256": digest,
+            "size": len(payload),
+            "verification": {
+                "status": "artifact_hash_verified",
+                "sha256_matches": True,
+                "size_matches": True,
+            },
+        }
+    ]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows extended-length path専用")
+def test_bounded_handler_retains_and_revalidates_long_case_artifact_path(
+    isolated_catalog,
+    tmp_path: Path,
+) -> None:
+    """LongPathsEnabledに依存せず、深いcaseのpayloadを親が再hashする。"""
+
+    repository, malware_root = isolated_catalog
+    payload = b"MZ" + b"L" * 62
+    source = (
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        "def extract_config(data):\n"
+        f'    return {{"terminal_payload": {{"name": "stage.exe", "data": {payload!r}}}}}\n'
+    )
+    spec = _handler_spec(repository, malware_root, "candidate_family", source)
+    digest = hashlib.sha256(payload).hexdigest()
+    target_directory_length = 210
+    padding_length = target_directory_length - len(os.fspath(tmp_path)) - len(os.sep) - len(os.sep + "p")
+    assert 1 <= padding_length <= 240
+    case_dir = tmp_path / ("d" * padding_length)
+    artifact_directory = case_dir / "p"
+    artifact_directory.mkdir(parents=True)
+    plain_destination = artifact_directory / f"{digest}.exe"
+    assert len(os.fspath(plain_destination)) > 260
+
+    bounded = catalog.execute_handler_bounded_for_assessment(
+        spec,
+        b"input",
+        "sample.bin",
+        actual_format="data",
+        artifact_directory=artifact_directory,
+        artifact_path_prefix="p",
+    )
+
+    assert bounded["status"] == "completed"
+    execution = bounded["execution"]
+    assert execution["verified_binary_output_audit"]["reasons"] == []
+    assert execution["verified_binary_output_audit"]["retained_for_follow_on_analysis"] is True
+    retained = resolve_case_artifact(case_dir, f"p/{digest}.exe")
+    assert catalog._read_verified_artifact(
+        retained,
+        expected_size=len(payload),
+        expected_sha256=digest,
+    ) == payload
+    assert artifact_hashes(case_dir, [f"p/{digest}.exe"]) == {
+        f"p/{digest}.exe": digest
+    }
+
+
 def test_bounded_handler_without_destination_is_observed_only(
     isolated_catalog,
 ) -> None:
@@ -1625,6 +1720,9 @@ def test_bounded_handler_without_destination_is_observed_only(
     assert len(execution["observed_binary_outputs"]) == 1
     assert execution["verified_binary_output_audit"]["retained_for_follow_on_analysis"] is False
     assert execution["verified_binary_output_audit"]["follow_on_analysis_complete"] is False
+    assert execution["verified_binary_output_audit"]["reasons"] == [
+        "artifact_retention_not_requested"
+    ]
 
 
 def test_yuanbao_unmatched_layer_is_no_evidence_not_worker_failure() -> None:
@@ -2370,6 +2468,28 @@ def test_raw_binary_materialization_requires_exact_terminal_schema() -> None:
     assert valid[0]["sha256"] == hashlib.sha256(payload).hexdigest()
 
 
+def test_raw_binary_materialization_accepts_exact_recovered_payload_schema() -> None:
+    """非終端roleも余分なfieldのない明示recordだけを受理する。"""
+
+    payload = b"MZ" + b"R" * 14
+    valid, _audit = catalog._verified_binary_outputs(
+        {"record": {"role": "recovered_payload", "data": payload}}
+    )
+    invalid, _invalid_audit = catalog._verified_binary_outputs(
+        {
+            "record": {
+                "role": "recovered_payload",
+                "data": payload,
+                "unexpected": True,
+            }
+        }
+    )
+
+    assert len(valid) == 1
+    assert valid[0]["role"] == "recovered_payload"
+    assert invalid == []
+
+
 def _mock_completed_handler_result() -> dict:
     return {
         "status": "completed",
@@ -2493,6 +2613,190 @@ def test_process_invariant_cache_revalidates_and_reuses_unchanged_audit(
     assert second_plan["process_invariant_preflight_cache_miss_count"] == 0
     assert second_plan["process_invariant_preflight_cache_revalidation_count"] == 1
     assert second["families"][0]["attempts"][0]["status"] == "no_evidence"
+
+
+def test_process_invariant_cache_reuses_unchanged_negative_preflight(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """同じ依存snapshotに束縛した否定監査は別assessmentでも再走査しない。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("os.remove('blocked')").replace(
+            "def extract_config(data):\n",
+            "import os\ndef extract_config(data):\n",
+        ),
+    )
+    recursive_audit = catalog._recursive_handler_side_effect_audit
+    audit_calls = 0
+
+    def count_audit(path: Path, callable_name: str) -> dict:
+        nonlocal audit_calls
+        audit_calls += 1
+        return recursive_audit(path, callable_name)
+
+    monkeypatch.setattr(catalog, "_recursive_handler_side_effect_audit", count_audit)
+    layer = _layer(b"candidate layer", "candidate.bin")
+    first = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+    second = catalog.assess_candidate_handlers(
+        [_candidate("candidate_family")],
+        [layer],
+        specs=[spec],
+    )
+
+    assert audit_calls == 1
+    for result in (first, second):
+        attempt = result["families"][0]["attempts"][0]
+        assert attempt["status"] == "preflight_blocked"
+        assert attempt["preflight"]["blockers"]
+        assert attempt["preflight"]["blockers"] == (
+            first["families"][0]["attempts"][0]["preflight"]["blockers"]
+        )
+    planning = second["pair_planning"]
+    assert planning["process_invariant_preflight_cache_hit_count"] == 1
+    assert planning["process_invariant_preflight_cache_miss_count"] == 0
+    assert planning["process_invariant_preflight_cache_revalidation_count"] == 1
+
+
+def test_negative_preflight_cache_reaudits_changed_source(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """否定監査後にroot sourceが変わればcacheを破棄して再監査する。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("os.remove('blocked')").replace(
+            "def extract_config(data):\n",
+            "import os\ndef extract_config(data):\n",
+        ),
+    )
+    source_path = repository / spec.relative_path
+    recursive_audit = catalog._recursive_handler_side_effect_audit
+    audit_calls = 0
+
+    def count_audit(path: Path, callable_name: str) -> dict:
+        nonlocal audit_calls
+        audit_calls += 1
+        return recursive_audit(path, callable_name)
+
+    monkeypatch.setattr(catalog, "_recursive_handler_side_effect_audit", count_audit)
+    first = catalog.preflight_handler_for_assessment(
+        spec,
+        actual_format="data",
+        input_size=16,
+    )
+    source_path.write_text(_source("{}"), encoding="utf-8")
+    second = catalog.preflight_handler_for_assessment(
+        spec,
+        actual_format="data",
+        input_size=16,
+    )
+
+    assert audit_calls == 2
+    assert first["eligible"] is False
+    assert second["eligible"] is True
+    assert second["blockers"] == []
+
+
+def test_negative_preflight_cache_tampering_fails_closed_and_reaudits(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """cache内の否定理由を改変しても肯定結果へ変わらず再監査する。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("os.remove('blocked')").replace(
+            "def extract_config(data):\n",
+            "import os\ndef extract_config(data):\n",
+        ),
+    )
+    recursive_audit = catalog._recursive_handler_side_effect_audit
+    audit_calls = 0
+
+    def count_audit(path: Path, callable_name: str) -> dict:
+        nonlocal audit_calls
+        audit_calls += 1
+        return recursive_audit(path, callable_name)
+
+    monkeypatch.setattr(catalog, "_recursive_handler_side_effect_audit", count_audit)
+    first = catalog.preflight_handler_for_assessment(
+        spec,
+        actual_format="data",
+        input_size=16,
+    )
+    cached = catalog._ASSESSMENT_INVARIANT_PREFLIGHT_CACHE[spec]
+    catalog._ASSESSMENT_INVARIANT_PREFLIGHT_CACHE[spec] = replace(
+        cached,
+        blockers=(),
+    )
+    second = catalog.preflight_handler_for_assessment(
+        spec,
+        actual_format="data",
+        input_size=16,
+    )
+
+    assert audit_calls == 2
+    assert first["eligible"] is False
+    assert second["eligible"] is False
+    assert second["blockers"] == first["blockers"]
+
+
+def test_clear_handler_caches_discards_negative_preflight_cache(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """明示的cache消去は否定監査とlexical scope memoも破棄する。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(
+        repository,
+        malware_root,
+        "candidate_family",
+        _source("os.remove('blocked')").replace(
+            "def extract_config(data):\n",
+            "import os\ndef extract_config(data):\n",
+        ),
+    )
+    recursive_audit = catalog._recursive_handler_side_effect_audit
+    audit_calls = 0
+
+    def count_audit(path: Path, callable_name: str) -> dict:
+        nonlocal audit_calls
+        audit_calls += 1
+        return recursive_audit(path, callable_name)
+
+    monkeypatch.setattr(catalog, "_recursive_handler_side_effect_audit", count_audit)
+    catalog.preflight_handler_for_assessment(
+        spec,
+        actual_format="data",
+        input_size=16,
+    )
+    assert catalog._nodes_in_lexical_scope.cache_info().currsize > 0
+    catalog.clear_handler_caches()
+    assert catalog._nodes_in_lexical_scope.cache_info().currsize == 0
+    catalog.preflight_handler_for_assessment(
+        spec,
+        actual_format="data",
+        input_size=16,
+    )
+
+    assert audit_calls == 2
 
 
 def test_clear_handler_caches_discards_process_invariant_cache(
@@ -2688,12 +2992,12 @@ def test_process_invariant_cache_revalidates_cached_module_manifest(
 
 
 @pytest.mark.parametrize("invalid_kind", ["blocked", "spec_mismatch"])
-def test_process_invariant_cache_hits_only_exact_blocker_free_entries(
+def test_process_invariant_cache_rejects_tampered_or_mismatched_entries(
     isolated_catalog,
     monkeypatch: pytest.MonkeyPatch,
     invalid_kind: str,
 ) -> None:
-    """blocker付きまたは別specのentryはprocess cache hitにしない。"""
+    """commitment不一致または別specのentryはprocess cache hitにしない。"""
 
     repository, malware_root = isolated_catalog
     spec = _handler_spec(
@@ -2730,7 +3034,9 @@ def test_process_invariant_cache_hits_only_exact_blocker_free_entries(
     planning = result["pair_planning"]
     assert planning["process_invariant_preflight_cache_hit_count"] == 0
     assert planning["process_invariant_preflight_cache_miss_count"] == 1
-    assert planning["process_invariant_preflight_cache_revalidation_count"] == 0
+    assert planning["process_invariant_preflight_cache_revalidation_count"] == (
+        1 if invalid_kind == "blocked" else 0
+    )
 
 
 def test_preflight_rejects_root_source_mutation_between_contract_and_audit(

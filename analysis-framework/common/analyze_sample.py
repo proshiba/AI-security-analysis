@@ -729,20 +729,38 @@ def _family_hint_conflicts(
     ]
 
 
-def _verification_candidates(routing: dict[str, Any]) -> list[dict[str, Any]]:
-    """通常の確定経路を除き、handlerで再検証できる候補だけを返す。"""
+def _verification_candidates(
+    routing: dict[str, Any],
+    *,
+    selected_family_reassessment: Sequence[str] = (),
+) -> list[dict[str, Any]]:
+    """候補routeと、通常handlerが証拠不足だった確定routeだけを返す。"""
 
     values = routing.get("candidates")
     if not isinstance(values, list):
         return []
+    reassessment_families = {
+        family
+        for family in selected_family_reassessment
+        if isinstance(family, str)
+    }
     return [
         item
         for item in values
         if isinstance(item, dict)
         and item.get("routing_eligible") is True
-        and item.get("routing_mode") == "candidate_verification"
         and isinstance(item.get("routing_eligibility"), dict)
-        and item["routing_eligibility"].get("candidate_verification") is True
+        and (
+            (
+                item.get("routing_mode") == "candidate_verification"
+                and item["routing_eligibility"].get("candidate_verification") is True
+            )
+            or (
+                item.get("routing_mode") == "selected_family_analysis"
+                and item.get("family") in reassessment_families
+                and item["routing_eligibility"].get("selected_family_analysis") is True
+            )
+        )
     ]
 
 
@@ -895,10 +913,14 @@ def _candidate_handler_assessment(
     specs: list[HandlerSpec],
     assessment_only: bool,
     artifact_directory: Path | None,
+    selected_family_reassessment: Sequence[str] = (),
 ) -> dict[str, Any]:
     """互換layerを容量・試行数の上限内で静的に候補検証する。"""
 
-    candidates = _verification_candidates(routing)
+    candidates = _verification_candidates(
+        routing,
+        selected_family_reassessment=selected_family_reassessment,
+    )
     base = {
         "schema_version": 1,
         "candidate_count": len(candidates),
@@ -2807,6 +2829,15 @@ def analyze_unit(
             for state in handler_states
         ]
 
+    sufficiently_analyzed_families = {
+        specs_by_id[item["handler_id"]].family
+        for item in executions
+        if item.get("status") == "succeeded"
+        and item.get("handler_id") in specs_by_id
+    }
+    selected_family_reassessment = sorted(
+        set(selected_families) - sufficiently_analyzed_families
+    )
     candidate_assessment = _candidate_handler_assessment(
         routing=routing,
         layers=layers,
@@ -2814,6 +2845,7 @@ def analyze_unit(
         specs=specs,
         assessment_only=assessment_only,
         artifact_directory=recovered_payload_directory,
+        selected_family_reassessment=selected_family_reassessment,
     )
     if recovered_payload_directory is not None:
         ensure_no_reparse_components(recovered_payload_directory)
@@ -4664,7 +4696,7 @@ def _follow_on_worker_main() -> int:
                     "schema_version": 1,
                     "depth": depth,
                     "parent_sha256": parent_sha256,
-                    "root_kind": "retained_terminal_or_final_payload",
+                    "root_kind": "retained_verified_binary_output",
                 },
             )
         finally:
@@ -5050,12 +5082,19 @@ def _case_retained_payloads(
     for wrapper in wrappers:
         try:
             retained_outputs = _retained_outputs_from_wrapper(wrapper)
+            audit = wrapper.get("verified_binary_output_audit")
             retained_claimed = (
-                isinstance(wrapper.get("verified_binary_output_audit"), Mapping)
-                and wrapper["verified_binary_output_audit"].get("retained_for_follow_on_analysis") is True
+                isinstance(audit, Mapping)
+                and audit.get("retained_for_follow_on_analysis") is True
             )
             if retained_claimed and not _wrapper_follow_on_promotion_eligible(wrapper):
                 errors.add("incomplete_retention_audit")
+            if (
+                not retained_outputs
+                and isinstance(audit, Mapping)
+                and int(audit.get("observed_output_count", 0)) > 0
+            ):
+                errors.add("verified_output_not_retained")
         except (TypeError, ValueError):
             errors.add("invalid_retention_metadata")
             continue

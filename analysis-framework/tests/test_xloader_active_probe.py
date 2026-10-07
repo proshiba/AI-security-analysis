@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import base64
+import ast
+import dataclasses
 import hashlib
 import importlib.util
 import json
@@ -147,33 +149,35 @@ def _fixture():
     return profile, material, pins
 
 
-def _approve(monkeypatch, profile):
-    monkeypatch.setattr(
-        PROBE,
-        "_resolve_registry_profile",
-        lambda profile_id, host, port, digest: dict(profile),
-    )
-
-
-def test_loopback_contract_uses_one_request_and_never_executes_task(monkeypatch) -> None:
-    profile, material, pins = _fixture()
-    _approve(monkeypatch, profile)
-    emulator = EMULATOR.XLoaderLoopbackEmulator(material)
-    result = PROBE.probe_reviewed_xloader_registration(
+def _verify_loopback(profile, material, pins):
+    local_pins = dict(pins)
+    local_pins.pop("expected_profile_registry_sha256")
+    return EMULATOR.verify_xloader_loopback_contract(
         profile,
         private_material=material,
-        allow_network=True,
-        allow_xloader_registration=True,
-        sender=emulator,
-        **pins,
+        **local_pins,
     )
-    assert emulator.request_count == 1
-    assert emulator.last_request_evidence["accepted"] is True
+
+
+def test_loopback_contract_is_valid_but_never_confirms_endpoint() -> None:
+    profile, material, pins = _fixture()
+    result = _verify_loopback(profile, material, pins)
+    assert result["status"] == "protocol_contract_valid"
+    assert result["protocol_contract_valid"] is True
+    assert result["evidence_scope"] == "synthetic_loopback"
+    assert result["endpoint_c2_confirmed"] is False
+    assert result["c2_confirmed"] is False
+    assert result["alive"] is False
     assert result["protocol_evidence"]["command_id"] == 9
+    assert result["protocol_evidence"]["command_shape_valid"] is True
+    assert result["protocol_evidence"]["trailing_magic_present"] is True
+    assert result["protocol_evidence"]["framing_strength"] == (
+        "magic_ascii_command_and_trailer"
+    )
     assert result["task_available"] is False
     assert result["task_executed"] is False
     assert result["payload_download_attempted"] is False
-    assert result["request_count"] == 1
+    assert result["loopback_request_count"] == 1
     assert result["network_contacted"] is False
     assert result["exact_binding"]["synthetic_template_id"] == (
         PROBE.SYNTHETIC_TEMPLATE_ID
@@ -183,6 +187,35 @@ def test_loopback_contract_uses_one_request_and_never_executes_task(monkeypatch)
     )
     assert "XLNG:00000000" not in json.dumps(result)
     assert "U1lOVEhFVElDXFVTRVI=" not in json.dumps(result)
+
+
+def test_loopback_rejects_noncanonical_request_envelope() -> None:
+    profile, material, pins = _fixture()
+    local_pins = dict(pins)
+    local_pins.pop("expected_profile_registry_sha256")
+    first_key, url_seed, inner = PROBE._validate_profile(
+        profile,
+        material,
+        **local_pins,
+    )
+    request = PROBE._build_request(profile, first_key, url_seed, inner)
+    path, query = request.target.split("?", 1)
+    junk, data = query.split("&", 1)
+    mutations = (
+        dataclasses.replace(request, target=f"{path}?{data}"),
+        dataclasses.replace(request, target=f"{path}?cd34=wrong&{data}"),
+        dataclasses.replace(request, target=f"{path}?{data}&{junk}"),
+        dataclasses.replace(request, target=f"{request.target}&extra=value"),
+        dataclasses.replace(
+            request,
+            headers=(("Host", "other.example"), *request.headers[1:]),
+        ),
+    )
+    for mutated in mutations:
+        emulator = EMULATOR.XLoaderLoopbackEmulator(material)
+        response = emulator(profile, mutated)
+        assert response.status == 404
+        assert emulator.last_request_evidence["accepted"] is False
 
 
 def test_both_gates_are_required() -> None:
@@ -250,30 +283,16 @@ def test_synthetic_wire_vector_is_frozen_independently() -> None:
     assert response == b"d791xus="
 
 
-def test_request_hash_mismatch_is_rejected_before_sender(monkeypatch) -> None:
+def test_request_hash_mismatch_is_rejected_before_loopback() -> None:
     profile, material, pins = _fixture()
     profile["request_sha256"] = "f" * 64
     pins["expected_request_sha256"] = profile["request_sha256"]
     pins["expected_profile_sha256"] = PROBE.canonical_profile_sha256(profile)
-    _approve(monkeypatch, profile)
-
-    def must_not_send(_profile, _request):
-        pytest.fail("canonical GET hash mismatch must be rejected before sender")
-
     with pytest.raises(PROBE.XLoaderProbeError, match="GET request hash pin"):
-        PROBE.probe_reviewed_xloader_registration(
-            profile,
-            private_material=material,
-            allow_network=True,
-            allow_xloader_registration=True,
-            sender=must_not_send,
-            **pins,
-        )
+        _verify_loopback(profile, material, pins)
 
 
-def test_self_declared_non_synthetic_identity_is_rejected_before_sender(
-    monkeypatch,
-) -> None:
+def test_self_declared_non_synthetic_identity_is_rejected_before_loopback() -> None:
     profile, material, pins = _fixture()
     bad_inner = b"XLNG:00000000:8.9:Windows 10 x64:UkVBTFxVU0VS"
     bad_data = dict(material.data)
@@ -298,100 +317,71 @@ def test_self_declared_non_synthetic_identity_is_rejected_before_sender(
         "pkt2_inner_plaintext_sha256"
     ]
     pins["expected_profile_sha256"] = PROBE.canonical_profile_sha256(profile)
-    _approve(monkeypatch, profile)
+    with pytest.raises(PROBE.XLoaderProbeError, match="sentinel"):
+        _verify_loopback(profile, bad_material, pins)
+
+
+def test_production_probe_is_passive_only_and_never_calls_sender() -> None:
+    profile, material, pins = _fixture()
 
     def must_not_send(_profile, _request):
-        pytest.fail("non-synthetic identity must be rejected before sender")
+        pytest.fail("passive-only production APIからsenderを呼んではいけません")
 
-    with pytest.raises(PROBE.XLoaderProbeError, match="sentinel"):
-        PROBE.probe_reviewed_xloader_registration(
-            profile,
-            private_material=bad_material,
-            allow_network=True,
-            allow_xloader_registration=True,
-            sender=must_not_send,
-            **pins,
-        )
-
-
-def test_bootstrap_candidate_needs_extra_gate_and_never_falls_back(
-    monkeypatch,
-) -> None:
-    profile, material, pins = _fixture()
-    profile["candidate_classification"] = "reviewed_initial_bootstrap_candidate"
-    pins["expected_profile_sha256"] = PROBE.canonical_profile_sha256(profile)
-    emulator = EMULATOR.XLoaderLoopbackEmulator(material)
-    disabled = PROBE.probe_reviewed_xloader_registration(
-        profile,
-        private_material=material,
-        allow_network=True,
-        allow_xloader_registration=True,
-        sender=emulator,
-        **pins,
-    )
-    assert disabled["status"] == "xloader_candidate_check_disabled"
-    assert disabled["request_count"] == 0
-    assert emulator.request_count == 0
-    _approve(monkeypatch, profile)
     result = PROBE.probe_reviewed_xloader_registration(
         profile,
         private_material=material,
         allow_network=True,
         allow_xloader_registration=True,
         allow_xloader_candidate_check=True,
-        sender=emulator,
+        sender=must_not_send,
         **pins,
     )
-    assert result["request_count"] == 1
-    assert emulator.request_count == 1
-    assert result["exact_binding"]["candidate_classification"] == (
-        "reviewed_initial_bootstrap_candidate"
-    )
+    assert result["status"] == "passive_only_application_probe_blocked"
+    assert result["passive_only"] is True
+    assert result["evidence_scope"] == "production_passive_only"
+    assert result["sender_accepted"] is False
+    assert result["request_count"] == 0
+    assert result["network_contacted"] is False
+    assert result["c2_confirmed"] is False
+    assert result["endpoint_c2_confirmed"] is False
 
 
-def test_unresolved_real_decoy_state_is_rejected_before_sender(monkeypatch) -> None:
+def test_unresolved_real_decoy_state_is_rejected_before_loopback() -> None:
     profile, material, pins = _fixture()
     profile["candidate_classification"] = "real_c2_decoy_unresolved"
     pins["expected_profile_sha256"] = PROBE.canonical_profile_sha256(profile)
-    _approve(monkeypatch, profile)
-    emulator = EMULATOR.XLoaderLoopbackEmulator(material)
     with pytest.raises(PROBE.XLoaderProbeError):
-        PROBE.probe_reviewed_xloader_registration(
-            profile,
-            private_material=material,
-            allow_network=True,
-            allow_xloader_registration=True,
-            sender=emulator,
-            **pins,
-        )
-    assert emulator.request_count == 0
+        _verify_loopback(profile, material, pins)
 
 
-def test_sender_cannot_bypass_ip_pin(monkeypatch) -> None:
+def test_production_module_has_no_direct_network_primitives() -> None:
+    source = Path(PROBE.__file__).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    imported = {
+        alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Import)
+        for alias in node.names
+    }
+    imported.update(
+        node.module or ""
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+    )
+    assert "socket" not in imported
+    assert "http.client" not in imported
+    assert "urllib.request" not in imported
+    assert "requests" not in imported
+    assert not hasattr(PROBE, "_send_get")
+
+
+def test_arbitrary_sender_is_never_invoked() -> None:
     profile, material, pins = _fixture()
-    _approve(monkeypatch, profile)
-
-    def wrong_pin(_profile, _request):
-        return PROBE.BoundedHttpResponse(
-            200, "text/plain", b"", False, ("1.1.1.1",), "1.1.1.1"
-        )
-
-    with pytest.raises(PROBE.XLoaderProbeError, match="IP pin"):
-        PROBE.probe_reviewed_xloader_registration(
-            profile,
-            private_material=material,
-            allow_network=True,
-            allow_xloader_registration=True,
-            sender=wrong_pin,
-            **pins,
-        )
-
-
-def test_sender_network_error_is_sanitized(monkeypatch) -> None:
-    profile, material, pins = _fixture()
-    _approve(monkeypatch, profile)
+    called = False
 
     def timeout(_profile, _request):
+        nonlocal called
+        called = True
         raise TimeoutError("private detail")
 
     result = PROBE.probe_reviewed_xloader_registration(
@@ -402,37 +392,33 @@ def test_sender_network_error_is_sanitized(monkeypatch) -> None:
         sender=timeout,
         **pins,
     )
-    assert result["status"] == "xloader_v8_network_error"
-    assert result["target_contact_attempted"] is True
+    assert called is False
+    assert result["status"] == "passive_only_application_probe_blocked"
+    assert result["target_contact_attempted"] is False
     assert result["application_data_sent"] is False
     assert result["request_send_attempted"] is False
     assert result["request_count"] == 0
-    assert result["transport_phase"] == "injected_sender_unknown"
-    assert result["transport_state_known"] is False
-    assert result["error_type"] == "TimeoutError"
     assert "private detail" not in json.dumps(result)
 
 
-def test_connect_timeout_records_no_connection_or_request(monkeypatch) -> None:
+def test_removed_transport_helpers_are_not_exposed() -> None:
+    assert not hasattr(PROBE, "_resolve_and_pin")
+    assert not hasattr(PROBE, "_send_get")
+    assert not hasattr(PROBE, "XLoaderTransportError")
+
+
+def test_loopback_report_retains_no_command_or_request_content() -> None:
     profile, material, pins = _fixture()
-    _approve(monkeypatch, profile)
-    monkeypatch.setattr(
-        PROBE,
-        "_resolve_and_pin",
-        lambda *_args, **_kwargs: (("93.184.216.34",), "93.184.216.34"),
-    )
+    result = _verify_loopback(profile, material, pins)
+    serialized = json.dumps(result)
+    assert "XLNG:00000000" not in serialized
+    assert "U1lOVEhFVElDXFVTRVI=" not in serialized
+    assert result["protocol_evidence"]["command_content_retained"] is False
+    assert result["request_evidence"]["raw_request_retained"] is False
 
-    class ConnectTimeout:
-        def __init__(self, _host, _port, *, timeout):
-            assert timeout == profile["timeout_seconds"]
 
-        def connect(self):
-            raise TimeoutError("connect private detail")
-
-        def close(self):
-            return None
-
-    monkeypatch.setattr(PROBE.http.client, "HTTPConnection", ConnectTimeout)
+def test_production_block_reports_no_partial_send() -> None:
+    profile, material, pins = _fixture()
     result = PROBE.probe_reviewed_xloader_registration(
         profile,
         private_material=material,
@@ -440,128 +426,17 @@ def test_connect_timeout_records_no_connection_or_request(monkeypatch) -> None:
         allow_xloader_registration=True,
         **pins,
     )
-    assert result["status"] == "xloader_v8_network_error"
-    assert result["transport_phase"] == "connect"
+    assert result["transport_phase"] == "not_started"
     assert result["target_connection_established"] is False
     assert result["request_send_attempted"] is False
     assert result["application_data_sent"] is False
     assert result["request_attempt_count"] == 0
     assert result["request_count"] == 0
     assert result["partial_send_possible"] is False
-    assert result["connected_ip"] is None
-    assert result["error_type"] == "TimeoutError"
-    assert "connect private detail" not in json.dumps(result)
 
 
-def test_timeout_after_request_send_records_one_request(monkeypatch) -> None:
+def test_profile_id_acknowledgement_is_required() -> None:
     profile, material, pins = _fixture()
-    _approve(monkeypatch, profile)
-    monkeypatch.setattr(
-        PROBE,
-        "_resolve_and_pin",
-        lambda *_args, **_kwargs: (("93.184.216.34",), "93.184.216.34"),
-    )
-
-    class ResponseTimeout:
-        def __init__(self, _host, _port, *, timeout):
-            assert timeout == profile["timeout_seconds"]
-
-        def connect(self):
-            return None
-
-        def putrequest(self, *_args, **_kwargs):
-            return None
-
-        def putheader(self, *_args, **_kwargs):
-            return None
-
-        def endheaders(self):
-            return None
-
-        def getresponse(self):
-            raise TimeoutError("response private detail")
-
-        def close(self):
-            return None
-
-    monkeypatch.setattr(PROBE.http.client, "HTTPConnection", ResponseTimeout)
-    result = PROBE.probe_reviewed_xloader_registration(
-        profile,
-        private_material=material,
-        allow_network=True,
-        allow_xloader_registration=True,
-        **pins,
-    )
-    assert result["status"] == "xloader_v8_network_error"
-    assert result["transport_phase"] == "receive_response_headers"
-    assert result["target_connection_established"] is True
-    assert result["request_send_attempted"] is True
-    assert result["application_data_sent"] is True
-    assert result["synthetic_identity_sent"] is True
-    assert result["request_attempt_count"] == 1
-    assert result["request_count"] == 1
-    assert result["partial_send_possible"] is False
-    assert result["connected_ip"] == "93.184.216.34"
-    assert result["error_type"] == "TimeoutError"
-    assert "response private detail" not in json.dumps(result)
-
-
-def test_timeout_during_endheaders_marks_partial_send_possible(monkeypatch) -> None:
-    profile, material, pins = _fixture()
-    _approve(monkeypatch, profile)
-    monkeypatch.setattr(
-        PROBE,
-        "_resolve_and_pin",
-        lambda *_args, **_kwargs: (("93.184.216.34",), "93.184.216.34"),
-    )
-
-    class SendTimeout:
-        def __init__(self, _host, _port, *, timeout):
-            assert timeout == profile["timeout_seconds"]
-
-        def connect(self):
-            return None
-
-        def putrequest(self, *_args, **_kwargs):
-            return None
-
-        def putheader(self, *_args, **_kwargs):
-            return None
-
-        def endheaders(self):
-            raise TimeoutError("send private detail")
-
-        def close(self):
-            return None
-
-    monkeypatch.setattr(PROBE.http.client, "HTTPConnection", SendTimeout)
-    result = PROBE.probe_reviewed_xloader_registration(
-        profile,
-        private_material=material,
-        allow_network=True,
-        allow_xloader_registration=True,
-        **pins,
-    )
-    assert result["transport_phase"] == "send_request"
-    assert result["target_connection_established"] is True
-    assert result["request_send_attempted"] is True
-    assert result["application_data_sent"] is False
-    assert result["request_attempt_count"] == 1
-    assert result["request_count"] == 0
-    assert result["partial_send_possible"] is True
-    assert "send private detail" not in json.dumps(result)
-
-
-def test_profile_id_acknowledgement_is_required(monkeypatch) -> None:
-    profile, material, pins = _fixture()
-    _approve(monkeypatch, profile)
     pins["expected_profile_id"] = "xloader-different-profile"
     with pytest.raises(PROBE.XLoaderProbeError, match="profile ID"):
-        PROBE.probe_reviewed_xloader_registration(
-            profile,
-            private_material=material,
-            allow_network=True,
-            allow_xloader_registration=True,
-            sender=EMULATOR.XLoaderLoopbackEmulator(material),
-            **pins,
-        )
+        _verify_loopback(profile, material, pins)

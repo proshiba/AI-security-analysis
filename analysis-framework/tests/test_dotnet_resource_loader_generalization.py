@@ -191,7 +191,7 @@ def _stuff_resource(value: bytes, *, validated: bool = True) -> dict[str, object
     }
 
 
-def _no_bitmap(_data: bytes) -> dict[str, object]:
+def _no_bitmap(_data: bytes, **_kwargs: object) -> dict[str, object]:
     return {
         "matched": False,
         "variant": None,
@@ -370,6 +370,121 @@ def test_bitmap_recovery_reuses_generic_decoder_without_returning_payload(
     assert child.hex() not in json.dumps(result)
 
 
+def test_bitmap_recovery_returns_unique_child_only_for_private_handler_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """一意な境界検証済み子だけを、明示した内部呼出へraw bytesで渡す。"""
+
+    child = _valid_managed_pe()
+    monkeypatch.setattr(
+        evidence,
+        "_recover_budgeted_bitmap_pes",
+        lambda _data: (
+            {
+                "status": "bitmap_pe_recovered",
+                "inventory": [],
+                "diagnostics": [],
+                "counters": {"output_bytes": len(child)},
+                "managed_metadata_valid": True,
+                "managed_metadata_evidence": {"metadata_signature": "BSJB"},
+                "managed_resource_range": None,
+            },
+            [("dotnet-bitmap-rgb-pe", child)],
+        ),
+    )
+    managed = _valid_managed_pe() + b"System.Drawing.Bitmap GetExportedTypes"
+
+    result = evidence.bitmap_loader_evidence(
+        managed,
+        include_recovered_bytes=True,
+    )
+
+    assert result["follow_on_candidate_status"] == (
+        "unique_boundary_validated_managed_child"
+    )
+    assert result["recovered_children"][0]["data"] == child
+
+
+def test_bitmap_recovery_does_not_export_ambiguous_children(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """境界検証済み子が複数ならmetadataだけを残してraw保持を拒否する。"""
+
+    first = _valid_managed_pe()
+    second_buffer = bytearray(first)
+    second_buffer[-1] ^= 1
+    second = bytes(second_buffer)
+    monkeypatch.setattr(
+        evidence,
+        "_recover_budgeted_bitmap_pes",
+        lambda _data: (
+            {
+                "status": "bitmap_pe_recovered",
+                "inventory": [],
+                "diagnostics": [],
+                "counters": {"output_bytes": len(first) + len(second)},
+                "managed_metadata_valid": True,
+                "managed_metadata_evidence": {"metadata_signature": "BSJB"},
+                "managed_resource_range": None,
+            },
+            [
+                ("dotnet-bitmap-rgb-pe", first),
+                ("dotnet-bitmap-rgb-pe", second),
+            ],
+        ),
+    )
+    managed = _valid_managed_pe() + b"System.Drawing.Bitmap GetExportedTypes"
+
+    result = evidence.bitmap_loader_evidence(
+        managed,
+        include_recovered_bytes=True,
+    )
+
+    assert result["follow_on_candidate_status"] == (
+        "ambiguous_multiple_boundary_validated_managed_children"
+    )
+    assert len(result["recovered_children"]) == 2
+    assert all("data" not in item for item in result["recovered_children"])
+    assert any("複数" in item for item in result["resource_diagnostics"])
+
+
+def test_bitmap_recovery_does_not_require_plaintext_reflection_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """reflection名が難読化されても完全なRGB相関と検証済み子PEで走査する。"""
+
+    child = _valid_managed_pe()
+    calls = 0
+
+    def recover(_data: bytes):
+        nonlocal calls
+        calls += 1
+        return (
+            {
+                "status": "bitmap_pe_recovered",
+                "inventory": [],
+                "diagnostics": [],
+                "counters": {"output_bytes": len(child)},
+                "managed_metadata_valid": True,
+                "managed_metadata_evidence": {"metadata_signature": "BSJB"},
+                "managed_resource_range": None,
+            },
+            [("dotnet-bitmap-rgb-pe", child)],
+        )
+
+    monkeypatch.setattr(evidence, "_recover_budgeted_bitmap_pes", recover)
+    managed = _valid_managed_pe() + (
+        b"System.Drawing.Bitmap GetPixel get_R get_G get_B"
+    )
+    result = evidence.bitmap_loader_evidence(managed)
+
+    assert calls == 1
+    assert result["matched"] is True
+    assert result["variant"] == "bitmap_rgb_recovered_pe"
+    assert result["strong_reflection_correlation"] is False
+    assert result["recovered_children"][0]["sha256"] == hashlib.sha256(child).hexdigest()
+
+
 def test_handler_accepts_only_correlated_stuff_with_valid_managed_child(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -450,7 +565,7 @@ def test_handler_contract_and_bitmap_evidence_quality(
     monkeypatch.setitem(
         handler.__globals__,
         "bitmap_loader_evidence",
-        lambda _data: {
+        lambda _data, **_kwargs: {
             "matched": True,
             "variant": "bitmap_getpixel_reflection",
             "managed_pe": {"is_managed_pe": True},
@@ -477,10 +592,113 @@ def test_handler_contract_and_bitmap_evidence_quality(
         minimum_score=spec.minimum_evidence_score,
     )
     assert result["variant"] == "bitmap_getpixel_reflection"
+    assert "GetExportedTypesとInvokeMemberで子アセンブリをreflection実行する" in result["logic"]
     assert quality["tier_name"] == "structural_corroboration"
     assert quality["sufficient"] is True
     assert result["safety"]["sample_executed"] is False
     assert result["safety"]["network_contacted"] is False
+
+
+def test_bitmap_result_does_not_infer_obfuscated_child_invocation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """子PE復元だけからreflection呼出を補完しない。"""
+
+    spec = _automatic_spec()
+    handler, _invocation = load_handler(spec)
+    monkeypatch.setitem(handler.__globals__, "resource_blobs", lambda _data: ([], []))
+    monkeypatch.setitem(
+        handler.__globals__,
+        "bitmap_loader_evidence",
+        lambda _data, **_kwargs: {
+            "matched": True,
+            "variant": "bitmap_rgb_recovered_pe",
+            "managed_pe": {"is_managed_pe": True},
+            "marker_hits": [
+                "System.Drawing.Bitmap",
+                "GetPixel",
+                "get_R",
+                "get_G",
+                "get_B",
+            ],
+            "strong_reflection_correlation": False,
+            "resource_status": "bitmap_pe_recovered",
+            "resource_diagnostics": [],
+            "resource_counters": {},
+            "bitmap_inventory": [],
+            "managed_metadata_valid": True,
+            "managed_metadata_evidence": {"metadata_signature": "BSJB"},
+            "managed_resource_range": None,
+            "embedded_bitmap_headers": [],
+            "recovered_children": [
+                {
+                    "role": "bitmap_rgb_managed_child",
+                    "sha256": "1" * 64,
+                    "size": 512,
+                    "format": "pe",
+                    "retained": False,
+                    "executed": False,
+                }
+            ],
+        },
+    )
+
+    result = handler(_minimal_pe(managed=True))
+
+    assert "復元した子アセンブリの呼出方式は平文markerから未確認" in result["logic"]
+    assert not any("reflection実行する" in item for item in result["logic"])
+
+
+def test_bitmap_handler_exposes_child_only_as_nonterminal_private_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """公開artifactはmetadataだけとし、子bytesは明示した非終端roleへ分離する。"""
+
+    child = _valid_managed_pe()
+    spec = _automatic_spec()
+    handler, _invocation = load_handler(spec)
+    monkeypatch.setitem(handler.__globals__, "resource_blobs", lambda _data: ([], []))
+    monkeypatch.setitem(
+        handler.__globals__,
+        "bitmap_loader_evidence",
+        lambda _data, **_kwargs: {
+            "matched": True,
+            "variant": "bitmap_rgb_recovered_pe",
+            "managed_pe": {"is_managed_pe": True},
+            "marker_hits": ["System.Drawing.Bitmap", "GetPixel", "get_R", "get_G", "get_B"],
+            "strong_reflection_correlation": False,
+            "resource_status": "bitmap_pe_recovered",
+            "resource_diagnostics": [],
+            "resource_counters": {},
+            "bitmap_inventory": [],
+            "managed_metadata_valid": True,
+            "managed_metadata_evidence": {"metadata_signature": "BSJB"},
+            "managed_resource_range": None,
+            "embedded_bitmap_headers": [],
+            "follow_on_candidate_status": "unique_boundary_validated_managed_child",
+            "recovered_children": [
+                {
+                    "role": "bitmap_rgb_managed_child",
+                    "sha256": hashlib.sha256(child).hexdigest(),
+                    "size": len(child),
+                    "format": "pe",
+                    "retained": False,
+                    "executed": False,
+                    "data": child,
+                }
+            ],
+        },
+    )
+
+    result = handler(_minimal_pe(managed=True))
+
+    assert "data" not in result["recovered_artifacts"][0]
+    assert result["recovered_payload"] == {
+        "role": "recovered_payload",
+        "name": "bitmap-managed-child.exe",
+        "data": child,
+    }
+    assert result["c2"] == []
 
 
 def _bitmap_resource(*, width: int = 1, height: int = 1):

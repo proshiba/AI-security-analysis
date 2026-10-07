@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>triage_family_search — API仕様</title></head><body>
+<h1>triage_family_search</h1>
+<p><a href="../../analysis-framework/common/triage_family_search.py">実装</a></p>
+<pre>Triageのfamily検索から、完全SHA-256取得用の非公開manifestを生成する。
+
+このCLIは検体を取得しない。providerのfamily labelを確認済み帰属として
+扱わず、後続の :mod:`triage_artifact_retrieval` へ渡す候補だけを、有界な
+ページングと重複排除で固定する。検索候補の公開性は未確認であり、出力先は
+repository外に限定する。</pre>
+<h2>build_parser</h2>
+<dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">公開性未確認のfamily候補manifest生成CLIを構築する。</span></dd></dl>
+
+<h2>load_excluded_hashes</h2>
+<dl><dt><a name="-load_excluded_hashes"><strong>load_excluded_hashes</strong></a>(paths: 'Iterable[Path]') -&gt; 'set[str]'</dt><dd><span class="code">複数manifestから既取得SHA-256を読み、集合として返す。</span></dd></dl>
+
+<h2>main</h2>
+<dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">明示network&nbsp;gate後にfamily検索manifestを生成する。</span></dd></dl>
+
+<h2>normalize_family</h2>
+<dl><dt><a name="-normalize_family"><strong>normalize_family</strong></a>(value: 'object') -&gt; 'str'</dt><dd><span class="code">API検索に許可する単一family識別子を返す。</span></dd></dl>
+
+<h2>search_public_families</h2>
+<dl><dt><a name="-search_public_families"><strong>search_public_families</strong></a>(families: 'Iterable[str]', *, api_key: 'str', opener: 'Any', excluded_hashes: 'set[str] | None' = None, maximum_results: 'int' = 100, maximum_pages: 'int' = 10, timeout: 'float' = 30.0) -&gt; 'dict[str, Any]'</dt><dd><span class="code">family候補を取得し、未確認のprovider&nbsp;labelと帰属を分離して固定する。</span></dd></dl>
+
+<h2>validate_local_input_path</h2>
+<dl><dt><a name="-validate_local_input_path"><strong>validate_local_input_path</strong></a>(path: 'Path') -&gt; 'Path'</dt><dd><span class="code">除外manifestをlocalの通常fileへ限定して解決する。</span></dd></dl>
+
+<h2>validate_private_output_path</h2>
+<dl><dt><a name="-validate_private_output_path"><strong>validate_private_output_path</strong></a>(path: 'Path') -&gt; 'Path'</dt><dd><span class="code">候補manifestが誤ってrepositoryへ保存されないようにする。</span></dd></dl>
+
+</body></html>

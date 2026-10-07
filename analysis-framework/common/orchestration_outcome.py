@@ -177,7 +177,8 @@ MAX_CANDIDATE_EVIDENCE = 256
 MAX_EVIDENCE_DEPTH = 24
 MAX_EVIDENCE_NODES = 50_000
 MAX_CONTAINER_ITEMS = 4_096
-VERIFIED_OUTPUT_ROLES = frozenset({"terminal_payload", "final_payload"})
+TERMINAL_OUTPUT_ROLES = frozenset({"terminal_payload", "final_payload"})
+VERIFIED_OUTPUT_ROLES = frozenset({*TERMINAL_OUTPUT_ROLES, "recovered_payload"})
 VERIFIED_OUTPUT_KINDS = frozenset({"binary", "pe", "elf", "macho", "script", "archive"})
 VERIFIED_OUTPUT_AUDIT_KEYS = frozenset(
     {
@@ -977,6 +978,20 @@ def _verified_output_audit(value: object, *, output_count: int) -> dict[str, Any
         and value.get("truncated") is False
         and reasons == []
     )
+    non_retained_output_proof = (
+        output_count == 0
+        and int(value.get("observed_output_count", 0)) > 0
+        and value.get("retained_output_count") == 0
+        and int(value.get("binary_values_seen", 0))
+        >= int(value.get("observed_output_count", 0))
+        and int(value.get("binary_bytes_seen", 0)) > 0
+        and value.get("retained_for_follow_on_analysis") is False
+        and value.get("follow_on_analysis_complete") is False
+        and value.get("observation_scope") == "wrapper_hash_metadata_only"
+        and isinstance(reasons, Sequence)
+        and not isinstance(reasons, (str, bytes, bytearray))
+        and bool(reasons)
+    )
     if (
         value.get("schema_version") != 1
         or value.get("maximum_outputs") != 64
@@ -985,6 +1000,7 @@ def _verified_output_audit(value: object, *, output_count: int) -> dict[str, Any
         or int(value.get("observed_output_count", 0)) < output_count
         or (
             not zero_output_negative_proof
+            and not non_retained_output_proof
             and (
                 value.get("retained_for_follow_on_analysis") is not True
                 or value.get("observation_scope")
@@ -1000,7 +1016,7 @@ def _verified_output_audit(value: object, *, output_count: int) -> dict[str, Any
     ):
         return None
     return {
-        "retained": not zero_output_negative_proof,
+        "retained": not zero_output_negative_proof and not non_retained_output_proof,
         "analysis_complete": value.get("follow_on_analysis_complete") is True,
         "zero_output_proven": zero_output_negative_proof,
     }
@@ -1198,9 +1214,18 @@ def summarize_handler_outputs(
             for identity in sorted(values, key=lambda item: tuple(map(str, item)))
         ]
 
-    terminal_candidates = public_outputs(output_candidates)
-    terminal_retained = public_outputs(retained_outputs)
-    terminal_verified = public_outputs(verified_outputs)
+    binary_candidates = public_outputs(output_candidates)
+    binary_retained = public_outputs(retained_outputs)
+    binary_verified = public_outputs(verified_outputs)
+    terminal_candidates = [
+        item for item in binary_candidates if item["role"] in TERMINAL_OUTPUT_ROLES
+    ]
+    terminal_retained = [
+        item for item in binary_retained if item["role"] in TERMINAL_OUTPUT_ROLES
+    ]
+    terminal_verified = [
+        item for item in binary_verified if item["role"] in TERMINAL_OUTPUT_ROLES
+    ]
     terminal_status = (
         "verified"
         if terminal_verified
@@ -1261,8 +1286,8 @@ def summarize_handler_outputs(
         },
         "retained_terminal_payload_sha256": sorted({item["sha256"] for item in terminal_retained}),
         "terminal_payload_sha256": sorted({item["sha256"] for item in terminal_verified}),
-        "retained_binary_outputs": terminal_retained,
-        "verified_binary_outputs": terminal_verified,
+        "retained_binary_outputs": binary_retained,
+        "verified_binary_outputs": binary_verified,
     }
 
 

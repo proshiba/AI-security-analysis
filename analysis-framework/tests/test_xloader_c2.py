@@ -74,6 +74,108 @@ def test_layered_c2_accepts_same_key_for_both_layers() -> None:
 def test_invalid_base64_is_rejected() -> None:
     with pytest.raises(C2.XLoaderC2Error):
         C2.decode_base64_candidate(b"not a base64 value")
+    with pytest.raises(C2.XLoaderC2Error):
+        C2.decode_base64_candidate(b"Zg==\n")
+    with pytest.raises(C2.XLoaderC2Error):
+        C2.decode_base64_candidate(b"Zh==")
+
+
+def test_private_input_preserves_wire_and_binary_key_bytes(tmp_path: Path) -> None:
+    candidate = tmp_path / "candidate.txt"
+    candidate.write_bytes(b"Zg==\n")
+    key = tmp_path / "key.bin"
+    key_bytes = b" " + bytes(range(1, 19)) + b"\n"
+    assert len(key_bytes) == 20
+    key.write_bytes(key_bytes)
+
+    assert C2._private_read(candidate, "候補値") == b"Zg==\n"
+    with pytest.raises(C2.XLoaderC2Error):
+        C2.decode_base64_candidate(C2._private_read(candidate, "候補値"))
+    assert C2._private_key_read(key, "第1鍵") == key_bytes
+
+
+def test_private_key_and_outputs_fail_closed(tmp_path: Path) -> None:
+    short_hex = tmp_path / "short.hex"
+    short_hex.write_text("aa55\n", encoding="ascii")
+    with pytest.raises(C2.XLoaderC2Error, match="20 byteまたは40桁hex"):
+        C2._private_key_read(short_hex, "第1鍵")
+
+    existing = tmp_path / "existing.json"
+    existing.write_text("keep", encoding="utf-8")
+    with pytest.raises(C2.XLoaderC2Error, match="すでに存在"):
+        C2._exclusive_output(existing, b"replacement", "JSON出力先")
+    assert existing.read_text(encoding="utf-8") == "keep"
+
+
+def test_v8_get_fixed_key_cancellation_matches_explicit_wire_layers() -> None:
+    """PKT2第2鍵とGET固定鍵が同じ場合の正規化wireを固定する。"""
+
+    inner = b"XLNG:00000000:8.7:Windows 10 x64:U1lOVEhFVElDXFVTRVI="
+    first_pkt2_key = bytes(range(20))
+    second_pkt2_and_get_key = bytes(range(20, 40))
+    record_key = bytes(range(40, 60))
+    url_seed = bytes(range(60, 80))
+
+    pkt2_plain_envelope = C2.build_pkt2_packet(inner, first_pkt2_key)
+    encrypted_pkt2 = C2.rc4(pkt2_plain_envelope, second_pkt2_and_get_key)
+    after_get_fixed_layer = C2.rc4(
+        encrypted_pkt2,
+        second_pkt2_and_get_key,
+    )
+    assert after_get_fixed_layer == pkt2_plain_envelope
+
+    derived_key = C2.derive_url_seed_key(url_seed, record_key)
+    explicit_wire = base64.b64encode(
+        C2.rc4(C2.rc4(after_get_fixed_layer, record_key), derived_key)
+    )
+    assert C2.encrypt_get_payload(
+        pkt2_plain_envelope,
+        record_key,
+        url_seed,
+    ) == explicit_wire
+
+
+def test_current_command_response_requires_ascii_id_and_payload_shape() -> None:
+    record_key = bytes(range(20))
+    url_seed = bytes(range(20, 40))
+
+    no_op = C2.encrypt_command_response(
+        b"XLNG9XLNG",
+        record_key,
+        url_seed,
+    )
+    evidence = C2.parse_command_response(no_op, record_key, url_seed)
+    assert evidence.valid is True
+    assert evidence.command_id == 9
+    assert evidence.command_encoding == "ascii_digit"
+    assert evidence.command_shape_valid is True
+    assert evidence.trailing_magic_present is True
+    assert evidence.body_length == 0
+    assert evidence.framing_strength == "magic_ascii_command_and_trailer"
+
+    numeric_id = C2.encrypt_command_response(
+        b"XLNG\x09",
+        record_key,
+        url_seed,
+    )
+    assert C2.parse_command_response(numeric_id, record_key, url_seed).valid is False
+
+    forbidden_body = C2.encrypt_command_response(
+        b"XLNG9unexpectedXLNG",
+        record_key,
+        url_seed,
+    )
+    rejected = C2.parse_command_response(forbidden_body, record_key, url_seed)
+    assert rejected.valid is False
+    assert rejected.command_id == 9
+    assert rejected.command_shape_valid is False
+
+    missing_payload = C2.encrypt_command_response(
+        b"XLNG1XLNG",
+        record_key,
+        url_seed,
+    )
+    assert C2.parse_command_response(missing_payload, record_key, url_seed).valid is False
 
 
 def test_candidate_key_derivation_applies_only_explicit_transforms() -> None:

@@ -4432,7 +4432,11 @@ def _validated_derived_case_report(
         or set(lineage) != {"schema_version", "depth", "parent_sha256", "root_kind"}
         or lineage.get("schema_version") != 1
         or lineage.get("depth") != item["follow_on_depth"]
-        or lineage.get("root_kind") != "retained_terminal_or_final_payload"
+        or lineage.get("root_kind")
+        not in {
+            "retained_terminal_or_final_payload",
+            "retained_verified_binary_output",
+        }
         or item["parent_sha256"] != [lineage.get("parent_sha256")]
     ):
         raise JobContractError("summary_invalid", "derived case reportとlineageが一致しません")

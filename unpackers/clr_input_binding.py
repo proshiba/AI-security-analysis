@@ -181,11 +181,16 @@ def _row_size(number, counts, heaps):
 
 
 def canonical_table_layout(data, offset, size):
-    """#~ v2.0のraw宣言だけで全table位置を計算する。rowや未知callbackを評価しない。"""
+    """#~ v2.0のraw宣言だけで全table位置を計算する。rowや未知callbackを評価しない。
+
+    ECMA-335で予約された ``Reserved_2`` byteはtable配置を変えない。難読化器が
+    1以外へ書き換えた場合もその値を意味として使わず、後続のschema・row数・
+    byte範囲検証をすべて通過した場合だけ受理する。
+    """
     if type(data) is not bytes or not _uint32(offset) or not _uint32(size) or size < 24 or offset + size > len(data):
         return None
     header = data[offset:offset + 24]
-    if header[:4] != bytes(4) or header[4:6] != b"\x02\x00" or header[7] != 1 or header[6] & ~0x47:
+    if header[:4] != bytes(4) or header[4:6] != b"\x02\x00" or header[6] & ~0x47:
         return None
     mask = _integer(header, 8, 8)
     numbers = tuple(number for number in range(64) if mask & 1 << number)

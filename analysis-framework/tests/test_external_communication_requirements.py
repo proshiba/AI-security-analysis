@@ -74,6 +74,27 @@ def test_identity_bearing_contracts_name_real_and_synthetic_requirements() -> No
     ]
 
 
+def test_formbook_and_xloader_are_external_passive_only() -> None:
+    document = json.loads(CATALOG.read_text(encoding="utf-8"))
+    contracts = {item["contract_id"]: item for item in document["requirements"]}
+    contract = contracts["formbook-xloader-passive"]
+    assert contract["families"] == ["formbook", "xloader"]
+    assert contract["profile_handlers"] == []
+    assert contract["external_status"] == "passive_only"
+    assert contract["transports"] == [
+        "tcp_connect",
+        "tls_handshake",
+        "server_first_receive_only",
+    ]
+    assert contract["client_sequence"] == [
+        "no_application_layer_request",
+        "no_registration_request",
+        "no_route_probe_request",
+    ]
+    assert contract["synthetic_support"] == "offline_codec_or_loopback_only"
+    assert "active_application_probe_intentionally_prohibited" in contract["unresolved"]
+
+
 def test_every_emulator_source_is_inventoried_without_granting_live_support() -> None:
     result = AUDIT.build_audit(repository=ROOT)
     inventory = result["emulator_source_inventory"]

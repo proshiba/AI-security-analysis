@@ -11,7 +11,8 @@ COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-from run_c2_monitoring_pipeline import (
+import run_c2_monitoring_pipeline as pipeline  # noqa: E402
+from run_c2_monitoring_pipeline import (  # noqa: E402
     effective_target_addition_count,
     enforce_carry_forward_scope_authorization,
     load_same_day_observations,
@@ -20,7 +21,7 @@ from run_c2_monitoring_pipeline import (
     restrict_to_reviewed_profiles,
     stale_build_epochs,
 )
-from monitor_recent_c2 import PlanError
+from monitor_recent_c2 import PlanError  # noqa: E402
 
 
 def test_same_day_resume_reuses_only_unchanged_wire_targets(tmp_path: Path) -> None:
@@ -128,6 +129,77 @@ def test_network_rejects_unapproved_carry_forward_before_probe() -> None:
         allow_network=True,
         allow_carry_forward_targets=False,
     )
+
+
+def test_production_cli_rejects_formbook_http_before_maxmind_or_probe(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    targets = tmp_path / "targets.json"
+    targets.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "analysis_window": {
+                    "start": "2026-10-07T00:00:00+09:00",
+                    "end": "2026-10-07T23:59:59+09:00",
+                },
+                "targets": [
+                    {
+                        "target_id": "formbook-fixture",
+                        "family": "formbook",
+                        "host": "c2.example",
+                        "port": 443,
+                        "protocol": "https",
+                        "method": "http_get",
+                        "transport": "direct",
+                        "http_path": "/known-route/",
+                        "sample_sha256s": ["a" * 64],
+                        "sources": ["fixture/config.json:c2"],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "acquire_private_databases",
+        lambda *_args, **_kwargs: pytest.fail(
+            "passive_only拒否前にMaxMind処理へ進んではいけない"
+        ),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "monitor",
+        lambda *_args, **_kwargs: pytest.fail(
+            "passive_only拒否後にprobeへ進んではいけない"
+        ),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_c2_monitoring_pipeline.py",
+            "--targets",
+            str(targets),
+            "--output-directory",
+            str(tmp_path / "output"),
+            "--maxmind-cache-dir",
+            str(tmp_path / "maxmind"),
+            "--allow-network",
+            "--allow-reviewed-application-probes",
+            "--allow-malware-registration-tasking",
+            "--allow-xloader-registration",
+            "--xloader-private-material",
+            str(tmp_path / "private.json"),
+        ],
+    )
+    with pytest.raises(SystemExit) as exc_info:
+        pipeline.main()
+    assert exc_info.value.code == 2
+    assert "passive_only" in capsys.readouterr().err
 
 
 def test_render_enriched_report_includes_maxmind_section_once() -> None:

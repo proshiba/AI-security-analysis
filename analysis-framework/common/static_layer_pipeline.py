@@ -31,7 +31,17 @@ ACTIONABLE_FORMATS = frozenset(
     {"pe", "elf", "macho", "script", "autoit-a3x", "java-class"}
 )
 CONTAINER_FORMATS = frozenset(
-    {"7z", "zip", "cab", "rar", "xz", "asar", "ole", "apple-disk-image"}
+    {
+        "7z",
+        "zip",
+        "cab",
+        "rar",
+        "xz",
+        "asar",
+        "ole",
+        "rtf",
+        "apple-disk-image",
+    }
 )
 HIGH_VALUE_KIND_RE = re.compile(
     r"(?:^|[._-])(?:config|command|script|powershell|javascript|js|vbs|"

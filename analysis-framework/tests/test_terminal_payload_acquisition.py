@@ -116,6 +116,35 @@ def test_deepest_strict_complete_leaf_is_selected() -> None:
     assert result["frontier"][0]["reason"] == "strict_complete_leaf"
 
 
+def test_complete_recovered_payload_is_not_promoted_to_terminal() -> None:
+    """非終端の静的復元子はcompleteでも終端payloadへ昇格しない。"""
+
+    root, child = "a" * 64, "b" * 64
+    graph = _valid_complete_graph()
+    graph["edges"][0]["role"] = "recovered_payload"
+
+    result = MODULE.build_terminal_payload_acquisition(graph)
+
+    assert result["status"] == "pending"
+    assert result["selected_sha256"] == []
+    assert result["pending_sha256"] == [child]
+    assert result["frontier"] == [
+        {
+            "sha256": child,
+            "size": 4096,
+            "depth": 1,
+            "roles": ["recovered_payload"],
+            "kinds": ["pe"],
+            "parent_sha256": [root],
+            "edge_statuses": ["child_complete"],
+            "node_state": "analyzed",
+            "case_state": "complete",
+            "disposition": "pending_terminal",
+            "reason": "terminal_verification_incomplete",
+        }
+    ]
+
+
 def test_incomplete_leaf_remains_pending_with_reason() -> None:
     root, child = "a" * 64, "b" * 64
     graph = _graph(status="partial")

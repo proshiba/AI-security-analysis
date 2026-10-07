@@ -15,6 +15,8 @@
 | PyInstaller CArchive | cookie／TOC／全entry境界・path衝突・圧縮stream終端・実sizeをmemory上で検証 | script、module、PYZ、PE、入れ子archiveの優先保持と全inventory commitment |
 | UPX | 隔離した入力に対して信頼済み UPX utility を実行 | UPX が file を検証できた場合の unpack 済み PE |
 | PE resource と overlay | offset と size を parse し、有効な PE 範囲を carve | child PE/resource |
+| RTF `objdata`／OLE1 Package | RTF group、hex、OLE1 embedded object、Ole10Nativeの全境界を上限付きで検証 | 宣言拡張子を信用しない内包payloadと部分失敗report |
+| 暗号化OOXML／Equation Editor OLE | Office既定パスワード、hidden worksheet、Equation CLSID、native stream、x86 CFG、LCG XOR、復号stageのAPI／URL／保存先を有界検証 | 復号OOXML、VBA source、検証済みdownloader stage |
 | Go Windows AMD64の明示的な5段byte変換 | Go1.20以降のpclntab、関数境界、定数copy、review済み数学blockのregister幅・使用関係・順序を照合 | 親子SHA-256付きの構造検証済みPE候補 |
 | PE `.data` の逆順fragment＋affine XOR Donut wrapper | `.data`末尾のkey／size、4・8分割の境界、zero padding、既知Donut loader prologue、復号instanceを上限付きで照合 | 認証済みDonut shellcodeを子レイヤーへ送り、終端moduleを再帰解析 |
 | GDPF PDF overlay | EOFのlittle-endian size、GDPF footer、PE overlay境界、%PDF- magicを同時検証 | 実在する場合だけPDFデコイを子レイヤー化 |
@@ -24,15 +26,47 @@
 | .NET bitmap steganography | 上限付き RGB column traversal を再現 | 埋め込み managed PE |
 | AutoIt A3X | script が手順を明示する場合に literal、RC4、LZNT1 を decode | 埋め込み PE |
 | JavaScript string array 難読化 | array を parse し、rotation を解き、alias を decode して literal を畳み込み | 可読化した script と URL |
+| JavaScript逆順・区切り文字挿入Base64 | 長大literalを反転し、Base64外の複数separatorを除去して構造を検証 | Lua layerとPE |
 | UTF-16 JavaScript dropper | numeric array、repeating Unicode key 変換、environment chunk を畳み込み | PowerShell と terminal PE |
 | JavaScript AES/GZip chain | 埋め込み AES-CBC key/IV と GZip 手順を parse | terminal managed PE |
+| Batch／PowerShell／JavaScript polyglot | `set "PREFIX..."` chunk、size／SHA-256 metadata、custom nibble、単一byte変換、AES-CBC／PKCS7／GZipの受渡しを照合 | 検証済みPowerShell、補助PE、HOI1 inventory、KMTA内包PEまたは未解決blocker |
 | CMD echo Base64 stream | target 別に redirection をまとめ、chunk を連結して検証 | fragment noise を除いた terminal PE/archive |
 | Jadoo split bundle | manifest の offset と length を検証 | 再構築した file |
 | 宣言型byte変換sidecar | 許可リスト方式の回転、XOR、反転、sliceを適用し、Donut、magic、PE、ZIP構造を検証 | 検証済みchild layerと再帰解析されたterminal payload |
 | 一般的な base64/hex | size と format を gate とする decode | child layer |
 | Mach-O | header と segment の inventory | packing 評価だけ |
 
-`static_unpacker.py` が orchestrator です。`javascript_obfuscator.py` は script encoding と string array layer、`javascript_dropper_unpacker.py` は numeric array、Unicode environment、AES-CBC、GZip chain、`nsis_unpacker.py` は明示的な NSIS script と native constant XOR layer を処理します。`static_control_flow.py` は、上限付きの再帰的 x86/x64 entry CFG triage を提供します。`opaque_native_entry.py` はimportless native PEに限定し、entry CFG、PEB／export resolver、API hash候補、変換loop、埋込みPE候補を実行やCPU emulationなしで調べます。byte走査の完了と意味的な復元完了を分離し、未知hashや動的pointer tableが残る場合は完了扱いにしません。候補関数、追跡関数、resolver callsite、変換loop、API／module hash、entry CFG、埋込み候補は`total`、`returned`、`truncated`で記録し、いずれかの上限到達を`coverage_complete=false`へ反映します。`managed_il_triage.py` は CLR を load せず、managed metadata、CIL、resource を棚卸しします。`managed_proxy_deobfuscator.py` は埋込みresourceのhash・entropy・保護候補を列挙し、確認済みEazfuscator系DynamicMethod proxy表をfield→methodの対応へ静的復号します。
+`static_unpacker.py` が orchestrator です。`javascript_obfuscator.py` は script encoding と string array layer、`javascript_dropper_unpacker.py` は numeric array、Unicode environment、AES-CBC、GZip chain、`javascript_reverse_base64.py` は逆順・複数separator付きBase64 literalを処理します。`batch_powershell_polyglot.py` はBatch comment内のcarrierを収集し、同梱metadataのsizeとSHA-256へ一致する成分だけを昇格します。`nsis_unpacker.py` は明示的な NSIS script と native constant XOR layer を処理します。`static_control_flow.py` は、上限付きの再帰的 x86/x64 entry CFG triage を提供します。`opaque_native_entry.py` はimportless native PEに限定し、entry CFG、PEB／export resolver、API hash候補、変換loop、埋込みPE候補を実行やCPU emulationなしで調べます。byte走査の完了と意味的な復元完了を分離し、未知hashや動的pointer tableが残る場合は完了扱いにしません。候補関数、追跡関数、resolver callsite、変換loop、API／module hash、entry CFG、埋込み候補は`total`、`returned`、`truncated`で記録し、いずれかの上限到達を`coverage_complete=false`へ反映します。`managed_il_triage.py` は CLR を load せず、managed metadata、CIL、resource を棚卸しします。`managed_proxy_deobfuscator.py` は埋込みresourceのhash・entropy・保護候補を列挙し、確認済みEazfuscator系DynamicMethod proxy表をfield→methodの対応へ静的復号します。
+
+`rtf_objdata.py`は、32 MiB以下のRTFをgroup depth 256、`objdata` 32件、native data 16 MiBの範囲で完全走査します。control word、`\bin`、nested groupを区別し、OLE1 version／format、長さ付き文字列、native境界を検証します。`Package`ではOle10Nativeの各NUL終端文字列、temp path長、payload長も検証し、宣言された`.pdf`等の拡張子では内容を分類しません。複数objectの一部が壊れている場合は検証済みobjectだけをSHA-256で重複排除し、`partial_artifacts_recovered`として固定点解析へ渡します。RTFや内包payloadは実行しません。
+
+`office_encrypted_package.py`は、拡張子に依存せず、OLE内に
+`EncryptionInfo`と`EncryptedPackage`が共存する暗号化OOXMLだけを対象にします。
+Office既定パスワード`VelvetSweatshop`を1回だけ検証し、一致した場合は復号結果が
+`[Content_Types].xml`と`_rels/.rels`を持つ有効なOOXML ZIPであることを確認してから
+固定点解析へ渡します。辞書探索、Office起動、macro実行、外部通信は行いません。
+入力64 MiB、復号結果128 MiB、OOXML 4096 memberを上限とし、password値はreportへ
+出力しません。
+
+`office_vba.py`はOLE container内のVBA sourceを`oletools`で静的に復元し、
+各moduleを固定点解析へ渡します。p-code、VBA、Office applicationは実行せず、
+入力、module数、module単体size、復元総量のいずれかが上限を超えた場合は、
+その入力からの復元物を一切採用しません。parser由来のstream名とmodule名は
+公開reportへ直接記録せず、照合用SHA-256だけを残します。
+
+`equation_ole.py`はXLSX、Equation OLE compound file、またはraw native streamを入力にし、
+Equation Editor CLSIDと一意な`\x01OLe10nATive` streamを確認します。`0x50`から到達する
+call/pop型PIC decoderを有界CFGと定数伝播で追い、stage境界、LCG更新、dword XOR、
+loop終端が一意な場合だけ復号します。復号後もstack確保、module／API集合、単一URL、
+単一保存先を再検証し、構造が曖昧な場合はartifactを返しません。命令実行、CPU emulation、
+Office起動、外部通信は行いません。`static_unpacker.py`のZIP／OLE分岐へ統合され、
+暗号化XLSXの復号後も固定点解析で自動到達します。
+
+`batch_powershell_polyglot.py` は入力16 MiB、16,384行、単一行2 MiB、metadata 32件、carrier prefix 4,096件、候補work 64 MiB、metadata入力work 128 MiB／展開出力work 64 MiB、hex変換work 128 MiB、単一復元成分32 MiBを上限とします。Base64はstrict decode、GZipは単一stream終端・trailing dataなし・展開比512倍以下を要求します。custom nibble経路は16文字の一意なalphabetとmetadata hashを、AES経路は復元PowerShell内の共通XOR付きkey／IV配列、CBC、PKCS7、RSC変数の同一callへの受渡し、復号後GZip、PE全section境界を同時に検証します。reportへ生key／IVを出しません。metadata検証済みPLDを`native_kmta_loader.py`で一意に復元できない場合だけ、`metadata_verified_pld_requires_native_loader_analysis`をblockerとして残します。
+
+`native_kmta_loader.py` は、x64 PEのexport codeからRIP相対の1-byte memory参照を静的に列挙し、非実行section内の連続48-byte参照だけをAES-256 key／IV候補にします。実行section内の`KMTA`比較、PKCS7、headerとANSI／UTF-16 path長、child PEのexact file extent、AMD64、ImageBase、SizeOfImageが全て一致し、候補payloadが一意な場合だけ復元します。loader 32 MiB、ciphertext 64 MiB、export 256件、命令100,000件、候補64件、復号work 256 MiBを上限とします。生key／IVはreportへ出さず、materialのRVAとSHA-256だけを記録します。命令実行、CPU emulation、外部通信は行いません。
+
+`managed_handoff_image.py` は、`Reflection.Emit` loader向けの`HOI1` serialized imageをCLRへloadせず完全走査します。namespace、main class、data blob、type、field、method、parameter、local、CIL、token fixup、例外領域のcount・length・offsetと入力終端を検証し、fixup種別とUTF-8 string literalを上限付きで棚卸しします。入力32 MiB、type 2,048件、field／method／parameter各65,536件、CIL合計24 MiB、blob合計32 MiB、fixup 262,144件を上限とします。これはserialized metadataの構造確認であり、CILの実行、Reflection.Emitによる型生成、native loaderの起動、family／C2の確定ではありません。
 
 `reverse_chunk_affine_xor_donut_pe.py` は、`.data` に一意な候補と認証済みDonut instanceがある場合だけ子shellcodeを返します。復元されたshellcodeと終端moduleは `static_layer_pipeline.py` が親子SHA-256を付けて再帰解析します。Donutの既知prologueとinstanceの検証は両方必要で、wrapper構造だけをfamilyまたはC2の確定根拠にしません。
 
@@ -147,6 +181,10 @@ report では次の blocker class を使用します。
 & $Python -m pydoc unpackers.opaque_native_entry
 & $Python -m pydoc unpackers.javascript_obfuscator
 & $Python -m pydoc unpackers.javascript_dropper_unpacker
+& $Python -m pydoc unpackers.javascript_reverse_base64
+& $Python -m pydoc unpackers.batch_powershell_polyglot
+& $Python -m pydoc unpackers.managed_handoff_image
+& $Python -m pydoc unpackers.native_kmta_loader
 & $Python -m pydoc unpackers.nsis_unpacker
 & $Python -m pydoc unpackers.electron_nsis_unpacker
 & $Python -m pydoc unpackers.inno_sideload_bundle
@@ -155,7 +193,7 @@ report では次の blocker class を使用します。
 
 HTML API文書はrepository root、`analysis-framework`、`analysis-framework/common`を `PYTHONPATH` に設定し、`docs/pydoc` で `python -m pydoc -w collection_followup_planner unpackers.opaque_native_entry unpackers.electron_nsis_unpacker unpackers.inno_sideload_bundle` を実行して再生成します。
 
-unit test は、上限付き decode、malformed input、正確な hash/size、GDPF PDFのsize・overlay境界・magic、LZX CABのchecksum・window・volume・path・size・決定的順序、JavaScript rotation、UTF-16 normalization、numeric array と Unicode environment の復元、AES-CBC/GZip 変換、分割 CMD Base64 の再構築、.NET bitmap 復元、AutoIt layer、split reconstruction、NSIS word decode、静的 XOR loop 認識、synthetic NSIS の end-to-end 復元を検証します。
+unit test は、上限付き decode、malformed input、正確な hash/size、GDPF PDFのsize・overlay境界・magic、LZX CABのchecksum・window・volume・path・size・決定的順序、JavaScript rotation、逆順・separator付きBase64、UTF-16 normalization、numeric array と Unicode environment の復元、metadata拘束polyglotのcustom nibbleとAES-CBC／PKCS7／GZip、HOI1の完全消費・fixup境界・文字列定数、x64 export参照に拘束したKMTA復元とpadding／arch／PE extent拒否、分割 CMD Base64 の再構築、.NET bitmap 復元、AutoIt layer、split reconstruction、NSIS word decode、静的 XOR loop 認識、synthetic NSIS の end-to-end 復元を検証します。
 
 ## PureHVNC と CHRD/Donut の復元
 

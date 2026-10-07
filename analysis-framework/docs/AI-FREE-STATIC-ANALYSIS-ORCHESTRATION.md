@@ -179,7 +179,7 @@ family、config、network、terminal payloadなど他のgate、blocker、next ac
 
 family handlerがraw bytesを復元した場合、隔離workerは上限付き一時領域へ保存します。親processはその通常ファイルを再読込し、worker申告値に依存せずSHA-256とsizeを再計算して、case配下の安全な相対pathへ保持します。観測したbinary数と保持数が一致しない、走査が打ち切られた、再hashできない、hardlink／reparse／境界外pathを検出した場合は後段解析へ渡しません。
 
-family handlerが返す公開結果と復元bytesは分離します。format、size、hash、config等のfamily固有検証を完了した場合だけ、worker内部の`terminal_payload` recordへbytesを置けます。親processはそのrecordを一時fileへ保存して再hashし、一致した通常fileだけを`p/<sha256>.<kind別拡張子>`へ保持します。公開JSONにはbytesを複製せず`content_exported=false`を残し、root reportの`retained_artifact_paths`はsorted uniqueな保持pathだけを列挙します。各pathに埋め込んだSHA-256と`artifact_sha256`が一致しない、重複する、許可外拡張子または任意pathを含むreportは拒否します。
+family handlerが返す公開結果と復元bytesは分離します。終端と確認できたbytesはworker内部の`terminal_payload`または`final_payload` recordへ置き、境界検証済みだが終端未確認の一意な静的復元子は`recovered_payload` recordへ置きます。親processはそのrecordを一時fileへ保存して再hashし、一致した通常fileだけを`p/<sha256>.<kind別拡張子>`へ保持します。`recovered_payload`はfixed-point子解析へ渡しますが、終端到達、family帰属、C2確認の証拠にはしません。公開JSONにはbytesを複製せず`content_exported=false`を残し、root reportの`retained_artifact_paths`はsorted uniqueな保持pathだけを列挙します。各pathに埋め込んだSHA-256と`artifact_sha256`が一致しない、重複する、許可外拡張子または任意pathを含むreportは拒否します。
 
 保持できたpayloadは、rootとは別の解析契約で同じ静的解析器へ再投入します。子契約は`archive_mode=raw`、family強制なし、外部family hintなし、通常解析、個別payload上限128 MiBに固定します。秘密のarchive passwordはargvや環境変数へ出さず、所有者限定の一時request fileからworkerへ渡し、payload本体は標準入力で渡します。
 

@@ -331,6 +331,26 @@ def test_verified_binary_manifest_marks_terminal_reached() -> None:
     assert outputs["verified_binary_outputs"][0]["size"] == 1_234
 
 
+def test_verified_recovered_payload_does_not_mark_terminal_reached() -> None:
+    """検証済み中間子はfollow-on対象だがterminal到達証拠にはしない。"""
+
+    recovered = _verified_output()
+    recovered["role"] = "recovered_payload"
+    record = _record(
+        "loader",
+        {},
+        verified_binary_outputs=[recovered],
+        verified_binary_output_audit=_retention_audit(analysis_complete=True),
+    )
+
+    outputs = summarize_handler_outputs([record])
+
+    assert outputs["terminal_payload"]["status"] == "unresolved"
+    assert outputs["retained_terminal_payload_sha256"] == []
+    assert outputs["terminal_payload_sha256"] == []
+    assert outputs["verified_binary_outputs"][0]["role"] == "recovered_payload"
+
+
 def test_retained_payload_without_follow_on_analysis_remains_incomplete() -> None:
     record = _record(
         "loader",
