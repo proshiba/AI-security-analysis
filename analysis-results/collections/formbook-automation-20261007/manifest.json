@@ -30,6 +30,8 @@
     "human_readable_report": "README.md",
     "machine_readable_summary": "summary.json"
   },
+  "cases": [],
+  "family_sources": [],
   "safety": {
     "samples_executed": false,
     "recovered_payloads_executed": false,
