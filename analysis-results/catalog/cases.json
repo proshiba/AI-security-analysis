@@ -1788,6 +1788,13 @@
       "family": "remusstealer",
       "version_key": "unknown"
     },
+    "0eb380a4609662b66d946d0991e810aa47b80dc3733aee4e59cfba1bd1107ce7": {
+      "canonical_path": "analysis-results/malware/formbook/versions/unknown/cases/0eb380a4609662b66d946d0991e810aa47b80dc3733aee4e59cfba1bd1107ce7",
+      "case_id": "sha256:0eb380a4609662b66d946d0991e810aa47b80dc3733aee4e59cfba1bd1107ce7",
+      "case_kind": "malware",
+      "family": "formbook",
+      "version_key": "unknown"
+    },
     "0eb45fdc5504805d34596dd7063c686536726536dd8300c030044d01521be41b": {
       "canonical_path": "analysis-results/malware/screenconnect-rmm/versions/unknown/cases/0eb45fdc5504805d34596dd7063c686536726536dd8300c030044d01521be41b",
       "case_id": "sha256:0eb45fdc5504805d34596dd7063c686536726536dd8300c030044d01521be41b",
