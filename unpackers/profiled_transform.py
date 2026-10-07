@@ -46,6 +46,7 @@ ALLOWED_FORMATS = {
     "apple-disk-image",
     "autoit-a3x",
     "ole",
+    "rtf",
     "macho",
 }
 ALLOWED_OPERATIONS = {

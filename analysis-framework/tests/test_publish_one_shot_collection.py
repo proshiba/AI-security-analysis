@@ -170,10 +170,10 @@ def test_choose_family_rejects_internal_result_without_handler_evidence() -> Non
 def test_choose_family_keeps_internal_result_with_handler_evidence() -> None:
     """handlerが十分な証拠を返した内部判定は、提供元ラベルより優先する。"""
 
-    value = report("formbook_loader")
+    value = report("efimer")
     value["handler_executions"] = [
         {
-            "handler_id": "formbook_loader:extract_config.py:extract_config",
+            "handler_id": "efimer:extract_config.py:extract_config",
             "status": "succeeded",
             "selected_evidence": {"sufficient": True},
         }
@@ -181,8 +181,8 @@ def test_choose_family_keeps_internal_result_with_handler_evidence() -> None:
     assert publisher.choose_family(
         {"signature": "NanoCore", "tags": ["NanoCore"]},
         value,
-        {"formbook", "nanocore", "unclassified"},
-    ) == ("formbook", "one_shot_static_detector")
+        {"efimer", "nanocore", "unclassified"},
+    ) == ("efimer", "one_shot_static_detector")
 
 
 def test_choose_family_rejects_modern_result_without_handler_execution() -> None:
@@ -202,7 +202,6 @@ def test_choose_family_rejects_modern_result_without_handler_execution() -> None
     ("internal_family", "public_family"),
     [
         ("dotnet_resource_loader", "dotnet-resource-loader"),
-        ("formbook_loader", "formbook"),
         ("maskgram_stealer", "maskgram-stealer"),
         ("linux_downloader", "linux-downloader"),
     ],
@@ -218,6 +217,102 @@ def test_choose_family_maps_internal_handler_id_to_public_family(
         report(internal_family),
         {public_family, "nanocore", "unclassified"},
     ) == (public_family, "one_shot_static_detector")
+
+
+def test_public_family_id_maps_formbook_loader() -> None:
+    """FormBook内部handler IDは公開用family IDへ正規化する。"""
+
+    assert publisher.public_family_id("formbook_loader") == "formbook"
+
+
+def _formbook_report_with_handler_artifact(
+    tmp_path: Path,
+    result: dict,
+) -> tuple[Path, dict]:
+    """FormBook帰属境界の人工handler成果物とreportを作る。"""
+
+    source = tmp_path / "case"
+    wrapper = source / "handlers" / "formbook.json"
+    handler_id = "formbook_loader:handler.py:extract_config"
+    publisher.write_json(wrapper, {"handler": {"id": handler_id}, "result": result})
+    value = report("formbook_loader")
+    value["handler_executions"][0]["handler_id"] = handler_id
+    value["handler_executions"][0]["result"] = "handlers/formbook.json"
+    return source, value
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {
+            "supports_family_attribution": False,
+            "terminal_family_confirmed": False,
+            "attribution_scope": "component_handler_route",
+        },
+        {
+            "supports_family_attribution": True,
+            "attribution_scope": "terminal_payload",
+        },
+    ],
+)
+def test_choose_family_does_not_promote_formbook_without_terminal_confirmation(
+    tmp_path: Path,
+    result: dict,
+) -> None:
+    """route-onlyまたは終端確認欠落のFormBook成果物を内部帰属へ昇格しない。"""
+
+    source, value = _formbook_report_with_handler_artifact(tmp_path, result)
+    assert publisher.choose_family(
+        {"signature": "NanoCore", "tags": ["NanoCore"]},
+        value,
+        {"formbook", "nanocore", "unclassified"},
+        source=source,
+    ) == ("nanocore", "malwarebazaar_reported_signature")
+
+
+def test_choose_family_promotes_formbook_with_explicit_terminal_confirmation(
+    tmp_path: Path,
+) -> None:
+    """両方の帰属flagが明示的に真の終端FormBook成果物だけを内部確認扱いにする。"""
+
+    source, value = _formbook_report_with_handler_artifact(
+        tmp_path,
+        {
+            "supports_family_attribution": True,
+            "terminal_family_confirmed": True,
+            "attribution_scope": "terminal_payload",
+        },
+    )
+    assert publisher.choose_family(
+        {"signature": "NanoCore", "tags": ["NanoCore"]},
+        value,
+        {"formbook", "nanocore", "unclassified"},
+        source=source,
+    ) == ("formbook", "one_shot_static_detector")
+
+
+def test_choose_family_rejects_formbook_wrapper_from_another_handler(
+    tmp_path: Path,
+) -> None:
+    """別handlerの成果物を参照するFormBook実行recordは帰属証拠にしない。"""
+
+    source, value = _formbook_report_with_handler_artifact(
+        tmp_path,
+        {
+            "supports_family_attribution": True,
+            "terminal_family_confirmed": True,
+            "attribution_scope": "terminal_payload",
+        },
+    )
+    value["handler_executions"][0]["handler_id"] = (
+        "formbook_loader:another.py:extract_config"
+    )
+    assert publisher.choose_family(
+        {"signature": "NanoCore", "tags": ["NanoCore"]},
+        value,
+        {"formbook", "nanocore", "unclassified"},
+        source=source,
+    ) == ("nanocore", "malwarebazaar_reported_signature")
 
 
 def test_choose_family_mapped_internal_result_requires_positive_evidence() -> None:
@@ -2805,7 +2900,7 @@ def test_publish_case_separates_provider_label_from_static_attribution(
     monkeypatch.setattr(
         publisher,
         "choose_family",
-        lambda *_args: ("vidar", "malwarebazaar_reported_signature"),
+        lambda *_args, **_kwargs: ("vidar", "malwarebazaar_reported_signature"),
     )
 
     family, destination, summary = publisher.publish_case(
@@ -2904,7 +2999,7 @@ def test_collection_summary_counts_provider_only_separately(
     monkeypatch.setattr(
         publisher,
         "choose_family",
-        lambda *_args: ("vidar", "malwarebazaar_reported_signature"),
+        lambda *_args, **_kwargs: ("vidar", "malwarebazaar_reported_signature"),
     )
     publisher._publish_from_snapshots(
         repository,
@@ -3011,7 +3106,11 @@ def test_publish_case_reuses_catalog_versioned_path_and_metadata_version(
     """追加解析の再公開ではcatalogのversion付き正規pathと既存version根拠を維持する。"""
 
     digest = "d" * 64
-    monkeypatch.setattr(publisher, "choose_family", lambda *_args: ("efimer", "fixture"))
+    monkeypatch.setattr(
+        publisher,
+        "choose_family",
+        lambda *_args, **_kwargs: ("efimer", "fixture"),
+    )
     source, report_value = valid_source_case(tmp_path, digest)
     publisher.write_json(
         source / "static-logic.json",

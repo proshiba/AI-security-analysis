@@ -1,5 +1,7 @@
 cabarchive==0.2.5
 olefile>=0.47
+msoffcrypto-tool>=5.4.2
+oletools==0.60.2
 pefile>=2024.8.26
 pyzipper>=0.3.6
 capstone>=5.0.0

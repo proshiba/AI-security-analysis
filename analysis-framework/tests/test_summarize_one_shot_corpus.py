@@ -93,6 +93,7 @@ def _write_case(
     telfhash: str | None = None,
     logic_fingerprints: tuple[str, ...] = (),
     source_name: str = "TOP-SECRET-SOURCE.exe",
+    outer_sha256: str | None = None,
 ) -> None:
     case_dir = run / "cases" / digest
     case_dir.mkdir(parents=True, exist_ok=True)
@@ -232,6 +233,8 @@ def _write_case(
         },
         "artifact_sha256": artifact_hashes,
     }
+    if outer_sha256 is not None:
+        report["sample"]["outer_sha256"] = outer_sha256
     analysis_contract.seal_report(report)
     _write_json(case_dir / "report.json", report)
 
@@ -363,6 +366,193 @@ def _write_run_summary(
         "ai_used": False,
     }
     _write_json(run / "summary.json", summary)
+
+
+def _write_selection_manifest(
+    path: Path,
+    selected_hashes: list[str],
+    *,
+    schema_version: object = 1,
+    selected: object | None = None,
+) -> None:
+    """選択root SHAだけを含む最小fixture manifestを書く。"""
+
+    _write_json(
+        path,
+        {
+            "schema_version": schema_version,
+            "selected": len(selected_hashes) if selected is None else selected,
+            "selected_hashes": selected_hashes,
+        },
+    )
+
+
+def _attach_unresolved_c2(run: Path, digest: str) -> None:
+    """封印済みの未解決root終端payload契約をfixtureへ追加する。"""
+
+    _replace_case_artifacts(
+        run,
+        digest,
+        c2__analysis_json=corpus.c2_analysis_contract.build_unresolved_contract(
+            digest,
+            "unclassified",
+        ),
+    )
+
+
+def test_selected_root_audit_matches_inner_and_outer_sha_without_run_summary(
+    tmp_path: Path,
+) -> None:
+    """外側ZIP SHAを含む選択100件相当をroot reportへ正しく照合できる。"""
+
+    run = tmp_path / "run"
+    manifest = tmp_path / "selection-manifest.json"
+    _write_case(
+        run,
+        SHA_A,
+        outer_sha256=SHA_A,
+        handler_statuses=("succeeded",),
+        automation_status="partial",
+        case_status="partial",
+    )
+    _write_case(
+        run,
+        SHA_B,
+        outer_sha256=SHA_C,
+        family_status="unresolved",
+        family=None,
+        config_recovered=False,
+        config_required=None,
+        automation_status="triaged_unknown",
+        case_status="triaged_unknown",
+    )
+    _attach_unresolved_c2(run, SHA_A)
+    _attach_unresolved_c2(run, SHA_B)
+    _write_selection_manifest(manifest, [SHA_A, SHA_C])
+
+    summary = corpus.audit_selected_roots([run], manifest)
+
+    assert not (run / "summary.json").exists()
+    assert summary["selection"] == {
+        "observed_root_case_count": 2,
+        "matched_root_count": 2,
+        "out_of_scope_root_case_count": 0,
+        "sample_sha256_match_count": 1,
+        "sample_outer_sha256_match_count": 2,
+        "both_fields_match_count": 1,
+    }
+    assert summary["family"]["resolution_status_counts"] == {
+        "resolved": 1,
+        "unresolved": 1,
+    }
+    assert summary["automation"]["route_succeeded_root_count"] == 1
+    assert summary["automation"]["complete_root_count"] == 0
+    assert summary["root_terminal_payload"] == {
+        "status": "available",
+        "known_root_count": 2,
+        "unknown_root_count": 0,
+        "reached_root_count": 0,
+        "terminal_status_counts": {"unresolved": 2},
+    }
+    assert summary["run_level_metrics"]["derived_cases_analyzed"]["value"] is None
+    assert (
+        summary["run_level_metrics"]["derived_cases_analyzed"]["reason"]
+        == "summary_json_missing"
+    )
+    assert (
+        summary["run_level_metrics"]["fixed_point_nodes"]["reason"]
+        == "follow_on_analysis_json_missing"
+    )
+    assert (
+        summary["run_level_metrics"]["terminal_frontier"]["reason"]
+        == "terminal_payload_acquisition_json_missing"
+    )
+    assert summary["safety"]["ai_used_true_root_count"] == 0
+    assert summary["safety"]["executed_sample_true_root_count"] == 0
+    assert summary["safety"]["network_contacted_true_root_count"] == 0
+    rendered = json.dumps(summary, ensure_ascii=False)
+    assert "TOP-SECRET-SOURCE.exe" not in rendered
+    assert "欠落したrun-level成果物の値は0へ置換していません" in corpus.render_markdown(summary)
+
+
+@pytest.mark.parametrize("version", [True, 1.0, "1", None, 99])
+def test_selected_root_manifest_schema_version_is_exact_integer(
+    tmp_path: Path,
+    version,
+) -> None:
+    """選択manifestのschemaをPython上の同値比較で緩和しない。"""
+
+    run = tmp_path / "run"
+    manifest = tmp_path / "selection-manifest.json"
+    _write_case(run, SHA_A)
+    _write_selection_manifest(manifest, [SHA_A], schema_version=version)
+
+    with pytest.raises(corpus.CorpusSummaryError) as captured:
+        corpus.audit_selected_roots([run], manifest)
+
+    assert captured.value.code == "selection_manifest_schema_invalid"
+
+
+@pytest.mark.parametrize(
+    ("selected_hashes", "selected", "expected_code"),
+    [
+        ([SHA_A, SHA_A], 2, "selection_manifest_sha256_duplicate"),
+        ([SHA_A], 2, "selection_manifest_count_mismatch"),
+        ([SHA_A.upper()], 1, "selection_manifest_sha256_invalid"),
+    ],
+)
+def test_selected_root_manifest_hash_contract_fails_closed(
+    tmp_path: Path,
+    selected_hashes: list[str],
+    selected: int,
+    expected_code: str,
+) -> None:
+    """重複・件数不一致・非canonical SHAを選択rootへ使用しない。"""
+
+    run = tmp_path / "run"
+    manifest = tmp_path / "selection-manifest.json"
+    _write_case(run, SHA_A)
+    _write_selection_manifest(
+        manifest,
+        selected_hashes,
+        selected=selected,
+    )
+
+    with pytest.raises(corpus.CorpusSummaryError) as captured:
+        corpus.audit_selected_roots([run], manifest)
+
+    assert captured.value.code == expected_code
+
+
+def test_selected_root_cannot_match_multiple_cases(tmp_path: Path) -> None:
+    """同じ選択SHAがinnerと別caseのouterへ一致する曖昧性を拒否する。"""
+
+    run = tmp_path / "run"
+    manifest = tmp_path / "selection-manifest.json"
+    _write_case(run, SHA_A, outer_sha256=SHA_C)
+    _write_case(run, SHA_C)
+    _write_selection_manifest(manifest, [SHA_C])
+
+    with pytest.raises(corpus.CorpusSummaryError) as captured:
+        corpus.audit_selected_roots([run], manifest)
+
+    assert captured.value.code == "selection_root_matches_multiple_cases"
+
+
+def test_selected_case_cannot_claim_inner_and_distinct_outer_roots(
+    tmp_path: Path,
+) -> None:
+    """1 caseを内側・外側の別々の選択rootとして二重計上しない。"""
+
+    run = tmp_path / "run"
+    manifest = tmp_path / "selection-manifest.json"
+    _write_case(run, SHA_A, outer_sha256=SHA_B)
+    _write_selection_manifest(manifest, [SHA_A, SHA_B])
+
+    with pytest.raises(corpus.CorpusSummaryError) as captured:
+        corpus.audit_selected_roots([run], manifest)
+
+    assert captured.value.code == "selection_case_matches_multiple_roots"
 
 
 def test_rates_ground_truth_config_boundary_and_secret_redaction(tmp_path: Path) -> None:
@@ -903,6 +1093,42 @@ def test_partial_result_quota_status_remains_visible_in_candidate_summary() -> N
     assert summarized["attempt_status_counts"] == {"partial_result_quota_exhausted": 1}
     assert summarized["budget_exhausted"] is False
     assert summarized["budget_reason_counts"] == {}
+
+
+def test_route_only_handler_status_remains_visible_in_candidate_summary() -> None:
+    """配布経路だけを復元した試行を未知codeへ畳み込まない。"""
+
+    summarized = corpus._candidate_attempt_summary(
+        {
+            "status": "no_confirmed_family",
+            "planned_attempt_count": 1,
+            "actual_attempt_count": 1,
+            "retained_attempt_detail_count": 1,
+            "omitted_attempt_detail_count": 0,
+            "unattempted_attempt_count": 0,
+            "blockers": [],
+            "budget": {"exhausted": False},
+            "excluded_layers": [],
+            "families": [
+                {
+                    "status": "handler_evidence_route_only",
+                    "attempts": [
+                        {
+                            "handler_id": (
+                                "formbook_loader:analysis.framework.malware.formbook.loader."
+                                "extract.config.py:extract_config"
+                            ),
+                            "status": "handler_evidence_route_only",
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+
+    assert summarized["availability"]["attempt_accounting"] == "available"
+    assert summarized["family_status_counts"] == {"handler_evidence_route_only": 1}
+    assert summarized["attempt_status_counts"] == {"handler_evidence_route_only": 1}
 
 
 def test_route_reason_accounting_requires_complete_attempt_partition(

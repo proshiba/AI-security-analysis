@@ -124,6 +124,7 @@ INTERNAL_FAMILY_TO_PUBLIC = {
     "maskgram_stealer": "maskgram-stealer",
     "screenconnect_rmm": "screenconnect-rmm",
 }
+TERMINAL_ATTRIBUTION_REQUIRED_FAMILIES = frozenset({"formbook_loader"})
 PUBLIC_METADATA_KEYS = (
     "sha256_hash",
     "sha1_hash",
@@ -204,7 +205,67 @@ def public_family_id(internal_family: str) -> str:
     return INTERNAL_FAMILY_TO_PUBLIC.get(normalized, normalized)
 
 
-def selected_family_has_handler_support(report: dict[str, Any], internal_family: str) -> bool:
+def _handler_result_confirms_terminal_family(
+    source: Path,
+    execution: Mapping[str, Any],
+) -> bool:
+    """handler成果物が終端family帰属を明示的に許可する場合だけ真を返す。"""
+
+    relative = execution.get("result")
+    if not isinstance(relative, str):
+        return False
+    try:
+        wrapper = load_json(resolve_case_artifact(source, relative))
+    except (OSError, TypeError, ValueError):
+        return False
+    handler = wrapper.get("handler")
+    if (
+        not isinstance(handler, Mapping)
+        or handler.get("id") != execution.get("handler_id")
+    ):
+        return False
+    result = wrapper.get("result")
+    if not isinstance(result, Mapping):
+        return False
+
+    records = [result]
+    config = result.get("config")
+    if isinstance(config, Mapping):
+        records.append(config)
+    supports: list[bool] = []
+    terminal: list[bool] = []
+    scopes: list[str] = []
+    for record in records:
+        if "supports_family_attribution" in record:
+            value = record.get("supports_family_attribution")
+            if type(value) is not bool:
+                return False
+            supports.append(value)
+        if "terminal_family_confirmed" in record:
+            value = record.get("terminal_family_confirmed")
+            if type(value) is not bool:
+                return False
+            terminal.append(value)
+        if "attribution_scope" in record:
+            value = record.get("attribution_scope")
+            if not isinstance(value, str) or not value or len(value) > 256:
+                return False
+            scopes.append(value)
+    return bool(
+        supports
+        and terminal
+        and all(supports)
+        and all(terminal)
+        and "component_handler_route" not in scopes
+    )
+
+
+def selected_family_has_handler_support(
+    report: dict[str, Any],
+    internal_family: str,
+    *,
+    source: Path | None = None,
+) -> bool:
     """選択familyを、handlerの十分な静的証拠がある場合だけ公開候補にする。"""
 
     case_state = report.get("case_state")
@@ -231,12 +292,23 @@ def selected_family_has_handler_support(report: dict[str, Any], internal_family:
         if item.get("status") != "succeeded":
             continue
         evidence = item.get("selected_evidence")
-        if isinstance(evidence, dict) and evidence.get("sufficient") is True:
-            return True
+        if not isinstance(evidence, dict) or evidence.get("sufficient") is not True:
+            continue
+        if internal_family in TERMINAL_ATTRIBUTION_REQUIRED_FAMILIES and (
+            source is None or not _handler_result_confirms_terminal_family(source, item)
+        ):
+            continue
+        return True
     return False
 
 
-def choose_family(metadata: dict[str, Any], report: dict[str, Any], existing_families: set[str]) -> tuple[str, str]:
+def choose_family(
+    metadata: dict[str, Any],
+    report: dict[str, Any],
+    existing_families: set[str],
+    *,
+    source: Path | None = None,
+) -> tuple[str, str]:
     """内部高確度判定、提供元signature、直接tagの順で保守的に分類する。"""
 
     classification = report.get("classification") or {}
@@ -247,7 +319,11 @@ def choose_family(metadata: dict[str, Any], report: dict[str, Any], existing_fam
     forced_family = settings.get("forced_family") if isinstance(settings, dict) else None
     if selection_basis != "explicit_operator_selection" and not forced_family:
         selected_public = public_family_id(selected_internal)
-        if selected_public in existing_families and selected_family_has_handler_support(report, selected_internal):
+        if selected_public in existing_families and selected_family_has_handler_support(
+            report,
+            selected_internal,
+            source=source,
+        ):
             return selected_public, "one_shot_static_detector"
         selected_families = classification.get("selected_families")
         if (
@@ -260,7 +336,9 @@ def choose_family(metadata: dict[str, Any], report: dict[str, Any], existing_fam
                 candidate_internal = implicit.pop()
                 candidate_public = public_family_id(candidate_internal)
                 if candidate_public in existing_families and selected_family_has_handler_support(
-                    report, candidate_internal
+                    report,
+                    candidate_internal,
+                    source=source,
                 ):
                     return candidate_public, "one_shot_recovered_layer_detector"
 
@@ -1775,7 +1853,12 @@ def publish_case(
         allow_function_staging=allow_function_staging,
     )
     metadata = safe_metadata(item)
-    family, attribution_basis = choose_family(metadata, report, existing_families)
+    family, attribution_basis = choose_family(
+        metadata,
+        report,
+        existing_families,
+        source=source,
+    )
     family_attribution = build_family_attribution(
         family,
         attribution_basis,
@@ -2863,7 +2946,10 @@ def restore_selected_cases(
         if not isinstance(contract, Mapping) or contract.get("sha256") != contract_sha256:
             raise ValueError("one-shot解析契約SHA-256が一致しません")
         expected_family, _basis = choose_family(
-            safe_metadata(resolved_item), source_report, existing_families,
+            safe_metadata(resolved_item),
+            source_report,
+            existing_families,
+            source=source,
         )
         if resolve_catalog_case_path(results, digest, family=expected_family) != canonical:
             raise ValueError("one-shot sourceの正規case identityが既存公開先と一致しません")

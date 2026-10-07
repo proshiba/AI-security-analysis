@@ -535,7 +535,7 @@ request JSON
 
 `family_hint_manifest`を指定した場合、`analyze_sample.py`は`--family-hint-manifest`を受け取り、exact root SHA-256に対応する候補だけをassessment対象へ追加します。manifestが未指定なら通常の自動routingです。保持payloadは`analyze_sample.py`自身が専用の子解析契約と有界fixed-point queueで処理し、runnerは完成済み成果物だけを検証・公開します。case単位progressを将来配線する場合はstdoutへ混在させず、job runnerが専用file descriptorまたはJSON Lines event fileで受け取れる任意interfaceを追加します。現在の統合に必須ではありません。
 
-family handlerは公開resultへraw bytesを入れません。検証済みbytesはworker内部の明示的な`terminal_payload` recordだけで返し、親processが一時fileを単一handleで再読込してsizeとSHA-256を再計算します。保持に成功したroot reportは`retained_artifact_paths`をsorted uniqueで持ち、許可される形は`p/<64桁の小文字SHA-256>.<archive|bin|elf|exe|macho|txt>`だけです。path中のdigestと`artifact_sha256`が一致しない、重複、未知path、path traversalはcase integrity違反です。follow-on child nodeの`family_hint_count`は0から16、lineageを持つ場合のroot SHA-256とdepth 1から64もrunnerが再検証します。
+family handlerは公開resultへraw bytesを入れません。検証済みbytesはworker内部の明示的な`terminal_payload`、`final_payload`、または非終端の`recovered_payload` recordだけで返し、親processが一時fileを単一handleで再読込してsizeとSHA-256を再計算します。`recovered_payload`は子解析対象にだけ使い、終端payload gateを満たしません。保持に成功したroot reportは`retained_artifact_paths`をsorted uniqueで持ち、許可される形は`p/<64桁の小文字SHA-256>.<archive|bin|elf|exe|macho|txt>`だけです。path中のdigestと`artifact_sha256`が一致しない、重複、未知path、path traversalはcase integrity違反です。follow-on child nodeの`family_hint_count`は0から16、lineageを持つ場合のroot SHA-256とdepth 1から64もrunnerが再検証します。
 
 ## 検証
 

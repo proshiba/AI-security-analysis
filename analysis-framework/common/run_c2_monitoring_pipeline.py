@@ -682,7 +682,7 @@ def main() -> int:
     parser.add_argument(
         "--allow-xloader-registration",
         action="store_true",
-        help="review済みreal-C2 XLoader profileの合成PKT2登録GET 1要求を許可します。",
+        help="互換引数。XLoaderはpassive_onlyのため、指定しても登録GETを許可しません。",
     )
     parser.add_argument(
         "--private-credential-vault",
@@ -692,7 +692,7 @@ def main() -> int:
     parser.add_argument(
         "--xloader-private-material",
         type=Path,
-        help="リポジトリ外のXLoader検体固有鍵・合成PKT2 JSON。",
+        help="互換引数。production監視では読み込まず、XLoader登録GETも送信しません。",
     )
     parser.add_argument(
         "--rat-emulation-evidence",

@@ -23,6 +23,7 @@ if str(COMMON_ROOT) not in sys.path:
 
 import analysis_contract  # noqa: E402
 import batch_error_contract  # noqa: E402
+import c2_analysis_contract  # noqa: E402
 
 SCHEMA_VERSION = 1
 FAMILY_REGISTRY_PATH = Path(__file__).resolve().parents[1] / "registry" / "malware_types.json"
@@ -35,6 +36,11 @@ MAX_FUNCTION_RECORDS = 100_000
 MAX_HANDLER_EXECUTIONS = 1_024
 MAX_CANDIDATE_FAMILIES = 1_024
 MAX_REASON_CODES = 4_096
+
+SELECTION_MANIFEST_SCHEMA_VERSION = 1
+ROOT_TERMINAL_STATUSES = frozenset(
+    {"unresolved", "recovered", "no_additional_payload_verified"}
+)
 
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 IMPHASH_RE = re.compile(r"[0-9a-f]{32}")
@@ -84,6 +90,7 @@ CANDIDATE_FAMILY_STATUSES = frozenset(
         "partial_budget_exhausted",
         "partial_result_quota_exhausted",
         "handler_evidence_without_detector",
+        "handler_evidence_route_only",
         "detector_only",
         "handler_timed_out",
         "handler_failed",
@@ -101,6 +108,7 @@ CANDIDATE_ATTEMPT_STATUSES = frozenset(
         "no_evidence",
         "corroborated",
         "handler_evidence_without_detector",
+        "handler_evidence_route_only",
     }
 )
 CANDIDATE_BUDGET_BLOCKERS = frozenset(
@@ -2094,15 +2102,691 @@ def summarize_runs(
     return summary
 
 
+def _validate_selection_manifest(value: Mapping[str, Any]) -> list[str]:
+    """選択manifestの集計に使う最小schemaを厳密に検証する。"""
+
+    if (
+        type(value.get("schema_version")) is not int
+        or value.get("schema_version") != SELECTION_MANIFEST_SCHEMA_VERSION
+    ):
+        raise CorpusSummaryError(
+            "selection_manifest_schema_invalid",
+            "選択manifestのschema versionが不正です。",
+        )
+    selected = value.get("selected")
+    selected_hashes = value.get("selected_hashes")
+    if type(selected) is not int or not 1 <= selected <= MAX_CASE_OBSERVATIONS:
+        raise CorpusSummaryError(
+            "selection_manifest_selected_invalid",
+            "選択manifestのselected件数が不正です。",
+        )
+    if not isinstance(selected_hashes, list) or len(selected_hashes) != selected:
+        raise CorpusSummaryError(
+            "selection_manifest_count_mismatch",
+            "選択manifestのselected件数とselected_hashesが一致しません。",
+        )
+    normalized: list[str] = []
+    for digest in selected_hashes:
+        if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
+            raise CorpusSummaryError(
+                "selection_manifest_sha256_invalid",
+                "選択manifestのSHA-256は小文字64桁の16進数である必要があります。",
+            )
+        normalized.append(digest)
+    if len(set(normalized)) != len(normalized):
+        raise CorpusSummaryError(
+            "selection_manifest_sha256_duplicate",
+            "選択manifestのselected_hashesに重複があります。",
+        )
+    return normalized
+
+
+def _selected_root_report_observations(
+    roots: Sequence[Path],
+    budget: _ReadBudget,
+) -> list[dict[str, Any]]:
+    """各run直下のroot case reportだけを安全に列挙する。"""
+
+    observations: list[dict[str, Any]] = []
+    for run_ordinal, root in enumerate(roots):
+        cases_root = _regular_directory(
+            root / "cases",
+            code="case_tree_directory_invalid",
+        )
+        try:
+            entries = sorted(cases_root.iterdir(), key=lambda item: item.name)
+        except OSError as exc:
+            raise CorpusSummaryError(
+                "case_tree_enumeration_failed",
+                "case treeを安全に列挙できません。",
+            ) from exc
+        if len(observations) + len(entries) > MAX_CASE_OBSERVATIONS:
+            raise CorpusSummaryError(
+                "corpus_case_limit_exceeded",
+                "コーパスのcase観測件数が上限を超えています。",
+            )
+        for entry in entries:
+            digest = entry.name
+            if SHA256_RE.fullmatch(digest) is None:
+                raise CorpusSummaryError(
+                    "case_tree_entry_invalid",
+                    "case treeには小文字SHA-256名の通常directoryだけを配置できます。",
+                )
+            case_dir = _regular_directory(
+                entry,
+                code="case_directory_invalid",
+            )
+            try:
+                report_path = analysis_contract.resolve_case_artifact(
+                    case_dir,
+                    "report.json",
+                )
+            except ValueError as exc:
+                raise CorpusSummaryError(
+                    "report_boundary_invalid",
+                    "case reportの境界を検証できません。",
+                ) from exc
+            report, report_raw = _read_json_snapshot(
+                report_path,
+                budget,
+                error_prefix="report",
+            )
+            _validate_report(report, digest)
+            sample = report["sample"]
+            outer_sha256 = sample.get("outer_sha256")
+            if outer_sha256 is not None and (
+                not isinstance(outer_sha256, str)
+                or SHA256_RE.fullmatch(outer_sha256) is None
+            ):
+                raise CorpusSummaryError(
+                    "report_outer_sha256_invalid",
+                    "case reportのouter SHA-256が不正です。",
+                )
+            observations.append(
+                {
+                    "run_ordinal": run_ordinal,
+                    "run_root": root,
+                    "case_dir": case_dir,
+                    "report_path": report_path,
+                    "digest": digest,
+                    "outer_sha256": outer_sha256,
+                    "report": report,
+                    "report_sha256": _sha256_bytes(report_raw),
+                }
+            )
+    return observations
+
+
+def _root_terminal_record(
+    observation: Mapping[str, Any],
+    budget: _ReadBudget,
+) -> dict[str, Any]:
+    """封印済みc2-analysisがあるrootだけ終端payload状態を検証する。"""
+
+    report = observation["report"]
+    if "c2-analysis.json" not in report["artifact_sha256"]:
+        return {
+            "status": "not_available",
+            "reason": "c2_analysis_not_sealed",
+            "reached": None,
+            "terminal_status": None,
+            "_artifact_sha256": None,
+        }
+    value, artifact_sha256 = _case_artifact(
+        observation["case_dir"],
+        report,
+        "c2-analysis.json",
+        budget,
+    )
+    validation = c2_analysis_contract.validate_contract(
+        value,
+        observation["digest"],
+    )
+    terminal = value.get("terminal_payload")
+    if not validation.get("daily_ready") or not isinstance(terminal, Mapping):
+        raise CorpusSummaryError(
+            "root_terminal_contract_invalid",
+            "root caseの終端payload解析契約が不正です。",
+        )
+    reached = terminal.get("reached")
+    terminal_status = terminal.get("status")
+    if type(reached) is not bool or terminal_status not in ROOT_TERMINAL_STATUSES:
+        raise CorpusSummaryError(
+            "root_terminal_state_invalid",
+            "root caseの終端payload状態が不正です。",
+        )
+    if reached != (terminal_status != "unresolved"):
+        raise CorpusSummaryError(
+            "root_terminal_state_inconsistent",
+            "root caseの終端payload到達flagと状態が一致しません。",
+        )
+    return {
+        "status": "available",
+        "reason": None,
+        "reached": reached,
+        "terminal_status": terminal_status,
+        "_artifact_sha256": artifact_sha256,
+    }
+
+
+def _run_level_metric_availability(
+    roots: Sequence[Path],
+    *,
+    artifact_name: str,
+    missing_reason: str,
+) -> dict[str, Any]:
+    """selected-root監査で再計算しないrun-level指標の可用性を返す。"""
+
+    present_count = 0
+    for root in roots:
+        path = root / artifact_name
+        try:
+            information = path.lstat()
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            raise CorpusSummaryError(
+                "run_level_artifact_stat_failed",
+                "run-level成果物の有無を安全に確認できません。",
+            ) from exc
+        if not stat.S_ISREG(information.st_mode) or analysis_contract._stat_has_reparse_attribute(
+            information
+        ):
+            raise CorpusSummaryError(
+                "run_level_artifact_invalid",
+                "run-level成果物は通常fileである必要があります。",
+            )
+        present_count += 1
+    if present_count == 0:
+        reason = missing_reason
+    elif present_count < len(roots):
+        reason = f"{missing_reason}_for_some_runs"
+    else:
+        reason = "selected_root_scope_not_proven_by_run_level_artifact"
+    return {
+        "status": "not_available",
+        "value": None,
+        "reason": reason,
+        "source_artifact": artifact_name,
+        "artifact_present_run_count": present_count,
+        "run_count": len(roots),
+    }
+
+
+def audit_selected_roots(
+    run_paths: Sequence[Path],
+    selection_manifest_path: Path,
+    *,
+    expected_family: str | None = None,
+) -> dict[str, Any]:
+    """選択SHAを内側・外側SHAの双方でroot caseへ一意に照合して集計する。"""
+
+    if not 1 <= len(run_paths) <= MAX_RUNS:
+        raise CorpusSummaryError(
+            "run_count_invalid",
+            f"one-shot runは1件以上{MAX_RUNS}件以下で指定してください。",
+        )
+    normalized_expected = _valid_family(expected_family) if expected_family is not None else None
+    if expected_family is not None and normalized_expected != expected_family:
+        raise CorpusSummaryError(
+            "expected_family_invalid",
+            "expected family IDが不正です。",
+        )
+    roots = [_regular_directory(Path(path), code="run_directory_invalid") for path in run_paths]
+    if len(set(roots)) != len(roots):
+        raise CorpusSummaryError(
+            "duplicate_run_path",
+            "同じone-shot runを複数回指定できません。",
+        )
+
+    budget = _ReadBudget()
+    manifest_path = Path(selection_manifest_path)
+    manifest, manifest_raw = _read_json_snapshot(
+        manifest_path,
+        budget,
+        error_prefix="selection_manifest",
+    )
+    selected_hashes = _validate_selection_manifest(manifest)
+    manifest_sha256 = _sha256_bytes(manifest_raw)
+
+    family_registry, family_registry_raw = _read_json_snapshot(
+        FAMILY_REGISTRY_PATH,
+        budget,
+        error_prefix="family_registry",
+    )
+    registered_families = _registered_family_ids(family_registry)
+    family_registry_sha256 = _sha256_bytes(family_registry_raw)
+    observations = _selected_root_report_observations(roots, budget)
+    selected_set = set(selected_hashes)
+    matches: dict[str, list[tuple[dict[str, Any], tuple[str, ...]]]] = defaultdict(list)
+    for observation in observations:
+        identities: dict[str, list[str]] = defaultdict(list)
+        identities[observation["digest"]].append("sample.sha256")
+        outer_sha256 = observation["outer_sha256"]
+        if outer_sha256 is not None:
+            identities[outer_sha256].append("sample.outer_sha256")
+        case_matches = [
+            (digest, tuple(sorted(fields)))
+            for digest, fields in identities.items()
+            if digest in selected_set
+        ]
+        if len(case_matches) > 1:
+            raise CorpusSummaryError(
+                "selection_case_matches_multiple_roots",
+                "1件のcaseが複数の選択root SHA-256へ一致しました。",
+            )
+        if case_matches:
+            selected_digest, fields = case_matches[0]
+            matches[selected_digest].append((observation, fields))
+
+    for digest in selected_hashes:
+        candidates = matches.get(digest, [])
+        if not candidates:
+            raise CorpusSummaryError(
+                "selection_root_not_found",
+                "選択root SHA-256に一致するcaseがありません。",
+            )
+        if len(candidates) > 1:
+            raise CorpusSummaryError(
+                "selection_root_matches_multiple_cases",
+                "1件の選択root SHA-256が複数caseへ一致しました。",
+            )
+
+    selected_records: list[dict[str, Any]] = []
+    internal_records: list[dict[str, Any]] = []
+    for selected_digest in selected_hashes:
+        observation, match_fields = matches[selected_digest][0]
+        case = _case_record(
+            observation["run_root"],
+            observation["digest"],
+            budget,
+            expected_family=normalized_expected,
+            registered_families=registered_families,
+        )
+        terminal = _root_terminal_record(observation, budget)
+        root_commitment = _canonical_sha256(
+            {
+                "case_artifact_commitment_sha256": case["artifact_commitment_sha256"],
+                "c2_analysis_sha256": terminal["_artifact_sha256"],
+            }
+        )
+        public_terminal = {
+            key: value for key, value in terminal.items() if not key.startswith("_")
+        }
+        handler_route_succeeded = case["handler_status_counts"].get("succeeded", 0) > 0
+        public_record = {
+            "selection_sha256": selected_digest,
+            "case_sha256": observation["digest"],
+            "selection_match_fields": list(match_fields),
+            "root_artifact_commitment_sha256": root_commitment,
+            "family": case["family"],
+            "automation_status": case["automation_status"],
+            "automation_route_succeeded": handler_route_succeeded,
+            "handler_status_counts": case["handler_status_counts"],
+            "case_state": case["case_state"],
+            "complete": case["case_state"] == "complete",
+            "root_terminal_payload": public_terminal,
+        }
+        selected_records.append(public_record)
+        internal_records.append(
+            {
+                **public_record,
+                "case_artifact_commitment_sha256": case["artifact_commitment_sha256"],
+            }
+        )
+
+    for observation in observations:
+        _report_after, report_raw_after = _read_json_snapshot(
+            observation["report_path"],
+            budget,
+            error_prefix="report_recheck",
+        )
+        if _sha256_bytes(report_raw_after) != observation["report_sha256"]:
+            raise CorpusSummaryError(
+                "case_report_changed_during_collection",
+                "集計中にcase reportが変更されました。",
+            )
+    _manifest_after, manifest_raw_after = _read_json_snapshot(
+        manifest_path,
+        budget,
+        error_prefix="selection_manifest_recheck",
+    )
+    if _sha256_bytes(manifest_raw_after) != manifest_sha256:
+        raise CorpusSummaryError(
+            "selection_manifest_changed_during_collection",
+            "集計中に選択manifestが変更されました。",
+        )
+
+    resolution_counts = Counter(
+        record["family"]["resolution_status"] for record in internal_records
+    )
+    resolved_family_counts = Counter(
+        record["family"]["resolved_family"]
+        for record in internal_records
+        if record["family"]["resolution_status"] == "resolved"
+    )
+    selected_family_counts = Counter(
+        family
+        for record in internal_records
+        for family in record["family"]["selected_families"]
+    )
+    handler_status_counts = Counter(
+        {
+            status: sum(
+                record["handler_status_counts"].get(status, 0)
+                for record in internal_records
+            )
+            for status in sorted(HANDLER_STATUSES)
+        }
+    )
+    handler_status_counts += Counter()
+    case_state_counts = Counter(record["case_state"] for record in internal_records)
+    automation_status_counts = Counter(
+        record["automation_status"] for record in internal_records
+    )
+    terminal_known = [
+        record["root_terminal_payload"]
+        for record in internal_records
+        if record["root_terminal_payload"]["status"] == "available"
+    ]
+    terminal_missing = len(internal_records) - len(terminal_known)
+    if not terminal_missing:
+        terminal_availability = "available"
+        terminal_reached_count: int | None = sum(
+            terminal["reached"] is True for terminal in terminal_known
+        )
+    elif terminal_known:
+        terminal_availability = "partial"
+        terminal_reached_count = None
+    else:
+        terminal_availability = "not_available"
+        terminal_reached_count = None
+
+    run_report_commitments = []
+    for run_ordinal in range(len(roots)):
+        run_observations = [
+            observation
+            for observation in observations
+            if observation["run_ordinal"] == run_ordinal
+        ]
+        run_report_commitments.append(
+            {
+                "case_report_count": len(run_observations),
+                "case_report_set_sha256": _canonical_sha256(
+                    sorted(
+                        (
+                            observation["digest"],
+                            observation["report_sha256"],
+                        )
+                        for observation in run_observations
+                    )
+                ),
+            }
+        )
+    selected_root_set_sha256 = _canonical_sha256(
+        sorted(
+            (
+                record["selection_sha256"],
+                record["case_sha256"],
+                record["root_artifact_commitment_sha256"],
+            )
+            for record in internal_records
+        )
+    )
+    run_level_metrics = {
+        "derived_cases_analyzed": _run_level_metric_availability(
+            roots,
+            artifact_name="summary.json",
+            missing_reason="summary_json_missing",
+        ),
+        "fixed_point_nodes": _run_level_metric_availability(
+            roots,
+            artifact_name="follow-on-analysis.json",
+            missing_reason="follow_on_analysis_json_missing",
+        ),
+        "fixed_point_edges": _run_level_metric_availability(
+            roots,
+            artifact_name="follow-on-analysis.json",
+            missing_reason="follow_on_analysis_json_missing",
+        ),
+        "terminal_frontier": _run_level_metric_availability(
+            roots,
+            artifact_name="terminal-payload-acquisition.json",
+            missing_reason="terminal_payload_acquisition_json_missing",
+        ),
+        "terminal_selected": _run_level_metric_availability(
+            roots,
+            artifact_name="terminal-payload-acquisition.json",
+            missing_reason="terminal_payload_acquisition_json_missing",
+        ),
+    }
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "analysis_mode": "one_shot_selected_root_audit",
+        "input_commitment": {
+            "selection_manifest_sha256": manifest_sha256,
+            "family_registry_sha256": family_registry_sha256,
+            "runs": sorted(
+                run_report_commitments,
+                key=lambda item: (
+                    item["case_report_set_sha256"],
+                    item["case_report_count"],
+                ),
+            ),
+            "selected_root_set_sha256": selected_root_set_sha256,
+            "aggregate_sha256": _canonical_sha256(
+                {
+                    "selection_manifest_sha256": manifest_sha256,
+                    "family_registry_sha256": family_registry_sha256,
+                    "selected_root_set_sha256": selected_root_set_sha256,
+                }
+            ),
+        },
+        "scope": {
+            "run_count": len(roots),
+            "root_cases_only": True,
+            "selected_root_count": len(selected_hashes),
+            "selection_match_fields": [
+                "sample.sha256",
+                "sample.outer_sha256",
+            ],
+            "expected_family": normalized_expected,
+        },
+        "selection": {
+            "observed_root_case_count": len(observations),
+            "matched_root_count": len(internal_records),
+            "out_of_scope_root_case_count": len(observations) - len(internal_records),
+            "sample_sha256_match_count": sum(
+                "sample.sha256" in record["selection_match_fields"]
+                for record in internal_records
+            ),
+            "sample_outer_sha256_match_count": sum(
+                "sample.outer_sha256" in record["selection_match_fields"]
+                for record in internal_records
+            ),
+            "both_fields_match_count": sum(
+                len(record["selection_match_fields"]) == 2
+                for record in internal_records
+            ),
+        },
+        "family": {
+            "resolution_status_counts": dict(sorted(resolution_counts.items())),
+            "resolved_family_counts": dict(sorted(resolved_family_counts.items())),
+            "selected_family_counts": dict(sorted(selected_family_counts.items())),
+        },
+        "automation": {
+            "route_definition": "root_has_handler_execution_status_succeeded",
+            "route_succeeded_root_count": sum(
+                record["automation_route_succeeded"] for record in internal_records
+            ),
+            "status_counts": dict(sorted(automation_status_counts.items())),
+            "handler_status_counts": {
+                key: value
+                for key, value in sorted(handler_status_counts.items())
+                if value
+            },
+            "case_state_counts": dict(sorted(case_state_counts.items())),
+            "complete_root_count": case_state_counts["complete"],
+        },
+        "root_terminal_payload": {
+            "status": terminal_availability,
+            "known_root_count": len(terminal_known),
+            "unknown_root_count": terminal_missing,
+            "reached_root_count": terminal_reached_count,
+            "terminal_status_counts": dict(
+                sorted(
+                    Counter(
+                        terminal["terminal_status"] for terminal in terminal_known
+                    ).items()
+                )
+            ),
+        },
+        "run_level_metrics": run_level_metrics,
+        "roots": selected_records,
+        "safety": {
+            "ai_used_true_root_count": sum(
+                observation["report"]["ai_used"] is True
+                for observation, _fields in (
+                    matches[digest][0] for digest in selected_hashes
+                )
+            ),
+            "executed_sample_true_root_count": sum(
+                observation["report"]["executed_sample"] is True
+                for observation, _fields in (
+                    matches[digest][0] for digest in selected_hashes
+                )
+            ),
+            "network_contacted_true_root_count": sum(
+                observation["report"]["network_contacted"] is True
+                for observation, _fields in (
+                    matches[digest][0] for digest in selected_hashes
+                )
+            ),
+            "all_selected_report_flags_false": True,
+            "samples_opened_by_aggregator": False,
+            "samples_executed_by_aggregator": False,
+            "network_contacted_by_aggregator": False,
+            "subprocess_started_by_aggregator": False,
+            "raw_config_included": False,
+            "network_values_included": False,
+            "source_names_included": False,
+            "integrity_scope": (
+                "selection_manifest_report_seal_selected_json_artifact_hashes_"
+                "and_family_registry_snapshot"
+            ),
+        },
+    }
+
+
 def _rate_text(rate: Mapping[str, Any]) -> str:
     if rate.get("denominator") in {None, 0}:
         return "計算対象なし"
     return f"{rate['numerator']}/{rate['denominator']} ({rate['percentage']:.2f}%)"
 
 
+def _render_selected_root_audit_markdown(summary: Mapping[str, Any]) -> str:
+    """selected-root監査JSONと同じ母数を持つ日本語Markdownを生成する。"""
+
+    selection = summary["selection"]
+    automation = summary["automation"]
+    terminal = summary["root_terminal_payload"]
+    safety = summary["safety"]
+    lines = [
+        "# one-shot選択root監査",
+        "",
+        "## 結論",
+        "",
+        (
+            f"選択manifestの{summary['scope']['selected_root_count']}件を、"
+            "`sample.sha256`と`sample.outer_sha256`の双方で一意にroot caseへ照合しました。"
+        ),
+        "検体本体は開かず、report sealと封印済みJSON成果物だけを検証しています。",
+        "",
+        "## 選択照合",
+        "",
+        "| 項目 | 件数 |",
+        "|---|---:|",
+        f"| 観測root case | {selection['observed_root_case_count']} |",
+        f"| 一致root | {selection['matched_root_count']} |",
+        f"| 対象外root case | {selection['out_of_scope_root_case_count']} |",
+        f"| 内側SHA一致 | {selection['sample_sha256_match_count']} |",
+        f"| 外側ZIP SHA一致 | {selection['sample_outer_sha256_match_count']} |",
+        f"| 両field同値一致 | {selection['both_fields_match_count']} |",
+        "",
+        "## family",
+        "",
+        "| 確定状態 | 件数 |",
+        "|---|---:|",
+    ]
+    for status, count in summary["family"]["resolution_status_counts"].items():
+        lines.append(f"| `{status}` | {count} |")
+    lines.extend(["", "| 確定family | 件数 |", "|---|---:|"])
+    for family, count in summary["family"]["resolved_family_counts"].items():
+        lines.append(f"| `{family}` | {count} |")
+    if not summary["family"]["resolved_family_counts"]:
+        lines.append("| なし | 0 |")
+    lines.extend(
+        [
+            "",
+            "## root automation",
+            "",
+            "| 項目 | 件数 |",
+            "|---|---:|",
+            f"| handler成功routeあり | {automation['route_succeeded_root_count']} |",
+            f"| complete root | {automation['complete_root_count']} |",
+            "",
+            "automation routeは、root reportに`status=succeeded`のhandler executionが1件以上あることと定義します。",
+            "",
+            "## root終端payload",
+            "",
+            f"- 可用性: `{terminal['status']}`",
+            f"- 検証済みroot: {terminal['known_root_count']}",
+            f"- 不明root: {terminal['unknown_root_count']}",
+            (
+                f"- 到達root: {terminal['reached_root_count']}"
+                if terminal["reached_root_count"] is not None
+                else "- 到達root: 集計不可"
+            ),
+            "",
+            "## run-level指標",
+            "",
+            "| 指標 | 状態 | 値 | 理由 |",
+            "|---|---|---:|---|",
+        ]
+    )
+    for metric, value in summary["run_level_metrics"].items():
+        rendered_value = "-" if value["value"] is None else str(value["value"])
+        lines.append(
+            f"| `{metric}` | `{value['status']}` | {rendered_value} | `{value['reason']}` |"
+        )
+    lines.extend(
+        [
+            "",
+            "欠落したrun-level成果物の値は0へ置換していません。",
+            "",
+            "## 安全flag",
+            "",
+            "| flag | true root数 |",
+            "|---|---:|",
+            f"| `ai_used` | {safety['ai_used_true_root_count']} |",
+            f"| `executed_sample` | {safety['executed_sample_true_root_count']} |",
+            f"| `network_contacted` | {safety['network_contacted_true_root_count']} |",
+            "",
+            "- この集計器による検体本体の読込み・実行: なし",
+            "- この集計器によるnetwork接続・subprocess起動: なし",
+            "- raw config・通信先・source nameの収録: なし",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def render_markdown(summary: Mapping[str, Any]) -> str:
     """machine-readable summaryと同じ母数を持つ日本語Markdownを生成する。"""
 
+    if summary.get("analysis_mode") == "one_shot_selected_root_audit":
+        return _render_selected_root_audit_markdown(summary)
     counts = summary["counts"]
     rates = summary["rates"]
     lines = [
@@ -2351,19 +3035,40 @@ def build_parser() -> argparse.ArgumentParser:
         "--expected-family",
         help="入力全caseへ独立に付与済みの期待family。既知コーパスの場合だけ指定します。",
     )
+    parser.add_argument(
+        "--selection-manifest",
+        type=Path,
+        help=(
+            "selected_hashesをroot caseへ監査照合する選択manifest。"
+            "指定時はrun-level summary.jsonを必須にしません。"
+        ),
+    )
     parser.add_argument("--output-json", type=Path, help="決定的JSONの明示出力先。")
     parser.add_argument("--output-markdown", type=Path, help="日本語Markdownの明示出力先。")
     return parser
 
 
-def _validate_output_paths(paths: Sequence[Path | None], runs: Sequence[Path]) -> None:
+def _validate_output_paths(
+    paths: Sequence[Path | None],
+    runs: Sequence[Path],
+    *,
+    additional_inputs: Sequence[Path | None] = (),
+) -> None:
     resolved = [Path(path).resolve() for path in paths if path is not None]
     if len(resolved) != len(set(resolved)):
         raise CorpusSummaryError(
             "output_path_duplicate",
             "JSONとMarkdownの出力先は分けてください。",
         )
+    resolved_inputs = {
+        Path(path).resolve() for path in additional_inputs if path is not None
+    }
     for output in resolved:
+        if output in resolved_inputs:
+            raise CorpusSummaryError(
+                "output_overwrites_input",
+                "入力manifestを上書きする出力先は使用できません。",
+            )
         for run in runs:
             root = Path(run).resolve()
             if output == root / "summary.json":
@@ -2438,8 +3143,19 @@ def main(argv: list[str] | None = None) -> int:
     """CLIを実行してJSONまたは日本語Markdownを明示先へ出力する。"""
 
     args = build_parser().parse_args(argv)
-    _validate_output_paths((args.output_json, args.output_markdown), args.run)
-    summary = summarize_runs(args.run, expected_family=args.expected_family)
+    _validate_output_paths(
+        (args.output_json, args.output_markdown),
+        args.run,
+        additional_inputs=(args.selection_manifest,),
+    )
+    if args.selection_manifest is not None:
+        summary = audit_selected_roots(
+            args.run,
+            args.selection_manifest,
+            expected_family=args.expected_family,
+        )
+    else:
+        summary = summarize_runs(args.run, expected_family=args.expected_family)
     rendered_json = (
         json.dumps(
             summary,
@@ -2457,13 +3173,20 @@ def main(argv: list[str] | None = None) -> int:
     if not args.output_json:
         print(rendered_json, end="")
     else:
+        if summary["analysis_mode"] == "one_shot_selected_root_audit":
+            completion = {
+                "matched_root_count": summary["selection"]["matched_root_count"],
+                "output_written": True,
+            }
+        else:
+            completion = {
+                "unique_valid_cases": summary["counts"]["unique_valid_cases"],
+                "invalid_unique_cases": summary["counts"]["invalid_unique_cases"],
+                "output_written": True,
+            }
         print(
             json.dumps(
-                {
-                    "unique_valid_cases": summary["counts"]["unique_valid_cases"],
-                    "invalid_unique_cases": summary["counts"]["invalid_unique_cases"],
-                    "output_written": True,
-                },
+                completion,
                 ensure_ascii=False,
                 sort_keys=True,
             )

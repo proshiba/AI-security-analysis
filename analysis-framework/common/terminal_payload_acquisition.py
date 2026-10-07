@@ -80,6 +80,7 @@ EDGE_STATUSES_REQUIRING_CHILD = (
     }
 )
 COMPLETE_EDGE_STATUSES = frozenset({"child_complete", "shared_sha256_reused_complete"})
+TERMINAL_EDGE_ROLES = frozenset({"terminal_payload", "final_payload"})
 OMISSION_KEYS = frozenset({"parent_sha256", "sha256", "size", "path", "role", "kind", "reason"})
 OMISSION_REASONS = frozenset(
     {
@@ -610,7 +611,12 @@ def build_terminal_payload_acquisition(
             else node.get("case_state") if node is not None else None
         )
         case_state = str(raw_case_state) if isinstance(raw_case_state, str) else None
-        verified = case_state == "complete" and bool(edge_statuses & COMPLETE_EDGE_STATUSES)
+        roles = {str(edge.get("role")) for edge in incoming}
+        verified = bool(
+            case_state == "complete"
+            and edge_statuses & COMPLETE_EDGE_STATUSES
+            and roles & TERMINAL_EDGE_ROLES
+        )
         reason = (
             "strict_complete_leaf"
             if verified
@@ -630,7 +636,7 @@ def build_terminal_payload_acquisition(
                 "sha256": digest,
                 "size": next(iter(sizes)),
                 "depth": min(int(value) for value in depths),
-                "roles": sorted({str(edge.get("role")) for edge in incoming}),
+                "roles": sorted(roles),
                 "kinds": sorted({str(edge.get("kind")) for edge in incoming}),
                 "parent_sha256": sorted({str(edge.get("parent_sha256")) for edge in incoming}),
                 "edge_statuses": sorted(edge_statuses),

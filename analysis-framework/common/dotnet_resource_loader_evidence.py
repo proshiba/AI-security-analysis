@@ -1,8 +1,8 @@
 """`.NET resource loader`の静的適用証拠を共通化する。
 
 検体や復元物を実行せず、PEのCLR data directory、マネージドAPI相関、
-上限付きBitmap RGB復元結果だけを扱う。復元したbyte列は呼出元へ返さず、
-SHA-256とサイズへ縮約する。
+上限付きBitmap RGB復元結果だけを扱う。通常は復元byte列をSHA-256とサイズへ
+縮約し、明示した内部handler呼出で一意な境界検証済み子だけを非公開保持経路へ返す。
 """
 
 from __future__ import annotations
@@ -709,8 +709,15 @@ def _embedded_bitmap_inventory(report: dict[str, Any]) -> list[dict[str, int]]:
     return values
 
 
-def bitmap_loader_evidence(data: bytes) -> dict[str, Any]:
-    """Bitmap RGB子PEまたは強いGetPixel/reflection相関を静的に評価する。"""
+def bitmap_loader_evidence(
+    data: bytes,
+    *,
+    include_recovered_bytes: bool = False,
+) -> dict[str, Any]:
+    """Bitmap RGB子PEを評価し、明示時だけ一意な子bytesを非公開経路へ渡す。"""
+
+    if not isinstance(include_recovered_bytes, bool):
+        raise TypeError("include_recovered_bytesはboolで指定してください")
 
     managed = managed_pe_shape(data)
     marker_hits = [marker.decode("ascii") for marker in (*BITMAP_MARKERS, *RGB_ACCESS_MARKERS) if marker in data]
@@ -719,7 +726,7 @@ def bitmap_loader_evidence(data: bytes) -> dict[str, Any]:
         and all(marker in data for marker in BITMAP_MARKERS)
         and all(marker in data for marker in RGB_ACCESS_MARKERS)
     )
-    recovered_children: list[dict[str, Any]] = []
+    recovered_child_records: list[tuple[dict[str, Any], bytes]] = []
     bitmap_inventory: list[dict[str, Any]] = []
     resource_status = "not_scanned"
     resource_diagnostics: list[str] = []
@@ -728,7 +735,15 @@ def bitmap_loader_evidence(data: bytes) -> dict[str, Any]:
     managed_metadata_evidence: dict[str, Any] | None = None
     managed_resource_range: dict[str, int] | None = None
     embedded_bitmap_headers: list[dict[str, int]] = []
-    if managed["is_managed_pe"] and b"System.Drawing.Bitmap" in data and b"GetExportedTypes" in data:
+    bitmap_decode_markers = bool(
+        b"System.Drawing.Bitmap" in data
+        and b"GetPixel" in data
+        and all(marker in data for marker in RGB_ACCESS_MARKERS)
+    )
+    reflection_markers = bool(
+        b"System.Drawing.Bitmap" in data and b"GetExportedTypes" in data
+    )
+    if managed["is_managed_pe"] and (bitmap_decode_markers or reflection_markers):
         resource_report, artifacts = _recover_budgeted_bitmap_pes(data)
         resource_status = str(resource_report.get("status") or "unknown")
         bitmap_inventory = _bitmap_inventory(resource_report)
@@ -773,18 +788,35 @@ def bitmap_loader_evidence(data: bytes) -> dict[str, Any]:
             if digest in seen:
                 continue
             seen.add(digest)
-            recovered_children.append(
-                {
-                    "role": "bitmap_rgb_managed_child",
-                    "transform": transform,
-                    "sha256": digest,
-                    "size": len(child),
-                    "format": "pe",
-                    "format_evidence": child_shape,
-                    "retained": False,
-                    "executed": False,
-                }
+            recovered_child_records.append(
+                (
+                    {
+                        "role": "bitmap_rgb_managed_child",
+                        "transform": transform,
+                        "sha256": digest,
+                        "size": len(child),
+                        "format": "pe",
+                        "format_evidence": child_shape,
+                        "retained": False,
+                        "executed": False,
+                    },
+                    child,
+                )
             )
+    recovered_children = [record for record, _child in recovered_child_records]
+    follow_on_candidate_status = (
+        "unique_boundary_validated_managed_child"
+        if len(recovered_child_records) == 1
+        else "ambiguous_multiple_boundary_validated_managed_children"
+        if len(recovered_child_records) > 1
+        else "not_recovered"
+    )
+    if include_recovered_bytes and len(recovered_child_records) == 1:
+        recovered_children[0]["data"] = recovered_child_records[0][1]
+    elif include_recovered_bytes and len(recovered_child_records) > 1:
+        resource_diagnostics.append(
+            "境界検証済みmanaged子PEが複数あるためfollow-on保持を拒否しました"
+        )
     bitmap_resource_validated = bool(
         resource_status in {"bitmap_entries_processed", "bitmap_pe_recovered"}
         and managed_metadata_valid
@@ -802,6 +834,7 @@ def bitmap_loader_evidence(data: bytes) -> dict[str, Any]:
     budget_exceeded = resource_status == "budget_exceeded"
     if budget_exceeded:
         recovered_children = []
+        follow_on_candidate_status = "budget_exceeded"
         strong_reflection = False
     if recovered_children:
         variant = "bitmap_rgb_recovered_pe"
@@ -824,6 +857,7 @@ def bitmap_loader_evidence(data: bytes) -> dict[str, Any]:
         "managed_resource_range": managed_resource_range,
         "embedded_bitmap_headers": embedded_bitmap_headers,
         "recovered_children": recovered_children,
+        "follow_on_candidate_status": follow_on_candidate_status,
         "sample_executed": False,
         "network_contacted": False,
     }

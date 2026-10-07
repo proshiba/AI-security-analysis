@@ -181,7 +181,7 @@ def test_xloader_future_profile_requires_synthetic_and_request_pins(
         profiles.load_profiles(registry)
 
 
-def test_xloader_overlay_and_plan_keep_new_exact_pins(
+def test_xloader_overlay_keeps_offline_pins_but_monitor_rejects_active_plan(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -230,10 +230,11 @@ def test_xloader_overlay_and_plan_keep_new_exact_pins(
         "protocol_profile_registry": registry_pin,
         "targets": targets,
     }
-    assert monitor_recent_c2.validate_plan(
-        plan,
-        repository_root=repository,
-    ) == plan
+    with pytest.raises(monitor_recent_c2.PlanError, match="passive_only"):
+        monitor_recent_c2.validate_plan(
+            plan,
+            repository_root=repository,
+        )
 
     for field in (
         "protocol_profile_synthetic_template_id",
@@ -242,7 +243,7 @@ def test_xloader_overlay_and_plan_keep_new_exact_pins(
     ):
         mismatched = deepcopy(plan)
         mismatched["targets"][0][field] = "0" * 64
-        with pytest.raises(monitor_recent_c2.PlanError, match="XLoader"):
+        with pytest.raises(monitor_recent_c2.PlanError, match="passive_only"):
             monitor_recent_c2.validate_plan(
                 mismatched,
                 repository_root=repository,
@@ -497,14 +498,14 @@ def test_xloader_hint_remains_dns_only_without_real_c2_profile(
     assert entry["observation"]["target_contact_attempted"] is False
 
 
-def test_xloader_dispatch_requires_dedicated_gate_before_profile_resolution(
+def test_xloader_dispatch_is_passive_only_before_profile_resolution(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
         monitor_recent_c2,
         "resolve_profile",
         lambda *_args, **_kwargs: pytest.fail(
-            "専用gateなしでXLoader profileを解決してはいけない"
+            "passive_only入口でXLoader profileを解決してはいけない"
         ),
     )
     observation = monitor_recent_c2._xloader_registration_observation(
@@ -518,21 +519,19 @@ def test_xloader_dispatch_requires_dedicated_gate_before_profile_resolution(
         None,
         REPOSITORY,
     )
-    assert observation["status"] == "xloader_registration_disabled"
+    assert observation["status"] == "passive_only_application_probe_blocked"
+    assert observation["passive_only_policy_enforced"] is True
     assert observation["target_contact_attempted"] is False
+    assert observation["application_data_sent"] is False
+    assert observation["request_count"] == 0
 
 
-def test_xloader_dispatch_passes_common_registry_and_nine_exact_pins(
+def test_xloader_dispatch_ignores_all_enabling_inputs_and_private_material(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    profile = {
-        "profile_id": "xloader-fixture-profile",
-        "host": "fixture.example",
-        "port": 80,
-    }
     target = {
-        "protocol_profile_id": profile["profile_id"],
+        "protocol_profile_id": "xloader-fixture-profile",
         "protocol_profile_registry_sha256": "1" * 64,
         "protocol_profile_payload_sha256": "2" * 64,
         "protocol_profile_private_material_sha256": "3" * 64,
@@ -543,53 +542,16 @@ def test_xloader_dispatch_passes_common_registry_and_nine_exact_pins(
         "protocol_profile_pkt2_inner_plaintext_sha256": "5" * 64,
         "protocol_profile_request_sha256": "6" * 64,
         "protocol_profile_review_id": "xloader-review-fixture",
-        "host": profile["host"],
-        "port": profile["port"],
+        "host": "fixture.example",
+        "port": 80,
     }
-    calls: list[dict] = []
-
-    class FakeXLoaderModule:
-        @staticmethod
-        def load_private_material(path: Path, *, repository_root: Path | None):
-            assert path == tmp_path / "private.json"
-            assert repository_root == REPOSITORY
-            return object()
-
-        @staticmethod
-        def probe_reviewed_xloader_registration(
-            observed_profile: dict,
-            **kwargs,
-        ):
-            assert observed_profile == profile
-            calls.append(kwargs)
-            return {
-                "status": "xloader_v8_response_mismatch",
-                "alive": True,
-                "c2_confirmed": False,
-                "target_contact_attempted": True,
-                "target_connection_established": True,
-                "application_data_sent": True,
-                "registration_attempted": True,
-                "synthetic_identity_sent": True,
-                "task_poll_attempted": True,
-                "task_content_published": False,
-                "task_executed": False,
-                "payload_download_attempted": False,
-                "victim_metadata_sent": False,
-                "request_count": 1,
-                "request_evidence": {"request_bytes": 256},
-                "http": {"status": 404, "response_body_length": 16},
-            }
 
     monkeypatch.setattr(
         monitor_recent_c2,
         "resolve_profile",
-        lambda *_args, **_kwargs: profile,
-    )
-    monkeypatch.setattr(
-        monitor_recent_c2,
-        "_load_xloader_active_probe_module",
-        lambda: FakeXLoaderModule,
+        lambda *_args, **_kwargs: pytest.fail(
+            "passive_only入口でXLoader profileを解決してはいけない"
+        ),
     )
     observation = monitor_recent_c2._xloader_registration_observation(
         target,
@@ -598,25 +560,14 @@ def test_xloader_dispatch_passes_common_registry_and_nine_exact_pins(
         tmp_path / "private.json",
         REPOSITORY,
     )
-    kwargs = calls[0]
-    assert kwargs["allow_network"] is True
-    assert kwargs["allow_xloader_registration"] is True
-    assert kwargs["allow_xloader_candidate_check"] is False
-    assert kwargs["expected_profile_sha256"] == "2" * 64
-    assert kwargs["expected_profile_registry_sha256"] == "1" * 64
-    assert kwargs["expected_private_material_sha256"] == "3" * 64
-    assert kwargs["expected_selector_path_table_sha256"] == "4" * 64
-    assert (
-        kwargs["expected_synthetic_template_id"]
-        == "xloader-v8-pkt2-synthetic-v1"
-    )
-    assert kwargs["expected_pkt2_inner_plaintext_sha256"] == "5" * 64
-    assert kwargs["expected_request_sha256"] == "6" * 64
-    assert kwargs["expected_review_id"] == "xloader-review-fixture"
-    assert kwargs["expected_profile_id"] == "xloader-fixture-profile"
-    assert observation["request_budget_used"] == 1
-    assert observation["sent_bytes"] == 256
-    assert observation["received_bytes"] == 16
+    assert observation["status"] == "passive_only_application_probe_blocked"
+    assert observation["passive_only_policy_enforced"] is True
+    assert observation["target_contact_attempted"] is False
+    assert observation["application_data_sent"] is False
+    assert observation["registration_attempted"] is False
+    assert observation["request_budget_used"] == 0
+    assert observation["sent_bytes"] == 0
+    assert observation["received_bytes"] == 0
 
 
 def test_xloader_assessment_requires_full_crypto_and_safety_flag_consistency() -> None:

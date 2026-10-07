@@ -1,0 +1,238 @@
+{
+  "schema_version": 1,
+  "collection_id": "formbook-automation-20261007",
+  "evaluated_root_count": 404,
+  "static_analysis_attempted_root_count": 404,
+  "analysis_complete_root_count": 0,
+  "confirmed_protocol_c2_root_count": 0,
+  "membership": {
+    "representation": "sorted_unique_sha256_lf_with_trailing_lf",
+    "sha256": "61c07b81ad316e4a3fd21d3dc3fe38ee1b3d021cc6d404e45168735925cc9043",
+    "member_list_published": false
+  },
+  "selection_boundary": {
+    "candidate_set_complete": false,
+    "candidate_set_truncated": true,
+    "truncation_reason": "提供元照会がmax-results上限で打ち切られた",
+    "provider_family_label_is_confirmation": false,
+    "provider_selected_root_count": 401,
+    "official_versioned_root_count": 3
+  },
+  "initial_300": {
+    "root_count": 300,
+    "waves": [
+      {
+        "wave": 1,
+        "root_count": 100,
+        "dotnet_resource_loader_count": 21,
+        "unresolved_family_count": 79,
+        "automation_route_count": 21,
+        "derived_case_count": 10,
+        "fixed_point_node_count": 114,
+        "fixed_point_edge_count": 32,
+        "terminal_frontier_count": 15,
+        "terminal_selected_count": 0,
+        "case_state": {
+          "complete": 0,
+          "partial": 76,
+          "triaged_unknown": 24
+        }
+      },
+      {
+        "wave": 2,
+        "root_count": 100,
+        "dotnet_resource_loader_count": 5,
+        "unresolved_family_count": 95,
+        "automation_route_count": 29,
+        "derived_case_count": 9,
+        "fixed_point_node_count": 109,
+        "fixed_point_edge_count": 13,
+        "terminal_frontier_count": 9,
+        "terminal_selected_count": 0,
+        "case_state": {
+          "complete": 0,
+          "partial": 97,
+          "triaged_unknown": 3
+        }
+      },
+      {
+        "wave": 3,
+        "root_count": 100,
+        "dotnet_resource_loader_count": 10,
+        "unresolved_family_count": 90,
+        "automation_route_count": 31,
+        "derived_case_count": 7,
+        "fixed_point_node_count": 108,
+        "fixed_point_edge_count": 27,
+        "terminal_frontier_count": 8,
+        "terminal_selected_count": 0,
+        "case_state": {
+          "complete": 0,
+          "partial": 89,
+          "triaged_unknown": 11
+        }
+      }
+    ],
+    "totals": {
+      "dotnet_resource_loader_count": 36,
+      "unresolved_family_count": 264,
+      "automation_route_count": 81,
+      "derived_case_count": 26,
+      "fixed_point_node_count": 331,
+      "fixed_point_edge_count": 72,
+      "terminal_frontier_count": 32,
+      "terminal_selected_count": 0,
+      "case_state": {
+        "complete": 0,
+        "partial": 262,
+        "triaged_unknown": 38
+      }
+    }
+  },
+  "holdout_wave4": {
+    "selected_root_count": 100,
+    "matched_root_count": 100,
+    "identity_binding": {
+      "sample_sha256_match_count": 96,
+      "outer_sha256_match_count": 5,
+      "both_same_selector_count": 1,
+      "unique_matched_root_count": 100
+    },
+    "family_resolution": {
+      "resolved_count": 29,
+      "dotnet_resource_loader_count": 28,
+      "remcosrat_count": 1,
+      "unresolved_count": 71
+    },
+    "automation_route_count": 29,
+    "case_state": {
+      "complete": 0,
+      "partial": 86,
+      "triaged_unknown": 14
+    },
+    "terminal": {
+      "contract_verified_count": 100,
+      "reached_count": 0,
+      "unresolved_count": 100,
+      "selected_count": 0
+    },
+    "c2": {
+      "confirmed_protocol_c2_count": 0,
+      "unresolved_count": 100
+    },
+    "run_level_metrics": {
+      "derived_case_count": {
+        "status": "not_available",
+        "reason": "run-level summary.jsonが存在しない"
+      },
+      "fixed_point_node_count": {
+        "status": "not_available",
+        "reason": "run-level follow-on-analysis.jsonが存在しない"
+      },
+      "fixed_point_edge_count": {
+        "status": "not_available",
+        "reason": "run-level follow-on-analysis.jsonが存在しない"
+      },
+      "terminal_frontier_count": {
+        "status": "not_available",
+        "reason": "run-level terminal-payload-acquisition.jsonが存在しない"
+      },
+      "terminal_selected_count": {
+        "status": "not_available",
+        "reason": "run-level terminal-payload-acquisition.jsonが存在しない"
+      }
+    },
+    "safety": {
+      "ai_used_count": 0,
+      "sample_executed_count": 0,
+      "network_contacted_count": 0
+    }
+  },
+  "large_script_regression": {
+    "root_sha256": "021d369e929769603851acade92af051024192b69a28dca96569a4327449a005",
+    "previous_static_layer_issue_count": 6,
+    "current_static_layer_issue_count": 0,
+    "limits": {
+      "plain_string_array_script_bytes": 8388608,
+      "batch_powershell_script_bytes": 16777216,
+      "batch_powershell_line_bytes": 16777216,
+      "batch_powershell_line_count": 65536
+    },
+    "fixed_point": {
+      "node_count": 3,
+      "edge_count": 2,
+      "error_count": 0,
+      "frontier_count": 1,
+      "terminal_selected_count": 0
+    },
+    "derived_sha256": [
+      "a6bdd034155b7fd22d659d279215a1dcbce229d2f9d36d05e7682a1312a2b0a0",
+      "d79563c392e82fc306b748d2acdbbb8bea3f2c64cf40af44f4a09925aae696b5"
+    ],
+    "terminal_family_confirmed": false,
+    "confirmed_protocol_c2": false,
+    "status": "partial"
+  },
+  "latest_chain": {
+    "root_sha256": "b85d4673ac19ee208e96eff1e860d4b110a1eac0620464193bde12a85fb54115",
+    "stages": [
+      "rc4_obfuscated_javascript",
+      "plain_string_array_and_synchronous_http_get",
+      "response_text_to_powershell_file",
+      "powershell_aes_to_managed_loader",
+      "managed_loader_to_native_pe_c244",
+      "native_two_stage_rc4_to_analysis_pe_e6de",
+      "native_builder_key_seed_inventory"
+    ],
+    "native_pe_sha256": "c244dc93f8a675b0c0012b07d9f09f89e1d65db87f44ffee9fa04dc57dc711f3",
+    "analysis_pe_sha256": "e6de6ce31e7e19a610d24ddd3d72fd390272a0b44f1e6d7998ca81158a67a9a7",
+    "fixed_point": {
+      "node_count": 2,
+      "edge_count": 1,
+      "frontier_count": 1,
+      "terminal_selected_count": 0
+    },
+    "native_inventory": {
+      "builder_count": 175,
+      "canonical_base64_count": 73,
+      "primary_seed_count": 64,
+      "non_primary_seed_count": 9
+    },
+    "ghidra_followup": {
+      "explicit_program_selector_used": true,
+      "function_count": 133,
+      "symbol_count": 1218,
+      "standard_prologue_candidate_count": 741,
+      "exact_base64_decoder_count": 0,
+      "exact_rc4_sub_transform_count": 0,
+      "same_path_network_consumer_count": 0,
+      "pure_rc4_ksa_prga_observed": true,
+      "wininet_resolver_thunks_observed": true,
+      "next_minimum_step": "bounded_value_set_evaluator_for_dispatcher_and_indirect_call_sites"
+    },
+    "c2_endpoint_count": 0,
+    "terminal_family_confirmed": false,
+    "status": "unresolved",
+    "blockers": [
+      "base64_decoder_unproven",
+      "layer_key_roles_unproven",
+      "rc4_sub_transform_unproven",
+      "network_consumer_not_scanned_missing_required_roles",
+      "same_path_dataflow_unproven"
+    ]
+  },
+  "versioned_native_validation": {
+    "xloader_v85_mapped_pe_count": 3,
+    "xloader_v87_raw_memory_image_count": 1
+  },
+  "safety": {
+    "samples_executed": false,
+    "recovered_payloads_executed": false,
+    "live_c2_contacted": false,
+    "external_stage_download_count": 1,
+    "external_stage_download_policy": "statically_proven_payload_stage_url_one_get_no_redirect",
+    "raw_urls_published": false,
+    "private_paths_published": false,
+    "credentials_published": false
+  }
+}

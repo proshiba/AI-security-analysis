@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "collection_id": "targeted-formbook-20261002-jp-malspam",
+  "selection_mode": "targeted_user_request",
+  "selected_at": "2026-10-03T00:00:00+09:00",
+  "observed_date": "2026-10-02",
+  "source": "ユーザー提供Triage取得ZIP、Triage公開exact-SHA-256解析",
+  "requested": 1,
+  "downloaded": 1,
+  "acquisition_complete": true,
+  "analysis_complete": false,
+  "complete": false,
+  "publication_stage": "partial_static_c2_structure_and_external_endpoint_pool",
+  "pending": 1,
+  "samples_executed": false,
+  "network_contacted": true,
+  "network_scope": "埋め込みstage URLの1回限定取得とTriage公式API公開成果物取得",
+  "live_c2_contacted": false,
+  "archives_stored_in_repository": false,
+  "cases": [
+    {
+      "case_id": "sha256:0eb380a4609662b66d946d0991e810aa47b80dc3733aee4e59cfba1bd1107ce7",
+      "sha256": "0eb380a4609662b66d946d0991e810aa47b80dc3733aee4e59cfba1bd1107ce7",
+      "family": "formbook",
+      "status": "partial",
+      "terminal_payload_recovered": true,
+      "c2_http_candidate_count": 15,
+      "c2_dns_only_candidate_count": 1
+    }
+  ],
+  "source_references": [
+    "https://tria.ge/261002-fldpqsw15r"
+  ],
+  "family_sources": [
+    {
+      "family": "formbook",
+      "path": "sources/formbook"
+    }
+  ]
+}

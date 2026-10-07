@@ -46,7 +46,7 @@ AsyncRAT／VenomRATのhost emulatorは、合成`ClientInfo`に続けて空`Messa
 | `purerat_direct_tls_certificate_pin` | PureRAT direct TLSの証明書pinを観測。TLS version厳密保証がないため確定へ昇格しない | 0.92 |
 | `darkcomet_server_first_idtype` | DarkCometのserver-first `IDTYPE`をNSEで受信専用検証 | 0.98 |
 | `redline_checkconnect_soap11` | RedLineの固定SOAP `CheckConnect`をNSEで1要求だけ検証 | 0.98 |
-| `xloader_v8_get_registration` | private protocol未実装のためNSE transport-onlyで停止 | 0.15 |
+| `purerat_tls_prelude` | PureRATの固定4 byte prelude後にTLSへ昇格し、検体内蔵証明書pinを照合 | 0.95 |
 
 TCP open、一般TLS、HTTP status、FTP bannerはC2所有者やmalware固有applicationを証明しません。`c2_operational_confidence` と `reachability_confidence` は必ず分離して読みます。
 
@@ -61,7 +61,7 @@ py -3.13 .\analysis-framework\common\monitor_recent_c2.py `
   --output-directory .\.work\c2-monitoring-preview
 ```
 
-レビュー後、明示的な許可があるtaskでだけ`--allow-network`を指定します。`--allow-network`だけではAsyncRAT／VenomRATはTLS handshakeと証明書観測までで、匿名Pingは送りません。匿名Pingには`--allow-reviewed-application-probes`、AgentTesla FTP認証にはさらに`--allow-authentication`とリポジトリ外`--private-credential-vault`が必要です。StealC／Lumma／Remusの合成登録とtask取得には、独立した`--allow-malware-registration-tasking`も必要です。
+レビュー後、明示的な許可があるtaskでだけ`--allow-network`を指定します。`--allow-network`だけではAsyncRAT／VenomRATはTLS handshakeと証明書観測までで、匿名Pingは送りません。匿名Pingには`--allow-reviewed-application-probes`、AgentTesla FTP認証にはさらに`--allow-authentication`とリポジトリ外`--private-credential-vault`が必要です。StealC／Lumma／Remusの合成登録とtask取得には、独立した`--allow-malware-registration-tasking`も必要です。FormBook／XLoaderは常に`passive_only`であり、互換用のXLoader許可flagや完全一致profileを指定しても、HEAD、登録GET、汎用HTTP要求をproduction監視から送信できません。
 
 ```powershell
 py -3.13 .\analysis-framework\common\monitor_recent_c2.py `

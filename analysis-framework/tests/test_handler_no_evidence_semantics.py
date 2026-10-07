@@ -5,12 +5,11 @@ from __future__ import annotations
 import importlib.util
 import json
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[1]
 COMMON_ROOT = FRAMEWORK_ROOT / "common"
@@ -20,8 +19,8 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT):
     if value not in sys.path:
         sys.path.insert(0, value)
 
-from analysis_contract import handler_result_quality  # noqa: E402
-from handler_catalog import (  # noqa: E402
+from analysis_contract import handler_result_quality
+from handler_catalog import (
     HandlerNoEvidenceError,
     discover_handlers,
     execute_handler,
@@ -317,6 +316,43 @@ def test_linux_downloader_detector_rejects_non_script_inputs(data: bytes) -> Non
 
     detector = _load_family_module("linux_downloader", "detect.py")
     assert detector.detect(data)["matched"] is False
+
+
+def test_linux_downloader_rejects_two_megabyte_javascript_before_shlex(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """2 MiB級の単一長行JavaScriptを`shlex`へ渡さず制限扱いにする。"""
+
+    detector = _load_family_module("linux_downloader", "detect.py")
+    extractor = _load_family_module("linux_downloader", "extract_config.py")
+    prefix = b"// JavaScript\nvar payload = \""
+    suffix = b"\";\n"
+    data = prefix + (b"A" * (detector.MAX_SCRIPT_SIZE - len(prefix) - len(suffix))) + suffix
+
+    def unexpected_shlex(*_args: object, **_kwargs: object) -> list[str]:
+        pytest.fail("上限超過fragmentをshlexへ渡してはいけません")
+
+    monkeypatch.setitem(
+        detector._parsed_commands.__globals__,
+        "shlex",
+        SimpleNamespace(split=unexpected_shlex),
+    )
+    monkeypatch.setitem(
+        extractor._parsed_commands.__globals__,
+        "shlex",
+        SimpleNamespace(split=unexpected_shlex),
+    )
+
+    detection = detector.detect(data)
+    assert detection["matched"] is False
+    audit = detection["anchors"]["command_parse_audit"]
+    assert audit["fragment_count"] == 2
+    assert audit["maximum_fragment_length"] > detector.MAX_COMMAND_FRAGMENT_SIZE
+    assert audit["fragment_length_limit"] == detector.MAX_COMMAND_FRAGMENT_SIZE
+    assert audit["oversized_fragment_count"] == 1
+    assert audit["fragment_length_limit_hit"] is True
+    with pytest.raises(HandlerNoEvidenceError, match="shlex解析を実施しませんでした"):
+        extractor.extract_config(data)
 
 
 def test_formbook_unreviewed_hash_is_no_evidence() -> None:

@@ -252,6 +252,30 @@ def test_verification_candidates_are_fail_closed() -> None:
     assert one_shot._verification_candidates(routing) == [eligible]
 
 
+def test_verification_candidates_reassess_only_requested_selected_family() -> None:
+    """通常handlerが証拠不足だったselected familyだけを候補再検証へ渡す。"""
+
+    selected = {
+        "family": "formbook",
+        "routing_eligible": True,
+        "routing_mode": "selected_family_analysis",
+        "routing_eligibility": {"selected_family_analysis": True},
+    }
+    other = {**selected, "family": "guloader"}
+    malformed = {
+        **selected,
+        "family": "blocked",
+        "routing_eligibility": {"selected_family_analysis": False},
+    }
+    routing = {"candidates": [selected, other, malformed]}
+
+    assert one_shot._verification_candidates(routing) == []
+    assert one_shot._verification_candidates(
+        routing,
+        selected_family_reassessment=["formbook", "blocked"],
+    ) == [selected]
+
+
 def test_routing_uses_complete_internal_evaluations_after_public_quota() -> None:
     """公開分類の省略markerをrouting入力にせず、後方detectorの証拠を保持する。"""
 
@@ -1295,6 +1319,9 @@ def test_selected_family_retained_output_stays_pending_end_to_end(
     execution = report["handler_executions"][0]
     wrapper = json.loads((case_dir / execution["result"]).read_text(encoding="utf-8"))
     outcome = json.loads((case_dir / "orchestration.json").read_text(encoding="utf-8"))
+    candidate_assessment = json.loads(
+        (case_dir / "candidate-handler-assessment.json").read_text(encoding="utf-8")
+    )
 
     assert wrapper["verified_binary_outputs"] == [verified]
     assert outcome["status"] == "partial"
@@ -1303,6 +1330,8 @@ def test_selected_family_retained_output_stays_pending_end_to_end(
     assert outcome["outputs"]["terminal_payload_sha256"] == []
     assert "terminal_payload" in outcome["blockers"]
     assert "f" * 64 not in outcome["outputs"]["terminal_payload_sha256"]
+    assert candidate_assessment["status"] == "no_candidates"
+    assert candidate_assessment["planned_attempt_count"] == 0
     retained_path = f"p/{terminal_sha256}.exe"
     assert report["retained_artifact_paths"] == [retained_path]
     required, errors = contract._required_artifact_paths(report)
@@ -1354,6 +1383,9 @@ def test_selected_family_timeout_keeps_legacy_failure_schema(tmp_path: Path, mon
     )
     case_dir = output / "cases" / result["sha256"]
     report = json.loads((case_dir / "report.json").read_text(encoding="utf-8"))
+    candidate_assessment = json.loads(
+        (case_dir / "candidate-handler-assessment.json").read_text(encoding="utf-8")
+    )
     execution = report["handler_executions"][0]
     attempt = next(item for item in execution["attempts"] if item["status"] == "failed")
     assert not (case_dir / "p").exists()
@@ -1362,6 +1394,9 @@ def test_selected_family_timeout_keeps_legacy_failure_schema(tmp_path: Path, mon
     assert attempt["execution_boundary"] == "bounded_assessment_worker"
     assert attempt["worker_status"] == "timed_out"
     assert attempt["error"] == "handler_wall_clock_timeout"
+    assert candidate_assessment["candidate_count"] == 1
+    assert candidate_assessment["planned_attempt_count"] == 1
+    assert candidate_assessment["families"][0]["family"] == "guloader"
 
 
 def test_selected_family_does_not_import_handler_in_parent_process(

@@ -37,8 +37,9 @@ from unpackers.path_safety import safe_member_name as validate_member_name
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from unpackers.asar_unpacker import is_asar, recover_asar
 from unpackers.arx20_static_route import recover_arx20_static_route
+from unpackers.asar_unpacker import is_asar, recover_asar
+from unpackers.batch_powershell_polyglot import recover_batch_powershell_polyglot
 from unpackers.bcrypt_resource import recover_bcrypt_resource
 from unpackers.bin101_nibble_rc4 import recover_bin101_payload
 from unpackers.bounded_pe_scan import (
@@ -60,6 +61,8 @@ from unpackers.dotnet_bundle_unpacker import (
     recover_dotnet_bundle,
 )
 from unpackers.embedded_installer_archive import recover_embedded_installer_archive
+from unpackers.equation_ole import recover_equation_ole
+from unpackers.go_embedded_pe import recover_go_embedded_pe
 from unpackers.inno_sideload_bundle import (
     recover_inno_sideload_bundle,
     recover_scene_record_artifacts,
@@ -80,16 +83,22 @@ from unpackers.javascript_dropper_unpacker import recover_javascript_dropper
 from unpackers.javascript_obfuscator import (
     decode_script_text,
     deobfuscate_plain_string_array,
+    deobfuscate_rc4_string_array,
     deobfuscate_string_array,
 )
+from unpackers.javascript_reverse_base64 import recover_reverse_base64
+from unpackers.managed_handoff_image import inspect_managed_handoff_image
 from unpackers.managed_il_triage import (
     _contain_parser_diagnostics,
     analyze_managed_pe,
 )
 from unpackers.managed_proxy_deobfuscator import analyze_managed_protector
+from unpackers.managed_smartassembly_strings import (
+    recover_managed_smartassembly_strings,
+)
 from unpackers.managed_tripledes_gzip import recover_managed_tripledes_gzip
-from unpackers.nsis_nhencv1 import recover_nsis_nhencv1
 from unpackers.node_sea_static import recover_node_sea_pe
+from unpackers.nsis_nhencv1 import recover_nsis_nhencv1
 from unpackers.nsis_static import (
     NsisMember,
     nsis_listing_public,
@@ -100,6 +109,27 @@ from unpackers.nsis_static import (
     select_nsis_members,
 )
 from unpackers.nsis_unpacker import recover_nsis_scripted_layers
+from unpackers.office_encrypted_package import (
+    MAX_DECRYPTED_SIZE as MAX_OFFICE_DECRYPTED_SIZE,
+)
+from unpackers.office_encrypted_package import (
+    MAX_INPUT_SIZE as MAX_OFFICE_ENCRYPTED_INPUT_SIZE,
+)
+from unpackers.office_encrypted_package import (
+    recover_default_password_ooxml,
+)
+from unpackers.office_vba import (
+    MAX_INPUT_SIZE as MAX_OFFICE_VBA_INPUT_SIZE,
+)
+from unpackers.office_vba import (
+    MAX_MODULE_SIZE as MAX_OFFICE_VBA_MODULE_SIZE,
+)
+from unpackers.office_vba import (
+    MAX_TOTAL_SOURCE_SIZE as MAX_OFFICE_VBA_TOTAL_SIZE,
+)
+from unpackers.office_vba import (
+    recover_vba_modules,
+)
 from unpackers.onyx_qt_loader import (
     matches_onyx_qt_profile,
     recover_onyx_qt_payload,
@@ -112,8 +142,8 @@ from unpackers.profiled_transform import (
 from unpackers.reverse_chunk_affine_xor_donut_pe import (
     recover_reverse_chunk_affine_xor_donut_pe,
 )
-from unpackers.go_embedded_pe import recover_go_embedded_pe
 from unpackers.rotated_xor_donut import legacy_report_from_attempt
+from unpackers.rtf_objdata import recover_rtf_objdata
 from unpackers.rzk_lece_unpacker import (
     ENCODED_LECE_MAGIC,
     find_rzk_lece_streams,
@@ -227,6 +257,9 @@ SCRIPT_SUFFIXES = {
     ".jse",
     ".vbs",
     ".vbe",
+    ".wsf",
+    ".wsc",
+    ".sct",
     ".ps1",
     ".hta",
     ".osascript",
@@ -252,6 +285,7 @@ RECOVERY_SUFFIXES = SCRIPT_SUFFIXES | {
     ".zip",
     ".7z",
     ".cab",
+    ".rtf",
 }
 SELECTIVE_ARCHIVE_SUFFIXES = RECOVERY_SUFFIXES | {".jsc", ".node", ".py"}
 ISO_IMAGE_SUFFIXES = {".img", ".iso"}
@@ -904,11 +938,15 @@ def detect_format(data: bytes, name: str = "sample") -> str:
         return "zip"
     if data.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
         return "ole"
+    if data[:256].lstrip().lower().startswith(b"{\\rtf"):
+        return "rtf"
     if suffix in SCRIPT_SUFFIXES or data[:256].lstrip().lower().startswith(
         (
             b"<!doctype html",
             b"<html",
             b"<script",
+            b"<?xml",
+            b"<job",
             b"function ",
             b"var ",
             b"$",
@@ -924,7 +962,61 @@ def detect_format(data: bytes, name: str = "sample") -> str:
             ("//", "/*", "function ", "var ", "let ", "const ", "@echo", "set ")
         ):
             return "script"
+    # 復号・復元されたPowerShell等は拡張子を持たず、長いcommentやhere-stringの
+    # 後方に実処理が置かれることがある。先頭magicだけではなく、先頭・末尾の
+    # 有界windowに複数の言語固有markerがある場合だけ再帰script解析へ渡す。
+    if _looks_like_embedded_script(data):
+        return "script"
     return "data"
+
+
+def _looks_like_embedded_script(data: bytes) -> bool:
+    """Base64復号結果が再帰解析可能なscript textか、強い構造だけで判定する。
+
+    大きなPowerShell loaderは先頭のhere-stringがほぼ全体を占め、暗号処理は末尾に
+    置かれる。このため先頭・末尾を有界に調べる。拡張子やprovider labelだけでは
+    判定せず、printable textと複数の言語固有markerを必須にする。
+    """
+
+    if not 64 <= len(data) <= MAX_ARTIFACT:
+        return False
+    window = 128 * 1024
+    probe = data if len(data) <= window * 2 else data[:window] + data[-window:]
+    text = decode_script_text(probe)
+    if not text:
+        return False
+    printable = sum(
+        character.isprintable() or character in "\r\n\t" for character in text
+    )
+    if printable / len(text) < 0.85:
+        return False
+    lowered = text.casefold()
+    powershell_markers = (
+        "[pscustomobject]",
+        "function ",
+        "new-object ",
+        "frombase64string",
+        "ciphermode]::",
+        "paddingmode]::",
+        "scriptblock]::create",
+        "param(",
+        "payloadraw",
+    )
+    if "$" in text and sum(marker in lowered for marker in powershell_markers) >= 3:
+        return True
+    if "<job" in lowered and "script" in lowered and "language=" in lowered:
+        return True
+    javascript_markers = (
+        "function ",
+        "activexobject",
+        "wscript.",
+        "var ",
+        "const ",
+    )
+    if sum(marker in lowered for marker in javascript_markers) >= 3:
+        return True
+    vbscript_markers = ("createobject(", "on error resume next", "wscript.")
+    return sum(marker in lowered for marker in vbscript_markers) >= 2
 
 
 def recover_gdpf_pdf_overlay(
@@ -2502,6 +2594,8 @@ def macho_summary(data: bytes) -> dict:
 def _encoded_blob_kind(blob: bytes) -> str | None:
     """復号バイト列が構造上有用な場合だけ、対応種別を返す。"""
     kind = detect_format(blob)
+    if kind == "data" and _looks_like_embedded_script(blob):
+        kind = "script"
     if kind == "pe" and valid_pe_extent(blob) is None:
         return None
     return kind if kind != "data" else None
@@ -5614,6 +5708,8 @@ def unpack_bytes(
         "executed": False,
         "network_contacted": False,
     }
+    if data.startswith(b"HOI1"):
+        report["managed_handoff_image"] = inspect_managed_handoff_image(data)
     iso9660_candidate = kind == "data" and is_iso9660(data)
     if iso9660_candidate:
         report["container_format"] = "iso9660"
@@ -5713,6 +5809,10 @@ def unpack_bytes(
         if report["pe"]["is_dotnet"]:
             report["dotnet_resources"], recovered = recover_dotnet_resources(
                 static_data
+            )
+            artifacts.extend(recovered)
+            report["managed_smartassembly_strings"], recovered = (
+                recover_managed_smartassembly_strings(static_data)
             )
             artifacts.extend(recovered)
         likely_upx = _has_classic_upx_structure(report["pe"])
@@ -5885,12 +5985,41 @@ def unpack_bytes(
         if recovered_blob:
             artifacts.append(("xz-decompressed", recovered_blob))
     elif kind == "ole":
+        report["office_encrypted_package"], recovered = (
+            recover_default_password_ooxml(
+                data,
+                maximum_input_size=MAX_OFFICE_ENCRYPTED_INPUT_SIZE,
+                maximum_decrypted_size=min(
+                    max_archive_total_size,
+                    MAX_OFFICE_DECRYPTED_SIZE,
+                ),
+            )
+        )
+        artifacts.extend(recovered)
+        report["equation_ole"], recovered = recover_equation_ole(data)
+        artifacts.extend(recovered)
+        report["office_vba"], recovered = recover_vba_modules(
+            data,
+            maximum_input_size=MAX_OFFICE_VBA_INPUT_SIZE,
+            maximum_module_size=min(
+                max_archive_member_size,
+                MAX_OFFICE_VBA_MODULE_SIZE,
+            ),
+            maximum_total_source_size=min(
+                max_archive_total_size,
+                MAX_OFFICE_VBA_TOTAL_SIZE,
+            ),
+        )
+        artifacts.extend(recovered)
         report["ole"], recovered = recover_ole_streams(
             data,
             max_members=max_archive_members,
             max_member_size=max_archive_member_size,
             max_total_size=max_archive_total_size,
         )
+        artifacts.extend(recovered)
+    elif kind == "rtf":
+        report["rtf_objdata"], recovered = recover_rtf_objdata(data)
         artifacts.extend(recovered)
     elif kind == "cab":
         report["cab"], recovered = recover_cab_members(
@@ -5941,6 +6070,8 @@ def unpack_bytes(
                 return report, []
             if "size_blocked" in blocked:
                 report["unpack_status"] = "bounded_limit_with_partial_recovery"
+            report["equation_ole"], recovered = recover_equation_ole(data)
+            artifacts.extend(recovered)
         except ValueError:
             report["zip_error"] = "zip_validation_failed"
             report["unpack_status"] = "bounded_limit"
@@ -5985,8 +6116,11 @@ def unpack_bytes(
         artifacts.extend(recover_encoded_blobs(data))
         if Path(name).suffix.lower() == ".au3":
             for field in (
+                "batch_powershell_polyglot",
                 "javascript_dropper",
+                "javascript_reverse_base64",
                 "javascript_string_array",
+                "javascript_rc4_string_array",
                 "javascript_plain_string_array",
             ):
                 report[field] = {
@@ -5994,13 +6128,26 @@ def unpack_bytes(
                     "executed": False,
                 }
         else:
+            report["batch_powershell_polyglot"], recovered = (
+                recover_batch_powershell_polyglot(data)
+            )
+            artifacts.extend(recovered)
             report["javascript_dropper"], recovered = recover_javascript_dropper(data)
+            artifacts.extend(recovered)
+            report["javascript_reverse_base64"], recovered = recover_reverse_base64(data)
             artifacts.extend(recovered)
             report["javascript_string_array"], transformed = deobfuscate_string_array(
                 data
             )
             if transformed:
                 artifacts.append(("javascript-string-array-deobfuscated", transformed))
+            report["javascript_rc4_string_array"], transformed = (
+                deobfuscate_rc4_string_array(data)
+            )
+            if transformed:
+                artifacts.append(
+                    ("javascript-rc4-string-array-deobfuscated", transformed)
+                )
             report["javascript_plain_string_array"], transformed = (
                 deobfuscate_plain_string_array(data)
             )

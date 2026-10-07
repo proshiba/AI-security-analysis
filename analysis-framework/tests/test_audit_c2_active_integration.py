@@ -106,6 +106,32 @@ def test_capability_without_reviewed_endpoint_is_warning_not_activation(
     ]
 
 
+def test_passive_only_capability_must_not_be_monitor_or_nmap_enabled(
+    tmp_path: Path,
+) -> None:
+    state = _state(tmp_path)
+    state["loaded_profiles"] = {}
+    state["allowed_methods"] = {"transport_method"}
+    state["active_methods"] = set()
+    state["nmap_mapping"]["passive_only_application_methods"] = [
+        "fixture_method"
+    ]
+    state["nmap_mapping"]["method_bindings"][0]["method"] = (
+        "transport_method"
+    )
+    report = audit_module.audit_integration_state(**state)
+    assert report["status"] == "pass", report["errors"]
+    assert report["handlers"][0]["passive_only"] is True
+
+    state["allowed_methods"].add("fixture_method")
+    state["active_methods"].add("fixture_method")
+    state["nmap_mapping"]["method_bindings"][0]["method"] = "fixture_method"
+    report = audit_module.audit_integration_state(**state)
+    codes = {error["code"] for error in report["errors"]}
+    assert "passive_only_method_enabled" in codes
+    assert "passive_only_method_bound_to_nmap" in codes
+
+
 @pytest.mark.parametrize(
     ("field", "expected_detail"),
     [

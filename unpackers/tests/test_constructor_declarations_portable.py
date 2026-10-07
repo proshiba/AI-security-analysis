@@ -28,12 +28,14 @@ def constructor_insert(data, offset, content):
     return data[:offset] + content + data[offset + len(content):]
 
 
-def constructor_build_pe(counts=None, *, payload=True, table_name=b"#~"):
+def constructor_build_pe(counts=None, *, payload=True, table_name=b"#~", reserved_2=1):
     """全byteを定数、pack、ゼロpaddingで生成。entrypoint0、非実行section。"""
     counts = {} if counts is None else counts
+    assert type(reserved_2) is int and 0 <= reserved_2 <= 0xff
     numbers = tuple(sorted(counts))
     all_counts = tuple(counts.get(number, 0) for number in range(64))
-    tables = struct.pack("<IBBBBQQ", 0, 2, 0, 0, 1, sum(1 << n for n in numbers), 0)
+    tables = struct.pack("<IBBBBQQ", 0, 2, 0, 0, reserved_2,
+                         sum(1 << n for n in numbers), 0)
     tables += b"".join(struct.pack("<I", counts[n]) for n in numbers)
     if payload:
         tables += b"".join(bytes(binding._row_size(n, all_counts, (2, 2, 2)) * counts[n]) for n in numbers)
@@ -224,6 +226,28 @@ def test_valid_empty_clr_is_explicit_zero_not_rejected_fallback(monkeypatch):
         result = analyze(data)
         assert len(calls) == 1 and result["metadata_preflight"]["accepted"]
         assert result["resource_coverage"]["inventory_complete"]
+
+
+@pytest.mark.parametrize("reserved_2", [0, 1, 0x0A, 0xFF])
+def test_reserved_2_is_nonsemantic_only_after_full_layout_validation(reserved_2, monkeypatch):
+    """予約byteだけを難読化されても、同じ有界table配置として扱う。"""
+    data = constructor_build_pe({0: 1, 2: 1, 6: 1}, reserved_2=reserved_2)
+    outcome = guard.preflight_clr_declarations(data)
+    assert outcome["accepted"]
+    assert outcome["counts"]["tables_declared"] == 3
+    assert outcome["counts"]["rows_declared"] == 3
+    for module, analyze in ((triage, triage.analyze_managed_pe),
+                            (proxy, proxy.analyze_managed_protector)):
+        calls = constructor_factory_counter(monkeypatch, module, real=True)
+        result = analyze(data)
+        assert len(calls) == 1
+        assert result["metadata_preflight"]["accepted"]
+
+
+def test_reserved_2_does_not_relax_table_payload_extent():
+    """予約byteを許容しても、不足row payloadは受理しない。"""
+    data = constructor_build_pe({6: 1}, payload=False, reserved_2=0x0A)
+    assert not guard.preflight_clr_declarations(data)["accepted"]
 
 
 @pytest.mark.parametrize("function_name", ["test_analyze_managed_pe_inventory_and_conservative_techniques",

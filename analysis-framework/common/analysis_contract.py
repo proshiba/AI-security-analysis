@@ -133,6 +133,20 @@ NEGATIVE_VALUES = frozenset(
 )
 
 
+def _extended_length_path(path: Path) -> Path:
+    """Windowsの深いcase artifactをextended-length pathへ変換する。"""
+
+    absolute = Path(os.path.abspath(os.fspath(path)))
+    if os.name != "nt":
+        return absolute
+    value = os.fspath(absolute)
+    if value.startswith("\\\\?\\"):
+        return absolute
+    if value.startswith("\\\\"):
+        return Path(f"\\\\?\\UNC\\{value.lstrip(chr(92))}")
+    return Path(f"\\\\?\\{value}")
+
+
 def format_compatible(accepted_formats: Sequence[str], actual_format: str) -> bool:
     """ハンドラーの宣言形式と静的に識別した入力形式が両立するか返す。"""
 
@@ -343,7 +357,9 @@ def runtime_dependency_versions() -> dict[str, Any]:
         "cryptography",
         "dncil",
         "dnfile",
+        "msoffcrypto-tool",
         "olefile",
+        "oletools",
         "pefile",
         "pydantic",
         "pyinstaller",
@@ -646,6 +662,11 @@ def resolve_case_artifact(case_dir: Path, relative: Any) -> Path:
     if not root.is_dir():
         raise ValueError(f"case rootがdirectoryではありません: {case_dir}")
     lexical = case_dir.joinpath(*normalized.split("/"))
+    # LongPathsEnabledに依存せず、保持payloadのfull SHA-256 file名を扱う。
+    # case rootとartifactを同じpath表現へ揃えてから境界判定する。
+    if os.name == "nt" and len(os.fspath(Path(os.path.abspath(lexical)))) > 240:
+        root = _extended_length_path(root)
+        lexical = _extended_length_path(lexical)
     ensure_no_reparse_components(lexical)
     try:
         resolved = lexical.resolve(strict=True)

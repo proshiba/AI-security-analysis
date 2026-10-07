@@ -135,6 +135,20 @@ def audit_integration_state(
     def add_warning(code: str, detail: str) -> None:
         warnings.append({"code": code, "detail": detail})
 
+    passive_only_raw = nmap_mapping.get("passive_only_application_methods", [])
+    if (
+        not isinstance(passive_only_raw, list)
+        or any(not isinstance(method, str) or not method for method in passive_only_raw)
+        or len(passive_only_raw) != len(set(passive_only_raw))
+    ):
+        add_error(
+            "passive_only_application_methods_invalid",
+            repr(passive_only_raw),
+        )
+        passive_only_methods: set[str] = set()
+    else:
+        passive_only_methods = set(passive_only_raw)
+
     handler_rows: list[dict[str, Any]] = []
     method_owners: dict[str, str] = {}
     for handler, pair in sorted(profile_methods.items()):
@@ -158,6 +172,16 @@ def audit_integration_state(
             (method in method_ceilings, "method_ceilings"),
             (method in method_labels, "method_labels"),
         ):
+            if method in passive_only_methods and layer in {
+                "allowed_methods",
+                "active_methods",
+            }:
+                if present:
+                    add_error(
+                        "passive_only_method_enabled",
+                        f"{handler}/{method}: {layer}",
+                    )
+                continue
             if not present:
                 missing_layers.append(layer)
                 add_error("monitor_method_missing", f"{handler}/{method}: {layer}")
@@ -177,6 +201,7 @@ def audit_integration_state(
                 "protocol": protocol,
                 "method": method,
                 "monitor_complete": not missing_layers,
+                "passive_only": method in passive_only_methods,
             }
         )
 
@@ -192,6 +217,11 @@ def audit_integration_state(
             add_error(
                 "profile_handler_pair_mismatch",
                 f"{profile_id}: expected={expected!r}, observed={observed!r}",
+            )
+        if observed[1] in passive_only_methods:
+            add_error(
+                "passive_only_endpoint_profile_registered",
+                f"{profile_id}: {observed[1]}",
             )
         family = _canonical_family(profile.get("family"))
         if not family:
@@ -353,6 +383,8 @@ def audit_integration_state(
             add_error("monitor_method_missing_from_nmap", method)
         for method in sorted(binding_methods - allowed_methods):
             add_error("nmap_method_missing_from_monitor", method)
+        for method in sorted(binding_methods & passive_only_methods):
+            add_error("passive_only_method_bound_to_nmap", method)
         declared_count = nmap_mapping.get("network_method_count")
         if type(declared_count) is not int or declared_count != len(bindings):
             add_error(
@@ -404,6 +436,7 @@ def audit_integration_state(
             "nmap_family_count": len(nmap_families),
             "nmap_script_count": len(script_records),
             "nmap_method_binding_count": method_binding_count,
+            "passive_only_application_method_count": len(passive_only_methods),
             "required_contract_count": len(required_rows),
             "error_count": len(errors),
             "warning_count": len(warnings),
