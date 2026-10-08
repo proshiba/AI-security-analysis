@@ -1,6 +1,21 @@
 # 過去に解析したマルウェア検体の履歴。
 # 検体本体・復号バイナリ・PCAPは保存せず、公開可能な結果メタデータのみを記録する。
 analyses:
+  - malware_type: "未分類Python Socket.IO RAT"
+    analyzed_at: 2026-10-03
+    sample_sha256: 94420ac4dc985b08bdb97b8a24e499bbcf80906165b139d81ca466871a60adb0
+    analysis_level: terminal_source_protocol_and_representative_function_static_analysis
+    campaign_type: uv_bootstrapped_python_socketio_rat
+    matched_patterns:
+      - "VBS→公式uv→Python RAT"
+      - "Socket.IO WebSocket event protocol"
+      - "Startup LNK永続化"
+      - "keylogger・画面・遠隔入力・shell・双方向file転送"
+    c2:
+      - "103.118.42.120:16808"
+    notes: "終端Python source、C2設定、全event、process chain、主要18関数を静的解析しました。既知ファミリー名と全101関数の個別意味レビューは未完了です。検体実行と外部接続は行っていません。"
+    result_path: analysis-results/malware/unclassified/versions/unknown/cases/94420ac4dc985b08bdb97b8a24e499bbcf80906165b139d81ca466871a60adb0/
+
   - malware_type: "未分類"
     analyzed_at: 2026-09-26
     sample_sha256: 0468b99f0c8e9fabcdd22f2aab3d93368574b58646df1e0b2b6cfaadb78c19d1
@@ -8587,3 +8602,20 @@ analyses:
       - "217.60.77.63:8792"
     notes: "5 packageのloaderと同一ELF、認識関数34件、代表16関数を静的解析しました。検体実行と外部接続は行っていません。Ghidra完全解析はdisk reserve不足のため未完了です。"
     result_path: analysis-results/malware/redc2/versions/v4-0/cases/4537b1189ce419f1a595cf47216c03f80e9170ce80dad8d9227a1e52f9cb3466/
+
+  - malware_type: "formbook"
+    analyzed_at: 2026-10-03
+    sample_sha256: 0eb380a4609662b66d946d0991e810aa47b80dc3733aee4e59cfba1bd1107ce7
+    analysis_level: terminal_payload_recovery_characteristic_function_static_analysis_and_exact_sha256_sandbox_correlation
+    campaign_type: jp_named_zip_wsf_powershell_ghosted_loader
+    matched_patterns:
+      - "ZIP→WSF→HTTPS PowerShell→AES復号PowerShell"
+      - "Base64＋反復XORによるGHOSTED managed loaderとx86 payload復元"
+      - "aspnet_compiler.exe／w32tm.exeへのprocess injection"
+      - "FormBook／XLoaderの64 primary network seed＋1 isolated bootstrap-like seed"
+      - "HTTP/80でPOST 4回＋GETの候補fan-out"
+    c2:
+      - "15 HTTP endpoint candidate（c2-analysis.json参照）"
+      - "1 DNS-only candidate（www.hhsaoniss.beauty）"
+    notes: "検体を実行せずterminal payloadとTriage memory imageまで解析しました。15 HTTP候補はexact-SHA-256のTriage 2回で再現しましたが、現在検体固有の二層鍵計画、static record対応、live応答は未解決のためpartialです。"
+    result_path: analysis-results/malware/formbook/versions/unknown/cases/0eb380a4609662b66d946d0991e810aa47b80dc3733aee4e59cfba1bd1107ce7/

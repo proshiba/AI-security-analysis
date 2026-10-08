@@ -46,7 +46,7 @@ class FakeSocket:
 
 
 def resolver(*_args, **_kwargs):
-    return [(2, 1, 6, "", ("93.184.216.34", 56001))]
+    return [(2, 1, 6, "", ("127.0.0.1", 56001))]
 
 
 def test_offline_codec_and_protoinclude_classification() -> None:
@@ -57,6 +57,11 @@ def test_offline_codec_and_protoinclude_classification() -> None:
     report = classify_inner_frame(frame)
     assert report["protoinclude_type"] == "client_registration"
     assert report["embedded_size"] == 3
+    assert report["single_root_envelope_exact"] is True
+    assert report["family_attribution_confirmed"] is False
+    assert report["offline_only"] is True
+    assert report["frame_sha256"] == hashlib.sha256(frame).hexdigest()
+    assert report["protobuf_sha256"] == hashlib.sha256(payload).hexdigest()
 
 
 def test_empty_registration_frame_is_cross_platform_deterministic() -> None:
@@ -65,10 +70,7 @@ def test_empty_registration_frame_is_cross_platform_deterministic() -> None:
     assert len(frame) == 26
     assert frame.hex() == "160000001f8b08000000000002ffe362000075fa36bb02000000"
     assert frame[13] == 0xFF
-    assert (
-        hashlib.sha256(frame).hexdigest()
-        == "fae7f27b56eed121c893860cd4764d64541fe1a0b67bc22da050e70161f44001"
-    )
+    assert hashlib.sha256(frame).hexdigest() == "fae7f27b56eed121c893860cd4764d64541fe1a0b67bc22da050e70161f44001"
     assert decode_inner_frame(frame) == payload
 
 
@@ -87,11 +89,42 @@ def test_offline_codec_normalizes_malformed_gzip() -> None:
         decode_inner_frame(frame)
 
 
+def test_offline_codec_rejects_ambiguous_types_ratio_bomb_and_trailing_root_field() -> None:
+    """暗黙bytes変換、過大展開、複数root fieldをfail-closedで拒否する。"""
+    with pytest.raises(PureRatDirectTlsError, match="bytes"):
+        encode_inner_frame(bytearray(b"\x0a\x00"))  # type: ignore[arg-type]
+    with pytest.raises(PureRatDirectTlsError, match="整数"):
+        encode_inner_frame(b"\x0a\x00", maximum_size=True)  # type: ignore[arg-type]
+
+    compressed_bomb = encode_inner_frame(
+        b"A" * 4096,
+        maximum_expansion_ratio=128,
+    )
+    with pytest.raises(PureRatDirectTlsError, match="展開率"):
+        decode_inner_frame(compressed_bomb, maximum_expansion_ratio=2)
+
+    multiple_root_fields = b"\x0a\x00\x12\x00"
+    with pytest.raises(PureRatDirectTlsError, match="trailing"):
+        classify_inner_frame(encode_inner_frame(multiple_root_fields))
+
+
+def test_offline_codec_rejects_non_length_delimited_and_overlong_varint() -> None:
+    """ProtoInclude envelopeに不正なwire typeや64-bit超過varintを許可しない。"""
+    with pytest.raises(PureRatDirectTlsError, match="wire type 2"):
+        classify_inner_frame(encode_inner_frame(b"\x08\x00"))
+    overlong = b"\x80" * 9 + b"\x02"
+    with pytest.raises(PureRatDirectTlsError, match="64-bit"):
+        classify_inner_frame(encode_inner_frame(overlong))
+
+
 def test_probe_requires_two_gates() -> None:
     assert probe_reviewed_purerat_direct_tls(profile())["status"] == "network_disabled"
     disabled = probe_reviewed_purerat_direct_tls(profile(), allow_network=True)
     assert disabled["status"] == "legacy_tls_disabled"
     assert disabled["target_contact_attempted"] is False
+    no_backend = probe_reviewed_purerat_direct_tls(profile(), allow_network=True, allow_legacy_tls=True)
+    assert no_backend["status"] == "external_backend_disabled"
+    assert no_backend["external_target_contact_allowed"] is False
 
 
 def test_reviewed_profile_copy_and_arbitrary_target_mutation_are_rejected_before_connect() -> None:
@@ -125,7 +158,7 @@ def test_reviewed_profile_copy_and_arbitrary_target_mutation_are_rejected_before
     assert called is False
 
 
-def test_direct_tls_is_first_and_exact_pin_confirms() -> None:
+def test_direct_tls_is_first_and_exact_pin_is_probable_only() -> None:
     raw = FakeSocket()
     handshake_calls: list[FakeSocket] = []
 
@@ -146,9 +179,16 @@ def test_direct_tls_is_first_and_exact_pin_confirms() -> None:
     assert handshake_calls == [raw]
     assert raw.send_attempted is False
     assert raw.closed is True
-    assert result["status"] == "confirmed_purerat_direct_tls_certificate"
+    assert result["status"] == "purerat_direct_tls_certificate_match_probable_loopback"
     assert result["profile_id"] == "purerat-441-d025a296-45-192-211-77-56001-direct-tls10"
-    assert result["c2_confirmed"] is True
+    assert result["c2_confirmed"] is False
+    assert result["probable_c2"] is True
+    assert result["confidence"] == 0.75
+    assert result["target_contact_attempted"] is False
+    assert result["target_connection_established"] is False
+    assert result["loopback_connection_established"] is True
+    assert result["connected_ip"] == "127.0.0.1"
+    assert result["external_target_contact_allowed"] is False
     assert result["plaintext_prelude_sent"] is False
     assert result["application_data_sent"] is False
     assert result["registration_attempted"] is False
@@ -174,7 +214,7 @@ def test_exact_certificate_with_wrong_tls_version_is_inconclusive() -> None:
     assert raw.send_attempted is False
     assert raw.closed is True
     assert result["status"] == "purerat_direct_tls_version_mismatch_inconclusive"
-    assert result["alive"] is True
+    assert result["alive"] is False
     assert result["c2_confirmed"] is False
     assert result["application_data_sent"] is False
     assert result["tls"]["version"] == "TLSv1.2"
@@ -220,3 +260,54 @@ def test_pin_mismatch_is_inconclusive_and_application_send_profile_is_rejected()
             allow_network=True,
             allow_legacy_tls=True,
         )
+
+
+@pytest.mark.parametrize("address", ["45.192.211.77", "93.184.216.34", "::ffff:7f00:1"])
+def test_injected_backend_rejects_every_non_loopback_target_before_connect(
+    address: str,
+) -> None:
+    """明示注入backendでもnumeric loopback外へはconnectorを呼ばない。"""
+
+    called = False
+
+    def non_loopback_resolver(*_args, **_kwargs):
+        return [(2, 1, 6, "", (address, 56001))]
+
+    def connector(*_args):
+        nonlocal called
+        called = True
+        raise AssertionError("非loopbackへ接続してはいけません")
+
+    with pytest.raises(PureRatDirectTlsError, match="numeric loopback"):
+        probe_reviewed_purerat_direct_tls(
+            profile(),
+            allow_network=True,
+            allow_legacy_tls=True,
+            resolver=non_loopback_resolver,
+            connector=connector,
+        )
+    assert called is False
+
+
+def test_injected_resolver_result_count_is_bounded_before_connect() -> None:
+    """注入resolverも無制限の応答列をconsumerへ渡せない。"""
+
+    called = False
+
+    def excessive_resolver(*_args, **_kwargs):
+        return [(2, 1, 6, "", ("127.0.0.1", 56001)) for _ in range(17)]
+
+    def connector(*_args):
+        nonlocal called
+        called = True
+        raise AssertionError("resolver上限超過後に接続してはいけません")
+
+    with pytest.raises(PureRatDirectTlsError, match="応答件数"):
+        probe_reviewed_purerat_direct_tls(
+            profile(),
+            allow_network=True,
+            allow_legacy_tls=True,
+            resolver=excessive_resolver,
+            connector=connector,
+        )
+    assert called is False

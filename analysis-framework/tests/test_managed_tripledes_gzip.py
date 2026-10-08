@@ -367,6 +367,32 @@ def test_raw_span_rejects_virtual_only_and_overlapping_sections():
         recovery._raw_span(SimpleNamespace(sections=[section, section]), bytes(16), 0x1000, 8)
 
 
+def test_cil_direct_call_prefilter_supports_tiny_and_fat_headers():
+    token = 0x0A000123
+    call = b"\x28" + struct.pack("<I", token) + b"\x2a"
+    tiny = bytes(((len(call) << 2) | 0x2,)) + call
+    assert recovery._cil_code_span(tiny) == (1, len(tiny))
+    assert recovery._direct_call_token_present(tiny, {token}) is True
+    assert recovery._direct_call_token_present(tiny, {token + 1}) is False
+
+    fat = bytearray(12 + len(call))
+    struct.pack_into("<H", fat, 0, 0x3003)
+    struct.pack_into("<H", fat, 2, 8)
+    struct.pack_into("<I", fat, 4, len(call))
+    fat[12:] = call
+    assert recovery._cil_code_span(bytes(fat)) == (12, len(fat))
+    assert recovery._direct_call_token_present(bytes(fat), {token}) is True
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [b"", b"\x00", b"\x03", b"\x03\x00" + bytes(10), bytes((0xFE,))],
+)
+def test_cil_direct_call_prefilter_rejects_invalid_headers(raw):
+    with pytest.raises(recovery.RecipeError):
+        recovery._cil_code_span(raw)
+
+
 @pytest.mark.parametrize(
     "blob",
     [
@@ -445,14 +471,20 @@ def test_static_unpack_pipeline_forwards_only_verified_child(monkeypatch):
 
 def _metadata_fixture(version=(4, 0, 0, 0)):
     """実行可能なassemblyではない、有界metadata宣言の合成fixture。"""
+
     def table(rows):
         return SimpleNamespace(rows=rows, num_rows=len(rows))
 
     def assembly(name):
         return SimpleNamespace(
-            Name=name, Culture="", PublicKey=SimpleNamespace(value=bytes.fromhex("b77a5c561934e089")),
-            struct=SimpleNamespace(Flags=0), MajorVersion=version[0], MinorVersion=version[1],
-            BuildNumber=version[2], RevisionNumber=version[3],
+            Name=name,
+            Culture="",
+            PublicKey=SimpleNamespace(value=bytes.fromhex("b77a5c561934e089")),
+            struct=SimpleNamespace(Flags=0),
+            MajorVersion=version[0],
+            MinorVersion=version[1],
+            BuildNumber=version[2],
+            RevisionNumber=version[3],
         )
 
     assemblies = table([assembly("mscorlib"), assembly("System")])
@@ -463,8 +495,15 @@ def _metadata_fixture(version=(4, 0, 0, 0)):
     for name in sorted(recovery._CLASSIC_TYPES):
         namespace, leaf = name.rsplit(".", 1)
         scope_rid = 2 if name in recovery._SYSTEM_TYPES else 1
-        types.rows.append(SimpleNamespace(TypeNamespace=namespace, TypeName=leaf,
-            ResolutionScope=SimpleNamespace(table=assemblies, row_index=scope_rid, row=assemblies.rows[scope_rid - 1])))
+        types.rows.append(
+            SimpleNamespace(
+                TypeNamespace=namespace,
+                TypeName=leaf,
+                ResolutionScope=SimpleNamespace(
+                    table=assemblies, row_index=scope_rid, row=assemblies.rows[scope_rid - 1]
+                ),
+            )
+        )
         type_tokens[name] = 0x01000000 | len(types.rows)
     types.num_rows = len(types.rows)
 
@@ -474,8 +513,7 @@ def _metadata_fixture(version=(4, 0, 0, 0)):
         return bytes([0x80 | (value >> 8), value & 0xFF])
 
     def signature_type(name):
-        primitive = {"System.Void": 1, "System.Byte": 5, "System.Int32": 8,
-                     "System.Int64": 10, "System.String": 14}
+        primitive = {"System.Void": 1, "System.Byte": 5, "System.Int32": 8, "System.Int64": 10, "System.String": 14}
         if name.endswith("[]"):
             return b"\x1d" + signature_type(name[:-2])
         if name in primitive:
@@ -490,8 +528,13 @@ def _metadata_fixture(version=(4, 0, 0, 0)):
             owner_rid = type_tokens[owner] & 0xFFFFFF
             blob = bytes([0x20 if has_this else 0, len(parameters)]) + signature_type(returned)
             blob += b"".join(signature_type(parameter) for parameter in parameters)
-            members.rows.append(SimpleNamespace(Name=leaf, Signature=SimpleNamespace(value=blob),
-                Class=SimpleNamespace(table=types, row_index=owner_rid, row=types.rows[owner_rid - 1])))
+            members.rows.append(
+                SimpleNamespace(
+                    Name=leaf,
+                    Signature=SimpleNamespace(value=blob),
+                    Class=SimpleNamespace(table=types, row_index=owner_rid, row=types.rows[owner_rid - 1]),
+                )
+            )
             member_tokens[name, len(parameters)] = 0x0A000000 | len(members.rows)
     members.num_rows = len(members.rows)
     return SimpleNamespace(net=SimpleNamespace(mdtables=tables)), type_tokens, member_tokens
@@ -515,12 +558,31 @@ def test_classic_metadata_identity_and_complete_signatures(version):
     assert diagnostic["nonthrowing_verified"] is False
 
 
-@pytest.mark.parametrize("mutation", [
-    "mscorlib_fake_pair", "system_fake_pair", "full_key", "full_key_flag", "culture", "flags",
-    "version", "modern_facade", "forward_scope", "foreign_table", "bad_scope_rid",
-    "fake_return_owner", "return_version", "enum_as_class", "generic", "extra_parameter",
-    "noncanonical_integer", "signature_bytes", "unknown_owner", "oversized_name",
-])
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "mscorlib_fake_pair",
+        "system_fake_pair",
+        "full_key",
+        "full_key_flag",
+        "culture",
+        "flags",
+        "version",
+        "modern_facade",
+        "forward_scope",
+        "foreign_table",
+        "bad_scope_rid",
+        "fake_return_owner",
+        "return_version",
+        "enum_as_class",
+        "generic",
+        "extra_parameter",
+        "noncanonical_integer",
+        "signature_bytes",
+        "unknown_owner",
+        "oversized_name",
+    ],
+)
 def test_fake_or_unreviewed_framework_declarations_are_not_bound(mutation):
     pe, types, members = _metadata_fixture()
     tables = pe.net.mdtables
@@ -593,7 +655,9 @@ def test_fake_or_unreviewed_framework_declarations_are_not_bound(mutation):
 
 
 @pytest.mark.parametrize("table_name", ["TypeRef", "MemberRef", "AssemblyRef"])
-@pytest.mark.parametrize("mutation", ["declared_overbudget", "actual_overbudget", "mismatch", "missing", "invalid_count"])
+@pytest.mark.parametrize(
+    "mutation", ["declared_overbudget", "actual_overbudget", "mismatch", "missing", "invalid_count"]
+)
 def test_metadata_row_limits_and_invalid_declarations_fail_closed(table_name, mutation):
     pe, _, _ = _metadata_fixture()
     table = getattr(pe.net.mdtables, table_name)
@@ -615,8 +679,13 @@ def test_metadata_row_limits_and_invalid_declarations_fail_closed(table_name, mu
 def test_common_total_metadata_budget_and_signature_recursion_are_fixed():
     pe, _, _ = _metadata_fixture()
     for name in ("TypeDef", "Field", "StandAloneSig", "ModuleRef", "TypeSpec", "MethodSpec"):
-        setattr(pe.net.mdtables, name, SimpleNamespace(rows=[SimpleNamespace()] * recovery.MAX_REFERENCE_ROWS,
-            num_rows=recovery.MAX_REFERENCE_ROWS))
+        setattr(
+            pe.net.mdtables,
+            name,
+            SimpleNamespace(
+                rows=[SimpleNamespace()] * recovery.MAX_REFERENCE_ROWS, num_rows=recovery.MAX_REFERENCE_ROWS
+            ),
+        )
     with pytest.raises(recovery.RecipeError, match="framework_metadata_incomplete_or_over_budget"):
         recovery._framework_references(pe, 1, lambda: 0)
     assert recovery._signature(b"\x00\x00" + b"\x1d" * recovery.MAX_API_SIGNATURE_DEPTH + b"\x05", {}) is None
@@ -641,7 +710,10 @@ def test_pe_entry_never_promotes_unreviewed_or_overbudget_metadata(monkeypatch, 
     report, artifacts = recovery.recover_managed_tripledes_gzip(_payload())
     assert not artifacts
     assert report["status"] in {"not_candidate", "rejected"}
-    assert report["reason"] in {"framework_api_declaration_not_reviewed", "framework_metadata_incomplete_or_over_budget"}
+    assert report["reason"] in {
+        "framework_api_declaration_not_reviewed",
+        "framework_metadata_incomplete_or_over_budget",
+    }
     assert report["terminal_promotion_eligible"] is False
     assert report["sample_executed"] is False
 
@@ -656,8 +728,9 @@ def test_parser_binds_reviewed_metadata_to_existing_recipes(monkeypatch, version
     pe.sections = [SimpleNamespace(VirtualAddress=0x1000, PointerToRawData=0x200, SizeOfRawData=0x200)]
     pe.net.struct = SimpleNamespace(ResourcesRva=0x1000, ResourcesSize=4 + len(encrypted))
     pe.net.mdtables.MethodDef = SimpleNamespace(rows=[SimpleNamespace(Rva=0x1100)], num_rows=1)
-    pe.net.mdtables.ManifestResource = SimpleNamespace(rows=[SimpleNamespace(
-        Name=resource, Implementation=None, Offset=0)], num_rows=1)
+    pe.net.mdtables.ManifestResource = SimpleNamespace(
+        rows=[SimpleNamespace(Name=resource, Implementation=None, Offset=0)], num_rows=1
+    )
 
     class UserString:
         def __init__(self, value):
@@ -681,11 +754,17 @@ def test_parser_binds_reviewed_metadata_to_existing_recipes(monkeypatch, version
             else:
                 argc = record.get("parameter_count")
                 candidates = [(count, token) for (api, count), token in members.items() if api == name]
-                operand = SimpleNamespace(value=next(token for count, token in candidates if argc is None or count == argc))
-        instructions.append(SimpleNamespace(offset=record["offset"], opcode=SimpleNamespace(name=record["opcode"]), operand=operand))
+                operand = SimpleNamespace(
+                    value=next(token for count, token in candidates if argc is None or count == argc)
+                )
+        instructions.append(
+            SimpleNamespace(offset=record["offset"], opcode=SimpleNamespace(name=record["opcode"]), operand=operand)
+        )
     pe.net.user_strings = SimpleNamespace(get=strings.get)
     monkeypatch.setattr(recovery.dnfile, "dnPE", lambda **kwargs: pe)
-    monkeypatch.setattr(recovery, "read_method_body_from_bytes", lambda data: SimpleNamespace(size=128, instructions=instructions))
+    monkeypatch.setattr(
+        recovery, "read_method_body_from_bytes", lambda data: SimpleNamespace(size=128, instructions=instructions)
+    )
     report, artifacts = recovery.recover_managed_tripledes_gzip(bytes(parent))
     assert report["status"] == "recovered", report
     assert artifacts == [("managed-tripledes-gzip-pe", payload)]

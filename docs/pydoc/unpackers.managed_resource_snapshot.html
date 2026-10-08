@@ -4,37 +4,15 @@
 <p><a href="../../unpackers/managed_resource_snapshot.py">実装</a></p>
 <pre>固定13table snapshotを既存resolverの内部stateへ接続する。</pre>
 <h2>prepare_resource_snapshot</h2>
-<dl><dt><a name="-prepare_resource_snapshot"><strong>prepare_resource_snapshot</strong></a>(
-    data,
-    pe,
-    *,
-    max_resources=4096,
-    max_resource_bytes=67108864,
-    max_rows=20000,
-    max_total_rows=80000
-)</dt><dd><span class="code">同じ13table予算を成立させ、固定resolverと作業量を返す専用factory。</span></dd></dl>
+<dl><dt><a name="-prepare_resource_snapshot"><strong>prepare_resource_snapshot</strong></a>(data, pe, *, max_resources=4096, max_resource_bytes=67108864, max_rows=20000, max_total_rows=80000)</dt><dd><span class="code">同じ13table予算を成立させ、固定resolverと作業量を返す専用factory。</span></dd></dl>
 
 <h2>resolver_from_resource_snapshot</h2>
-<dl><dt><a name="-resolver_from_resource_snapshot"><strong>resolver_from_resource_snapshot</strong></a>(
-    pe,
-    *,
-    data,
-    row_snapshot,
-    max_rows=20000,
-    max_total_rows=80000
-)</dt><dd><span class="code">原入力証明済みstateだけを固定resolverへ供給する。元constructor/classは変更しない。</span></dd></dl>
+<dl><dt><a name="-resolver_from_resource_snapshot"><strong>resolver_from_resource_snapshot</strong></a>(pe, *, data, row_snapshot, max_rows=20000, max_total_rows=80000)</dt><dd><span class="code">原入力証明済みstateだけを固定resolverへ供給する。元constructor/classは変更しない。</span></dd></dl>
 
 <h2>revalidated_resource_scan</h2>
 <dl><dt><a name="-revalidated_resource_scan"><strong>revalidated_resource_scan</strong></a>(data, scan)</dt><dd><span class="code">同じbytes&nbsp;identityを要求し、毎消費時にsource/snapshot/descriptorを再照合する。</span></dd></dl>
 
 <h2>shared_metadata_state</h2>
-<dl><dt><a name="-shared_metadata_state"><strong>shared_metadata_state</strong></a>(
-    pe: 'Any',
-    data: 'bytes',
-    row_snapshot: 'Any',
-    *,
-    max_rows: 'int' = 20000,
-    max_total_rows: 'int' = 80000
-)</dt><dd><span class="code">同じ入力と13table予約を再照合し、10tableへrow参照だけを供給する。</span></dd></dl>
+<dl><dt><a name="-shared_metadata_state"><strong>shared_metadata_state</strong></a>(pe: 'Any', data: 'bytes', row_snapshot: 'Any', *, max_rows: 'int' = 20000, max_total_rows: 'int' = 80000)</dt><dd><span class="code">同じ入力と13table予約を再照合し、10tableへrow参照だけを供給する。</span></dd></dl>
 
 </body></html>

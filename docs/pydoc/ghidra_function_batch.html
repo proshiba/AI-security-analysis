@@ -11,22 +11,9 @@ Ghidra操作はlocalhostのMCP endpointだけを使用し、program単位の全r
 <h2>GhidraMcpClient</h2>
 <pre>numeric loopback限定Ghidra MCP HTTP client。</pre>
 <pre>GhidraMcpClient(base_url: &#x27;str&#x27;, *, timeout: &#x27;int&#x27; = 180, transport: &#x27;str&#x27; = &#x27;urllib&#x27;, curl_path: &#x27;Path | None&#x27; = None) -&gt; &#x27;None&#x27;</pre>
-<dl><dt><a name="-get"><strong>get</strong></a>(
-    self,
-    endpoint: 'str',
-    *,
-    transport_timeout: 'float | None' = None,
-    **query: 'Any'
-) -&gt; 'Any'</dt></dl>
+<dl><dt><a name="-get"><strong>get</strong></a>(self, endpoint: 'str', *, transport_timeout: 'float | None' = None, **query: 'Any') -&gt; 'Any'</dt></dl>
 
-<dl><dt><a name="-post"><strong>post</strong></a>(
-    self,
-    endpoint: 'str',
-    body: 'Mapping[str, Any]',
-    *,
-    transport_timeout: 'float | None' = None,
-    **query: 'Any'
-) -&gt; 'Any'</dt></dl>
+<dl><dt><a name="-post"><strong>post</strong></a>(self, endpoint: 'str', body: 'Mapping[str, Any]', *, transport_timeout: 'float | None' = None, **query: 'Any') -&gt; 'Any'</dt></dl>
 
 <h2>GhidraMcpError</h2>
 <pre>Ghidra MCP requestの失敗を表す。</pre>
@@ -43,21 +30,10 @@ Ghidra操作はlocalhostのMCP endpointだけを使用し、program単位の全r
 <pre>1つのunique PE layerとcaseへの関係を保持する。</pre>
 <pre>ProgramObject(sha256: &#x27;str&#x27;, input_path: &#x27;Path&#x27;, size: &#x27;int&#x27;, relationships: &#x27;list[dict[str, Any]]&#x27; = &lt;factory&gt;, input_snapshot: &#x27;_RegularFileSnapshot | None&#x27; = None) -&gt; None</pre>
 <h2>analyze_program</h2>
-<dl><dt><a name="-analyze_program"><strong>analyze_program</strong></a>(
-    client: 'GhidraMcpClient',
-    item: 'ProgramObject',
-    private_output: 'Path',
-    project_root: 'str',
-    *,
-    analysis_timeout: 'int',
-    skip_auto_analysis: 'bool' = False
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">1つのPE&nbsp;layerをGhidra&nbsp;MCPで解析し、private&nbsp;raw成果物を保存する。</span></dd></dl>
+<dl><dt><a name="-analyze_program"><strong>analyze_program</strong></a>(client: 'GhidraMcpClient', item: 'ProgramObject', private_output: 'Path', project_root: 'str', *, analysis_timeout: 'int', skip_auto_analysis: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">1つのPE&nbsp;layerをGhidra&nbsp;MCPで解析し、private&nbsp;raw成果物を保存する。</span></dd></dl>
 
 <h2>augment_private_call_graphs</h2>
-<dl><dt><a name="-augment_private_call_graphs"><strong>augment_private_call_graphs</strong></a>(
-    program_results: 'Mapping[str, dict[str, Any]]',
-    private_output: 'Path'
-) -&gt; 'dict[str, int]'</dt><dd><span class="code">全programのcall&nbsp;graphを補完し、private成果物へ永続化する。</span></dd></dl>
+<dl><dt><a name="-augment_private_call_graphs"><strong>augment_private_call_graphs</strong></a>(program_results: 'Mapping[str, dict[str, Any]]', private_output: 'Path') -&gt; 'dict[str, int]'</dt><dd><span class="code">全programのcall&nbsp;graphを補完し、private成果物へ永続化する。</span></dd></dl>
 
 <h2>augment_program_result_call_graph</h2>
 <dl><dt><a name="-augment_program_result_call_graph"><strong>augment_program_result_call_graph</strong></a>(result: 'dict[str, Any]') -&gt; 'dict[str, int]'</dt><dd><span class="code">逆コンパイルcall式でGhidra&nbsp;call&nbsp;graphの欠落を補完する。</span></dd></dl>
@@ -69,87 +45,36 @@ Ghidra操作はlocalhostのMCP endpointだけを使用し、program単位の全r
 <dl><dt><a name="-ensure_characteristic_selection"><strong>ensure_characteristic_selection</strong></a>(result: 'dict[str, Any]') -&gt; 'list[str]'</dt><dd><span class="code">cacheを含むprogram結果へ代表関数選定情報を付与する。</span></dd></dl>
 
 <h2>finalize_case_report</h2>
-<dl><dt><a name="-finalize_case_report"><strong>finalize_case_report</strong></a>(
-    case_dir: 'Path',
-    *,
-    transaction_root: 'Path | None' = None,
-    c2_analysis_complete: 'bool | None' = None
-) -&gt; 'str'</dt><dd><span class="code">代表関数解析後もC2を含む未解決blockerを保持し、reportを再封印する。</span></dd></dl>
+<dl><dt><a name="-finalize_case_report"><strong>finalize_case_report</strong></a>(case_dir: 'Path', *, transaction_root: 'Path | None' = None, c2_analysis_complete: 'bool | None' = None) -&gt; 'str'</dt><dd><span class="code">代表関数解析後もC2を含む未解決blockerを保持し、reportを再封印する。</span></dd></dl>
 
 <h2>finalize_collection_publication</h2>
 <dl><dt><a name="-finalize_collection_publication"><strong>finalize_collection_publication</strong></a>(repository: 'Path', collection_dir: 'Path') -&gt; 'dict[str, Any]'</dt><dd><span class="code">全case完了時だけ索引登録し、残余blockerがあればpartialを明示する。</span></dd></dl>
 
 <h2>load_prepared_inputs</h2>
-<dl><dt><a name="-load_prepared_inputs"><strong>load_prepared_inputs</strong></a>(
-    sample_root: 'Path',
-    private_output: 'Path',
-    *,
-    inventory_snapshot: '_JsonFileSnapshot | None' = None,
-    expected_inventory_sha256: 'str | None' = None,
-    prepared_input_root: 'Path | None' = None
-) -&gt; 'tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]'</dt><dd><span class="code">SHA-256検証済みcacheから再展開せずprogram&nbsp;inventoryを復元する。</span></dd></dl>
+<dl><dt><a name="-load_prepared_inputs"><strong>load_prepared_inputs</strong></a>(sample_root: 'Path', private_output: 'Path', *, inventory_snapshot: '_JsonFileSnapshot | None' = None, expected_inventory_sha256: 'str | None' = None, prepared_input_root: 'Path | None' = None) -&gt; 'tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]'</dt><dd><span class="code">SHA-256検証済みcacheから再展開せずprogram&nbsp;inventoryを復元する。</span></dd></dl>
 
 <h2>main</h2>
 <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">CLI&nbsp;entrypoint。</span></dd></dl>
 
 <h2>prepare_inputs</h2>
-<dl><dt><a name="-prepare_inputs"><strong>prepare_inputs</strong></a>(
-    repository: 'Path',
-    collection_dir: 'Path',
-    sample_root: 'Path',
-    private_output: 'Path',
-    *,
-    upx: 'Path | None' = None,
-    sevenzip: 'Path | None' = None,
-    diec: 'Path | None' = None,
-    storage_guard: 'Callable[[str, str, int], None] | None' = None,
-    prepared_input_root: 'Path | None' = None
-) -&gt; 'tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]'</dt><dd><span class="code">root検体と復元layerを隔離保存し、Ghidra対象をdeduplicateする。</span></dd></dl>
+<dl><dt><a name="-prepare_inputs"><strong>prepare_inputs</strong></a>(repository: 'Path', collection_dir: 'Path', sample_root: 'Path', private_output: 'Path', *, upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, storage_guard: 'Callable[[str, str, int], None] | None' = None, prepared_input_root: 'Path | None' = None) -&gt; 'tuple[dict[str, ProgramObject], dict[str, list[dict[str, Any]]]]'</dt><dd><span class="code">root検体と復元layerを隔離保存し、Ghidra対象をdeduplicateする。</span></dd></dl>
 
 <h2>publish_cases</h2>
-<dl><dt><a name="-publish_cases"><strong>publish_cases</strong></a>(
-    repository: 'Path',
-    collection_dir: 'Path',
-    program_results: 'Mapping[str, Mapping[str, Any]]',
-    non_pe: 'Mapping[str, list[dict[str, Any]]]',
-    *,
-    transaction_root: 'Path | None' = None
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">対象caseの代表関数解析と全体ロジック成果物を更新する。</span></dd></dl>
+<dl><dt><a name="-publish_cases"><strong>publish_cases</strong></a>(repository: 'Path', collection_dir: 'Path', program_results: 'Mapping[str, Mapping[str, Any]]', non_pe: 'Mapping[str, list[dict[str, Any]]]', *, transaction_root: 'Path | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">対象caseの代表関数解析と全体ロジック成果物を更新する。</span></dd></dl>
 
 <h2>refresh_complete_program_artifacts</h2>
-<dl><dt><a name="-refresh_complete_program_artifacts"><strong>refresh_complete_program_artifacts</strong></a>(
-    client: 'GhidraMcpClient',
-    program_results: 'Mapping[str, dict[str, Any]]',
-    private_output: 'Path'
-) -&gt; 'dict[str, int]'</dt><dd><span class="code">全programのページング対象を終端まで再取得し、生成果物へ保存する。</span></dd></dl>
+<dl><dt><a name="-refresh_complete_program_artifacts"><strong>refresh_complete_program_artifacts</strong></a>(client: 'GhidraMcpClient', program_results: 'Mapping[str, dict[str, Any]]', private_output: 'Path') -&gt; 'dict[str, int]'</dt><dd><span class="code">全programのページング対象を終端まで再取得し、生成果物へ保存する。</span></dd></dl>
 
 <h2>run</h2>
 <dl><dt><a name="-run"><strong>run</strong></a>(args: 'argparse.Namespace') -&gt; 'dict[str, Any]'</dt><dd><span class="code">全入力を準備・解析し、明示保留がなければ検証後に公開する。</span></dd></dl>
 
 <h2>select_characteristic_functions</h2>
-<dl><dt><a name="-select_characteristic_functions"><strong>select_characteristic_functions</strong></a>(
-    functions: 'Iterable[Mapping[str, Any]]',
-    call_graph: 'Mapping[str, Any]',
-    entry_points: 'Any',
-    opcode_hashes: 'Mapping[str, Any] | None' = None,
-    *,
-    max_count: 'int' = 32
-) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">役割の網羅と中心性を両立する代表関数集合を返す。</span></dd></dl>
+<dl><dt><a name="-select_characteristic_functions"><strong>select_characteristic_functions</strong></a>(functions: 'Iterable[Mapping[str, Any]]', call_graph: 'Mapping[str, Any]', entry_points: 'Any', opcode_hashes: 'Mapping[str, Any] | None' = None, *, max_count: 'int' = 32) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">役割の網羅と中心性を両立する代表関数集合を返す。</span></dd></dl>
 
 <h2>validate_prepared_scope</h2>
-<dl><dt><a name="-validate_prepared_scope"><strong>validate_prepared_scope</strong></a>(
-    collection_dir: 'Path',
-    private_output: 'Path',
-    *,
-    inventory_snapshot: '_JsonFileSnapshot | None' = None
-) -&gt; 'None'</dt><dd><span class="code">再開cacheのcollection&nbsp;IDとcase集合が対象manifestに完全一致するか確認する。</span></dd></dl>
+<dl><dt><a name="-validate_prepared_scope"><strong>validate_prepared_scope</strong></a>(collection_dir: 'Path', private_output: 'Path', *, inventory_snapshot: '_JsonFileSnapshot | None' = None) -&gt; 'None'</dt><dd><span class="code">再開cacheのcollection&nbsp;IDとcase集合が対象manifestに完全一致するか確認する。</span></dd></dl>
 
 <h2>validate_private_artifacts</h2>
-<dl><dt><a name="-validate_private_artifacts"><strong>validate_private_artifacts</strong></a>(
-    program_results: 'Mapping[str, Mapping[str, Any]]',
-    private_output: 'Path',
-    *,
-    expected_program_count: 'int | None' = None
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">全programのinventoryと代表関数解析成果物が欠落なく保存されたか検証する。</span></dd></dl>
+<dl><dt><a name="-validate_private_artifacts"><strong>validate_private_artifacts</strong></a>(program_results: 'Mapping[str, Mapping[str, Any]]', private_output: 'Path', *, expected_program_count: 'int | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">全programのinventoryと代表関数解析成果物が欠落なく保存されたか検証する。</span></dd></dl>
 
 </body></html>

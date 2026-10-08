@@ -12,10 +12,7 @@
 state projectionへliteral値やfield名を含めず、候補値は内部consumerだけが扱う。</pre>
 <pre>SettingsLiteralAssessment(diagnostics: &#x27;dict[str, Any]&#x27;, private_literals: &#x27;dict[str, str]&#x27;) -&gt; &#x27;None&#x27;</pre>
 <h2>assess_settings_literals</h2>
-<dl><dt><a name="-assess_settings_literals"><strong>assess_settings_literals</strong></a>(
-    data: 'bytes',
-    settings_type: 'str' = 'Client.Settings'
-) -&gt; 'SettingsLiteralAssessment'</dt><dd><span class="code">未解決効果を残しながら、fieldごとに隣接literal代入を静的観測する。<br>
+<dl><dt><a name="-assess_settings_literals"><strong>assess_settings_literals</strong></a>(data: 'bytes', settings_type: 'str' = 'Client.Settings') -&gt; 'SettingsLiteralAssessment'</dt><dd><span class="code">未解決効果を残しながら、fieldごとに隣接literal代入を静的観測する。<br>
 &nbsp;<br>
 completeは従来strict契約の成立、partialは実行時の最終値を証明しない観測、<br>
 rejectedはmetadata／body／token／上限の不成立を表す。分岐やEHは解釈せず、<br>

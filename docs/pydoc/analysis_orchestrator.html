@@ -38,36 +38,15 @@
 <dl><dt><a name="-request_json_schema"><strong>request_json_schema</strong></a>() -&gt; 'dict[str, Any]'</dt><dd><span class="code">operator&nbsp;tool用の厳格JSON&nbsp;Schemaを返す。</span></dd></dl>
 
 <h2>resume_orchestration</h2>
-<dl><dt><a name="-resume_orchestration"><strong>resume_orchestration</strong></a>(
-    orchestration_id: 'str',
-    *,
-    repository: 'Path',
-    input_root: 'Path',
-    work_root: 'Path',
-    timeout_seconds: 'int' = 21600
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">保存requestを再検証し、plannerが許可したterminal&nbsp;failureだけを再開する。</span></dd></dl>
+<dl><dt><a name="-resume_orchestration"><strong>resume_orchestration</strong></a>(orchestration_id: 'str', *, repository: 'Path', input_root: 'Path', work_root: 'Path', timeout_seconds: 'int' = 21600) -&gt; 'dict[str, Any]'</dt><dd><span class="code">保存requestを再検証し、plannerが許可したterminal&nbsp;failureだけを再開する。</span></dd></dl>
 
 <h2>run_orchestration</h2>
-<dl><dt><a name="-run_orchestration"><strong>run_orchestration</strong></a>(
-    request: 'OrchestrationRequest',
-    *,
-    repository: 'Path',
-    input_root: 'Path',
-    work_root: 'Path',
-    timeout_seconds: 'int' = 21600
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">production&nbsp;lifecycleだけで新規一括解析を直列実行する。</span></dd></dl>
+<dl><dt><a name="-run_orchestration"><strong>run_orchestration</strong></a>(request: 'OrchestrationRequest', *, repository: 'Path', input_root: 'Path', work_root: 'Path', timeout_seconds: 'int' = 21600) -&gt; 'dict[str, Any]'</dt><dd><span class="code">production&nbsp;lifecycleだけで新規一括解析を直列実行する。</span></dd></dl>
 
 <h2>validate_request_object</h2>
 <dl><dt><a name="-validate_request_object"><strong>validate_request_object</strong></a>(value: 'Mapping[str, Any]') -&gt; 'OrchestrationRequest'</dt><dd><span class="code">任意処理fieldを持たない固定一括requestを検証する。</span></dd></dl>
 
 <h2>verify_orchestration</h2>
-<dl><dt><a name="-verify_orchestration"><strong>verify_orchestration</strong></a>(
-    orchestration_id: 'str',
-    *,
-    repository: 'Path',
-    input_root: 'Path',
-    work_root: 'Path',
-    timeout_seconds: 'int' = 21600
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">一括state、child&nbsp;lifecycle、report&nbsp;hashをread-onlyで再検証する。</span></dd></dl>
+<dl><dt><a name="-verify_orchestration"><strong>verify_orchestration</strong></a>(orchestration_id: 'str', *, repository: 'Path', input_root: 'Path', work_root: 'Path', timeout_seconds: 'int' = 21600) -&gt; 'dict[str, Any]'</dt><dd><span class="code">一括state、child&nbsp;lifecycle、report&nbsp;hashをread-onlyで再検証する。</span></dd></dl>
 
 </body></html>

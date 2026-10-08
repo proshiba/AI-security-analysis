@@ -8,22 +8,7 @@
 disk展開、通信は行わない。手法評価は保守的な調査優先度でありprotector帰属ではない。
 token参照は命令列上の関係だけを示し、到達性や実行時dispatchを保証しない。</pre>
 <h2>analyze_managed_pe</h2>
-<dl><dt><a name="-analyze_managed_pe"><strong>analyze_managed_pe</strong></a>(
-    data: 'bytes',
-    *,
-    max_input_bytes: 'int' = 536870912,
-    max_types: 'int' = 4096,
-    max_methods: 'int' = 20000,
-    max_instructions: 'int' = 200000,
-    max_method_bytes: 'int' = 262144,
-    max_metadata_strings: 'int' = 40000,
-    max_metadata_string_bytes: 'int' = 8388608,
-    max_metadata_scan_bytes: 'int' = 16777216,
-    max_resources: 'int' = 1024,
-    max_resource_bytes: 'int' = 67108864,
-    max_references: 'int' = 20000,
-    dispatcher_switch_targets: 'int' = 16
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">明示した予算でmanaged&nbsp;PEを静的に棚卸しする。<br>
+<dl><dt><a name="-analyze_managed_pe"><strong>analyze_managed_pe</strong></a>(data: 'bytes', *, max_input_bytes: 'int' = 536870912, max_types: 'int' = 4096, max_methods: 'int' = 20000, max_instructions: 'int' = 200000, max_method_bytes: 'int' = 262144, max_metadata_strings: 'int' = 40000, max_metadata_string_bytes: 'int' = 8388608, max_metadata_scan_bytes: 'int' = 16777216, max_resources: 'int' = 1024, max_resource_bytes: 'int' = 67108864, max_references: 'int' = 20000, dispatcher_switch_targets: 'int' = 16) -&gt; 'dict[str, Any]'</dt><dd><span class="code">明示した予算でmanaged&nbsp;PEを静的に棚卸しする。<br>
 &nbsp;<br>
 ``data``をCLRへloadせず、実行・emulation・disk保存しない。CILは有界な<br>
 byte範囲からparseし、resourceはmetadata、SHA-256、entropyだけを返す。<br>

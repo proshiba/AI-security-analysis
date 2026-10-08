@@ -41,16 +41,25 @@ def test_profiles_cover_reviewed_active_families() -> None:
     assert "redlinestealer" in mapped
     assert "xloader" in mapped
     assert {"formbook", "vidar", "amosstealer"} <= mapped
-    assert len(mapped) == 14
+    assert len(mapped) == 15
 
     passive = {entry["family"]: entry for entry in mapping["passive_only_families"]}
-    assert set(passive) == {"formbook"}
+    assert set(passive) == {"formbook", "xloader"}
     assert all(entry["offline_detector"].endswith("stealer_protocol_evidence.py") for entry in passive.values())
-    probable = {
-        entry["family"]: entry for entry in mapping["profile_limited_probable_families"]
-    }
-    assert set(probable) == {"formbook", "vidar", "amosstealer"}
-    assert probable["formbook"]["maximum_request_count"] == 2
+    assert all(entry["application_layer_requests_allowed"] is False for entry in passive.values())
+    assert all(
+        set(entry["allowed_external_methods"])
+        == {
+            "dns_resolve",
+            "tcp_connect",
+            "passive_banner",
+            "tls_handshake",
+            "protocol_profile_required",
+        }
+        for entry in passive.values()
+    )
+    probable = {entry["family"]: entry for entry in mapping["profile_limited_probable_families"]}
+    assert set(probable) == {"vidar", "amosstealer"}
     assert probable["vidar"]["maximum_request_count"] == 2
     assert probable["amosstealer"]["maximum_request_count"] == 3
     assert all(entry["request_method"] == "HEAD" for entry in probable.values())
@@ -60,14 +69,67 @@ def test_profiles_cover_reviewed_active_families() -> None:
     assert mapping["schema_version"] == 2
     assert mapping["execution_backend"] == "nmap_nse_only"
     methods = {entry["method"] for entry in mapping["method_bindings"]}
-    assert len(methods) == mapping["network_method_count"] == 21
+    assert len(methods) == mapping["network_method_count"] == 20
+    blocked = set(mapping["passive_only_application_methods"])
+    assert blocked == {
+        "formbook_reviewed_route_head",
+        "xloader_v8_get_registration",
+    }
+    assert not blocked & methods
+
+
+def test_pure_catalog_separates_protocol_generations_and_evidence_scope() -> None:
+    """PureLogs世代とPureRAT family/sample証拠を機械可読に分離する。"""
+
+    mapping = json.loads((NMAP_ROOT / "profiles.json").read_text(encoding="utf-8"))
+    families = {entry["family"]: entry for entry in mapping["canonical_families"]}
+
+    purelogs = families["purelogs"]
+    variants = {entry["variant"]: entry for entry in purelogs["protocol_variants"]}
+    assert set(variants) == {"legacy_socket_3des", "http_aes_v5"}
+    assert variants["legacy_socket_3des"] == {
+        "variant": "legacy_socket_3des",
+        "transport": "raw_socket",
+        "cryptography": "TripleDES",
+        "evidence_scope": "family_level_public_research",
+        "evidence_sources": [
+            "https://any.run/cybersecurity-blog/pure-malware-family-analysis/",
+            ("https://www.fortinet.com/uk/blog/threat-research/purelogs-delivery-via-pawsrunner-steganography"),
+        ],
+        "nmap_probe_available": False,
+        "codec_implemented": False,
+        "reason": "公開資料だけでは全field、鍵導出、方向別変換を確定できない",
+    }
+    assert variants["http_aes_v5"]["sample_version_confirmed"] is False
+    assert variants["http_aes_v5"]["nmap_probe_scope"] == "reviewed_https_ping_only"
+
+    purerat = families["purehvnc"]["protocol_variants"]
+    assert len(purerat) == 1
+    legacy = purerat[0]
+    assert legacy["family_evidence_version"] == "4.1.9"
+    assert legacy["family_evidence_status"] == "family_level_public_research_confirmed"
+    assert legacy["profile_sample_version"] == "4.4.1"
+    assert legacy["profile_sample_sha256"] == ("e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0")
+    assert legacy["profile_sample_wire_binding_status"] == "unverified"
+
+
+def test_nmap_readme_keeps_pure_generation_evidence_boundaries() -> None:
+    text = (NMAP_ROOT / "README.md").read_text(encoding="utf-8")
+    for marker in (
+        "`legacy_socket_3des`",
+        "`http_aes_v5`",
+        "v4.1.9のfamily-level",
+        "e554 v4.4.1個別検体",
+        "旧世代codecを実装しません",
+    ):
+        assert marker in text
 
 
 def test_all_declared_scripts_exist_and_are_utf8() -> None:
     mapping = json.loads((NMAP_ROOT / "profiles.json").read_text(encoding="utf-8"))
     scripts = {entry["script"] for entry in mapping["canonical_families"]}
     scripts.update(entry["script"] for entry in mapping["method_bindings"])
-    assert len(scripts) == 12
+    assert len(scripts) == 13
     for relative in scripts:
         path = NMAP_ROOT / relative
         assert path.is_file()
@@ -84,7 +146,7 @@ def test_all_declared_scripts_exist_and_are_utf8() -> None:
     assert "socket:send" not in darkcomet
     assert "quiet" not in darkcomet
     assert "receive_buf(match.numbytes(1), true)" in darkcomet
-    assert "plain == \"IDTYPE\"" in darkcomet
+    assert 'plain == "IDTYPE"' in darkcomet
     assert 'deadline_scope="post_dns_connect_receive"' in darkcomet
 
     redline = (NMAP_ROOT / "scripts" / "redline-c2.nse").read_text(encoding="utf-8")
@@ -100,7 +162,7 @@ def test_all_declared_scripts_exist_and_are_utf8() -> None:
     assert "sample_executed=false" in redline
     assert "application_data_sent=true" in redline
     assert "c2_confirmed=matched" in redline
-    assert 'checkconnect_result=result_text' in redline
+    assert "checkconnect_result=result_text" in redline
     assert "result and 0.98 or 0.95" in redline
 
     stealer = (NMAP_ROOT / "scripts" / "stealer-http-c2.nse").read_text(encoding="utf-8")
@@ -136,7 +198,7 @@ def test_all_declared_scripts_exist_and_are_utf8() -> None:
     assert "8809d3421c09669f88330adf3007b933abec13bf6ed105a785a97c7df2625301" in route
     assert "47cd98c6ae435a1a6aa518e29f9e407ca42c82c9f4b86ceee93cc85d7feeae98" in route
     assert route.count("socket:send(request)") == 1
-    assert "profile.tls and \"ssl\" or \"tcp\"" in route
+    assert 'profile.tls and "ssl" or "tcp"' in route
     assert "vidar_reviewed_route_pair_match" in route
     assert "formbook_reviewed_route_pair_match" in route
     assert "amos_reviewed_ledger_pair_match" in route
@@ -166,10 +228,59 @@ def test_all_declared_scripts_exist_and_are_utf8() -> None:
     assert "certificate_mismatch_excludes_exact_build_endpoint=true" in purerat_direct
     assert "certificate_mismatch_excludes_family_c2=false" in purerat_direct
     assert "purerat_direct_tls_certificate_mismatch_inconclusive" in purerat_direct
-    assert "result.confidence = exact and 0.92 or 0.35" in purerat_direct
-    assert "result.c2_confirmed = exact" in purerat_direct
-    assert "result.exact_profile_match = exact" in purerat_direct
+    assert "result.confidence = exact and 0.75 or 0.0" in purerat_direct
+    assert "result.c2_confirmed = false" in purerat_direct
+    assert "result.probable_c2 = exact" in purerat_direct
+    assert "result.exact_profile_match = false" in purerat_direct
+    assert "result.certificate_profile_match = exact" in purerat_direct
     assert "result.family_c2_candidate = false" not in purerat_direct
+
+    purelogs = (NMAP_ROOT / "scripts" / "purelogs-c2.nse").read_text(encoding="utf-8")
+    assert "purelogs-0f2abaab-logs-uvexio-8443-ping-v1" in purelogs
+    assert 'variant="http_aes_v5"' in purelogs
+    assert 'generation_evidence_scope="family_level_public_research"' in purelogs
+    assert "sample_version_confirmed=false" in purelogs
+    assert 'excluded_variant="legacy_socket_3des"' in purelogs
+    assert "legacy_codec_implemented=false" in purelogs
+    assert "logs.uvexio.com" in purelogs
+    assert "193.26.115.118" in purelogs
+    assert "8443" in purelogs
+    assert "9e254cab8c68944cea18a3ac5523fe491eb14f9447b352dca33729b64eaeeac3" in purelogs
+    assert 'stdnse.get_script_args("purelogs.profile-id")' in purelogs
+    assert 'stdnse.get_script_args("purelogs.acknowledge-profile")' in purelogs
+    assert 'stdnse.get_script_args("purelogs.expected-host")' in purelogs
+    assert 'stdnse.get_script_args("purelogs.expected-ip")' in purelogs
+    assert 'stdnse.get_script_args("purelogs.expected-cert")' in purelogs
+    assert '"GET /ping HTTP/1.1\\r\\nHost: " .. REVIEWED_HOST' in purelogs
+    assert "MAX_RESPONSE_BYTES = 1024" in purelogs
+    assert 'match.pattern_limit("\\r\\n\\r\\n", MAX_HEADER_BYTES)' in purelogs
+    assert "socket:receive_bytes(2)" in purelogs
+    assert purelogs.count("socket:send(request)") == 1
+    assert 'require "http"' not in purelogs
+    assert "redirect_followed=false" in purelogs
+    assert "response_body_published=false" in purelogs
+    assert 'response_hash_scope="http_body"' in purelogs
+    assert "request_body_sent=false" in purelogs
+    assert "tls_version_enforced_by_nse=false" in purelogs
+    assert "result.c2_confirmed = false" in purelogs
+    assert "result.probable_c2 = matched" in purelogs
+    assert "matched and 0.70 or 0.0" in purelogs
+
+    purerat_legacy = (NMAP_ROOT / "scripts" / "purerat-c2.nse").read_text(encoding="utf-8")
+    assert 'stdnse.get_script_args("purerat.profile-id")' in purerat_legacy
+    assert 'stdnse.get_script_args("purerat.acknowledge-profile")' in purerat_legacy
+    assert 'stdnse.get_script_args("purerat.expected-host")' in purerat_legacy
+    assert 'stdnse.get_script_args("purerat.expected-cert")' in purerat_legacy
+    assert "purerat.ports" not in purerat_legacy
+    assert "port.number == 56001 or port.number == 56002 or port.number == 56003" in purerat_legacy
+    assert "tirakian.com" in purerat_legacy
+    assert "67260a713ab105197098882f6d126f89fe4f48df8013f8bba1d2c9307b17410b" in purerat_legacy
+    assert "compatibility_hypothesis=true" in purerat_legacy
+    assert "tls_version_enforced_by_nse=false" in purerat_legacy
+    assert "result.c2_confirmed = false" in purerat_legacy
+    assert "result.probable_c2 = exact" in purerat_legacy
+    assert "exact and 0.60 or 0.0" in purerat_legacy
+    assert purerat_legacy.count("socket:send(string.char(4, 0, 0, 0))") == 1
 
 
 def test_purerat_direct_tls_nse_script_help_parses_offline() -> None:
@@ -188,6 +299,23 @@ def test_purerat_direct_tls_nse_script_help_parses_offline() -> None:
     assert "purerat-direct-tls" in output
 
 
+@pytest.mark.parametrize("script_name", ["purelogs-c2.nse", "purerat-c2.nse"])
+def test_pure_family_nse_script_help_parses_offline(script_name: str) -> None:
+    executable = _nmap_executable()
+    if not executable:
+        pytest.skip("Nmap executableがないためNSE offline構文検証を省略します")
+    script = NMAP_ROOT / "scripts" / script_name
+    completed = subprocess.run(
+        [executable, "--script-help", str(script)],
+        capture_output=True,
+        timeout=20,
+        check=False,
+    )
+    output = (completed.stdout + completed.stderr).decode("utf-8", errors="replace")
+    assert completed.returncode == 0, output
+    assert script.stem in output
+
+
 def test_redline_production_request_vector_is_exact() -> None:
     body = (
         b'<?xml version="1.0" encoding="utf-8"?>'
@@ -203,9 +331,7 @@ def test_redline_production_request_vector_is_exact() -> None:
         + body
     )
     assert len(request) == 357
-    assert hashlib.sha256(request).hexdigest() == (
-        "dd8c02ce792cd8d4e9ce3e05c32ff19c8d1633d24312203b9ec5018645e45f33"
-    )
+    assert hashlib.sha256(request).hexdigest() == ("dd8c02ce792cd8d4e9ce3e05c32ff19c8d1633d24312203b9ec5018645e45f33")
 
 
 def test_nmap_loopback_protocol_validation() -> None:
@@ -214,5 +340,5 @@ def test_nmap_loopback_protocol_validation() -> None:
         pytest.skip("Nmap executableがないためloopback統合試験を省略します")
     report = _load_validator().verify_all(executable)
     assert report["external_network_used"] is False
-    assert report["case_count"] == 41
-    assert report["passed_count"] == 41
+    assert report["case_count"] == 40
+    assert report["passed_count"] == 40

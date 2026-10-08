@@ -6,7 +6,8 @@ d025 RZK carrierから復元したmanaged PureRAT 4.4.1のreview済みendpoint�
 最初からSSL/TLSで接続してleaf certificate SHA-256を照合します。plaintext prelude、
 registration、task poll、application dataは送信しません。Nmap socketではTLS 1.0を
 厳密に強制したことを保証しにくいため、完全一致時もPython probeよりconfidenceを
-低くします。証明書不一致はbuild差分やrotationを排除できず、非C2の根拠にはしません。
+低くし、probable判定に限定します。証明書不一致はbuild差分やrotationを排除できず、
+非C2の根拠にはしません。
 ]]
 
 author = "AI-security-analysis"
@@ -39,6 +40,9 @@ local function base_result(host, port)
     target_endpoint_exact_match=endpoint_exact,
     tls_version_expected="TLSv1.0",
     tls_version_enforced_by_nse=false,
+    c2_confirmed=false,
+    probable_c2=false,
+    confidence=0.0,
     plaintext_prelude_sent=false,
     application_data_sent=false,
     victim_metadata_sent=false,
@@ -58,6 +62,7 @@ action = function(host, port)
   if not result.target_endpoint_exact_match then
     result.status = "reviewed_endpoint_mismatch"
     result.c2_confirmed = false
+    result.probable_c2 = false
     result.family_c2_candidate = nil
     result.exact_profile_match = false
     result.confidence = 0.0
@@ -72,9 +77,10 @@ action = function(host, port)
     socket:close()
     result.status = "purerat_direct_tls_handshake_failed"
     result.c2_confirmed = false
+    result.probable_c2 = false
     result.family_c2_candidate = nil
     result.exact_profile_match = false
-    result.confidence = 0.20
+    result.confidence = 0.0
     result.target_contact_attempted_by_script = true
     result.error = err
     return result
@@ -84,11 +90,15 @@ action = function(host, port)
   socket:close()
   local observed = cert and stdnse.tohex(cert:digest("sha256")) or nil
   local exact = observed and observed:lower() == EXPECTED_CERTIFICATE_SHA256 or false
-  result.status = exact and "purerat_direct_tls_certificate_match" or "purerat_direct_tls_certificate_mismatch_inconclusive"
-  result.c2_confirmed = exact
+  result.status = exact and
+    "purerat_direct_tls_certificate_match_tls_version_unverified" or
+    "purerat_direct_tls_certificate_mismatch_inconclusive"
+  result.c2_confirmed = false
+  result.probable_c2 = exact
   result.family_c2_candidate = exact and true or nil
-  result.exact_profile_match = exact
-  result.confidence = exact and 0.92 or 0.35
+  result.exact_profile_match = false
+  result.certificate_profile_match = exact
+  result.confidence = exact and 0.75 or 0.0
   result.target_contact_attempted_by_script = true
   result.certificate_sha256 = observed
   result.expected_certificate_sha256 = EXPECTED_CERTIFICATE_SHA256

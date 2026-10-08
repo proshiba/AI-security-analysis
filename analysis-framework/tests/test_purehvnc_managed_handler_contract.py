@@ -1,4 +1,5 @@
 """厳密なmanaged復元だけを両Pure handlerの標準設定契約へ投影する境界を検証する。"""
+
 from __future__ import annotations
 
 import base64
@@ -52,7 +53,18 @@ def _field(number: int, value: bytes) -> bytes:
 
 def _encoded(host: str = HOST, ports: list[int] | None = None) -> str:
     """実行能力を持たないBase64／GZip／protobuf設定を生成する。"""
-    message = _field(1, host.encode()) + _field(4, b"fixture-campaign") + _field(3, b"fixture-certificate")
+    message = (
+        _field(1, host.encode())
+        + _field(3, b"fixture-certificate")
+        + _field(4, b"fixture-campaign")
+        + _varint(5 << 3)
+        + _varint(1)
+        + _varint(6 << 3)
+        + _varint(0)
+        + _field(7, b"fixture-task")
+        + _field(8, b"fixture-environment")
+        + _field(9, b"fixture-mutex")
+    )
     for port in PORTS if ports is None else ports:
         message += _varint(2 << 3) + _varint(port)
     return base64.b64encode(gzip.compress(message, mtime=0)).decode()
@@ -70,8 +82,8 @@ def managed_strings(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         lambda _value: {
             "pfx_sha256": "a" * 64,
             "certificate_sha256": "b" * 64,
-            "subject": "CN=PureRAT Agent",
-            "issuer": "CN=PureRAT Agent",
+            "subject": "CN=Wggrtlfl",
+            "issuer": "CN=Wggrtlfl",
             "serial_number": 1,
             "not_before": "2026-01-01T00:00:00+00:00",
             "not_after": "2027-01-01T00:00:00+00:00",
@@ -115,6 +127,8 @@ def test_strict_managed_recovery_has_standard_flags_and_correlated_endpoints(kin
     result = _call(kind)
     assert result["config"]["static_config_recovered"] is True
     assert result["config"]["decoded_config_recovered"] is True
+    assert result["config"].get("terminal_family_confirmed", False) is False
+    assert result["config"].get("family_attribution_confirmed", False) is False
     assert result["config"]["endpoints"] == [f"{HOST}:{port}" for port in PORTS]
     assert [item["value"] for item in result["findings"]] == result["config"]["endpoints"]
     assert all(item["role"] == "configured_c2" and item["source"] == "static_config" for item in result["findings"])
@@ -124,7 +138,9 @@ def test_strict_managed_recovery_has_standard_flags_and_correlated_endpoints(kin
     assert result.get("executed", result.get("sample_executed")) is False
     summary = summarize_handler_outputs([_record(result)])
     assert summary["config_recovered"] is True
-    assert {(item["host"], item["port"]) for item in summary["qualified_network_endpoints"]} == {(HOST, port) for port in PORTS}
+    assert {(item["host"], item["port"]) for item in summary["qualified_network_endpoints"]} == {
+        (HOST, port) for port in PORTS
+    }
 
 
 @pytest.mark.parametrize("kind", ["family", "integrated"])
@@ -133,10 +149,18 @@ def test_publisher_recovers_three_static_c2_records_without_claiming_liveness(ki
     result = _call(kind)
     evidence = handler_result_quality(result)
     handler_id = "purehvnc:fixture:extract"
-    execution = {"handler_id": handler_id, "status": "succeeded", "selected_evidence": evidence, "selected_layer_sha256": SHA256}
+    execution = {
+        "handler_id": handler_id,
+        "status": "succeeded",
+        "selected_evidence": evidence,
+        "selected_layer_sha256": SHA256,
+    }
     artifact = {
-        "handler": {"id": handler_id, "family": "purehvnc"}, "result": result,
-        "executed_sample": False, "network_contacted": False, "selected_evidence": evidence,
+        "handler": {"id": handler_id, "family": "purehvnc"},
+        "result": result,
+        "executed_sample": False,
+        "network_contacted": False,
+        "selected_evidence": evidence,
         "selected_layer": {"sha256": SHA256},
     }
     iocs = confirmed_static_handler_iocs([(execution, artifact)], family="purehvnc")
@@ -155,8 +179,8 @@ def test_managed_config_success_does_not_replace_independent_detector(kind: str,
     assert summary["config_recovered"] is False
     assert summary["qualified_network_endpoints"] == []
     assert HANDLER._DETECT_MODULE._managed_terminal_evidence(DATA)["matched"] is True
-    result["config"]["certificate"]["subject"] = "CN=Generic Application"
-    # 証明書anchorを別に検証する既存detectorの契約は変更しない。
+    result["config"]["protobuf_fields_1_to_9_valid"] = False
+    # 任意X.509だけではなく、field 1～9の構造相関を独立detectorが要求する。
     original = HANDLER._DETECT_MODULE.extract_managed_config
     try:
         HANDLER._DETECT_MODULE.extract_managed_config = lambda _data: result["config"]
@@ -194,3 +218,13 @@ def test_native_candidate_does_not_gain_managed_config_confirmation(managed_stri
     assert result["config"]["static_config_recovered"] is False
     assert result["config"]["decoded_config_recovered"] is False
     assert result["c2"] == []
+
+
+def test_native_extractor_rejects_input_above_hard_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """native fallbackも共有文字列抽出前に入力byte上限を適用する。"""
+
+    monkeypatch.setattr(extractor, "MAX_NATIVE_INPUT_BYTES", 32)
+    with pytest.raises(ValueError, match="input exceeds"):
+        extractor.extract_native_config(b"A" * 33)

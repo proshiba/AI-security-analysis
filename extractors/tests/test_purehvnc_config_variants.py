@@ -65,7 +65,9 @@ def test_packed_ports_and_convert_from_base64_whitespace_are_supported() -> None
         + _varint(443),
     ],
 )
-def test_generic_or_invalid_protobuf_is_not_misclassified_as_config(message: bytes) -> None:
+def test_generic_or_invalid_protobuf_is_not_misclassified_as_config(
+    message: bytes,
+) -> None:
     with pytest.raises(ValueError, match="config was not found"):
         extractor.decode_config_blob([_gzip_base64(message)])
 
@@ -241,3 +243,98 @@ def test_gzip_prefilter_accepts_long_leading_base64_whitespace() -> None:
 
     assert fields[1] == [b"spaced.example"]
     assert fields[2] == [443]
+
+
+def test_embedded_base64_gzip_is_recovered_from_protector_string() -> None:
+    """protector文字列の途中に埋め込まれた設定も同じschemaで回収する。"""
+
+    message = _bytes_field(1, b"embedded.example") + _varint(2 << 3) + _varint(56001)
+    embedded = f"prefix::{_gzip_base64(message)}::suffix"
+
+    _raw, fields = extractor.decode_config_blob([embedded])
+
+    assert fields[1] == [b"embedded.example"]
+    assert fields[2] == [56001]
+
+
+def test_raw_gzip_member_is_recovered_from_managed_resource_blob() -> None:
+    """Base64化されていないraw GZip resourceから設定を回収する。"""
+
+    message = _bytes_field(1, b"raw-resource.example") + _varint(2 << 3) + _varint(443)
+    carrier = b"MZ fixture\x00" + gzip.compress(message, mtime=0) + b"\x00overlay"
+
+    _raw, fields = extractor.decode_config_blob([], raw_blobs=[carrier])
+
+    assert fields[1] == [b"raw-resource.example"]
+    assert fields[2] == [443]
+
+
+def test_raw_gzip_only_managed_image_does_not_require_text_candidates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """raw GZipだけのmanaged resourceでも文字列の有無で取りこぼさない。"""
+
+    message = _bytes_field(1, b"raw-only.example") + _varint(2 << 3) + _varint(56001)
+    carrier = b"MZ managed fixture\x00" + gzip.compress(message, mtime=0)
+    monkeypatch.setattr(extractor, "has_clr_metadata", lambda _data: True)
+    monkeypatch.setattr(
+        extractor,
+        "iter_dotnet_user_strings",
+        lambda _data: iter(()),
+    )
+    monkeypatch.setattr(
+        extractor,
+        "_iter_bounded_embedded_strings",
+        lambda _data: iter(()),
+    )
+
+    config = extractor.extract_managed_config(carrier)
+
+    assert config["c2_host"] == "raw-only.example"
+    assert config["c2_ports"] == [56001]
+    assert config["endpoints"] == ["raw-only.example:56001"]
+
+
+def test_raw_gzip_scan_is_not_enabled_for_non_managed_input(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """raw GZip fallbackを一般native blobへ広げない。"""
+
+    message = _bytes_field(1, b"native-no.example") + _varint(2 << 3) + _varint(443)
+    carrier = b"native fixture\x00" + gzip.compress(message, mtime=0)
+    monkeypatch.setattr(extractor, "has_clr_metadata", lambda _data: False)
+    monkeypatch.setattr(
+        extractor,
+        "iter_dotnet_user_strings",
+        lambda _data: iter(()),
+    )
+
+    with pytest.raises(
+        extractor._ManagedMetadataError,
+        match="managed_user_strings_unavailable",
+    ):
+        extractor.extract_managed_config(carrier)
+
+
+def test_conflicting_base64_and_raw_configs_fail_closed() -> None:
+    """異なる格納方式の相反設定を暗黙に統合しない。"""
+
+    first = _bytes_field(1, b"first.example") + _varint(2 << 3) + _varint(443)
+    second = _bytes_field(1, b"second.example") + _varint(2 << 3) + _varint(56001)
+
+    with pytest.raises(ValueError, match="conflicting managed PureRAT"):
+        extractor.decode_config_blob(
+            [_gzip_base64(first)],
+            raw_blobs=[b"prefix" + gzip.compress(second, mtime=0)],
+        )
+
+
+def test_native_endpoint_candidate_count_is_bounded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """単一文字列内の大量endpointも専用件数上限で拒否する。"""
+
+    monkeypatch.setattr(extractor, "MAX_NATIVE_ENDPOINT_CANDIDATES", 1)
+
+    with pytest.raises(ValueError, match="endpoint candidate limit"):
+        extractor.native_endpoint_candidates(["192.0.2.1:443 198.51.100.2:56001"])

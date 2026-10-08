@@ -9,20 +9,9 @@ literalとlocalの限定的な定義・使用をparseし、正常系CFG上の支
 <h2>RecipeError</h2>
 <pre>未知のdataflowや上限超過を安全側へ拒否する。</pre>
 <h2>recover_managed_tripledes_gzip</h2>
-<dl><dt><a name="-recover_managed_tripledes_gzip"><strong>recover_managed_tripledes_gzip</strong></a>(
-    data: 'bytes',
-    *,
-    clock=time.monotonic
-) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">CLRをloadせず、明示CIL・resource・sinkからPE候補を静的回収する。</span></dd></dl>
+<dl><dt><a name="-recover_managed_tripledes_gzip"><strong>recover_managed_tripledes_gzip</strong></a>(data: 'bytes', *, clock=time.monotonic) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">CLRをloadせず、明示CIL・resource・sinkからPE候補を静的回収する。</span></dd></dl>
 
 <h2>recover_model</h2>
-<dl><dt><a name="-recover_model"><strong>recover_model</strong></a>(
-    data: 'bytes',
-    methods: 'list[dict]',
-    resources: 'dict[str, bytes]',
-    *,
-    clock=time.monotonic,
-    deadline=None
-) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">有界metadata/CIL&nbsp;modelの独立検証を行い、復元候補だけを返す。</span></dd></dl>
+<dl><dt><a name="-recover_model"><strong>recover_model</strong></a>(data: 'bytes', methods: 'list[dict]', resources: 'dict[str, bytes]', *, clock=time.monotonic, deadline=None) -&gt; 'tuple[dict, list[tuple[str, bytes]]]'</dt><dd><span class="code">有界metadata/CIL&nbsp;modelの独立検証を行い、復元候補だけを返す。</span></dd></dl>
 
 </body></html>

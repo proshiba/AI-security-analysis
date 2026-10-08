@@ -18,15 +18,33 @@ NMAP_ROOT = FRAMEWORK_ROOT / "nmap"
 NMAP_PROFILES = NMAP_ROOT / "profiles.json"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 NMAP_MODE_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
-NSE_SELECTOR_RE = re.compile(
-    r'local\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*stdnse\.get_script_args\("([^"]+)"\)'
+NSE_SELECTOR_RE = re.compile(r'local\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*stdnse\.get_script_args\("([^"]+)"\)')
+PURE_PROBABLE_ONLY_METHODS = frozenset(
+    {
+        "purelogs_https_ping",
+        "purerat_direct_tls_certificate_pin",
+        "purerat_tls_prelude",
+    }
+)
+PURE_PROBABLE_ONLY_METHOD_CEILINGS = {
+    "purelogs_https_ping": 0.70,
+    "purerat_tls_prelude": 0.60,
+}
+PURELOGS_NSE_EVIDENCE_MARKERS = frozenset(
+    {
+        'variant="http_aes_v5"',
+        'generation_evidence_scope="family_level_public_research"',
+        "sample_version_confirmed=false",
+        'excluded_variant="legacy_socket_3des"',
+        "legacy_codec_implemented=false",
+    }
 )
 
 if str(COMMON_ROOT) not in sys.path:
     sys.path.insert(0, str(COMMON_ROOT))
 
-import c2_protocol_probe_profiles as profile_module  # noqa: E402
-import monitor_recent_c2 as monitor_module  # noqa: E402
+import c2_protocol_probe_profiles as profile_module
+import monitor_recent_c2 as monitor_module
 
 
 class IntegrationAuditError(ValueError):
@@ -75,17 +93,13 @@ def _nse_dispatched_modes(text: str) -> set[str] | None:
     """NSEのmode/family selectorから明示dispatch値を静的に抽出する。"""
 
     selectors = [
-        variable
-        for variable, argument in NSE_SELECTOR_RE.findall(text)
-        if argument.endswith((".mode", ".family"))
+        variable for variable, argument in NSE_SELECTOR_RE.findall(text) if argument.endswith((".mode", ".family"))
     ]
     if not selectors:
         return None
     values: set[str] = set()
     for variable in selectors:
-        comparison = re.compile(
-            rf'\b{re.escape(variable)}\s*(?:==|~=)\s*"([a-z0-9][a-z0-9._-]{{0,63}})"'
-        )
+        comparison = re.compile(rf'\b{re.escape(variable)}\s*(?:==|~=)\s*"([a-z0-9][a-z0-9._-]{{0,63}})"')
         values.update(comparison.findall(text))
     return values
 
@@ -98,10 +112,7 @@ def _validate_required_contracts(
     for raw in required_contracts:
         if not isinstance(raw, dict):
             raise IntegrationAuditError("required contractはobjectである必要があります")
-        contract = {
-            key: str(raw.get(key) or "").strip()
-            for key in ("handler", "protocol", "method", "nmap_family")
-        }
+        contract = {key: str(raw.get(key) or "").strip() for key in ("handler", "protocol", "method", "nmap_family")}
         if not all(contract.values()):
             raise IntegrationAuditError("required contractの4項目はすべて必要です")
         if contract["handler"] in seen_handlers:
@@ -187,9 +198,7 @@ def audit_integration_state(
                 add_error("monitor_method_missing", f"{handler}/{method}: {layer}")
         ceiling = method_ceilings.get(method)
         if ceiling is not None and (
-            isinstance(ceiling, bool)
-            or not isinstance(ceiling, (int, float))
-            or not 0.0 <= float(ceiling) <= 1.0
+            isinstance(ceiling, bool) or not isinstance(ceiling, (int, float)) or not 0.0 <= float(ceiling) <= 1.0
         ):
             add_error("invalid_method_ceiling", f"{method}: {ceiling!r}")
         label = method_labels.get(method)
@@ -344,6 +353,17 @@ def audit_integration_state(
                 continue
             if type(confirmation) is not bool:
                 add_error("nmap_method_confirmation_invalid", f"{method}: {confirmation!r}")
+            if method in PURE_PROBABLE_ONLY_METHODS and confirmation is not False:
+                add_error(
+                    "pure_probable_only_confirmation_enabled",
+                    f"{method}: confirmation_allowed={confirmation!r}",
+                )
+            expected_ceiling = PURE_PROBABLE_ONLY_METHOD_CEILINGS.get(method)
+            if expected_ceiling is not None and method_ceilings.get(method) != expected_ceiling:
+                add_error(
+                    "pure_probable_only_ceiling_mismatch",
+                    f"{method}: expected={expected_ceiling}, observed={method_ceilings.get(method)!r}",
+                )
             if not isinstance(relative, str) or not relative:
                 add_error("nmap_method_script_missing", method)
                 continue
@@ -367,6 +387,18 @@ def audit_integration_state(
                 continue
             if "categories" not in text or "c2_confirmed" not in text:
                 add_error("nmap_method_script_contract_marker_missing", f"{method}: {relative}")
+            if method in PURE_PROBABLE_ONLY_METHODS:
+                if re.search(r"\bc2_confirmed\s*=\s*true\b", text):
+                    add_error("pure_probable_only_script_can_confirm", f"{method}: {relative}")
+                if re.search(r"\bc2_confirmed\s*=\s*false\b", text) is None:
+                    add_error("pure_probable_only_script_missing_false", f"{method}: {relative}")
+            if method == "purelogs_https_ping":
+                for marker in sorted(PURELOGS_NSE_EVIDENCE_MARKERS):
+                    if marker not in text:
+                        add_error(
+                            "purelogs_generation_boundary_marker_missing",
+                            f"{relative}: {marker}",
+                        )
             record = script_records.setdefault(
                 relative,
                 {
@@ -471,9 +503,7 @@ def audit_repository(
 def _parse_required(value: str) -> dict[str, str]:
     parts = [part.strip() for part in value.split(",")]
     if len(parts) != 4 or any(not part for part in parts):
-        raise argparse.ArgumentTypeError(
-            "--requireはhandler,protocol,method,nmap_familyの4項目です"
-        )
+        raise argparse.ArgumentTypeError("--requireはhandler,protocol,method,nmap_familyの4項目です")
     return dict(zip(("handler", "protocol", "method", "nmap_family"), parts))
 
 

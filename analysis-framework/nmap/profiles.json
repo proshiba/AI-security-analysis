@@ -2,7 +2,8 @@
   "schema_version": 2,
   "tested_nmap_version": "7.99",
   "execution_backend": "nmap_nse_only",
-  "network_method_count": 21,
+  "network_method_count": 20,
+  "passive_only_application_methods": ["formbook_reviewed_route_head", "xloader_v8_get_registration"],
   "method_bindings": [
     {
       "method": "dns_resolve",
@@ -65,10 +66,16 @@
       "confirmation_allowed": false
     },
     {
+      "method": "purelogs_https_ping",
+      "script": "scripts/purelogs-c2.nse",
+      "mode": "reviewed-https-ping",
+      "confirmation_allowed": false
+    },
+    {
       "method": "purerat_tls_prelude",
       "script": "scripts/purerat-c2.nse",
-      "mode": "prelude-tls12-certificate",
-      "confirmation_allowed": true
+      "mode": "legacy-prelude-compatibility-hypothesis",
+      "confirmation_allowed": false
     },
     {
       "method": "ftp_authenticated",
@@ -117,18 +124,6 @@
       "script": "scripts/redline-c2.nse",
       "mode": "wcf-soap11-checkconnect",
       "confirmation_allowed": true
-    },
-    {
-      "method": "xloader_v8_get_registration",
-      "script": "scripts/xloader-c2.nse",
-      "mode": "transport-only",
-      "confirmation_allowed": false
-    },
-    {
-      "method": "formbook_reviewed_route_head",
-      "script": "scripts/stealer-route-c2.nse",
-      "mode": "formbook",
-      "confirmation_allowed": false
     }
   ],
   "canonical_families": [
@@ -168,9 +163,56 @@
       "family": "purehvnc",
       "aliases": ["purerat"],
       "script": "scripts/purerat-c2.nse",
-      "modes": ["managed-purerat"],
-      "maximum_confidence": 0.95,
-      "confirmation": "04000000 prelude後のTLS昇格と、検体内蔵証明書SHA-256の一致"
+      "modes": ["legacy-prelude-compatibility-hypothesis"],
+      "maximum_confidence": 0.6,
+      "confirmation": "v4.1.9でfamily-level確認された04000000 preludeをe554 v4.4.1へ適用する互換仮説。e554ではwire binding未確認のため、完全一致profile、host/port、証明書pinが揃ってもprobableに限定し、c2_confirmedは常にfalse",
+      "protocol_variants": [
+        {
+          "variant": "legacy_plaintext_prelude_then_tls",
+          "family_evidence_version": "4.1.9",
+          "family_evidence_status": "family_level_public_research_confirmed",
+          "family_evidence_source": "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/",
+          "profile_sample_version": "4.4.1",
+          "profile_sample_sha256": "e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0",
+          "profile_sample_wire_binding_status": "unverified",
+          "nmap_mode": "legacy-prelude-compatibility-hypothesis"
+        }
+      ]
+    },
+    {
+      "family": "purelogs",
+      "aliases": [],
+      "script": "scripts/purelogs-c2.nse",
+      "modes": ["reviewed-https-ping"],
+      "maximum_confidence": 0.7,
+      "confirmation": "http_aes_v5世代の0f2 caseに限り、完全一致profile、IP、port、証明書pinを満たすHTTPS GET /pingの200・本文OKをprobableとして扱う。sampleのv5文字列自体は未確認で、c2_confirmedは常にfalse",
+      "protocol_variants": [
+        {
+          "variant": "legacy_socket_3des",
+          "transport": "raw_socket",
+          "cryptography": "TripleDES",
+          "evidence_scope": "family_level_public_research",
+          "evidence_sources": [
+            "https://any.run/cybersecurity-blog/pure-malware-family-analysis/",
+            "https://www.fortinet.com/uk/blog/threat-research/purelogs-delivery-via-pawsrunner-steganography"
+          ],
+          "nmap_probe_available": false,
+          "codec_implemented": false,
+          "reason": "公開資料だけでは全field、鍵導出、方向別変換を確定できない"
+        },
+        {
+          "variant": "http_aes_v5",
+          "transport": "HTTPS",
+          "cryptography": "AES-CBC",
+          "evidence_scope": "family_level_public_research_and_reviewed_http_ping",
+          "evidence_sources": [
+            "https://www.fortinet.com/uk/blog/threat-research/purelogs-delivery-via-pawsrunner-steganography"
+          ],
+          "sample_version_confirmed": false,
+          "nmap_probe_available": true,
+          "nmap_probe_scope": "reviewed_https_ping_only"
+        }
+      ]
     },
     {
       "family": "stealc",
@@ -225,8 +267,8 @@
       "aliases": ["formbook-stealer"],
       "script": "scripts/stealer-route-c2.nse",
       "modes": ["formbook"],
-      "maximum_confidence": 0.6,
-      "confirmation": "完全一致profileと数値IP pinを明示したreview済みHEAD経路・陰性対照の差分。probable_c2に限定し、c2_confirmedは常にfalse"
+      "maximum_confidence": 0.45,
+      "confirmation": "productionではpassive_only。TCP接続、TLS handshake、server-first受信までに限定し、既知routeへのHEADを含むapplication-layer要求は送信しない"
     },
     {
       "family": "vidar",
@@ -249,19 +291,19 @@
     {
       "family": "formbook",
       "offline_detector": "analysis-framework/common/stealer_protocol_evidence.py",
-      "emulator_scope": "passive_sink"
+      "emulator_scope": "passive_sink",
+      "application_layer_requests_allowed": false,
+      "allowed_external_methods": ["dns_resolve", "tcp_connect", "passive_banner", "tls_handshake", "protocol_profile_required"]
+    },
+    {
+      "family": "xloader",
+      "offline_detector": "analysis-framework/common/stealer_protocol_evidence.py",
+      "emulator_scope": "offline_codec_and_loopback_emulator",
+      "application_layer_requests_allowed": false,
+      "allowed_external_methods": ["dns_resolve", "tcp_connect", "passive_banner", "tls_handshake", "protocol_profile_required"]
     }
   ],
   "profile_limited_probable_families": [
-    {
-      "family": "formbook",
-      "offline_detector": "analysis-framework/common/stealer_protocol_evidence.py",
-      "active_probe": "scripts/stealer-route-c2.nse",
-      "maximum_request_count": 2,
-      "request_method": "HEAD",
-      "request_body_sent": false,
-      "confirmation_allowed": false
-    },
     {
       "family": "vidar",
       "offline_detector": "analysis-framework/common/stealer_protocol_evidence.py",
@@ -285,7 +327,6 @@
     "gh0strat",
     "remcosrat",
     "prometei",
-    "spyglace",
-    "purelogs"
+    "spyglace"
   ]
 }

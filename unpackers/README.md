@@ -24,19 +24,23 @@
 | .NET single-file bundle | manifest境界、圧縮終端、宣言sizeとSHA-256を照合し、固定件数・byte上限内で選定 | 本体・設定・依存候補と、省略理由付き全entry台帳 |
 | .NET resourceのTripleDES-CBC＋4-byte prefix付きGZIP | framework API署名、CIL local定義・使用、正常CFG、16/24-byte keyとAssembly.Load sinkを照合 | 独立した子解析へ渡すPE/CLR境界検証済み候補 |
 | .NET bitmap steganography | 上限付き RGB column traversal を再現 | 埋め込み managed PE |
+| .NET Bitmap RGB→ARGB/XOR loader | outerのx-major RGB、3引数constructor、第一exported typeのreview済みCIL、限定NRBF、単一PNG、crop、BGRA、length、UTF-16BE周期XOR、Assembly.Load sinkを照合 | exact Assembly.Load bufferをprivate再帰解析へ渡し、PE extentを別途記録（family／C2／終端確証には不使用） |
 | AutoIt A3X | script が手順を明示する場合に literal、RC4、LZNT1 を decode | 埋め込み PE |
 | JavaScript string array 難読化 | array を parse し、rotation を解き、alias を decode して literal を畳み込み | 可読化した script と URL |
 | JavaScript逆順・区切り文字挿入Base64 | 長大literalを反転し、Base64外の複数separatorを除去して構造を検証 | Lua layerとPE |
 | UTF-16 JavaScript dropper | numeric array、repeating Unicode key 変換、environment chunk を畳み込み | PowerShell と terminal PE |
+| Environment分割型JScript loader | 区切り文字付きBase64、HKCU Environment分割、`Assembly.Load`、暗号化19引数をprofile拘束で照合 | managed loaderとpayload取得URL候補 |
 | JavaScript AES/GZip chain | 埋め込み AES-CBC key/IV と GZip 手順を parse | terminal managed PE |
 | Batch／PowerShell／JavaScript polyglot | `set "PREFIX..."` chunk、size／SHA-256 metadata、custom nibble、単一byte変換、AES-CBC／PKCS7／GZipの受渡しを照合 | 検証済みPowerShell、補助PE、HOI1 inventory、KMTA内包PEまたは未解決blocker |
+| PowerShell回転位置付きXOR | 3式の完全一致、Base64 here-string、32 byte key、modulo 7更新、単一script候補を照合 | 再帰静的解析用script（family／C2確証には不使用） |
+| managed Eaz keyed resource | flattened switch、定数key／mask、build固有word変換、partial word、raw DeflateをCILから照合 | resource-only managed PE（終端／family確証には不使用） |
 | CMD echo Base64 stream | target 別に redirection をまとめ、chunk を連結して検証 | fragment noise を除いた terminal PE/archive |
 | Jadoo split bundle | manifest の offset と length を検証 | 再構築した file |
 | 宣言型byte変換sidecar | 許可リスト方式の回転、XOR、反転、sliceを適用し、Donut、magic、PE、ZIP構造を検証 | 検証済みchild layerと再帰解析されたterminal payload |
 | 一般的な base64/hex | size と format を gate とする decode | child layer |
 | Mach-O | header と segment の inventory | packing 評価だけ |
 
-`static_unpacker.py` が orchestrator です。`javascript_obfuscator.py` は script encoding と string array layer、`javascript_dropper_unpacker.py` は numeric array、Unicode environment、AES-CBC、GZip chain、`javascript_reverse_base64.py` は逆順・複数separator付きBase64 literalを処理します。`batch_powershell_polyglot.py` はBatch comment内のcarrierを収集し、同梱metadataのsizeとSHA-256へ一致する成分だけを昇格します。`nsis_unpacker.py` は明示的な NSIS script と native constant XOR layer を処理します。`static_control_flow.py` は、上限付きの再帰的 x86/x64 entry CFG triage を提供します。`opaque_native_entry.py` はimportless native PEに限定し、entry CFG、PEB／export resolver、API hash候補、変換loop、埋込みPE候補を実行やCPU emulationなしで調べます。byte走査の完了と意味的な復元完了を分離し、未知hashや動的pointer tableが残る場合は完了扱いにしません。候補関数、追跡関数、resolver callsite、変換loop、API／module hash、entry CFG、埋込み候補は`total`、`returned`、`truncated`で記録し、いずれかの上限到達を`coverage_complete=false`へ反映します。`managed_il_triage.py` は CLR を load せず、managed metadata、CIL、resource を棚卸しします。`managed_proxy_deobfuscator.py` は埋込みresourceのhash・entropy・保護候補を列挙し、確認済みEazfuscator系DynamicMethod proxy表をfield→methodの対応へ静的復号します。
+`static_unpacker.py` が orchestrator です。`javascript_obfuscator.py` は script encoding と string array layer、`javascript_dropper_unpacker.py` は numeric array、Unicode environment、AES-CBC、GZip chain、`javascript_reverse_base64.py` は逆順・複数separator付きBase64 literalを処理します。`javascript_env_assembly.py`と`managed_win32_rmp_loader.py`は、Environment分割型JScriptからmanaged loaderを復元し、確認済みmethod body／resource profileだけで19引数の設定を復号します。`batch_powershell_polyglot.py` はBatch comment内のcarrierを収集し、同梱metadataのsizeとSHA-256へ一致する成分だけを昇格します。`nsis_unpacker.py` は明示的な NSIS script と native constant XOR layer を処理します。`static_control_flow.py` は、上限付きの再帰的 x86/x64 entry CFG triage を提供します。`opaque_native_entry.py` はimportless native PEに限定し、entry CFG、PEB／export resolver、API hash候補、変換loop、埋込みPE候補を実行やCPU emulationなしで調べます。byte走査の完了と意味的な復元完了を分離し、未知hashや動的pointer tableが残る場合は完了扱いにしません。候補関数、追跡関数、resolver callsite、変換loop、API／module hash、entry CFG、埋込み候補は`total`、`returned`、`truncated`で記録し、いずれかの上限到達を`coverage_complete=false`へ反映します。`managed_il_triage.py` は CLR を load せず、managed metadata、CIL、resource を棚卸しします。`managed_proxy_deobfuscator.py` は埋込みresourceのhash・entropy・保護候補を列挙し、確認済みEazfuscator系DynamicMethod proxy表をfield→methodの対応へ静的復号します。
 
 `rtf_objdata.py`は、32 MiB以下のRTFをgroup depth 256、`objdata` 32件、native data 16 MiBの範囲で完全走査します。control word、`\bin`、nested groupを区別し、OLE1 version／format、長さ付き文字列、native境界を検証します。`Package`ではOle10Nativeの各NUL終端文字列、temp path長、payload長も検証し、宣言された`.pdf`等の拡張子では内容を分類しません。複数objectの一部が壊れている場合は検証済みobjectだけをSHA-256で重複排除し、`partial_artifacts_recovered`として固定点解析へ渡します。RTFや内包payloadは実行しません。
 
@@ -63,6 +67,12 @@ Office起動、外部通信は行いません。`static_unpacker.py`のZIP／OLE
 暗号化XLSXの復号後も固定点解析で自動到達します。
 
 `batch_powershell_polyglot.py` は入力16 MiB、16,384行、単一行2 MiB、metadata 32件、carrier prefix 4,096件、候補work 64 MiB、metadata入力work 128 MiB／展開出力work 64 MiB、hex変換work 128 MiB、単一復元成分32 MiBを上限とします。Base64はstrict decode、GZipは単一stream終端・trailing dataなし・展開比512倍以下を要求します。custom nibble経路は16文字の一意なalphabetとmetadata hashを、AES経路は復元PowerShell内の共通XOR付きkey／IV配列、CBC、PKCS7、RSC変数の同一callへの受渡し、復号後GZip、PE全section境界を同時に検証します。reportへ生key／IVを出しません。metadata検証済みPLDを`native_kmta_loader.py`で一意に復元できない場合だけ、`metadata_verified_pld_requires_native_loader_analysis`をblockerとして残します。
+
+`powershell_rotational_xor.py` は入力16 MiB、here-string 32件、Base64 12 MiB、復号後8 MiB、keyとciphertextの総復号work 64 MiBを上限とし、レビュー済み式と一意な32 byte key／scriptの組だけを受理します。`managed_eaz_resource.py` は入力32 MiB、MethodDef 4,096件、各256 KiB・8,192命令、1 method当たりの追加section合計256 KiB・4,096件、全method合計32 MiB・1,000,000命令、resource 64件、復元後64 MiB、展開率64倍をhard limitとし、MethodDefの宣言bodyと追加sectionが同じPE section内に収まることもparser呼出し前に検証します。処理境界では10秒の協調的deadlineも適用します。いずれも検体や復元物を実行せず、生key／maskをreportへ含めません。
+
+`managed_bitmap_argb_xor.py` はroot hashやprovider labelを受理条件にせず、outer CILのwidth外側／height内側の`GetPixel(x,y)`、RGB順、`Take`、同じlocalを通る`Assembly.Load`、field literalから作る3引数と同一`ConstructorInfo.Invoke`までを照合します。第一段childでは19個のreview済みmethod bodyに加え、同一owner、第一exported type、publicな3文字列constructor、constructorからentryへの引数受渡し、framework参照、call graph、crop 2定数、末尾由来mask定数を検証します。BinaryFormatter／CLR／CILは実行せず、NRBFはcanonical 7-bit整数と固定record列だけをbyte単位で読みます。Bitmapは単一のBMPまたはCRC・chunk順・zlib終端を確認したRGBA8 PNGに限定し、crop後のx-major BGRA、little-endian length、UTF-16BE key byte列を文字列長で循環するXOR、managed PE extentと最大4 KiBのoverlayをすべて確認します。
+
+同経路の上限は入力32 MiB、MethodDef 8,192件、method単体256 KiB、method合計16 MiB、命令合計250,000件、ResourceSet 256件、entry 4,096件、resource合計32 MiB、Bitmap 16 MiB、画像1辺4,096・8,000,000 pixel、PNG chunk 4,096件、圧縮32 MiB、画像work 64 MiB、復元出力64 MiB、協調的deadline 10秒です。exact `Assembly.Load` bufferだけを`private_recursive_analysis_only` artifactとして保持し、公開reportへraw resource、payload、constructor引数、key、mask、短い名前のhashを含めません。reportのfamily／C2／terminal昇格flagは常にfalseであり、復元成功をPureHVNC、PureRATその他のfamily根拠へ読み替えません。
 
 `native_kmta_loader.py` は、x64 PEのexport codeからRIP相対の1-byte memory参照を静的に列挙し、非実行section内の連続48-byte参照だけをAES-256 key／IV候補にします。実行section内の`KMTA`比較、PKCS7、headerとANSI／UTF-16 path長、child PEのexact file extent、AMD64、ImageBase、SizeOfImageが全て一致し、候補payloadが一意な場合だけ復元します。loader 32 MiB、ciphertext 64 MiB、export 256件、命令100,000件、候補64件、復号work 256 MiBを上限とします。生key／IVはreportへ出さず、materialのRVAとSHA-256だけを記録します。命令実行、CPU emulation、外部通信は行いません。
 
@@ -181,6 +191,8 @@ report では次の blocker class を使用します。
 & $Python -m pydoc unpackers.opaque_native_entry
 & $Python -m pydoc unpackers.javascript_obfuscator
 & $Python -m pydoc unpackers.javascript_dropper_unpacker
+& $Python -m pydoc unpackers.javascript_env_assembly
+& $Python -m pydoc unpackers.managed_win32_rmp_loader
 & $Python -m pydoc unpackers.javascript_reverse_base64
 & $Python -m pydoc unpackers.batch_powershell_polyglot
 & $Python -m pydoc unpackers.managed_handoff_image
@@ -268,3 +280,19 @@ ARX20の入力上限は64MiB、全候補合計の暗号処理量は1MiB、呼出
 どちらも包装の復元と親子hashの証拠を生成する機能である。復元成功だけでファミリー、C2、終端解析完了、稼働状態へ昇格させない。これらは後段の設定抽出と関数参照の確認により個別に判断する。
 
 無害なPEと非実行の命令fixtureによる回帰テストは、`test_go_embedded_pe.py`、`test_arx20_chunk_unpacker.py`、`test_arx20_static_route.py`を参照する。実検体binary・復号済みpayload・生の鍵はテストfixtureへ含めない。
+
+## Environment分割型JScript loader
+
+`javascript_env_assembly.py`は、UTF-16LE JScript内の区切り文字付きBase64を、JavaScriptやPowerShellを実行せずに復元する。検体ごとの変数名やhashには依存せず、同一変数のliteral連結と区切り除去、`HKCU\Environment`への上限付き分割、PowerShellの`Assembly.Load(FromBase64String(...))`、隠し`Win32_Process`起動、復元PE構造をすべて確認する。literal境界で分割されたUTF-16 surrogate pairも、元のcode unit順を維持して再構成する。
+
+入力は16 MiB、復元文字列は32 MiB、復元assemblyは64 MiB、literalは256個、Environment chunkは512個を上限とする。候補が複数ある場合、Base64がcanonicalでない場合、PEでない場合、または静的な実行契約を一意に確認できない場合はartifactを出力しない。
+
+一般のmanaged loaderでは、埋め込まれた引数のhash・長さ・Base64形状だけを記録し、復号方法を推測しない。`managed_win32_rmp_loader.py`は、5個のMethodDef body hash、単一embedded resourceのhash／size、resource変換、password位置／hashがすべて確認済みprofileへ一致する場合だけ、AES-CBC／PKCS7で19引数を復号する。入力assemblyは16 MiB、resourceは1 MiB、各平文引数は4 KiBを上限とし、生password、生key、URL以外の平文引数はreportへ出さない。URLのqueryはtoken露出を避けるため候補から除外し、存在だけを記録する。公開した平文引数のindexは機械可読に記録する。
+
+profile一致時もURLは`payload_acquisition_candidate`として記録する。このURLはloaderへ渡された外部payload取得候補であり、PureLogsなどのfamily帰属、C2確認、URL先の生存、終端payload到達を証明しない。自動取得や外部通信は行わず、profile不一致、19引数schema不一致、URLや保存先の形状不一致、候補の曖昧性は安全側に拒否する。
+
+## OMLX仮想化resourceの終端復元
+
+`managed_omlx_tripledes.py`は、OMLXの176-way dispatcher handlerから静的に証明したopcode subsetだけを有界な定数データフローとして解析する。`GetManifestResourceStream`のcallerが指定するresource名、直接Eaz keyed-word transformのcanonical core、未参照の第2引数、partial-word処理、復号後の完全な長さ付きUTF-16LE tableをすべて照合する。initializerの124 fieldから証明したselectorはkey、IV、ResourceSet entry名の境界と一致する場合だけ受理する。
+
+続いて、同じ親PEから復元したEaz child内の単一ByteArray entryにTripleDES-CBC、PKCS#7、4-byte展開長付き単一GZip memberを適用し、展開長、GZip終端、trailing data、PE境界、CLR metadataを再検証する。生keyと生IVはreportへ出力せず、長さとSHA-256だけを記録する。未知opcode、候補の複数成立、resource名の不一致、不正な暗号・圧縮・PE構造はartifactを出力しない。この復元成功は保護recipeと親子層の証拠であり、それだけでfamily、C2、終端設定を確定しない。

@@ -35,7 +35,7 @@ def _write_registry(path: Path, document: dict) -> None:
 
 
 def test_registry_digest_is_identical_for_lf_and_crlf(tmp_path: Path) -> None:
-    expected_sha256 = "aafad94ba8be52cd23508426be58aed079ec36e28367b6a23f738a6187d354ba"
+    expected_sha256 = "b71d530768c5822f602d4eb4947914fab8338bf9fe537a1ca4fd4e70c1fa65ab"
     canonical_lf = DEFAULT_REGISTRY_PATH.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
     lf_path = tmp_path / "registry-lf.json"
     crlf_path = tmp_path / "registry-crlf.json"
@@ -74,9 +74,11 @@ def test_all_evidence_pins_are_identical_for_lf_and_crlf(tmp_path: Path) -> None
             "6317d660a214c6f5eaf7b369a85e36b3b9d5459baed2876d8315aa60ee410c77"
         ),
     }
-    for line_ending in ("lf", "crlf"):
-        root = tmp_path / line_ending
-        assert _copy_evidence_tree(root, crlf=line_ending == "crlf") == expected
+    # Windowsではpytestの一時path自体が長いため、深い証拠pathを複製すると
+    # ``MAX_PATH`` 境界へ達し得る。意味を変えず1文字のsuffixを使う。
+    for suffix, crlf in (("l", False), ("c", True)):
+        root = tmp_path / suffix
+        assert _copy_evidence_tree(root, crlf=crlf) == expected
         registry = load_registry(root=root)
         assert {profile_id: profile["evidence_sha256"] for profile_id, profile in registry.profiles.items()} == expected
 

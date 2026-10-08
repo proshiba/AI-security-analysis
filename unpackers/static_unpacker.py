@@ -80,6 +80,7 @@ from unpackers.inno_static import (
     select_inno_members,
 )
 from unpackers.javascript_dropper_unpacker import recover_javascript_dropper
+from unpackers.javascript_env_assembly import recover_javascript_env_assembly
 from unpackers.javascript_obfuscator import (
     decode_script_text,
     deobfuscate_plain_string_array,
@@ -87,11 +88,14 @@ from unpackers.javascript_obfuscator import (
     deobfuscate_string_array,
 )
 from unpackers.javascript_reverse_base64 import recover_reverse_base64
+from unpackers.managed_bitmap_argb_xor import recover_managed_bitmap_argb_xor
+from unpackers.managed_eaz_resource import recover_managed_eaz_resource
 from unpackers.managed_handoff_image import inspect_managed_handoff_image
 from unpackers.managed_il_triage import (
     _contain_parser_diagnostics,
     analyze_managed_pe,
 )
+from unpackers.managed_omlx_tripledes import recover_managed_omlx_tripledes
 from unpackers.managed_proxy_deobfuscator import analyze_managed_protector
 from unpackers.managed_smartassembly_strings import (
     recover_managed_smartassembly_strings,
@@ -135,6 +139,7 @@ from unpackers.onyx_qt_loader import (
     recover_onyx_qt_payload,
 )
 from unpackers.opaque_native_entry import analyze_opaque_native_pe
+from unpackers.powershell_rotational_xor import recover_powershell_rotational_xor
 from unpackers.profiled_transform import (
     MAX_RETAINED_ARTIFACT_BYTES,
     recover_profiled_transforms,
@@ -157,23 +162,23 @@ COMMON_ROOT = Path(__file__).resolve().parents[1] / "analysis-framework" / "comm
 if str(COMMON_ROOT) not in sys.path:
     sys.path.insert(0, str(COMMON_ROOT))
 
-from analysis_contract import ensure_no_reparse_components  # noqa: E402
-from analyze_iso9660 import (  # noqa: E402
+from analysis_contract import ensure_no_reparse_components
+from analyze_iso9660 import (
     is_iso9660,
     recover_iso9660_members,
     validate_iso9660_members,
 )
-from bounded_process import ProcessContainment  # noqa: E402
-from extract_pyinstaller_archive import (  # noqa: E402
+from bounded_process import ProcessContainment
+from extract_pyinstaller_archive import (
     DEFAULT_FULL_VALIDATION_MAX_TOTAL_SIZE as PYINSTALLER_VALIDATION_TOTAL_LIMIT,
 )
-from extract_pyinstaller_archive import (  # noqa: E402
+from extract_pyinstaller_archive import (
     DEFAULT_MAX_ENTRY_SIZE as PYINSTALLER_ENTRY_LIMIT,
 )
-from extract_pyinstaller_archive import (  # noqa: E402
+from extract_pyinstaller_archive import (
     DEFAULT_SELECTIVE_MAX_TOTAL_SIZE as PYINSTALLER_RETENTION_TOTAL_LIMIT,
 )
-from extract_pyinstaller_archive import (  # noqa: E402
+from extract_pyinstaller_archive import (
     MemoryCArchiveError,
     MemoryCArchiveReader,
     analyze_carchive_bytes,
@@ -220,6 +225,9 @@ PDF_MAGIC = b"%PDF-"
 GDPF_FOOTER_MAGIC = b"GDPF"
 GDPF_FOOTER_SIZE = 8
 MAX_PNG_CHUNKS = 4096
+MAX_PNG_CHUNK_LENGTH = 64 * 1024 * 1024
+MAX_PNG_ITXT_CHUNKS = 256
+MAX_PNG_ITXT_TOTAL_BYTES = 64 * 1024 * 1024
 MAX_DETACHED_IDAT_CANDIDATES = 256
 PADDING_PREFILTER_BYTES = 64 * 1024
 PADDING_COMPARE_CHUNK_BYTES = 1024 * 1024
@@ -428,7 +436,7 @@ class _BoundedPipeCapture:
                         self.payload.extend(chunk[:remaining])
                     if len(chunk) > remaining:
                         self.truncated = True
-        except BaseException as exc:  # pragma: no cover - OS pipe障害
+        except BaseException as exc:  # noqa: BLE001  # pragma: no cover - OS pipe障害
             self.error = exc
         finally:
             try:
@@ -463,8 +471,8 @@ def _windows_number_of_links(path: Path) -> int | None:
 
     if os.name != "nt":
         return None
-    import ctypes  # noqa: PLC0415
-    from ctypes import wintypes  # noqa: PLC0415
+    import ctypes
+    from ctypes import wintypes
 
     class ByHandleFileInformation(ctypes.Structure):
         _fields_ = [
@@ -1124,6 +1132,218 @@ def recover_iso9660_layers(
     return report, artifacts
 
 
+def recover_png_itxt_chunk_data(
+    data: bytes,
+    *,
+    max_chunk_length: int = MAX_PNG_CHUNK_LENGTH,
+    max_chunks: int = MAX_PNG_CHUNKS,
+    max_itxt_chunks: int = MAX_PNG_ITXT_CHUNKS,
+    max_total_size: int = MAX_PNG_ITXT_TOTAL_BYTES,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """CRC-validなPNGのiTXt chunk dataだけを構造的に分離する。"""
+
+    limits = {
+        "chunk_length": max_chunk_length,
+        "chunk_count": max_chunks,
+        "itxt_chunk_count": max_itxt_chunks,
+        "total_extracted_bytes": max_total_size,
+    }
+    if any(
+        isinstance(value, bool) or not isinstance(value, int) or value <= 0
+        for value in limits.values()
+    ):
+        return {
+            "status": "invalid_limits",
+            "limits": limits,
+            "executed": False,
+            "network_contacted": False,
+        }, []
+    if not data.startswith(PNG_MAGIC):
+        return {
+            "status": "not_png",
+            "limits": limits,
+            "executed": False,
+            "network_contacted": False,
+        }, []
+
+    offset = len(PNG_MAGIC)
+    chunk_count = 0
+    itxt_entries: list[dict[str, object]] = []
+    pending_artifacts: list[tuple[str, bytes]] = []
+    extracted_total = 0
+    saw_ihdr = False
+    saw_idat = False
+    png_end_offset = None
+    while offset < len(data):
+        if chunk_count >= max_chunks:
+            return {
+                "status": "chunk_limit_blocked",
+                "chunk_count": chunk_count,
+                "limits": limits,
+                "executed": False,
+                "network_contacted": False,
+            }, []
+        if offset + 12 > len(data):
+            return {
+                "status": "invalid_chunk_bounds",
+                "chunk_count": chunk_count,
+                "limits": limits,
+                "executed": False,
+                "network_contacted": False,
+            }, []
+
+        length = int.from_bytes(data[offset : offset + 4], "big")
+        chunk_type = data[offset + 4 : offset + 8]
+        if length > max_chunk_length:
+            return {
+                "status": "chunk_length_blocked",
+                "chunk_count": chunk_count,
+                "chunk_type": chunk_type.decode("ascii", errors="replace"),
+                "declared_length": length,
+                "limits": limits,
+                "executed": False,
+                "network_contacted": False,
+            }, []
+        if not all(
+            ord("A") <= value <= ord("Z") or ord("a") <= value <= ord("z")
+            for value in chunk_type
+        ):
+            return {
+                "status": "invalid_chunk_type",
+                "chunk_count": chunk_count,
+                "limits": limits,
+                "executed": False,
+                "network_contacted": False,
+            }, []
+
+        payload_start = offset + 8
+        payload_end = payload_start + length
+        crc_end = payload_end + 4
+        if payload_end < payload_start or crc_end > len(data):
+            return {
+                "status": "invalid_chunk_bounds",
+                "chunk_count": chunk_count,
+                "chunk_type": chunk_type.decode("ascii"),
+                "limits": limits,
+                "executed": False,
+                "network_contacted": False,
+            }, []
+        payload = data[payload_start:payload_end]
+        expected_crc = int.from_bytes(data[payload_end:crc_end], "big")
+        actual_crc = zlib.crc32(chunk_type + payload) & 0xFFFFFFFF
+        if expected_crc != actual_crc:
+            return {
+                "status": "crc_mismatch",
+                "chunk_count": chunk_count,
+                "chunk_type": chunk_type.decode("ascii"),
+                "limits": limits,
+                "executed": False,
+                "network_contacted": False,
+            }, []
+
+        chunk_count += 1
+        if chunk_count == 1 and chunk_type != b"IHDR":
+            return {
+                "status": "invalid_chunk_order",
+                "chunk_count": chunk_count,
+                "reason": "ihdr_not_first",
+                "limits": limits,
+                "executed": False,
+                "network_contacted": False,
+            }, []
+        if chunk_type == b"IHDR":
+            if saw_ihdr or length != 13:
+                return {
+                    "status": "invalid_ihdr",
+                    "chunk_count": chunk_count,
+                    "limits": limits,
+                    "executed": False,
+                    "network_contacted": False,
+                }, []
+            saw_ihdr = True
+        elif chunk_type == b"IDAT":
+            saw_idat = True
+        elif chunk_type == b"iTXt":
+            if len(itxt_entries) >= max_itxt_chunks:
+                return {
+                    "status": "itxt_chunk_limit_blocked",
+                    "chunk_count": chunk_count,
+                    "itxt_chunk_count": len(itxt_entries),
+                    "limits": limits,
+                    "executed": False,
+                    "network_contacted": False,
+                }, []
+            extracted_total += length
+            if extracted_total > max_total_size:
+                return {
+                    "status": "total_extracted_size_blocked",
+                    "chunk_count": chunk_count,
+                    "itxt_chunk_count": len(itxt_entries) + 1,
+                    "declared_total_size": extracted_total,
+                    "limits": limits,
+                    "executed": False,
+                    "network_contacted": False,
+                }, []
+            entry = {
+                "index": len(itxt_entries),
+                "chunk_offset": offset,
+                "payload_offset": payload_start,
+                "size": length,
+                "sha256": sha256_bytes(payload),
+                "entropy": entropy(payload),
+                "content_in_report": False,
+            }
+            itxt_entries.append(entry)
+            if payload:
+                pending_artifacts.append(
+                    (f"png-itxt-chunk-data-{entry['index']:03d}", payload)
+                )
+        elif chunk_type == b"IEND":
+            if length != 0:
+                return {
+                    "status": "invalid_iend_length",
+                    "chunk_count": chunk_count,
+                    "limits": limits,
+                    "executed": False,
+                    "network_contacted": False,
+                }, []
+            png_end_offset = crc_end
+            break
+        offset = crc_end
+
+    if not saw_ihdr or not saw_idat or png_end_offset is None:
+        return {
+            "status": "incomplete_png",
+            "chunk_count": chunk_count,
+            "itxt_chunk_count": len(itxt_entries),
+            "limits": limits,
+            "executed": False,
+            "network_contacted": False,
+        }, []
+
+    return {
+        "status": (
+            "itxt_chunk_data_recovered"
+            if pending_artifacts
+            else "valid_png_no_itxt_chunk_data"
+        ),
+        "chunk_count": chunk_count,
+        "itxt_chunk_count": len(itxt_entries),
+        "extracted_payload_count": len(pending_artifacts),
+        "extracted_total_size": extracted_total,
+        "png_end_offset": png_end_offset,
+        "trailing_after_iend": len(data) - png_end_offset,
+        "entries": itxt_entries,
+        "limits": limits,
+        "structural_extraction_only": True,
+        "payload_decrypted": False,
+        "supports_family_attribution": False,
+        "supports_c2_confirmation": False,
+        "executed": False,
+        "network_contacted": False,
+    }, pending_artifacts
+
+
 def recover_png_concealed_data(
     data: bytes,
 ) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
@@ -1209,6 +1429,18 @@ def recover_png_concealed_data(
         "concealed_content_in_report": False,
     }
     artifacts = [("png-idat-zlib-unused-data", concealed)] if concealed else []
+    return report, artifacts
+
+
+def recover_png_layers(
+    data: bytes,
+) -> tuple[dict[str, object], list[tuple[str, bytes]]]:
+    """独立したPNG構造復元をまとめ、同じcarrierを次層へ渡す。"""
+
+    report, artifacts = recover_png_concealed_data(data)
+    itxt_report, itxt_artifacts = recover_png_itxt_chunk_data(data)
+    report["itxt_carriers"] = itxt_report
+    artifacts.extend(itxt_artifacts)
     return report, artifacts
 
 
@@ -1310,7 +1542,7 @@ def pe_resource_children(
 
     resource_format = detect_format(blob, "resource.bin")
     if resource_format == "png":
-        png_report, concealed = recover_png_concealed_data(blob)
+        png_report, concealed = recover_png_layers(blob)
         return resource_format, concealed, png_report
 
     artifacts: list[tuple[str, bytes]] = []
@@ -1882,8 +2114,8 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
                 break
             item = resource_entry.data_struct
             try:
-                declared_size = int(getattr(item, "Size"))
-                data_offset = int(getattr(item, "OffsetToData"))
+                declared_size = int(item.Size)
+                data_offset = int(item.OffsetToData)
             except (AttributeError, TypeError, ValueError, OverflowError):
                 invalid_resource_data_entries += 1
                 continue
@@ -2328,7 +2560,7 @@ def recover_dotnet_resources(
     """.NET manifestリソースを棚卸しし、不透明な符号化ペイロード素材を保持する。"""
     try:
         image = dnfile.dnPE(data=data)
-    except Exception as exc:  # dnfile raises several parser-specific exceptions
+    except Exception as exc:  # noqa: BLE001 - dnfileの例外型は入力ごとに異なる
         return {"status": "parse_failed", "error": type(exc).__name__}, []
     resources = list(getattr(getattr(image, "net", None), "resources", []) or [])
     if len(resources) > MAX_ARCHIVE_MEMBERS:
@@ -3007,7 +3239,7 @@ def recover_autoit_rc4_lznt1(
         try:
             compressed = ARC4.new(key).decrypt(ciphertext)
             payload = bytes(lznt1()(compressed))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - optional decoderの例外型は依存版ごとに異なる
             reports.append(
                 {
                     "variable": variable,
@@ -3049,7 +3281,7 @@ def recover_autoit_script(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         from refinery.units.formats.a3xs import a3xs
 
         script = bytes(a3xs()(data))
-    except Exception as exc:  # refinery exposes multiple format/parser failures
+    except Exception as exc:  # noqa: BLE001 - refineryの形式例外は複数型
         return {"status": "decompile_failed", "error": type(exc).__name__}, []
     if not script or len(script) > MAX_ARTIFACT:
         return {"status": "invalid_or_oversized_output", "size": len(script)}, []
@@ -4884,7 +5116,7 @@ def recover_ole_streams(
         return {"status": "not_ole"}, []
     try:
         ole = olefile.OleFileIO(io.BytesIO(data))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - OLE parser境界
         return {"status": "parse_failed", "error": f"{type(exc).__name__}: {exc}"}, []
 
     inventory: list[dict[str, object]] = []
@@ -4903,7 +5135,7 @@ def recover_ole_streams(
             name = "/".join(str(part) for part in parts)
             try:
                 size = int(ole.get_size(parts))
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - OLE directory parser境界
                 inventory.append(
                     {
                         "name": name,
@@ -4924,7 +5156,7 @@ def recover_ole_streams(
                 continue
             try:
                 blob = ole.openstream(parts).read(max_member_size + 1)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - OLE stream parser境界
                 item.update(
                     status="read_failed",
                     error=f"{type(exc).__name__}: {exc}",
@@ -5615,7 +5847,7 @@ def recover_cab_members(
             }
         )
         return report, artifacts
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - CAB parser境界
         return {
             "status": "parse_failed",
             "error": f"{type(exc).__name__}: {exc}",
@@ -5807,9 +6039,98 @@ def unpack_bytes(
         )
         artifacts.extend(recovered)
         if report["pe"]["is_dotnet"]:
+            report["managed_bitmap_argb_xor"], recovered = (
+                recover_managed_bitmap_argb_xor(static_data)
+            )
+            artifacts.extend(recovered)
+            report["managed_eaz_resource"], eaz_recovered = (
+                recover_managed_eaz_resource(static_data)
+            )
+            report["managed_omlx_tripledes"], omlx_tripledes_recovered = (
+                recover_managed_omlx_tripledes(static_data)
+            )
+            eaz_static_evidence = report["managed_eaz_resource"].get("static_evidence")
+            if isinstance(eaz_static_evidence, dict):
+                eaz_seed = eaz_static_evidence.get("seed")
+                eaz_addend = eaz_static_evidence.get("addend")
+                if (
+                    isinstance(eaz_seed, int)
+                    and not isinstance(eaz_seed, bool)
+                    and 0 <= eaz_seed <= 0xFFFFFFFF
+                    and isinstance(eaz_addend, int)
+                    and not isinstance(eaz_addend, bool)
+                    and 0 <= eaz_addend <= 0xFFFFFFFF
+                ):
+                    proxy_after_eaz = analyze_managed_protector(
+                        static_data,
+                        include_records=True,
+                        additional_transforms=(
+                            {
+                                "profile": (
+                                    "eazfuscator_dynamic_proxy_derived_static_recipe"
+                                ),
+                                "seed": eaz_seed,
+                                "addend": eaz_addend,
+                            },
+                        ),
+                    )
+                    proxy_record_sets = []
+                    proxy_analysis = proxy_after_eaz.get("proxy_analysis")
+                    if isinstance(proxy_analysis, dict):
+                        for candidate in proxy_analysis.get("candidates", ()):
+                            if not isinstance(candidate, dict):
+                                continue
+                            records = candidate.pop("records", None)
+                            if isinstance(records, list) and records:
+                                proxy_record_sets.append(records)
+                            candidate["records_published"] = False
+                    report["managed_proxy_after_eaz"] = proxy_after_eaz
+                    report["managed_proxy_after_eaz"]["static_recipe_source"] = {
+                        "method_token": report["managed_eaz_resource"].get(
+                            "method_token"
+                        ),
+                        "transform_core_canonical_sha256": eaz_static_evidence.get(
+                            "transform_core_canonical_sha256"
+                        ),
+                        "raw_key_published": False,
+                        "sample_executed": False,
+                        "network_contacted": False,
+                    }
+                    if len(proxy_record_sets) == 1:
+                        (
+                            report["managed_tripledes_gzip_after_eaz"],
+                            proxy_tripledes_artifacts,
+                        ) = recover_managed_tripledes_gzip(
+                            static_data,
+                            proxy_records=proxy_record_sets[0],
+                        )
+                        artifacts.extend(proxy_tripledes_artifacts)
             report["dotnet_resources"], recovered = recover_dotnet_resources(
                 static_data
             )
+            protected_resource_sha256 = None
+            if report["managed_eaz_resource"].get("status") == (
+                "recovered_managed_resource"
+            ):
+                protected_resource = report["managed_eaz_resource"].get("resource")
+                if isinstance(protected_resource, dict):
+                    candidate_sha256 = protected_resource.get("sha256")
+                    if (
+                        isinstance(candidate_sha256, str)
+                        and len(candidate_sha256) == 64
+                    ):
+                        protected_resource_sha256 = candidate_sha256.casefold()
+            if protected_resource_sha256 is not None:
+                recovered = [
+                    item
+                    for item in recovered
+                    if not (
+                        item[0] == "dotnet-resource-opaque"
+                        and sha256_bytes(item[1]) == protected_resource_sha256
+                    )
+                ]
+            artifacts.extend(eaz_recovered)
+            artifacts.extend(omlx_tripledes_recovered)
             artifacts.extend(recovered)
             report["managed_smartassembly_strings"], recovered = (
                 recover_managed_smartassembly_strings(static_data)
@@ -5978,22 +6299,20 @@ def unpack_bytes(
         report["macho_slices"], recovered = recover_macho_slices(data)
         artifacts.extend(recovered)
     elif kind == "png":
-        report["png"], recovered = recover_png_concealed_data(data)
+        report["png"], recovered = recover_png_layers(data)
         artifacts.extend(recovered)
     elif kind == "xz":
         report["xz"], recovered_blob = recover_xz(data)
         if recovered_blob:
             artifacts.append(("xz-decompressed", recovered_blob))
     elif kind == "ole":
-        report["office_encrypted_package"], recovered = (
-            recover_default_password_ooxml(
-                data,
-                maximum_input_size=MAX_OFFICE_ENCRYPTED_INPUT_SIZE,
-                maximum_decrypted_size=min(
-                    max_archive_total_size,
-                    MAX_OFFICE_DECRYPTED_SIZE,
-                ),
-            )
+        report["office_encrypted_package"], recovered = recover_default_password_ooxml(
+            data,
+            maximum_input_size=MAX_OFFICE_ENCRYPTED_INPUT_SIZE,
+            maximum_decrypted_size=min(
+                max_archive_total_size,
+                MAX_OFFICE_DECRYPTED_SIZE,
+            ),
         )
         artifacts.extend(recovered)
         report["equation_ole"], recovered = recover_equation_ole(data)
@@ -6114,10 +6433,17 @@ def unpack_bytes(
         artifacts.extend(recovered)
     elif kind == "script":
         artifacts.extend(recover_encoded_blobs(data))
+        rotational_xor = recover_powershell_rotational_xor(data)
+        report["powershell_rotational_xor"] = rotational_xor.report
+        if rotational_xor.script is not None:
+            artifacts.append(
+                ("powershell-rotational-xor-script", rotational_xor.script)
+            )
         if Path(name).suffix.lower() == ".au3":
             for field in (
                 "batch_powershell_polyglot",
                 "javascript_dropper",
+                "javascript_env_assembly",
                 "javascript_reverse_base64",
                 "javascript_string_array",
                 "javascript_rc4_string_array",
@@ -6134,7 +6460,13 @@ def unpack_bytes(
             artifacts.extend(recovered)
             report["javascript_dropper"], recovered = recover_javascript_dropper(data)
             artifacts.extend(recovered)
-            report["javascript_reverse_base64"], recovered = recover_reverse_base64(data)
+            report["javascript_env_assembly"], recovered = (
+                recover_javascript_env_assembly(data)
+            )
+            artifacts.extend(recovered)
+            report["javascript_reverse_base64"], recovered = recover_reverse_base64(
+                data
+            )
             artifacts.extend(recovered)
             report["javascript_string_array"], transformed = deobfuscate_string_array(
                 data

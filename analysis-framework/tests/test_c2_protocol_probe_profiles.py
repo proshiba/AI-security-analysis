@@ -25,7 +25,7 @@ resolve_profile = profile_module.resolve_profile
 
 def test_registry_contains_reviewed_protocols() -> None:
     profiles = load_profiles()
-    assert len(profiles) == 22
+    assert len(profiles) == 23
     assert {profile["method"] for profile in profiles.values()} == {
         "winos_heartbeat",
         "vvas_checkin",
@@ -40,6 +40,7 @@ def test_registry_contains_reviewed_protocols() -> None:
         "darkcomet_server_first_idtype",
         "redline_checkconnect_soap11",
         "purerat_direct_tls_certificate_pin",
+        "purelogs_https_ping",
     }
 
 
@@ -163,7 +164,10 @@ def test_purerat_direct_tls_profile_is_exact_and_evidence_pinned() -> None:
         ("maximum_response_bytes", 1),
         ("allow_openssl_legacy_security_level", False),
         ("timeout_seconds", 4.0),
+        ("role", "汎用TLS確認"),
+        ("source", "analysis-results/other.json"),
         ("client_certificate_path", "fixture.pfx"),
+        ("registration_packet", "00"),
     ],
 )
 def test_purerat_direct_tls_profile_mutation_fails_closed(
@@ -182,6 +186,157 @@ def test_purerat_direct_tls_profile_mutation_fails_closed(
     source.write_text(json.dumps(document), encoding="utf-8")
 
     with pytest.raises(ProtocolProfileError):
+        load_profiles(source)
+
+
+def test_purelogs_ping_profile_is_exact_and_probable_only() -> None:
+    profile = load_profiles()["purelogs-0f2abaab-logs-uvexio-8443-ping-v1"]
+
+    assert profile["family"] == "purelogs"
+    assert profile["variant"] == "http_aes_v5"
+    assert profile["generation_evidence_scope"] == "family_level_public_research"
+    assert profile["sample_version_confirmed"] is False
+    assert profile["excluded_variant"] == "legacy_socket_3des"
+    assert profile["legacy_codec_implemented"] is False
+    assert profile["sample_sha256s"] == ["0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48"]
+    assert profile["host"] == "logs.uvexio.com"
+    assert profile["port"] == 8443
+    assert profile["pinned_ips"] == ["193.26.115.118"]
+    assert profile["protocol"] == "https"
+    assert profile["method"] == "purelogs_https_ping"
+    assert profile["variant"] == "http_aes_v5"
+    assert profile["generation_evidence_scope"] == "family_level_public_research"
+    assert profile["sample_version_confirmed"] is False
+    assert profile["excluded_variant"] == "legacy_socket_3des"
+    assert profile["legacy_codec_implemented"] is False
+    assert profile["generation_sources"] == [
+        "https://any.run/cybersecurity-blog/pure-malware-family-analysis/",
+        ("https://www.fortinet.com/uk/blog/threat-research/purelogs-delivery-via-pawsrunner-steganography"),
+    ]
+    assert profile["http_method"] == "GET"
+    assert profile["http_path"] == "/ping"
+    assert profile["expected_http_status"] == 200
+    assert profile["expected_body_ascii"] == "OK"
+    assert profile["expected_response_sha256"] == ("565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3")
+    assert profile["expected_certificate_sha256"] == (
+        "9e254cab8c68944cea18a3ac5523fe491eb14f9447b352dca33729b64eaeeac3"
+    )
+    assert profile["maximum_response_bytes"] == 1024
+    assert profile["request_budget"] == 1
+    assert profile["request_body_sent"] is False
+    assert profile["redirect_followed"] is False
+    assert profile["profile_acknowledgement_required"] is True
+    assert profile["confirmation_allowed"] is False
+    assert profile["tls_version_enforced_by_nse"] is False
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("host", "other.example"),
+        ("pinned_ips", ["193.26.115.119"]),
+        ("http_method", "HEAD"),
+        ("http_path", "/plugin"),
+        ("expected_body_ascii", "OK\n"),
+        ("maximum_response_bytes", 1025),
+        ("maximum_response_bytes", "1024"),
+        ("maximum_request_bytes", "256"),
+        ("request_budget", True),
+        ("expected_http_status", True),
+        ("redirect_followed", True),
+        ("confirmation_allowed", True),
+        ("tls_version_enforced_by_nse", True),
+        ("variant", "legacy_socket_3des"),
+        ("generation_evidence_scope", "sample_confirmed"),
+        ("sample_version_confirmed", True),
+        ("excluded_variant", ""),
+        ("legacy_codec_implemented", True),
+        ("generation_sources", []),
+        ("role", "汎用HTTPS確認"),
+        ("source", "analysis-results/other.json"),
+        ("registration_packet", "00"),
+    ],
+)
+def test_purelogs_ping_profile_mutation_fails_closed(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    document = json.loads(profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8"))
+    profile = next(
+        item for item in document["profiles"] if item["profile_id"] == "purelogs-0f2abaab-logs-uvexio-8443-ping-v1"
+    )
+    profile[field] = value
+    source = tmp_path / "profiles.json"
+    source.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ProtocolProfileError, match="PureLogs /ping profile|active probe"):
+        load_profiles(source)
+
+
+def test_purerat_e554_prelude_profiles_are_compatibility_hypotheses() -> None:
+    profiles = load_profiles()
+    for port in (56001, 56002, 56003):
+        profile = profiles[f"purerat-441-e5541255-tirakian-{port}"]
+        assert profile["sample_sha256s"] == ["e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0"]
+        assert profile["host"] == "tirakian.com"
+        assert profile["port"] == port
+        assert profile["send_hex"] == "04000000"
+        assert profile["evidence_status"] == "compatibility_hypothesis"
+        assert profile["sample_version"] == "4.4.1"
+        assert profile["family_legacy_prelude_version"] == "4.1.9"
+        assert profile["family_legacy_prelude_evidence_status"] == "family_level_public_research_confirmed"
+        assert profile["family_legacy_prelude_evidence_source"] == (
+            "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/"
+        )
+        assert profile["sample_transport_binding_status"] == "unverified"
+        assert profile["wire_prelude_verified_for_sample"] is False
+        assert profile["confirmation_allowed"] is False
+        assert profile["profile_acknowledgement_required"] is True
+        assert profile["reviewed_host_required"] is True
+        assert profile["tls_version"] == "TLSv1.2"
+        assert profile["tls_version_enforced_by_nse"] is False
+        assert profile["expected_certificate_sha256"] == (
+            "67260a713ab105197098882f6d126f89fe4f48df8013f8bba1d2c9307b17410b"
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("host", "other.example"),
+        ("port", 56004),
+        ("send_hex", ""),
+        ("evidence_status", "verified"),
+        ("sample_version", "4.1.9"),
+        ("family_legacy_prelude_version", "4.4.1"),
+        ("family_legacy_prelude_evidence_status", "sample_confirmed"),
+        ("family_legacy_prelude_evidence_source", "analysis-results/other.json"),
+        ("sample_transport_binding_status", "verified"),
+        ("wire_prelude_verified_for_sample", True),
+        ("confirmation_allowed", True),
+        ("profile_acknowledgement_required", False),
+        ("tls_version_enforced_by_nse", True),
+        ("role", "確定済みprelude"),
+        ("source", "analysis-results/other.json"),
+        ("victim_metadata", "fixture"),
+        ("maximum_request_bytes", "4"),
+        ("maximum_response_bytes", "64"),
+        ("timeout_seconds", "3.0"),
+    ],
+)
+def test_purerat_e554_prelude_profile_mutation_fails_closed(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    document = json.loads(profile_module.DEFAULT_PROFILE_PATH.read_text(encoding="utf-8"))
+    profile = next(item for item in document["profiles"] if item["profile_id"] == "purerat-441-e5541255-tirakian-56001")
+    profile[field] = value
+    source = tmp_path / "profiles.json"
+    source.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ProtocolProfileError, match="PureRAT旧prelude互換profile"):
         load_profiles(source)
 
 
@@ -317,7 +472,7 @@ def test_all_repository_profiles_apply_except_rejected_remus() -> None:
 
     remus_profile_id = "remus-ba0044e8-onesdto-2535"
     applied = {target["protocol_profile_id"] for target in targets}
-    assert added == len(targets) == 21
+    assert added == len(targets) == 22
     assert applied == set(load_profiles()) - {remus_profile_id}
     assert all(target["method"] != "remus_registration_task" for target in targets)
     assert [

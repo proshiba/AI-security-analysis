@@ -2,65 +2,123 @@ local nmap = require "nmap"
 local stdnse = require "stdnse"
 
 description = [[
-PureRAT/PureHVNCの4-byte prelude 04000000を送信し、同じsocketをTLS 1.2へ昇格します。
-期待証明書SHA-256が指定された場合は一致を強い根拠にします。不一致だけでは、改変build、
-fork、証明書rotationを除外できないため非C2とは判定しません。
+e554 PureRAT/PureHVNCケースのreview済み3 endpointに対する旧互換仮説です。
+4-byte prelude 04000000を送信後、同じsocketをTLSへ昇格して設定内証明書の
+SHA-256と照合します。ただしe554の保存済み静的証拠はendpointと証明書を確定する
+一方、このpreludeを当該buildのwire実装として証明していません。そのため完全一致時も
+probable判定に限定し、c2_confirmedは常にfalseです。
 
-confidenceは analysis-results/research/c2-protocol-profiles/2026-08-05-purerat/README.md
-の判定表に合わせています。pin一致=0.95、pinなし・不一致=0.60、prelude後にTLSが
-成立しない=0.25(TCP到達のみ)。値を変える場合は判定表と同時に更新してください。
+profile ID、同値acknowledgement、review済みhost/port、期待証明書が一致しない場合は
+socketを開きません。Nmap socket APIではTLS 1.2だけを厳密に強制したことを検証できず、
+結果へtls_version_enforced_by_nse=falseを明示します。
 ]]
 
 author = "AI-security-analysis"
 license = "Same as Nmap--See https://nmap.org/book/man-legal.html"
 categories = {"intrusive", "malware", "discovery"}
 
--- 既定では走査した開放TCP port すべてに4 byteを送る。対象を絞りたい場合は
--- nmap の -p か、purerat.ports に "56001,56002,56003" のような一覧を渡す。
+local REVIEWED_HOST = "tirakian.com"
+local EXPECTED_CERTIFICATE_SHA256 =
+  "67260a713ab105197098882f6d126f89fe4f48df8013f8bba1d2c9307b17410b"
+local PROFILES = {
+  ["purerat-441-e5541255-tirakian-56001"] = {port=56001},
+  ["purerat-441-e5541255-tirakian-56002"] = {port=56002},
+  ["purerat-441-e5541255-tirakian-56003"] = {port=56003}
+}
+
 portrule = function(_, port)
-  if not (port.protocol == "tcp" and port.state == "open") then return false end
-  local allowed = stdnse.get_script_args("purerat.ports")
-  if not allowed then return true end
-  for value in tostring(allowed):gmatch("[^,%s]+") do
-    if tonumber(value) == port.number then return true end
-  end
-  return false
+  if port.protocol ~= "tcp" or port.state ~= "open" then return false end
+  return port.number == 56001 or port.number == 56002 or port.number == 56003
+end
+
+local function base_result(profile_id)
+  return {
+    family="purehvnc",
+    variant="managed_purerat_4_4_1_legacy_prelude_hypothesis",
+    profile_id=profile_id,
+    protocol="purerat_legacy_prelude_hypothesis",
+    compatibility_hypothesis=true,
+    c2_confirmed=false,
+    probable_c2=false,
+    confidence=0.0,
+    tls_version_expected="TLSv1.2",
+    tls_version_enforced_by_nse=false,
+    certificate_mismatch_excludes_c2=false,
+    certificate_mismatch_excludes_family_c2=false,
+    observation_excludes_purerat=false,
+    victim_metadata_sent=false,
+    registration_attempted=false,
+    task_poll_attempted=false,
+    task_executed=false,
+    payload_download_attempted=false,
+    application_data_sent=false,
+    plaintext_prelude_sent=false,
+    sent_bytes=0,
+    received_bytes=0,
+    request_count=0,
+    target_contact_attempted_by_script=false
+  }
 end
 
 action = function(host, port)
-  local socket = nmap.new_socket()
-  socket:set_timeout(math.max(100, math.min(tonumber(stdnse.get_script_args("purerat.timeout")) or 3000, 5000)))
-  local ok, err = socket:connect(host.ip, port.number, "tcp")
-  if not ok then socket:close(); return stdnse.format_output(false, err) end
-  local sent, send_err = socket:send(string.char(4, 0, 0, 0))
-  if not sent then socket:close(); return stdnse.format_output(false, send_err) end
-  local tls_ok, tls_err = socket:reconnect_ssl()
-  if not tls_ok then socket:close(); return {
-    family="purehvnc", variant="managed_purerat", c2_confirmed=false,
-    -- TCPは開いていたがprotocol固有の根拠は得られていない。判定表の
-    -- 「TCP接続だけ」と同じ上限に揃える。
-    confidence=0.25, status="purerat_prelude_tls_failed", error=tls_err,
-    certificate_mismatch_excludes_c2=false, observation_excludes_purerat=false}
+  local profile_id = stdnse.get_script_args("purerat.profile-id")
+  local acknowledgement = stdnse.get_script_args("purerat.acknowledge-profile")
+  local expected_host = stdnse.get_script_args("purerat.expected-host")
+  local expected_certificate = stdnse.get_script_args("purerat.expected-cert")
+  local profile = profile_id and PROFILES[profile_id] or nil
+  local result = base_result(profile_id)
+  local target_name = host.targetname or host.name
+  if not profile or acknowledgement ~= profile_id or
+     expected_host ~= REVIEWED_HOST or target_name ~= REVIEWED_HOST or
+     expected_certificate ~= EXPECTED_CERTIFICATE_SHA256 or
+     port.number ~= profile.port then
+    result.status = "purerat_legacy_prelude_reviewed_profile_gate_failed"
+    result.profile_acknowledged = false
+    return result
   end
-  local cert = socket:get_ssl_certificate()
+  result.profile_acknowledged = true
+  result.target_endpoint_exact_match = true
+
+  local socket = nmap.new_socket()
+  socket:set_timeout(math.max(100, math.min(
+    tonumber(stdnse.get_script_args("purerat.timeout")) or 3000, 5000)))
+  result.target_contact_attempted_by_script = true
+  local connected, connect_error = socket:connect(host.ip, port.number, "tcp")
+  if not connected then
+    socket:close()
+    result.status = "purerat_legacy_prelude_tcp_connect_failed"
+    result.error = connect_error
+    return result
+  end
+  local sent, send_error = socket:send(string.char(4, 0, 0, 0))
+  if not sent then
+    socket:close()
+    result.status = "purerat_legacy_prelude_send_failed"
+    result.error = send_error
+    return result
+  end
+  result.application_data_sent = true
+  result.plaintext_prelude_sent = true
+  result.sent_bytes = 4
+  result.request_count = 1
+  local tls_ok, tls_error = socket:reconnect_ssl()
+  if not tls_ok then
+    socket:close()
+    result.status = "purerat_legacy_prelude_tls_failed"
+    result.error = tls_error
+    return result
+  end
+  local certificate = socket:get_ssl_certificate()
   socket:close()
-  local observed = cert and stdnse.tohex(cert:digest("sha256")) or nil
-  local expected = stdnse.get_script_args("purerat.expected-cert")
-  local exact = expected and observed and expected:lower() == observed:lower() or false
-  local certificate_exact_match = nil
-  if expected then certificate_exact_match = exact end
-  return {
-    family="purehvnc", variant="managed_purerat", protocol="purerat_prelude_tls12",
-    -- 判定表: pin完全一致=0.95 / pinなし・不一致=最大0.60
-    c2_confirmed=exact, confidence=exact and 0.95 or 0.60,
-    status=exact and "purerat_prelude_tls_certificate_match" or "purerat_prelude_tls_observed",
-    prelude_hex="04000000", certificate_sha256=observed,
-    certificate_exact_match=certificate_exact_match,
-    certificate_mismatch_excludes_c2=false, observation_excludes_purerat=false,
-    victim_metadata_sent=false,
-    application_data_sent=true, plaintext_prelude_sent=true,
-    sent_bytes=4, request_count=1, registration_attempted=false,
-    task_poll_attempted=false, task_executed=false,
-    payload_download_attempted=false
-  }
+  local observed = certificate and stdnse.tohex(certificate:digest("sha256")) or nil
+  local exact = observed and observed:lower() == EXPECTED_CERTIFICATE_SHA256 or false
+  result.certificate_sha256 = observed
+  result.certificate_exact_match = exact
+  result.status = exact and
+    "purerat_legacy_prelude_hypothesis_certificate_match_tls_version_unverified" or
+    "purerat_legacy_prelude_certificate_mismatch_inconclusive"
+  result.probable_c2 = exact
+  result.c2_confirmed = false
+  result.confidence = exact and 0.60 or 0.0
+  return result
 end

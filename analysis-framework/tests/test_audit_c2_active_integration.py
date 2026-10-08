@@ -9,7 +9,7 @@ COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import audit_c2_active_integration as audit_module  # noqa: E402
+import audit_c2_active_integration as audit_module
 
 
 def _script(root: Path, name: str = "fixture-c2.nse") -> str:
@@ -18,11 +18,11 @@ def _script(root: Path, name: str = "fixture-c2.nse") -> str:
     path = scripts / name
     path.write_text(
         'categories = {"intrusive", "malware"}\n'
-        'action = function()\n'
+        "action = function()\n"
         '  local mode = stdnse.get_script_args("fixture.mode")\n'
         '  if mode ~= "fixture" then return nil end\n'
-        '  return {c2_confirmed=false}\n'
-        'end\n',
+        "  return {c2_confirmed=false}\n"
+        "end\n",
         encoding="utf-8",
     )
     return f"scripts/{name}"
@@ -76,9 +76,92 @@ def test_repository_active_integration_has_no_cross_layer_drift() -> None:
     assert report["status"] == "pass", report["errors"]
     assert report["summary"]["handler_count"] >= 10
     assert report["summary"]["reviewed_profile_count"] >= 15
-    assert report["summary"]["nmap_method_binding_count"] == len(
-        audit_module.monitor_module.ALLOWED_METHODS
+    assert report["summary"]["nmap_method_binding_count"] == len(audit_module.monitor_module.ALLOWED_METHODS)
+
+
+@pytest.mark.parametrize(
+    ("method", "expected_ceiling"),
+    [
+        ("purelogs_https_ping", 0.70),
+        ("purerat_tls_prelude", 0.60),
+    ],
+)
+def test_pure_probable_only_binding_and_ceiling_fail_closed(
+    tmp_path: Path,
+    method: str,
+    expected_ceiling: float,
+) -> None:
+    state = _state(tmp_path)
+    state["profile_methods"] = {"fixture_handler": ("fixture_protocol", method)}
+    state["loaded_profiles"]["fixture-profile"]["method"] = method
+    state["allowed_methods"] = {method}
+    state["active_methods"] = {method}
+    state["method_ceilings"] = {method: expected_ceiling}
+    state["method_labels"] = {method: "Pure probable限定probe"}
+    state["nmap_mapping"]["method_bindings"][0]["method"] = method
+    state["nmap_mapping"]["method_bindings"][0]["confirmation_allowed"] = False
+    if method == "purelogs_https_ping":
+        script = tmp_path / state["nmap_mapping"]["method_bindings"][0]["script"]
+        script.write_text(
+            script.read_text(encoding="utf-8")
+            + '\nvariant="http_aes_v5"\n'
+            + 'generation_evidence_scope="family_level_public_research"\n'
+            + "sample_version_confirmed=false\n"
+            + 'excluded_variant="legacy_socket_3des"\n'
+            + "legacy_codec_implemented=false\n",
+            encoding="utf-8",
+        )
+
+    report = audit_module.audit_integration_state(**state)
+    assert report["status"] == "pass", report["errors"]
+
+    state["method_ceilings"][method] = 0.95
+    state["nmap_mapping"]["method_bindings"][0]["confirmation_allowed"] = True
+    report = audit_module.audit_integration_state(**state)
+    codes = {error["code"] for error in report["errors"]}
+    assert "pure_probable_only_ceiling_mismatch" in codes
+    assert "pure_probable_only_confirmation_enabled" in codes
+
+
+def test_pure_probable_only_script_must_not_assign_confirmation_true(
+    tmp_path: Path,
+) -> None:
+    state = _state(tmp_path)
+    method = "purerat_tls_prelude"
+    state["profile_methods"] = {"fixture_handler": ("fixture_protocol", method)}
+    state["loaded_profiles"]["fixture-profile"]["method"] = method
+    state["allowed_methods"] = {method}
+    state["active_methods"] = {method}
+    state["method_ceilings"] = {method: 0.60}
+    state["method_labels"] = {method: "Pure probable限定probe"}
+    state["nmap_mapping"]["method_bindings"][0]["method"] = method
+    state["nmap_mapping"]["method_bindings"][0]["confirmation_allowed"] = False
+    script = tmp_path / state["nmap_mapping"]["method_bindings"][0]["script"]
+    script.write_text(
+        script.read_text(encoding="utf-8").replace("c2_confirmed=false", "c2_confirmed=true"),
+        encoding="utf-8",
     )
+
+    report = audit_module.audit_integration_state(**state)
+    assert any(error["code"] == "pure_probable_only_script_can_confirm" for error in report["errors"])
+
+
+def test_purelogs_nse_requires_family_level_generation_boundary_markers(
+    tmp_path: Path,
+) -> None:
+    state = _state(tmp_path)
+    method = "purelogs_https_ping"
+    state["profile_methods"] = {"fixture_handler": ("fixture_protocol", method)}
+    state["loaded_profiles"]["fixture-profile"]["method"] = method
+    state["allowed_methods"] = {method}
+    state["active_methods"] = {method}
+    state["method_ceilings"] = {method: 0.70}
+    state["method_labels"] = {method: "PureLogs probable限定probe"}
+    state["nmap_mapping"]["method_bindings"][0]["method"] = method
+    state["nmap_mapping"]["method_bindings"][0]["confirmation_allowed"] = False
+
+    report = audit_module.audit_integration_state(**state)
+    assert any(error["code"] == "purelogs_generation_boundary_marker_missing" for error in report["errors"])
 
 
 def test_capability_without_reviewed_endpoint_is_warning_not_activation(
@@ -113,12 +196,8 @@ def test_passive_only_capability_must_not_be_monitor_or_nmap_enabled(
     state["loaded_profiles"] = {}
     state["allowed_methods"] = {"transport_method"}
     state["active_methods"] = set()
-    state["nmap_mapping"]["passive_only_application_methods"] = [
-        "fixture_method"
-    ]
-    state["nmap_mapping"]["method_bindings"][0]["method"] = (
-        "transport_method"
-    )
+    state["nmap_mapping"]["passive_only_application_methods"] = ["fixture_method"]
+    state["nmap_mapping"]["method_bindings"][0]["method"] = "transport_method"
     report = audit_module.audit_integration_state(**state)
     assert report["status"] == "pass", report["errors"]
     assert report["handlers"][0]["passive_only"] is True
@@ -151,9 +230,7 @@ def test_missing_monitor_layer_fails_closed(
     report = audit_module.audit_integration_state(**state)
     assert report["status"] == "fail"
     assert any(
-        error["code"] == "monitor_method_missing"
-        and expected_detail in error["detail"]
-        for error in report["errors"]
+        error["code"] == "monitor_method_missing" and expected_detail in error["detail"] for error in report["errors"]
     )
 
 

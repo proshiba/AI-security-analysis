@@ -14,18 +14,12 @@ import pytest
 import yara
 
 ROOT = Path(__file__).resolve().parents[2]
+FRAMEWORK = ROOT / "analysis-framework"
 COMMON = ROOT / "analysis-framework" / "common"
 FORMBOOK = ROOT / "analysis-framework" / "malware" / "formbook_loader"
-VALLEY = (
-    ROOT
-    / "analysis-framework"
-    / "malware"
-    / "valleyrat"
-    / "campaigns"
-    / "signed_proxy_sideload"
-)
+VALLEY = ROOT / "analysis-framework" / "malware" / "valleyrat" / "campaigns" / "signed_proxy_sideload"
 VALLEY_COMMON = ROOT / "analysis-framework" / "malware" / "valleyrat" / "common"
-for directory in (COMMON, FORMBOOK, VALLEY, VALLEY_COMMON):
+for directory in (FRAMEWORK, COMMON, FORMBOOK, VALLEY, VALLEY_COMMON):
     if str(directory) not in sys.path:
         sys.path.insert(0, str(directory))
 
@@ -103,9 +97,7 @@ def test_formbook_nested_stage_markers_are_structurally_named(monkeypatch) -> No
     )
     prefix = b"A" * 1000
     script = f"$offset = 1000; $length = {len(nested)};"
-    recovered = FORMBOOK_EXTRACT.recover_nested_stage(
-        script, base64.b64encode(prefix + nested)
-    )
+    recovered = FORMBOOK_EXTRACT.recover_nested_stage(script, base64.b64encode(prefix + nested))
 
     assert recovered is not None
     lowered = recovered.lower()
@@ -125,15 +117,12 @@ def test_formbook_nested_stage_markers_are_structurally_named(monkeypatch) -> No
 
 def test_formbook_detector_recognizes_script_chain_without_hash() -> None:
     data = (
-        b"Adfrdsbio TankerFest sadelta ShellExecute "
-        b"Tedeummers61 frugtsala 80,104,105,108,111,115,111,112 141342 14613"
+        b"Adfrdsbio TankerFest sadelta ShellExecute Tedeummers61 frugtsala 80,104,105,108,111,115,111,112 141342 14613"
     )
     result = FORMBOOK_DETECT.detect(data, Path("sample.js"))
 
     assert result["matched"] is True
-    assert result["campaigns"][0]["campaign_type"] == (
-        "formbook_js_powershell_drive_chain_20260727"
-    )
+    assert result["campaigns"][0]["campaign_type"] == ("formbook_js_powershell_drive_chain_20260727")
 
 
 def test_winos_frame_and_emulator_only_ack_reviewed_control_messages() -> None:
@@ -148,15 +137,9 @@ def test_winos_frame_and_emulator_only_ack_reviewed_control_messages() -> None:
     unknown = WINOS.build_frame(b"\x10operation", header)
     assert WINOS_EMULATOR.response_for_frame(unknown) == b""
     with pytest.raises(PermissionError):
-        WINOS.probe_reviewed_endpoint(
-            "missing-profile",
-            "controller.invalid", 6685, allow_live=False
-        )
+        WINOS.probe_reviewed_endpoint("missing-profile", "controller.invalid", 6685, allow_live=False)
     with pytest.raises(ValueError, match="protocol_profile_id"):
-        WINOS.probe_reviewed_endpoint(
-            "missing-profile",
-            "controller.invalid", 6685, allow_live=True
-        )
+        WINOS.probe_reviewed_endpoint("missing-profile", "controller.invalid", 6685, allow_live=True)
 
 
 def test_winos_stage_and_control_ip_literal_sends_only_c9(
@@ -199,9 +182,7 @@ def test_winos_stage_and_control_ip_literal_sends_only_c9(
     monkeypatch.setattr(
         WINOS.socket,
         "getaddrinfo",
-        lambda host, port, **_kwargs: [
-            (WINOS.socket.AF_INET, WINOS.socket.SOCK_STREAM, 6, "", (host, port))
-        ],
+        lambda host, port, **_kwargs: [(WINOS.socket.AF_INET, WINOS.socket.SOCK_STREAM, 6, "", (host, port))],
     )
     monkeypatch.setattr(WINOS.socket, "create_connection", fake_create_connection)
     monkeypatch.setattr(WINOS, "_session_header", lambda: header)
@@ -225,7 +206,6 @@ def test_winos_stage_and_control_ip_literal_sends_only_c9(
     assert result["stage_requested"] is False
     assert result["victim_metadata_sent"] is False
     assert result["operation_command_sent"] is False
-
 
 
 def test_pdfcore_proxy_uses_export_convergence_not_single_target(monkeypatch) -> None:
@@ -265,6 +245,7 @@ def test_targeted_yara_rules_compile() -> None:
     ):
         yara.compile(filepath=str(path))
 
+
 def test_canonical_ioc_renders_live_contact_and_provider_source() -> None:
     document = {
         "schema_version": 1,
@@ -284,9 +265,7 @@ def test_canonical_ioc_renders_live_contact_and_provider_source() -> None:
         "network_contacted": True,
     }
 
-    rendered = IOC_MARKDOWN.render_canonical_ioc_document(
-        document, expected_sha256="a" * 64
-    )
+    rendered = IOC_MARKDOWN.render_canonical_ioc_document(document, expected_sha256="a" * 64)
 
     assert "Hatching Triage取得・提供検体" in rendered
     assert "限定的な到達性確認" in rendered
