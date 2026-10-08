@@ -19,9 +19,7 @@
 <dl><dt><a name="-extractor_for"><strong>extractor_for</strong></a>(family: 'str') -&gt; 'Callable[[bytes, str], dict]'</dt><dd><span class="code">1つのprofileへbindした2引数の抽出関数を返す。</span></dd></dl>
 
 <h2>load_profiles</h2>
-<dl><dt><a name="-load_profiles"><strong>load_profiles</strong></a>(
-    path: 'Path' = Path('&lt;repo-root&gt;/extractors/profiles/windows_family_profiles.json')
-) -&gt; 'dict[str, dict]'</dt><dd><span class="code">変更済みprofileを同一processでも再読込できる形で返す。</span></dd></dl>
+<dl><dt><a name="-load_profiles"><strong>load_profiles</strong></a>(path: 'Path' = Path('&lt;repo-root&gt;/extractors/profiles/windows_family_profiles.json')) -&gt; 'dict[str, dict]'</dt><dd><span class="code">変更済みprofileを同一processでも再読込できる形で返す。</span></dd></dl>
 
 <h2>normalize_family</h2>
 <dl><dt><a name="-normalize_family"><strong>normalize_family</strong></a>(value: 'str', profiles: 'dict[str, dict] | None' = None) -&gt; 'str'</dt><dd><span class="code">family&nbsp;IDまたは宣言済みaliasを単一のprofile&nbsp;keyへ正規化する。</span></dd></dl>

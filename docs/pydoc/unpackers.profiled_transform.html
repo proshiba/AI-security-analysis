@@ -6,57 +6,28 @@
 <h2>TransformProfileError</h2>
 <pre>変換プロファイルまたは変換結果が契約を満たさない場合に送出する。</pre>
 <h2>apply_operations</h2>
-<dl><dt><a name="-apply_operations"><strong>apply_operations</strong></a>(
-    data: 'bytes',
-    operations: 'tuple[Mapping[str, Any], ...] | list[Mapping[str, Any]]',
-    *,
-    max_input_size: 'int' = 67108864,
-    _budget: '_TransformBudget | None' = None
-) -&gt; 'bytes'</dt><dd><span class="code">許可リストにある可逆byte操作を順番どおり適用する。</span></dd></dl>
+<dl><dt><a name="-apply_operations"><strong>apply_operations</strong></a>(data: 'bytes', operations: 'tuple[Mapping[str, Any], ...] | list[Mapping[str, Any]]', *, max_input_size: 'int' = 67108864, _budget: '_TransformBudget | None' = None) -&gt; 'bytes'</dt><dd><span class="code">許可リストにある可逆byte操作を順番どおり適用する。</span></dd></dl>
 
 <h2>build_parser</h2>
 <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">宣言型変換CLIのparserを構築する。</span></dd></dl>
 
 <h2>load_profiles</h2>
-<dl><dt><a name="-load_profiles"><strong>load_profiles</strong></a>(
-    path: 'Path' = Path('&lt;repo-root&gt;/unpackers/profiles/byte_transforms.json')
-) -&gt; 'tuple[dict[str, Any], ...]'</dt><dd><span class="code">通常fileを有界・単一handleで検証し、独立copyの設定を返す。</span></dd></dl>
+<dl><dt><a name="-load_profiles"><strong>load_profiles</strong></a>(path: 'Path' = Path('&lt;repo-root&gt;/unpackers/profiles/byte_transforms.json')) -&gt; 'tuple[dict[str, Any], ...]'</dt><dd><span class="code">通常fileを有界・単一handleで検証し、独立copyの設定を返す。</span></dd></dl>
 
 <h2>main</h2>
 <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">復元byteを書き出さず、宣言型変換の検証結果だけを返す。</span></dd></dl>
 
 <h2>recover_profiled_transforms</h2>
-<dl><dt><a name="-recover_profiled_transforms"><strong>recover_profiled_transforms</strong></a>(
-    data: 'bytes',
-    *,
-    input_format: 'str',
-    source_name: 'str' = '',
-    profiles_path: 'Path' = Path('&lt;repo-root&gt;/unpackers/profiles/byte_transforms.json'),
-    max_work_bytes: 'int' = 268435456,
-    max_artifact_bytes: 'int' = 134217728,
-    max_elapsed_seconds: 'float' = 10.0
-) -&gt; 'tuple[dict[str, Any], list[tuple[str, bytes]]]'</dt><dd><span class="code">形式と任意suffixに合う全プロファイルを決定的に評価する。</span></dd></dl>
+<dl><dt><a name="-recover_profiled_transforms"><strong>recover_profiled_transforms</strong></a>(data: 'bytes', *, input_format: 'str', source_name: 'str' = '', profiles_path: 'Path' = Path('&lt;repo-root&gt;/unpackers/profiles/byte_transforms.json'), max_work_bytes: 'int' = 268435456, max_artifact_bytes: 'int' = 134217728, max_elapsed_seconds: 'float' = 10.0) -&gt; 'tuple[dict[str, Any], list[tuple[str, bytes]]]'</dt><dd><span class="code">形式と任意suffixに合う全プロファイルを決定的に評価する。</span></dd></dl>
 
 <h2>recover_transform_profile</h2>
-<dl><dt><a name="-recover_transform_profile"><strong>recover_transform_profile</strong></a>(
-    data: 'bytes',
-    profile: 'Mapping[str, Any]',
-    *,
-    max_work_bytes: 'int' = 268435456,
-    max_artifact_bytes: 'int' = 134217728,
-    max_elapsed_seconds: 'float' = 10.0
-) -&gt; 'tuple[dict[str, Any], list[tuple[str, bytes]]]'</dt><dd><span class="code">単一profileも全体予算で検証し、上限到達をpartialへ分離する。</span></dd></dl>
+<dl><dt><a name="-recover_transform_profile"><strong>recover_transform_profile</strong></a>(data: 'bytes', profile: 'Mapping[str, Any]', *, max_work_bytes: 'int' = 268435456, max_artifact_bytes: 'int' = 134217728, max_elapsed_seconds: 'float' = 10.0) -&gt; 'tuple[dict[str, Any], list[tuple[str, bytes]]]'</dt><dd><span class="code">単一profileも全体予算で検証し、上限到達をpartialへ分離する。</span></dd></dl>
 
 <h2>sha256_bytes</h2>
 <dl><dt><a name="-sha256_bytes"><strong>sha256_bytes</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">小文字のSHA-256を返す。</span></dd></dl>
 
 <h2>validate_output</h2>
-<dl><dt><a name="-validate_output"><strong>validate_output</strong></a>(
-    data: 'bytes',
-    validator: 'Mapping[str, Any]',
-    *,
-    _budget: '_TransformBudget | None' = None
-) -&gt; 'tuple[bool, dict[str, Any]]'</dt><dd><span class="code">変換後byte列を構造で検証し、単なる復号推測を成果物にしない。</span></dd></dl>
+<dl><dt><a name="-validate_output"><strong>validate_output</strong></a>(data: 'bytes', validator: 'Mapping[str, Any]', *, _budget: '_TransformBudget | None' = None) -&gt; 'tuple[bool, dict[str, Any]]'</dt><dd><span class="code">変換後byte列を構造で検証し、単なる復号推測を成果物にしない。</span></dd></dl>
 
 <h2>validate_profile</h2>
 <dl><dt><a name="-validate_profile"><strong>validate_profile</strong></a>(value: 'object') -&gt; 'dict[str, Any]'</dt><dd><span class="code">一つの変換プロファイルを検証・正規化する。</span></dd></dl>

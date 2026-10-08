@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "collection_id": "vllmkk3-python-rat-20261003",
+  "selection_mode": "targeted_user_request",
+  "selected_at": "2026-10-03T00:00:00+09:00",
+  "source": "ユーザー提供ローカルZIP",
+  "requested": 1,
+  "downloaded": 1,
+  "acquisition_complete": true,
+  "analysis_complete": false,
+  "complete": false,
+  "publication_stage": "partial_named_family_and_full_function_semantics_pending",
+  "pending": 1,
+  "samples_executed": false,
+  "network_contacted": false,
+  "archives_stored_in_repository": false,
+  "submitted_archive": {
+    "name": "vllmkk3.zip",
+    "sha256": "2b38110165272845b6c272a454a241fc1c0f1b3a5125eadf6855236bfee60236",
+    "size": 17912757
+  },
+  "cases": [
+    {
+      "case_id": "sha256:94420ac4dc985b08bdb97b8a24e499bbcf80906165b139d81ca466871a60adb0",
+      "sha256": "94420ac4dc985b08bdb97b8a24e499bbcf80906165b139d81ca466871a60adb0",
+      "family": "unclassified",
+      "status": "partial",
+      "terminal_payload_recovered": true,
+      "c2_config_recovered": true,
+      "c2_protocol_recovered": true
+    }
+  ],
+  "family_sources": [
+    {
+      "family": "unclassified",
+      "path": "sources/unclassified"
+    }
+  ],
+  "limitations": [
+    "既知ファミリー名は未確定です。",
+    "全101関数の個別意味レビューは未完了です。",
+    "C2へ接続していません。"
+  ]
+}

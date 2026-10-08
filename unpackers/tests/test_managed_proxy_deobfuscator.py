@@ -48,17 +48,83 @@ def test_analyze_proxy_resources_selects_only_consistent_candidate() -> None:
 def test_analyze_proxy_resources_supports_second_transform_variant() -> None:
     clear = _clear_table()
     encrypted = decrypt_eaz_proxy_table(clear, seed=1_039_778_284, addend=1_651_518_254)
-    assert decrypt_eaz_proxy_table(
-        encrypted,
-        seed=1_039_778_284,
-        addend=1_651_518_254,
-    ) == clear
-    report = analyze_proxy_resources([("proxy-v2.data", encrypted)], include_records=True)
+    assert (
+        decrypt_eaz_proxy_table(
+            encrypted,
+            seed=1_039_778_284,
+            addend=1_651_518_254,
+        )
+        == clear
+    )
+    report = analyze_proxy_resources(
+        [("proxy-v2.data", encrypted)], include_records=True
+    )
     assert report["status"] == "matched"
     candidate = report["candidates"][0]
     assert candidate["transform_profile"] == "eazfuscator_dynamic_proxy_v2"
     assert candidate["record_count"] == 9
     assert candidate["valid_record_ratio"] == 1.0
+
+
+def test_analyze_proxy_resources_supports_third_transform_variant() -> None:
+    clear = _clear_table()
+    encrypted = decrypt_eaz_proxy_table(
+        clear,
+        seed=305_765_753,
+        addend=489_775_852,
+    )
+    assert (
+        decrypt_eaz_proxy_table(
+            encrypted,
+            seed=305_765_753,
+            addend=489_775_852,
+        )
+        == clear
+    )
+    report = analyze_proxy_resources(
+        [("proxy-v3.data", encrypted)],
+        include_records=True,
+    )
+    assert report["status"] == "matched"
+    candidate = report["candidates"][0]
+    assert candidate["transform_profile"] == "eazfuscator_dynamic_proxy_v3"
+    assert candidate["record_count"] == 9
+    assert candidate["valid_record_ratio"] == 1.0
+
+
+def test_analyze_proxy_resources_accepts_bounded_static_recipe_transform() -> None:
+    clear = _clear_table()
+    seed, addend = 659_796_207, 957_243_902
+    encrypted = decrypt_eaz_proxy_table(clear, seed=seed, addend=addend)
+    report = analyze_proxy_resources(
+        [("proxy-derived.data", encrypted)],
+        transforms=(
+            {
+                "profile": "eazfuscator_dynamic_proxy_derived_static_recipe",
+                "seed": seed,
+                "addend": addend,
+            },
+        ),
+    )
+    assert report["status"] == "matched"
+    assert report["candidates"][0]["transform_profile"] == (
+        "eazfuscator_dynamic_proxy_derived_static_recipe"
+    )
+
+
+@pytest.mark.parametrize(
+    "transform",
+    [
+        {},
+        {"profile": "", "seed": 1, "addend": 2},
+        {"profile": "x", "seed": -1, "addend": 2},
+        {"profile": "x", "seed": 1, "addend": 1 << 32},
+        {"profile": "x", "seed": True, "addend": 2},
+    ],
+)
+def test_proxy_transform_inputs_fail_closed(transform) -> None:
+    with pytest.raises(ValueError):
+        analyze_proxy_resources([("data", b"A" * 64)], transforms=(transform,))
 
 
 @pytest.mark.parametrize("value", [b"", b"123", b"12345678x"])

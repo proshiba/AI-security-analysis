@@ -7,7 +7,11 @@
 <dl><dt><a name="-canonical_metadata_streams"><strong>canonical_metadata_streams</strong></a>(data, offset, size, version_length, stream_count)</dt><dd><span class="code">rootが宣言したstream&nbsp;header位置だけを返す。padding中のlookalikeは探索しない。</span></dd></dl>
 
 <h2>canonical_table_layout</h2>
-<dl><dt><a name="-canonical_table_layout"><strong>canonical_table_layout</strong></a>(data, offset, size)</dt><dd><span class="code">#~&nbsp;v2.0のraw宣言だけで全table位置を計算する。rowや未知callbackを評価しない。</span></dd></dl>
+<dl><dt><a name="-canonical_table_layout"><strong>canonical_table_layout</strong></a>(data, offset, size)</dt><dd><span class="code">#~&nbsp;v2.0のraw宣言だけで全table位置を計算する。rowや未知callbackを評価しない。<br>
+&nbsp;<br>
+ECMA-335で予約された&nbsp;``Reserved_2``&nbsp;byteはtable配置を変えない。難読化器が<br>
+1以外へ書き換えた場合もその値を意味として使わず、後続のschema・row数・<br>
+byte範囲検証をすべて通過した場合だけ受理する。</span></dd></dl>
 
 <h2>unique_file_span</h2>
 <dl><dt><a name="-unique_file_span"><strong>unique_file_span</strong></a>(sections, rva, size)</dt></dl>

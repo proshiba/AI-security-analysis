@@ -16,6 +16,8 @@ from datetime import UTC, datetime
 from typing import Any
 
 MAX_FRAME_SIZE = 4 * 1024 * 1024
+MAXIMUM_EXPANSION_RATIO = 128
+MAXIMUM_LOOPBACK_RESOLVER_RESULTS = 16
 REVIEWED_PROFILE_ID = "purerat-441-d025a296-45-192-211-77-56001-direct-tls10"
 EXPECTED_NEGOTIATED_TLS_VERSION = "TLSv1"
 PROTOBUF_NET_TYPES = {
@@ -37,6 +39,22 @@ class PureRatDirectTlsError(ValueError):
 Resolver = Callable[..., list[tuple[Any, ...]]]
 Connector = Callable[[tuple[str, int], float], Any]
 TlsHandshaker = Callable[[Any, dict[str, Any]], dict[str, Any]]
+
+
+def _require_bytes(value: object, label: str) -> bytes:
+    """mutableなbytes-like値を暗黙変換せず、正確なbytesだけを受理する。"""
+    if type(value) is not bytes:
+        raise PureRatDirectTlsError(f"{label}はbytesで指定してください")
+    return value
+
+
+def _require_bound(value: object, label: str, absolute_maximum: int) -> int:
+    """boolを除く正の整数だけをhard limitとして受理する。"""
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise PureRatDirectTlsError(f"{label}は整数で指定してください")
+    if not 1 <= value <= absolute_maximum:
+        raise PureRatDirectTlsError(f"{label}が安全上限外です")
+    return value
 
 
 def reviewed_profile() -> dict[str, Any]:
@@ -73,34 +91,68 @@ def validate_reviewed_profile(profile: dict[str, Any]) -> dict[str, Any]:
     return reviewed_profile()
 
 
-def encode_inner_frame(protobuf_payload: bytes, *, maximum_size: int = MAX_FRAME_SIZE) -> bytes:
+def encode_inner_frame(
+    protobuf_payload: bytes,
+    *,
+    maximum_size: int = MAX_FRAME_SIZE,
+    maximum_expansion_ratio: int = MAXIMUM_EXPANSION_RATIO,
+) -> bytes:
     """protobuf-net payloadをGZip化し、little-endian 32-bit長を付ける。"""
+    payload = _require_bytes(protobuf_payload, "protobuf payload")
+    selected_maximum = _require_bound(maximum_size, "maximum_size", MAX_FRAME_SIZE)
+    selected_ratio = _require_bound(
+        maximum_expansion_ratio,
+        "maximum_expansion_ratio",
+        MAXIMUM_EXPANSION_RATIO,
+    )
+    if not payload or len(payload) > selected_maximum:
+        raise PureRatDirectTlsError("protobuf payloadが空、または上限を超えています")
     buffer = io.BytesIO()
     with gzip.GzipFile(fileobj=buffer, mode="wb", filename="", mtime=0) as compressor:
-        compressor.write(protobuf_payload)
+        compressor.write(payload)
     compressed = buffer.getvalue()
-    if not compressed or len(compressed) > maximum_size:
+    if not compressed or len(compressed) > selected_maximum:
         raise PureRatDirectTlsError("圧縮済みframeが上限を超えています")
+    if len(payload) > len(compressed) * selected_ratio:
+        raise PureRatDirectTlsError("protobuf payloadが展開率上限を超えています")
     return struct.pack("<I", len(compressed)) + compressed
 
 
-def decode_inner_frame(frame: bytes, *, maximum_size: int = MAX_FRAME_SIZE) -> bytes:
+def decode_inner_frame(
+    frame: bytes,
+    *,
+    maximum_size: int = MAX_FRAME_SIZE,
+    maximum_expansion_ratio: int = MAXIMUM_EXPANSION_RATIO,
+) -> bytes:
     """完全な1 frameだけを受理し、GZip bombを上限付きで展開する。"""
-    if len(frame) < 4:
+    value = _require_bytes(frame, "inner frame")
+    selected_maximum = _require_bound(maximum_size, "maximum_size", MAX_FRAME_SIZE)
+    selected_ratio = _require_bound(
+        maximum_expansion_ratio,
+        "maximum_expansion_ratio",
+        MAXIMUM_EXPANSION_RATIO,
+    )
+    if len(value) < 4:
         raise PureRatDirectTlsError("frame headerが不足しています")
-    declared = struct.unpack_from("<I", frame)[0]
-    if not 1 <= declared <= maximum_size or len(frame) != declared + 4:
+    declared = struct.unpack_from("<I", value)[0]
+    if not 1 <= declared <= selected_maximum or len(value) != declared + 4:
         raise PureRatDirectTlsError("frame長が不正です")
+    output_bound = min(selected_maximum, declared * selected_ratio)
     try:
         decoder = zlib.decompressobj(16 + zlib.MAX_WBITS)
-        clear = decoder.decompress(frame[4:], maximum_size + 1)
-        if len(clear) > maximum_size or decoder.unconsumed_tail:
-            raise PureRatDirectTlsError("展開後payloadが上限を超えています")
-        clear += decoder.flush()
+        clear = decoder.decompress(value[4:], output_bound + 1)
+        if len(clear) > output_bound or decoder.unconsumed_tail:
+            raise PureRatDirectTlsError("展開後payloadがsizeまたは展開率上限を超えています")
+        remaining = output_bound + 1 - len(clear)
+        clear += decoder.flush(remaining)
     except zlib.error as exc:
         raise PureRatDirectTlsError("GZip payloadが不正です") from exc
-    if len(clear) > maximum_size or not decoder.eof or decoder.unused_data:
+    if len(clear) > output_bound:
+        raise PureRatDirectTlsError("展開後payloadがsizeまたは展開率上限を超えています")
+    if not decoder.eof or decoder.unused_data:
         raise PureRatDirectTlsError("GZip payloadが不正です")
+    if not clear:
+        raise PureRatDirectTlsError("展開後protobuf payloadが空です")
     return clear
 
 
@@ -111,6 +163,8 @@ def _read_varint(data: bytes, offset: int = 0) -> tuple[int, int]:
         if position >= len(data):
             raise PureRatDirectTlsError("protobuf varintが途中で終了しました")
         byte = data[position]
+        if index == 9 and byte > 1:
+            raise PureRatDirectTlsError("protobuf varintが64-bit範囲を超えています")
         value |= (byte & 0x7F) << (index * 7)
         if not byte & 0x80:
             return value, position + 1
@@ -119,64 +173,83 @@ def _read_varint(data: bytes, offset: int = 0) -> tuple[int, int]:
 
 def inspect_protobuf_net_payload(payload: bytes) -> dict[str, Any]:
     """先頭field keyを読み、既知ProtoInclude discriminatorを安全に分類する。"""
-    key, cursor = _read_varint(payload)
+    value = _require_bytes(payload, "protobuf payload")
+    if not value:
+        raise PureRatDirectTlsError("protobuf payloadが空です")
+    key, cursor = _read_varint(value)
     field_number = key >> 3
     wire_type = key & 7
-    if field_number < 1:
+    if not 1 <= field_number <= 0x1FFFFFFF:
         raise PureRatDirectTlsError("protobuf field numberが不正です")
-    embedded_size: int | None = None
-    if wire_type == 2:
-        embedded_size, cursor = _read_varint(payload, cursor)
-        if cursor + embedded_size > len(payload):
-            raise PureRatDirectTlsError("protobuf length-delimited fieldが途中で終了しました")
+    if wire_type != 2:
+        raise PureRatDirectTlsError("protobuf-net継承envelopeはwire type 2である必要があります")
+    embedded_size, cursor = _read_varint(value, cursor)
+    if cursor + embedded_size != len(value):
+        raise PureRatDirectTlsError("protobuf length-delimited fieldが途中で終了したかtrailing fieldがあります")
     return {
         "first_field_number": field_number,
         "first_wire_type": wire_type,
         "protoinclude_type": PROTOBUF_NET_TYPES.get(field_number, "unknown"),
         "embedded_size": embedded_size,
+        "single_root_envelope_exact": True,
+        "family_attribution_confirmed": False,
     }
 
 
-def classify_inner_frame(frame: bytes, *, maximum_size: int = MAX_FRAME_SIZE) -> dict[str, Any]:
+def classify_inner_frame(
+    frame: bytes,
+    *,
+    maximum_size: int = MAX_FRAME_SIZE,
+    maximum_expansion_ratio: int = MAXIMUM_EXPANSION_RATIO,
+) -> dict[str, Any]:
     """offline frameを展開し、実行せずにProtoInclude種別を返す。"""
-    payload = decode_inner_frame(frame, maximum_size=maximum_size)
+    wire = _require_bytes(frame, "inner frame")
+    payload = decode_inner_frame(
+        wire,
+        maximum_size=maximum_size,
+        maximum_expansion_ratio=maximum_expansion_ratio,
+    )
     return {
         "framing": "tls/le32/gzip/protobuf-net",
+        "frame_size": len(wire),
+        "frame_sha256": hashlib.sha256(wire).hexdigest(),
         "protobuf_size": len(payload),
+        "protobuf_sha256": hashlib.sha256(payload).hexdigest(),
+        "offline_only": True,
         **inspect_protobuf_net_payload(payload),
     }
 
 
-def _public_ip(value: str) -> bool:
+def _loopback_ip(value: str) -> bool:
     try:
-        return ipaddress.ip_address(value).is_global
+        address = ipaddress.ip_address(value)
     except ValueError:
         return False
+    return str(address) == value.casefold() and (
+        (address.version == 4 and address.is_loopback) or (address.version == 6 and value.casefold() == "::1")
+    )
 
 
-def _resolve_and_select(profile: dict[str, Any], resolver: Resolver) -> tuple[tuple[str, ...], str]:
+def _resolve_loopback(profile: dict[str, Any], resolver: Resolver) -> tuple[tuple[str, ...], str]:
+    """注入resolverが返す単一numeric loopbackだけをtest接続先にする。"""
+
     host = str(profile["host"])
     port = int(profile["port"])
-    if _public_ip(host):
-        answers = (host,)
-    else:
-        answers = tuple(
-            sorted(
-                {
-                    str(item[4][0])
-                    for item in resolver(host, port, type=socket.SOCK_STREAM)
-                    if _public_ip(str(item[4][0]))
-                }
-            )
-        )
-    if not answers:
-        raise PureRatDirectTlsError("global DNS応答を取得できません")
-    pinned = tuple(str(value) for value in profile.get("pinned_ips") or [])
-    if len(pinned) > 1 or any(not _public_ip(value) for value in pinned):
-        raise PureRatDirectTlsError("pinned_ipsは0件または単一global IPに限定します")
-    if pinned and pinned[0] not in answers:
-        raise PureRatDirectTlsError("現在のDNS応答とreview済みpinned IPが一致しません")
-    return answers, pinned[0] if pinned else answers[0]
+    try:
+        raw_answers = resolver(host, port, type=socket.SOCK_STREAM)
+        observed: set[str] = set()
+        for index, item in enumerate(raw_answers):
+            if index >= MAXIMUM_LOOPBACK_RESOLVER_RESULTS:
+                raise PureRatDirectTlsError("注入resolverの応答件数が上限を超えています")
+            observed.add(str(item[4][0]))
+        answers = tuple(sorted(observed))
+    except PureRatDirectTlsError:
+        raise
+    except Exception as exc:
+        raise PureRatDirectTlsError("注入resolverのloopback応答を検証できません") from exc
+    if len(answers) != 1 or not _loopback_ip(answers[0]):
+        raise PureRatDirectTlsError("互換probeの接続先は単一のnumeric loopbackに限定します")
+    return answers, answers[0]
 
 
 def _perform_direct_tls_handshake(raw_socket: Any, profile: dict[str, Any]) -> dict[str, Any]:
@@ -208,8 +281,13 @@ def _disabled(status: str) -> dict[str, Any]:
         "status": status,
         "alive": False,
         "c2_confirmed": False,
+        "probable_c2": False,
+        "confidence": 0.0,
         "target_contact_attempted": False,
         "target_connection_established": False,
+        "loopback_contact_attempted": False,
+        "loopback_connection_established": False,
+        "external_target_contact_allowed": False,
         "tls_before_application_data": True,
         "plaintext_prelude_sent": False,
         "application_data_sent": False,
@@ -237,16 +315,21 @@ def probe_reviewed_purerat_direct_tls(
     connector: Connector | None = None,
     tls_handshaker: TlsHandshaker | None = None,
 ) -> dict[str, Any]:
-    """TLS 1.0を最初のwire byteとして確立し、証明書pinだけを照合する。
+    """loopback TLS 1.0 harnessで証明書profileをprobable分類する。
 
     protobuf登録、task取得、plugin要求、command処理は行わない。ネットワークと
-    legacy TLSの2 gateが明示されない限りfail-closedする。
+    legacy TLSの2 gateに加え、明示注入したresolverとconnectorを要求する。
+    接続先は単一numeric loopbackだけで、外部C2確認には使用できない。
     """
     profile = validate_reviewed_profile(profile)
     if not allow_network:
         return _disabled("network_disabled")
     if not allow_legacy_tls:
         return _disabled("legacy_tls_disabled")
+    if resolver is None or connector is None:
+        return _disabled("external_backend_disabled")
+    if not callable(resolver) or not callable(connector):
+        raise PureRatDirectTlsError("resolverとconnectorは明示的なcallableが必要です")
     if profile.get("handler") != "purerat_direct_tls":
         raise PureRatDirectTlsError("PureRAT direct-TLS handlerではありません")
     if profile.get("wire_mode") != "direct_tls" or profile.get("tls_version") != "TLSv1.0":
@@ -257,10 +340,10 @@ def probe_reviewed_purerat_direct_tls(
     if len(expected) != 64 or any(value not in "0123456789abcdef" for value in expected):
         raise PureRatDirectTlsError("期待証明書SHA-256が不正です")
 
-    resolve = resolver or socket.getaddrinfo
-    connect = connector or socket.create_connection
+    resolve = resolver
+    connect = connector
     handshake = tls_handshaker or _perform_direct_tls_handshake
-    answers, connect_ip = _resolve_and_select(profile, resolve)
+    answers, connect_ip = _resolve_loopback(profile, resolve)
     raw_socket = connect((connect_ip, int(profile["port"])), float(profile["timeout_seconds"]))
     try:
         raw_socket.settimeout(float(profile["timeout_seconds"]))
@@ -275,11 +358,11 @@ def probe_reviewed_purerat_direct_tls(
     version_exact = observed_version == EXPECTED_NEGOTIATED_TLS_VERSION
     observed = str(tls.get("certificate_sha256") or "").casefold()
     certificate_exact = observed == expected
-    confirmed = version_exact and certificate_exact
+    probable = version_exact and certificate_exact
     if not version_exact:
         status = "purerat_direct_tls_version_mismatch_inconclusive"
     elif certificate_exact:
-        status = "confirmed_purerat_direct_tls_certificate"
+        status = "purerat_direct_tls_certificate_match_probable_loopback"
     else:
         status = "purerat_direct_tls_certificate_mismatch"
     return {
@@ -288,10 +371,15 @@ def probe_reviewed_purerat_direct_tls(
         "profile_id": profile["profile_id"],
         "root_sample_sha256": profile["root_sample_sha256"],
         "terminal_sample_sha256": profile["terminal_sample_sha256"],
-        "alive": True,
-        "c2_confirmed": confirmed,
-        "target_contact_attempted": True,
-        "target_connection_established": True,
+        "alive": False,
+        "c2_confirmed": False,
+        "probable_c2": probable,
+        "confidence": 0.75 if probable else 0.0,
+        "target_contact_attempted": False,
+        "target_connection_established": False,
+        "loopback_contact_attempted": True,
+        "loopback_connection_established": True,
+        "external_target_contact_allowed": False,
         "wire_mode": "direct_tls",
         "application_framing": "le32/gzip/protobuf-net",
         "tls_before_application_data": True,
@@ -324,4 +412,6 @@ def probe_reviewed_purerat_direct_tls(
         "task_poll_attempted": False,
         "task_executed": False,
         "operation_command_sent": False,
+        "family_attribution_confirmed": False,
+        "evidence_scope": "offline_or_numeric_loopback_compatibility_harness",
     }

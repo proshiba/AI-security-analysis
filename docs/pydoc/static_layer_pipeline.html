@@ -17,19 +17,6 @@
 <dl><dt><a name="-public"><strong>public</strong></a>(self) -&gt; 'dict[str, int | float]'</dt><dd><span class="code">公開レポート用の上限値を返す。</span></dd></dl>
 
 <h2>recover_static_layers</h2>
-<dl><dt><a name="-recover_static_layers"><strong>recover_static_layers</strong></a>(
-    unit: 'InputUnit',
-    *,
-    unpacker: 'Unpacker | None' = None,
-    sanitizer: 'Sanitizer' = static_layer_pipeline._identity,
-    policy: 'StaticLayerPolicy | None' = None,
-    upx: 'Path | None' = None,
-    sevenzip: 'Path | None' = None,
-    diec: 'Path | None' = None,
-    innounp: 'Path | None' = None,
-    force_container_probe: 'bool' = False,
-    archive_password: 'str' = 'infected',
-    inno_password: 'str' = ''
-) -&gt; 'tuple[list[StaticLayer], dict[str, Any]]'</dt><dd><span class="code">任意の共通契約unpackerを使い、復元層を決定的に再帰処理する。</span></dd></dl>
+<dl><dt><a name="-recover_static_layers"><strong>recover_static_layers</strong></a>(unit: 'InputUnit', *, unpacker: 'Unpacker | None' = None, sanitizer: 'Sanitizer' = static_layer_pipeline._identity, policy: 'StaticLayerPolicy | None' = None, upx: 'Path | None' = None, sevenzip: 'Path | None' = None, diec: 'Path | None' = None, innounp: 'Path | None' = None, force_container_probe: 'bool' = False, archive_password: 'str' = 'infected', inno_password: 'str' = '') -&gt; 'tuple[list[StaticLayer], dict[str, Any]]'</dt><dd><span class="code">任意の共通契約unpackerを使い、復元層を決定的に再帰処理する。</span></dd></dl>
 
 </body></html>

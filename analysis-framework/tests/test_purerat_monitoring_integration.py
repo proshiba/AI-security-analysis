@@ -19,7 +19,6 @@ from typing import Any
 
 import pytest
 
-
 COMMON = Path(__file__).parents[1] / "common"
 if str(COMMON) in sys.path:
     sys.path.remove(str(COMMON))
@@ -36,13 +35,12 @@ for _name in ("c2_detector", "detect", "emulator", "static_logic"):
     if _cached is not None and (_origin is None or COMMON not in Path(_origin).parents):
         del sys.modules[_name]
 
-import monitor_recent_c2 as monitor  # noqa: E402
-from c2_protocol_probe_profiles import (  # noqa: E402
+import monitor_recent_c2 as monitor
+from c2_protocol_probe_profiles import (
     PROFILE_METHODS,
     apply_profiles,
     profile_registry_metadata,
 )
-
 
 SAMPLE = "e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0"
 PORTS = (56001, 56002, 56003)
@@ -87,8 +85,8 @@ def test_purerat_handler_is_registered_end_to_end() -> None:
     assert "purerat_tls_prelude" in monitor.ALLOWED_METHODS
     assert "purerat_tls_prelude" in monitor.ACTIVE_PROFILE_METHODS
     assert "purerat_tls_prelude" in monitor.METHOD_LABELS
-    # 判定表(2026-08-05-purerat)のpin一致= 0.95 と揃っていること
-    assert monitor.METHOD_CEILINGS["purerat_tls_prelude"] == 0.95
+    # preludeは当該buildのwire実装として未確認の互換仮説なので0.60に限定する。
+    assert monitor.METHOD_CEILINGS["purerat_tls_prelude"] == 0.60
 
 
 def test_tcp_connect_targets_are_promoted_to_the_reviewed_profile() -> None:
@@ -97,9 +95,7 @@ def test_tcp_connect_targets_are_promoted_to_the_reviewed_profile() -> None:
     for target in targets:
         assert target["method"] == "purerat_tls_prelude"
         assert target["protocol"] == "purehvnc"
-        assert target["protocol_profile_id"] == (
-            f"purerat-441-e5541255-tirakian-{target['port']}"
-        )
+        assert target["protocol_profile_id"] == (f"purerat-441-e5541255-tirakian-{target['port']}")
         # 送信は4 byte固定、応答は読まない
         assert target["maximum_request_bytes"] == 4
         assert target["maximum_response_bytes"] == 64
@@ -121,7 +117,7 @@ def test_plan_validation_accepts_promoted_targets_and_gates_the_probe() -> None:
         assert item["method"] == "purerat_tls_prelude"
         assert item["observation"]["status"] == "network_disabled"
         assert item["assessment"]["state"] == "not_observed_safety_gate"
-        assert item["assessment"]["method_confidence_ceiling"] == 0.95
+        assert item["assessment"]["method_confidence_ceiling"] == 0.60
     assert report["policy"]["malware_checkin_sent"] is False
 
 
@@ -142,9 +138,12 @@ def test_plan_validation_rejects_relaxed_limits() -> None:
 def observation(**overrides: Any) -> dict[str, Any]:
     """NSE(purerat-c2.nse)経由の観測結果を模した形。"""
     base = {
-        "status": "purerat_prelude_tls_failed",
+        "execution_engine": "nmap_nse",
+        "status": "purerat_legacy_prelude_tls_failed",
         "alive": True,
         "c2_confirmed": False,
+        "probable_c2": False,
+        "compatibility_hypothesis": True,
         "target_contact_attempted": True,
         "target_connection_established": True,
         "application_data_sent": True,
@@ -152,35 +151,32 @@ def observation(**overrides: Any) -> dict[str, Any]:
         "sent_bytes": 4,
         "request_count": 1,
         "protocol_response_received": False,
-        "tls": {"handshake": False},
+        "certificate_exact_match": False,
+        "tls_version_enforced_by_nse": False,
     }
     base.update(overrides)
     return base
 
 
-CONFIRMED = observation(
-    status="purerat_prelude_tls_certificate_match",
-    c2_confirmed=True,
-    tls={
-        "handshake": True,
-        "version": "TLSv1.2",
-        "cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-        "certificate": {"state": "exact_match", "exact_match": True},
-    },
+PROBABLE = observation(
+    status="purerat_legacy_prelude_hypothesis_certificate_match_tls_version_unverified",
+    probable_c2=True,
+    certificate_exact_match=True,
+    confidence=0.60,
 )
 
 
 @pytest.mark.parametrize(
     ("case", "expected_state", "expected_confidence"),
     [
-        (CONFIRMED, "c2_protocol_confirmed", 0.95),
+        (
+            PROBABLE,
+            "purerat_legacy_prelude_probable_c2_not_confirmed",
+            0.60,
+        ),
         (
             observation(
-                status="purerat_prelude_tls_observed",
-                tls={
-                    "handshake": True,
-                    "certificate": {"state": "mismatch_inconclusive", "exact_match": False},
-                },
+                status="purerat_legacy_prelude_certificate_mismatch_inconclusive",
             ),
             "purerat_certificate_mismatch_c2_not_confirmed",
             0.0,
@@ -189,9 +185,11 @@ CONFIRMED = observation(
         (
             # 到達しなかった観測にtlsキーは付かない
             {
+                "execution_engine": "nmap_nse",
                 "status": "not_reachable_at_observation",
                 "alive": False,
                 "c2_confirmed": False,
+                "probable_c2": False,
                 "target_contact_attempted": True,
                 "target_connection_established": False,
                 "application_data_sent": False,
@@ -216,10 +214,10 @@ def test_observations_are_classified(
 @pytest.mark.parametrize(
     "broken",
     [
-        # statusは確認済みなのに証明書が一致していない
-        {"tls": {"handshake": True, "certificate": {"exact_match": False}}},
-        # handshakeが成立していないのにC2確定を主張している
-        {"tls": {"handshake": False}},
+        # probable statusなのに証明書が一致していない
+        {"certificate_exact_match": False},
+        # compatibility hypothesis markerが欠けている
+        {"compatibility_hypothesis": False},
         # 送っていないはずのvictim metadataが立っている
         {"victim_metadata_sent": True},
         # 取得していないはずのtaskが立っている
@@ -233,10 +231,10 @@ def test_observations_are_classified(
 def test_inconsistent_confirmation_is_refused(broken: dict[str, Any]) -> None:
     """statusとflagが食い違うときはC2確定させない。"""
     targets, _ = promoted()
-    case = dict(CONFIRMED)
+    case = dict(PROBABLE)
     case.update(broken)
     assessment = monitor.assess_observation(targets[0], case)
-    assert assessment["state"] == "purerat_confirmation_inconsistent_c2_not_confirmed"
+    assert assessment["state"] == "purerat_legacy_confirmation_inconsistent_c2_not_confirmed"
     assert assessment["c2_operational_confidence"] == 0.0
 
 

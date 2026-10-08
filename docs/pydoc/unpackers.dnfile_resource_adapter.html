@@ -4,14 +4,7 @@
 <p><a href="../../unpackers/dnfile_resource_adapter.py">実装</a></p>
 <pre>dnfile 0.18.0の固定LazyList／MDTableだけを受理する静的resource adapter。</pre>
 <h2>bind_strings_heap</h2>
-<dl><dt><a name="-bind_strings_heap"><strong>bind_strings_heap</strong></a>(
-    data: 'bytes',
-    pe: 'Any',
-    metadata: 'Any',
-    previous: 'Any' = None,
-    *,
-    max_heap_bytes: 'int' = 16777216
-)</dt><dd><span class="code">同じ#Strings&nbsp;heapを一度だけ入力照合する。複数tableで同じ全heap比較を繰返さない。</span></dd></dl>
+<dl><dt><a name="-bind_strings_heap"><strong>bind_strings_heap</strong></a>(data: 'bytes', pe: 'Any', metadata: 'Any', previous: 'Any' = None, *, max_heap_bytes: 'int' = 16777216)</dt><dd><span class="code">同じ#Strings&nbsp;heapを一度だけ入力照合する。複数tableで同じ全heap比較を繰返さない。</span></dd></dl>
 
 <h2>container_count</h2>
 <dl><dt><a name="-container_count"><strong>container_count</strong></a>(source: 'Any') -&gt; 'int | None'</dt><dd><span class="code">callbackを呼ばず、ordinary&nbsp;containerかexact&nbsp;LazyListの長さだけを取得する。</span></dd></dl>
@@ -32,33 +25,13 @@
 <dl><dt><a name="-is_heap_binding"><strong>is_heap_binding</strong></a>(value: 'Any') -&gt; 'bool'</dt></dl>
 
 <h2>materialize_lazy_row</h2>
-<dl><dt><a name="-materialize_lazy_row"><strong>materialize_lazy_row</strong></a>(
-    data: 'bytes',
-    metadata: 'Any',
-    name: 'str',
-    table: 'Any',
-    source: 'Any',
-    index: 'int',
-    expected_count: 'int'
-) -&gt; 'tuple[Any | None, str | None]'</dt><dd><span class="code">検証済み固定callbackで一行だけstatic&nbsp;struct化し、full-loaderは実行しない。</span></dd></dl>
+<dl><dt><a name="-materialize_lazy_row"><strong>materialize_lazy_row</strong></a>(data: 'bytes', metadata: 'Any', name: 'str', table: 'Any', source: 'Any', index: 'int', expected_count: 'int') -&gt; 'tuple[Any | None, str | None]'</dt><dd><span class="code">検証済み固定callbackで一行だけstatic&nbsp;struct化し、full-loaderは実行しない。</span></dd></dl>
 
 <h2>preflight_lazy_table</h2>
-<dl><dt><a name="-preflight_lazy_table"><strong>preflight_lazy_table</strong></a>(
-    data: 'bytes',
-    metadata: 'Any',
-    name: 'str',
-    table: 'Any',
-    source: 'Any',
-    heap_binding: 'Any' = None
-) -&gt; 'str | None'</dt><dd><span class="code">全row&nbsp;budgetの事前成立後に、同一parserの固定実装とsource&nbsp;bytesを検証する。</span></dd></dl>
+<dl><dt><a name="-preflight_lazy_table"><strong>preflight_lazy_table</strong></a>(data: 'bytes', metadata: 'Any', name: 'str', table: 'Any', source: 'Any', heap_binding: 'Any' = None) -&gt; 'str | None'</dt><dd><span class="code">全row&nbsp;budgetの事前成立後に、同一parserの固定実装とsource&nbsp;bytesを検証する。</span></dd></dl>
 
 <h2>project_manifest_row</h2>
-<dl><dt><a name="-project_manifest_row"><strong>project_manifest_row</strong></a>(
-    row: 'Any',
-    table: 'Any',
-    metadata: 'Any',
-    heap_binding: 'Any' = None
-) -&gt; 'tuple[Any | None, str | None]'</dt><dd><span class="code">raw&nbsp;MR&nbsp;structとbounded&nbsp;UTF-8&nbsp;heapだけを読む。row.Implementation属性は取得しない。</span></dd></dl>
+<dl><dt><a name="-project_manifest_row"><strong>project_manifest_row</strong></a>(row: 'Any', table: 'Any', metadata: 'Any', heap_binding: 'Any' = None) -&gt; 'tuple[Any | None, str | None]'</dt><dd><span class="code">raw&nbsp;MR&nbsp;structとbounded&nbsp;UTF-8&nbsp;heapだけを読む。row.Implementation属性は取得しない。</span></dd></dl>
 
 <h2>verify_input_binding</h2>
 <dl><dt><a name="-verify_input_binding"><strong>verify_input_binding</strong></a>(data, pe)</dt></dl>

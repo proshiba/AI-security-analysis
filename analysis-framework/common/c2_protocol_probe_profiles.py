@@ -50,12 +50,44 @@ XLOADER_SYNTHETIC_TEMPLATE_ID = "xloader-v8-pkt2-synthetic-v1"
 PURERAT_ROOT_SAMPLE_SHA256 = "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677"
 PURERAT_TERMINAL_SAMPLE_SHA256 = "df0359edefe34a970af39227978dbe7f1caa09caf98a2c6db53f49187ec25dd7"
 PURERAT_CERTIFICATE_SHA256 = "b3ae061b0b14a89d5134c279775b8f77a42214323c6bddab07f4d81ca2fc5c57"
+PURELOGS_PROFILE_ID = "purelogs-0f2abaab-logs-uvexio-8443-ping-v1"
+PURELOGS_SAMPLE_SHA256 = "0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48"
+PURELOGS_HOST = "logs.uvexio.com"
+PURELOGS_PINNED_IP = "193.26.115.118"
+PURELOGS_CERTIFICATE_SHA256 = "9e254cab8c68944cea18a3ac5523fe491eb14f9447b352dca33729b64eaeeac3"
+PURELOGS_OK_SHA256 = "565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3"
+PURELOGS_LEGACY_RESEARCH_SOURCE = "https://any.run/cybersecurity-blog/pure-malware-family-analysis/"
+PURELOGS_CURRENT_RESEARCH_SOURCE = (
+    "https://www.fortinet.com/uk/blog/threat-research/purelogs-delivery-via-pawsrunner-steganography"
+)
+PURELOGS_SOURCE = (
+    "analysis-results/malware/purelogs/versions/unknown/cases/"
+    "0f2abaabea8bb9454e5cf979e58eba7de10172dab1f3ebff6a9face304f4ce48/"
+    "network-validation.json:channels[0]"
+)
+PURERAT_DIRECT_SOURCE = "analysis-framework/malware/purehvnc/purerat_441_emulator_evidence.json"
+PURERAT_E554_SAMPLE_SHA256 = "e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0"
+PURERAT_E554_CERTIFICATE_SHA256 = "67260a713ab105197098882f6d126f89fe4f48df8013f8bba1d2c9307b17410b"
+PURERAT_LEGACY_PRELUDE_RESEARCH_SOURCE = (
+    "https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/"
+)
+PURERAT_E554_SOURCE = (
+    "analysis-results/malware/purehvnc/versions/v4.4.1/cases/"
+    "e55412555b4699c6d3ce2ac60df81eb1ee0d5aa412a303555c8f64037d5633d0/"
+    "config.json:config.certificate_sha256"
+)
+PURERAT_E554_PROFILE_PORTS = {
+    "purerat-441-e5541255-tirakian-56001": 56001,
+    "purerat-441-e5541255-tirakian-56002": 56002,
+    "purerat-441-e5541255-tirakian-56003": 56003,
+}
 PROFILE_METHODS = {
     "valleyrat_winos_reviewed": ("winos", "winos_heartbeat"),
     "c2_detector_vvas": ("vvas", "vvas_checkin"),
     "c2_detector_n520_server_first": ("n520", "n520_server_first"),
     "agenttesla_ftp_authenticated": ("ftp", "ftp_authenticated"),
     "purerat_direct_tls": ("purerat_direct_tls", "purerat_direct_tls_certificate_pin"),
+    "purelogs_https_ping": ("https", "purelogs_https_ping"),
     "asyncrat_tls_messagepack": ("asyncrat", "asyncrat_tls_messagepack"),
     "venomrat_tls_messagepack": ("venomrat", "venomrat_tls_messagepack"),
     "purerat_tls_prelude": ("purehvnc", "purerat_tls_prelude"),
@@ -396,20 +428,106 @@ def load_profiles(
                 raise ProtocolProfileError("vvaS check-inはレビュー済み333200だけを許可します")
             if profile.get("expected_stage_size") != 307214 or profile.get("expected_header_size") != 14:
                 raise ProtocolProfileError("vvaS応答境界がレビュー済み値と一致しません")
-        elif handler == "purerat_tls_prelude":
-            # 送信は 04 00 00 00 の4 byteだけ。SNIは付けない(検体もSNIなし)。
-            # 応答は読まないので上限は形式上の値。登録・task取得は禁止のまま。
+        elif handler == "purelogs_https_ping":
             if (
-                profile.get("send_hex") != "04000000"
+                profile_id != PURELOGS_PROFILE_ID
+                or profile.get("family") != "purelogs"
+                or profile.get("variant") != "http_aes_v5"
+                or profile.get("generation_evidence_scope") != "family_level_public_research"
+                or profile.get("sample_version_confirmed") is not False
+                or profile.get("excluded_variant") != "legacy_socket_3des"
+                or profile.get("legacy_codec_implemented") is not False
+                or profile.get("generation_sources")
+                != [
+                    PURELOGS_LEGACY_RESEARCH_SOURCE,
+                    PURELOGS_CURRENT_RESEARCH_SOURCE,
+                ]
+                or profile.get("sample_sha256s") != [PURELOGS_SAMPLE_SHA256]
+                or host != PURELOGS_HOST
+                or port != 8443
+                or profile.get("pinned_ips") != [PURELOGS_PINNED_IP]
+                or profile.get("http_method") != "GET"
+                or profile.get("http_path") != "/ping"
+                or profile.get("http_host") != PURELOGS_HOST
+                or profile.get("expected_http_status") != 200
+                or type(profile.get("expected_http_status")) is not int
+                or profile.get("expected_body_ascii") != "OK"
+                or profile.get("expected_response_sha256") != PURELOGS_OK_SHA256
+                or profile.get("expected_certificate_sha256") != PURELOGS_CERTIFICATE_SHA256
+                or profile.get("tls_version") != "TLSv1.2"
+                or profile.get("tls_version_enforced_by_nse") is not False
+                or type(profile.get("timeout_seconds")) is not float
+                or timeout != 3.0
+                or profile.get("request_budget") != 1
+                or type(profile.get("request_budget")) is not int
+                or profile.get("maximum_request_bytes") != 256
+                or type(profile.get("maximum_request_bytes")) is not int
+                or maximum != 1024
+                or type(profile.get("maximum_response_bytes")) is not int
+                or profile.get("request_body_sent") is not False
+                or profile.get("redirect_followed") is not False
+                or profile.get("profile_acknowledgement_required") is not True
+                or profile.get("confirmation_allowed") is not False
+                or profile.get("role") != "PureLogs review済みHTTPS /ping応答のprobable確認"
+                or profile.get("source") != PURELOGS_SOURCE
+                or any(
+                    key in profile
+                    for key in (
+                        "payload",
+                        "post_path",
+                        "registration_packet",
+                        "task_request",
+                        "victim_metadata",
+                    )
+                )
+            ):
+                raise ProtocolProfileError("PureLogs /ping profileの完全一致安全境界が不正です")
+        elif handler == "purerat_tls_prelude":
+            # 04000000はv4.1.9のfamily-level公開解析で確認されている。一方、
+            # e554 v4.4.1で静的に確認できたのはendpointと証明書だけであり、
+            # 同じpreludeを当該buildの個体証拠へ昇格しない。
+            if (
+                PURERAT_E554_PROFILE_PORTS.get(profile_id) != port
+                or profile.get("family") != "purehvnc"
+                or profile.get("sample_sha256s") != [PURERAT_E554_SAMPLE_SHA256]
+                or host != "tirakian.com"
+                or profile.get("send_hex") != "04000000"
                 or profile.get("maximum_request_bytes") != 4
+                or type(profile.get("maximum_request_bytes")) is not int
                 or profile.get("sni") is not None
                 or profile.get("tls_version") != "TLSv1.2"
+                or profile.get("tls_version_enforced_by_nse") is not False
+                or profile.get("expected_certificate_sha256") != PURERAT_E554_CERTIFICATE_SHA256
+                or profile.get("evidence_status") != "compatibility_hypothesis"
+                or profile.get("sample_version") != "4.4.1"
+                or profile.get("family_legacy_prelude_version") != "4.1.9"
+                or profile.get("family_legacy_prelude_evidence_status") != "family_level_public_research_confirmed"
+                or profile.get("family_legacy_prelude_evidence_source") != PURERAT_LEGACY_PRELUDE_RESEARCH_SOURCE
+                or profile.get("sample_transport_binding_status") != "unverified"
+                or profile.get("wire_prelude_verified_for_sample") is not False
+                or profile.get("confirmation_allowed") is not False
+                or profile.get("profile_acknowledgement_required") is not True
+                or profile.get("reviewed_host_required") is not True
+                or profile.get("role") != "PureRAT e554 4.4.1証明書pin（v4.1.9 family-level旧preludeとの互換仮説）"
+                or profile.get("source") != PURERAT_E554_SOURCE
                 or maximum != 64
+                or type(profile.get("maximum_response_bytes")) is not int
+                or type(profile.get("timeout_seconds")) is not float
                 or timeout != 3.0
-                or not SHA256_RE.fullmatch(str(profile.get("expected_certificate_sha256") or ""))
-                or any(key in profile for key in ("payload", "checkin", "request_packet", "artifact_zip"))
+                or any(
+                    key in profile
+                    for key in (
+                        "payload",
+                        "checkin",
+                        "request_packet",
+                        "registration_packet",
+                        "task_request",
+                        "victim_metadata",
+                        "artifact_zip",
+                    )
+                )
             ):
-                raise ProtocolProfileError(f"PureRAT prelude profileのreview済み安全境界が不正です: {profile_id}")
+                raise ProtocolProfileError(f"PureRAT旧prelude互換profileの安全境界が不正です: {profile_id}")
         elif handler == "c2_detector_n520_server_first":
             if profile.get("sni") != "update.microsoft.com" or maximum != 44:
                 raise ProtocolProfileError("N520 server-first profileのSNIまたは応答上限が不正です")
@@ -439,6 +557,8 @@ def load_profiles(
                 or profile.get("maximum_request_bytes") != 0
                 or maximum != 0
                 or profile.get("allow_openssl_legacy_security_level") is not True
+                or profile.get("role") != "PureRAT 4.4.1 TLS-first certificate pin"
+                or profile.get("source") != PURERAT_DIRECT_SOURCE
                 or type(profile.get("timeout_seconds")) is not float
                 or timeout != 3.0
                 or any(
@@ -449,6 +569,13 @@ def load_profiles(
                         "private_key",
                         "client_certificate",
                         "client_certificate_path",
+                        "payload",
+                        "checkin",
+                        "request_packet",
+                        "registration_packet",
+                        "task_request",
+                        "victim_metadata",
+                        "artifact_zip",
                     )
                 )
             ):

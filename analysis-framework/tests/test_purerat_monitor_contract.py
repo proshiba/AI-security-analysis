@@ -15,16 +15,14 @@ ROOT = Path(__file__).parents[2]
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import monitor_recent_c2 as monitor  # noqa: E402
-from c2_protocol_probe_profiles import (  # noqa: E402
+import monitor_recent_c2 as monitor
+from c2_protocol_probe_profiles import (
     apply_profiles,
     profile_registry_metadata,
 )
 
 METHOD = "purerat_direct_tls_certificate_pin"
-CERTIFICATE_SHA256 = (
-    "b3ae061b0b14a89d5134c279775b8f77a42214323c6bddab07f4d81ca2fc5c57"
-)
+CERTIFICATE_SHA256 = "b3ae061b0b14a89d5134c279775b8f77a42214323c6bddab07f4d81ca2fc5c57"
 
 
 class FakeSocket:
@@ -81,7 +79,7 @@ def _observe(
 
     def resolver(*_args: object, **_kwargs: object) -> list[tuple[Any, ...]]:
         calls["resolver"] += 1
-        return [(2, 1, 6, "", ("45.192.211.77", 56001))]
+        return [(2, 1, 6, "", ("127.0.0.1", 56001))]
 
     def connector(_endpoint: tuple[str, int], _timeout: float) -> FakeSocket:
         calls["connector"] += 1
@@ -189,14 +187,20 @@ def test_preconnect_profile_validation_error_is_not_reported_as_contact() -> Non
     assert calls == 0
 
 
-def test_exact_tlsv1_and_certificate_pin_are_confirmed_at_point_92() -> None:
+def test_exact_tlsv1_and_certificate_pin_are_probable_loopback_only() -> None:
     target, observation, calls, raw = _observe()
     assessment = monitor.assess_observation(target, observation)
-    assert calls == {"resolver": 0, "connector": 1, "handshake": 1}
+    assert calls == {"resolver": 1, "connector": 1, "handshake": 1}
     assert raw.closed is True
     assert raw.send_attempted is False
-    assert observation["status"] == "confirmed_purerat_direct_tls_certificate"
-    assert observation["c2_confirmed"] is True
+    assert observation["status"] == "purerat_direct_tls_certificate_match_probable_loopback"
+    assert observation["c2_confirmed"] is False
+    assert observation["probable_c2"] is True
+    assert observation["confidence"] == 0.75
+    assert observation["target_contact_attempted"] is False
+    assert observation["target_connection_established"] is False
+    assert observation["loopback_connection_established"] is True
+    assert observation["external_target_contact_allowed"] is False
     assert observation["application_data_sent"] is False
     assert observation["sent_bytes"] == 0
     assert observation["request_count"] == 0
@@ -206,9 +210,10 @@ def test_exact_tlsv1_and_certificate_pin_are_confirmed_at_point_92() -> None:
     assert observation["tls"]["version"] == "TLSv1"
     assert observation["tls"]["version_exact_match"] is True
     assert observation["tls"]["certificate"]["exact_match"] is True
-    assert assessment["state"] == "c2_protocol_confirmed"
-    assert assessment["c2_operational_confidence"] == 0.92
-    assert assessment["method_confidence_ceiling"] == 0.92
+    assert assessment["state"] == "purerat_certificate_profile_probable_loopback_external_not_observed"
+    assert assessment["reachability_confidence"] == 0.0
+    assert assessment["c2_operational_confidence"] == 0.0
+    assert assessment["method_confidence_ceiling"] == 0.75
 
 
 @pytest.mark.parametrize(
@@ -236,7 +241,7 @@ def test_certificate_or_tls_version_mismatch_is_inconclusive(
         certificate_sha256=certificate,
     )
     assessment = monitor.assess_observation(target, observation)
-    assert calls == {"resolver": 0, "connector": 1, "handshake": 1}
+    assert calls == {"resolver": 1, "connector": 1, "handshake": 1}
     assert raw.closed is True
     assert observation["status"] == expected_status
     assert observation["c2_confirmed"] is False
@@ -244,7 +249,7 @@ def test_certificate_or_tls_version_mismatch_is_inconclusive(
     assert observation["tls_version_mismatch_excludes_family_c2"] is False
     assert assessment["state"] != "c2_protocol_confirmed"
     assert assessment["c2_operational_confidence"] == 0.0
-    assert assessment["method_confidence_ceiling"] == 0.92
+    assert assessment["method_confidence_ceiling"] == 0.75
     assert assessment["negative_observation_confidence"] == 0.0
 
 
@@ -267,7 +272,7 @@ def test_confirmation_with_side_effect_flag_is_rejected(
     assessment = monitor.assess_observation(target, contradictory)
     assert assessment["state"] == "purerat_confirmation_inconsistent_c2_not_confirmed"
     assert assessment["c2_operational_confidence"] == 0.0
-    assert assessment["method_confidence_ceiling"] == 0.92
+    assert assessment["method_confidence_ceiling"] == 0.75
 
 
 def test_confirmation_with_tls_flag_contradiction_is_rejected() -> None:
@@ -314,6 +319,9 @@ def test_monitor_uses_dedicated_dispatch_redacts_secrets_and_reports_policy(
         observation["execution_engine"] = "nmap_nse"
         observation["status"] = "purerat_nse_certificate_match_tls_version_unverified"
         observation["c2_confirmed"] = False
+        observation["probable_c2"] = True
+        observation["target_contact_attempted"] = True
+        observation["target_connection_established"] = True
         return observation
 
     def generic_forbidden(*_args: object, **_kwargs: object) -> Any:

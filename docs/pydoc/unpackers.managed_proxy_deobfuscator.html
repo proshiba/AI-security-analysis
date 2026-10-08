@@ -10,20 +10,10 @@
 <dl><dt><a name="-analyze_managed_protector"><strong>analyze_managed_protector</strong></a>(data: 'bytes', *, include_records: 'bool' = False) -&gt; 'dict[str, Any]'</dt><dd><span class="code">managed&nbsp;PEを実行せずprotector&nbsp;profileを抽出する。</span></dd></dl>
 
 <h2>analyze_proxy_resources</h2>
-<dl><dt><a name="-analyze_proxy_resources"><strong>analyze_proxy_resources</strong></a>(
-    resources: 'Iterable[tuple[str, bytes]]',
-    *,
-    include_records: 'bool' = False,
-    metadata_resolver: 'MetadataResolver | None' = None
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">resource群から妥当な動的プロキシ表候補を抽出する。</span></dd></dl>
+<dl><dt><a name="-analyze_proxy_resources"><strong>analyze_proxy_resources</strong></a>(resources: 'Iterable[tuple[str, bytes]]', *, include_records: 'bool' = False, metadata_resolver: 'MetadataResolver | None' = None) -&gt; 'dict[str, Any]'</dt><dd><span class="code">resource群から妥当な動的プロキシ表候補を抽出する。</span></dd></dl>
 
 <h2>decrypt_eaz_proxy_table</h2>
-<dl><dt><a name="-decrypt_eaz_proxy_table"><strong>decrypt_eaz_proxy_table</strong></a>(
-    data: 'bytes',
-    *,
-    seed: 'int' = 1383095734,
-    addend: 'int' = 848575190
-) -&gt; 'bytes'</dt><dd><span class="code">確認済みEazfuscator系word変換を適用する。</span></dd></dl>
+<dl><dt><a name="-decrypt_eaz_proxy_table"><strong>decrypt_eaz_proxy_table</strong></a>(data: 'bytes', *, seed: 'int' = 1383095734, addend: 'int' = 848575190) -&gt; 'bytes'</dt><dd><span class="code">確認済みEazfuscator系word変換を適用する。</span></dd></dl>
 
 <h2>main</h2>
 <dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt></dl>

@@ -15,13 +15,7 @@
 <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">read-only再開計画CLIの引数parserを構築する。</span></dd></dl>
 
 <h2>build_resume_plan</h2>
-<dl><dt><a name="-build_resume_plan"><strong>build_resume_plan</strong></a>(
-    *,
-    repository: 'Path',
-    input_root: 'Path',
-    work_root: 'Path',
-    orchestration_id: 'str'
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">保存済み成果物だけを読み、machine-readableな次動作を返す。</span></dd></dl>
+<dl><dt><a name="-build_resume_plan"><strong>build_resume_plan</strong></a>(*, repository: 'Path', input_root: 'Path', work_root: 'Path', orchestration_id: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">保存済み成果物だけを読み、machine-readableな次動作を返す。</span></dd></dl>
 
 <h2>main</h2>
 <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">再開計画をJSONで出力し、状態に応じた固定終了codeを返す。</span></dd></dl>

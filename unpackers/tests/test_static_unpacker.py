@@ -11,6 +11,7 @@ import zipfile
 import zlib
 from pathlib import Path
 from types import SimpleNamespace
+from typing import ClassVar
 
 import pefile
 import pytest
@@ -543,6 +544,94 @@ def test_png_idat_zlib_unused_data_is_recovered_as_bounded_layer() -> None:
     assert report["png"]["concealed_size"] == len(hidden)
     assert report["png"]["concealed_content_in_report"] is False
     assert artifacts == [("png-idat-zlib-unused-data", hidden)]
+
+
+def test_png_itxt_chunk_data_is_recovered_without_family_promotion() -> None:
+    """iTXtの不透明bytesをPNG framingだけ外し、帰属や復号を主張しない。"""
+
+    carrier = b"\x00Paws-neutral\xff" * 16
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    png = b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", ihdr)
+    png += _png_chunk(b"IDAT", zlib.compress(b"\0\0\0\0"))
+    png += _png_chunk(b"iTXt", carrier) + _png_chunk(b"IEND", b"")
+
+    report, artifacts = unpacker.unpack_bytes(png, "carrier.png")
+
+    itxt = report["png"]["itxt_carriers"]
+    assert itxt["status"] == "itxt_chunk_data_recovered"
+    assert itxt["itxt_chunk_count"] == 1
+    assert itxt["extracted_total_size"] == len(carrier)
+    assert itxt["entries"][0]["content_in_report"] is False
+    assert itxt["payload_decrypted"] is False
+    assert itxt["supports_family_attribution"] is False
+    assert itxt["supports_c2_confirmation"] is False
+    assert artifacts == [("png-itxt-chunk-data-000", carrier)]
+
+
+def test_png_itxt_crc_failure_after_candidate_discards_all_artifacts() -> None:
+    """先行iTXtが正常でも後続chunkのCRC不正時は部分結果を返さない。"""
+
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    png = b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", ihdr)
+    png += _png_chunk(b"IDAT", zlib.compress(b"\0\0\0\0"))
+    png += _png_chunk(b"iTXt", b"candidate") + _png_chunk(b"IEND", b"")
+    corrupted = png[:-1] + bytes([png[-1] ^ 0xFF])
+
+    report, artifacts = unpacker.recover_png_itxt_chunk_data(corrupted)
+
+    assert report["status"] == "crc_mismatch"
+    assert report["chunk_type"] == "IEND"
+    assert artifacts == []
+
+
+def test_png_itxt_chunk_count_limit_discards_staged_candidate() -> None:
+    """IENDまで検証できないchunk数では、先に得た候補も公開しない。"""
+
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    png = b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", ihdr)
+    png += _png_chunk(b"IDAT", zlib.compress(b"\0\0\0\0"))
+    png += _png_chunk(b"iTXt", b"candidate") + _png_chunk(b"IEND", b"")
+
+    report, artifacts = unpacker.recover_png_itxt_chunk_data(png, max_chunks=3)
+
+    assert report["status"] == "chunk_limit_blocked"
+    assert artifacts == []
+
+
+def test_png_itxt_total_size_limit_discards_all_candidates() -> None:
+    """複数iTXtの合計が上限を超えた場合も部分復元を返さない。"""
+
+    first = b"A" * 8
+    second = b"B" * 8
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    png = b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", ihdr)
+    png += _png_chunk(b"IDAT", zlib.compress(b"\0\0\0\0"))
+    png += _png_chunk(b"iTXt", first) + _png_chunk(b"iTXt", second)
+    png += _png_chunk(b"IEND", b"")
+
+    report, artifacts = unpacker.recover_png_itxt_chunk_data(
+        png,
+        max_total_size=len(first) + len(second) - 1,
+    )
+
+    assert report["status"] == "total_extracted_size_blocked"
+    assert artifacts == []
+
+
+def test_png_itxt_chunk_length_limit_is_checked_before_slicing() -> None:
+    """宣言chunk長が上限を超えた入力をpayload slice前に拒否する。"""
+
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    png = b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", ihdr)
+
+    report, artifacts = unpacker.recover_png_itxt_chunk_data(
+        png,
+        max_chunk_length=12,
+    )
+
+    assert report["status"] == "chunk_length_blocked"
+    assert report["declared_length"] == 13
+    assert artifacts == []
 
 
 def test_detached_idat_stream_is_recovered_without_png_header() -> None:
@@ -2269,6 +2358,339 @@ def test_managed_smartassembly_strings_reach_fixed_point_layers(
     assert ("managed-smartassembly-strings-json", recovered) in artifacts
 
 
+def test_managed_eaz_resource_reaches_fixed_point_without_opaque_duplicate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """復元PEを先に渡し、同じ暗号resourceの汎用opaque artifactだけを除く。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": False,
+                "is_dotnet": True,
+                "sections": [],
+                "packer_markers": [],
+                "overlay_size": 0,
+            },
+            [],
+        ),
+    )
+    protected = b"encrypted protected resource"
+    decoded = b"MZ recovered managed resource"
+    retained = b"unrelated opaque resource"
+    order: list[str] = []
+
+    def recover_eaz(_data: bytes):
+        order.append("eaz")
+        return (
+            {
+                "status": "recovered_managed_resource",
+                "resource": {"sha256": unpacker.sha256_bytes(protected)},
+                "method_token": "0x06000042",
+                "static_evidence": {
+                    "seed": 659_796_207,
+                    "addend": 957_243_902,
+                    "transform_core_canonical_sha256": "a" * 64,
+                },
+                "family_attribution_allowed": False,
+            },
+            [("managed-eaz-resource-pe", decoded)],
+        )
+
+    def recover_generic(_data: bytes):
+        order.append("generic")
+        return (
+            {"status": "extracted"},
+            [
+                ("dotnet-resource-opaque", protected),
+                ("dotnet-resource-opaque", retained),
+            ],
+        )
+
+    monkeypatch.setattr(unpacker, "recover_managed_eaz_resource", recover_eaz)
+
+    def recover_proxy(_data: bytes, *, include_records, additional_transforms):
+        order.append("proxy")
+        assert include_records is True
+        assert tuple(additional_transforms) == (
+            {
+                "profile": "eazfuscator_dynamic_proxy_derived_static_recipe",
+                "seed": 659_796_207,
+                "addend": 957_243_902,
+            },
+        )
+        return {
+            "status": "matched",
+            "proxy_analysis": {
+                "status": "matched",
+                "candidates": [
+                    {
+                        "record_count": 1,
+                        "records": [
+                            {
+                                "field_token": "0x04000001",
+                                "target_token": "0x0a000001",
+                                "call_kind": "call",
+                                "valid": True,
+                            }
+                        ],
+                    }
+                ],
+            },
+            "executed": False,
+            "network_contacted": False,
+        }
+
+    monkeypatch.setattr(unpacker, "analyze_managed_protector", recover_proxy)
+
+    original_tripledes = unpacker.recover_managed_tripledes_gzip
+
+    def recover_tripledes(data: bytes, *, proxy_records=None):
+        if proxy_records is None:
+            return original_tripledes(data)
+        order.append("proxy-tripledes")
+        assert len(proxy_records) == 1
+        return ({"status": "not_candidate", "proxy_call_rewrite": {}}, [])
+
+    monkeypatch.setattr(unpacker, "recover_managed_tripledes_gzip", recover_tripledes)
+    monkeypatch.setattr(unpacker, "recover_dotnet_resources", recover_generic)
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_smartassembly_strings",
+        lambda _data: ({"status": "not_recovered"}, []),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(b"MZfixture", "fixture.exe")
+
+    assert order == ["eaz", "proxy", "proxy-tripledes", "generic"]
+    assert report["managed_eaz_resource"]["family_attribution_allowed"] is False
+    assert report["managed_proxy_after_eaz"]["status"] == "matched"
+    assert (
+        report["managed_proxy_after_eaz"]["proxy_analysis"]["candidates"][0][
+            "records_published"
+        ]
+        is False
+    )
+    assert (
+        "records"
+        not in report["managed_proxy_after_eaz"]["proxy_analysis"]["candidates"][0]
+    )
+    assert report["managed_tripledes_gzip_after_eaz"]["status"] == "not_candidate"
+    assert report["managed_proxy_after_eaz"]["static_recipe_source"] == {
+        "method_token": "0x06000042",
+        "transform_core_canonical_sha256": "a" * 64,
+        "raw_key_published": False,
+        "sample_executed": False,
+        "network_contacted": False,
+    }
+    assert ("managed-eaz-resource-pe", decoded) in artifacts
+    assert ("dotnet-resource-opaque", protected) not in artifacts
+    assert ("dotnet-resource-opaque", retained) in artifacts
+
+
+def test_managed_omlx_tripledes_preserves_report_and_terminal_lineage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """静的OMLX親子証拠と終端PE artifact種別を両方残す。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": False,
+                "is_dotnet": True,
+                "sections": [],
+                "packer_markers": [],
+                "overlay_size": 0,
+            },
+            [],
+        ),
+    )
+    parent_sha256 = "a" * 64
+    child_sha256 = "b" * 64
+    terminal_sha256 = "c" * 64
+    terminal = b"MZ bounded terminal managed PE"
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_omlx_tripledes",
+        lambda _data: (
+            {
+                "status": "recovered_managed_omlx_tripledes",
+                "input": {"sha256": parent_sha256},
+                "eaz_child": {"sha256": child_sha256},
+                "output": {"sha256": terminal_sha256, "format": "managed_pe"},
+                "family_attribution_allowed": False,
+                "terminal_config_markers_confirmed": False,
+            },
+            [("managed-omlx-tripledes-gzip-pe", terminal)],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_eaz_resource",
+        lambda _data: ({"status": "not_applicable"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_dotnet_resources",
+        lambda _data: ({"status": "not_recovered"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_smartassembly_strings",
+        lambda _data: ({"status": "not_recovered"}, []),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(b"MZfixture", "fixture.exe")
+
+    recipe = report["managed_omlx_tripledes"]
+    assert recipe["input"]["sha256"] == parent_sha256
+    assert recipe["eaz_child"]["sha256"] == child_sha256
+    assert recipe["output"] == {
+        "sha256": terminal_sha256,
+        "format": "managed_pe",
+    }
+    assert recipe["family_attribution_allowed"] is False
+    assert recipe["terminal_config_markers_confirmed"] is False
+    assert ("managed-omlx-tripledes-gzip-pe", terminal) in artifacts
+
+
+def test_managed_omlx_tripledes_rejection_never_emits_a_terminal_artifact(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """未知opcodeでfail-closedになった場合はreportだけを残す。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": False,
+                "is_dotnet": True,
+                "sections": [],
+                "packer_markers": [],
+                "overlay_size": 0,
+            },
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_omlx_tripledes",
+        lambda _data: (
+            {
+                "status": "rejected",
+                "reason": "omlx_opcode_out_of_profile:171",
+                "family_attribution_allowed": False,
+                "terminal_config_markers_confirmed": False,
+            },
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_eaz_resource",
+        lambda _data: ({"status": "not_applicable"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_dotnet_resources",
+        lambda _data: ({"status": "not_recovered"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_smartassembly_strings",
+        lambda _data: ({"status": "not_recovered"}, []),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(b"MZfixture", "fixture.exe")
+
+    assert report["managed_omlx_tripledes"] == {
+        "status": "rejected",
+        "reason": "omlx_opcode_out_of_profile:171",
+        "family_attribution_allowed": False,
+        "terminal_config_markers_confirmed": False,
+    }
+    assert not any(kind == "managed-omlx-tripledes-gzip-pe" for kind, _ in artifacts)
+
+
+def test_managed_bitmap_argb_xor_is_routed_once_without_family_promotion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """exact loader lineageを優先し、同一generic artifactを重複保持しない。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": False,
+                "is_dotnet": True,
+                "sections": [],
+                "packer_markers": [],
+                "overlay_size": 0,
+            },
+            [],
+        ),
+    )
+    load_input = b"MZ exact Assembly.Load input\x70"
+    unrelated = b"unrelated opaque resource"
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_bitmap_argb_xor",
+        lambda _data: (
+            {
+                "status": "recovered_managed_pe",
+                "family_attribution_allowed": False,
+                "c2_confirmation_allowed": False,
+                "terminal_promotion_eligible": False,
+                "secret_material_in_report": False,
+                "artifact_visibility": "private_recursive_analysis_only",
+            },
+            [("managed-bitmap-argb-xor-load-input", load_input)],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_eaz_resource",
+        lambda _data: ({"status": "not_candidate"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_dotnet_resources",
+        lambda _data: (
+            {"status": "extracted"},
+            [
+                ("dotnet-resource-opaque", load_input),
+                ("dotnet-resource-opaque", unrelated),
+            ],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_smartassembly_strings",
+        lambda _data: ({"status": "not_recovered"}, []),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(b"MZfixture", "fixture.exe")
+
+    recipe = report["managed_bitmap_argb_xor"]
+    assert recipe["family_attribution_allowed"] is False
+    assert recipe["c2_confirmation_allowed"] is False
+    assert recipe["terminal_promotion_eligible"] is False
+    assert recipe["secret_material_in_report"] is False
+    assert artifacts.count(("managed-bitmap-argb-xor-load-input", load_input)) == 1
+    assert ("dotnet-resource-opaque", load_input) not in artifacts
+    assert ("dotnet-resource-opaque", unrelated) in artifacts
+
+
 def test_managed_handoff_image_is_inspected_without_clr_execution(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -3109,7 +3531,7 @@ def test_lzx_cab_refinery_checksum_failure_discards_all_members(
     cab = synthetic_lzx_cab()
 
     class ChecksumFailureCabinet:
-        disks: dict[int, list[object]] = {}
+        disks: ClassVar[dict[int, list[object]]] = {}
 
         def __init__(self, _source: memoryview, *, compute_checksums: bool) -> None:
             assert compute_checksums is True

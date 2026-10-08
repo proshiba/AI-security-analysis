@@ -33,6 +33,9 @@ MAX_METHODS = 4096
 MAX_METHOD_BYTES = 256 << 10
 MAX_METHOD_INSTRUCTIONS = 4096
 MAX_TOTAL_METHOD_BYTES = 2 << 20
+MAX_PREFILTER_METHODS = 4096
+MAX_PREFILTER_CODE_BYTES = 32 << 20
+PREFILTER_METHOD_THRESHOLD = 256
 MAX_SECONDS = 10.0
 MAX_REFERENCE_ROWS = 16384
 MAX_API_SIGNATURE_BYTES = 1024
@@ -111,18 +114,28 @@ _CLASSIC_ASSEMBLY_PAIRS = {
 }
 _CLASSIC_VERSIONS = {(2, 0, 0, 0), (4, 0, 0, 0)}
 _SYSTEM_TYPES = {
-    "System.IO.Compression.GZipStream", "System.IO.Compression.CompressionMode",
+    "System.IO.Compression.GZipStream",
+    "System.IO.Compression.CompressionMode",
 }
 _VALUE_TYPES = {
-    "System.Security.Cryptography.CipherMode", "System.Security.Cryptography.PaddingMode",
-    "System.Security.Cryptography.CryptoStreamMode", "System.IO.Compression.CompressionMode",
+    "System.Security.Cryptography.CipherMode",
+    "System.Security.Cryptography.PaddingMode",
+    "System.Security.Cryptography.CryptoStreamMode",
+    "System.IO.Compression.CompressionMode",
 }
 _CLASSIC_TYPES = {
-    "System.Byte", "System.Reflection.Assembly", "System.IO.Stream", "System.Convert",
-    "System.Security.Cryptography.TripleDES", "System.Security.Cryptography.SymmetricAlgorithm",
-    "System.Security.Cryptography.ICryptoTransform", "System.IO.MemoryStream",
-    "System.Security.Cryptography.CryptoStream", "System.IDisposable",
-    *_SYSTEM_TYPES, *_VALUE_TYPES,
+    "System.Byte",
+    "System.Reflection.Assembly",
+    "System.IO.Stream",
+    "System.Convert",
+    "System.Security.Cryptography.TripleDES",
+    "System.Security.Cryptography.SymmetricAlgorithm",
+    "System.Security.Cryptography.ICryptoTransform",
+    "System.IO.MemoryStream",
+    "System.Security.Cryptography.CryptoStream",
+    "System.IDisposable",
+    *_SYSTEM_TYPES,
+    *_VALUE_TYPES,
 }
 
 
@@ -131,7 +144,12 @@ class RecipeError(ValueError):
 
 
 def _signature(blob, references, *, type_versions=None, expected_version=None):
-    if not isinstance(blob, bytes) or not blob or len(blob) > MAX_API_SIGNATURE_BYTES or blob[0] not in {0, 0x20}:
+    if (
+        not isinstance(blob, bytes)
+        or not blob
+        or len(blob) > MAX_API_SIGNATURE_BYTES
+        or blob[0] not in {0, 0x20}
+    ):
         return None
     position = 1
     items = 0
@@ -179,7 +197,10 @@ def _signature(blob, references, *, type_versions=None, expected_version=None):
                 raise ValueError("signature_untrusted_type")
             if (code == 0x11) != (name in _VALUE_TYPES):
                 raise ValueError("signature_type_kind")
-            if type_versions is not None and type_versions.get(token) != expected_version:
+            if (
+                type_versions is not None
+                and type_versions.get(token) != expected_version
+            ):
                 raise ValueError("signature_type_version")
             return name
         raise ValueError("signature_unknown_type")
@@ -200,8 +221,11 @@ def _signature(blob, references, *, type_versions=None, expected_version=None):
 
 def _identity_text(value):
     value = getattr(value, "value", value)
-    if (not isinstance(value, str) or len(value) > 512
-            or any(ord(character) < 32 or ord(character) == 127 for character in value)):
+    if (
+        not isinstance(value, str)
+        or len(value) > 512
+        or any(ord(character) < 32 or ord(character) == 127 for character in value)
+    ):
         raise RecipeError("framework_identity_text_invalid")
     return value
 
@@ -214,12 +238,20 @@ def _classic_assembly(row):
     if not isinstance(flags, int) or isinstance(flags, bool) or flags != 0:
         raise RecipeError("framework_assembly_flags_not_reviewed")
     key = getattr(getattr(row, "PublicKey", None), "value", None)
-    if not isinstance(key, bytes) or len(key) != 8 or (name, key) not in _CLASSIC_ASSEMBLY_PAIRS:
+    if (
+        not isinstance(key, bytes)
+        or len(key) != 8
+        or (name, key) not in _CLASSIC_ASSEMBLY_PAIRS
+    ):
         raise RecipeError("framework_assembly_identity_pair_not_reviewed")
-    version = tuple(getattr(row, field, None) for field in
-                    ("MajorVersion", "MinorVersion", "BuildNumber", "RevisionNumber"))
-    if (any(not isinstance(value, int) or isinstance(value, bool) for value in version)
-            or version not in _CLASSIC_VERSIONS):
+    version = tuple(
+        getattr(row, field, None)
+        for field in ("MajorVersion", "MinorVersion", "BuildNumber", "RevisionNumber")
+    )
+    if (
+        any(not isinstance(value, int) or isinstance(value, bool) for value in version)
+        or version not in _CLASSIC_VERSIONS
+    ):
         raise RecipeError("framework_assembly_version_not_reviewed")
     return name, key, version
 
@@ -230,7 +262,10 @@ def _framework_references(pe, deadline, clock):
     coverage = resolver.coverage()
     if not coverage["complete"]:
         raise RecipeError("framework_metadata_incomplete_or_over_budget")
-    if any(not resolver.tables[name]["present"] for name in ("TypeRef", "MemberRef", "AssemblyRef")):
+    if any(
+        not resolver.tables[name]["present"]
+        for name in ("TypeRef", "MemberRef", "AssemblyRef")
+    ):
         raise RecipeError("framework_metadata_table_missing")
     reasons = Counter()
     assemblies = {}
@@ -244,12 +279,18 @@ def _framework_references(pe, deadline, clock):
     for rid, row in enumerate(resolver.tables["TypeRef"]["rows"], 1):
         _check_time(deadline, clock)
         try:
-            name = _identity_text(getattr(row, "TypeNamespace", None)) + "." + _identity_text(getattr(row, "TypeName", None))
+            name = (
+                _identity_text(getattr(row, "TypeNamespace", None))
+                + "."
+                + _identity_text(getattr(row, "TypeName", None))
+            )
             if name not in _CLASSIC_TYPES:
                 raise RecipeError("framework_type_not_reviewed")
             try:
                 # coded indexは同じPEの表・有効RIDに限定する。nested/forward scopeは対象外。
-                scope = resolver._coded_token(getattr(row, "ResolutionScope", None), {"AssemblyRef"})
+                scope = resolver._coded_token(
+                    getattr(row, "ResolutionScope", None), {"AssemblyRef"}
+                )
             except ValueError:
                 raise RecipeError("framework_type_scope_not_reviewed") from None
             identity = assemblies.get(scope)
@@ -275,26 +316,44 @@ def _framework_references(pe, deadline, clock):
             name = owner_name + "::" + _identity_text(getattr(row, "Name", None))
             if name not in _API_SIGNATURES:
                 raise RecipeError("framework_member_not_reviewed")
-            if name == "System.IO.Stream::CopyTo" and type_versions[owner] != (4, 0, 0, 0):
+            if name == "System.IO.Stream::CopyTo" and type_versions[owner] != (
+                4,
+                0,
+                0,
+                0,
+            ):
                 raise RecipeError("framework_member_version_not_reviewed")
             token = 0x0A000000 | rid
             if resolver.resolve(token)["status"] != "resolved":
                 raise RecipeError("framework_member_metadata_invalid")
             signature = getattr(getattr(row, "Signature", None), "value", None)
-            parsed = _signature(signature, references, type_versions=type_versions, expected_version=type_versions[owner])
+            parsed = _signature(
+                signature,
+                references,
+                type_versions=type_versions,
+                expected_version=type_versions[owner],
+            )
             if parsed not in _API_SIGNATURES[name]:
                 raise RecipeError("framework_member_signature_not_reviewed")
             references[token], parameter_counts[token] = name, len(parsed[2])
             matched += 1
         except RecipeError as failure:
             reasons[str(failure)] += 1
-    return references, parameter_counts, {
-        "profile_id": "classic_dotnet_tripledes_gzip_v1", "matched_member_count": matched,
-        "scope": "reviewed_metadata_declarations_only", "metadata_complete": True,
-        "runtime_assembly_integrity_verified": False, "runtime_dispatch_verified": False,
-        "side_effect_free_verified": False, "nonthrowing_verified": False,
-        "unreviewed_reason_counts": dict(sorted(reasons.items())),
-    }
+    return (
+        references,
+        parameter_counts,
+        {
+            "profile_id": "classic_dotnet_tripledes_gzip_v1",
+            "matched_member_count": matched,
+            "scope": "reviewed_metadata_declarations_only",
+            "metadata_complete": True,
+            "runtime_assembly_integrity_verified": False,
+            "runtime_dispatch_verified": False,
+            "side_effect_free_verified": False,
+            "nonthrowing_verified": False,
+            "unreviewed_reason_counts": dict(sorted(reasons.items())),
+        },
+    )
 
 
 def _check_time(deadline, clock):
@@ -319,6 +378,468 @@ def _raw_span(pe, data, rva, size):
     if len(matches) != 1:
         raise RecipeError("ambiguous_or_unbacked_raw_span")
     return matches[0]
+
+
+def _cil_code_span(raw: bytes) -> tuple[int, int]:
+    """CIL method headerだけを検証し、命令列の範囲を返す。
+
+    大規模な難読化assemblyでは、全MethodDefをdncilへ渡す前に、既知APIへの
+    direct callを持つmethodだけを絞り込むために使う。命令解釈は行わない。
+    """
+
+    if not raw:
+        raise RecipeError("method_header_truncated")
+    header_kind = raw[0] & 0x3
+    if header_kind == 0x2:  # ECMA-335 tiny format
+        header_size = 1
+        code_size = raw[0] >> 2
+    elif header_kind == 0x3:  # ECMA-335 fat format
+        if len(raw) < 12:
+            raise RecipeError("method_header_truncated")
+        flags_and_size = struct.unpack_from("<H", raw)[0]
+        header_size = ((flags_and_size >> 12) & 0xF) * 4
+        if header_size < 12 or header_size > len(raw):
+            raise RecipeError("method_header_invalid")
+        code_size = struct.unpack_from("<I", raw, 4)[0]
+    else:
+        raise RecipeError("method_header_invalid")
+    end = header_size + code_size
+    if code_size > MAX_METHOD_BYTES or end > len(raw):
+        raise RecipeError("method_body_budget")
+    return header_size, end
+
+
+def _direct_call_token_present(raw: bytes, tokens: set[int]) -> bool:
+    """method命令列に対象tokenへのcall/callvirt/newobj表現があるか確認する。
+
+    byte列照合は候補削減だけに使い、採用は後段のdncil・完全signature・
+    def-use・CFG検証で行う。したがって偽陽性は昇格へ影響しない。
+    """
+
+    start, end = _cil_code_span(raw)
+    code = raw[start:end]
+    return any(
+        bytes((opcode,)) + struct.pack("<I", token) in code
+        for token in tokens
+        for opcode in (0x28, 0x6F, 0x73)
+    )
+
+
+def _static_field_token_present(raw: bytes, tokens: set[int]) -> bool:
+    """候補削減専用に ``ldsfld`` と完全tokenの並びを探す。"""
+
+    start, end = _cil_code_span(raw)
+    code = raw[start:end]
+    return any(b"\x7e" + struct.pack("<I", token) in code for token in tokens)
+
+
+def _compressed_uint(data: bytes, position: int) -> tuple[int, int]:
+    """ECMA-335 compressed unsigned integerをcanonical表現だけ受理する。"""
+
+    if position >= len(data):
+        raise RecipeError("signature_integer_truncated")
+    first = data[position]
+    if first < 0x80:
+        return first, position + 1
+    if first < 0xC0:
+        if position + 2 > len(data):
+            raise RecipeError("signature_integer_truncated")
+        value = ((first & 0x3F) << 8) | data[position + 1]
+        if value < 0x80:
+            raise RecipeError("signature_integer_noncanonical")
+        return value, position + 2
+    if first < 0xE0:
+        if position + 4 > len(data):
+            raise RecipeError("signature_integer_truncated")
+        value = (
+            ((first & 0x1F) << 24)
+            | (data[position + 1] << 16)
+            | (data[position + 2] << 8)
+            | data[position + 3]
+        )
+        if value < 0x4000:
+            raise RecipeError("signature_integer_noncanonical")
+        return value, position + 4
+    raise RecipeError("signature_integer_invalid")
+
+
+def _signature_type_end(data: bytes, position: int, *, depth: int = 0) -> int:
+    """proxy trampoline照合に必要な型signatureだけを有界にskipする。"""
+
+    if depth > 8 or position >= len(data):
+        raise RecipeError("signature_type_truncated_or_deep")
+    element = data[position]
+    position += 1
+    # primitive、object、typedref、native int/uint
+    if element in {
+        0x01,
+        0x02,
+        0x03,
+        0x04,
+        0x05,
+        0x06,
+        0x07,
+        0x08,
+        0x09,
+        0x0A,
+        0x0B,
+        0x0C,
+        0x0D,
+        0x0E,
+        0x16,
+        0x18,
+        0x19,
+        0x1C,
+    }:
+        return position
+    # PTR、BYREF、SZARRAY、PINNED
+    if element in {0x0F, 0x10, 0x1D, 0x45}:
+        return _signature_type_end(data, position, depth=depth + 1)
+    # VALUETYPE、CLASS、VAR、MVAR
+    if element in {0x11, 0x12, 0x13, 0x1E}:
+        _, position = _compressed_uint(data, position)
+        return position
+    # GENERICINST: kind + TypeDefOrRef + argument count + argument types
+    if element == 0x15:
+        if position >= len(data) or data[position] not in {0x11, 0x12}:
+            raise RecipeError("signature_genericinst_kind_invalid")
+        position += 1
+        _, position = _compressed_uint(data, position)
+        count, position = _compressed_uint(data, position)
+        if count > 32:
+            raise RecipeError("signature_genericinst_arity_limit")
+        for _ in range(count):
+            position = _signature_type_end(data, position, depth=depth + 1)
+        return position
+    raise RecipeError("signature_type_not_reviewed")
+
+
+def _method_signature_parts(blob: bytes) -> tuple[bool, bytes, tuple[bytes, ...]]:
+    """非generic default method signatureをraw型単位へ分割する。"""
+
+    if not isinstance(blob, bytes) or not blob or len(blob) > MAX_API_SIGNATURE_BYTES:
+        raise RecipeError("method_signature_invalid")
+    flags = blob[0]
+    if flags & 0x10 or flags & 0x40 or flags & 0x0F:
+        raise RecipeError("method_signature_convention_not_reviewed")
+    position = 1
+    count, position = _compressed_uint(blob, position)
+    if count > 32:
+        raise RecipeError("method_signature_parameter_limit")
+    start = position
+    position = _signature_type_end(blob, position)
+    result = blob[start:position]
+    parameters = []
+    for _ in range(count):
+        start = position
+        position = _signature_type_end(blob, position)
+        parameters.append(blob[start:position])
+    if position != len(blob):
+        raise RecipeError("method_signature_trailing_data")
+    return bool(flags & 0x20), result, tuple(parameters)
+
+
+def _field_signature_type(blob: bytes) -> bytes:
+    if not isinstance(blob, bytes) or len(blob) > MAX_API_SIGNATURE_BYTES or not blob:
+        raise RecipeError("field_signature_invalid")
+    if blob[0] != 0x06:
+        raise RecipeError("field_signature_convention_not_reviewed")
+    end = _signature_type_end(blob, 1)
+    if end != len(blob):
+        raise RecipeError("field_signature_trailing_data")
+    return blob[1:end]
+
+
+def _type_token(type_signature: bytes) -> int | None:
+    """単純class/valuetypeのTypeDefOrRef tokenを返す。"""
+
+    if not type_signature or type_signature[0] not in {0x11, 0x12}:
+        return None
+    coded, end = _compressed_uint(type_signature, 1)
+    if end != len(type_signature) or coded & 3 not in {0, 1, 2} or not coded >> 2:
+        return None
+    table = {0: 0x02, 1: 0x01, 2: 0x1B}[coded & 3]
+    return (table << 24) | (coded >> 2)
+
+
+def _argument_index(instruction: dict) -> int | None:
+    opcode = instruction["opcode"]
+    match = re.fullmatch(r"ldarg\.([0-3])", opcode)
+    if match:
+        return int(match.group(1))
+    if opcode not in {"ldarg", "ldarg.s"}:
+        return None
+    match = re.fullmatch(r"argument\(0x([0-9a-fA-F]+)\)", instruction["operand"])
+    return int(match.group(1), 16) if match else None
+
+
+def _token_value(instruction: dict) -> int | None:
+    value = instruction.get("token")
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    match = re.fullmatch(r"token\(0x([0-9a-fA-F]+)\)", instruction.get("operand", ""))
+    return int(match.group(1), 16) if match else None
+
+
+def _method_owner_tokens(pe) -> dict[int, int]:
+    """TypeDef.MethodListをexact token mapへ変換する。"""
+
+    owners = {}
+    table = pe.net.mdtables.TypeDef
+    if table and table.num_rows > MAX_REFERENCE_ROWS:
+        raise RecipeError("typedef_row_limit")
+    for type_rid, row in enumerate(table.rows if table else (), 1):
+        for reference in getattr(row, "MethodList", ()) or ():
+            method_rid = getattr(reference, "row_index", None)
+            if (
+                not isinstance(method_rid, int)
+                or isinstance(method_rid, bool)
+                or not 0 < method_rid <= 0xFFFFFF
+                or method_rid in owners
+            ):
+                raise RecipeError("method_owner_ambiguity")
+            owners[method_rid] = 0x02000000 | type_rid
+    return owners
+
+
+def _method_body(pe, data: bytes, token: int):
+    if token >> 24 != 0x06 or not token & 0xFFFFFF:
+        raise RecipeError("proxy_helper_token_invalid")
+    rows = pe.net.mdtables.MethodDef.rows
+    rid = token & 0xFFFFFF
+    if rid > len(rows):
+        raise RecipeError("proxy_helper_token_out_of_range")
+    row = rows[rid - 1]
+    if not row.Rva:
+        raise RecipeError("proxy_helper_has_no_body")
+    spans = [
+        section
+        for section in pe.sections
+        if section.VirtualAddress
+        <= row.Rva
+        < section.VirtualAddress + section.SizeOfRawData
+    ]
+    if len(spans) != 1:
+        raise RecipeError("proxy_helper_not_file_backed")
+    available = min(
+        MAX_METHOD_BYTES,
+        spans[0].VirtualAddress + spans[0].SizeOfRawData - row.Rva,
+    )
+    start, end = _raw_span(pe, data, row.Rva, available)
+    body = read_method_body_from_bytes(data[start:end])
+    if (
+        body.size > MAX_METHOD_BYTES
+        or len(body.instructions) > MAX_METHOD_INSTRUCTIONS
+        or getattr(body, "exception_handlers", ())
+    ):
+        raise RecipeError("proxy_helper_body_not_reviewed")
+    instructions = []
+    for item in body.instructions:
+        value = getattr(item.operand, "value", None)
+        instructions.append(
+            {
+                "offset": item.offset,
+                "opcode": item.opcode.name,
+                "operand": str(item.operand),
+                "token": value if isinstance(value, int) else None,
+            }
+        )
+    return row, instructions
+
+
+def _validated_proxy_api_map(pe, proxy_records, references, parameter_counts):
+    """完全metadata検証済みrecordからレビュー済みAPIだけを採用する。"""
+
+    if proxy_records is None:
+        return {}
+    if (
+        not isinstance(proxy_records, (list, tuple))
+        or len(proxy_records) > MAX_REFERENCE_ROWS
+    ):
+        raise RecipeError("proxy_record_input_limit")
+    resolver = MetadataResolver(pe, max_rows=MAX_REFERENCE_ROWS)
+    if not resolver.coverage()["complete"]:
+        raise RecipeError("proxy_record_metadata_incomplete")
+    result = {}
+    for record in proxy_records:
+        if not isinstance(record, dict) or record.get("valid") is not True:
+            raise RecipeError("proxy_record_not_prevalidated")
+        try:
+            field = int(record["field_token"], 16)
+            target = int(record["target_token"], 16)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise RecipeError("proxy_record_token_invalid") from exc
+        if field in result:
+            raise RecipeError("proxy_record_field_duplicate")
+        api = references.get(target)
+        parameter_count = parameter_counts.get(target)
+        if api is None or parameter_count is None:
+            continue
+        field_resolution = resolver.resolve(field, kind="field")
+        target_resolution = resolver.resolve(target)
+        if (
+            field_resolution["status"] != "resolved"
+            or target_resolution["status"] != "resolved"
+        ):
+            raise RecipeError("proxy_record_metadata_changed")
+        target_row = pe.net.mdtables.MemberRef.rows[(target & 0xFFFFFF) - 1]
+        target_signature = getattr(
+            getattr(target_row, "Signature", None), "value", None
+        )
+        target_has_this, target_return, target_parameters = _method_signature_parts(
+            target_signature
+        )
+        if len(target_parameters) != parameter_count:
+            raise RecipeError("proxy_target_parameter_count_changed")
+        expected_kind = "callvirt" if target_has_this else "call"
+        if record.get("call_kind") != expected_kind:
+            raise RecipeError("proxy_target_call_kind_mismatch")
+        field_row = pe.net.mdtables.Field.rows[(field & 0xFFFFFF) - 1]
+        field_type = _field_signature_type(
+            getattr(getattr(field_row, "Signature", None), "value", None)
+        )
+        result[field] = {
+            "api": api,
+            "target_token": target,
+            "call_kind": expected_kind,
+            "parameter_count": parameter_count,
+            "stack_argument_count": parameter_count + int(target_has_this),
+            "target_has_this": target_has_this,
+            "target_return": target_return,
+            "target_parameters": target_parameters,
+            "field_type": field_type,
+        }
+    return result
+
+
+def _validated_proxy_helper(pe, data, helper_token, mapping, owners):
+    """delegateを最後の引数で受けるside-effect-free trampolineだけを受理する。"""
+
+    row, instructions = _method_body(pe, data, helper_token)
+    if not instructions or instructions[0]["opcode"] not in {"br", "br.s"}:
+        raise RecipeError("proxy_helper_entry_branch_missing")
+    try:
+        target_offset = int(instructions[0]["operand"], 0)
+    except ValueError as exc:
+        raise RecipeError("proxy_helper_entry_branch_invalid") from exc
+    starts = [
+        n for n, item in enumerate(instructions) if item["offset"] == target_offset
+    ]
+    start = _unique(starts, "proxy_helper_branch_target_ambiguous")
+    stack_count = mapping["stack_argument_count"]
+    reachable = instructions[start:]
+    if len(reachable) != stack_count + 3:
+        raise RecipeError("proxy_helper_reachable_shape_mismatch")
+    expected_arguments = [stack_count, *range(stack_count)]
+    actual_arguments = [_argument_index(item) for item in reachable[: stack_count + 1]]
+    if actual_arguments != expected_arguments:
+        raise RecipeError("proxy_helper_argument_permutation_mismatch")
+    invoke, returned = reachable[-2:]
+    if invoke["opcode"] != "callvirt" or returned["opcode"] != "ret":
+        raise RecipeError("proxy_helper_delegate_invoke_missing")
+    invoke_token = _token_value(invoke)
+    if invoke_token is None or invoke_token >> 24 != 0x06:
+        raise RecipeError("proxy_helper_invoke_token_invalid")
+    invoke_rid = invoke_token & 0xFFFFFF
+    invoke_row = pe.net.mdtables.MethodDef.rows[invoke_rid - 1]
+    if str(invoke_row.Name) != "Invoke":
+        raise RecipeError("proxy_helper_target_not_delegate_invoke")
+    field_type_token = _type_token(mapping["field_type"])
+    if field_type_token is None or owners.get(invoke_rid) != field_type_token:
+        raise RecipeError("proxy_helper_delegate_type_mismatch")
+    helper_signature = getattr(getattr(row, "Signature", None), "value", None)
+    helper_has_this, helper_return, helper_parameters = _method_signature_parts(
+        helper_signature
+    )
+    invoke_signature = getattr(getattr(invoke_row, "Signature", None), "value", None)
+    invoke_has_this, invoke_return, invoke_parameters = _method_signature_parts(
+        invoke_signature
+    )
+    if (
+        helper_has_this
+        or not invoke_has_this
+        or len(helper_parameters) != stack_count + 1
+        or helper_parameters[-1] != mapping["field_type"]
+        or helper_return != invoke_return
+        or helper_parameters[:-1] != invoke_parameters
+        or invoke_return != mapping["target_return"]
+    ):
+        raise RecipeError("proxy_helper_signature_mismatch")
+    if mapping["target_has_this"]:
+        if (
+            not invoke_parameters
+            or invoke_parameters[0] != b"\x1c"
+            or invoke_parameters[1:] != mapping["target_parameters"]
+        ):
+            raise RecipeError("proxy_helper_instance_signature_mismatch")
+    elif invoke_parameters != mapping["target_parameters"]:
+        raise RecipeError("proxy_helper_static_signature_mismatch")
+    return {
+        "helper_token": helper_token,
+        "invoke_token": invoke_token,
+        "reachable_instruction_count": len(reachable),
+    }
+
+
+def _rewrite_proxy_calls(pe, data, instructions, proxy_map, owners, helper_cache):
+    """検証済み ``ldsfld; call helper`` pairだけをdirect API callへ置換する。"""
+
+    branch_targets = set()
+    for item in instructions:
+        opcode = item["opcode"]
+        if opcode == "switch":
+            branch_targets.update(
+                int(value) for value in re.findall(r"-?[0-9]+", item["operand"])
+            )
+        elif opcode.startswith(
+            ("br", "beq", "bne", "bge", "bgt", "ble", "blt", "leave")
+        ):
+            try:
+                branch_targets.add(int(item["operand"], 0))
+            except ValueError as exc:
+                raise RecipeError("proxy_caller_branch_target_invalid") from exc
+    output = []
+    rewrites = []
+    index = 0
+    while index < len(instructions):
+        item = instructions[index]
+        field = _token_value(item) if item["opcode"] == "ldsfld" else None
+        mapping = proxy_map.get(field)
+        if mapping is None or index + 1 >= len(instructions):
+            output.append(item)
+            index += 1
+            continue
+        caller = instructions[index + 1]
+        helper_token = _token_value(caller) if caller["opcode"] == "call" else None
+        if helper_token is None:
+            output.append(item)
+            index += 1
+            continue
+        if item["offset"] in branch_targets:
+            raise RecipeError("proxy_field_load_is_branch_target")
+        key = (helper_token, field)
+        if key not in helper_cache:
+            helper_cache[key] = _validated_proxy_helper(
+                pe, data, helper_token, mapping, owners
+            )
+        replacement = dict(caller)
+        replacement.update(
+            opcode=mapping["call_kind"],
+            operand=f"token(0x{mapping['target_token']:08X})",
+            token=mapping["target_token"],
+            resolved_token=mapping["api"],
+            parameter_count=mapping["parameter_count"],
+        )
+        output.append(replacement)
+        rewrites.append(
+            {
+                "field_token": field,
+                "helper_token": helper_token,
+                "target_token": mapping["target_token"],
+            }
+        )
+        index += 2
+    return output, rewrites
 
 
 def _local(i: dict, action: str) -> int | None:
@@ -887,9 +1408,17 @@ def recover_model(
 
 
 def recover_managed_tripledes_gzip(
-    data: bytes, *, clock=time.monotonic
+    data: bytes,
+    *,
+    proxy_records: list[dict] | tuple[dict, ...] | None = None,
+    clock=time.monotonic,
 ) -> tuple[dict, list[tuple[str, bytes]]]:
-    """CLRをloadせず、明示CIL・resource・sinkからPE候補を静的回収する。"""
+    """CLRをloadせず、明示CIL・resource・sinkからPE候補を静的回収する。
+
+    ``proxy_records`` は同一入力からmetadata照合済みのEaz proxy表だけを受ける。
+    field型、target宣言、helperのdelegate型・signature・reachable CILをここでも
+    再検証し、完全一致した ``ldsfld; call`` pairだけを候補CIL上で置換する。
+    """
     if len(data) > MAX_INPUT:
         return recover_model(data, [], {})
     if not has_clr_metadata(data):
@@ -901,20 +1430,48 @@ def recover_managed_tripledes_gzip(
         tables = pe.net.mdtables
         if not tables or tables.MethodDef.num_rows > MAX_METHODS:
             raise RecipeError("method_count_limit")
-        references, parameter_counts, declaration_validation = _framework_references(pe, deadline, clock)
+        references, parameter_counts, declaration_validation = _framework_references(
+            pe, deadline, clock
+        )
         if not {
             "System.Security.Cryptography.TripleDES::Create",
             "System.IO.Compression.GZipStream::.ctor",
             "System.Reflection.Assembly::Load",
         }.issubset(references.values()):
-            report, artifacts = recover_model(data, [], {}, clock=clock, deadline=deadline)
-            report.update(reason="framework_api_declaration_not_reviewed", framework_declaration_validation=declaration_validation)
+            report, artifacts = recover_model(
+                data, [], {}, clock=clock, deadline=deadline
+            )
+            report.update(
+                reason="framework_api_declaration_not_reviewed",
+                framework_declaration_validation=declaration_validation,
+            )
             return report, artifacts
+        tripledes_tokens = {
+            token
+            for token, name in references.items()
+            if name == "System.Security.Cryptography.TripleDES::Create"
+        }
+        if not tripledes_tokens:
+            raise RecipeError("tripledes_create_token_missing")
+        proxy_map = _validated_proxy_api_map(
+            pe, proxy_records, references, parameter_counts
+        )
+        proxy_field_tokens = set(proxy_map)
+        method_owners = _method_owner_tokens(pe) if proxy_map else {}
+        helper_cache = {}
+        proxy_rewrites = []
+        use_prefilter = tables.MethodDef.num_rows > PREFILTER_METHOD_THRESHOLD
         methods, total = [], 0
+        prefilter_code_bytes = 0
+        prefilter_method_count = 0
+        prefilter_candidate_count = 0
         for n, row in enumerate(tables.MethodDef.rows, 1):
             _check_time(deadline, clock)
             if not row.Rva:
                 continue
+            prefilter_method_count += 1
+            if prefilter_method_count > MAX_PREFILTER_METHODS:
+                raise RecipeError("method_prefilter_count_limit")
             spans = [
                 section
                 for section in pe.sections
@@ -929,7 +1486,22 @@ def recover_managed_tripledes_gzip(
                 spans[0].VirtualAddress + spans[0].SizeOfRawData - row.Rva,
             )
             start, end = _raw_span(pe, data, row.Rva, available)
-            body = read_method_body_from_bytes(data[start:end])
+            method_raw = data[start:end]
+            if use_prefilter:
+                code_start, code_end = _cil_code_span(method_raw)
+                prefilter_code_bytes += code_end - code_start
+                if prefilter_code_bytes > MAX_PREFILTER_CODE_BYTES:
+                    raise RecipeError("method_prefilter_byte_limit")
+                if not (
+                    _direct_call_token_present(method_raw, tripledes_tokens)
+                    or (
+                        proxy_field_tokens
+                        and _static_field_token_present(method_raw, proxy_field_tokens)
+                    )
+                ):
+                    continue
+                prefilter_candidate_count += 1
+            body = read_method_body_from_bytes(method_raw)
             total += body.size
             if (
                 body.size > MAX_METHOD_BYTES
@@ -944,6 +1516,7 @@ def recover_managed_tripledes_gzip(
                     "offset": i.offset,
                     "opcode": i.opcode.name,
                     "operand": str(i.operand),
+                    "token": value if isinstance(value, int) else None,
                     "resolved_token": references.get(value),
                 }
                 record["parameter_count"] = parameter_counts.get(value)
@@ -953,6 +1526,18 @@ def recover_managed_tripledes_gzip(
                         raise RecipeError("user_string_limit")
                     record["string"] = str(text)
                 instructions.append(record)
+            if proxy_map:
+                instructions, rewrites = _rewrite_proxy_calls(
+                    pe,
+                    data,
+                    instructions,
+                    proxy_map,
+                    method_owners,
+                    helper_cache,
+                )
+                proxy_rewrites.extend(
+                    {"method_token": 0x06000000 | n, **rewrite} for rewrite in rewrites
+                )
             methods.append(
                 {"token": 0x06000000 | n, "rva": row.Rva, "instructions": instructions}
             )
@@ -961,7 +1546,25 @@ def recover_managed_tripledes_gzip(
             for method in methods
             for i in method["instructions"]
         ):
-            return recover_model(data, [], {}, clock=clock, deadline=deadline)
+            report, artifacts = recover_model(
+                data, [], {}, clock=clock, deadline=deadline
+            )
+            report["method_prefilter"] = {
+                "enabled": use_prefilter,
+                "method_count": prefilter_method_count,
+                "code_bytes_inspected": prefilter_code_bytes,
+                "candidate_count": prefilter_candidate_count,
+                "acceptance_role": "candidate_reduction_only",
+            }
+            report["proxy_call_rewrite"] = {
+                "requested": proxy_records is not None,
+                "reviewed_api_field_count": len(proxy_map),
+                "verified_helper_count": len(helper_cache),
+                "rewritten_call_count": len(proxy_rewrites),
+                "acceptance_role": "candidate_cil_normalization_only",
+                "runtime_dispatch_verified": False,
+            }
+            return report, artifacts
         resources = {}
         table = tables.ManifestResource
         if table and table.num_rows > 256:
@@ -999,8 +1602,25 @@ def recover_managed_tripledes_gzip(
                 raise RecipeError("resource_not_file_backed")
             resources[name] = raw
         _check_time(deadline, clock)
-        report, artifacts = recover_model(data, methods, resources, clock=clock, deadline=deadline)
+        report, artifacts = recover_model(
+            data, methods, resources, clock=clock, deadline=deadline
+        )
         report["framework_declaration_validation"] = declaration_validation
+        report["method_prefilter"] = {
+            "enabled": use_prefilter,
+            "method_count": prefilter_method_count,
+            "code_bytes_inspected": prefilter_code_bytes,
+            "candidate_count": prefilter_candidate_count,
+            "acceptance_role": "candidate_reduction_only",
+        }
+        report["proxy_call_rewrite"] = {
+            "requested": proxy_records is not None,
+            "reviewed_api_field_count": len(proxy_map),
+            "verified_helper_count": len(helper_cache),
+            "rewritten_call_count": len(proxy_rewrites),
+            "acceptance_role": "candidate_cil_normalization_only",
+            "runtime_dispatch_verified": False,
+        }
         return report, artifacts
     except (
         RecipeError,

@@ -24,7 +24,7 @@ AsyncRAT／VenomRATのhost emulatorは、合成`ClientInfo`に続けて空`Messa
 - 配布先、decoy、正規update、local proxyはC2へ混同しない。
 - `.onion`は`transport: tor-socks5`とし、proxyはlocalhostだけを許可する。
 
-現在のmethodは次の19種類です。すべて[`nmap/profiles.json`](../nmap/profiles.json)のNSE bindingを持ち、未登録methodは実行前に拒否します。
+現在のmethodは次の20種類です。すべて[`nmap/profiles.json`](../nmap/profiles.json)のNSE bindingを持ち、未登録methodは実行前に拒否します。
 
 | method | 動作 | C2稼働confidence上限 |
 |---|---|---:|
@@ -43,10 +43,11 @@ AsyncRAT／VenomRATのhost emulatorは、合成`ClientInfo`に続けて空`Messa
 | `lumma_v6_registration_task` | Lumma v6へ`uid/cid`を送信し、合成hwidでtaskを1回取得 | 0.95 |
 | `remus_registration_task` | Remusへ合成端末を登録し、復号tokenで`step=1` taskを1回取得 | 0.95 |
 | `protocol_profile_required` | review済み固有profileがない対象はDNS観測だけで停止 | 0.05 |
-| `purerat_direct_tls_certificate_pin` | PureRAT direct TLSの証明書pinを観測。TLS version厳密保証がないため確定へ昇格しない | 0.92 |
+| `purerat_direct_tls_certificate_pin` | PureRAT direct TLSの証明書pinを観測。TLS versionとmalware protocol応答を同時に厳密確認できないためprobableに限定する | 0.75 |
+| `purelogs_https_ping` | 完全一致・IP pinning済みPureLogs endpointへ`GET /ping`を1回送信し、証明書、HTTP 200、本文`OK`のhashを照合。`http_aes_v5`世代分類はfamily-level公開調査によるものでsample versionは未確定、TLS versionも厳密保証できないためprobable限定 | 0.70 |
 | `darkcomet_server_first_idtype` | DarkCometのserver-first `IDTYPE`をNSEで受信専用検証 | 0.98 |
 | `redline_checkconnect_soap11` | RedLineの固定SOAP `CheckConnect`をNSEで1要求だけ検証 | 0.98 |
-| `purerat_tls_prelude` | PureRATの固定4 byte prelude後にTLSへ昇格し、検体内蔵証明書pinを照合 | 0.95 |
+| `purerat_tls_prelude` | PureRAT legacyの4 byte prelude互換仮説後にTLSへ昇格し、検体内蔵証明書pinを照合。当該buildのwire実装とTLS versionは未確認のためprobable限定 | 0.60 |
 
 TCP open、一般TLS、HTTP status、FTP bannerはC2所有者やmalware固有applicationを証明しません。`c2_operational_confidence` と `reachability_confidence` は必ず分離して読みます。
 
@@ -61,7 +62,7 @@ py -3.13 .\analysis-framework\common\monitor_recent_c2.py `
   --output-directory .\.work\c2-monitoring-preview
 ```
 
-レビュー後、明示的な許可があるtaskでだけ`--allow-network`を指定します。`--allow-network`だけではAsyncRAT／VenomRATはTLS handshakeと証明書観測までで、匿名Pingは送りません。匿名Pingには`--allow-reviewed-application-probes`、AgentTesla FTP認証にはさらに`--allow-authentication`とリポジトリ外`--private-credential-vault`が必要です。StealC／Lumma／Remusの合成登録とtask取得には、独立した`--allow-malware-registration-tasking`も必要です。FormBook／XLoaderは常に`passive_only`であり、互換用のXLoader許可flagや完全一致profileを指定しても、HEAD、登録GET、汎用HTTP要求をproduction監視から送信できません。
+レビュー後、明示的な許可があるtaskでだけ`--allow-network`を指定します。`--allow-network`だけではAsyncRAT／VenomRATはTLS handshakeと証明書観測までで、匿名Pingは送りません。匿名PingとPureLogsの固定`GET /ping`には`--allow-reviewed-application-probes`が必要です。PureLogsはさらに対象profile IDと完全一致する`--acknowledge-profile`がなければNmap起動前に拒否します。PureRAT legacyの4 byte prelude互換仮説は`--allow-purerat-legacy-tls-certificate-probe`と同じ完全一致ackの両方が必要です。AgentTesla FTP認証には`--allow-authentication`とリポジトリ外`--private-credential-vault`が必要です。StealC／Lumma／Remusの合成登録とtask取得には、独立した`--allow-malware-registration-tasking`も必要です。FormBook／XLoaderは常に`passive_only`であり、互換用のXLoader許可flagや完全一致profileを指定しても、HEAD、登録GET、汎用HTTP要求をproduction監視から送信できません。
 
 ```powershell
 py -3.13 .\analysis-framework\common\monitor_recent_c2.py `
@@ -108,6 +109,8 @@ sidecarから公開するのはsession時刻、profile ID、確認状態、regis
 - `transport_reachable_c2_not_confirmed`: TCP到達のみ。C2稼働confidenceは最大0.25。
 - `tls_endpoint_reachable_c2_not_confirmed`: TLS成立のみ。
 - `application_endpoint_reachable_c2_not_confirmed`: 限定HTTP応答あり。C2固有応答ではない。
+- `purelogs_reviewed_ping_probable_c2_not_confirmed`: 完全一致profileで証明書、HTTP 200、本文hashが一致したが、`http_aes_v5`分類はfamily-level証拠でsample version未確定、TLS versionも厳密保証できないためprobable限定。
+- `purerat_legacy_prelude_probable_c2_not_confirmed`: 4 byte prelude互換仮説後の証明書pinは一致したが、当該buildのwire実装とTLS versionが未確認のためprobable限定。
 - `server_first_response_reachable_c2_not_confirmed`: server-first応答あり。family fingerprint一致前は未確認。
 - `not_reachable_at_observation`: 今回の観測で応答なし。恒久停止を意味しない。
 - `not_observed_proxy_unavailable`: Tor等の観測経路がなく、対象へ接続できていない。

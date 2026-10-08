@@ -39,20 +39,20 @@ LECEは配布層の構造であり、このmagicだけをPureRAT判定へ使っ�
 
 ## C2判定
 
-標準のactive C2観測は`analysis-framework/nmap/scripts/purerat-direct-tls.nse`を`nmap_c2_detector.py`から呼び出します。旧`purerat_direct_tls_probe.py`はoffline fixtureと合成loopback回帰の互換部品であり、外部対象の標準backendではありません。
+標準のactive C2観測は`analysis-framework/nmap/scripts/purerat-direct-tls.nse`を`nmap_c2_detector.py`から呼び出します。旧`purerat_direct_tls_probe.py`はoffline fixtureと合成loopback回帰の互換部品です。既定のresolver／connectorを持たず、両方を明示注入しても単一numeric loopback以外をconnectorへ渡さないため、外部対象へ接続できません。loopback上でTLS versionと証明書pinが一致しても、malware protocol応答を確認していないので`probable_c2=true`、confidence上限0.75、`c2_confirmed=false`に限定します。
 
 実装済みのreview済みprofileは `purerat-441-d025a296-45-192-211-77-56001-direct-tls10` だけです。root SHA-256、terminal SHA-256、`45.192.211[.]77:56001`、TLS 1.0、leaf certificate SHA-256 `b3ae061b0b14a89d5134c279775b8f77a42214323c6bddab07f4d81ca2fc5c57`を完全固定し、1項目でも変更されたdictはDNS解決前に拒否します。`56002`と`56003`は静的設定候補として残しますが、同一証明書との対応を独立にreviewするまでこの能動profileへ追加しません。
 
 1. `allow_network`とPureRAT legacy TLS専用gateの両方を明示しない限りNmapを起動しない。
 2. review済みendpoint、証明書SHA-256 pin、中央profileの完全一致を必須にする。
 3. plaintext preludeを送らず、Nmap NSEがTLS接続を最初に行う。
-4. endpointとleaf certificate SHA-256 pinが一致しても、Nmapだけではnegotiated TLS versionを厳密保証できないため`c2_confirmed=false`のままconfidence上限0.92とする。
+4. endpointとleaf certificate SHA-256 pinが一致しても、Nmapだけではnegotiated TLS versionを厳密保証できないため`c2_confirmed=false`のprobable判定に限定し、confidence上限0.75とする。
 5. TLSまたは証明書の不一致はinconclusiveとして扱い、レビュー済み完全一致build／endpointは除外できてもPureRAT familyのC2否定には使わない。
 6. application data、victim metadata、registration、task poll、plugin結果、command結果を送信しない。
 
-`purerat-direct-tls.nse`はreview済み`45.192.211[.]77:56001`以外をscript側で接続せず、TLS接続後にleaf certificate SHA-256を読むだけで即切断します。旧`purerat-c2.nse`はplaintext prelude variant専用として分離します。Nmap socketではTLS 1.0を厳密に強制したことを保証しにくいため、証明書・endpoint完全一致でもconfidenceは0.92、`c2_confirmed=false`です。Python direct probeへfallbackしません。
+`purerat-direct-tls.nse`はreview済み`45.192.211[.]77:56001`以外をscript側で接続せず、TLS接続後にleaf certificate SHA-256を読むだけで即切断します。旧`purerat-c2.nse`はplaintext prelude variant専用として分離します。Nmap socketではTLS 1.0を厳密に強制したことを保証しにくいため、証明書・endpoint完全一致でもconfidenceは0.75、`probable_c2=true`、`c2_confirmed=false`です。Python direct probeへfallbackしません。
 
-frame codecはoffline解析用です。little-endian 32-bit長、GZip、protobuf-netを上限付きで展開し、既知ProtoInclude discriminatorを分類します。確認済みの型対応はregistration `1`、heartbeat `2`、status/error `3`、plugin context `4`、plugin descriptor／cache-miss request `5`、configuration update `38`、command wrapper `86`です。tag `4`をplugin resultまたはtag `5`への応答と確定する根拠はなく、operation／result wire契約は未解決です。既存offline synthetic fixtureのresult候補`4`はmetadata上の候補であり、exact 4.4.1の返信方向、operation、payload schema、terminal直接送信を確認したものではなく、wire生成には使用しません。
+frame codecはoffline解析用です。little-endian 32-bit長、単一GZip member、protobuf-netをsizeと展開率の上限内で復元します。mutableなbytes-like値、空payload、複数GZip member、trailing byte、64-bitを超えるvarint、wire type 2以外の継承envelope、複数root fieldはfail-closedで拒否します。公開分類結果はframe／protobufのsizeとSHA-256、単一envelope判定だけを残し、この形状一致だけでfamily帰属を確定しません。確認済みの型対応はregistration `1`、heartbeat `2`、status/error `3`、plugin context `4`、plugin descriptor／cache-miss request `5`、configuration update `38`、command wrapper `86`です。tag `4`をplugin resultまたはtag `5`への応答と確定する根拠はなく、operation／result wire契約は未解決です。既存offline synthetic fixtureのresult候補`4`はmetadata上の候補であり、exact 4.4.1の返信方向、operation、payload schema、terminal直接送信を確認したものではなく、wire生成には使用しません。
 
 ## 既存実装へ反映すべき差分
 
@@ -69,7 +69,7 @@ frame codecはoffline解析用です。little-endian 32-bit長、GZip、protobuf
 
 RAT emulator registryの`evidence_sha256`は、この公開JSONをstrict UTF-8で読み、CRLFだけをLFへ正規化したSHA-256 `6317d660a214c6f5eaf7b369a85e36b3b9d5459baed2876d8315aa60ee410c77`です。`analysis-framework/malware/purehvnc/purerat_host_emulator.py`は、全`GClass4` memberをdefaultのままにした固定registration `0a00`だけを生成します。deterministicなLE32／GZip frameは26 bytes、SHA-256は`fae7f27b56eed121c893860cd4764d64541fe1a0b67bc22da050e70161f44001`です。実ユーザー名、端末名、HWID、OS、campaign等は設定しません。
 
-実行範囲はoffline fixtureまたは`127.0.0.1` loopbackだけです。共通runnerのprofileは`offline_or_loopback_only`として扱い、外部live sessionはDNS解決・socket作成より前に拒否します。TLS client certificate、PFX、秘密鍵は読み込みません。
+実行範囲はoffline fixtureまたはnumeric loopbackだけです。共通runnerのprofileは`offline_or_loopback_only`として扱い、既定backendや非loopbackのresolver応答はsocket作成より前に拒否します。TLS client certificate、PFX、秘密鍵は読み込みません。
 
 状態遷移は次のとおりです。
 

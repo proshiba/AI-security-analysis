@@ -23,11 +23,12 @@ COMMON_ROOT = FRAMEWORK_ROOT / "common"
 if str(COMMON_ROOT) not in sys.path:
     sys.path.insert(0, str(COMMON_ROOT))
 
-from c2_protocol_probe_profiles import (  # noqa: E402
+from c2_protocol_probe_profiles import (
     load_profiles,
     profile_registry_metadata,
     resolve_profile,
 )
+
 SCRIPT_ROOT = NMAP_ROOT / "scripts"
 SAFE_ARGUMENT_KEY = re.compile(r"[a-z0-9][a-z0-9_.-]{0,63}")
 SAFE_SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -59,83 +60,87 @@ class NmapBinding:
 METHOD_BINDINGS: dict[str, NmapBinding] = {
     "dns_resolve": NmapBinding("c2-dns-observe.nse", confirmation_allowed=False),
     "protocol_profile_required": NmapBinding("c2-dns-observe.nse", confirmation_allowed=False),
-    "tcp_connect": NmapBinding(
-        "c2-transport-observe.nse", "c2-transport.mode", "tcp-open", confirmation_allowed=False
-    ),
+    "tcp_connect": NmapBinding("c2-transport-observe.nse", "c2-transport.mode", "tcp-open", confirmation_allowed=False),
     "passive_banner": NmapBinding(
         "c2-transport-observe.nse", "c2-transport.mode", "server-first", confirmation_allowed=False
     ),
-    "tls_handshake": NmapBinding(
-        "c2-transport-observe.nse", "c2-transport.mode", "tls", confirmation_allowed=False
-    ),
-    "http_get": NmapBinding(
-        "c2-transport-observe.nse", "c2-transport.mode", "http-get", True, False
-    ),
+    "tls_handshake": NmapBinding("c2-transport-observe.nse", "c2-transport.mode", "tls", confirmation_allowed=False),
+    "http_get": NmapBinding("c2-transport-observe.nse", "c2-transport.mode", "http-get", True, False),
     "winos_heartbeat": NmapBinding("valleyrat-c2.nse", "valleyrat.mode", "winos", True),
     "vvas_checkin": NmapBinding("valleyrat-c2.nse", "valleyrat.mode", "vvas", True),
     "n520_server_first": NmapBinding("valleyrat-c2.nse", "valleyrat.mode", "n520"),
-    "purerat_direct_tls_certificate_pin": NmapBinding(
-        "purerat-direct-tls.nse", confirmation_allowed=False
-    ),
-    # prelude variant: TCP接続直後に 04 00 00 00 を送ってからTLS 1.2へ昇格する。
-    # 4 byteを送るので sends_application_data=True。
-    "purerat_tls_prelude": NmapBinding(
-        "purerat-c2.nse", sends_application_data=True
-    ),
+    "purerat_direct_tls_certificate_pin": NmapBinding("purerat-direct-tls.nse", confirmation_allowed=False),
+    "purelogs_https_ping": NmapBinding("purelogs-c2.nse", sends_application_data=True, confirmation_allowed=False),
+    # 旧prelude互換仮説。4 byteを送るためapplication data扱いだが、
+    # certificate一致時もC2確認へは昇格しない。
+    "purerat_tls_prelude": NmapBinding("purerat-c2.nse", sends_application_data=True, confirmation_allowed=False),
     "ftp_authenticated": NmapBinding("agenttesla-ftp-c2.nse", sends_application_data=True),
-    "asyncrat_tls_messagepack": NmapBinding(
-        "dotnet-rat-c2.nse", "dotnet-rat.family", "asyncrat", True
-    ),
-    "venomrat_tls_messagepack": NmapBinding(
-        "dotnet-rat-c2.nse", "dotnet-rat.family", "venomrat", True
-    ),
-    "stealc_v2_registration_task": NmapBinding(
-        "stealer-http-c2.nse", "stealer.family", "stealc", True
-    ),
-    "lumma_v6_registration_task": NmapBinding(
-        "stealer-http-c2.nse", "stealer.family", "lumma", True, False
-    ),
-    "remus_registration_task": NmapBinding(
-        "stealer-http-c2.nse", "stealer.family", "remus", True, False
-    ),
+    "asyncrat_tls_messagepack": NmapBinding("dotnet-rat-c2.nse", "dotnet-rat.family", "asyncrat", True),
+    "venomrat_tls_messagepack": NmapBinding("dotnet-rat-c2.nse", "dotnet-rat.family", "venomrat", True),
+    "stealc_v2_registration_task": NmapBinding("stealer-http-c2.nse", "stealer.family", "stealc", True),
+    "lumma_v6_registration_task": NmapBinding("stealer-http-c2.nse", "stealer.family", "lumma", True, False),
+    "remus_registration_task": NmapBinding("stealer-http-c2.nse", "stealer.family", "remus", True, False),
     "darkcomet_server_first_idtype": NmapBinding("darkcomet-c2.nse"),
     "redline_checkconnect_soap11": NmapBinding("redline-c2.nse", sends_application_data=True),
-    "xloader_v8_get_registration": NmapBinding("xloader-c2.nse", confirmation_allowed=False),
-    "formbook_reviewed_route_head": NmapBinding(
-        "stealer-route-c2.nse",
-        "stealer-route.mode",
-        "formbook",
-        sends_application_data=True,
-        confirmation_allowed=False,
-    ),
 }
+PASSIVE_ONLY_FAMILY_ALIASES = frozenset(
+    {
+        "formbook",
+        "formbook-loader",
+        "formbook-stealer",
+        "formbook_loader",
+        "guloader-xloader-payload",
+        "guloader_xloader_payload",
+        "xloader",
+    }
+)
+PASSIVE_ONLY_APPLICATION_METHODS = frozenset({"formbook_reviewed_route_head", "xloader_v8_get_registration"})
+FORMBOOK_CONFIRMATION_EVIDENCE_CLASSES = (
+    "static_endpoint_binding",
+    "capture_endpoint_binding",
+    "cryptographic_url_key_binding",
+    "server_command_protocol",
+)
+APPLICATION_DATA_METHODS = frozenset(
+    method for method, binding in METHOD_BINDINGS.items() if binding.sends_application_data
+)
+PROFILE_ACK_REQUIRED_METHODS = frozenset({"purelogs_https_ping", "purerat_tls_prelude"})
 
 BOOLEAN_FIELDS = {
     "application_data_sent",
     "authentication_accepted",
     "authentication_attempted",
+    "body_exact_match",
     "c2_confirmed",
     "certificate_exact_match",
     "certificate_mismatch_excludes_c2",
+    "compatibility_hypothesis",
     "command_polling_performed",
     "crc_matches",
     "dns_resolution_attempted",
     "file_operation_attempted",
     "ftp_220_marker",
     "magic_matches",
+    "legacy_codec_implemented",
     "network_contacted_by_nmap_scan",
     "operation_command_sent",
     "payload_download_attempted",
     "plaintext_prelude_sent",
     "probable_c2",
+    "profile_acknowledged",
+    "raw_response_published",
+    "request_body_sent",
     "response_printable_ascii",
     "redirect_followed",
     "registration_attempted",
+    "response_body_published",
+    "sample_version_confirmed",
     "stage_downloaded",
     "stage_requested",
     "synthetic_identity_sent",
     "target_connection_established",
     "target_contact_attempted",
+    "target_endpoint_exact_match",
     "task_executed",
     "task_poll_attempted",
     "tls_version_enforced_by_nse",
@@ -157,20 +162,29 @@ INTEGER_FIELDS = {
     "user_reply_code",
 }
 FLOAT_FIELDS = {"confidence"}
-ALLOWED_SCRIPT_FIELDS = BOOLEAN_FIELDS | INTEGER_FIELDS | FLOAT_FIELDS | {
-    "certificate_sha1",
-    "certificate_sha256",
-    "family",
-    "note",
-    "protocol",
-    "resolved_ip",
-    "response_command",
-    "response_packet",
-    "response_sha256",
-    "session_id",
-    "status",
-    "variant",
-}
+ALLOWED_SCRIPT_FIELDS = (
+    BOOLEAN_FIELDS
+    | INTEGER_FIELDS
+    | FLOAT_FIELDS
+    | {
+        "certificate_sha1",
+        "certificate_sha256",
+        "family",
+        "excluded_variant",
+        "generation_evidence_scope",
+        "note",
+        "profile_id",
+        "protocol",
+        "resolved_ip",
+        "response_command",
+        "response_packet",
+        "response_hash_scope",
+        "response_sha256",
+        "session_id",
+        "status",
+        "variant",
+    }
+)
 FORBIDDEN_FIELD_MARKERS = (
     "body",
     "ciphertext",
@@ -286,7 +300,7 @@ def _converted_script_fields(raw: Mapping[str, object]) -> dict[str, object]:
     result: dict[str, object] = {}
     for key, value in raw.items():
         normalized = str(key).casefold()
-        if any(marker in normalized for marker in FORBIDDEN_FIELD_MARKERS):
+        if key not in BOOLEAN_FIELDS and any(marker in normalized for marker in FORBIDDEN_FIELD_MARKERS):
             continue
         if key not in ALLOWED_SCRIPT_FIELDS:
             continue
@@ -345,9 +359,7 @@ def _load_ftp_credential(vault_path: Path, reference: str, host: str, port: int)
     if payload.get("classification") != "sensitive_local_only":
         raise NmapC2Error("private vaultのclassificationが不正です")
     matches = [
-        item
-        for item in payload.get("records", [])
-        if isinstance(item, dict) and item.get("credential_id") == reference
+        item for item in payload.get("records", []) if isinstance(item, dict) and item.get("credential_id") == reference
     ]
     if len(matches) != 1:
         raise NmapC2Error("private資格情報参照は正確に1件一致する必要があります")
@@ -372,6 +384,7 @@ def _profile_arguments(
     binding: NmapBinding,
     *,
     private_credential_vault: Path | None,
+    acknowledged_active_profiles: frozenset[str],
     acknowledged_redline_profiles: frozenset[str],
 ) -> tuple[dict[str, object], dict[str, object]]:
     arguments: dict[str, object] = {}
@@ -391,6 +404,8 @@ def _profile_arguments(
                 else None
             ),
         )
+        if profile.get("method") != method:
+            raise NmapC2Error("protocol profileとNmap methodが一致しません")
         arguments["c2.profile-id"] = profile["profile_id"]
     timeout = float(target.get("timeout_seconds", profile.get("timeout_seconds", 3.0)))
     arguments_key = {
@@ -404,6 +419,8 @@ def _profile_arguments(
         "lumma_v6_registration_task": "stealer.timeout",
         "remus_registration_task": "stealer.timeout",
         "darkcomet_server_first_idtype": "darkcomet.timeout",
+        "purelogs_https_ping": "purelogs.timeout",
+        "purerat_tls_prelude": "purerat.timeout",
     }.get(method, "c2-transport.timeout")
     arguments[arguments_key] = int(timeout * 1000)
     if method == "tls_handshake" and target.get("observe_n520_server_first") is True:
@@ -427,11 +444,31 @@ def _profile_arguments(
         )
     elif method in {"asyncrat_tls_messagepack", "venomrat_tls_messagepack"}:
         arguments["dotnet-rat.expected-cert"] = profile["expected_certificate_sha256"]
+    elif method == "purelogs_https_ping":
+        profile_id_text = str(profile["profile_id"])
+        if profile_id_text not in acknowledged_active_profiles:
+            raise NmapC2Error("PureLogs profile acknowledgementがありません")
+        arguments.update(
+            {
+                "purelogs.profile-id": profile_id_text,
+                "purelogs.acknowledge-profile": profile_id_text,
+                "purelogs.expected-host": profile["host"],
+                "purelogs.expected-ip": profile["pinned_ips"][0],
+                "purelogs.expected-cert": profile["expected_certificate_sha256"],
+            }
+        )
     elif method == "purerat_tls_prelude":
-        # 対象portをprofileの1件へ固定し、走査した他の開放portへ4 byteを
-        # 送らないようにする。
-        arguments["purerat.expected-cert"] = profile["expected_certificate_sha256"]
-        arguments["purerat.ports"] = str(profile["port"])
+        profile_id_text = str(profile["profile_id"])
+        if profile_id_text not in acknowledged_active_profiles:
+            raise NmapC2Error("PureRAT旧prelude profile acknowledgementがありません")
+        arguments.update(
+            {
+                "purerat.profile-id": profile_id_text,
+                "purerat.acknowledge-profile": profile_id_text,
+                "purerat.expected-host": profile["host"],
+                "purerat.expected-cert": profile["expected_certificate_sha256"],
+            }
+        )
     elif method == "stealc_v2_registration_task":
         arguments.update(
             {
@@ -464,9 +501,6 @@ def _profile_arguments(
             raise NmapC2Error("RedLine profile acknowledgementがありません")
         arguments["redline.profile-id"] = profile_id_text
         arguments["redline.acknowledge-profile"] = profile_id_text
-    elif method == "xloader_v8_get_registration":
-        arguments["xloader.mode"] = "transport-only"
-        arguments["xloader.acknowledge-no-protocol-check"] = "true"
     return arguments, profile
 
 
@@ -507,6 +541,34 @@ def _disabled(status: str) -> dict[str, object]:
     }
 
 
+def _passive_only_application_probe_blocked(
+    target: Mapping[str, object],
+    method: str,
+) -> bool:
+    """FormBook／XLoaderのapplication-layer送信を入口で常に拒否する。"""
+
+    family = str(target.get("family", "")).casefold()
+    return method in PASSIVE_ONLY_APPLICATION_METHODS or (
+        family in PASSIVE_ONLY_FAMILY_ALIASES and method in APPLICATION_DATA_METHODS
+    )
+
+
+def _apply_formbook_confirmation_policy(result: dict[str, object]) -> None:
+    """FormBook／XLoaderのtransport観測を4証拠C2確認から分離する。"""
+
+    result.update(
+        {
+            "c2_confirmed": False,
+            "probable_c2": False,
+            "c2_confirmation_policy": "passive_four_independent_evidence_classes",
+            "c2_confirmation_independent_evidence_required": len(FORMBOOK_CONFIRMATION_EVIDENCE_CLASSES),
+            "c2_confirmation_independent_evidence_observed": 0,
+            "c2_confirmation_missing_evidence_classes": list(FORMBOOK_CONFIRMATION_EVIDENCE_CLASSES),
+            "open_port_is_c2_confirmation": False,
+        }
+    )
+
+
 def _gate_status(
     method: str,
     *,
@@ -520,26 +582,40 @@ def _gate_status(
 ) -> str | None:
     if not allow_network:
         return "network_disabled"
-    if method in {
-        "asyncrat_tls_messagepack",
-        "formbook_reviewed_route_head",
-        "venomrat_tls_messagepack",
-    } and not allow_application_probes:
+    if (
+        method
+        in {
+            "asyncrat_tls_messagepack",
+            "venomrat_tls_messagepack",
+        }
+        and not allow_application_probes
+    ):
         return "tls_handshake_only_application_probe_disabled"
-    if method == "purerat_direct_tls_certificate_pin" and not allow_purerat_legacy_tls:
+    if method == "purelogs_https_ping" and not allow_application_probes:
+        return "reviewed_application_probe_disabled"
+    if (
+        method
+        in {
+            "purerat_direct_tls_certificate_pin",
+            "purerat_tls_prelude",
+        }
+        and not allow_purerat_legacy_tls
+    ):
         return "legacy_tls_disabled"
     if method == "ftp_authenticated" and not allow_authentication:
         return "authentication_disabled"
-    if method in {
-        "stealc_v2_registration_task",
-        "lumma_v6_registration_task",
-        "remus_registration_task",
-    } and not allow_malware_registration:
+    if (
+        method
+        in {
+            "stealc_v2_registration_task",
+            "lumma_v6_registration_task",
+            "remus_registration_task",
+        }
+        and not allow_malware_registration
+    ):
         return "malware_registration_tasking_disabled"
     if method == "redline_checkconnect_soap11" and not allow_reviewed_checkconnect:
         return "reviewed_checkconnect_not_authorized"
-    if method == "xloader_v8_get_registration" and not allow_xloader_registration:
-        return "xloader_registration_disabled"
     return None
 
 
@@ -583,11 +659,11 @@ def _normalize_result(
             }
         )
     result["family"] = expected_family
+    if expected_family.casefold() in PASSIVE_ONLY_FAMILY_ALIASES:
+        _apply_formbook_confirmation_policy(result)
     port_open = parsed.get("nmap_port_state") == "open"
     result["alive"] = bool(port_open or result.get("target_connection_established"))
-    result["target_connection_established"] = bool(
-        port_open or result.get("target_connection_established")
-    )
+    result["target_connection_established"] = bool(port_open or result.get("target_connection_established"))
     sent_bytes = int(result.get("sent_bytes") or 0)
     received_bytes = int(result.get("received_bytes") or result.get("response_size") or 0)
     result["sent_bytes"] = sent_bytes
@@ -601,9 +677,7 @@ def _normalize_result(
             or result.get("synthetic_identity_sent")
         )
     )
-    result["request_count"] = int(
-        result.get("request_count") or (1 if result["application_data_sent"] else 0)
-    )
+    result["request_count"] = int(result.get("request_count") or (1 if result["application_data_sent"] else 0))
     result["request_budget_used"] = result["request_count"]
     result["protocol_response_received"] = bool(
         result.get("c2_confirmed")
@@ -634,6 +708,10 @@ def _normalize_result(
         result.pop("certificate_sha256", None)
     if certificate_sha1 is not None and valid_sha1 is None:
         result.pop("certificate_sha1", None)
+    expected_certificate = str(profile.get("expected_certificate_sha256") or "").casefold()
+    if expected_certificate:
+        certificate_exact = bool(valid_sha256 == expected_certificate and result.get("certificate_exact_match") is True)
+        result["certificate_exact_match"] = certificate_exact
     if valid_sha256 is not None or valid_sha1 is not None:
         result["tls"] = {
             "handshake": True,
@@ -642,27 +720,44 @@ def _normalize_result(
                 "observed_sha256": valid_sha256,
                 "expected_sha256": profile.get("expected_certificate_sha256"),
                 "exact_match": result.get("certificate_exact_match"),
-                "state": (
-                    "exact_match"
-                    if result.get("certificate_exact_match") is True
-                    else "mismatch_inconclusive"
-                ),
+                "state": ("exact_match" if result.get("certificate_exact_match") is True else "mismatch_inconclusive"),
                 "certificate_mismatch_excludes_c2": False,
             },
         }
     response_sha256 = result.get("response_sha256")
     if response_sha256 is not None:
-        if not isinstance(response_sha256, str) or SAFE_SHA256.fullmatch(
-            response_sha256.casefold()
-        ) is None:
+        if not isinstance(response_sha256, str) or SAFE_SHA256.fullmatch(response_sha256.casefold()) is None:
             result.pop("response_sha256", None)
         else:
             result["response_sha256"] = response_sha256.casefold()
+    expected_profile_id = str(target.get("protocol_profile_id") or "")
+    reported_profile_id = str(result.get("profile_id") or "")
+    profile_report_matches = bool(expected_profile_id and reported_profile_id == expected_profile_id)
+    if method in PROFILE_ACK_REQUIRED_METHODS and not profile_report_matches:
+        result.update(
+            {
+                "status": "nmap_script_profile_mismatch",
+                "c2_confirmed": False,
+                "probable_c2": False,
+                "confidence": 0.0,
+            }
+        )
     if not binding.confirmation_allowed and result.get("c2_confirmed"):
         result["nse_reported_match"] = True
         result["c2_confirmed"] = False
     if str(target.get("method")) == "purerat_direct_tls_certificate_pin":
-        exact = result.get("certificate_exact_match") is True
+        nse_reported_match = bool(result.get("probable_c2") or result.get("c2_confirmed"))
+        exact = bool(
+            profile_report_matches
+            and observed_family in {None, "unclassified", expected_family}
+            and result.get("target_endpoint_exact_match") is True
+            and result.get("certificate_exact_match") is True
+            and result.get("tls_version_enforced_by_nse") is False
+            and result.get("application_data_sent") is False
+            and result.get("plaintext_prelude_sent") is False
+            and sent_bytes == 0
+            and result.get("request_count", 0) == 0
+        )
         result.update(
             {
                 "status": (
@@ -671,6 +766,11 @@ def _normalize_result(
                     else "purerat_direct_tls_certificate_mismatch_inconclusive"
                 ),
                 "c2_confirmed": False,
+                "probable_c2": exact,
+                "confidence": 0.75 if exact else 0.0,
+                "nse_reported_match": nse_reported_match,
+                "exact_profile_match": False,
+                "certificate_profile_match": exact,
                 "tls_version_enforced_by_nse": False,
                 "certificate_mismatch_excludes_c2": False,
                 "certificate_mismatch_excludes_family_c2": False,
@@ -684,6 +784,90 @@ def _normalize_result(
                 "registration_attempted": False,
                 "task_poll_attempted": False,
                 "task_executed": False,
+            }
+        )
+    if method == "purelogs_https_ping":
+        nse_reported_match = bool(result.get("probable_c2") or result.get("c2_confirmed"))
+        matched = bool(
+            profile_report_matches
+            and observed_family in {None, "unclassified", expected_family}
+            and result.get("variant") == profile.get("variant") == "http_aes_v5"
+            and result.get("generation_evidence_scope")
+            == profile.get("generation_evidence_scope")
+            == "family_level_public_research"
+            and result.get("sample_version_confirmed") is False
+            and profile.get("sample_version_confirmed") is False
+            and result.get("excluded_variant") == profile.get("excluded_variant") == "legacy_socket_3des"
+            and result.get("legacy_codec_implemented") is False
+            and profile.get("legacy_codec_implemented") is False
+            and result.get("profile_acknowledged") is True
+            and result.get("target_endpoint_exact_match") is True
+            and result.get("certificate_exact_match") is True
+            and result.get("http_status") == profile.get("expected_http_status") == 200
+            and result.get("body_exact_match") is True
+            and result.get("response_sha256") == profile.get("expected_response_sha256")
+            and result.get("response_hash_scope") == "http_body"
+            and 0 < received_bytes <= int(profile.get("maximum_response_bytes", 0))
+            and result.get("response_size") == received_bytes
+            and result.get("request_count") == 1
+            and 0 < sent_bytes <= int(profile.get("maximum_request_bytes", 0))
+            and result.get("application_data_sent") is True
+            and result.get("request_body_sent") is False
+            and result.get("redirect_followed") is False
+            and result.get("response_body_published") is False
+            and result.get("raw_response_published") is False
+        )
+        result.update(
+            {
+                "status": (
+                    "purelogs_ping_probable_match_tls_version_unverified"
+                    if matched
+                    else result.get("status", "purelogs_ping_response_mismatch")
+                ),
+                "c2_confirmed": False,
+                "probable_c2": matched,
+                "confidence": 0.70 if matched else 0.0,
+                "nse_reported_match": nse_reported_match,
+                "variant": profile.get("variant"),
+                "generation_evidence_scope": profile.get("generation_evidence_scope"),
+                "sample_version_confirmed": False,
+                "excluded_variant": profile.get("excluded_variant"),
+                "legacy_codec_implemented": False,
+                "tls_version_enforced_by_nse": False,
+                "redirect_followed": False,
+                "response_body_published": False,
+                "open_port_is_c2_confirmation": False,
+            }
+        )
+    if method == "purerat_tls_prelude":
+        nse_reported_match = bool(result.get("probable_c2") or result.get("c2_confirmed"))
+        matched = bool(
+            profile_report_matches
+            and observed_family in {None, "unclassified", expected_family}
+            and result.get("profile_acknowledged") is True
+            and result.get("target_endpoint_exact_match") is True
+            and result.get("certificate_exact_match") is True
+            and result.get("plaintext_prelude_sent") is True
+            and result.get("application_data_sent") is True
+            and sent_bytes == 4
+            and result.get("request_count") == 1
+        )
+        result.update(
+            {
+                "status": (
+                    "purerat_legacy_prelude_hypothesis_certificate_match_tls_version_unverified"
+                    if matched
+                    else result.get("status", "purerat_legacy_prelude_hypothesis_not_matched")
+                ),
+                "c2_confirmed": False,
+                "probable_c2": matched,
+                "confidence": 0.60 if matched else 0.0,
+                "nse_reported_match": nse_reported_match,
+                "compatibility_hypothesis": True,
+                "tls_version_enforced_by_nse": False,
+                "certificate_mismatch_excludes_c2": False,
+                "certificate_mismatch_excludes_family_c2": False,
+                "open_port_is_c2_confirmation": False,
             }
         )
     for field in (
@@ -711,6 +895,7 @@ def probe_target_with_nmap(
     allow_authentication: bool = False,
     allow_malware_registration: bool = False,
     allow_reviewed_checkconnect: bool = False,
+    acknowledged_active_profiles: frozenset[str] = frozenset(),
     acknowledged_redline_profiles: frozenset[str] = frozenset(),
     allow_xloader_registration: bool = False,
     private_credential_vault: Path | None = None,
@@ -720,6 +905,12 @@ def probe_target_with_nmap(
     """単一targetをallowlist済みNSEだけで観測する。"""
 
     method = str(target.get("method", "tcp_connect"))
+    if _passive_only_application_probe_blocked(target, method):
+        result = _disabled("passive_only_application_probe_blocked")
+        result["passive_only_policy_enforced"] = True
+        result["blocked_method"] = method
+        _apply_formbook_confirmation_policy(result)
+        return result
     binding = METHOD_BINDINGS.get(method)
     if binding is None:
         raise NmapC2Error(f"Nmap NSEへ未登録のmethodです: {method}")
@@ -737,17 +928,20 @@ def probe_target_with_nmap(
     )
     if gate:
         return _disabled(gate)
+    if method in PROFILE_ACK_REQUIRED_METHODS:
+        profile_id = str(target.get("protocol_profile_id") or "")
+        if not profile_id or profile_id not in acknowledged_active_profiles:
+            result = _disabled("profile_acknowledgement_missing_or_mismatch")
+            result["protocol_profile_id"] = profile_id or None
+            return result
     if method == "ftp_authenticated" and private_credential_vault is None:
         return _disabled("private_credential_vault_missing")
-    if method == "xloader_v8_get_registration":
-        result = _disabled("xloader_nse_private_protocol_not_implemented")
-        result["transport_only_nse_available"] = True
-        return result
     try:
         arguments, profile = _profile_arguments(
             target,
             binding,
             private_credential_vault=private_credential_vault,
+            acknowledged_active_profiles=acknowledged_active_profiles,
             acknowledged_redline_profiles=acknowledged_redline_profiles,
         )
         executable = _nmap_executable(nmap_executable)
@@ -841,10 +1035,7 @@ def normalize_legacy_target(
         if profile["host"] == host
         and profile["port"] == port_value
         and profile["protocol"] == protocol
-        and (
-            sample_sha256 is None
-            or sample_sha256 in profile.get("sample_sha256s", [])
-        )
+        and (sample_sha256 is None or sample_sha256 in profile.get("sample_sha256s", []))
     ]
     if len(matches) > 1:
         raise NmapC2Error("endpointとsampleに一致するprofileが複数あります")
@@ -912,9 +1103,7 @@ def normalize_legacy_target(
             raise NmapC2Error("N520 server-first観測はTLSだけで使用できます")
         result["observe_n520_server_first"] = True
         result["maximum_response_bytes"] = 44
-        result["selection_basis"] = (
-            "汎用TLS handshakeと送信ゼロのValleyRAT N520型44-byte server-first frame観測"
-        )
+        result["selection_basis"] = "汎用TLS handshakeと送信ゼロのValleyRAT N520型44-byte server-first frame観測"
     return result
 
 
@@ -950,8 +1139,18 @@ def main() -> int:
     parser.add_argument("--allow-authentication", action="store_true")
     parser.add_argument("--allow-malware-registration-tasking", action="store_true")
     parser.add_argument("--allow-reviewed-checkconnect", action="store_true")
+    parser.add_argument(
+        "--acknowledge-profile",
+        action="append",
+        default=[],
+        help="PureLogs/PureRATで送信を許可する完全一致profile ID（複数回指定可）",
+    )
     parser.add_argument("--acknowledge-redline-profile", action="append", default=[])
-    parser.add_argument("--allow-xloader-registration", action="store_true")
+    parser.add_argument(
+        "--allow-xloader-registration",
+        action="store_true",
+        help="互換引数。XLoaderはpassive_onlyのため、指定しても登録GETを許可しません。",
+    )
     parser.add_argument("--private-credential-vault", type=Path)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
@@ -975,6 +1174,7 @@ def main() -> int:
             allow_authentication=args.allow_authentication,
             allow_malware_registration=args.allow_malware_registration_tasking,
             allow_reviewed_checkconnect=args.allow_reviewed_checkconnect,
+            acknowledged_active_profiles=frozenset(args.acknowledge_profile),
             acknowledged_redline_profiles=frozenset(args.acknowledge_redline_profile),
             allow_xloader_registration=args.allow_xloader_registration,
             private_credential_vault=args.private_credential_vault,
@@ -994,6 +1194,8 @@ def nmap_method_coverage() -> dict[str, object]:
         "schema_version": 1,
         "execution_backend": "nmap_nse_only",
         "method_count": len(METHOD_BINDINGS),
+        "passive_only_application_methods": sorted(PASSIVE_ONLY_APPLICATION_METHODS),
+        "passive_only_family_aliases": sorted(PASSIVE_ONLY_FAMILY_ALIASES),
         "methods": {
             method: {
                 "script": binding.script,

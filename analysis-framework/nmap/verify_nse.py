@@ -154,8 +154,7 @@ class MultiShotServer(OneShotServer):
 
 def _xor_winos(payload: bytes, header: bytes) -> bytes:
     return bytes(
-        value ^ ((header[0 if index == 0 else (index - 1) % 10] + 0x36) & 0xFF)
-        for index, value in enumerate(payload)
+        value ^ ((header[0 if index == 0 else (index - 1) % 10] + 0x36) & 0xFF) for index, value in enumerate(payload)
     )
 
 
@@ -165,7 +164,7 @@ def _winos_handler(connection: socket.socket) -> None:
     if declared != 15 or len(request) != 11:
         raise ValueError("Winos request形状が不正です")
     header = struct.pack("<IIH", 0xA1B2C3D4, 0, 0xCA)
-    connection.sendall(struct.pack("<I", 15) + header + _xor_winos(b"\xCA", header))
+    connection.sendall(struct.pack("<I", 15) + header + _xor_winos(b"\xca", header))
 
 
 def _winos_echo_handler(connection: socket.socket) -> None:
@@ -384,8 +383,7 @@ def _redline_handler(result: str, *, extra_element: bool = False) -> Handler:
         headers, body = _http_request(connection)
         if (
             headers.get("content-type") != "text/xml; charset=utf-8"
-            or headers.get("soapaction")
-            != '"http://tempuri.org/Endpoint/CheckConnect"'
+            or headers.get("soapaction") != '"http://tempuri.org/Endpoint/CheckConnect"'
             or headers.get("connection") != "close"
             or body != _REDLINE_REQUEST_BODY
         ):
@@ -419,10 +417,7 @@ def _redline_redirect_handler(connection: socket.socket) -> None:
 
 
 _ROUTE_CONTROL_PATH = "/.well-known/asa-reviewed-route-negative-control-7f6d9e2b"
-_VIDAR_LOOPBACK_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win32) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Edg/147.0.0.0"
-)
+_VIDAR_LOOPBACK_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win32) AppleWebKit/537.36 (KHTML, like Gecko) Edg/147.0.0.0"
 _FORMBOOK_LOOPBACK_USER_AGENT = (
     "Mozilla/5.0 (Linux; U; Android 4.1.2; en-us; Xoom Build/JZO54M) "
     "AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Safari/534.30"
@@ -463,10 +458,7 @@ def _head_route_handler(
             raise ValueError("review済み経路probeの要求形状が一致しません")
         status = routes[path]
         connection.sendall(
-            (
-                f"HTTP/1.1 {status} {reasons[status]}\r\n"
-                "Content-Length: 0\r\nConnection: close\r\n\r\n"
-            ).encode("ascii")
+            (f"HTTP/1.1 {status} {reasons[status]}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").encode("ascii")
         )
 
     return handler
@@ -532,9 +524,7 @@ def _transport_http_handler(connection: socket.socket) -> None:
         raise ValueError("汎用HTTP GETが固定fixtureと一致しません")
     if request.count(b"GET ") != 1:
         raise ValueError("汎用HTTP NSEが複数requestを送信しました")
-    connection.sendall(
-        b"HTTP/1.1 204 No Content\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-    )
+    connection.sendall(b"HTTP/1.1 204 No Content\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
 
 
 def _no_application_data_handler(connection: socket.socket) -> None:
@@ -595,9 +585,21 @@ def _resolve_nmap(value: str | None) -> Path:
 
 def _run_nmap(nmap_exe: Path, script: str, port: int, script_args: str, expected: str) -> dict[str, object]:
     command = [
-        str(nmap_exe), "-n", "-sT", "-Pn", "--host-timeout", "10s", "--script-timeout", "7s",
-        "-p", str(port), "--script", str((SCRIPTS / script).resolve()),
-        "--script-args", script_args, "127.0.0.1",
+        str(nmap_exe),
+        "-n",
+        "-sT",
+        "-Pn",
+        "--host-timeout",
+        "10s",
+        "--script-timeout",
+        "7s",
+        "-p",
+        str(port),
+        "--script",
+        str((SCRIPTS / script).resolve()),
+        "--script-args",
+        script_args,
+        "127.0.0.1",
     ]
     completed = subprocess.run(command, capture_output=True, timeout=20, check=False)
     output = (completed.stdout + completed.stderr).decode("utf-8", errors="replace")
@@ -610,16 +612,23 @@ def _run_nmap(nmap_exe: Path, script: str, port: int, script_args: str, expected
 
 def _run_nmap_host_script(nmap_exe: Path, script: str, expected: str) -> dict[str, object]:
     command = [
-        str(nmap_exe), "-n", "-sn", "-Pn", "--host-timeout", "10s",
-        "--script-timeout", "7s", "--script", str((SCRIPTS / script).resolve()),
+        str(nmap_exe),
+        "-n",
+        "-sn",
+        "-Pn",
+        "--host-timeout",
+        "10s",
+        "--script-timeout",
+        "7s",
+        "--script",
+        str((SCRIPTS / script).resolve()),
         "127.0.0.1",
     ]
     completed = subprocess.run(command, capture_output=True, timeout=20, check=False)
     output = (completed.stdout + completed.stderr).decode("utf-8", errors="replace")
     if completed.returncode != 0 or expected not in output:
         raise AssertionError(
-            f"Nmap hostrule検証失敗: script={script}, expected={expected}, "
-            f"returncode={completed.returncode}\n{output}"
+            f"Nmap hostrule検証失敗: script={script}, expected={expected}, returncode={completed.returncode}\n{output}"
         )
     return {"script": script, "port": None, "expected_status": expected, "passed": True}
 
@@ -666,7 +675,7 @@ def _exercise_multi(
 
 
 def verify_all(nmap_value: str | None = None) -> dict[str, object]:
-    """41 caseでWinos echo拒否と経路差分probeを含むNSEを外部networkなしで検証する。"""
+    """40 caseでWinos echo拒否と経路差分probeを含むNSEを外部networkなしで検証する。"""
 
     nmap_exe = _resolve_nmap(nmap_value)
     key = b"loopback-rc4-key"
@@ -682,33 +691,159 @@ def verify_all(nmap_value: str | None = None) -> dict[str, object]:
             (_winos_echo_handler, "valleyrat-c2.nse", "valleyrat.mode=winos", "winos_request_reflected"),
             (_vvas_handler, "valleyrat-c2.nse", "valleyrat.mode=vvas", "vvas_stage_header_match"),
             (_n520_handler(context), "valleyrat-c2.nse", "valleyrat.mode=n520", "n520_server_first_handshake_match"),
-            (_dotnet_handler(context, "Packet", "pong"), "dotnet-rat-c2.nse", f"dotnet-rat.family=asyncrat,dotnet-rat.expected-cert={certificate_sha256}", "messagepack_ping_response_match"),
-            (_dotnet_handler(context, "Pac_ket", "Po_ng"), "dotnet-rat-c2.nse", f"dotnet-rat.family=venomrat,dotnet-rat.expected-cert={certificate_sha256}", "messagepack_ping_response_match"),
-            (_purerat_handler(context), "purerat-c2.nse", f"purerat.expected-cert={certificate_sha256}", "purerat_prelude_tls_certificate_match"),
-            (_ftp_handler, "agenttesla-ftp-c2.nse", "agenttesla.user=sample-user,agenttesla.pass=sample-pass", "sample_credential_ftp_login_succeeded"),
-            (_stealc_handler(key), "stealer-http-c2.nse", f"stealer.family=stealc,stealer.build=loopback,stealer.key-base64='{encoded_key}'", "stealc_registration_token_match"),
-            (_stealer_redirect_handler, "stealer-http-c2.nse", f"stealer.family=stealc,stealer.build=loopback,stealer.key-base64='{encoded_key}'", "stealc_registration_mismatch"),
-            (_lumma_handler, "stealer-http-c2.nse", "stealer.family=lumma,stealer.uid=0123456789abcdef0123456789abcdef", "lumma_registration_shape_match"),
-            (_remus_handler, "stealer-http-c2.nse", "stealer.family=remus,stealer.tag=0123456789abcdef0123456789abcdef,stealer.exp=1785860014", "remus_registration_envelope_match"),
-            (_darkcomet_handler(darkcomet_key), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_server_first_idtype_match"),
-            (_darkcomet_handler(darkcomet_key, ascii_hex=False), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_server_first_idtype_match"),
-            (_darkcomet_wire_handler(_rc4(b"IDTYPE", darkcomet_key).hex().encode("ascii"), split_at=6, split_delay_seconds=0.15), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_server_first_idtype_match"),
-            (_darkcomet_handler(darkcomet_key), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_wrong_key}'", "darkcomet_idtype_mismatch"),
-            (_darkcomet_wire_handler(b"00112233445Z"), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_ciphertext_malformed"),
-            (_darkcomet_wire_handler(b"00112"), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_ciphertext_partial"),
-            (_darkcomet_wire_handler(b"A" * 13), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_ciphertext_overlong"),
-            (_darkcomet_wire_handler(b"A" * 13, split_at=12, split_delay_seconds=0.15), "darkcomet-c2.nse", f"darkcomet.key-base64='{darkcomet_encoded_key}'", "darkcomet_ciphertext_overlong"),
-            (_redline_handler("true"), "redline-c2.nse", "redline.profile-id=redline-loopback-checkconnect-v1,redline.acknowledge-profile=redline-loopback-checkconnect-v1", "redline_checkconnect_true_match"),
-            (_redline_handler("false"), "redline-c2.nse", "redline.profile-id=redline-loopback-checkconnect-v1,redline.acknowledge-profile=redline-loopback-checkconnect-v1", "redline_checkconnect_false_match"),
-            (_redline_handler("true", extra_element=True), "redline-c2.nse", "redline.profile-id=redline-loopback-checkconnect-v1,redline.acknowledge-profile=redline-loopback-checkconnect-v1", "redline_checkconnect_soap_mismatch"),
-            (_redline_redirect_handler, "redline-c2.nse", "redline.profile-id=redline-loopback-checkconnect-v1,redline.acknowledge-profile=redline-loopback-checkconnect-v1", "redline_http_non_success_status"),
-            (_no_application_data_handler, "redline-c2.nse", "redline.profile-id=redline-loopback-checkconnect-v1", "STATE SERVICE"),
-            (_no_application_data_handler, "redline-c2.nse", "redline.profile-id=redline-3f3ac0a3-checkconnect-v1,redline.acknowledge-profile=redline-3f3ac0a3-checkconnect-v1", "STATE SERVICE"),
-            (_no_application_data_handler, "xloader-c2.nse", "xloader.mode=transport-only,xloader.acknowledge-no-protocol-check=true", "xloader_tcp_open_only"),
-            (_no_application_data_handler, "xloader-c2.nse", "xloader.variant=formbook,xloader.mode=transport-only,xloader.acknowledge-no-protocol-check=true", "formbook_terminal_profile_required_tcp_open_only"),
+            (
+                _dotnet_handler(context, "Packet", "pong"),
+                "dotnet-rat-c2.nse",
+                f"dotnet-rat.family=asyncrat,dotnet-rat.expected-cert={certificate_sha256}",
+                "messagepack_ping_response_match",
+            ),
+            (
+                _dotnet_handler(context, "Pac_ket", "Po_ng"),
+                "dotnet-rat-c2.nse",
+                f"dotnet-rat.family=venomrat,dotnet-rat.expected-cert={certificate_sha256}",
+                "messagepack_ping_response_match",
+            ),
+            (
+                _ftp_handler,
+                "agenttesla-ftp-c2.nse",
+                "agenttesla.user=sample-user,agenttesla.pass=sample-pass",
+                "sample_credential_ftp_login_succeeded",
+            ),
+            (
+                _stealc_handler(key),
+                "stealer-http-c2.nse",
+                f"stealer.family=stealc,stealer.build=loopback,stealer.key-base64='{encoded_key}'",
+                "stealc_registration_token_match",
+            ),
+            (
+                _stealer_redirect_handler,
+                "stealer-http-c2.nse",
+                f"stealer.family=stealc,stealer.build=loopback,stealer.key-base64='{encoded_key}'",
+                "stealc_registration_mismatch",
+            ),
+            (
+                _lumma_handler,
+                "stealer-http-c2.nse",
+                "stealer.family=lumma,stealer.uid=0123456789abcdef0123456789abcdef",
+                "lumma_registration_shape_match",
+            ),
+            (
+                _remus_handler,
+                "stealer-http-c2.nse",
+                "stealer.family=remus,stealer.tag=0123456789abcdef0123456789abcdef,stealer.exp=1785860014",
+                "remus_registration_envelope_match",
+            ),
+            (
+                _darkcomet_handler(darkcomet_key),
+                "darkcomet-c2.nse",
+                f"darkcomet.key-base64='{darkcomet_encoded_key}'",
+                "darkcomet_server_first_idtype_match",
+            ),
+            (
+                _darkcomet_handler(darkcomet_key, ascii_hex=False),
+                "darkcomet-c2.nse",
+                f"darkcomet.key-base64='{darkcomet_encoded_key}'",
+                "darkcomet_server_first_idtype_match",
+            ),
+            (
+                _darkcomet_wire_handler(
+                    _rc4(b"IDTYPE", darkcomet_key).hex().encode("ascii"), split_at=6, split_delay_seconds=0.15
+                ),
+                "darkcomet-c2.nse",
+                f"darkcomet.key-base64='{darkcomet_encoded_key}'",
+                "darkcomet_server_first_idtype_match",
+            ),
+            (
+                _darkcomet_handler(darkcomet_key),
+                "darkcomet-c2.nse",
+                f"darkcomet.key-base64='{darkcomet_wrong_key}'",
+                "darkcomet_idtype_mismatch",
+            ),
+            (
+                _darkcomet_wire_handler(b"00112233445Z"),
+                "darkcomet-c2.nse",
+                f"darkcomet.key-base64='{darkcomet_encoded_key}'",
+                "darkcomet_ciphertext_malformed",
+            ),
+            (
+                _darkcomet_wire_handler(b"00112"),
+                "darkcomet-c2.nse",
+                f"darkcomet.key-base64='{darkcomet_encoded_key}'",
+                "darkcomet_ciphertext_partial",
+            ),
+            (
+                _darkcomet_wire_handler(b"A" * 13),
+                "darkcomet-c2.nse",
+                f"darkcomet.key-base64='{darkcomet_encoded_key}'",
+                "darkcomet_ciphertext_overlong",
+            ),
+            (
+                _darkcomet_wire_handler(b"A" * 13, split_at=12, split_delay_seconds=0.15),
+                "darkcomet-c2.nse",
+                f"darkcomet.key-base64='{darkcomet_encoded_key}'",
+                "darkcomet_ciphertext_overlong",
+            ),
+            (
+                _redline_handler("true"),
+                "redline-c2.nse",
+                "redline.profile-id=redline-loopback-checkconnect-v1,redline.acknowledge-profile=redline-loopback-checkconnect-v1",
+                "redline_checkconnect_true_match",
+            ),
+            (
+                _redline_handler("false"),
+                "redline-c2.nse",
+                "redline.profile-id=redline-loopback-checkconnect-v1,redline.acknowledge-profile=redline-loopback-checkconnect-v1",
+                "redline_checkconnect_false_match",
+            ),
+            (
+                _redline_handler("true", extra_element=True),
+                "redline-c2.nse",
+                "redline.profile-id=redline-loopback-checkconnect-v1,redline.acknowledge-profile=redline-loopback-checkconnect-v1",
+                "redline_checkconnect_soap_mismatch",
+            ),
+            (
+                _redline_redirect_handler,
+                "redline-c2.nse",
+                "redline.profile-id=redline-loopback-checkconnect-v1,redline.acknowledge-profile=redline-loopback-checkconnect-v1",
+                "redline_http_non_success_status",
+            ),
+            (
+                _no_application_data_handler,
+                "redline-c2.nse",
+                "redline.profile-id=redline-loopback-checkconnect-v1",
+                "STATE SERVICE",
+            ),
+            (
+                _no_application_data_handler,
+                "redline-c2.nse",
+                "redline.profile-id=redline-3f3ac0a3-checkconnect-v1,redline.acknowledge-profile=redline-3f3ac0a3-checkconnect-v1",
+                "STATE SERVICE",
+            ),
+            (
+                _no_application_data_handler,
+                "xloader-c2.nse",
+                "xloader.mode=transport-only,xloader.acknowledge-no-protocol-check=true",
+                "xloader_tcp_open_only",
+            ),
+            (
+                _no_application_data_handler,
+                "xloader-c2.nse",
+                "xloader.variant=formbook,xloader.mode=transport-only,xloader.acknowledge-no-protocol-check=true",
+                "formbook_terminal_profile_required_tcp_open_only",
+            ),
             (_no_application_data_handler, "c2-transport-observe.nse", "c2-transport.mode=tcp-open", "tcp_open_only"),
-            (_transport_banner_handler, "c2-transport-observe.nse", "c2-transport.mode=server-first,c2-transport.max-response=64", "server_first_banner_observed"),
-            (_transport_tls_handler(context), "c2-transport-observe.nse", "c2-transport.mode=tls", "tls_handshake_observed"),
+            (
+                _transport_banner_handler,
+                "c2-transport-observe.nse",
+                "c2-transport.mode=server-first,c2-transport.max-response=64",
+                "server_first_banner_observed",
+            ),
+            (
+                _transport_tls_handler(context),
+                "c2-transport-observe.nse",
+                "c2-transport.mode=tls",
+                "tls_handshake_observed",
+            ),
             (
                 _n520_handler(context),
                 "c2-transport-observe.nse",
