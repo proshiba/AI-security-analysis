@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "campaign_id": "japanese-malspam-20261016-pure-remcos",
+  "indicators": [
+    {
+      "value": "get-file.thuthukafs.co.nz",
+      "role": "case1_delivery_domain",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "https://get-file.thuthukafs.co.nz/download.php/Complete_Product_Condition_Review_mp4",
+      "role": "case1_delivery_url_query_removed",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "trump.sharevideocenter.com:56001",
+      "role": "case1_configured_c2_and_sandbox_observed",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed_static_configuration"
+    },
+    {
+      "value": "trump.sharevideocenter.com:56002",
+      "role": "case1_configured_c2_not_observed_in_run",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed_static_configuration"
+    },
+    {
+      "value": "trump.sharevideocenter.com:56003",
+      "role": "case1_configured_c2_not_observed_in_run",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed_static_configuration"
+    },
+    {
+      "value": "82.47.180.159:56001",
+      "role": "case1_observed_resolved_endpoint",
+      "confidence": "medium",
+      "evidence_status": "corroborated"
+    },
+    {
+      "value": "962fcefe103538fc1ccef51e664faf7ce3bb572d4f48eb9020b8200bacee5c13",
+      "role": "case1_delivery_zip",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "cd8dfd0f587dfece900a7316bf1f98abfd11e3fa92546a304069919148f8ce2e",
+      "role": "case1_malicious_sideload_dll",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "2558f63f0bf8090c12e1130678cc6a642386155181005e5a21c1d1fb608b4e14",
+      "role": "case1_dropped_python_loader",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "00cf29534fdc5518b214b28a3b5466bd1e8b7245716352a0afeaf995d775d321",
+      "role": "case1_labz_python_runtime_deployer",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed_static_recovery"
+    },
+    {
+      "value": "8b4691c853ddc52a2e6e3c37e6080053c7a03f32ca0e3ccd6bdd56a89b802015",
+      "role": "case1_encrypted_memory_payload",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "172be46175d3f7c9c979a0200ae61b1f0e1977e82cb829923e1e590fd039b809",
+      "role": "case1_donut_embedded_dotnet_loader",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed_static_recovery"
+    },
+    {
+      "value": "9f201e04b49a958a120b2ea2e9cda048d94feddd9278b6fe03fb6cac24c05b83",
+      "role": "case1_terminal_managed_payload",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed_static_recovery"
+    },
+    {
+      "value": "82aeafab427674c4ab36f5483a6ee136e1bc25c326ce1c04d5abd74722332493",
+      "role": "case1_embedded_purerat_agent_certificate_sha256",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed_static_configuration"
+    },
+    {
+      "value": "get-file.gilmorebrown.co.nz",
+      "role": "case2_delivery_domain",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "https://get-file.gilmorebrown.co.nz/download.php/Product_Receipt_Damage_Inspection_mp4",
+      "role": "case2_delivery_url_query_removed",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "tea.vexexo.com:56001",
+      "role": "case2_c2_endpoint_reported_and_behavior_corroborated",
+      "confidence": "medium",
+      "evidence_status": "corroborated"
+    },
+    {
+      "value": "185.139.214.102:56001",
+      "role": "case2_observed_resolved_endpoint",
+      "confidence": "medium",
+      "evidence_status": "corroborated"
+    },
+    {
+      "value": "59ceb7b47ebb9ed5189afe1afe79a80c854bb2ddec62a23ec2c380465a9598a8",
+      "role": "case2_delivery_zip",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "996afb1023db6e7a0242dc69e10d4df7ddd314bf2e49c6341f561a99082193a5",
+      "role": "case2_malicious_sideload_dll",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "17648ab02d612f12c4a45ae5fee1f52860aae12c498e00377b77e972de22da64",
+      "role": "case2_encrypted_rar5_stage",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed_static_chain"
+    },
+    {
+      "value": "db2169b7fe6c60e36a7dc58ff85d3c8b828543ad872fb2c386a1811165f51b46",
+      "role": "case2_encrypted_python_payload",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "05391e2014707df5773a41c682e013ef475fff158df70a2647f5d74cc13782fc",
+      "role": "case2_decrypted_python_stage",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed_static_recovery"
+    },
+    {
+      "value": "408a6bd09d20d208bce2ad57c4418ac57e9922e85aeeb4ebd16f42571b74e7a8",
+      "role": "case2_terminal_dotnet_payload",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed_static_recovery"
+    },
+    {
+      "value": "f0a1ff80146ad904ad79b1b36e394e7033e3bba92cdf79967643723be4b9e01a",
+      "role": "case3_javascript_external_exact_hash_not_locally_acquired",
+      "confidence": "medium",
+      "evidence_status": "confirmed_external_hash"
+    },
+    {
+      "value": "1b2fa5f26297ad761b09dfbe9a347813b8319397122f7615573a9e354273cb99",
+      "role": "case3_dropped_powershell_external_exact_behavior",
+      "confidence": "medium",
+      "evidence_status": "confirmed_external_sandbox"
+    },
+    {
+      "value": "23.132.164.3:2404",
+      "role": "case3_c2_endpoint_reported_and_comparison_case_corroborated",
+      "confidence": "medium",
+      "evidence_status": "corroborated"
+    },
+    {
+      "value": "%LOCALAPPDATA%\\Drivers\\run.vbs",
+      "role": "case1_persistence_script_path",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "%LOCALAPPDATA%\\Drivers\\macOS\\run.py",
+      "role": "case1_python_loader_path",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "C:\\Users\\Public\\WindowsUpdate\\instructions.pdf",
+      "role": "case2_encrypted_python_payload_path",
+      "confidence": "confirmed",
+      "evidence_status": "confirmed"
+    },
+    {
+      "value": "%LOCALAPPDATA%\\Temp\\88782.ps1",
+      "role": "case3_reported_powershell_stage_path",
+      "confidence": "medium",
+      "evidence_status": "confirmed_external_sandbox"
+    }
+  ],
+  "context_only": [
+    {
+      "value": "3d46e95284f93bbb76b3b7e1bf0e1b2d51e8a9411c2b6e649112f22f92de63c2",
+      "role": "case1_legitimate_sideload_host_context_only",
+      "confidence": "confirmed"
+    },
+    {
+      "value": "8c3d293ceacaf0f9a06cfebe370f6e6b2420a6c2dde62042d97788fde91b638c",
+      "role": "case1_public_sandbox_outer_container_context_only",
+      "confidence": "confirmed"
+    },
+    {
+      "value": "c73e3b98b5f631669fb3d4b114e98ad55d2b015e2c55003c265e0b75e0c31d9e",
+      "role": "case2_legitimate_sideload_host_context_only",
+      "confidence": "confirmed"
+    },
+    {
+      "value": "8f5dcca6baf511ac49393dff90b4bb666274a7640ef3c79cb28aaeb81b7f4e52",
+      "role": "case2_legitimate_python_runtime_context_only",
+      "confidence": "confirmed"
+    },
+    {
+      "value": "d6e72df68ac53eb50e9f161dd1ece98fb36c7174c2d3d581db83faac0c921599",
+      "role": "case2_signed_rar_helper_context_only",
+      "confidence": "confirmed"
+    },
+    {
+      "value": "5213e701e9eef93b8d11c54334592c272a299c057bbc73db6741fdd2dd718262",
+      "role": "case3_similar_triage_root_not_parent_context_only",
+      "confidence": "confirmed"
+    },
+    {
+      "value": "f1610df683fc2543d951f5f83ffc425963a4cc71562a47637987adbf2788d3d1",
+      "role": "case3_same_endpoint_comparison_javascript_not_parent_context_only",
+      "confidence": "confirmed"
+    },
+    {
+      "value": "125e34353550ea1e3065030739f1b20fc45a445a9de95fae18f1198f565f1690",
+      "role": "case3_triage_comparison_remcos_terminal_not_child_context_only",
+      "confidence": "confirmed"
+    },
+    {
+      "value": "be40ea4a4739d84fa6229aaef8ffc40f5b21190784ae8bb8360aeaef80f7da77",
+      "role": "case3_comparison_powershell_stage_not_child_context_only",
+      "confidence": "confirmed"
+    },
+    {
+      "value": "57c40469c6d7bc0301a20255165449391059231de6ca7b0ab1a697bfab82cbd7",
+      "role": "case3_comparison_dotnet_loader_not_child_context_only",
+      "confidence": "confirmed"
+    },
+    {
+      "value": "2354476ff6108bcd5a42d39702b450c386fa69a2f6ebddf21d0069effaae147a",
+      "role": "case3_comparison_terminal_pe_not_child_context_only",
+      "confidence": "confirmed"
+    }
+  ],
+  "evidence_boundary": {
+    "file_hash_confirmation_does_not_confirm_family_or_c2": true,
+    "case1_terminal_config_recovered": true,
+    "case1_strict_family_detector_matched": false,
+    "case1_analyst_family_attribution_high_confidence": true,
+    "case1_ports_56002_56003_observed_in_sandbox": false,
+    "case2_terminal_payload_recovered": true,
+    "case2_terminal_config_recovered": false,
+    "case2_protocol_is_same_family_osint_not_exact_code_confirmation": true,
+    "case3_exact_sample_acquired": false,
+    "case3_exact_external_behavior_available": true,
+    "case3_comparison_hashes_are_parent_or_child": false
+  },
+  "safety": {
+    "samples_executed": false,
+    "network_contacted": false,
+    "raw_decryption_keys_published": false,
+    "raw_payloads_published": false
+  }
+}
