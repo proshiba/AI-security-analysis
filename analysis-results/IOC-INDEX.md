@@ -4586,6 +4586,7 @@
 | `research/campaigns/correlated-20260922/correlated-valleyrat-2c9e5f30ae0b` | [IOC-LIST.md](research/campaigns/correlated-20260922/correlated-valleyrat-2c9e5f30ae0b/IOC-LIST.md) | 2 |
 | `research/campaigns/correlated-20260922/correlated-venomrat-b8be79d70868` | [IOC-LIST.md](research/campaigns/correlated-20260922/correlated-venomrat-b8be79d70868/IOC-LIST.md) | 2 |
 | `research/campaigns/head-mare-trueconf-202607` | [IOC-LIST.md](research/campaigns/head-mare-trueconf-202607/IOC-LIST.md) | 41 |
+| `research/campaigns/japanese-malspam-20261016-pure-remcos` | [IOC-LIST.md](research/campaigns/japanese-malspam-20261016-pure-remcos/IOC-LIST.md) | 32 |
 | `research/campaigns/spyglace/apt-c60-2026` | [IOC-LIST.md](research/campaigns/spyglace/apt-c60-2026/IOC-LIST.md) | 2 |
 | `research/campaigns/valleyrat-20260725` | [IOC-LIST.md](research/campaigns/valleyrat-20260725/IOC-LIST.md) | 0 |
 | `research/campaigns/valleyrat-japanese-malspam-20260804` | [IOC-LIST.md](research/campaigns/valleyrat-japanese-malspam-20260804/IOC-LIST.md) | 0 |
