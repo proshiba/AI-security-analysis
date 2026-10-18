@@ -53,6 +53,24 @@ def test_custom_unpacker_and_policy_are_reusable() -> None:
     assert report["executed_sample"] is False
 
 
+def test_depth_limit_is_reported_as_incomplete_static_coverage() -> None:
+    """到達済みlayerを深さ上限で未展開にした事実をlimit eventへ残す。"""
+
+    def unpacker(data: bytes, _name: str, **_kwargs):
+        return ({"status": "fixture"}, [("decoded-child", b"child")]) if data == b"root" else ({}, [])
+
+    layers, report = recover_static_layers(
+        _unit(),
+        unpacker=unpacker,
+        policy=StaticLayerPolicy(max_layers=3, max_depth=1, max_layer_size=32, max_total_size=64),
+    )
+
+    assert [item.data for item in layers] == [b"root", b"child"]
+    assert report["counts"]["limit_events"] == 1
+    assert report["limit_events"][0]["reason"] == "depth_limit"
+    assert report["steps"][-1]["status"] == "skipped_depth_limit"
+
+
 def test_inno_password_is_forwarded_only_when_explicit() -> None:
     """外装passwordは維持し、Inno専用値は明示時だけ別keywordで渡す。"""
 
@@ -265,10 +283,7 @@ def test_unpacker_contract_violations_become_failed_steps(result: object) -> Non
 def test_cab_last_reaches_nested_pe_before_many_terminal_pe_siblings() -> None:
     """>maxのPEが先に並んでも末尾CAB内PEへ層上限前に到達する。"""
 
-    sibling_pes = [
-        (f"pe-sibling-{index}", b"MZterminal-sibling-" + bytes([index]))
-        for index in range(1, 8)
-    ]
+    sibling_pes = [(f"pe-sibling-{index}", b"MZterminal-sibling-" + bytes([index])) for index in range(1, 8)]
     cab = b"MSCFcab-fixture"
     nested_pe = b"MZnested-cab-payload"
     calls: list[bytes] = []
@@ -412,10 +427,7 @@ def test_script_and_config_precede_media_without_reordering_equal_tiers() -> Non
 def test_same_tier_siblings_preserve_discovery_order_when_all_fit() -> None:
     """同一tierが上限内なら従来どおり発見順を完全に維持する。"""
 
-    siblings = [
-        (f"cab-pe-{index:03d}", b"MZ" + index.to_bytes(2, "little") + b"-fixture")
-        for index in range(12)
-    ]
+    siblings = [(f"cab-pe-{index:03d}", b"MZ" + index.to_bytes(2, "little") + b"-fixture") for index in range(12)]
 
     def unpacker(data: bytes, _name: str, **_kwargs):
         if data == b"root":
@@ -444,8 +456,7 @@ def test_oversubscribed_same_tier_siblings_cover_head_middle_and_tail() -> None:
 
     sibling_count = 232
     siblings = [
-        (f"cab-pe-{index:03d}", b"MZ" + index.to_bytes(2, "little") + b"-fixture")
-        for index in range(sibling_count)
+        (f"cab-pe-{index:03d}", b"MZ" + index.to_bytes(2, "little") + b"-fixture") for index in range(sibling_count)
     ]
 
     def unpacker(data: bytes, _name: str, **_kwargs):
@@ -472,14 +483,10 @@ def test_oversubscribed_same_tier_siblings_cover_head_middle_and_tail() -> None:
     assert {0, (sibling_count - 1) // 2, sibling_count - 1} <= set(selected_indexes)
     assert [item.sha256 for item in repeated_layers] == [item.sha256 for item in layers]
 
-    omitted_indexes = [
-        int(event["kind"].rsplit("-", 1)[1]) for event in report["limit_events"]
-    ]
+    omitted_indexes = [int(event["kind"].rsplit("-", 1)[1]) for event in report["limit_events"]]
     assert omitted_indexes == sorted(set(range(sibling_count)) - set(selected_indexes))
     assert len(omitted_indexes) == sibling_count - (policy.max_layers - 1)
-    assert {event["reason"] for event in report["limit_events"]} == {
-        "layer_count_limit"
-    }
+    assert {event["reason"] for event in report["limit_events"]} == {"layer_count_limit"}
     selection_policy = report["selection_policy"]
     assert selection_policy == repeated_report["selection_policy"]
     assert selection_policy == {
@@ -487,9 +494,7 @@ def test_oversubscribed_same_tier_siblings_cover_head_middle_and_tail() -> None:
         "primary_order": "validated_lineage_then_format_priority_then_deeper_layer",
         "capacity_evaluation": "all_pending_layers_after_each_expansion",
         "under_capacity_same_tier_order": "discovery_order",
-        "oversubscribed_same_parent_tier_order": (
-            "endpoints_then_largest_interval_midpoint"
-        ),
+        "oversubscribed_same_parent_tier_order": ("endpoints_then_largest_interval_midpoint"),
         "stratified_sibling_groups": 1,
         "stratified_sibling_candidates": sibling_count,
     }
@@ -500,14 +505,8 @@ def test_deeper_container_children_rebalance_an_existing_fitting_group() -> None
     """後発の深い同tier子が枠を消費しても既存groupを先頭偏重にしない。"""
 
     container = b"MSCF-capacity-competition"
-    root_siblings = [
-        (f"root-pe-{index}", b"MZ" + index.to_bytes(2, "little") + b"-root")
-        for index in range(6)
-    ]
-    deeper_siblings = [
-        (f"deep-pe-{index}", b"MZ" + index.to_bytes(2, "little") + b"-deep")
-        for index in range(2)
-    ]
+    root_siblings = [(f"root-pe-{index}", b"MZ" + index.to_bytes(2, "little") + b"-root") for index in range(6)]
+    deeper_siblings = [(f"deep-pe-{index}", b"MZ" + index.to_bytes(2, "little") + b"-deep") for index in range(2)]
     calls: list[bytes] = []
 
     def unpacker(data: bytes, _name: str, **_kwargs):
@@ -530,9 +529,7 @@ def test_deeper_container_children_rebalance_an_existing_fitting_group() -> None
     )
 
     selected_root_indexes = [
-        int.from_bytes(item.data[2:4], "little")
-        for item in layers
-        if item.transform.startswith("root-pe-")
+        int.from_bytes(item.data[2:4], "little") for item in layers if item.transform.startswith("root-pe-")
     ]
     assert selected_root_indexes == [0, 5, 2, 3]
     assert {0, 2, 5} <= set(selected_root_indexes)
@@ -546,21 +543,13 @@ def test_deeper_container_children_rebalance_an_existing_fitting_group() -> None
         root_siblings[2][1],
         root_siblings[3][1],
     ]
-    assert [
-        event["kind"] for event in report["limit_events"]
-    ] == ["root-pe-1", "root-pe-4"]
-    assert {event["reason"] for event in report["limit_events"]} == {
-        "layer_count_limit"
-    }
+    assert [event["kind"] for event in report["limit_events"]] == ["root-pe-1", "root-pe-4"]
+    assert {event["reason"] for event in report["limit_events"]} == {"layer_count_limit"}
     assert report["selection_policy"]["stratified_sibling_groups"] == 1
     assert report["selection_policy"]["stratified_sibling_candidates"] == 6
-    root_step = next(
-        step for step in report["steps"] if step["input_layer"]["depth"] == 0
-    )
+    root_step = next(step for step in report["steps"] if step["input_layer"]["depth"] == 0)
     container_step = next(
-        step
-        for step in report["steps"]
-        if step["input_layer"]["sha256"] == hashlib.sha256(container).hexdigest()
+        step for step in report["steps"] if step["input_layer"]["sha256"] == hashlib.sha256(container).hexdigest()
     )
     assert [child["transform"] for child in root_step["accepted_children"]] == [
         "late-container",
@@ -574,8 +563,7 @@ def test_deeper_container_children_rebalance_an_existing_fitting_group() -> None
         "deep-pe-1",
     ]
     assert all(
-        child["parent_sha256"] == hashlib.sha256(container).hexdigest()
-        for child in container_step["accepted_children"]
+        child["parent_sha256"] == hashlib.sha256(container).hexdigest() for child in container_step["accepted_children"]
     )
 
 
@@ -584,10 +572,7 @@ def test_repeated_rebalance_uses_immutable_sibling_discovery_order() -> None:
 
     containers = [b"MSCF-first-container", b"MSCF-second-container"]
     deep_payloads = [b"MZ-first-deep-payload", b"MZ-second-deep-payload"]
-    siblings = [
-        (f"root-pe-{index}", b"MZ" + index.to_bytes(2, "little") + b"-root")
-        for index in range(6)
-    ]
+    siblings = [(f"root-pe-{index}", b"MZ" + index.to_bytes(2, "little") + b"-root") for index in range(6)]
 
     def unpacker(data: bytes, _name: str, **_kwargs):
         if data == b"root":
@@ -614,9 +599,7 @@ def test_repeated_rebalance_uses_immutable_sibling_discovery_order() -> None:
     )
 
     selected_root_indexes = [
-        int.from_bytes(item.data[2:4], "little")
-        for item in layers
-        if item.transform.startswith("root-pe-")
+        int.from_bytes(item.data[2:4], "little") for item in layers if item.transform.startswith("root-pe-")
     ]
     assert selected_root_indexes == [0, 5, 2]
     assert {item.data for item in layers} >= set(containers) | set(deep_payloads)
@@ -673,10 +656,7 @@ def test_layer_capacity_pruning_releases_reservation_for_deep_payload() -> None:
 
     container = b"MSCF-deep-reservation-container"
     deep_payload = b"MZ-deep-high-priority-payload" + (b"D" * 32)
-    siblings = [
-        (f"opaque-sibling-{index}", bytes([index]) * 48)
-        for index in range(1, 7)
-    ]
+    siblings = [(f"opaque-sibling-{index}", bytes([index]) * 48) for index in range(1, 7)]
     max_total_size = len(container) + sum(len(blob) for _kind, blob in siblings)
     calls: list[bytes] = []
 
@@ -706,19 +686,11 @@ def test_layer_capacity_pruning_releases_reservation_for_deep_payload() -> None:
     assert deep_layer.parent_sha256 == hashlib.sha256(container).hexdigest()
     assert deep_layer.depth == 2
     assert report["counts"]["recovered_bytes"] <= max_total_size
-    assert [item.sha256 for item in repeated_layers] == [
-        item.sha256 for item in layers
-    ]
+    assert [item.sha256 for item in repeated_layers] == [item.sha256 for item in layers]
     assert repeated_report["limit_events"] == report["limit_events"]
-    assert {event["reason"] for event in report["limit_events"]} == {
-        "layer_count_limit"
-    }
+    assert {event["reason"] for event in report["limit_events"]} == {"layer_count_limit"}
     omitted_kinds = [event["kind"] for event in report["limit_events"]]
-    assert omitted_kinds == [
-        kind
-        for kind, _blob in siblings
-        if kind not in {item.transform for item in layers}
-    ]
+    assert omitted_kinds == [kind for kind, _blob in siblings if kind not in {item.transform for item in layers}]
     assert calls[:3] == [b"root", container, deep_payload]
 
 
@@ -739,9 +711,7 @@ def test_total_capacity_rebalances_low_priority_pending_for_lineage_child() -> N
                 ("opaque-low-priority", low_priority_pending),
             ]
         if data == container:
-            return _complete_bcrypt_report(lineage_child), [
-                ("bcrypt-resource-shellcode", lineage_child)
-            ]
+            return _complete_bcrypt_report(lineage_child), [("bcrypt-resource-shellcode", lineage_child)]
         return {}, []
 
     layers, report = recover_static_layers(
@@ -840,9 +810,7 @@ def test_child_larger_than_total_capacity_is_rejected_once() -> None:
     assert report["counts"]["recovered_bytes"] == sum(map(len, containers))
     assert report["counts"]["recovered_bytes"] <= 40
     assert report["counts"]["deduplicated_artifacts"] == 1
-    assert [event["reason"] for event in report["limit_events"]] == [
-        "recovered_total_limit"
-    ]
+    assert [event["reason"] for event in report["limit_events"]] == ["recovered_total_limit"]
     assert report["limit_events"][0]["sha256"] == hashlib.sha256(oversized).hexdigest()
 
 
@@ -934,8 +902,7 @@ def _complete_inno_report(
                 {
                     "name": "{app}/host.exe",
                     "size": len(payload),
-                    "sha256": payload_sha256
-                    or hashlib.sha256(payload).hexdigest(),
+                    "sha256": payload_sha256 or hashlib.sha256(payload).hexdigest(),
                     "format": "unknown",
                     "launch_target": True,
                 }
@@ -985,9 +952,7 @@ def test_complete_inno_launch_target_precedes_container_at_small_layer_limit() -
             ]
         return {}, []
 
-    layers, report = recover_static_layers(
-        _unit(), unpacker=unpacker, policy=_limited_policy()
-    )
+    layers, report = recover_static_layers(_unit(), unpacker=unpacker, policy=_limited_policy())
 
     assert [item.data for item in layers] == [b"root", payload]
     root_step = report["steps"][0]
@@ -995,9 +960,7 @@ def test_complete_inno_launch_target_precedes_container_at_small_layer_limit() -
     assert selection["status"] == "complete_selected"
     assert selection["counts"]["selected_child_count"] == 1
     assert selection["selected_relation_counts"] == {"script_launch": 1}
-    assert [child["transform"] for child in root_step["accepted_children"]] == [
-        "inno-member-001-unknown.exe"
-    ]
+    assert [child["transform"] for child in root_step["accepted_children"]] == ["inno-member-001-unknown.exe"]
     assert {event["kind"] for event in report["limit_events"]} == {
         "competing-container",
         "inno-install-script.iss",
@@ -1044,9 +1007,7 @@ def test_inno_boolean_count_is_never_treated_as_integer(
             ]
         return {}, []
 
-    layers, public = recover_static_layers(
-        _unit(), unpacker=unpacker, policy=_limited_policy()
-    )
+    layers, public = recover_static_layers(_unit(), unpacker=unpacker, policy=_limited_policy())
 
     assert [item.data for item in layers] == [b"root", container]
     assert public["steps"][0]["lineage_child_selection"]["status"] == "partial"
@@ -1070,9 +1031,7 @@ def test_extra_distinct_inno_install_script_makes_lineage_partial() -> None:
             ]
         return {}, []
 
-    layers, report = recover_static_layers(
-        _unit(), unpacker=unpacker, policy=_limited_policy()
-    )
+    layers, report = recover_static_layers(_unit(), unpacker=unpacker, policy=_limited_policy())
 
     assert [item.data for item in layers] == [b"root", container]
     assert report["steps"][0]["lineage_child_selection"]["status"] == "partial"
@@ -1116,16 +1075,12 @@ def test_inno_install_script_identity_failure_keeps_existing_order(
             return report, artifacts
         return {}, []
 
-    layers, public = recover_static_layers(
-        _unit(), unpacker=unpacker, policy=_limited_policy()
-    )
+    layers, public = recover_static_layers(_unit(), unpacker=unpacker, policy=_limited_policy())
 
     assert [item.data for item in layers] == [b"root", container]
     root_step = public["steps"][0]
     assert root_step["lineage_child_selection"]["status"] == "partial"
-    assert [child["transform"] for child in root_step["accepted_children"]] == [
-        "competing-container"
-    ]
+    assert [child["transform"] for child in root_step["accepted_children"]] == ["competing-container"]
 
 
 def test_complete_bcrypt_target_precedes_container_at_small_layer_limit() -> None:
@@ -1142,9 +1097,7 @@ def test_complete_bcrypt_target_precedes_container_at_small_layer_limit() -> Non
             ]
         return {}, []
 
-    layers, report = recover_static_layers(
-        _unit(), unpacker=unpacker, policy=_limited_policy()
-    )
+    layers, report = recover_static_layers(_unit(), unpacker=unpacker, policy=_limited_policy())
 
     assert [item.data for item in layers] == [b"root", payload]
     selection = report["steps"][0]["lineage_child_selection"]
@@ -1182,15 +1135,10 @@ def test_deep_bcrypt_target_uses_rehashed_containment_chain() -> None:
 
     assert [item.data for item in layers] == [b"root", first_container, payload]
     nested_step = next(
-        step
-        for step in report["steps"]
-        if step["input_layer"]["sha256"]
-        == hashlib.sha256(first_container).hexdigest()
+        step for step in report["steps"] if step["input_layer"]["sha256"] == hashlib.sha256(first_container).hexdigest()
     )
     assert nested_step["lineage_child_selection"]["status"] == "complete_selected"
-    assert [child["transform"] for child in nested_step["accepted_children"]] == [
-        "bcrypt-resource-shellcode"
-    ]
+    assert [child["transform"] for child in nested_step["accepted_children"]] == ["bcrypt-resource-shellcode"]
 
 
 @pytest.mark.parametrize("failure", ["digest_mismatch", "duplicate", "incomplete"])
@@ -1222,16 +1170,12 @@ def test_incomplete_or_ambiguous_lineage_never_changes_existing_order(
             artifacts.append(("inno-member-002-unknown.exe", payload))
         return report, artifacts
 
-    layers, public = recover_static_layers(
-        _unit(), unpacker=unpacker, policy=_limited_policy()
-    )
+    layers, public = recover_static_layers(_unit(), unpacker=unpacker, policy=_limited_policy())
 
     assert [item.data for item in layers] == [b"root", container]
     selection = public["steps"][0]["lineage_child_selection"]
     assert selection["status"] == "partial"
-    assert public["steps"][0]["report"]["inno"]["extraction_complete"] is (
-        failure != "incomplete"
-    )
+    assert public["steps"][0]["report"]["inno"]["extraction_complete"] is (failure != "incomplete")
 
 
 def test_incomplete_bcrypt_report_never_prioritizes_decoded_artifact() -> None:
@@ -1250,9 +1194,7 @@ def test_incomplete_bcrypt_report_never_prioritizes_decoded_artifact() -> None:
             ]
         return {}, []
 
-    layers, public = recover_static_layers(
-        _unit(), unpacker=unpacker, policy=_limited_policy()
-    )
+    layers, public = recover_static_layers(_unit(), unpacker=unpacker, policy=_limited_policy())
 
     assert [item.data for item in layers] == [b"root", container]
     assert public["steps"][0]["lineage_child_selection"]["status"] == "partial"
@@ -1272,9 +1214,7 @@ def test_lineage_public_projection_has_no_private_identity_fields() -> None:
             ]
         return {}, []
 
-    _layers, report = recover_static_layers(
-        _unit(), unpacker=unpacker, policy=_limited_policy()
-    )
+    _layers, report = recover_static_layers(_unit(), unpacker=unpacker, policy=_limited_policy())
     selection = report["steps"][0]["lineage_child_selection"]
 
     def keys(value: object) -> set[str]:
@@ -1316,9 +1256,7 @@ def test_incomplete_overflow_commitment_is_never_used_for_priority() -> None:
             ]
         return {}, []
 
-    layers, report = recover_static_layers(
-        _unit(), unpacker=unpacker, policy=_limited_policy()
-    )
+    layers, report = recover_static_layers(_unit(), unpacker=unpacker, policy=_limited_policy())
 
     assert [item.data for item in layers] == [b"root", container]
     selection = report["steps"][0]["lineage_child_selection"]

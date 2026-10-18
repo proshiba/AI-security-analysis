@@ -19,6 +19,7 @@ import sys
 import tempfile
 import threading
 import time
+import unicodedata
 import zipfile
 import zlib
 from contextlib import contextmanager
@@ -39,6 +40,7 @@ if __package__ in {None, ""}:
 
 from unpackers.arx20_static_route import recover_arx20_static_route
 from unpackers.asar_unpacker import is_asar, recover_asar
+from unpackers.batch_env_powershell import recover_batch_env_powershell
 from unpackers.batch_powershell_polyglot import recover_batch_powershell_polyglot
 from unpackers.bcrypt_resource import recover_bcrypt_resource
 from unpackers.bin101_nibble_rc4 import recover_bin101_payload
@@ -63,6 +65,7 @@ from unpackers.dotnet_bundle_unpacker import (
 from unpackers.embedded_installer_archive import recover_embedded_installer_archive
 from unpackers.equation_ole import recover_equation_ole
 from unpackers.go_embedded_pe import recover_go_embedded_pe
+from unpackers.hta_constant_command import recover_hta_constant_commands
 from unpackers.inno_sideload_bundle import (
     recover_inno_sideload_bundle,
     recover_scene_record_artifacts,
@@ -88,14 +91,24 @@ from unpackers.javascript_obfuscator import (
     deobfuscate_string_array,
 )
 from unpackers.javascript_reverse_base64 import recover_reverse_base64
+from unpackers.luajit_polyrot_mixed_table import (
+    recover_bytes as recover_luajit_polyrot_mixed_table,
+)
 from unpackers.managed_bitmap_argb_xor import recover_managed_bitmap_argb_xor
+from unpackers.managed_eaz_remcos import recover_managed_eaz_remcos
 from unpackers.managed_eaz_resource import recover_managed_eaz_resource
 from unpackers.managed_handoff_image import inspect_managed_handoff_image
 from unpackers.managed_il_triage import (
     _contain_parser_diagnostics,
     analyze_managed_pe,
 )
-from unpackers.managed_omlx_tripledes import recover_managed_omlx_tripledes
+from unpackers.managed_omlx_direct_tripledes import (
+    recover_managed_omlx_direct_tripledes,
+)
+from unpackers.managed_omlx_tripledes import (
+    OmlxTripledesError,
+    recover_managed_omlx_tripledes,
+)
 from unpackers.managed_proxy_deobfuscator import analyze_managed_protector
 from unpackers.managed_smartassembly_strings import (
     recover_managed_smartassembly_strings,
@@ -139,10 +152,20 @@ from unpackers.onyx_qt_loader import (
     recover_onyx_qt_payload,
 )
 from unpackers.opaque_native_entry import analyze_opaque_native_pe
+from unpackers.powershell_cyclic_xor_calls import recover_powershell_cyclic_xor_calls
 from unpackers.powershell_rotational_xor import recover_powershell_rotational_xor
 from unpackers.profiled_transform import (
     MAX_RETAINED_ARTIFACT_BYTES,
     recover_profiled_transforms,
+)
+from unpackers.remcos_base52_chain import (
+    recover_remcos_javascript_base52,
+    recover_remcos_powershell_base52_pes,
+)
+from unpackers.remcos_native_constant_writer import recover_remcos_native_constants
+from unpackers.remcos_tea_rc4_chain import (
+    recover_remcos_javascript_tea_rc4,
+    recover_remcos_powershell_table_gzip,
 )
 from unpackers.reverse_chunk_affine_xor_donut_pe import (
     recover_reverse_chunk_affine_xor_donut_pe,
@@ -157,6 +180,10 @@ from unpackers.rzk_lece_unpacker import (
     candidate_report as rzk_lece_candidate_report,
 )
 from unpackers.static_control_flow import analyze_pe_control_flow
+from unpackers.vbe_decoder import recover_vbe_script
+from unpackers.vbscript_array_chr import recover_vbscript_array_chr
+from unpackers.vbscript_constant_sink import recover_vbscript_constant_sinks
+from unpackers.vbscript_env_powershell import recover_vbscript_env_powershell
 
 COMMON_ROOT = Path(__file__).resolve().parents[1] / "analysis-framework" / "common"
 if str(COMMON_ROOT) not in sys.path:
@@ -191,7 +218,11 @@ MAX_EXTRACTED_TOTAL = 768 * 1024 * 1024
 MAX_ARCHIVE_MEMBERS = 512
 MAX_RETAINED_MEMBERS = 128
 MAX_SELECTIVE_ARCHIVE_SCAN_MEMBERS = 8192
+MAX_SEVENZIP_LISTING_MEMBER_RECORDS = 8192
 MAX_COMPRESSION_RATIO = 200.0
+MAX_ARCHIVE_LAYER_BASENAME_CHARS = 160
+MAX_ARCHIVE_LAYER_BASENAME_UTF8_BYTES = 240
+MAX_ARCHIVE_LAYER_SUFFIX_CHARS = 32
 MIN_OVERLAY_CONTAINER_BYTES = 1024 * 1024
 MIN_OVERLAY_CONTAINER_UNIQUE_PE_COUNT = 4
 CLASSIC_UPX_SECTION_NAMES = frozenset({"upx", "upx0", "upx1", "upx2"})
@@ -255,12 +286,14 @@ MAX_STATIC_TOOL_TEMP_ENTRIES = 10_000
 MAX_STATIC_TOOL_ACTIVE_PROCESSES = 8
 MAX_STATIC_TOOL_MEMORY_BYTES = 1024 * 1024 * 1024
 MAX_STATIC_TOOL_BINARY_BYTES = 128 * 1024 * 1024
+MAX_STATIC_TOOL_STDIN_BYTES = 4096
 STATIC_TOOL_MONITOR_INTERVAL_SECONDS = 0.05
 SCRIPT_SUFFIXES = {
     ".au3",
     ".html",
     ".htm",
     ".js",
+    ".lua",
     ".nsi",
     ".jse",
     ".vbs",
@@ -624,9 +657,17 @@ def _run_static_tool_process(
     max_temp_entries: int,
     max_temp_bytes: int,
     encoding: str = "utf-8",
+    stdin_payload: bytes | None = None,
 ) -> StaticToolCompleted:
     """process tree・出力・時間・一時treeを全て有界にしてtoolを起動する。"""
 
+    if stdin_payload is not None and (
+        not isinstance(stdin_payload, bytes)
+        or not stdin_payload
+        or len(stdin_payload) > MAX_STATIC_TOOL_STDIN_BYTES
+        or any(value in stdin_payload for value in (b"\x00", b"\r", b"\n"))
+    ):
+        raise ValueError("static tool stdin payload contract is invalid")
     if (
         not command
         or not cwd.is_absolute()
@@ -687,7 +728,7 @@ def _run_static_tool_process(
             cwd=cwd,
             env=_static_tool_environment(cwd),
             shell=False,
-            stdin=subprocess.DEVNULL,
+            stdin=subprocess.PIPE if stdin_payload is not None else subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             **containment.popen_options(),
@@ -709,6 +750,19 @@ def _run_static_tool_process(
         ]
         for thread in threads:
             thread.start()
+        if stdin_payload is not None:
+            if process.stdin is None:  # pragma: no cover - Popen contract
+                raise StaticToolExecutionError("stdin_transport_failed")
+            try:
+                process.stdin.write(stdin_payload + b"\n")
+                process.stdin.flush()
+            except (BrokenPipeError, OSError, ValueError) as exc:
+                raise StaticToolExecutionError("stdin_transport_failed") from exc
+            finally:
+                try:
+                    process.stdin.close()
+                except (OSError, ValueError) as exc:
+                    raise StaticToolExecutionError("stdin_transport_failed") from exc
         while process.poll() is None:
             if time.monotonic() >= deadline:
                 raise StaticToolExecutionError("timeout")
@@ -948,19 +1002,27 @@ def detect_format(data: bytes, name: str = "sample") -> str:
         return "ole"
     if data[:256].lstrip().lower().startswith(b"{\\rtf"):
         return "rtf"
-    if suffix in SCRIPT_SUFFIXES or data[:256].lstrip().lower().startswith(
-        (
-            b"<!doctype html",
-            b"<html",
-            b"<script",
-            b"<?xml",
-            b"<job",
-            b"function ",
-            b"var ",
-            b"$",
-            b"on error",
-            b"tell application",
-            b"#!/bin/",
+    if (
+        suffix in SCRIPT_SUFFIXES
+        or lineage_tail == "javascript-reverse-base64-lua"
+        or data[:256]
+        .lstrip()
+        .lower()
+        .startswith(
+            (
+                b"<!doctype html",
+                b"<html",
+                b"<script",
+                b"<?xml",
+                b"<job",
+                b"#@~^",
+                b"function ",
+                b"var ",
+                b"$",
+                b"on error",
+                b"tell application",
+                b"#!/bin/",
+            )
         )
     ):
         return "script"
@@ -1613,6 +1675,239 @@ def repetitive_padding(data: bytes, max_period: int = 32) -> dict[str, object] |
 def safe_member_name(name: str) -> str:
     """アーカイブのパストラバーサル、絶対パス、ドライブ指定メンバー名を拒否する。"""
     return validate_member_name(name, "archive")
+
+
+def _bounded_utf8_prefix(text: str, *, max_chars: int, max_bytes: int) -> str:
+    """文字境界を壊さず、文字数・UTF-8 byte数の双方でprefixを制限する。"""
+
+    retained: list[str] = []
+    retained_bytes = 0
+    for character in text:
+        encoded_size = len(character.encode("utf-8"))
+        if len(retained) >= max_chars or retained_bytes + encoded_size > max_bytes:
+            break
+        retained.append(character)
+        retained_bytes += encoded_size
+    return "".join(retained)
+
+
+def _archive_layer_suffix(name: str) -> str:
+    """有界な一般拡張子だけを、basename切詰め時の保存対象として返す。"""
+
+    suffix = PurePosixPath(name).suffix
+    if 2 <= len(suffix) <= MAX_ARCHIVE_LAYER_SUFFIX_CHARS and re.fullmatch(
+        r"\.[A-Za-z0-9][A-Za-z0-9._-]*", suffix
+    ):
+        return suffix
+    return ""
+
+
+def _bounded_archive_layer_basename(name: str) -> str:
+    """basenameを拡張子保持のまま公開レイヤー名の上限へ収める。"""
+
+    suffix = _archive_layer_suffix(name)
+    stem = name[: -len(suffix)] if suffix else name
+    stem = stem.rstrip(" .") or "member"
+    suffix_bytes = len(suffix.encode("utf-8"))
+    stem = _bounded_utf8_prefix(
+        stem,
+        max_chars=max(1, MAX_ARCHIVE_LAYER_BASENAME_CHARS - len(suffix)),
+        max_bytes=max(1, MAX_ARCHIVE_LAYER_BASENAME_UTF8_BYTES - suffix_bytes),
+    ).rstrip(" .")
+    stem = stem or "member"
+    bounded = f"{stem}{suffix}"
+    # ``member`` fallbackにより通常ここへは到達しないが、定数変更時も上限を
+    # fail closedで守る。
+    return _bounded_utf8_prefix(
+        bounded,
+        max_chars=MAX_ARCHIVE_LAYER_BASENAME_CHARS,
+        max_bytes=MAX_ARCHIVE_LAYER_BASENAME_UTF8_BYTES,
+    ).rstrip(" .")
+
+
+def normalize_archive_member_basename(name: str) -> str:
+    """検証済みarchive member名を、安全で有界なレイヤーbasenameへ変換する。
+
+    NFKC後にpathを再検証するため、全角区切りや全角dotを用いたtraversalも
+    basenameへ落とす前に拒否する。返却値はファイル作成には使用しない。
+    """
+
+    if not isinstance(name, str):
+        raise TypeError("unsafe_archive_member_path")
+    normalized_path = unicodedata.normalize("NFKC", name)
+    normalized_path = "".join(
+        character
+        for character in normalized_path
+        if not unicodedata.category(character).startswith("C")
+    )
+    normalized_path = safe_member_name(normalized_path)
+    basename = PurePosixPath(normalized_path).name
+    cleaned: list[str] = []
+    for character in basename:
+        if unicodedata.category(character).startswith("C"):
+            continue
+        if character in '<>:"/\\|?*':
+            cleaned.append("_")
+        elif character.isspace():
+            cleaned.append(" ")
+        else:
+            cleaned.append(character)
+    value = re.sub(r"\s+", " ", "".join(cleaned)).strip(" .")
+    value = re.sub(r"_+", "_", value)
+    if not value:
+        value = "member"
+    return _bounded_archive_layer_basename(value)
+
+
+def _disambiguated_archive_layer_basename(
+    basename: str,
+    *,
+    digest: str,
+    artifact_index: int,
+    collision_ordinal: int = 0,
+) -> str:
+    """同名memberへhashと安定indexに基づく決定的な識別子を付与する。"""
+
+    suffix = _archive_layer_suffix(basename)
+    stem = basename[: -len(suffix)] if suffix else basename
+    marker = f"~{digest[:12]}-{artifact_index:03d}"
+    if collision_ordinal:
+        marker = f"{marker}-{collision_ordinal}"
+    stem = _bounded_utf8_prefix(
+        stem.rstrip(" .") or "member",
+        max_chars=max(
+            1,
+            MAX_ARCHIVE_LAYER_BASENAME_CHARS - len(marker) - len(suffix),
+        ),
+        max_bytes=max(
+            1,
+            MAX_ARCHIVE_LAYER_BASENAME_UTF8_BYTES
+            - len(marker.encode("utf-8"))
+            - len(suffix.encode("utf-8")),
+        ),
+    ).rstrip(" .")
+    return _bounded_archive_layer_basename(f"{stem or 'member'}{marker}{suffix}")
+
+
+def _archive_artifact_name_hints(
+    selected: list[tuple[int, str, bytes, str]],
+) -> dict[str, object]:
+    """7-Zip artifactと1対1対応する検証用basename hintを構築する。"""
+
+    normalized: list[str | None] = []
+    for _, name, _, _ in selected:
+        try:
+            normalized.append(normalize_archive_member_basename(name))
+        except ValueError:
+            normalized.append(None)
+    counts: dict[str, int] = {}
+    for basename in normalized:
+        if basename is None:
+            continue
+        key = basename.casefold()
+        counts[key] = counts.get(key, 0) + 1
+    items: list[dict[str, object]] = []
+    used_basenames: set[str] = set()
+    for artifact_index, ((_, _, blob, kind), basename) in enumerate(
+        zip(selected, normalized, strict=True)
+    ):
+        if basename is None:
+            continue
+        digest = sha256_bytes(blob)
+        if counts[basename.casefold()] > 1:
+            basename = _disambiguated_archive_layer_basename(
+                basename,
+                digest=digest,
+                artifact_index=artifact_index,
+            )
+        collision_ordinal = 0
+        while basename.casefold() in used_basenames:
+            collision_ordinal += 1
+            basename = _disambiguated_archive_layer_basename(
+                normalized[artifact_index] or "member",
+                digest=digest,
+                artifact_index=artifact_index,
+                collision_ordinal=collision_ordinal,
+            )
+        used_basenames.add(basename.casefold())
+        items.append(
+            {
+                "artifact_index": artifact_index,
+                "artifact_kind": f"7z-{kind}",
+                "sha256": digest,
+                "member_basename": basename,
+            }
+        )
+    return {
+        "schema_version": 1,
+        "complete": all(basename is not None for basename in normalized),
+        "items": items,
+    }
+
+
+def _extend_artifacts_with_name_hints(
+    parent_report: dict[str, object],
+    artifacts: list[tuple[str, bytes]],
+    source_report: dict[str, object],
+    recovered: list[tuple[str, bytes]],
+) -> None:
+    """nested extractorのhint indexをartifact全体のoffsetへ安全に再基底化する。"""
+
+    artifact_offset = len(artifacts)
+    artifacts.extend(recovered)
+    source_envelope = source_report.get("artifact_name_hints")
+    if not isinstance(source_envelope, dict):
+        return
+    source_items = source_envelope.get("items")
+    if source_envelope.get("schema_version") != 1 or not isinstance(source_items, list):
+        return
+    parent_envelope = parent_report.get("artifact_name_hints")
+    if not isinstance(parent_envelope, dict):
+        parent_envelope = {
+            "schema_version": 1,
+            "complete": True,
+            "items": [],
+        }
+        parent_report["artifact_name_hints"] = parent_envelope
+    parent_items = parent_envelope.get("items")
+    if parent_envelope.get("schema_version") != 1 or not isinstance(parent_items, list):
+        return
+    complete = source_envelope.get("complete") is True
+    seen_indices: set[int] = set()
+    rebased_items: list[dict[str, object]] = []
+    for item in source_items:
+        if not isinstance(item, dict):
+            complete = False
+            continue
+        artifact_index = item.get("artifact_index")
+        if (
+            isinstance(artifact_index, bool)
+            or not isinstance(artifact_index, int)
+            or not 0 <= artifact_index < len(recovered)
+            or artifact_index in seen_indices
+        ):
+            complete = False
+            continue
+        artifact_kind, blob = recovered[artifact_index]
+        digest = item.get("sha256")
+        if (
+            item.get("artifact_kind") != artifact_kind
+            or not isinstance(blob, bytes)
+            or not isinstance(digest, str)
+            or digest != sha256_bytes(blob)
+            or not isinstance(item.get("member_basename"), str)
+        ):
+            complete = False
+            continue
+        seen_indices.add(artifact_index)
+        rebased_items.append(
+            {
+                **item,
+                "artifact_index": artifact_offset + artifact_index,
+            }
+        )
+    parent_items.extend(rebased_items)
+    parent_envelope["complete"] = parent_envelope.get("complete") is True and complete
 
 
 def valid_pe_extent(data: bytes, offset: int = 0) -> int | None:
@@ -3443,7 +3738,7 @@ def select_high_value_archive_members(
 def _validated_sevenzip_member_records(
     listing: dict[str, object],
     records: object,
-) -> tuple[list[dict[str, object]], int]:
+) -> tuple[list[dict[str, object]], int, bool]:
     """7-Zipの全member名を外部展開前に検証し、正規化済みrecordを返す。"""
 
     source_records: object = records
@@ -3452,10 +3747,15 @@ def _validated_sevenzip_member_records(
         if isinstance(members, list):
             source_records = [{"name": name} for name in members]
     if not isinstance(source_records, list):
-        return [], 1
+        return [], 1, False
+    if len(source_records) > MAX_SEVENZIP_LISTING_MEMBER_RECORDS:
+        return [], 0, True
 
     validated: list[dict[str, object]] = []
     blocked = 0
+    windows_keys: dict[str, bool] = {}
+    windows_file_keys: set[str] = set()
+    windows_required_directory_prefixes: set[str] = set()
     for record in source_records:
         if not isinstance(record, dict):
             blocked += 1
@@ -3466,11 +3766,47 @@ def _validated_sevenzip_member_records(
             continue
         try:
             normalized = safe_member_name(raw_name)
+            compatibility_name = unicodedata.normalize("NFKC", normalized)
+            compatibility_name = safe_member_name(compatibility_name)
+            components = compatibility_name.split("/")
+            canonical_components: list[str] = []
+            for component in components:
+                if any(
+                    character in '<>:"|?*' for character in component
+                ) or component != component.rstrip(" ."):
+                    raise ValueError("unsafe_archive_member_path")
+                device_stem = component.split(".", 1)[0].casefold()
+                if device_stem in {
+                    "con",
+                    "prn",
+                    "aux",
+                    "nul",
+                    "conin$",
+                    "conout$",
+                } or re.fullmatch(r"(?:com|lpt)[1-9]", device_stem):
+                    raise ValueError("unsafe_archive_member_path")
+                canonical_components.append(component.casefold())
+            windows_key = "/".join(canonical_components)
+            is_directory = "D" in str(record.get("attributes") or "").upper()
+            if windows_key in windows_keys:
+                raise ValueError("unsafe_archive_member_path")
+            prefixes = [
+                "/".join(canonical_components[:index])
+                for index in range(1, len(canonical_components))
+            ]
+            if any(prefix in windows_file_keys for prefix in prefixes):
+                raise ValueError("unsafe_archive_member_path")
+            if not is_directory and windows_key in windows_required_directory_prefixes:
+                raise ValueError("unsafe_archive_member_path")
         except ValueError:
             blocked += 1
             continue
+        windows_keys[windows_key] = is_directory
+        windows_required_directory_prefixes.update(prefixes)
+        if not is_directory:
+            windows_file_keys.add(windows_key)
         validated.append({**record, "name": normalized})
-    return validated, blocked
+    return validated, blocked, False
 
 
 def safe_temporary_suffix(name: str) -> str:
@@ -4127,7 +4463,10 @@ def nsis_static_extract(
             base["status"] = _static_tool_failure_status(exc)
             return _finalize_nsis_result(executable, identity_before, base, [])
         listing = parse_nsis_listing(
-            f"{listed.stdout}\n{listed.stderr}", listed.returncode, len(data)
+            f"{listed.stdout}\n{listed.stderr}",
+            listed.returncode,
+            len(data),
+            source_data=data,
         )
         base.update(nsis_listing_public(listing))
         base["members"] = [member.normalized_name for member in listing.members]
@@ -4454,11 +4793,43 @@ def nsis_static_extract(
         return _finalize_nsis_result(executable, identity_before, base, artifacts)
 
 
+def _archive_credential_payload(password: str) -> bytes | None:
+    """外部toolへ1行だけ渡せるarchive credentialを検証する。"""
+
+    if not isinstance(password, str):
+        raise TypeError("archive credential must be a string")
+    if not password:
+        return None
+    try:
+        payload = password.encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise ValueError("archive credential cannot be encoded") from exc
+    if (
+        not payload
+        or len(payload) > MAX_STATIC_TOOL_STDIN_BYTES
+        or any(value in payload for value in (b"\x00", b"\r", b"\n"))
+    ):
+        raise ValueError("archive credential violates the one-line contract")
+    return payload
+
+
+def _sevenzip_requests_credential(completed: StaticToolCompleted) -> bool:
+    """7-Zipが暗号化archiveのcredentialを要求した時だけ再試行する。"""
+
+    diagnostic = f"{completed.stdout}\n{completed.stderr}".casefold()
+    return completed.returncode != 0 and any(
+        marker in diagnostic for marker in ("password", "encrypted")
+    )
+
+
 def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dict:
-    """アーカイブ候補の識別と一覧化だけに7-Zipを使用する。"""
-    if password:
+    """アーカイブ候補を一覧化し、必要時だけcredentialをstdinへ渡す。"""
+
+    try:
+        credential_payload = _archive_credential_payload(password)
+    except (TypeError, ValueError):
         return {
-            "status": "credential_transport_unsupported",
+            "status": "credential_invalid",
             "archive_types": [],
             "members": [],
             "total_members": 0,
@@ -4475,18 +4846,28 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
         source.write_bytes(data)
         command = [str(executable), "l", "-slt", "-sccUTF-8"]
         command.extend(["--", str(source)])
+        run_options = {
+            "cwd": root,
+            "timeout": 60,
+            "max_temp_entries": 32,
+            "max_temp_bytes": min(
+                MAX_STATIC_TOOL_TEMP_BYTES,
+                max(1, len(data) + 16 * 1024 * 1024),
+            ),
+            "encoding": "utf-8",
+        }
+        archive_unlock_attempted = False
         try:
-            completed = _run_static_tool_process(
-                command,
-                cwd=root,
-                timeout=60,
-                max_temp_entries=32,
-                max_temp_bytes=min(
-                    MAX_STATIC_TOOL_TEMP_BYTES,
-                    max(1, len(data) + 16 * 1024 * 1024),
-                ),
-                encoding="utf-8",
-            )
+            completed = _run_static_tool_process(command, **run_options)
+            if credential_payload is not None and _sevenzip_requests_credential(
+                completed
+            ):
+                archive_unlock_attempted = True
+                completed = _run_static_tool_process(
+                    command,
+                    stdin_payload=credential_payload,
+                    **run_options,
+                )
         except StaticToolExecutionError as exc:
             return {
                 "status": _static_tool_failure_status(exc),
@@ -4494,47 +4875,92 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
                 "members": [],
                 "total_members": 0,
                 "declared_total_size": 0,
-                "password_attempted": bool(password),
-                "archive_unlock_attempted": bool(password),
+                "archive_unlock_attempted": archive_unlock_attempted,
+                **(
+                    {"credential_transport": "stdin_one_line"}
+                    if archive_unlock_attempted
+                    else {}
+                ),
                 "_member_records": [],
             }
-        paths, types, declared_sizes = [], [], []
+        paths: list[str] = []
+        archive_types: set[str] = set()
+        total_members = 0
+        declared_total_size = 0
         member_records: list[dict[str, object]] = []
+        member_record_limit_exceeded = False
         current: dict[str, object] | None = None
         for line in completed.stdout.splitlines():
             if line.startswith("Path = "):
                 value = line[7:]
                 if current is not None:
-                    member_records.append(current)
+                    if len(member_records) < MAX_SEVENZIP_LISTING_MEMBER_RECORDS:
+                        member_records.append(current)
+                    else:
+                        member_record_limit_exceeded = True
                 current = {"name": value} if value != str(source) else None
                 if value != str(source):
-                    paths.append(value)
+                    total_members += 1
+                    if len(paths) < MAX_ARCHIVE_MEMBERS:
+                        paths.append(value)
             elif line.startswith("Type = "):
-                types.append(line[7:])
+                if len(archive_types) < 256:
+                    archive_types.add(line[7:])
+                else:
+                    member_record_limit_exceeded = True
             elif line.startswith("Size = ") and line[7:].strip().isdigit():
                 value = int(line[7:].strip())
-                declared_sizes.append(value)
+                declared_total_size += value
                 if current is not None:
                     current["size"] = value
             if line.startswith("Attributes = ") and current is not None:
                 current["attributes"] = line[13:]
         if current is not None:
-            member_records.append(current)
-        return {
-            "status": "listed"
+            if len(member_records) < MAX_SEVENZIP_LISTING_MEMBER_RECORDS:
+                member_records.append(current)
+            else:
+                member_record_limit_exceeded = True
+        # reviewed hint による forced probe では、通常の PE や script も
+        # 7-Zip へ渡る。parser が単に「archiveではない」と返した結果を
+        # encrypted/unsupported と扱うと、完全に走査済みの層まで partial
+        # へ誤降格する。magic または 7-Zip の構造出力が archive 候補を
+        # 示す場合だけ fail-closed の incomplete 状態を残す。
+        detected_format = detect_format(data, "input.bin")
+        archive_magic_formats = {
+            "7z",
+            "apple-disk-image",
+            "cab",
+            "rar",
+            "zip",
+        }
+        archive_structure_observed = bool(
+            archive_types or total_members or detected_format in archive_magic_formats
+        )
+        status = (
+            "listed"
             if completed.returncode == 0
-            else "encrypted_or_unsupported",
+            else "credential_or_archive_rejected"
+            if archive_unlock_attempted
+            else "encrypted_or_unsupported"
+            if archive_structure_observed
+            else "not_archive_container"
+        )
+        return {
+            "status": status,
             "exit_code": completed.returncode,
-            "archive_types": sorted(set(types)),
-            "members": paths[:MAX_ARCHIVE_MEMBERS],
-            "total_members": len(paths),
-            "declared_total_size": sum(declared_sizes),
-            "password_attempted": bool(password),
+            "archive_types": sorted(archive_types),
+            "members": paths,
+            "total_members": total_members,
+            "declared_total_size": declared_total_size,
+            "member_record_limit_exceeded": member_record_limit_exceeded,
             # sevenzip_extract内の選択抽出にだけ使い、公開レポートへは残さない。
             "_member_records": member_records,
-            # Safe public alias retained by report sanitizers that intentionally
-            # remove every field whose name contains "password".
-            "archive_unlock_attempted": bool(password),
+            "archive_unlock_attempted": archive_unlock_attempted,
+            **(
+                {"credential_transport": "stdin_one_line"}
+                if archive_unlock_attempted
+                else {}
+            ),
         }
 
 
@@ -4757,32 +5183,29 @@ def sevenzip_extract(
     ):
         if isinstance(value, bool) or value <= 0:
             raise ValueError(f"{label} must be positive")
-    # 外部toolへcredentialを安全に渡す検証済み契約がないため、inventoryと
-    # 抽出は常に無資格で試す。無資格抽出が失敗しpasswordが設定されている
-    # 場合は、argvへ値を載せず明示blockedへ閉じる。
-    unkeyed_listing = sevenzip_inventory(data, executable, "")
-    listing = unkeyed_listing
+    # inventoryは最初に無資格で試し、暗号化headerが明示された場合だけ
+    # sevenzip_inventory内部で1行stdin credentialを使う。
+    inventory_credential = "" if data.startswith(b"MZ") else password
+    listing = sevenzip_inventory(data, executable, inventory_credential)
     member_records = listing.pop("_member_records", [])
-    if listing["status"] in {
-        "unavailable",
-        "timeout",
-        "tool_output_limit",
-        "temporary_quota_blocked",
-        "tool_integrity_failed",
-        "tool_failed",
-    }:
+    if listing.get("status") != "listed":
         return listing, []
-    if password and listing["status"] != "listed":
+    member_records, unsafe_member_count, member_record_limit_exceeded = (
+        _validated_sevenzip_member_records(
+            listing,
+            member_records,
+        )
+    )
+    if (
+        listing.get("member_record_limit_exceeded") is True
+        or member_record_limit_exceeded
+    ):
         return {
             **listing,
-            "status": "credential_transport_unsupported",
-            "archive_unlock_attempted": False,
-            "external_credential_transport": "unsupported",
+            "status": "member_record_limit_blocked",
+            "maximum_member_records": MAX_SEVENZIP_LISTING_MEMBER_RECORDS,
+            "external_extraction_started": False,
         }, []
-    member_records, unsafe_member_count = _validated_sevenzip_member_records(
-        listing,
-        member_records,
-    )
     if unsafe_member_count:
         return {
             **listing,
@@ -4807,6 +5230,21 @@ def sevenzip_extract(
     )
     if not supported_archive:
         return {**listing, "status": "not_archive_container"}, []
+    installer_container = "nsis" in archive_types or any(
+        value.startswith("inno") for value in archive_types
+    )
+    credential_capable_archive = bool(
+        archive_types.intersection({"7z", "zip", "rar"})
+        or any(value.startswith("rar") for value in archive_types)
+    )
+    try:
+        credential_payload = (
+            _archive_credential_payload(password)
+            if credential_capable_archive and not installer_container
+            else None
+        )
+    except (TypeError, ValueError):
+        return {**listing, "status": "credential_invalid"}, []
     selective_members: list[dict[str, object]] = []
     member_limit_exceeded = int(listing.get("total_members", 0)) > max_members
     total_size_limit_exceeded = (
@@ -4828,7 +5266,7 @@ def sevenzip_extract(
                 else "declared_size_blocked"
             )
             return {**listing, "status": status}, []
-    password_candidates = [""]
+    credential_inputs = [credential_payload]
 
     with tempfile.TemporaryDirectory(prefix="asa-7z-extract-") as temp:
         root = Path(temp).resolve(strict=True)
@@ -4839,7 +5277,7 @@ def sevenzip_extract(
         source.write_bytes(data)
         attempts = []
         attempt_failures: list[str] = []
-        for candidate_index, candidate_password in enumerate(password_candidates):
+        for candidate_index, candidate_credential in enumerate(credential_inputs):
             output = root / f"out-{candidate_index}"
             command = [str(executable), "x", "-y", "-bd", "-bb0", "-sccUTF-8"]
             command.extend([f"-o{output}", "--", str(source)])
@@ -4864,6 +5302,7 @@ def sevenzip_extract(
                         ),
                     ),
                     encoding="utf-8",
+                    stdin_payload=candidate_credential,
                 )
             except StaticToolExecutionError as exc:
                 attempt_failures.append(_static_tool_failure_status(exc))
@@ -4886,12 +5325,13 @@ def sevenzip_extract(
             if completed.returncode == 0:
                 break
         if not attempts:
-            if password:
+            if credential_payload is not None:
+                status = attempt_failures[-1] if attempt_failures else "tool_failed"
                 return {
                     **listing,
-                    "status": "credential_transport_unsupported",
-                    "archive_unlock_attempted": False,
-                    "external_credential_transport": "unsupported",
+                    "status": status,
+                    "archive_unlock_attempted": True,
+                    "credential_transport": "stdin_one_line",
                 }, []
             status = (
                 "extract_timeout"
@@ -4905,12 +5345,12 @@ def sevenzip_extract(
             attempts,
             key=lambda item: (item[0].returncode == 0, item[3], -item[2]),
         )
-        if completed.returncode != 0 and password:
+        if completed.returncode != 0 and credential_payload is not None:
             return {
                 **listing,
-                "status": "credential_transport_unsupported",
-                "archive_unlock_attempted": False,
-                "external_credential_transport": "unsupported",
+                "status": "credential_or_archive_rejected",
+                "archive_unlock_attempted": True,
+                "credential_transport": "stdin_one_line",
             }, []
         inventory, candidates = [], []
         extracted_total = 0
@@ -5058,6 +5498,7 @@ def sevenzip_extract(
         nsis_report, nsis_artifacts = ({"status": "not_nsis"}, [])
         if "nsis" in archive_types:
             nsis_report, nsis_artifacts = recover_nsis_scripted_layers(file_map)
+        artifact_name_hints = _archive_artifact_name_hints(selected)
         artifacts = [(f"7z-{kind}", blob) for _, _, blob, kind in selected]
         artifacts.extend(inno_artifacts)
         artifacts.extend(split_artifacts)
@@ -5071,11 +5512,25 @@ def sevenzip_extract(
                 **listing,
                 "status": status,
                 "extract_exit_code": completed.returncode,
-                "archive_unlock_attempt_count": len(attempts),
+                "archive_unlock_attempted": bool(
+                    listing.get("archive_unlock_attempted")
+                    or credential_payload is not None
+                ),
+                "archive_unlock_attempt_count": int(
+                    listing.get("archive_unlock_attempted") is True
+                )
+                + int(credential_payload is not None),
                 "archive_unlock_candidate_index": selected_candidate_index,
+                **(
+                    {"credential_transport": "stdin_one_line"}
+                    if listing.get("archive_unlock_attempted") is True
+                    or credential_payload is not None
+                    else {}
+                ),
                 "inventory": inventory[:max_members],
                 "extracted_total_size": extracted_total,
                 "retained_members": len(selected),
+                "artifact_name_hints": artifact_name_hints,
                 "selective_extraction": {
                     "enabled": bool(selective_members),
                     "reason": (
@@ -5908,6 +6363,246 @@ def recover_cab_members(
     return report, artifacts
 
 
+_KNOWN_VBSCRIPT_SUFFIXES = frozenset({".vbe", ".vbs", ".wsf"})
+_KNOWN_NON_VBSCRIPT_SUFFIXES = frozenset(
+    {
+        ".au3",
+        ".bat",
+        ".cmd",
+        ".js",
+        ".jse",
+        ".lua",
+        ".ps1",
+        ".psm1",
+    }
+)
+_VBSCRIPT_PROFILE_MARKERS = (b"function", b"end function", b"execute")
+
+_KNOWN_POWERSHELL_SUFFIXES = frozenset({".ps1", ".psd1", ".psm1"})
+_KNOWN_BATCH_SUFFIXES = frozenset({".bat", ".cmd"})
+_POWERSHELL_CYCLIC_ARRAY_SIGNAL_RE = re.compile(
+    rb"@\(\s*\d+(?:\s*,\s*\d+){3,}\s*\)",
+    re.IGNORECASE,
+)
+_POWERSHELL_CYCLIC_FUNCTION_SIGNAL_RE = re.compile(
+    rb"\bfunction\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\$",
+    re.IGNORECASE,
+)
+_BATCH_ENV_POWERSHELL_SINK_SIGNAL_RE = re.compile(
+    rb"^[ \t]*echo[ \t]+%%([A-Za-z_][A-Za-z0-9_]*)%%[ \t]*\|[ \t]*"
+    rb'"%([A-Za-z_][A-Za-z0-9_]*)%"[ \t]+-windowstyle[ \t]+hidden[ \t]+-[ \t]*$',
+    re.IGNORECASE | re.MULTILINE,
+)
+_MAX_SCRIPT_PROFILE_PROBE_BYTES = 2 * 1024 * 1024
+_MAX_POWERSHELL_FUNCTION_SIGNALS = 64
+
+
+def _vbscript_profile_signal(data: bytes) -> str | None:
+    """全入力を複製せず、strict VBScript profileの必須語彙を探す。"""
+
+    if all(
+        re.search(re.escape(marker), data, re.IGNORECASE)
+        for marker in _VBSCRIPT_PROFILE_MARKERS
+    ):
+        return "ascii"
+    if data.startswith(b"\xff\xfe") and all(
+        re.search(
+            re.escape(marker.decode("ascii").encode("utf-16-le")), data, re.IGNORECASE
+        )
+        for marker in _VBSCRIPT_PROFILE_MARKERS
+    ):
+        return "utf-16-le-bom"
+    if data.startswith(b"\xfe\xff") and all(
+        re.search(
+            re.escape(marker.decode("ascii").encode("utf-16-be")), data, re.IGNORECASE
+        )
+        for marker in _VBSCRIPT_PROFILE_MARKERS
+    ):
+        return "utf-16-be-bom"
+    return None
+
+
+def _vbscript_constant_sink_applicability(
+    data: bytes,
+    name: str,
+) -> tuple[bool, dict[str, object]]:
+    """suffixと言語固有anchorからVBScript専用parserの適用可否を決める。"""
+
+    script_leaf = name.rsplit("::", 1)[-1]
+    script_suffix = Path(script_leaf).suffix.casefold()
+    signal = _vbscript_profile_signal(data)
+    known_vbscript = script_suffix in _KNOWN_VBSCRIPT_SUFFIXES
+    known_non_vbscript = script_suffix in _KNOWN_NON_VBSCRIPT_SUFFIXES
+    return (
+        (known_vbscript or signal is not None) and not known_non_vbscript,
+        {
+            "script_suffix": script_suffix or None,
+            "known_vbscript_suffix": known_vbscript,
+            "known_non_vbscript_suffix": known_non_vbscript,
+            "strict_profile_lexical_signal": signal is not None,
+            "strict_profile_lexical_encoding": signal,
+            "lexical_scan_scope": "full_input",
+        },
+    )
+
+
+def _bounded_utf16_profile_probe(data: bytes) -> tuple[bytes, str] | None:
+    """BOM付きUTF-16入力だけをboundedなASCII互換probeへ変換する。"""
+
+    if len(data) > _MAX_SCRIPT_PROFILE_PROBE_BYTES:
+        return None
+    if data.startswith(b"\xff\xfe"):
+        encoding = "utf-16-le"
+        source = data[2:]
+        label = "utf-16-le-bom"
+    elif data.startswith(b"\xfe\xff"):
+        encoding = "utf-16-be"
+        source = data[2:]
+        label = "utf-16-be-bom"
+    else:
+        return None
+    try:
+        text = source.decode(encoding)
+        probe = text.encode("utf-8")
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        return None
+    return probe, label
+
+
+def _has_at_least_matches(
+    pattern: re.Pattern[bytes], data: bytes, minimum: int
+) -> bool:
+    """全matchを保持せず、指定件数へ達した時点で走査を終える。"""
+
+    return (
+        sum(1 for _, _match in zip(range(minimum), pattern.finditer(data))) >= minimum
+    )
+
+
+def _powershell_cyclic_signal_in_probe(probe: bytes) -> bool:
+    """cyclic XOR profileを開始できるraw字句の組を厳格に照合する。"""
+
+    if not _has_at_least_matches(_POWERSHELL_CYCLIC_ARRAY_SIGNAL_RE, probe, 5):
+        return False
+    function_matches = _POWERSHELL_CYCLIC_FUNCTION_SIGNAL_RE.finditer(probe)
+    for index, function_match in enumerate(function_matches):
+        if index >= _MAX_POWERSHELL_FUNCTION_SIGNALS:
+            break
+        function_name = re.escape(function_match.group(1))
+        call_pattern = re.compile(
+            rb"^[ \t]*" + function_name + rb"[ \t]+['\"][A-Za-z0-9+/]{8,}={0,2}['\"]"
+            rb"(?:[ \t]+[01])?[ \t]*$",
+            re.IGNORECASE | re.MULTILINE,
+        )
+        if _has_at_least_matches(call_pattern, probe, 4):
+            return True
+    return False
+
+
+def _powershell_cyclic_profile_signal(data: bytes) -> str | None:
+    """ASCIIまたはbounded UTF-16からPowerShell限定profileのsignalを得る。"""
+
+    if _powershell_cyclic_signal_in_probe(data):
+        return "ascii"
+    utf16_probe = _bounded_utf16_profile_probe(data)
+    if utf16_probe is not None and _powershell_cyclic_signal_in_probe(utf16_probe[0]):
+        return utf16_probe[1]
+    return None
+
+
+def _batch_env_powershell_signal_in_probe(probe: bytes) -> bool:
+    """同一変数へ束縛されたBatch set/sinkのraw字句だけを照合する。"""
+
+    for sink in _BATCH_ENV_POWERSHELL_SINK_SIGNAL_RE.finditer(probe):
+        payload_name = re.escape(sink.group(1))
+        launcher_name = re.escape(sink.group(2))
+        if payload_name == launcher_name:
+            continue
+        payload_assignment = re.compile(
+            rb'^[ \t]*@?set[ \t]+"' + payload_name + rb"=[^\r\n]+\"[ \t]*$",
+            re.IGNORECASE | re.MULTILINE,
+        )
+        launcher_assignment = re.compile(
+            rb'^[ \t]*@?set[ \t]+"'
+            + launcher_name
+            + rb"=%systemroot%\\(?:syswow64|system32)\\windowspowershell"
+            rb"\\v1\.0\\powershell\.exe\"[ \t]*$",
+            re.IGNORECASE | re.MULTILINE,
+        )
+        if payload_assignment.search(probe) and launcher_assignment.search(probe):
+            return True
+    return False
+
+
+def _batch_env_powershell_profile_signal(data: bytes) -> str | None:
+    """ASCIIまたはbounded UTF-16からBatch限定profileのsignalを得る。"""
+
+    if _batch_env_powershell_signal_in_probe(data):
+        return "ascii"
+    utf16_probe = _bounded_utf16_profile_probe(data)
+    if utf16_probe is not None and _batch_env_powershell_signal_in_probe(
+        utf16_probe[0]
+    ):
+        return utf16_probe[1]
+    return None
+
+
+def _specialized_script_parser_applicability(
+    data: bytes,
+    name: str,
+    *,
+    known_suffixes: frozenset[str],
+    signal_detector,
+) -> tuple[bool, dict[str, object]]:
+    """明示suffixまたは厳格raw signalだけで専用parserの適用を許可する。"""
+
+    script_leaf = name.rsplit("::", 1)[-1]
+    script_suffix = Path(script_leaf).suffix.casefold()
+    signal = signal_detector(data)
+    known_profile = script_suffix in known_suffixes
+    return (
+        known_profile or signal is not None,
+        {
+            "script_suffix": script_suffix or None,
+            "known_profile_suffix": known_profile,
+            "strict_profile_lexical_signal": signal is not None,
+            "strict_profile_lexical_encoding": signal,
+            "lexical_scan_scope": "full_input_ascii_bounded_utf16",
+        },
+    )
+
+
+def _not_applicable_script_parser_report(
+    *,
+    status: str,
+    profile: str,
+    applicability: dict[str, object],
+    powershell_profile: bool,
+) -> dict[str, object]:
+    """誤partialを生まない、専用parser未適用の完全な空reportを作る。"""
+
+    return {
+        "schema_version": 1,
+        "status": status,
+        "profile": profile,
+        "candidate_set_complete": True,
+        "candidate_set_truncated": False,
+        "candidate_count": 0,
+        "candidates": [],
+        "applicability": applicability,
+        "safety": {
+            "sample_executed": False,
+            "network_contacted": False,
+            "powershell_started": False,
+            "cmd_started": False,
+            "general_expression_evaluator_used": False,
+            "raw_source_included": False,
+            "raw_payload_included": False,
+            "profile_kind": "powershell" if powershell_profile else "batch",
+        },
+    }
+
+
 def unpack_bytes(
     data: bytes,
     name: str = "sample",
@@ -6046,9 +6741,28 @@ def unpack_bytes(
             report["managed_eaz_resource"], eaz_recovered = (
                 recover_managed_eaz_resource(static_data)
             )
+            report["managed_eaz_remcos"], eaz_remcos_recovered = (
+                recover_managed_eaz_remcos(static_data)
+            )
             report["managed_omlx_tripledes"], omlx_tripledes_recovered = (
                 recover_managed_omlx_tripledes(static_data)
             )
+            try:
+                (
+                    report["managed_omlx_direct_tripledes"],
+                    omlx_direct_tripledes_recovered,
+                ) = recover_managed_omlx_direct_tripledes(static_data)
+            except OmlxTripledesError as exc:
+                if str(exc) != "elapsed_time_limit":
+                    raise
+                report["managed_omlx_direct_tripledes"] = {
+                    "status": "rejected",
+                    "reason": "elapsed_time_limit",
+                    "sample_execution": False,
+                    "external_communication": False,
+                    "family_attribution_allowed": False,
+                }
+                omlx_direct_tripledes_recovered = []
             eaz_static_evidence = report["managed_eaz_resource"].get("static_evidence")
             if isinstance(eaz_static_evidence, dict):
                 eaz_seed = eaz_static_evidence.get("seed")
@@ -6120,17 +6834,53 @@ def unpack_bytes(
                         and len(candidate_sha256) == 64
                     ):
                         protected_resource_sha256 = candidate_sha256.casefold()
-            if protected_resource_sha256 is not None:
+            direct_terminal_sha256 = None
+            direct_terminal = report["managed_omlx_direct_tripledes"].get(
+                "terminal_resource"
+            )
+            if isinstance(direct_terminal, dict):
+                direct_container = direct_terminal.get("container")
+                if isinstance(direct_container, dict):
+                    candidate_sha256 = direct_container.get("sha256")
+                    if (
+                        isinstance(candidate_sha256, str)
+                        and len(candidate_sha256) == 64
+                    ):
+                        direct_terminal_sha256 = candidate_sha256.casefold()
+            eaz_remcos_container_sha256 = None
+            if report["managed_eaz_remcos"].get("status") == ("recovered_terminal_pe"):
+                eaz_remcos_resource_set = report["managed_eaz_remcos"].get(
+                    "resource_set"
+                )
+                if isinstance(eaz_remcos_resource_set, dict):
+                    candidate_sha256 = eaz_remcos_resource_set.get("container_sha256")
+                    if (
+                        isinstance(candidate_sha256, str)
+                        and len(candidate_sha256) == 64
+                    ):
+                        eaz_remcos_container_sha256 = candidate_sha256.casefold()
+            hidden_opaque_sha256 = {
+                value
+                for value in (
+                    protected_resource_sha256,
+                    direct_terminal_sha256,
+                    eaz_remcos_container_sha256,
+                )
+                if value is not None
+            }
+            if hidden_opaque_sha256:
                 recovered = [
                     item
                     for item in recovered
                     if not (
                         item[0] == "dotnet-resource-opaque"
-                        and sha256_bytes(item[1]) == protected_resource_sha256
+                        and sha256_bytes(item[1]) in hidden_opaque_sha256
                     )
                 ]
             artifacts.extend(eaz_recovered)
+            artifacts.extend(eaz_remcos_recovered)
             artifacts.extend(omlx_tripledes_recovered)
+            artifacts.extend(omlx_direct_tripledes_recovered)
             artifacts.extend(recovered)
             report["managed_smartassembly_strings"], recovered = (
                 recover_managed_smartassembly_strings(static_data)
@@ -6141,6 +6891,15 @@ def unpack_bytes(
             report["upx"], blob = run_upx(static_data, upx)
             if blob:
                 artifacts.append(("upx", blob))
+        elif likely_upx:
+            report["upx"] = {
+                "status": "tool_not_configured",
+                "candidate": True,
+                "complete": False,
+                "executed": False,
+                "sample_executed": False,
+                "network_contacted": False,
+            }
         elif upx:
             report["upx"] = {"status": "skipped_no_upx_evidence"}
         inno_assessment = assess_inno_candidate(
@@ -6214,7 +6973,12 @@ def unpack_bytes(
                     max_member_size=max_archive_member_size,
                     max_total_size=max_archive_total_size,
                 )
-            artifacts.extend(recovered)
+            _extend_artifacts_with_name_hints(
+                report,
+                artifacts,
+                report["sevenzip"],
+                recovered,
+            )
             report["sevenzip"]["forced_by_reviewed_hint"] = bool(
                 force_container_probe and not report["pe"]["containerized"]
             )
@@ -6367,7 +7131,12 @@ def unpack_bytes(
                 max_member_size=max_archive_member_size,
                 max_total_size=max_archive_total_size,
             )
-            artifacts.extend(recovered)
+            _extend_artifacts_with_name_hints(
+                report,
+                artifacts,
+                report["sevenzip"],
+                recovered,
+            )
     elif kind == "zip":
         try:
             report["zip"], recovered = recover_zip(
@@ -6407,7 +7176,12 @@ def unpack_bytes(
             max_member_size=max_archive_member_size,
             max_total_size=max_archive_total_size,
         )
-        artifacts.extend(recovered)
+        _extend_artifacts_with_name_hints(
+            report,
+            artifacts,
+            report["sevenzip"],
+            recovered,
+        )
     elif kind == "autoit-a3x":
         report["autoit"], recovered = recover_autoit_script(data)
         artifacts.extend(recovered)
@@ -6432,12 +7206,126 @@ def unpack_bytes(
             report["electron_payload"], recovered = electron_preflight, []
         artifacts.extend(recovered)
     elif kind == "script":
+        report["windows_script_encoder"], recovered = recover_vbe_script(data)
+        artifacts.extend(recovered)
         artifacts.extend(recover_encoded_blobs(data))
+        report["hta_constant_command"], recovered = recover_hta_constant_commands(
+            data,
+            source_name=name,
+        )
+        artifacts.extend(recovered)
+        # VBScript専用parserを明示的な別言語へ適用すると、大きなJavaScriptを
+        # VBScriptの入力上限超過として誤ってpartial扱いしてしまう。拡張子が
+        # 不明な復元層だけは全入力を複製せずに厳格profileの語彙を走査し、
+        # 1 MiB以降やUTF-16の候補も暗黙に除外しない。
+        vbscript_applicable, vbscript_applicability = (
+            _vbscript_constant_sink_applicability(data, name)
+        )
+        if vbscript_applicable:
+            report["vbscript_constant_sink"], recovered = (
+                recover_vbscript_constant_sinks(data)
+            )
+            artifacts.extend(recovered)
+            report["vbscript_array_chr"], recovered = recover_vbscript_array_chr(data)
+            artifacts.extend(recovered)
+            report["vbscript_env_powershell"], recovered = (
+                recover_vbscript_env_powershell(data)
+            )
+            artifacts.extend(recovered)
+        else:
+            report["vbscript_constant_sink"] = {
+                "schema_version": 1,
+                "status": "not_applicable_non_vbscript",
+                "candidate_set_complete": True,
+                "candidate_count": 0,
+                "candidates": [],
+                "applicability": vbscript_applicability,
+                "safety": {
+                    "sample_executed": False,
+                    "network_contacted": False,
+                    "general_vbscript_interpreter_used": False,
+                    "raw_source_included": False,
+                },
+            }
+            report["vbscript_array_chr"] = {
+                "schema_version": 1,
+                "status": "not_applicable_non_vbscript",
+                "candidate_set_complete": True,
+                "candidate_set_truncated": False,
+                "candidate_count": 0,
+                "candidates": [],
+                "applicability": vbscript_applicability,
+                "safety": {
+                    "sample_executed": False,
+                    "network_contacted": False,
+                    "general_vbscript_interpreter_used": False,
+                    "raw_source_included": False,
+                },
+            }
+            report["vbscript_env_powershell"] = {
+                "schema_version": 1,
+                "status": "not_applicable_non_vbscript",
+                "candidate_set_complete": True,
+                "candidate_set_truncated": False,
+                "candidate_count": 0,
+                "candidates": [],
+                "applicability": vbscript_applicability,
+                "safety": {
+                    "sample_executed": False,
+                    "network_contacted": False,
+                    "general_vbscript_interpreter_used": False,
+                    "raw_source_included": False,
+                },
+            }
+        report["luajit_polyrot_mixed_table"], recovered = (
+            recover_luajit_polyrot_mixed_table(data)
+        )
+        artifacts.extend(recovered)
+        remcos_tea_javascript = recover_remcos_javascript_tea_rc4(data)
+        report["remcos_javascript_tea_rc4"] = remcos_tea_javascript.report
+        if remcos_tea_javascript.script is not None:
+            artifacts.append(
+                ("remcos-tea-rc4-powershell-script", remcos_tea_javascript.script)
+            )
+        remcos_base52_javascript = recover_remcos_javascript_base52(data)
+        report["remcos_javascript_base52"] = remcos_base52_javascript.report
+        if remcos_base52_javascript.script is not None:
+            artifacts.append(
+                ("remcos-base52-powershell-script", remcos_base52_javascript.script)
+            )
+        remcos_table_powershell = recover_remcos_powershell_table_gzip(data)
+        report["remcos_powershell_table_gzip"] = remcos_table_powershell.report
+        artifacts.extend(remcos_table_powershell.artifacts)
+        remcos_base52_powershell = recover_remcos_powershell_base52_pes(data)
+        report["remcos_powershell_base52"] = remcos_base52_powershell.report
+        artifacts.extend(remcos_base52_powershell.artifacts)
         rotational_xor = recover_powershell_rotational_xor(data)
         report["powershell_rotational_xor"] = rotational_xor.report
         if rotational_xor.script is not None:
             artifacts.append(
                 ("powershell-rotational-xor-script", rotational_xor.script)
+            )
+        powershell_cyclic_applicable, powershell_cyclic_applicability = (
+            _specialized_script_parser_applicability(
+                data,
+                name,
+                known_suffixes=_KNOWN_POWERSHELL_SUFFIXES,
+                signal_detector=_powershell_cyclic_profile_signal,
+            )
+        )
+        if powershell_cyclic_applicable:
+            report["powershell_cyclic_xor_calls"], recovered = (
+                recover_powershell_cyclic_xor_calls(data)
+            )
+            artifacts.extend(recovered)
+        else:
+            report["powershell_cyclic_xor_calls"] = (
+                _not_applicable_script_parser_report(
+                    status="not_applicable_non_powershell",
+                    profile="powershell-cyclic-xor-base64-calls-v1",
+                    applicability=powershell_cyclic_applicability,
+                    powershell_profile=True,
+                )
             )
         if Path(name).suffix.lower() == ".au3":
             for field in (
@@ -6454,6 +7342,26 @@ def unpack_bytes(
                     "executed": False,
                 }
         else:
+            batch_env_applicable, batch_env_applicability = (
+                _specialized_script_parser_applicability(
+                    data,
+                    name,
+                    known_suffixes=_KNOWN_BATCH_SUFFIXES,
+                    signal_detector=_batch_env_powershell_profile_signal,
+                )
+            )
+            if batch_env_applicable:
+                report["batch_env_powershell"], recovered = (
+                    recover_batch_env_powershell(data)
+                )
+                artifacts.extend(recovered)
+            else:
+                report["batch_env_powershell"] = _not_applicable_script_parser_report(
+                    status="not_applicable_non_batch",
+                    profile="batch-constant-environment-powershell-stdin-v1",
+                    applicability=batch_env_applicability,
+                    powershell_profile=False,
+                )
             report["batch_powershell_polyglot"], recovered = (
                 recover_batch_powershell_polyglot(data)
             )
@@ -6509,6 +7417,10 @@ def unpack_bytes(
             artifacts.extend(recovered)
         else:
             report["detached_idat"], recovered = recover_detached_idat_stream(data)
+            artifacts.extend(recovered)
+            report["remcos_native_constant_writer"], recovered = (
+                recover_remcos_native_constants(data)
+            )
             artifacts.extend(recovered)
     if not iso9660_candidate:
         # 宣言型変換はこのlayerの原本bytesへ適用し、入力hashと親hashを一致させる。

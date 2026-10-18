@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import zlib
 from dataclasses import replace
+from types import SimpleNamespace
 
 import pytest
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -118,7 +120,7 @@ def test_rejects_trailing_deflate_and_output_limit(
     resource, _ = _resource(("A" * 256,))
     monkeypatch.setattr(managed_resource, "MAX_INFLATED_BYTES", 32)
     with pytest.raises(
-        managed_resource.PureLogsResourceError,
+        managed_resource.PureLogsResourceLimitError,
         match="安全上限",
     ):
         managed_resource.decode_purelogs_resource_blob(resource)
@@ -128,6 +130,98 @@ def test_non_managed_input_is_not_a_candidate() -> None:
     """単なるMZ風byte列をmanaged resource候補へ昇格させない。"""
 
     assert managed_resource.recover_purelogs_managed_strings(b"MZ" + b"A" * 512) is None
+
+
+def _bind_managed_image(
+    monkeypatch: pytest.MonkeyPatch,
+    blobs: tuple[bytes, ...],
+) -> object:
+    """dnfileを起動せず合成resource一覧をmanaged scannerへ渡す。"""
+
+    image = SimpleNamespace(
+        net=SimpleNamespace(
+            resources=tuple(SimpleNamespace(data=blob) for blob in blobs)
+        )
+    )
+    monkeypatch.setattr(managed_resource, "has_clr_metadata", lambda _data: True)
+    monkeypatch.setattr(managed_resource.dnfile, "dnPE", lambda **_kwargs: image)
+    return image
+
+
+def test_resource_absence_keeps_raw_only_path_available(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """managed resourceが存在しないときは正常のno-matchとして返す。"""
+
+    _bind_managed_image(monkeypatch, ())
+
+    assert managed_resource.recover_purelogs_managed_strings(b"MZ fixture") is None
+
+
+def test_metadata_parse_failure_is_not_collapsed_to_absence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CLR metadata解析失敗をresource不在として扱わない。"""
+
+    monkeypatch.setattr(managed_resource, "has_clr_metadata", lambda _data: True)
+    monkeypatch.setattr(
+        managed_resource.dnfile,
+        "dnPE",
+        lambda **_kwargs: (_ for _ in ()).throw(ValueError("broken metadata")),
+    )
+
+    with pytest.raises(managed_resource.PureLogsResourceScanIncomplete):
+        managed_resource.recover_purelogs_managed_strings(b"MZ fixture")
+
+
+def test_resource_count_limit_has_distinct_failure_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """resource件数上限を通常のno-matchへ降格しない。"""
+
+    _bind_managed_image(monkeypatch, (b"not-a-candidate",))
+    monkeypatch.setattr(managed_resource, "MAX_RESOURCE_COUNT", 0)
+
+    with pytest.raises(managed_resource.PureLogsResourceLimitError):
+        managed_resource.recover_purelogs_managed_strings(b"MZ fixture")
+
+
+def test_committed_resource_parse_failure_is_incomplete(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """outer profile一致後のparse失敗をresource不在として扱わない。"""
+
+    resource, _key = _resource(("/plugin", "/userinfo", "/filesearch/req", "/finish"))
+    malformed = resource[:-1]
+    image = _bind_managed_image(monkeypatch, (malformed,))
+    failure_hash = hashlib.sha256(malformed).hexdigest()
+    monkeypatch.setattr(
+        yqty_resource,
+        "_scan_purelogs_yqty_candidates",
+        lambda _image, _data, _resources: yqty_resource._YqtyCandidateScan(
+            None,
+            (failure_hash,),
+            1,
+        ),
+    )
+
+    assert image.net.resources
+    with pytest.raises(managed_resource.PureLogsResourceScanIncomplete):
+        managed_resource.recover_purelogs_managed_strings(b"MZ fixture")
+
+
+def test_multiple_legacy_resource_candidates_are_conflicting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """複数の正常resource候補を1件目の成功で隠蔽しない。"""
+
+    records = ("/plugin", "/userinfo", "/filesearch/req", "/finish")
+    first, _key = _resource(records)
+    second, _key = _resource(records + ("second",))
+    _bind_managed_image(monkeypatch, (first, second))
+
+    with pytest.raises(managed_resource.PureLogsResourceConflictError):
+        managed_resource.recover_purelogs_managed_strings(b"MZ fixture")
 
 
 def _overlapping_profile_results() -> tuple[
@@ -188,4 +282,5 @@ def test_rejects_nonidentical_legacy_and_yqty_profile_overlap(
     legacy, yqty = _overlapping_profile_results()
     conflicting = replace(yqty, **{field: replacement})
 
-    assert managed_resource._resolve_profile_overlap(legacy, conflicting) is None
+    with pytest.raises(managed_resource.PureLogsResourceConflictError):
+        managed_resource._resolve_profile_overlap(legacy, conflicting)

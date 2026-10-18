@@ -30,15 +30,11 @@ MAX_ROUTE_ASSESSMENT_FAMILIES = 256
 MAX_ROUTE_ASSESSMENT_ATTEMPTS = 4096
 ROUTE_ONLY_ATTEMPT_STATUS = "handler_evidence_without_detector"
 EXPLICIT_ROUTE_ONLY_ATTEMPT_STATUS = "handler_evidence_route_only"
-ROUTE_ONLY_ATTEMPT_STATUSES = frozenset(
-    {ROUTE_ONLY_ATTEMPT_STATUS, EXPLICIT_ROUTE_ONLY_ATTEMPT_STATUS}
-)
+ROUTE_ONLY_ATTEMPT_STATUSES = frozenset({ROUTE_ONLY_ATTEMPT_STATUS, EXPLICIT_ROUTE_ONLY_ATTEMPT_STATUS})
 ROUTE_CONFIG_VARIANT_RE = re.compile(r"[a-z0-9][a-z0-9_-]{0,127}\Z")
 ROUTE_CONFIG_DOMAIN_LABEL_RE = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\Z")
 ROUTE_DIAGNOSTIC_CODE_RE = re.compile(r"[a-z][a-z0-9_]{0,127}\Z")
-DUAL_USE_MANAGEMENT_ROLES = frozenset(
-    {"remote_management_relay", "screenconnect_clickonce_bootstrap"}
-)
+DUAL_USE_MANAGEMENT_ROLES = frozenset({"remote_management_relay", "screenconnect_clickonce_bootstrap"})
 NETWORK_CONTAINER_FIELDS = (
     "c2",
     "config_endpoints",
@@ -119,8 +115,7 @@ def _validated_ghostdesk_endpoints(result: object) -> list[dict[str, Any]]:
         or endpoint.get("role") != "configured_external_c2"
         or endpoint.get("websocket_path_redacted") != "/bot?token=<redacted>"
         or endpoint.get("configured_tls") is not False
-        or endpoint.get("confidence")
-        not in {"confirmed_static_xor_config", CONFIRMED_STATIC_CONFIGURATION}
+        or endpoint.get("confidence") not in {"confirmed_static_xor_config", CONFIRMED_STATIC_CONFIGURATION}
     ):
         return []
     return [
@@ -223,10 +218,7 @@ def trusted_handler_result(
         or execution_evidence.get("sufficient") is not True
         or not isinstance(artifact_evidence, Mapping)
         or artifact_evidence.get("sufficient") is not True
-        or any(
-            artifact_evidence.get(key) != value
-            for key, value in execution_evidence.items()
-        )
+        or any(artifact_evidence.get(key) != value for key, value in execution_evidence.items())
     ):
         return False
     execution_id = str(execution.get("handler_id") or "")
@@ -235,11 +227,7 @@ def trusted_handler_result(
     if not (execution_id and artifact_id and execution_id == artifact_id):
         return False
     supplied_selected_layer = execution.get("selected_layer_sha256")
-    selected_layer = (
-        _sha256_identity(supplied_selected_layer)
-        if supplied_selected_layer is not None
-        else None
-    )
+    selected_layer = _sha256_identity(supplied_selected_layer) if supplied_selected_layer is not None else None
     if supplied_selected_layer is not None and selected_layer is None:
         return False
     artifact_layer = artifact.get("selected_layer")
@@ -263,9 +251,7 @@ def _trusted_results(
     handler_results: Iterable[tuple[Mapping[str, Any], Mapping[str, Any]]],
 ) -> list[tuple[Mapping[str, Any], Mapping[str, Any]]]:
     return [
-        (execution, artifact)
-        for execution, artifact in handler_results
-        if trusted_handler_result(execution, artifact)
+        (execution, artifact) for execution, artifact in handler_results if trusted_handler_result(execution, artifact)
     ]
 
 
@@ -317,11 +303,7 @@ def _family_scoped_trusted_results(
         if len(observed) != 1:
             return []
         target = next(iter(observed))
-    return [
-        (execution, artifact)
-        for execution, artifact in trusted
-        if _artifact_handler_family(artifact) == target
-    ]
+    return [(execution, artifact) for execution, artifact in trusted if _artifact_handler_family(artifact) == target]
 
 
 def _confirmed_static_handler_iocs_unscoped(
@@ -382,14 +364,7 @@ def _configuration_identity(
 ) -> str | None:
     """公開可能なendpoint意味値だけから非公開の比較identityを作る。"""
 
-    projected = [
-        {
-            key: record[key]
-            for key in CONFIGURATION_IDENTITY_FIELDS
-            if key in record
-        }
-        for record in records
-    ]
+    projected = [{key: record[key] for key in CONFIGURATION_IDENTITY_FIELDS if key in record} for record in records]
     if not projected:
         return None
     try:
@@ -426,11 +401,7 @@ def _declared_configuration_identities(
     config = result.get("config")
     evidence = result.get("evidence")
     vvas_recovery = config.get("vvas_recovery") if isinstance(config, Mapping) else None
-    xor_vvas = (
-        evidence.get("single_byte_xor_vvas")
-        if isinstance(evidence, Mapping)
-        else None
-    )
+    xor_vvas = evidence.get("single_byte_xor_vvas") if isinstance(evidence, Mapping) else None
     containers = (result, config, vvas_recovery, xor_vvas)
     identities: set[str] = set()
     for container in containers:
@@ -504,9 +475,7 @@ def static_config_recovered(
     expected_iocs = _confirmed_static_handler_iocs_unscoped(projected)
     if network_iocs and expected_iocs:
         supplied_iocs = normalize_confirmed_network_iocs(network_iocs)
-        if _configuration_identity(supplied_iocs) == _configuration_identity(
-            expected_iocs
-        ):
+        if _configuration_identity(supplied_iocs) == _configuration_identity(expected_iocs):
             return True
     for _execution, artifact in projected:
         result = artifact.get("result")
@@ -534,9 +503,7 @@ def is_dual_use_management_endpoint(
     evidence = record.get("evidence")
     expected_classification = {
         "remote_management_relay": "dual_use_not_c2_by_itself",
-        "screenconnect_clickonce_bootstrap": (
-            "dual_use_management_endpoint_not_c2_by_itself"
-        ),
+        "screenconnect_clickonce_bootstrap": ("dual_use_management_endpoint_not_c2_by_itself"),
     }.get(role)
     if (
         expected_classification is None
@@ -734,10 +701,79 @@ def _candidate_record(value: object, *, source: str, field: str) -> dict[str, An
     return record
 
 
+def _validated_remcos_config_endpoint_values(
+    result: Mapping[str, Any],
+) -> frozenset[str] | None:
+    """厳格Remcos C2と完全一致するconfig endpoint文字列だけを返す。"""
+
+    config = result.get("config")
+    c2 = result.get("c2")
+    safety = result.get("safety")
+    if (
+        result.get("family") != "remcosrat"
+        or result.get("classification_confidence") != CONFIRMED_STATIC_CONFIGURATION
+        or result.get("family_attribution_confirmed") is not True
+        or result.get("static_config_recovered") is not True
+        or result.get("decoded_config_recovered") is not True
+        or result.get("executed") is not False
+        or result.get("network_contacted") is not False
+        or not isinstance(config, Mapping)
+        or config.get("static_config_recovered") is not True
+        or config.get("decoded_config_recovered") is not True
+        or config.get("family_attribution_confirmed") is not True
+        or not isinstance(c2, list)
+        or not 1 <= len(c2) <= 32
+        or not isinstance(safety, Mapping)
+        or safety.get("sample_executed") is not False
+        or safety.get("network_contacted") is not False
+        or safety.get("raw_config_published") is not False
+        or safety.get("credentials_published") is not False
+        or safety.get("private_key_published") is not False
+    ):
+        return None
+    supplied = config.get("endpoints")
+    if (
+        not isinstance(supplied, list)
+        or len(supplied) != len(c2)
+        or any(not isinstance(value, str) or not value for value in supplied)
+        or len(set(supplied)) != len(supplied)
+    ):
+        return None
+    confirmed: list[str] = []
+    for record in c2:
+        if not isinstance(record, Mapping):
+            return None
+        evidence = record.get("evidence")
+        endpoint = record.get("endpoint")
+        if (
+            not isinstance(endpoint, str)
+            or not endpoint
+            or record.get("role") != "interactive_c2"
+            or record.get("confidence") != CONFIRMED_STATIC_CONFIGURATION
+            or record.get("contacted") is not False
+            or record.get("liveness_confirmed") is not False
+            or not isinstance(evidence, Mapping)
+            or evidence.get("kind") != "rc4_decrypted_rcdata_settings"
+            or evidence.get("resource_type") != "RT_RCDATA"
+            or evidence.get("resource_name") != "SETTINGS"
+            or evidence.get("config_field_index") != 0
+            or evidence.get("all_expected_fields_validated") is not True
+        ):
+            return None
+        confirmed.append(endpoint)
+    if confirmed != supplied:
+        return None
+    return frozenset(confirmed)
+
+
 def _stealc_endpoint_base_candidate(result: Mapping[str, Any], *, source: str) -> dict[str, Any] | None:
     """StealCの部分復元URLを、完全C2設定へ昇格させず候補として返す。"""
 
-    if result.get("family") != "stealc" or result.get("executed") is not False or result.get("network_contacted") is not False:
+    if (
+        result.get("family") != "stealc"
+        or result.get("executed") is not False
+        or result.get("network_contacted") is not False
+    ):
         return None
     config = result.get("config")
     if not isinstance(config, Mapping):
@@ -819,11 +855,9 @@ def candidate_communication_patterns(
             (f"result.{field}", result.get(field)) for field in NETWORK_CONTAINER_FIELDS
         ]
         config = result.get("config")
+        remcos_confirmed_endpoints = _validated_remcos_config_endpoint_values(result)
         if isinstance(config, Mapping):
-            containers.extend(
-                (f"result.config.{field}", config.get(field))
-                for field in CONFIG_NETWORK_FIELDS
-            )
+            containers.extend((f"result.config.{field}", config.get(field)) for field in CONFIG_NETWORK_FIELDS)
         endpoint_candidate = _stealc_endpoint_base_candidate(result, source=source)
         if endpoint_candidate is not None:
             identity = json.dumps(
@@ -838,6 +872,12 @@ def candidate_communication_patterns(
                 return [unique[key] for key in sorted(unique)]
         for field, values in containers:
             if not isinstance(values, list):
+                continue
+            if (
+                field == "result.config.endpoints"
+                and remcos_confirmed_endpoints is not None
+                and frozenset(values) == remcos_confirmed_endpoints
+            ):
                 continue
             for value in values:
                 record = _candidate_record(value, source=source, field=field)
@@ -1063,23 +1103,17 @@ def _route_config_candidate_projection(
     wrapper = attempt.get("result")
     layer = attempt.get("layer")
     handler_id = attempt.get("handler_id")
-    if (
-        not isinstance(evidence, Mapping)
-        or evidence.get("sufficient") is not True
-    ):
+    if not isinstance(evidence, Mapping) or evidence.get("sufficient") is not True:
         return None, "handler_evidence_contract_invalid"
     if not isinstance(detector, Mapping):
         return None, "detector_non_corroboration_contract_invalid"
-    if (
-        attempt_status == ROUTE_ONLY_ATTEMPT_STATUS
-        and (
-            detector.get("corroborated") is not False
-            or detector.get("basis")
-            not in {
-                "no_corroborated_detector_in_lineage",
-                "detector_route_does_not_support_family_attribution",
-            }
-        )
+    if attempt_status == ROUTE_ONLY_ATTEMPT_STATUS and (
+        detector.get("corroborated") is not False
+        or detector.get("basis")
+        not in {
+            "no_corroborated_detector_in_lineage",
+            "detector_route_does_not_support_family_attribution",
+        }
     ):
         return None, "detector_non_corroboration_contract_invalid"
     if attempt_status == EXPLICIT_ROUTE_ONLY_ATTEMPT_STATUS:
@@ -1089,8 +1123,7 @@ def _route_config_candidate_projection(
             or attribution.get("supports_family_confirmation") is not False
             or attribution.get("route_only") is not True
             or attribution.get("explicit_contract") is not True
-            or attribution.get("basis")
-            != "handler_explicitly_limits_result_to_route_only"
+            or attribution.get("basis") != "handler_explicitly_limits_result_to_route_only"
         ):
             return None, "handler_route_only_contract_invalid"
         if (
@@ -1115,15 +1148,9 @@ def _route_config_candidate_projection(
         return None, "layer_identity_invalid"
     if not isinstance(result, Mapping) or not isinstance(quota, Mapping):
         return None, "handler_result_contract_invalid"
-    if (
-        quota.get("truncated") is not False
-        or quota.get("reasons") not in (None, [])
-    ):
+    if quota.get("truncated") is not False or quota.get("reasons") not in (None, []):
         return None, "handler_result_quota_incomplete"
-    if (
-        result.get("executed") is not False
-        or result.get("network_contacted") is not False
-    ):
+    if result.get("executed") is not False or result.get("network_contacted") is not False:
         return None, "handler_safety_contract_invalid"
     minimum_score = evidence.get("minimum_score")
     if type(minimum_score) is not int or not 1 <= minimum_score <= 1_000_000:
@@ -1229,9 +1256,7 @@ def _route_config_candidate_projection(
         "selected_layer_sha256": layer_sha256,
         "variant": variant,
         "recovery_type": (
-            "decoded_config_recovered"
-            if config.get("decoded_config_recovered") is True
-            else "static_config_recovered"
+            "decoded_config_recovered" if config.get("decoded_config_recovered") is True else "static_config_recovered"
         ),
         "configured_network_candidates": configured_network_candidates,
         "used_for_family_resolution": False,
@@ -1355,41 +1380,25 @@ def build_route_config_candidate_document(
             )
         else:
             for excluded_layer in excluded_layers:
-                reason = (
-                    excluded_layer.get("reason")
-                    if isinstance(excluded_layer, Mapping)
-                    else None
-                )
+                reason = excluded_layer.get("reason") if isinstance(excluded_layer, Mapping) else None
                 _increment_reason(
                     assessment_exclusion_reason_counts,
                     f"excluded_layer_{_route_diagnostic_code(reason)}",
                 )
 
     families = assessment.get("families")
-    family_details_valid = bool(
-        isinstance(families, list)
-        and len(families) <= MAX_ROUTE_ASSESSMENT_FAMILIES
-    )
+    family_details_valid = bool(isinstance(families, list) and len(families) <= MAX_ROUTE_ASSESSMENT_FAMILIES)
     if not isinstance(families, list):
         assessment_rejection_reasons.add("family_details_invalid")
     elif len(families) > MAX_ROUTE_ASSESSMENT_FAMILIES:
         assessment_rejection_reasons.add("family_detail_limit_exceeded")
-    global_safety_valid = bool(
-        not assessment_rejection_reasons
-    )
+    global_safety_valid = bool(not assessment_rejection_reasons)
     unique: dict[str, dict[str, Any]] = {}
     evaluated_attempts = 0
     rejected_attempts = 0
     observed_excluded_attempts = 0
-    complete = bool(
-        global_safety_valid
-        and family_details_valid
-        and _route_assessment_complete(assessment)
-    )
-    if (
-        global_safety_valid
-        and family_details_valid
-    ):
+    complete = bool(global_safety_valid and family_details_valid and _route_assessment_complete(assessment))
+    if global_safety_valid and family_details_valid:
         for family_result in families:
             if not isinstance(family_result, Mapping):
                 _increment_reason(
@@ -1454,8 +1463,7 @@ def build_route_config_candidate_document(
     candidates = ordered[:MAX_ROUTE_CONFIG_CANDIDATES]
     recovered = bool(candidates)
     configurations = {
-        tuple(item["endpoint"] for item in candidate["configured_network_candidates"])
-        for candidate in candidates
+        tuple(item["endpoint"] for item in candidate["configured_network_candidates"]) for candidate in candidates
     }
     if recovered and complete and not truncated:
         status = "route_config_candidates_recovered"
@@ -1497,15 +1505,9 @@ def build_route_config_candidate_document(
         "observed_excluded_route_attempt_count": observed_excluded_attempts,
         "rejected_route_attempt_count": rejected_attempts,
         "assessment_rejection_reasons": sorted(assessment_rejection_reasons),
-        "assessment_exclusion_reason_counts": dict(
-            sorted(assessment_exclusion_reason_counts.items())
-        ),
-        "route_attempt_exclusion_reason_counts": dict(
-            sorted(route_attempt_exclusion_reason_counts.items())
-        ),
-        "route_attempt_rejection_reason_counts": dict(
-            sorted(route_attempt_rejection_reason_counts.items())
-        ),
+        "assessment_exclusion_reason_counts": dict(sorted(assessment_exclusion_reason_counts.items())),
+        "route_attempt_exclusion_reason_counts": dict(sorted(route_attempt_exclusion_reason_counts.items())),
+        "route_attempt_rejection_reason_counts": dict(sorted(route_attempt_rejection_reason_counts.items())),
         "distinct_configuration_count": len(configurations),
         "conflicting_configuration_candidates_present": len(configurations) > 1,
         "candidate_set_complete": bool(complete and not truncated),
@@ -1580,14 +1582,12 @@ def build_communication_pattern_document(
         )
     ]
     management_identities = {
-        json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-        for record in management_endpoints
+        json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")) for record in management_endpoints
     }
     c2_endpoints = [
         record
         for record in confirmed
-        if json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-        not in management_identities
+        if json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")) not in management_identities
     ]
     return {
         "schema_version": 1,

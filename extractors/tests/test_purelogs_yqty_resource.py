@@ -184,7 +184,7 @@ def test_boundary_search_work_budgets_fail_closed(
     blob, _clear, _records = _resource()
     monkeypatch.setattr(yqty_resource, constant, 0)
 
-    with pytest.raises(yqty_resource.PureLogsYqtyError, match=message):
+    with pytest.raises(yqty_resource.PureLogsYqtyLimitError, match=message):
         yqty_resource.decode_yqty_resource_blob(blob, pn5_profile_count=1)
 
 
@@ -209,7 +209,7 @@ def test_boundary_search_candidate_budget_fails_closed(
     monkeypatch.setattr(yqty_resource, "MAX_BOUNDARY_CANDIDATES", 1)
 
     with pytest.raises(
-        yqty_resource.PureLogsYqtyError,
+        yqty_resource.PureLogsYqtyLimitError,
         match="候補数が安全上限",
     ):
         yqty_resource._decode_boundary(b"AB")

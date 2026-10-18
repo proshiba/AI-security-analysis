@@ -13,15 +13,12 @@ COMMON = ROOT / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import triage_artifact_retrieval as retrieval  # noqa: E402
+import triage_artifact_retrieval as retrieval
 
 SHA256 = "d025a29613e300d7755f878eb1d23d8a8a042cb2d3eb9005d66664ab9b97c677"
 SAMPLE_ID = "260623-xf5ppsfw4y"
 TASK_ID = "behavioral1"
-REGION_NAME = (
-    "memory/1700-22-0x00000000047E0000-"
-    "0x00000000047F8000-memory.dmp"
-)
+REGION_NAME = "memory/1700-22-0x00000000047E0000-0x00000000047F8000-memory.dmp"
 
 
 def report_region(
@@ -84,9 +81,7 @@ def test_reported_behavioral_tasks_keeps_at_most_two_reported_tasks() -> None:
             },
         },
     }
-    assert retrieval.reported_behavioral_tasks(
-        overview, sample_id=SAMPLE_ID
-    ) == ["behavioral1", "behavioral2"]
+    assert retrieval.reported_behavioral_tasks(overview, sample_id=SAMPLE_ID) == ["behavioral1", "behavioral2"]
 
 
 def test_extract_report_region_builds_bounded_memory_candidate() -> None:
@@ -103,13 +98,8 @@ def test_extract_report_region_builds_bounded_memory_candidate() -> None:
             "task_id": TASK_ID,
             "kind": "memory_image",
             "name": REGION_NAME.removeprefix("memory/"),
-            "endpoint_path": (
-                f"/samples/{SAMPLE_ID}/{TASK_ID}/memory/"
-                + REGION_NAME.removeprefix("memory/")
-            ),
-            "reference_sha256": hashlib.sha256(
-                REGION_NAME.encode("utf-8")
-            ).hexdigest(),
+            "endpoint_path": (f"/samples/{SAMPLE_ID}/{TASK_ID}/memory/" + REGION_NAME.removeprefix("memory/")),
+            "reference_sha256": hashlib.sha256(REGION_NAME.encode("utf-8")).hexdigest(),
             "selection": "reported_region_memory",
             "reported_pid": 1700,
             "reported_procid": 91,
@@ -169,10 +159,7 @@ def test_extract_report_region_rejects_oversize_and_aggregate_overflow() -> None
     report["dumped"].append(
         {
             **report["dumped"][0],
-            "name": (
-                "memory/1700-23-0x0000000004800000-"
-                "0x0000000004818000-memory.dmp"
-            ),
+            "name": ("memory/1700-23-0x0000000004800000-0x0000000004818000-memory.dmp"),
             "addr": 0x4800000,
         }
     )
@@ -191,10 +178,7 @@ def test_extract_report_region_rejects_too_many_candidates() -> None:
     report["dumped"].append(
         {
             **report["dumped"][0],
-            "name": (
-                "memory/1700-23-0x0000000004800000-"
-                "0x0000000004818000-memory.dmp"
-            ),
+            "name": ("memory/1700-23-0x0000000004800000-0x0000000004818000-memory.dmp"),
             "addr": 0x4800000,
         }
     )
@@ -216,10 +200,7 @@ def test_explicit_extended_report_candidate_limit_is_still_bounded() -> None:
         report["dumped"].append(
             {
                 **report_region()["dumped"][0],
-                "name": (
-                    f"memory/1700-{index}-0x{start:016X}-"
-                    f"0x{start + 0x1000:016X}-memory.dmp"
-                ),
+                "name": (f"memory/1700-{index}-0x{start:016X}-0x{start + 0x1000:016X}-memory.dmp"),
                 "addr": start,
                 "length": 0x1000,
             }
@@ -231,15 +212,18 @@ def test_explicit_extended_report_candidate_limit_is_still_bounded() -> None:
             sample_id=SAMPLE_ID,
             task_id=TASK_ID,
         )
-    assert len(
-        retrieval.extract_report_memory_candidates(
-            report,
-            expected_sha256=SHA256,
-            sample_id=SAMPLE_ID,
-            task_id=TASK_ID,
-            max_candidates=256,
+    assert (
+        len(
+            retrieval.extract_report_memory_candidates(
+                report,
+                expected_sha256=SHA256,
+                sample_id=SAMPLE_ID,
+                task_id=TASK_ID,
+                max_candidates=256,
+            )
         )
-    ) == 101
+        == 101
+    )
 
 
 def test_extract_report_region_rejects_sample_or_task_mismatch() -> None:
@@ -305,9 +289,7 @@ def test_discover_candidates_uses_report_when_overview_extracted_is_empty(
     }
     requested: list[str] = []
 
-    def fake_api_json(  # noqa: ANN202
-        path, api_key, *, opener, timeout  # noqa: ANN001, ARG001
-    ):
+    def fake_api_json(path, api_key, *, opener, timeout):
         requested.append(path)
         return responses[path]
 
@@ -322,6 +304,8 @@ def test_discover_candidates_uses_report_when_overview_extracted_is_empty(
     assert errors == []
     assert len(candidates) == 1
     assert candidates[0]["selection"] == "reported_region_memory"
+    assert candidates[0]["metadata_sha256_verified"] is True
+    assert candidates[0]["public_analysis_verified"] is True
     assert candidates[0]["reported_length"] == 0x18000
     assert requested[-1].endswith(f"/{TASK_ID}/report_triage.json")
 
@@ -340,10 +324,7 @@ def _many_report_regions(*, task_offset: int, count: int) -> dict:
                 "at": 23547 + index,
                 "pid": 1700,
                 "procid": 91,
-                "name": (
-                    f"memory/1700-{region_index}-0x{start:016X}-"
-                    f"0x{end:016X}-memory.dmp"
-                ),
+                "name": (f"memory/1700-{region_index}-0x{start:016X}-0x{end:016X}-memory.dmp"),
                 "kind": "region",
                 "origin": "dotnet32",
                 "addr": start,
@@ -376,15 +357,11 @@ def test_default_discovery_keeps_72_regions_independent_of_download_limit(
         f"/search?query=sha256%3A{SHA256}": {"data": [{"id": SAMPLE_ID}]},
         f"/samples/{SAMPLE_ID}": {"sha256": SHA256, "private": False},
         f"/samples/{SAMPLE_ID}/overview.json": overview,
-        f"/samples/{SAMPLE_ID}/behavioral1/report_triage.json": (
-            _many_report_regions(task_offset=22, count=36)
-        ),
-        f"/samples/{SAMPLE_ID}/behavioral2/report_triage.json": (
-            _many_report_regions(task_offset=58, count=36)
-        ),
+        f"/samples/{SAMPLE_ID}/behavioral1/report_triage.json": (_many_report_regions(task_offset=22, count=36)),
+        f"/samples/{SAMPLE_ID}/behavioral2/report_triage.json": (_many_report_regions(task_offset=58, count=36)),
     }
 
-    def fake_api_json(path, api_key, *, opener, timeout):  # noqa: ANN001, ANN202, ARG001
+    def fake_api_json(path, api_key, *, opener, timeout):
         return responses[path]
 
     monkeypatch.setattr(retrieval, "api_json", fake_api_json)
@@ -398,8 +375,6 @@ def test_default_discovery_keeps_72_regions_independent_of_download_limit(
 
     assert errors == []
     assert len(candidates) == 72
-    assert any(
-        candidate["name"].startswith("1700-22-") for candidate in candidates
-    )
+    assert any(candidate["name"].startswith("1700-22-") for candidate in candidates)
     assert retrieval.DEFAULT_MAX_REPORT_MEMORY_CANDIDATES == 100
     assert retrieval.build_parser().get_default("max_artifacts") == 20

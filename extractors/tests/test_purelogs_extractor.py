@@ -8,10 +8,16 @@ import json
 
 import pytest
 
+from extractors.purehvnc import extractor as purehvnc_extractor
 from extractors.purelogs import extract
 from extractors.purelogs import extractor as purelogs_extractor
 from extractors.purelogs.extractor import endpoint_candidates
-from extractors.purelogs.managed_resource import PureLogsManagedResource
+from extractors.purelogs.managed_resource import (
+    PureLogsManagedResource,
+    PureLogsResourceConflictError,
+    PureLogsResourceLimitError,
+    PureLogsResourceScanIncomplete,
+)
 
 
 def test_extracts_corroborated_http_profile() -> None:
@@ -51,6 +57,14 @@ def test_endpoint_candidates_reject_invalid_url_hostname_labels() -> None:
     ) == ["good.example:443"]
 
 
+def test_endpoint_candidates_reject_invalid_numeric_dotted_quad() -> None:
+    """IPv4として不正なnumeric dotted-quadをdomain扱いしない。"""
+
+    assert endpoint_candidates(
+        "999.999.999.999:443 https://01.02.03.04/plugin good.example:56001"
+    ) == ["good.example:56001"]
+
+
 def test_structured_evidence_excludes_secondary_purerat_channel() -> None:
     """役割付き観測ではPureRAT channelをPureLogs C2へ混入させない。"""
     payload = {
@@ -83,6 +97,33 @@ def _varint(value: int) -> bytes:
 
 def _bytes_field(number: int, value: bytes) -> bytes:
     return _varint((number << 3) | 2) + _varint(len(value)) + value
+
+
+def _encoded_config(endpoint: str, key: bytes) -> bytes:
+    """一意なPureLogs設定fixtureをBase64で返す。"""
+
+    message = b"".join(
+        (
+            _bytes_field(1, endpoint.encode("ascii")),
+            _bytes_field(2, key),
+            _bytes_field(3, b"campaign-a"),
+            _bytes_field(4, b"mutex-a"),
+        )
+    )
+    return base64.b64encode(message)
+
+
+def _managed_resource(records: tuple[str, ...]) -> PureLogsManagedResource:
+    """公開証拠を持つ合成managed resourceを生成する。"""
+
+    return PureLogsManagedResource(
+        records=records,
+        resource_sha256="0" * 64,
+        decrypted_sha256="1" * 64,
+        inflated_sha256="2" * 64,
+        protector_key_sha256="3" * 64,
+        header_identifier_sha256="4" * 64,
+    )
 
 
 def test_recovers_base64_protobuf_config_without_publishing_aes_key() -> None:
@@ -286,6 +327,80 @@ def test_bounded_text_limits_short_string_object_count(
     assert truncated is True
 
 
+def test_bounded_text_keeps_utf16le_visible_after_ascii_decoy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """先行ASCII decoyがあってもUTF-16LE文字列へ走査枠を残す。"""
+
+    monkeypatch.setattr(purelogs_extractor, "MAX_TEXT_CHARS", 16)
+    data = b"A" * 64 + b"\x01BBBB\x01" + "/plugin".encode("utf-16le")
+
+    text, truncated = purelogs_extractor._bounded_text(data)
+
+    assert "/plugin" in text
+    assert len(text) <= 16
+    assert truncated is True
+
+
+def test_bounded_text_reserves_quota_for_ascii_and_utf16le_matches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ASCII断片が件数上限を先取りしてもUTF-16LE走査を枯渇させない。"""
+
+    monkeypatch.setattr(purelogs_extractor, "MAX_TEXT_STRINGS", 4)
+    data = b"AAAA\x01BBBB\x01CCCC\x01DDDD\x01" + "/plugin".encode("utf-16le")
+
+    text, truncated = purelogs_extractor._bounded_text(data)
+
+    assert "/plugin" in text.splitlines()
+    assert len(text.splitlines()) <= 4
+    assert truncated is True
+
+
+def test_bounded_text_duplicate_at_quota_boundary_keeps_scanning() -> None:
+    """他encodingの既出値がquotaと同長でも後続値を捨てない。"""
+
+    original_chars = purelogs_extractor.MAX_TEXT_CHARS
+    try:
+        purelogs_extractor.MAX_TEXT_CHARS = 9
+        data = (
+            b"ABCD\x01"
+            + "ABCD".encode("utf-16le")
+            + b"\x01"
+            + "WXYZ".encode("utf-16le")
+        )
+
+        text, truncated = purelogs_extractor._bounded_text(data)
+    finally:
+        purelogs_extractor.MAX_TEXT_CHARS = original_chars
+
+    assert text.splitlines() == ["ABCD", "WXYZ"]
+    assert truncated is False
+
+
+def test_bounded_text_marks_unscanned_match_after_exact_quota() -> None:
+    """quota到達後に後続matchがある場合は未完了として返す。"""
+
+    original_chars = purelogs_extractor.MAX_TEXT_CHARS
+    try:
+        purelogs_extractor.MAX_TEXT_CHARS = 9
+        data = (
+            b"ABCD\x01"
+            + "ABCD".encode("utf-16le")
+            + b"\x01"
+            + "WXYZ".encode("utf-16le")
+            + b"\x01"
+            + "QRST".encode("utf-16le")
+        )
+
+        text, truncated = purelogs_extractor._bounded_text(data)
+    finally:
+        purelogs_extractor.MAX_TEXT_CHARS = original_chars
+
+    assert text.splitlines() == ["ABCD", "WXYZ"]
+    assert truncated is True
+
+
 def test_structured_metadata_size_limit_falls_back_to_text_scan(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -418,3 +533,267 @@ def test_managed_resource_table_recovers_nested_url_and_separate_port(
             },
         }
     ]
+
+
+def test_raw_config_is_searched_when_managed_resource_is_present(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """managed復元時もraw文字列にだけある設定を独立して回収する。"""
+
+    encoded = _encoded_config("https://raw.example:8443", b"R" * 32)
+    recovered = _managed_resource(
+        ("/plugin", "/userinfo", "/filesearch/req", "/finish")
+    )
+    monkeypatch.setattr(
+        purelogs_extractor,
+        "recover_purelogs_managed_strings",
+        lambda _data: recovered,
+    )
+
+    result = extract(b"purelogs\x00" + encoded, "raw-config.bin")
+
+    assert result["config"]["configured_endpoints"] == ["raw.example:8443"]
+    assert result["config"]["static_config_recovered"] is True
+
+
+@pytest.mark.parametrize(
+    ("error_type", "expected_status"),
+    (
+        (
+            PureLogsResourceScanIncomplete,
+            "managed_resource_candidate_set_incomplete",
+        ),
+        (PureLogsResourceLimitError, "managed_resource_scan_limit_exceeded"),
+        (
+            PureLogsResourceConflictError,
+            "conflicting_managed_resource_candidates",
+        ),
+    ),
+)
+def test_managed_resource_scan_failure_blocks_valid_raw_config(
+    monkeypatch: pytest.MonkeyPatch,
+    error_type: type[PureLogsResourceScanIncomplete],
+    expected_status: str,
+) -> None:
+    """resource走査未完了時はraw側の先行設定も公開しない。"""
+
+    encoded = _encoded_config("https://raw.example:8443", b"R" * 32)
+    monkeypatch.setattr(
+        purelogs_extractor,
+        "recover_purelogs_managed_strings",
+        lambda _data: (_ for _ in ()).throw(error_type("fixture")),
+    )
+
+    result = extract(
+        b"PureLogs /plugin /userinfo /filesearch/req /finish " + encoded,
+        "raw-config-resource-failure.bin",
+    )
+
+    assert result["config"]["status"] == expected_status
+    assert result["config"]["decoded_config_recovered"] is False
+    assert result["config"]["configured_endpoints"] == []
+    assert result["config"]["managed_resource_recovery"]["status"] == (expected_status)
+    assert (
+        result["config"]["managed_resource_recovery"]["candidate_set_complete"] is False
+    )
+    assert result["c2"] == []
+
+
+def test_raw_and_managed_sources_share_base64_work_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """rawとresourceを別々の総work上限で二重に走査しない。"""
+
+    valid = _encoded_config("https://raw.example:8443", b"R" * 32)
+    noise = base64.b64encode(b"N" * 48)
+    recovered = _managed_resource(
+        (
+            "/plugin",
+            "/userinfo",
+            "/filesearch/req",
+            "/finish",
+            noise.decode("ascii"),
+        )
+    )
+    monkeypatch.setattr(
+        purelogs_extractor,
+        "recover_purelogs_managed_strings",
+        lambda _data: recovered,
+    )
+    monkeypatch.setattr(
+        purelogs_extractor,
+        "MAX_CONFIG_BASE64_WORK_CHARS",
+        len(valid) + len(noise) - 1,
+    )
+
+    result = extract(
+        b"PureLogs /plugin /userinfo /filesearch/req /finish " + valid,
+        "shared-work-budget.bin",
+    )
+
+    assert result["config"]["status"] == "configuration_candidate_scan_incomplete"
+    assert result["config"]["decoded_config_recovered"] is False
+    assert result["config"]["configured_endpoints"] == []
+    assert result["c2"] == []
+
+
+def test_same_config_in_raw_and_managed_sources_is_deduplicated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """同じidentityの設定は複数の文字列源にあっても競合扱いしない。"""
+
+    encoded = _encoded_config("https://same.example:8443", b"S" * 32)
+    recovered = _managed_resource(
+        (
+            "/plugin",
+            "/userinfo",
+            "/filesearch/req",
+            "/finish",
+            encoded.decode("ascii"),
+        )
+    )
+    monkeypatch.setattr(
+        purelogs_extractor,
+        "recover_purelogs_managed_strings",
+        lambda _data: recovered,
+    )
+
+    result = extract(b"purelogs\x00" + encoded, "duplicate-config.bin")
+
+    assert result["config"]["status"] == "purelogs_protobuf_config_recovered"
+    assert result["config"]["configured_endpoints"] == ["same.example:8443"]
+
+
+def test_conflicting_raw_and_managed_configs_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """rawとmanagedの設定identityが異なる場合はC2を公開しない。"""
+
+    raw_encoded = _encoded_config("https://raw.example:8443", b"R" * 32)
+    managed_encoded = _encoded_config("https://managed.example:9443", b"M" * 32)
+    recovered = _managed_resource(
+        (
+            "/plugin",
+            "/userinfo",
+            "/filesearch/req",
+            "/finish",
+            managed_encoded.decode("ascii"),
+        )
+    )
+    monkeypatch.setattr(
+        purelogs_extractor,
+        "recover_purelogs_managed_strings",
+        lambda _data: recovered,
+    )
+
+    result = extract(b"purelogs\x00" + raw_encoded, "conflicting-config.bin")
+
+    assert result["config"]["status"] == "conflicting_configuration_candidates"
+    assert result["config"]["decoded_config_recovered"] is False
+    assert result["config"]["configured_endpoints"] == []
+    assert result["c2"] == []
+
+
+def test_truncated_raw_scan_does_not_publish_an_early_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """未走査領域に相反設定があり得る場合は先行候補を採用しない。"""
+
+    encoded = _encoded_config("https://early.example:8443", b"E" * 32)
+    prefix = b"PureLogs /plugin /userinfo /filesearch/req /finish " + encoded + b"\x00"
+    monkeypatch.setattr(purelogs_extractor, "MAX_SCAN_BYTES", len(prefix))
+
+    result = extract(prefix + b"A" * 128, "truncated-config.bin")
+
+    assert result["config"]["status"] == "configuration_candidate_scan_incomplete"
+    assert result["config"]["decoded_config_recovered"] is False
+    assert result["config"]["configured_endpoints"] == []
+    assert result["c2"] == []
+
+
+def test_protobuf_message_limit_does_not_hide_behind_a_valid_config() -> None:
+    """未完了の入れ子候補と正常設定が併存してもC2を公開しない。"""
+
+    valid = _encoded_config("https://good.example:8443", b"G" * 32)
+    oversized_nested = b"".join(
+        _bytes_field(12, _bytes_field(1, index.to_bytes(2, "little")))
+        for index in range(purelogs_extractor.MAX_CONFIG_MESSAGES + 1)
+    )
+    encoded_nested = base64.b64encode(oversized_nested)
+    data = (
+        b"PureLogs /plugin /userinfo /filesearch/req /finish "
+        + valid
+        + b" "
+        + encoded_nested
+    )
+
+    result = extract(data, "candidate-limit.bin")
+
+    assert result["config"]["status"] == "configuration_candidate_scan_incomplete"
+    assert result["config"]["decoded_config_recovered"] is False
+    assert result["config"]["configured_endpoints"] == []
+    assert result["c2"] == []
+
+
+def test_many_bounded_base64_noise_candidates_do_not_hide_valid_config() -> None:
+    """短いprotector metadataが64件を超えても総work内なら設定を回収する。"""
+
+    noise = [base64.b64encode(index.to_bytes(16, "little")) for index in range(96)]
+    valid = _encoded_config("https://many.example:8443", b"M" * 32)
+    data = b"PureLogs /plugin /userinfo /filesearch/req /finish " + b" ".join(
+        (*noise, valid)
+    )
+
+    result = extract(data, "many-bounded-candidates.bin")
+
+    assert result["config"]["status"] == "purelogs_protobuf_config_recovered"
+    assert result["config"]["configured_endpoints"] == ["many.example:8443"]
+
+
+def test_base64_total_work_limit_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """候補件数を許容しても総decode work上限到達は成功へ降格しない。"""
+
+    valid = _encoded_config("https://good.example:8443", b"G" * 32)
+    monkeypatch.setattr(
+        purelogs_extractor,
+        "MAX_CONFIG_BASE64_WORK_CHARS",
+        len(valid) + 63,
+    )
+    data = (
+        b"PureLogs /plugin /userinfo /filesearch/req /finish "
+        + valid
+        + b" "
+        + base64.b64encode(b"A" * 48)
+    )
+
+    result = extract(data, "base64-work-limit.bin")
+
+    assert result["config"]["status"] == "configuration_candidate_scan_incomplete"
+    assert result["config"]["decoded_config_recovered"] is False
+    assert result["config"]["configured_endpoints"] == []
+    assert result["c2"] == []
+
+
+def test_shared_protobuf_field_limit_does_not_hide_behind_a_valid_config() -> None:
+    """共有parserのfield上限到達も通常のno-matchとして無視しない。"""
+
+    valid = _encoded_config("https://good.example:8443", b"G" * 32)
+    oversized_fields = b"".join(
+        _varint(1 << 3) + _varint(index)
+        for index in range(purehvnc_extractor.MAX_CONFIG_PROTOBUF_FIELDS + 1)
+    )
+    data = (
+        b"PureLogs /plugin /userinfo /filesearch/req /finish "
+        + valid
+        + b" "
+        + base64.b64encode(oversized_fields)
+    )
+
+    result = extract(data, "field-limit.bin")
+
+    assert result["config"]["status"] == "configuration_candidate_scan_incomplete"
+    assert result["config"]["decoded_config_recovered"] is False
+    assert result["config"]["configured_endpoints"] == []
+    assert result["c2"] == []

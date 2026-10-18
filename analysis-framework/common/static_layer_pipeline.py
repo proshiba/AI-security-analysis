@@ -12,7 +12,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from unpackers.static_unpacker import detect_format
+from unpackers.static_unpacker import (
+    detect_format,
+    normalize_archive_member_basename,
+    valid_pe_extent,
+)
 
 try:
     from .static_layer_lineage_adapter import select_static_layer_children
@@ -27,9 +31,7 @@ MAX_STATIC_COMPRESSION_RATIO = 100.0
 MAX_ARCHIVE_MEMBERS = 512
 LINEAGE_SELECTED_PRIORITY = -2
 
-ACTIONABLE_FORMATS = frozenset(
-    {"pe", "elf", "macho", "script", "autoit-a3x", "java-class"}
-)
+ACTIONABLE_FORMATS = frozenset({"pe", "elf", "macho", "script", "autoit-a3x", "java-class"})
 CONTAINER_FORMATS = frozenset(
     {
         "7z",
@@ -234,10 +236,22 @@ def _artifact_label(value: object) -> str:
     return (text or "artifact")[:80]
 
 
-def _artifact_analysis_priority(artifact_kind: str, blob: bytes) -> int:
-    """magicと信頼済みtransform種別から静的解析queueの価値tierを返す。"""
+def _artifact_analysis_priority(
+    artifact_kind: str,
+    blob: bytes,
+    detection_name: str | None = None,
+) -> int:
+    """内容magicと信頼済みtransform種別から静的解析queueの価値tierを返す。
 
+    ``detection_name`` は互換引数として残すが、archive内の任意ファイル名だけで
+    opaque blobを実行形式・script相当へ昇格させない。名前は次層の形式判定には
+    保持し、queueの資源配分だけを内容由来へ固定する。
+    """
+
+    del detection_name
     artifact_format = detect_format(blob, artifact_kind)
+    if artifact_format == "pe" and valid_pe_extent(blob) is None:
+        artifact_format = "data"
     if artifact_format in CONTAINER_FORMATS:
         return 0
     if artifact_format in ACTIONABLE_FORMATS:
@@ -249,6 +263,62 @@ def _artifact_analysis_priority(artifact_kind: str, blob: bytes) -> int:
     if "opaque" in artifact_kind.casefold():
         return 3
     return 4
+
+
+def _verified_artifact_name_hints(
+    report: dict[str, Any],
+    artifacts: list[tuple[str, bytes]],
+) -> dict[int, str]:
+    """index・kind・hashが一致する有界basename hintだけを採用する。"""
+
+    envelope = report.get("artifact_name_hints")
+    if not isinstance(envelope, dict):
+        return {}
+    if envelope.get("schema_version") != 1 or envelope.get("complete") is not True:
+        return {}
+    items = envelope.get("items")
+    if not isinstance(items, list) or len(items) > len(artifacts):
+        return {}
+    hints: dict[int, str] = {}
+    used_basenames: set[str] = set()
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        artifact_index = item.get("artifact_index")
+        if (
+            isinstance(artifact_index, bool)
+            or not isinstance(artifact_index, int)
+            or not 0 <= artifact_index < len(artifacts)
+            or artifact_index in hints
+        ):
+            continue
+        artifact = artifacts[artifact_index]
+        if not isinstance(artifact, tuple) or len(artifact) != 2:
+            continue
+        artifact_kind, blob = artifact
+        if not isinstance(blob, bytes):
+            continue
+        expected_kind = _artifact_label(artifact_kind)
+        if item.get("artifact_kind") != expected_kind:
+            continue
+        digest = item.get("sha256")
+        if (
+            not isinstance(digest, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", digest)
+            or digest != hashlib.sha256(blob).hexdigest()
+        ):
+            continue
+        member_basename = item.get("member_basename")
+        try:
+            normalized = normalize_archive_member_basename(member_basename)
+        except (TypeError, ValueError):
+            continue
+        collision_key = normalized.casefold()
+        if collision_key in used_basenames:
+            continue
+        used_basenames.add(collision_key)
+        hints[artifact_index] = normalized
+    return hints
 
 
 def _stratified_sibling_indices(candidate_count: int) -> list[int]:
@@ -263,9 +333,7 @@ def _stratified_sibling_indices(candidate_count: int) -> list[int]:
     if candidate_count == 1:
         return [0]
     order = [0, candidate_count - 1]
-    intervals: list[tuple[int, int, int]] = [
-        (-(candidate_count - 1), 0, candidate_count - 1)
-    ]
+    intervals: list[tuple[int, int, int]] = [(-(candidate_count - 1), 0, candidate_count - 1)]
     while intervals:
         _negative_width, left, right = heapq.heappop(intervals)
         if right - left <= 1:
@@ -328,9 +396,7 @@ def recover_static_layers(
         parent_step=None,
     )
     pending_best = {root.sha256: root_pending}
-    pending_layers: list[tuple[int, int, int, int, str]] = [
-        (-1, 0, discovery_sequence, queue_revision, root.sha256)
-    ]
+    pending_layers: list[tuple[int, int, int, int, str]] = [(-1, 0, discovery_sequence, queue_revision, root.sha256)]
     limit_events: list[dict[str, Any]] = []
     layer_count_limit_events: list[tuple[int, dict[str, Any]]] = []
     rejected_pending_best: dict[str, _RejectedPendingStaticLayer] = {}
@@ -351,10 +417,7 @@ def recover_static_layers(
                 break
             ancestors.append(ancestor)
             parent_digest = ancestor.parent_sha256
-        return tuple(
-            (item.data, item.sha256, item.parent_sha256, item.depth)
-            for item in reversed(ancestors)
-        )
+        return tuple((item.data, item.sha256, item.parent_sha256, item.depth) for item in reversed(ancestors))
 
     def pending_order_key(
         item: _PendingStaticLayer | _NewStaticLayerCandidate,
@@ -371,17 +434,11 @@ def recover_static_layers(
 
         nonlocal queue_revision
         pending_in_selection_order = sorted(
-            (
-                item
-                for item in pending_best.values()
-                if item.layer.parent_sha256 is not None
-            ),
+            (item for item in pending_best.values() if item.layer.parent_sha256 is not None),
             key=pending_order_key,
         )
         available_slots = max(0, effective_policy.max_layers - len(layers))
-        selected_digests = {
-            item.layer.sha256 for item in pending_in_selection_order[:available_slots]
-        }
+        selected_digests = {item.layer.sha256 for item in pending_in_selection_order[:available_slots]}
         sibling_groups: dict[tuple[str, int, int], list[_PendingStaticLayer]] = {}
         for item in pending_in_selection_order:
             parent_sha256 = item.layer.parent_sha256
@@ -401,9 +458,7 @@ def recover_static_layers(
                 sibling_group,
                 key=lambda item: (item.discovery_sequence, item.layer.sha256),
             )
-            selected_count = sum(
-                item.layer.sha256 in selected_digests for item in sibling_group
-            )
+            selected_count = sum(item.layer.sha256 in selected_digests for item in sibling_group)
             is_partially_selected = 0 < selected_count < len(sibling_group)
             if is_partially_selected:
                 if group_key in stratified_sibling_group_sizes:
@@ -411,18 +466,12 @@ def recover_static_layers(
                 else:
                     stratified_sibling_group_sizes[group_key] = len(sibling_group)
                     desired_order = [
-                        discovery_order[index]
-                        for index in _stratified_sibling_indices(len(discovery_order))
+                        discovery_order[index] for index in _stratified_sibling_indices(len(discovery_order))
                     ]
             else:
                 desired_order = discovery_order
-            sequence_slots = sorted(
-                item.discovery_sequence for item in sibling_group
-            )
-            desired_sequences = {
-                item.layer.sha256: sequence_slots[index]
-                for index, item in enumerate(desired_order)
-            }
+            sequence_slots = sorted(item.discovery_sequence for item in sibling_group)
+            desired_sequences = {item.layer.sha256: sequence_slots[index] for index, item in enumerate(desired_order)}
             for item in sibling_group:
                 desired_sequence = desired_sequences[item.layer.sha256]
                 if item.sequence == desired_sequence:
@@ -533,9 +582,7 @@ def recover_static_layers(
         return accepted_candidates
 
     while pending_layers:
-        _priority, _negative_depth, _sequence, revision, digest = heapq.heappop(
-            pending_layers
-        )
+        _priority, _negative_depth, _sequence, revision, digest = heapq.heappop(pending_layers)
         pending = pending_best.get(digest)
         if pending is None or pending.revision != revision:
             continue
@@ -564,6 +611,12 @@ def recover_static_layers(
                 raise RuntimeError("queued static layerのparent stepがありません")
             parent_step["accepted_children"].append(layer.public())
         if layer.depth >= effective_policy.max_depth:
+            limit_events.append(
+                {
+                    "parent_sha256": layer.sha256,
+                    "reason": "depth_limit",
+                }
+            )
             steps.append(
                 {
                     "input_layer": layer.public(),
@@ -642,11 +695,11 @@ def recover_static_layers(
             continue
         lineage_selected_digests = (
             set(lineage_selection.selected_digests)
-            if lineage_selection.status == "complete_selected"
-            and lineage_selection.omitted_commitment.complete
+            if lineage_selection.status == "complete_selected" and lineage_selection.omitted_commitment.complete
             else set()
         )
-        candidates: list[tuple[int, int, str, bytes, str]] = []
+        artifact_name_hints = _verified_artifact_name_hints(report, artifacts)
+        candidates: list[tuple[int, int, str, bytes, str, str]] = []
         for artifact_index, artifact in enumerate(artifacts):
             if not isinstance(artifact, tuple) or len(artifact) != 2:
                 limit_events.append(
@@ -688,21 +741,37 @@ def recover_static_layers(
                     }
                 )
                 continue
+            member_basename = artifact_name_hints.get(artifact_index)
+            child_name = f"{layer.name}::{artifact_kind}"
+            if member_basename is not None:
+                child_name = f"{child_name}::{member_basename}"
             candidates.append(
                 (
                     LINEAGE_SELECTED_PRIORITY
                     if digest in lineage_selected_digests
-                    else _artifact_analysis_priority(artifact_kind, blob),
+                    else _artifact_analysis_priority(
+                        artifact_kind,
+                        blob,
+                        child_name,
+                    ),
                     artifact_index,
                     artifact_kind,
                     blob,
                     digest,
+                    child_name,
                 )
             )
         new_candidates: list[_NewStaticLayerCandidate] = []
         new_candidate_digests: set[str] = set()
         pending_topology_changed = False
-        for priority, _artifact_index, artifact_kind, blob, digest in sorted(candidates):
+        for (
+            priority,
+            _artifact_index,
+            artifact_kind,
+            blob,
+            digest,
+            child_name,
+        ) in sorted(candidates, key=lambda item: (item[0], item[1])):
             if digest in processed_digests:
                 deduplicated_artifacts += 1
                 continue
@@ -712,7 +781,7 @@ def recover_static_layers(
                 if priority >= existing.priority:
                     continue
                 child = StaticLayer(
-                    name=f"{layer.name}::{artifact_kind}",
+                    name=child_name,
                     data=blob,
                     sha256=digest,
                     parent_sha256=layer.sha256,
@@ -751,7 +820,7 @@ def recover_static_layers(
                 if priority >= rejected.priority:
                     continue
             child = StaticLayer(
-                name=f"{layer.name}::{artifact_kind}",
+                name=child_name,
                 data=blob,
                 sha256=digest,
                 parent_sha256=layer.sha256,
@@ -810,18 +879,12 @@ def recover_static_layers(
         for rejected in rejected_pending_best.values()
     )
     limit_events.extend(
-        event
-        for _sequence, event in deferred_capacity_events
-        if event["reason"] == "recovered_total_limit"
+        event for _sequence, event in deferred_capacity_events if event["reason"] == "recovered_total_limit"
     )
     layer_count_limit_events.extend(
-        (sequence, event)
-        for sequence, event in deferred_capacity_events
-        if event["reason"] == "layer_count_limit"
+        (sequence, event) for sequence, event in deferred_capacity_events if event["reason"] == "layer_count_limit"
     )
-    limit_events.extend(
-        event for _sequence, event in sorted(layer_count_limit_events)
-    )
+    limit_events.extend(event for _sequence, event in sorted(layer_count_limit_events))
     public = {
         "schema_version": 1,
         "limits": effective_policy.public(),
@@ -840,13 +903,9 @@ def recover_static_layers(
             "primary_order": "validated_lineage_then_format_priority_then_deeper_layer",
             "capacity_evaluation": "all_pending_layers_after_each_expansion",
             "under_capacity_same_tier_order": "discovery_order",
-            "oversubscribed_same_parent_tier_order": (
-                "endpoints_then_largest_interval_midpoint"
-            ),
+            "oversubscribed_same_parent_tier_order": ("endpoints_then_largest_interval_midpoint"),
             "stratified_sibling_groups": len(stratified_sibling_group_sizes),
-            "stratified_sibling_candidates": sum(
-                stratified_sibling_group_sizes.values()
-            ),
+            "stratified_sibling_candidates": sum(stratified_sibling_group_sizes.values()),
         },
         "executed_sample": False,
         "network_contacted": False,

@@ -58,6 +58,18 @@ class PureLogsYqtyError(ValueError):
     """YQTY/Pn5 profileの不一致、曖昧性、上限超過を表す。"""
 
 
+class PureLogsYqtyScanIncomplete(PureLogsYqtyError):
+    """Pn5/resource候補集合を完全に評価できないことを表す。"""
+
+
+class PureLogsYqtyLimitError(PureLogsYqtyScanIncomplete):
+    """入力または走査workが安全上限を超えたことを表す。"""
+
+
+class PureLogsYqtyConflictError(PureLogsYqtyScanIncomplete):
+    """複数のPn5 profileまたはYqTY resource候補を表す。"""
+
+
 @dataclass(frozen=True)
 class _MethodShape:
     """公開名に依存しない有界CIL method形状。"""
@@ -100,6 +112,15 @@ class PureLogsYqtyResource:
         return public_recovery_evidence(self)
 
 
+@dataclass(frozen=True)
+class _YqtyCandidateScan:
+    """解析済み候補と、別profileでの照合を必要とするresourceを保持する。"""
+
+    candidate: PureLogsYqtyResource | None
+    failed_resource_sha256: tuple[str, ...]
+    profile_count: int
+
+
 def public_recovery_evidence(
     recovered: PureLogsYqtyResource,
 ) -> dict[str, object]:
@@ -109,6 +130,9 @@ def public_recovery_evidence(
         raise TypeError("PureLogs YqTY resource結果が不正です")
     return {
         "status": "recovered",
+        "candidate_set_complete": True,
+        "conflicting_candidates_present": False,
+        "scan_limit_exceeded": False,
         "format": ("yqty_aes256_cbc_validated_boundary_raw_deflate_dotnet_strings"),
         "profile": "pn5_validated_boundary_search_v1",
         "resource_sha256": recovered.resource_sha256,
@@ -237,12 +261,12 @@ def _inflate_raw_deflate(data: bytes) -> bytes:
     try:
         output = inflater.decompress(data, output_limit + 1)
         if len(output) > output_limit or inflater.unconsumed_tail:
-            raise PureLogsYqtyError("raw Deflate出力が安全上限を超えました")
+            raise PureLogsYqtyLimitError("raw Deflate出力が安全上限を超えました")
         output += inflater.flush(output_limit + 1 - len(output))
     except zlib.error as exc:
         raise PureLogsYqtyError("raw Deflate streamが不正です") from exc
     if len(output) > output_limit:
-        raise PureLogsYqtyError("raw Deflate出力が安全上限を超えました")
+        raise PureLogsYqtyLimitError("raw Deflate出力が安全上限を超えました")
     if not inflater.eof or inflater.unused_data or inflater.unconsumed_tail:
         raise PureLogsYqtyError("raw Deflate stream境界が完全ではありません")
     return output
@@ -260,7 +284,9 @@ def _parse_string_table_from(data: bytes, start: int) -> tuple[str, ...]:
         if len(records) >= MAX_RECORD_COUNT:
             raise PureLogsYqtyError("PureLogs文字列件数が安全上限を超えました")
         length, offset = _read_7bit_integer(data, offset, limit=len(data))
-        if length > MAX_RECORD_BYTES or length > len(data) - offset:
+        if length > MAX_RECORD_BYTES:
+            raise PureLogsYqtyError("PureLogs文字列長が安全上限を超えました")
+        if length > len(data) - offset:
             raise PureLogsYqtyError("PureLogs文字列長が不正です")
         total += length
         if total > MAX_RECORD_TOTAL_BYTES:
@@ -295,10 +321,17 @@ def _configuration_fingerprint(records: tuple[str, ...]) -> str:
 
     # 循環importを避けるためruntimeに限定する。呼出し時点ではextractorの
     # module初期化は完了しており、外部通信やfile書込みは発生しない。
-    from extractors.purelogs.extractor import decode_config_blob
+    from extractors.purelogs.extractor import (
+        PureLogsConfigLimitError,
+        decode_config_blob,
+    )
 
     try:
         candidate = decode_config_blob("\n".join(records))
+    except PureLogsConfigLimitError as exc:
+        raise PureLogsYqtyLimitError(
+            "PureLogs protobuf設定探索が安全上限を超えました"
+        ) from exc
     except ValueError as exc:
         raise PureLogsYqtyError("PureLogs protobuf設定が一意ではありません") from exc
     endpoints = candidate.get("endpoints")
@@ -357,14 +390,16 @@ def _decode_boundary(
         compressed = clear[compressed_offset:]
         total_compressed_bytes += len(compressed)
         if total_compressed_bytes > MAX_BOUNDARY_TOTAL_COMPRESSED_BYTES:
-            raise PureLogsYqtyError("圧縮境界探索の総入力work上限を超えました")
+            raise PureLogsYqtyLimitError("圧縮境界探索の総入力work上限を超えました")
         try:
             inflated = _inflate_raw_deflate(compressed)
+        except PureLogsYqtyLimitError:
+            raise
         except PureLogsYqtyError:
             continue
         total_inflated_bytes += len(inflated)
         if total_inflated_bytes > MAX_BOUNDARY_TOTAL_INFLATED_BYTES:
-            raise PureLogsYqtyError("圧縮境界探索の総展開work上限を超えました")
+            raise PureLogsYqtyLimitError("圧縮境界探索の総展開work上限を超えました")
         inflated_sha256 = hashlib.sha256(inflated).hexdigest()
         table_upper = min(MAX_STRING_TABLE_OFFSET, len(inflated) - 1)
         for table_offset in range(table_upper + 1):
@@ -374,9 +409,13 @@ def _decode_boundary(
                 parse_attempts > MAX_BOUNDARY_PARSE_ATTEMPTS
                 or total_parse_bytes > MAX_BOUNDARY_TOTAL_PARSE_BYTES
             ):
-                raise PureLogsYqtyError("文字列境界探索の総parse work上限を超えました")
+                raise PureLogsYqtyLimitError(
+                    "文字列境界探索の総parse work上限を超えました"
+                )
             try:
                 records = _parse_string_table_from(inflated, table_offset)
+            except PureLogsYqtyLimitError:
+                raise
             except PureLogsYqtyError:
                 continue
             normalized = {value.casefold() for value in records}
@@ -384,14 +423,18 @@ def _decode_boundary(
                 continue
             configuration_attempts += 1
             if configuration_attempts > MAX_BOUNDARY_CONFIGURATION_ATTEMPTS:
-                raise PureLogsYqtyError("文字列境界探索の設定検証work上限を超えました")
+                raise PureLogsYqtyLimitError(
+                    "文字列境界探索の設定検証work上限を超えました"
+                )
             try:
                 fingerprint = _configuration_fingerprint(records)
+            except PureLogsYqtyLimitError:
+                raise
             except PureLogsYqtyError:
                 continue
             candidate_count += 1
             if candidate_count > MAX_BOUNDARY_CANDIDATES:
-                raise PureLogsYqtyError("圧縮境界候補数が安全上限を超えました")
+                raise PureLogsYqtyLimitError("圧縮境界候補数が安全上限を超えました")
             record_count = len(records)
             if record_count > maximum_records:
                 maximum_records = record_count
@@ -469,6 +512,46 @@ def decode_yqty_resource_blob(
     )
 
 
+def _outer_profile_committed(blob: bytes) -> bool:
+    """PureLogs共通outer wrapperのheaderが完全に一致するか確認する。
+
+    暗号文や復号後tableの不正を「非候補」へ落とさないため、
+    ここではXOR headerの固定profileだけをcommitmentとする。
+    """
+
+    if not isinstance(blob, bytes) or len(blob) < 2:
+        return False
+    header_length = int.from_bytes(blob[:2], "little")
+    if not 16 <= header_length <= MAX_HEADER_BYTES:
+        return False
+    iv_length_offset = 2 + header_length
+    if iv_length_offset >= len(blob) or blob[iv_length_offset] != 16:
+        return False
+    iv_offset = iv_length_offset + 1
+    ciphertext_offset = iv_offset + 16
+    if ciphertext_offset > len(blob):
+        return False
+    iv = blob[iv_offset:ciphertext_offset]
+    header = bytes(
+        value ^ iv[index % 16] for index, value in enumerate(blob[2:iv_length_offset])
+    )
+    try:
+        _identifier, offset = _read_identifier(header)
+    except PureLogsYqtyError:
+        return False
+    if len(header) - offset < 4:
+        return False
+    flags, selector, key_source, key_length = header[offset : offset + 4]
+    offset += 4
+    return bool(
+        flags == 3
+        and selector == 2
+        and key_source < 64
+        and key_length == 32
+        and len(header) - offset == key_length
+    )
+
+
 def _integer_constant(opcode: str, operand: object) -> int | None:
     if opcode in {"ldc.i4", "ldc.i4.s"}:
         value = getattr(operand, "value", operand)
@@ -486,8 +569,8 @@ def _method_shapes(image: object, data: bytes) -> tuple[_MethodShape, ...]:
     tables = image.net.mdtables
     type_rows = list(getattr(getattr(tables, "TypeDef", None), "rows", ()) or ())
     method_rows = list(getattr(getattr(tables, "MethodDef", None), "rows", ()) or ())
-    if not 0 < len(method_rows) <= MAX_METHOD_COUNT:
-        raise PureLogsYqtyError("MethodDef件数が安全上限外です")
+    if len(method_rows) > MAX_METHOD_COUNT:
+        raise PureLogsYqtyLimitError("MethodDef件数が安全上限外です")
     owners: dict[int, int] = {}
     for type_index, row in enumerate(type_rows, 1):
         for reference in getattr(row, "MethodList", ()) or ():
@@ -508,10 +591,10 @@ def _method_shapes(image: object, data: bytes) -> tuple[_MethodShape, ...]:
             int(body.size) > MAX_METHOD_BYTES
             or len(body.instructions) > MAX_METHOD_INSTRUCTIONS
         ):
-            raise PureLogsYqtyError("method bodyが安全上限を超えています")
+            raise PureLogsYqtyLimitError("method bodyが安全上限を超えています")
         total_instructions += len(body.instructions)
         if total_instructions > MAX_TOTAL_INSTRUCTIONS:
-            raise PureLogsYqtyError("総CIL命令数が安全上限を超えています")
+            raise PureLogsYqtyLimitError("総CIL命令数が安全上限を超えています")
         opcodes: list[str] = []
         integers: list[int] = []
         method_operands: list[int] = []
@@ -590,53 +673,98 @@ def _pn5_profile_count(methods: tuple[_MethodShape, ...]) -> int:
     return profiles
 
 
-def recover_purelogs_yqty_strings(data: bytes) -> PureLogsYqtyResource | None:
-    """managed PE内でPn5形状と一意に結び付くYqTY profileだけを返す。"""
+def _scan_purelogs_yqty_candidates(
+    image: object,
+    data: bytes,
+    resources: tuple[object, ...],
+) -> _YqtyCandidateScan:
+    """parse済みmanaged imageでYqTY候補集合を完全に評価する。"""
 
-    if (
-        not isinstance(data, bytes)
-        or not 0 < len(data) <= MAX_INPUT_BYTES
-        or not has_clr_metadata(data)
-    ):
-        return None
     try:
-        image = dnfile.dnPE(data=data, clr_lazy_load=False)
         methods = _method_shapes(image, data)
-        profile_count = _pn5_profile_count(methods)
-        if profile_count != 1:
-            return None
-        resources = list(getattr(getattr(image, "net", None), "resources", ()) or ())
-    except Exception:  # noqa: BLE001 - 壊れたmetadataは候補なしとして拒否する
-        return None
-    if len(resources) > MAX_RESOURCE_COUNT:
-        return None
+    except PureLogsYqtyLimitError:
+        raise
+    except Exception as error:
+        raise PureLogsYqtyScanIncomplete(
+            "Pn5 CIL候補集合の解析に失敗しました"
+        ) from error
+    profile_count = _pn5_profile_count(methods)
+    if profile_count > 1:
+        raise PureLogsYqtyConflictError("Pn5 CIL profileが複数存在します")
+    if profile_count == 0:
+        return _YqtyCandidateScan(None, (), 0)
+
     candidates: list[PureLogsYqtyResource] = []
+    failures: set[str] = set()
     total = 0
     for item in resources:
         blob = getattr(item, "data", None)
         if not isinstance(blob, bytes):
+            raise PureLogsYqtyScanIncomplete(
+                "managed resource候補をbytesとして解析できません"
+            )
+        if not blob:
             continue
-        if not 0 < len(blob) <= MAX_RESOURCE_BYTES:
-            return None
+        if len(blob) > MAX_RESOURCE_BYTES:
+            raise PureLogsYqtyLimitError("resource blob長が安全上限外です")
         total += len(blob)
         if total > MAX_TOTAL_RESOURCE_BYTES:
-            return None
+            raise PureLogsYqtyLimitError("resource総量が安全上限を超えました")
+        committed = _outer_profile_committed(blob)
         try:
             recovered = decode_yqty_resource_blob(
                 blob,
                 pn5_profile_count=profile_count,
             )
+        except PureLogsYqtyLimitError:
+            raise
         except PureLogsYqtyError:
+            if committed:
+                failures.add(hashlib.sha256(blob).hexdigest())
             continue
         candidates.append(recovered)
         if len(candidates) > 1:
-            return None
-    return candidates[0] if len(candidates) == 1 else None
+            raise PureLogsYqtyConflictError("YqTY managed resource候補が複数存在します")
+    return _YqtyCandidateScan(
+        candidates[0] if candidates else None,
+        tuple(sorted(failures)),
+        profile_count,
+    )
+
+
+def recover_purelogs_yqty_strings(data: bytes) -> PureLogsYqtyResource | None:
+    """managed PE内でPn5形状と一意に結び付くYqTY profileだけを返す。"""
+
+    if not isinstance(data, bytes) or not data or not has_clr_metadata(data):
+        return None
+    if len(data) > MAX_INPUT_BYTES:
+        raise PureLogsYqtyLimitError("入力長が安全上限を超えました")
+    try:
+        image = dnfile.dnPE(data=data, clr_lazy_load=False)
+        resources = tuple(getattr(getattr(image, "net", None), "resources", ()) or ())
+    except Exception as error:
+        raise PureLogsYqtyScanIncomplete(
+            "managed metadata/resourceの解析に失敗しました"
+        ) from error
+    if len(resources) > MAX_RESOURCE_COUNT:
+        raise PureLogsYqtyLimitError("resource件数が安全上限を超えました")
+    scan = _scan_purelogs_yqty_candidates(image, data, resources)
+    success_hashes = (
+        {scan.candidate.resource_sha256} if scan.candidate is not None else set()
+    )
+    if set(scan.failed_resource_sha256) - success_hashes:
+        raise PureLogsYqtyScanIncomplete(
+            "YqTY managed resource候補集合の解析が完了しませんでした"
+        )
+    return scan.candidate
 
 
 __all__ = [
+    "PureLogsYqtyConflictError",
     "PureLogsYqtyError",
+    "PureLogsYqtyLimitError",
     "PureLogsYqtyResource",
+    "PureLogsYqtyScanIncomplete",
     "decode_yqty_resource_blob",
     "public_recovery_evidence",
     "recover_purelogs_yqty_strings",

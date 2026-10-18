@@ -2,43 +2,43 @@
   "ai_used": false,
   "counts": {
     "ast_preflight_eligible_handlers": 110,
-    "automated_analysis_completion_possible": 82,
+    "automated_analysis_completion_possible": 81,
     "automated_analysis_completion_verified": 0,
-    "automatic_family_selection_possible": 82,
-    "automatic_handler_blocked": 0,
-    "blocked_automatic_handlers": 0,
+    "automatic_family_selection_possible": 81,
+    "automatic_handler_blocked": 1,
+    "blocked_automatic_handlers": 1,
     "by_status": {
-      "automatic_handler_blocked": 0,
+      "automatic_handler_blocked": 1,
       "candidate_verification_only": 8,
       "classification_only": 0,
-      "fully_routable": 82,
+      "fully_routable": 81,
       "manual_handler_only": 0,
       "manual_only_without_detector": 2,
       "quality_policy_missing": 0,
       "unsupported": 0
     },
     "candidate_verification_only": 8,
-    "declared_automatic_handlers": 110,
+    "declared_automatic_handlers": 111,
     "declared_script_only_handler_available": 90,
     "declared_script_only_handler_percent": 97.83,
     "detector_registered": 82,
-    "executed_preflight_count": 1038,
+    "executed_preflight_count": 1091,
     "executed_runtime_import_count": 110,
     "families": 92,
-    "fully_routable": 82,
-    "fully_routable_percent": 89.13,
-    "planned_preflight_count": 1038,
-    "planned_runtime_import_count": 110,
+    "fully_routable": 81,
+    "fully_routable_percent": 88.04,
+    "planned_preflight_count": 1091,
+    "planned_runtime_import_count": 111,
     "preflight_limit": 2048,
-    "quality_gated_script_only_handler_available": 90,
+    "quality_gated_script_only_handler_available": 89,
     "quality_policy_declared": 90,
     "quality_policy_missing": 0,
     "runtime_import_verified_handlers": 110,
-    "runtime_import_verified_structure": 82,
+    "runtime_import_verified_structure": 81,
     "safe_automatic_handlers": 110,
-    "script_only_handler_available": 90,
-    "script_only_handler_percent": 97.83,
-    "structurally_routable": 82
+    "script_only_handler_available": 89,
+    "script_only_handler_percent": 96.74,
+    "structurally_routable": 81
   },
   "executed_sample": false,
   "families": [
@@ -171,6 +171,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -192,8 +193,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 54,
-          "dependency_fingerprint_sha256": "674ebc1a19ec5819add3fce30312f316660c5ddd59e47cce389b45d3071e10b2",
+          "dependency_file_count": 77,
+          "dependency_fingerprint_sha256": "2eeb0813f2b18e9db275fd2fb19caefa3588204c4f753d49cccfcc59c2083c0b",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -230,6 +231,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -251,6 +253,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -272,6 +275,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -326,6 +330,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -374,6 +379,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -396,6 +402,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -417,6 +424,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -438,6 +446,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -491,6 +500,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -533,6 +543,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -555,6 +566,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -576,6 +588,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -597,6 +610,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -650,6 +664,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -694,8 +709,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 54,
-          "dependency_fingerprint_sha256": "8de277bf3b63ea99dfcf152830df8ddebfbf1b9d2aab0620c0c6994c90a8af18",
+          "dependency_file_count": 79,
+          "dependency_fingerprint_sha256": "c40899b7a0346b685ce273e6a23e55e31e3573c8dd8e4f16d82e470cfb58072b",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -725,8 +740,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 52,
-          "dependency_fingerprint_sha256": "d94fb958a41cdc1d99d8d40f56474837953524a4b19d54ce38c3bf648e763e0d",
+          "dependency_file_count": 77,
+          "dependency_fingerprint_sha256": "8837161bc2b33c56632ec792d9e7fa5d2a395560ca70c1d9a0f335fe6dcd9d2d",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -810,6 +825,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -832,6 +848,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -853,6 +870,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -874,6 +892,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -927,6 +946,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -969,6 +989,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -991,6 +1012,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1012,6 +1034,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1033,6 +1056,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1086,6 +1110,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -1128,6 +1153,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -1150,6 +1176,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1171,6 +1198,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1192,6 +1220,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1245,6 +1274,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -1371,6 +1401,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -1393,6 +1424,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1414,6 +1446,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1435,6 +1468,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1488,6 +1522,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -1530,6 +1565,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -1552,6 +1588,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1573,6 +1610,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1594,6 +1632,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1646,6 +1685,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -1772,6 +1812,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -1794,6 +1835,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1815,6 +1857,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1836,6 +1879,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1889,6 +1933,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -1931,6 +1976,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -1953,6 +1999,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1974,6 +2021,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -1995,6 +2043,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -2048,6 +2097,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -2090,6 +2140,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -2112,6 +2163,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -2133,6 +2185,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -2154,6 +2207,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -2207,6 +2261,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -2251,8 +2306,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 54,
-          "dependency_fingerprint_sha256": "d48478261b452bb2a8b089adf90e751bc40f73fde14042825b93b83da9ab8674",
+          "dependency_file_count": 79,
+          "dependency_fingerprint_sha256": "d2f32a53fa7dd665c281fd15962cb6bdd100ed96e35655e737056c209852c408",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -2282,8 +2337,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 52,
-          "dependency_fingerprint_sha256": "16639792ed08df20c11c469e2240c8ae2c4d2c1dd4de031c1a76d3b724a1195b",
+          "dependency_file_count": 77,
+          "dependency_fingerprint_sha256": "3b2e2315f6ccb8ee5a18a25d79ca597f1c735b791f892fabb0f5159dffe3ae48",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -2367,6 +2422,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -2389,6 +2445,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -2410,12 +2467,13 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
           ],
-          "dependency_file_count": 54,
-          "dependency_fingerprint_sha256": "412f9ef12cc83437ae20e495776923e0def0b9e93208e85186ad8016cd2b5b24",
+          "dependency_file_count": 80,
+          "dependency_fingerprint_sha256": "ca48581b03e82c79b0f93446431b9e84d0a1517666a134fc8cf018cdba781d56",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -2431,6 +2489,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -2484,6 +2543,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -2528,8 +2588,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 52,
-          "dependency_fingerprint_sha256": "1ab681e53c1f72f88f9de3c8d1f1b8d9658d67155339742fed0ba4dcb3156aec",
+          "dependency_file_count": 77,
+          "dependency_fingerprint_sha256": "2fcdb89d750da9d53b6b1e27f66df447f627aecadc92555d514efe4b186c1ae8",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -2618,7 +2678,7 @@
             "elf"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "b0eb39d821e0579fea24b5b876260474394b4f843c9fd668b5d422394be50891",
+          "dependency_fingerprint_sha256": "1717b00445549e65d326c04ec7c1b0b48b38a4cb2f57249a58f9ef57e43a193b",
           "eligible": true,
           "eligible_formats": [
             "elf"
@@ -2699,6 +2759,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -2721,6 +2782,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -2742,6 +2804,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -2763,6 +2826,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -2816,6 +2880,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -2861,7 +2926,7 @@
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "95759f592f50237b1f87a8192c237fca51e8482e8d399609eb1fa94d0f5f5305",
+          "dependency_fingerprint_sha256": "602734e4e1e7c7cdd05de7bf9c0b6f9b3cc62001344286aa82bd6eb75655816a",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -2944,6 +3009,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -2966,6 +3032,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -2987,6 +3054,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -3008,6 +3076,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -3061,6 +3130,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -3103,6 +3173,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -3125,6 +3196,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -3146,6 +3218,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -3167,6 +3240,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -3185,10 +3259,57 @@
             "sample_execution_allowed": false,
             "sanitized_environment": true
           }
+        },
+        {
+          "ast_eligible_formats": [
+            "data",
+            "macho",
+            "ole",
+            "pe",
+            "script",
+            "zip"
+          ],
+          "ast_preflight_eligible": true,
+          "blocked_formats": [],
+          "blockers": [],
+          "declared_formats": [
+            "data",
+            "macho",
+            "ole",
+            "pe",
+            "script",
+            "zip"
+          ],
+          "dependency_file_count": 89,
+          "dependency_fingerprint_sha256": "3b68dfe542cd129c260cab0cafa411abd63a795bd19795db138f5bdf051ccb77",
+          "eligible": true,
+          "eligible_formats": [
+            "data",
+            "macho",
+            "ole",
+            "pe",
+            "script",
+            "zip"
+          ],
+          "handler_id": "formbook:extractors.formbook.integrated.py:extract",
+          "runtime_import": {
+            "attempted": true,
+            "blockers": [],
+            "eligible": true,
+            "filesystem_write_allowed": false,
+            "handler_id": "formbook:extractors.formbook.integrated.py:extract",
+            "handler_imported": true,
+            "invocation": "bytes_name",
+            "isolated_process": true,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": true
+          }
         }
       ],
       "automatic_handlers": [
-        "formbook:extractors.formbook.extractor.py:extract"
+        "formbook:extractors.formbook.extractor.py:extract",
+        "formbook:extractors.formbook.integrated.py:extract"
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
@@ -3220,12 +3341,14 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
       ],
       "declared_automatic_handlers": [
-        "formbook:extractors.formbook.extractor.py:extract"
+        "formbook:extractors.formbook.extractor.py:extract",
+        "formbook:extractors.formbook.integrated.py:extract"
       ],
       "declared_script_only_handler_available": true,
       "detector_registered": true,
@@ -3241,7 +3364,8 @@
       "quality_policy_declared": true,
       "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
-        "formbook:extractors.formbook.extractor.py:extract"
+        "formbook:extractors.formbook.extractor.py:extract",
+        "formbook:extractors.formbook.integrated.py:extract"
       ],
       "script_only_handler_available": true,
       "status": "fully_routable",
@@ -3250,8 +3374,11 @@
     {
       "accepted_formats": [
         "data",
+        "macho",
+        "ole",
         "pe",
-        "script"
+        "script",
+        "zip"
       ],
       "automated_analysis_completion_possible": true,
       "automated_analysis_completion_verified": false,
@@ -3259,24 +3386,33 @@
         {
           "ast_eligible_formats": [
             "data",
+            "macho",
+            "ole",
             "pe",
-            "script"
+            "script",
+            "zip"
           ],
           "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
             "data",
+            "macho",
+            "ole",
             "pe",
-            "script"
+            "script",
+            "zip"
           ],
-          "dependency_file_count": 51,
-          "dependency_fingerprint_sha256": "602c88ebbdc3bc8702046d165247ce5c8627e7d73aa9545db03ac39ea6c4b9a8",
+          "dependency_file_count": 88,
+          "dependency_fingerprint_sha256": "7c723651319545e4dd5190a89d411b243eb96d744f50a8e1ea4bd0841fc3475c",
           "eligible": true,
           "eligible_formats": [
             "data",
+            "macho",
+            "ole",
             "pe",
-            "script"
+            "script",
+            "zip"
           ],
           "handler_id": "formbook_loader:analysis.framework.malware.formbook.loader.extract.config.py:extract_config",
           "runtime_import": {
@@ -3315,8 +3451,11 @@
       },
       "declared_accepted_formats": [
         "data",
+        "macho",
+        "ole",
         "pe",
-        "script"
+        "script",
+        "zip"
       ],
       "declared_automatic_handlers": [
         "formbook_loader:analysis.framework.malware.formbook.loader.extract.config.py:extract_config"
@@ -3442,6 +3581,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -3464,6 +3604,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -3485,6 +3626,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -3506,6 +3648,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -3559,6 +3702,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -3779,6 +3923,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -3801,6 +3946,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -3822,6 +3968,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -3843,6 +3990,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -3895,6 +4043,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -4125,6 +4274,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -4147,6 +4297,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4168,6 +4319,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4189,6 +4341,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4241,6 +4394,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -4283,6 +4437,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -4305,6 +4460,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4326,6 +4482,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4347,6 +4504,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4400,6 +4558,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -4442,6 +4601,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -4464,6 +4624,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4485,6 +4646,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4506,6 +4668,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4559,6 +4722,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -4603,6 +4767,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -4625,6 +4790,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4646,6 +4812,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4667,6 +4834,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4720,6 +4888,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -4762,6 +4931,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -4784,6 +4954,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4805,6 +4976,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4826,6 +4998,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -4879,6 +5052,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -4924,7 +5098,7 @@
             "script"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "0d35cc727d6af8760df15fbceb62b0284232c725ebba37852af02ea3723b43d4",
+          "dependency_fingerprint_sha256": "26505c0bf90914fe2b993e14f7a53245a1191edc905fb8a118629de91f13bb51",
           "eligible": true,
           "eligible_formats": [
             "script"
@@ -5005,6 +5179,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -5027,6 +5202,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5048,6 +5224,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5069,6 +5246,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5121,6 +5299,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -5163,6 +5342,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -5185,6 +5365,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5206,6 +5387,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5227,6 +5409,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5280,6 +5463,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -5322,6 +5506,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -5344,6 +5529,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5365,6 +5551,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5386,6 +5573,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5439,6 +5627,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -5481,6 +5670,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -5503,6 +5693,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5524,6 +5715,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5545,6 +5737,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5598,6 +5791,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -5734,6 +5928,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -5756,6 +5951,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5777,6 +5973,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5798,6 +5995,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5832,6 +6030,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5853,6 +6052,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5874,6 +6074,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -5928,6 +6129,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -5972,6 +6174,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -5994,6 +6197,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -6015,6 +6219,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -6036,6 +6241,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -6088,6 +6294,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -6216,6 +6423,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -6238,6 +6446,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -6259,6 +6468,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -6280,6 +6490,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -6333,6 +6544,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -6377,6 +6589,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -6399,6 +6612,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -6420,6 +6634,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -6441,6 +6656,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -6494,6 +6710,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -6822,6 +7039,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -6844,6 +7062,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -6865,6 +7084,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -6886,6 +7106,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -6939,6 +7160,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -6981,6 +7203,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -7003,6 +7226,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7024,6 +7248,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7045,6 +7270,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7098,6 +7324,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -7142,6 +7369,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -7164,6 +7392,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7185,6 +7414,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7206,6 +7436,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7259,6 +7490,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -7301,6 +7533,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -7323,6 +7556,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7344,6 +7578,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7365,6 +7600,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7418,6 +7654,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -7460,6 +7697,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -7482,6 +7720,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7503,6 +7742,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7524,6 +7764,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7577,6 +7818,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -7619,6 +7861,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -7641,6 +7884,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7662,6 +7906,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7683,6 +7928,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7736,6 +7982,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -7864,6 +8111,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -7886,6 +8134,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7907,6 +8156,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7928,6 +8178,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -7981,6 +8232,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -8023,6 +8275,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -8045,6 +8298,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8066,6 +8320,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8087,6 +8342,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8140,6 +8396,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -8182,6 +8439,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -8204,6 +8462,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8225,6 +8484,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8246,6 +8506,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8298,6 +8559,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -8342,6 +8604,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -8364,6 +8627,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8385,6 +8649,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8406,6 +8671,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8458,6 +8724,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -8500,6 +8767,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -8522,6 +8790,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8543,6 +8812,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8564,6 +8834,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8617,6 +8888,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -8661,8 +8933,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 8,
-          "dependency_fingerprint_sha256": "89dc0812979f4c8c9ceb49d13144cb7945c14fbea98561a6281a9ef3a9d825ca",
+          "dependency_file_count": 9,
+          "dependency_fingerprint_sha256": "aa047799c19dd105df3d8eacee9faaf2fa09e767dc54b0d3982e6a5a3a9ee138",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -8692,8 +8964,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 51,
-          "dependency_fingerprint_sha256": "6701c80e4346fa8b17265832bb741bcaedc6bcc042fbe5ff83a67a2c9b17ba92",
+          "dependency_file_count": 77,
+          "dependency_fingerprint_sha256": "a90cc44cc63f5be9e8971ecbcf4a74e49588d8e8aa160092b2c1d73664d94908",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -8777,6 +9049,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -8799,6 +9072,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8820,12 +9094,13 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "dd61c15d042b713746cc01cda9966b956d941f4c9baf51b25edc1fd2f007f9c3",
+          "dependency_file_count": 10,
+          "dependency_fingerprint_sha256": "328cd7a8187929e58e1969b05620fae29ff58f5462ef9e913bd8c4a9c67ef536",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -8841,6 +9116,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8894,6 +9170,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -8936,6 +9213,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -8958,6 +9236,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -8979,6 +9258,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -9000,6 +9280,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -9053,6 +9334,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -9095,6 +9377,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -9117,6 +9400,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -9138,12 +9422,13 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
           ],
-          "dependency_file_count": 52,
-          "dependency_fingerprint_sha256": "b42dcfe1e8fb124ce53ef95f67467d99b55400b1357eff1f266d781df58cf729",
+          "dependency_file_count": 77,
+          "dependency_fingerprint_sha256": "a91d71f05553c3048ceb5668901e051cbabe44fe6ff9f78a9e20400d1a9ff6d2",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -9159,6 +9444,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -9212,6 +9498,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -9260,7 +9547,7 @@
             "elf"
           ],
           "dependency_file_count": 4,
-          "dependency_fingerprint_sha256": "2db2ed800dd7312773d7344dcfef9b286d54a1628c8fbdf181b881e8e887fa69",
+          "dependency_fingerprint_sha256": "5494e8c9f145fd0c4a0aaa83de7eacaa04255a18ca38231f747f3c3789406646",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -9424,96 +9711,36 @@
     },
     {
       "accepted_formats": [
-        "7z",
-        "apple-disk-image",
-        "asar",
-        "autoit-a3x",
-        "cab",
-        "data",
-        "elf",
-        "java-class",
-        "macho",
-        "ole",
-        "pe",
-        "png",
-        "rar",
-        "script",
-        "xz",
-        "zip"
+        "pe"
       ],
       "automated_analysis_completion_possible": true,
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
           "ast_eligible_formats": [
-            "7z",
-            "apple-disk-image",
-            "asar",
-            "autoit-a3x",
-            "cab",
-            "data",
-            "elf",
-            "java-class",
-            "macho",
-            "ole",
-            "pe",
-            "png",
-            "rar",
-            "script",
-            "xz",
-            "zip"
+            "pe"
           ],
           "ast_preflight_eligible": true,
           "blocked_formats": [],
           "blockers": [],
           "declared_formats": [
-            "7z",
-            "apple-disk-image",
-            "asar",
-            "autoit-a3x",
-            "cab",
-            "data",
-            "elf",
-            "java-class",
-            "macho",
-            "ole",
-            "pe",
-            "png",
-            "rar",
-            "script",
-            "xz",
-            "zip"
+            "pe"
           ],
-          "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "051381dc61f87e9782c060424498148b682ddc04657030b3310e2fa4d8586938",
+          "dependency_file_count": 7,
+          "dependency_fingerprint_sha256": "802ff5955a9fd146943fc7bd1c15aa535c49d55baf8fd35b89468b213c23368a",
           "eligible": true,
           "eligible_formats": [
-            "7z",
-            "apple-disk-image",
-            "asar",
-            "autoit-a3x",
-            "cab",
-            "data",
-            "elf",
-            "java-class",
-            "macho",
-            "ole",
-            "pe",
-            "png",
-            "rar",
-            "script",
-            "xz",
-            "zip"
+            "pe"
           ],
-          "handler_id": "remcosrat:extractors.remcosrat.extractor.py:extract",
+          "handler_id": "remcosrat:analysis.framework.malware.remcosrat.extract.config.py:extract_config",
           "runtime_import": {
             "attempted": true,
             "blockers": [],
             "eligible": true,
             "filesystem_write_allowed": false,
-            "handler_id": "remcosrat:extractors.remcosrat.extractor.py:extract",
+            "handler_id": "remcosrat:analysis.framework.malware.remcosrat.extract.config.py:extract_config",
             "handler_imported": true,
-            "invocation": "bytes_name",
+            "invocation": "bytes",
             "isolated_process": true,
             "network_allowed": false,
             "sample_execution_allowed": false,
@@ -9522,7 +9749,7 @@
         }
       ],
       "automatic_handlers": [
-        "remcosrat:extractors.remcosrat.extractor.py:extract"
+        "remcosrat:analysis.framework.malware.remcosrat.extract.config.py:extract_config"
       ],
       "automatic_selection_possible": true,
       "blocked_automatic_handlers": [],
@@ -9541,31 +9768,16 @@
         "status": "not_verified"
       },
       "declared_accepted_formats": [
-        "7z",
-        "apple-disk-image",
-        "asar",
-        "autoit-a3x",
-        "cab",
-        "data",
-        "elf",
-        "java-class",
-        "macho",
-        "ole",
-        "pe",
-        "png",
-        "rar",
-        "script",
-        "xz",
-        "zip"
+        "pe"
       ],
       "declared_automatic_handlers": [
-        "remcosrat:extractors.remcosrat.extractor.py:extract"
+        "remcosrat:analysis.framework.malware.remcosrat.extract.config.py:extract_config"
       ],
       "declared_script_only_handler_available": true,
       "detector_registered": true,
       "family": "remcosrat",
       "manual_or_unsupported_handlers": [
-        "remcosrat:analysis.framework.malware.remcosrat.remcos.config.extractor.py:extract_config"
+        "remcosrat:extractors.remcosrat.extractor.py:extract"
       ],
       "next_action_ja": null,
       "quality_policy": {
@@ -9577,7 +9789,7 @@
       "quality_policy_declared": true,
       "runtime_import_verified_structure": true,
       "safe_automatic_handlers": [
-        "remcosrat:extractors.remcosrat.extractor.py:extract"
+        "remcosrat:analysis.framework.malware.remcosrat.extract.config.py:extract_config"
       ],
       "script_only_handler_available": true,
       "status": "fully_routable",
@@ -9598,6 +9810,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -9620,6 +9833,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -9641,6 +9855,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -9662,6 +9877,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -9715,6 +9931,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -9925,6 +10142,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -9947,6 +10165,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -9968,6 +10187,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -9989,6 +10209,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10042,6 +10263,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -10260,8 +10482,8 @@
             "pe",
             "script"
           ],
-          "dependency_file_count": 53,
-          "dependency_fingerprint_sha256": "286e141a22975bae16ee65da477909b21dcc374dc6a069fa8e387611ad82bb9c",
+          "dependency_file_count": 76,
+          "dependency_fingerprint_sha256": "335a01e60ef337ef0d7103b24bdec02cc886b914b24336978dd83675fe3ecd47",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -10348,6 +10570,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -10370,6 +10593,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10391,6 +10615,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10412,6 +10637,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10464,6 +10690,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -10506,6 +10733,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -10528,6 +10756,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10549,6 +10778,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10570,6 +10800,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10623,6 +10854,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -10665,6 +10897,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -10687,6 +10920,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10708,12 +10942,13 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
           ],
-          "dependency_file_count": 51,
-          "dependency_fingerprint_sha256": "007d8b05514e3f812c21d50214c3d88a89a6c631889ebccd7e4771d5fcb10afc",
+          "dependency_file_count": 76,
+          "dependency_fingerprint_sha256": "dc36e319d84889ff99111347a48b8f5a86b22a6dd1c0adf9726cf1ecca9c5b89",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -10729,6 +10964,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10782,6 +11018,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -10824,6 +11061,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -10846,6 +11084,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10867,6 +11106,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10888,6 +11128,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10922,6 +11163,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10943,6 +11185,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -10964,6 +11207,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -11018,6 +11262,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -11146,6 +11391,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -11168,6 +11414,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -11189,6 +11436,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -11210,6 +11458,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -11263,6 +11512,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -11343,6 +11593,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -11365,6 +11616,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -11386,6 +11638,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -11407,6 +11660,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -11460,6 +11714,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -11547,8 +11802,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 65,
-          "dependency_fingerprint_sha256": "c0e800165952ca628be165bc2498de11cb912a8ae0bd96183c7c685918a61b07",
+          "dependency_file_count": 90,
+          "dependency_fingerprint_sha256": "e5983edc4e0d4d4b36ebb6049dd03896f9975fc5dd9e9c18b4cafe37ec741dd0",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11609,8 +11864,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 52,
-          "dependency_fingerprint_sha256": "b42d39636c8e998d3999303b18934e0690a2111e204ffc2e02dd5d19fdd33cce",
+          "dependency_file_count": 77,
+          "dependency_fingerprint_sha256": "bfc2cb359548ac755825ec9ccc88dd54e41fac2dddf0c01c399877ffa6ed6815",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11673,8 +11928,8 @@
             "data",
             "pe"
           ],
-          "dependency_file_count": 68,
-          "dependency_fingerprint_sha256": "2ee8861e0fdef85d6964c534672613c4c656405860c70b2308b338321a7ad01a",
+          "dependency_file_count": 93,
+          "dependency_fingerprint_sha256": "8c58ef3f51bc44858f48a8506028615fdff39377fdda6d8ed382e2aec5bab422",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -11737,7 +11992,7 @@
             "pe"
           ],
           "dependency_file_count": 3,
-          "dependency_fingerprint_sha256": "6f8af92116f3b01a884f44a9dff93dfa5c542328e11cd141203deb6b62a5ce02",
+          "dependency_fingerprint_sha256": "f121f6b5c08334d9074873e4ebb7c197f834a757761a3602d11377c9d18a02cb",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11767,8 +12022,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 65,
-          "dependency_fingerprint_sha256": "9105abc22a5311141cf2663ee58153f52c1188e1e83d626f6819bd56ddb9ae5a",
+          "dependency_file_count": 90,
+          "dependency_fingerprint_sha256": "fff5a458185296272886121bbb239465808e21032a16295e87d5a737e65ccb0a",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -11805,7 +12060,7 @@
             "png"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "417f027ad6d45c1056afe63ae276e30f0b52900ded8a3410df5f467b480afb92",
+          "dependency_fingerprint_sha256": "4daf24366019c9faadb85927606da9a069682b7ad690e167cc80e7d74302a2e7",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -11838,8 +12093,8 @@
           "declared_formats": [
             "zip"
           ],
-          "dependency_file_count": 66,
-          "dependency_fingerprint_sha256": "e97922c1253d9e9ec3efc54c731ff78cd5c4e517c1ce2bf580bb1c8958c607f0",
+          "dependency_file_count": 91,
+          "dependency_fingerprint_sha256": "0da7a1f1e3cfec4c2eb22ea310b227205e41d59c006e04626d48e5eb60b6b8ab",
           "eligible": true,
           "eligible_formats": [
             "zip"
@@ -11871,8 +12126,8 @@
             "data",
             "pe"
           ],
-          "dependency_file_count": 64,
-          "dependency_fingerprint_sha256": "b8cd6f427b6f8d848431638c03b0e844a6296ec2623c71db5fa7195e84170e92",
+          "dependency_file_count": 89,
+          "dependency_fingerprint_sha256": "d496b2ba46e47c55a4760eabb4ceb3aa5f0580f5e15c757c9dba32c087a48a8f",
           "eligible": true,
           "eligible_formats": [
             "data",
@@ -11995,8 +12250,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 53,
-          "dependency_fingerprint_sha256": "374aec07e4f1a70a7cfd6c41a71998299e3fcad9b7f1b23e25ff701dec1a82b3",
+          "dependency_file_count": 78,
+          "dependency_fingerprint_sha256": "cffc7078cc1d5a50f5590029815891441630296b564cacb1dac46c2eacfe7c47",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -12026,8 +12281,8 @@
           "declared_formats": [
             "pe"
           ],
-          "dependency_file_count": 51,
-          "dependency_fingerprint_sha256": "44794fd33685475272fa26653dd680831587f0953a84acd51e1cbb3594749396",
+          "dependency_file_count": 76,
+          "dependency_fingerprint_sha256": "50e7042572fcd1e31ff0c9dcf2fcfaf661e19a6f58b54aa02e2a8ffdd4dc8f32",
           "eligible": true,
           "eligible_formats": [
             "pe"
@@ -12113,6 +12368,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -12135,6 +12391,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -12156,12 +12413,13 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
           ],
-          "dependency_file_count": 54,
-          "dependency_fingerprint_sha256": "77101f690be9fee03c78f10e2585f65f1675437ad910f2075d79da52cbd29343",
+          "dependency_file_count": 79,
+          "dependency_fingerprint_sha256": "d59babb9d0898230c4e0baba3e724996aef053a98684e926be5e51a87c7599e1",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -12177,6 +12435,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -12211,6 +12470,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -12232,12 +12492,13 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
           ],
-          "dependency_file_count": 54,
-          "dependency_fingerprint_sha256": "efe5d5cce168322cd597a8959d0d6316b17318e2f55f834ae7859eb668f350f9",
+          "dependency_file_count": 79,
+          "dependency_fingerprint_sha256": "0885f8f331a47093d0d7747de7ef7167fffcb7abe75df463c7d701ec8c6a0051",
           "eligible": true,
           "eligible_formats": [
             "7z",
@@ -12253,6 +12514,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -12307,6 +12569,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -12351,6 +12614,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -12373,6 +12637,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -12394,6 +12659,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -12415,6 +12681,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -12468,6 +12735,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -12496,49 +12764,191 @@
       "structurally_routable": true
     },
     {
-      "accepted_formats": [
-        "7z",
-        "apple-disk-image",
-        "asar",
-        "autoit-a3x",
-        "cab",
-        "data",
-        "elf",
-        "java-class",
-        "macho",
-        "ole",
-        "pe",
-        "png",
-        "rar",
-        "script",
-        "xz",
-        "zip"
-      ],
-      "automated_analysis_completion_possible": true,
+      "accepted_formats": [],
+      "automated_analysis_completion_possible": false,
       "automated_analysis_completion_verified": false,
       "automatic_handler_preflights": [
         {
-          "ast_eligible_formats": [
-            "7z",
-            "apple-disk-image",
-            "asar",
-            "autoit-a3x",
-            "cab",
-            "data",
-            "elf",
-            "java-class",
-            "macho",
-            "ole",
-            "pe",
-            "png",
-            "rar",
-            "script",
-            "xz",
-            "zip"
+          "ast_eligible_formats": [],
+          "ast_preflight_eligible": false,
+          "blocked_formats": [
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "7z"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "apple-disk-image"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "asar"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "autoit-a3x"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "cab"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "data"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "elf"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "java-class"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "macho"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "ole"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "pe"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "png"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "rar"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "rtf"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "script"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "xz"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "zip"
+            }
           ],
-          "ast_preflight_eligible": true,
-          "blocked_formats": [],
-          "blockers": [],
+          "blockers": [
+            "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+            "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+            "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+            "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+          ],
           "declared_formats": [
             "7z",
             "apple-disk-image",
@@ -12553,14 +12963,218 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
           ],
           "dependency_file_count": 2,
-          "dependency_fingerprint_sha256": "305d48679af3e614b3c7da1aeec9ad325cd2e1dceaa34b81fc6bf5ee025684ad",
-          "eligible": true,
-          "eligible_formats": [
+          "dependency_fingerprint_sha256": "87b2057ff0b4881f5e8fef4893378350a2669ed817ca13eb8b8c91a07611fb4f",
+          "eligible": false,
+          "eligible_formats": [],
+          "handler_id": "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config",
+          "runtime_import": {
+            "attempted": false,
+            "blockers": [
+              "ast_preflight_not_eligible"
+            ],
+            "eligible": false,
+            "filesystem_write_allowed": false,
+            "handler_id": "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config",
+            "handler_imported": false,
+            "invocation": null,
+            "isolated_process": false,
+            "network_allowed": false,
+            "sample_execution_allowed": false,
+            "sanitized_environment": false
+          }
+        }
+      ],
+      "automatic_handlers": [],
+      "automatic_selection_possible": false,
+      "blocked_automatic_handlers": [
+        {
+          "ast_eligible_formats": [],
+          "ast_preflight_eligible": false,
+          "blocked_formats": [
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "7z"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "apple-disk-image"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "asar"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "autoit-a3x"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "cab"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "data"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "elf"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "java-class"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "macho"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "ole"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "pe"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "png"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "rar"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "rtf"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "script"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "xz"
+            },
+            {
+              "blockers": [
+                "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+                "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+                "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+              ],
+              "eligible": false,
+              "format": "zip"
+            }
+          ],
+          "blockers": [
+            "reachable:_bounded_alias_closure:unapproved_external_call:time.monotonic",
+            "reachable:_bounded_alias_closure:unapproved_object_method:reverse.setdefault",
+            "reachable:_bounded_alias_closure:unapproved_object_method:sources.setdefault",
+            "reachable:_bounded_alias_closure:unapproved_object_method:visiting.remove"
+          ],
+          "declared_formats": [
             "7z",
             "apple-disk-image",
             "asar",
@@ -12574,37 +13188,38 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
           ],
+          "dependency_file_count": 2,
+          "dependency_fingerprint_sha256": "87b2057ff0b4881f5e8fef4893378350a2669ed817ca13eb8b8c91a07611fb4f",
+          "eligible": false,
+          "eligible_formats": [],
           "handler_id": "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config",
           "runtime_import": {
-            "attempted": true,
-            "blockers": [],
-            "eligible": true,
+            "attempted": false,
+            "blockers": [
+              "ast_preflight_not_eligible"
+            ],
+            "eligible": false,
             "filesystem_write_allowed": false,
             "handler_id": "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config",
-            "handler_imported": true,
-            "invocation": "bytes",
-            "isolated_process": true,
+            "handler_imported": false,
+            "invocation": null,
+            "isolated_process": false,
             "network_allowed": false,
             "sample_execution_allowed": false,
-            "sanitized_environment": true
+            "sanitized_environment": false
           }
         }
       ],
-      "automatic_handlers": [
-        "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config"
-      ],
-      "automatic_selection_possible": true,
-      "blocked_automatic_handlers": [],
-      "blocker": null,
-      "candidate_verification_possible": true,
+      "blocker": "automatic_handler_preflight_blocked",
+      "candidate_verification_possible": false,
       "completion_verification": {
         "blockers": [
-          "representative_fixture_completion_not_verified",
-          "required_output_contract_not_exercised"
+          "automatic_handler_preflight_blocked"
         ],
         "required_evidence": [
           "representative_fixture",
@@ -12627,6 +13242,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -12640,12 +13256,13 @@
       "manual_or_unsupported_handlers": [
         "windows_script_stager:analysis.framework.malware.windows.script.stager.bd20.base64.stager.py:extract_config",
         "windows_script_stager:analysis.framework.malware.windows.script.stager.corb.xor.stager.py:extract_config",
+        "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config",
         "windows_script_stager:analysis.framework.malware.windows.script.stager.fa7d.xor.stager.py:extract_config",
         "windows_script_stager:analysis.framework.malware.windows.script.stager.javascript.dual.xor.stager.py:extract_config",
         "windows_script_stager:analysis.framework.malware.windows.script.stager.javascript.unicode.separator.stager.py:extract_config",
         "windows_script_stager:analysis.framework.malware.windows.script.stager.unicode.separator.stager.py:extract_config"
       ],
-      "next_action_ja": null,
+      "next_action_ja": "AST監査または隔離runtime importの阻害理由を解消する。",
       "quality_policy": {
         "category": "loader",
         "config_required": true,
@@ -12653,13 +13270,11 @@
         "terminal_payload_required": true
       },
       "quality_policy_declared": true,
-      "runtime_import_verified_structure": true,
-      "safe_automatic_handlers": [
-        "windows_script_stager:analysis.framework.malware.windows.script.stager.extract.config.py:extract_config"
-      ],
-      "script_only_handler_available": true,
-      "status": "fully_routable",
-      "structurally_routable": true
+      "runtime_import_verified_structure": false,
+      "safe_automatic_handlers": [],
+      "script_only_handler_available": false,
+      "status": "automatic_handler_blocked",
+      "structurally_routable": false
     },
     {
       "accepted_formats": [
@@ -12676,6 +13291,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"
@@ -12698,6 +13314,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -12719,6 +13336,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -12740,6 +13358,7 @@
             "pe",
             "png",
             "rar",
+            "rtf",
             "script",
             "xz",
             "zip"
@@ -12793,6 +13412,7 @@
         "pe",
         "png",
         "rar",
+        "rtf",
         "script",
         "xz",
         "zip"

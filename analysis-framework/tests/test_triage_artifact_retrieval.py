@@ -14,7 +14,7 @@ COMMON = ROOT / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import triage_artifact_retrieval as retrieval  # noqa: E402
+import triage_artifact_retrieval as retrieval
 
 SHA256 = "a" * 64
 
@@ -24,9 +24,7 @@ def test_select_reported_candidates_restricts_to_discovered_exact_hash_rows() ->
         {"reference_sha256": "b" * 64, "endpoint_path": "/first"},
         {"reference_sha256": "c" * 64, "endpoint_path": "/second"},
     ]
-    assert retrieval.select_reported_candidates(candidates, ["c" * 64]) == [
-        candidates[1]
-    ]
+    assert retrieval.select_reported_candidates(candidates, ["c" * 64]) == [candidates[1]]
     with pytest.raises(ValueError, match="一意"):
         retrieval.select_reported_candidates(candidates, ["d" * 64])
     with pytest.raises(ValueError, match="重複"):
@@ -42,6 +40,40 @@ def test_select_reported_candidates_rejects_ambiguous_report_reference() -> None
         retrieval.select_reported_candidates(candidates, ["b" * 64])
 
 
+def test_artifact_download_candidates_round_robin_across_parents() -> None:
+    parents = ["a" * 64, "b" * 64, "c" * 64]
+    candidates = [
+        {"parent_sha256": parents[0], "name": "a-1"},
+        {"parent_sha256": parents[0], "name": "a-2"},
+        {"parent_sha256": parents[0], "name": "a-3"},
+        {"parent_sha256": parents[1], "name": "b-1"},
+        {"parent_sha256": parents[1], "name": "b-2"},
+        {"parent_sha256": parents[2], "name": "c-1"},
+    ]
+
+    selected = retrieval.select_artifact_download_candidates(candidates, maximum=5)
+
+    assert [item["name"] for item in selected] == ["a-1", "b-1", "c-1", "a-2", "b-2"]
+    assert [item["name"] for item in candidates] == ["a-1", "a-2", "a-3", "b-1", "b-2", "c-1"]
+
+
+def test_artifact_download_candidates_preserve_single_parent_order() -> None:
+    candidates = [
+        {"parent_sha256": SHA256, "name": "first"},
+        {"parent_sha256": SHA256, "name": "second"},
+        {"parent_sha256": SHA256, "name": "third"},
+    ]
+    assert retrieval.select_artifact_download_candidates(candidates, maximum=2) == candidates[:2]
+
+
+def test_artifact_download_candidates_reject_invalid_parent() -> None:
+    with pytest.raises(ValueError, match="SHA-256"):
+        retrieval.select_artifact_download_candidates(
+            [{"parent_sha256": "not-a-sha256", "name": "invalid"}],
+            maximum=1,
+        )
+
+
 def test_report_discovery_budget_is_independent_of_download_budget(tmp_path: Path) -> None:
     args = retrieval.build_parser().parse_args(
         ["--hash", SHA256, "--output-root", str(tmp_path), "--max-total-bytes", "1024"]
@@ -50,9 +82,28 @@ def test_report_discovery_budget_is_independent_of_download_budget(tmp_path: Pat
     assert args.report_memory_max_total_bytes == retrieval.DEFAULT_MAX_TOTAL_BYTES
 
 
-def test_main_uses_separate_report_discovery_budget(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_archive_password_is_never_accepted_as_an_argv_value(tmp_path: Path) -> None:
+    parser = retrieval.build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "--hash",
+                SHA256,
+                "--output-root",
+                str(tmp_path),
+                "--password",
+                "private-value",
+            ]
+        )
+
+
+def test_archive_password_stdin_is_one_bounded_utf8_line() -> None:
+    assert retrieval._read_password_from_stdin(BytesIO(b"custom-password\nignored")) == ("custom-password")
+    with pytest.raises(ValueError, match="上限"):
+        retrieval._read_password_from_stdin(BytesIO(b"A" * (retrieval.MAX_PASSWORD_BYTES + 1) + b"\n"))
+
+
+def test_main_uses_separate_report_discovery_budget(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     observed: dict[str, object] = {}
 
     def discover(*args: object, **kwargs: object) -> tuple[list[dict], list[dict]]:
@@ -62,20 +113,88 @@ def test_main_uses_separate_report_discovery_budget(
     monkeypatch.setenv("TRIAGE_API_KEY", "test-key")
     monkeypatch.setattr(retrieval, "discover_candidates", discover)
     output = tmp_path / "triage"
-    assert retrieval.main(
-        [
-            "--allow-network",
-            "--hash",
-            SHA256,
-            "--output-root",
-            str(output),
-            "--max-total-bytes",
-            "1024",
-        ]
-    ) == 0
+    assert (
+        retrieval.main(
+            [
+                "--allow-network",
+                "--hash",
+                SHA256,
+                "--output-root",
+                str(output),
+                "--max-total-bytes",
+                "1024",
+            ]
+        )
+        == 0
+    )
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     assert observed["report_memory_max_total_bytes"] == retrieval.DEFAULT_MAX_TOTAL_BYTES
     assert manifest["report_memory_limits"]["max_total_bytes"] == retrieval.DEFAULT_MAX_TOTAL_BYTES
+
+
+def test_main_downloads_candidates_round_robin_across_parents(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    parents = ["a" * 64, "b" * 64, "c" * 64]
+    candidates: list[dict[str, object]] = []
+    for parent_index, count in enumerate((3, 2, 1)):
+        for candidate_index in range(count):
+            name = f"p{parent_index + 1}-{candidate_index + 1}.bin"
+            candidates.append(
+                {
+                    "parent_sha256": parents[parent_index],
+                    "sample_id": f"260802-abcdefghi{parent_index}",
+                    "task_id": "behavioral1",
+                    "kind": "dumped_file",
+                    "name": name,
+                    "endpoint_path": f"/artifact/{name}",
+                }
+            )
+
+    monkeypatch.setenv("TRIAGE_API_KEY", "test-key")
+    monkeypatch.setattr(
+        retrieval,
+        "discover_candidates",
+        lambda *args, **kwargs: (candidates, []),
+    )
+    monkeypatch.setattr(
+        retrieval,
+        "fetch_bounded",
+        lambda path, *args, **kwargs: (f"payload:{path}".encode(), {"http_status": 200}),
+    )
+    output_root = tmp_path / "triage"
+
+    assert (
+        retrieval.main(
+            [
+                "--allow-network",
+                "--download",
+                "--hash",
+                parents[0],
+                "--output-root",
+                str(output_root),
+                "--max-artifacts",
+                "4",
+            ]
+        )
+        == 0
+    )
+
+    manifest = json.loads((output_root / "manifest.json").read_text(encoding="utf-8"))
+    assert [item["name"] for item in manifest["downloads"]] == [
+        "p1-1.bin",
+        "p2-1.bin",
+        "p3-1.bin",
+        "p1-2.bin",
+    ]
+    assert manifest["candidate_count"] == 6
+    assert manifest["artifact_download_selection"] == {
+        "policy": "parent_sha256_round_robin_v1",
+        "maximum": 4,
+        "selected_candidate_count": 4,
+        "selected_parent_count": 3,
+    }
 
 
 def overview() -> dict:
@@ -169,22 +288,23 @@ def test_existing_zero_byte_archive_is_not_reported_as_downloaded(
     archive_path.parent.mkdir(parents=True)
     archive_path.write_bytes(b"")
 
-    assert retrieval.main(
-        [
-            "--allow-network",
-            "--download",
-            "--hash",
-            SHA256,
-            "--output-root",
-            str(output_root),
-        ]
-    ) == 0
+    assert (
+        retrieval.main(
+            [
+                "--allow-network",
+                "--download",
+                "--hash",
+                SHA256,
+                "--output-root",
+                str(output_root),
+            ]
+        )
+        == 0
+    )
     manifest = json.loads((output_root / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["downloaded_count"] == 0
     assert manifest["downloads"] == []
-    assert manifest["errors"][0]["reason"] == (
-        "既存の暗号化archive sizeが許可範囲外です"
-    )
+    assert manifest["errors"][0]["reason"] == ("既存の暗号化archive sizeが許可範囲外です")
     assert archive_path.stat().st_size == 0
 
 
@@ -224,23 +344,24 @@ def test_valid_existing_archive_is_verified_and_reused(
     existing = retrieval.encrypted_zip_bytes(payload, member_name, "infected")
     archive_path.write_bytes(existing)
 
-    assert retrieval.main(
-        [
-            "--allow-network",
-            "--download",
-            "--hash",
-            SHA256,
-            "--output-root",
-            str(output_root),
-        ]
-    ) == 0
+    assert (
+        retrieval.main(
+            [
+                "--allow-network",
+                "--download",
+                "--hash",
+                SHA256,
+                "--output-root",
+                str(output_root),
+            ]
+        )
+        == 0
+    )
     manifest = json.loads((output_root / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["downloaded_count"] == 1
     assert manifest["errors"] == []
     assert manifest["downloads"][0]["archive_reused"] is True
-    assert manifest["downloads"][0]["archive_sha256"] == (
-        __import__("hashlib").sha256(existing).hexdigest()
-    )
+    assert manifest["downloads"][0]["archive_sha256"] == (__import__("hashlib").sha256(existing).hexdigest())
     assert archive_path.read_bytes() == existing
 
 
@@ -266,9 +387,7 @@ def test_corrupt_or_plaintext_mismatched_existing_archive_is_rejected(
         )
 
     mismatch_path = tmp_path / "mismatch.zip"
-    mismatched = retrieval.encrypted_zip_bytes(
-        b"B" * len(expected), "payload.bin", "infected"
-    )
+    mismatched = retrieval.encrypted_zip_bytes(b"B" * len(expected), "payload.bin", "infected")
     mismatch_path.write_bytes(mismatched)
     with pytest.raises(ValueError, match="平文SHA-256"):
         retrieval.persist_encrypted_archive(
@@ -303,9 +422,7 @@ def test_load_reviewed_candidates_builds_memory_endpoint(tmp_path: Path) -> None
     candidates = retrieval.load_reviewed_candidates(manifest)
     assert candidates[0]["kind"] == "memory_image"
     assert candidates[0]["selection"] == "reviewed_report_memory"
-    assert candidates[0]["endpoint_path"].endswith(
-        "/behavioral2/memory/proc-memory.dmp"
-    )
+    assert candidates[0]["endpoint_path"].endswith("/behavioral2/memory/proc-memory.dmp")
 
 
 def test_load_reviewed_candidates_accepts_own_dumped_file_manifest(tmp_path: Path) -> None:
@@ -348,13 +465,41 @@ def test_load_reviewed_candidates_accepts_own_dumped_file_manifest(tmp_path: Pat
     ]
 
 
+def test_reviewed_candidate_verification_records_parent_and_public_binding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    candidate = {
+        "parent_sha256": SHA256,
+        "sample_id": "260802-abcdefghij",
+        "task_id": "behavioral1",
+        "kind": "memory_image",
+        "name": "proc-memory.dmp",
+        "endpoint_path": ("/samples/260802-abcdefghij/behavioral1/memory/proc-memory.dmp"),
+        "reference_sha256": "b" * 64,
+        "selection": "reviewed_discovery_manifest",
+    }
+    monkeypatch.setattr(
+        retrieval,
+        "api_json",
+        lambda *args, **kwargs: {"sha256": SHA256, "private": False},
+    )
+
+    retrieval.verify_reviewed_candidates(
+        [candidate],
+        "test-key",
+        opener=object(),
+        timeout=1,
+    )
+
+    assert candidate["metadata_sha256_verified"] is True
+    assert candidate["public_analysis_verified"] is True
+
+
 @pytest.mark.parametrize(
     "name",
     ["../memory.dmp", "memory/../memory.dmp", "files/proc-memory.dmp", "memory/not-a-dump"],
 )
-def test_load_reviewed_candidates_rejects_unsafe_scope(
-    tmp_path: Path, name: str
-) -> None:
+def test_load_reviewed_candidates_rejects_unsafe_scope(tmp_path: Path, name: str) -> None:
     manifest = tmp_path / "reviewed.json"
     manifest.write_text(
         json.dumps(
@@ -372,11 +517,12 @@ def test_load_reviewed_candidates_rejects_unsafe_scope(
     with pytest.raises(ValueError):
         retrieval.load_reviewed_candidates(manifest)
 
+
 class RecordingOpener:
     def __init__(self) -> None:
         self.urls: list[str] = []
 
-    def open(self, request, timeout):  # noqa: ANN001, ANN201, ARG002
+    def open(self, request, timeout):
         self.urls.append(request.full_url)
         return object()
 
@@ -384,30 +530,26 @@ class RecordingOpener:
 class PublicPageResponse:
     status = 200
 
-    def __enter__(self):  # noqa: ANN204
+    def __enter__(self):
         return self
 
-    def __exit__(self, *args):  # noqa: ANN002, ANN204
+    def __exit__(self, *args):
         return False
 
-    def read(self, limit: int) -> bytes:  # noqa: ARG002
+    def read(self, limit: int) -> bytes:
         return b"public analysis 260802-abcdefghij"
 
 
 class PublicPageOpener:
-    def open(self, request, timeout):  # noqa: ANN001, ANN201, ARG002
+    def open(self, request, timeout):
         assert request.get_header("Authorization") is None
         return PublicPageResponse()
 
 
 def test_verify_public_page_is_unauthenticated_and_id_bound() -> None:
     opener = PublicPageOpener()
-    assert retrieval.verify_public_page(
-        "260802-abcdefghij", opener=opener, timeout=1
-    )
-    assert not retrieval.verify_public_page(
-        "260802-jq6svser5s", opener=opener, timeout=1
-    )
+    assert retrieval.verify_public_page("260802-abcdefghij", opener=opener, timeout=1)
+    assert not retrieval.verify_public_page("260802-jq6svser5s", opener=opener, timeout=1)
 
 
 def test_safe_error_record_keeps_only_http_status() -> None:
@@ -416,6 +558,7 @@ def test_safe_error_record_keeps_only_http_status() -> None:
         "error": "HTTPError",
         "http_status": 403,
     }
+
 
 def test_request_allows_query_only_for_exact_hash_search() -> None:
     opener = RecordingOpener()

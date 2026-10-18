@@ -1,44 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Python: module unpackers.javascript_obfuscator</title>
-</head><body>
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>unpackers.javascript_obfuscator — API仕様</title></head><body>
+<h1>unpackers.javascript_obfuscator</h1>
+<p><a href="../../unpackers/javascript_obfuscator.py">実装</a></p>
+<pre>Static JavaScript string-array deobfuscation without executing JavaScript.</pre>
+<h2>decode_script_text</h2>
+<dl><dt><a name="-decode_script_text"><strong>decode_script_text</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Decode&nbsp;common&nbsp;script&nbsp;encodings&nbsp;without&nbsp;interpreting&nbsp;script&nbsp;content.</span></dd></dl>
 
-<table class="heading">
-<tr class="heading-text decor">
-<td class="title">&nbsp;<br><strong class="title"><a href="unpackers.html" class="white">unpackers</a>.javascript_obfuscator</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cai-security-analysis%5Cunpackers%5Cjavascript_obfuscator.py">c:\users\administrator\ai-security-analysis\unpackers\javascript_obfuscator.py</a></td></tr></table>
-    <p><span class="code">Static&nbsp;JavaScript&nbsp;string-array&nbsp;deobfuscation&nbsp;without&nbsp;executing&nbsp;JavaScript.</span></p>
-<p>
-<table class="section">
-<tr class="decor pkg-content-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
-
-<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="ast.html">ast</a><br>
-<a href="base64.html">base64</a><br>
-</td><td class="multicolumn"><a href="json.html">json</a><br>
-<a href="math.html">math</a><br>
-</td><td class="multicolumn"><a href="re.html">re</a><br>
-</td><td class="multicolumn"></td></tr></table></td></tr></table><p>
-<table class="section">
-<tr class="decor functions-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
-
-<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><dl><dt><a name="-decode_script_text"><strong>decode_script_text</strong></a>(data: 'bytes') -&gt; 'str'</dt><dd><span class="code">Decode&nbsp;common&nbsp;script&nbsp;encodings&nbsp;without&nbsp;interpreting&nbsp;script&nbsp;content.</span></dd></dl>
- <dl><dt><a name="-deobfuscate_plain_string_array"><strong>deobfuscate_plain_string_array</strong></a>(data: 'bytes') -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">Statically&nbsp;resolve&nbsp;a&nbsp;rotated&nbsp;plain-string&nbsp;array&nbsp;decoder&nbsp;pattern.<br>
+<h2>deobfuscate_plain_string_array</h2>
+<dl><dt><a name="-deobfuscate_plain_string_array"><strong>deobfuscate_plain_string_array</strong></a>(data: 'bytes') -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">平文文字列配列decoderをJavaScript非実行で静的に解決する。<br>
 &nbsp;<br>
-The&nbsp;supported&nbsp;shape&nbsp;uses&nbsp;a&nbsp;local&nbsp;array-returning&nbsp;function,&nbsp;an&nbsp;index-offset<br>
-decoder,&nbsp;and&nbsp;a&nbsp;numeric&nbsp;``parseInt``&nbsp;rotation&nbsp;sentinel.&nbsp;No&nbsp;JavaScript&nbsp;is<br>
-interpreted&nbsp;or&nbsp;executed.</span></dd></dl>
- <dl><dt><a name="-deobfuscate_string_array"><strong>deobfuscate_string_array</strong></a>(data: 'bytes') -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">Statically&nbsp;decode&nbsp;a&nbsp;rotated,&nbsp;custom-Base64&nbsp;JavaScript&nbsp;string&nbsp;array.</span></dd></dl>
-</td></tr></table><p>
-<table class="section">
-<tr class="decor data-decor heading-text">
-<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+整形済みの複数配列／推移aliasを先に評価し、対象外の場合だけ既存の<br>
+minified&nbsp;decoderへ進む。どちらもscriptを解釈または実行しない。</span></dd></dl>
 
-<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
-<td class="singlecolumn"><strong>Callable</strong> = typing.Callable</td></tr></table>
+<h2>deobfuscate_rc4_string_array</h2>
+<dl><dt><a name="-deobfuscate_rc4_string_array"><strong>deobfuscate_rc4_string_array</strong></a>(data: 'bytes') -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">custom&nbsp;Base64＋RC4型の文字列配列をJavaScript非実行で復号する。<br>
+&nbsp;<br>
+obfuscator.io系の識別子は毎回変わるため固定名へ依存しない。配列、decoder<br>
+offset、RC4の256-byte&nbsp;KSA/PRGA形状、呼出しの即値indexと文字列鍵をすべて<br>
+構造で照合する。rotation式も数値演算と``parseInt``だけに限定して解く。</span></dd></dl>
+
+<h2>deobfuscate_string_array</h2>
+<dl><dt><a name="-deobfuscate_string_array"><strong>deobfuscate_string_array</strong></a>(data: 'bytes') -&gt; 'tuple[dict, bytes | None]'</dt><dd><span class="code">Statically&nbsp;decode&nbsp;a&nbsp;rotated,&nbsp;custom-Base64&nbsp;JavaScript&nbsp;string&nbsp;array.</span></dd></dl>
+
 </body></html>

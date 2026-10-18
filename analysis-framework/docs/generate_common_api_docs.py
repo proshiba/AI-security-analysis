@@ -4,18 +4,19 @@
 from __future__ import annotations
 
 import argparse
-from html import escape
 import importlib
 import inspect
-from pathlib import Path
 import pydoc
 import re
 import sys
+from html import escape
+from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 COMMON = REPOSITORY / "analysis-framework" / "common"
 FRAMEWORK = REPOSITORY / "analysis-framework"
 MODULE_SOURCES = {
+    "c2_detector": "analysis-framework/common/c2_detector.py",
     "generate_family_stix": "analysis-framework/common/generate_family_stix.py",
     "generate_infrastructure_stix": "analysis-framework/common/generate_infrastructure_stix.py",
     "inventory_infrastructure_evidence": "analysis-framework/common/inventory_infrastructure_evidence.py",
@@ -25,13 +26,16 @@ MODULE_SOURCES = {
     "analyze_sample": "analysis-framework/common/analyze_sample.py",
     "extract_pyinstaller_archive": "analysis-framework/common/extract_pyinstaller_archive.py",
     "ghidra_function_batch": "analysis-framework/common/ghidra_function_batch.py",
-    "static_implementation_commitment": (
-        "analysis-framework/common/static_implementation_commitment.py"
-    ),
+    "static_implementation_commitment": ("analysis-framework/common/static_implementation_commitment.py"),
     "dotnet_rat_config": "analysis-framework/common/dotnet_rat_config.py",
+    "extractors.purehvnc.extractor": "extractors/purehvnc/extractor.py",
+    "extractors.purehvnc_schema": "extractors/purehvnc_schema.py",
+    "extractors.purelogs.extractor": "extractors/purelogs/extractor.py",
+    "extractors.remcosrat.strict_config": "extractors/remcosrat/strict_config.py",
     "extractors.profiled_family": "extractors/profiled_family.py",
     "unpackers.profiled_transform": "unpackers/profiled_transform.py",
     "static_layer_pipeline": "analysis-framework/common/static_layer_pipeline.py",
+    "triage_artifact_retrieval": "analysis-framework/common/triage_artifact_retrieval.py",
     "triage_family_search": "analysis-framework/common/triage_family_search.py",
     "unpackers.managed_il_triage": "unpackers/managed_il_triage.py",
     "unpackers.managed_proxy_deobfuscator": "unpackers/managed_proxy_deobfuscator.py",
@@ -44,6 +48,8 @@ MODULE_SOURCES = {
     "automation_failure_inventory": "analysis-framework/common/automation_failure_inventory.py",
     "automation_reanalysis_plan": "analysis-framework/common/automation_reanalysis_plan.py",
     "unpackers.managed_tripledes_gzip": "unpackers/managed_tripledes_gzip.py",
+    "unpackers.javascript_obfuscator": "unpackers/javascript_obfuscator.py",
+    "unpackers.static_unpacker": "unpackers/static_unpacker.py",
 }
 REPOSITORY_PATH_PLACEHOLDER = "<repo-root>"
 
@@ -146,16 +152,11 @@ def render_module(module_name: str) -> str:
         f"<pre>{escape(pydoc.getdoc(module))}</pre>",
     ]
     for public_name, member in inspect.getmembers(module):
-        if (
-            public_name.startswith("_")
-            or getattr(member, "__module__", None) != module_name
-        ):
+        if public_name.startswith("_") or getattr(member, "__module__", None) != module_name:
             continue
         escaped_name = escape(public_name)
         if inspect.isfunction(member):
-            pieces.extend(
-                [f"<h2>{escaped_name}</h2>", _render_routine(renderer, public_name, member)]
-            )
+            pieces.extend([f"<h2>{escaped_name}</h2>", _render_routine(renderer, public_name, member)])
             continue
         if not inspect.isclass(member):
             continue
@@ -180,7 +181,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="静的解析自動化APIの日本語文書を同期")
     parser.add_argument("--check", action="store_true", help="書き込まず差分だけを検査")
     parser.add_argument(
-        "--module", action="append", choices=sorted(MODULE_SOURCES),
+        "--module",
+        action="append",
+        choices=sorted(MODULE_SOURCES),
         help="指定した固定moduleだけを生成・照合（繰り返し指定可）",
     )
     args = parser.parse_args()

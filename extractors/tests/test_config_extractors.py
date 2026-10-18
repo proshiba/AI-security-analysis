@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -16,12 +19,14 @@ from extractors.agenttesla.extractor import (
     sanitize_url,
 )
 from extractors.config_extractor import (
+    MAX_INPUT_BYTES,
     build_parser,
     extract_file,
     get_extractor,
     main,
     normalize_family,
 )
+from extractors.remcosrat import strict_config as strict_remcos
 from extractors.remcosrat.extractor import extract as remcos_extract
 from extractors.remcosrat.extractor import marker_score
 from extractors.unclassified.mx_go.extractor import (
@@ -121,9 +126,69 @@ def test_agenttesla_functions() -> None:
 
 
 def test_remcos_functions() -> None:
-    assert marker_score(["Remcos Agent", "RMC-1"])[0] == 3
+    assert marker_score(["Remcos Agent", "RMC-1"])[0] == 2
     result = remcos_extract(b"Remcos Agent c2.example:2404")
-    assert result["findings"][0]["confidence"] == "inferred"
+    assert result["findings"][0]["confidence"] == "unverified"
+    assert result["findings"][0]["role"] == "candidate_c2"
+    assert result["config"]["endpoints"] == []
+    assert result["config"]["candidate_endpoints"] == ["c2.example:2404"]
+    assert result["family_attribution_confirmed"] is False
+    assert result["strict_config_recovered"] is False
+    assert result["c2"] == []
+
+
+def test_remcos_strict_config_is_shared_with_common_cli(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    delimiter = strict_remcos.DELIMITERS[0]
+    fields = [b"0"] * 57
+    fields[0] = b"strict.example:2404:1"
+    fields[1] = b"cli-test"
+    fields[2] = b"30"
+    key = b"shared-core-key"
+    clear = delimiter.join(fields)
+    resource = bytes([len(key)]) + key + strict_remcos.rc4_crypt(clear, key)
+    monkeypatch.setattr(strict_remcos, "_settings_resource", lambda _data: resource)
+
+    sample = tmp_path / "strict-remcos.exe"
+    output = tmp_path / "strict-remcos.json"
+    sample.write_bytes(b"MZ" + b"\x00" * 64)
+    assert (
+        main(["--family", "remcos", "--input", str(sample), "--output", str(output)])
+        == 0
+    )
+    result = json.loads(output.read_text(encoding="utf-8"))
+    assert result["family_attribution_confirmed"] is True
+    assert result["strict_config_recovered"] is True
+    assert result["config"]["endpoints"] == ["strict.example:2404"]
+    assert result["findings"][0]["role"] == "configured_c2"
+    assert result["network_contacted"] is False
+    assert "shared-core-key" not in json.dumps(result, ensure_ascii=False)
+
+
+def test_remcos_common_cli_keeps_failed_strict_result_as_candidate(
+    tmp_path: Path,
+) -> None:
+    sample = tmp_path / "candidate.bin"
+    output = tmp_path / "candidate.json"
+    sample.write_bytes(b"Remcos Agent candidate.example:2404")
+
+    assert (
+        main(["--family", "remcos", "--input", str(sample), "--output", str(output)])
+        == 0
+    )
+    result = json.loads(output.read_text(encoding="utf-8"))
+    assert result["strict_config_recovered"] is False
+    assert result["family_attribution_confirmed"] is False
+    assert result["config"]["strict_failure"] == {
+        "reason": "input_not_supported_pe",
+        "stage": "pe_input",
+        "mapped_layout_retry_eligible": False,
+    }
+    assert result["config"]["endpoints"] == []
+    assert result["findings"][0]["role"] == "candidate_c2"
+    assert result["findings"][0]["confidence"] == "unverified"
 
 
 def test_venom_functions() -> None:
@@ -203,17 +268,14 @@ def test_venom_integrates_only_validated_config(
     result = venom_extract(fixture)
     assert result["config"]["static_config_recovered"] is True
     assert result["config"]["version"] == "Venom RAT v6.0.3"
-    assert result["config"]["endpoints"] == [
-        {"host": "c2.example.test", "port": 2794}
-    ]
+    assert result["config"]["endpoints"] == [{"host": "c2.example.test", "port": 2794}]
     assert {item["role"] for item in result["findings"]} == {
         "configured_c2",
         "dynamic_config_resolver",
         "tls_certificate_pin",
     }
     assert all(
-        item["confidence"] == "confirmed_static_config"
-        for item in result["findings"]
+        item["confidence"] == "confirmed_static_config" for item in result["findings"]
     )
 
 
@@ -287,3 +349,98 @@ def test_dispatcher_functions(
     )
     assert json.loads(output.read_text())["family"] == "remcosrat"
     assert "result.json" in capsys.readouterr().out
+
+
+def test_config_extractor_supports_direct_file_cli(tmp_path: Path) -> None:
+    """repository外cwdでもfile path起動がpackage importで失敗しない。"""
+
+    repository = Path(__file__).resolve().parents[2]
+    command = repository / "extractors" / "config_extractor.py"
+    sample = tmp_path / "purelogs-candidate.bin"
+    output = tmp_path / "result.json"
+    sample.write_bytes(b"unrecognized static fixture")
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            str(command),
+            "--family",
+            "purelogs",
+            "--input",
+            str(sample),
+            "--output",
+            str(output),
+        ],
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    result = json.loads(output.read_text(encoding="utf-8"))
+    assert result["family"] == "purelogs"
+    assert result["config"]["status"] == "configuration_not_found_or_incompatible"
+
+
+def test_ambiguous_pure_alias_fails_closed() -> None:
+    """PureRATとPureLogsを区別できない略称は暗黙に割り当てない。"""
+
+    with pytest.raises(
+        ValueError,
+        match=r"ambiguous family alias: pure; choose one of: purehvnc, purelogs",
+    ):
+        get_extractor("pure")
+
+
+def test_config_extractor_rejects_non_regular_and_oversized_input(
+    tmp_path: Path,
+) -> None:
+    """family処理前にregular fileと共通byte上限をfail-closedで検証する。"""
+
+    with pytest.raises(ValueError, match="regular file"):
+        extract_file("purelogs", tmp_path)
+
+    oversized = tmp_path / "oversized.bin"
+    with oversized.open("wb") as stream:
+        stream.truncate(MAX_INPUT_BYTES + 1)
+    with pytest.raises(ValueError, match="common byte limit"):
+        extract_file("purelogs", oversized)
+
+
+def test_config_extractor_rejects_input_output_aliases(tmp_path: Path) -> None:
+    """同一pathと既存hardlinkへ出力して検体をtruncateしない。"""
+
+    sample = tmp_path / "sample.bin"
+    original = b"Remcos Agent c2.example:2404"
+    sample.write_bytes(original)
+
+    with pytest.raises(ValueError, match="same file"):
+        main(
+            [
+                "--family",
+                "remcos",
+                "--input",
+                str(sample),
+                "--output",
+                str(sample),
+            ]
+        )
+    assert sample.read_bytes() == original
+
+    hardlink = tmp_path / "report.json"
+    os.link(sample, hardlink)
+    with pytest.raises(ValueError, match="same file"):
+        main(
+            [
+                "--family",
+                "remcos",
+                "--input",
+                str(sample),
+                "--output",
+                str(hardlink),
+            ]
+        )
+    assert sample.read_bytes() == original

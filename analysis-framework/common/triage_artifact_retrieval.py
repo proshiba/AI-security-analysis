@@ -8,12 +8,12 @@ import hashlib
 import json
 import os
 import re
+import sys
 import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
-
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -49,15 +49,34 @@ DEFAULT_MAX_REPORT_MEMORY_CANDIDATES = 100
 DEFAULT_MAX_ROOT_TOTAL_BYTES = DEFAULT_MAX_SAMPLE_BYTES
 MAX_ROOT_TOTAL_BYTES = 1024 * 1024 * 1024
 MAX_JSON_BYTES = 25 * 1024 * 1024
+MAX_PASSWORD_BYTES = 128
 
 
 NoRedirect = NoRedirectHandler
 
 
+def _read_password_from_stdin(stream: Any = None) -> str:
+    """archive passwordをprocess引数へ載せず、有界な標準入力1行から読む。"""
+
+    source = stream if stream is not None else sys.stdin.buffer
+    line = source.readline(MAX_PASSWORD_BYTES + 2)
+    if not isinstance(line, bytes):
+        raise TypeError("password入力はbytesである必要があります")
+    if len(line) > MAX_PASSWORD_BYTES + 1:
+        raise ValueError("password入力が上限を超えています")
+    password = line.rstrip(b"\r\n")
+    if not password or len(password) > MAX_PASSWORD_BYTES:
+        raise ValueError("password入力が空または上限超過です")
+    try:
+        return password.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError("password入力はUTF-8である必要があります") from error
+
+
 def utc_now() -> str:
     """現在時刻をUTCのISO 8601形式で返す。"""
 
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def safe_error_record(error: Exception) -> dict[str, Any]:
@@ -71,6 +90,7 @@ def safe_error_record(error: Exception) -> dict[str, Any]:
     elif isinstance(error, ValueError):
         record["reason"] = str(error)
     return record
+
 
 def normalize_sha256(value: Any) -> str:
     """SHA-256を小文字へ正規化し、不正値を拒否する。"""
@@ -86,12 +106,7 @@ def safe_basename(value: Any) -> str:
 
     text = str(value or "").replace("\\", "/").rstrip("/")
     name = text.rsplit("/", 1)[-1]
-    if (
-        not name
-        or name in {".", ".."}
-        or any(ord(character) < 32 for character in name)
-        or len(name) > 240
-    ):
+    if not name or name in {".", ".."} or any(ord(character) < 32 for character in name) or len(name) > 240:
         raise ValueError("安全でないTriage成果物名です")
     return name
 
@@ -99,7 +114,7 @@ def safe_basename(value: Any) -> str:
 def _overview_sha256(overview: dict[str, Any]) -> str:
     sample = overview.get("sample")
     if not isinstance(sample, dict):
-        raise ValueError("Triage overviewにsample情報がありません")
+        raise TypeError("Triage overviewのsample情報がobjectではありません")
     return normalize_sha256(sample.get("sha256"))
 
 
@@ -117,7 +132,7 @@ def reported_behavioral_tasks(
         raise ValueError("report task上限は1件または2件である必要があります")
     sample = overview.get("sample")
     if not isinstance(sample, dict):
-        raise ValueError("Triage overviewにsample情報がありません")
+        raise TypeError("Triage overviewのsample情報がobjectではありません")
     overview_sample_id = str(sample.get("id") or "")
     if overview_sample_id and overview_sample_id != sample_id:
         raise ValueError("Triage overviewのsample IDが要求値と一致しません")
@@ -129,8 +144,7 @@ def reported_behavioral_tasks(
     for raw_task_id, task in tasks.items():
         task_id = str(raw_task_id)
         prefix = sample_id + "-"
-        if task_id.startswith(prefix):
-            task_id = task_id[len(prefix) :]
+        task_id = task_id.removeprefix(prefix)
         if (
             not TASK_ID_RE.fullmatch(task_id)
             or not isinstance(task, dict)
@@ -177,7 +191,7 @@ def extract_report_memory_candidates(
 
     sample = report.get("sample")
     if not isinstance(sample, dict):
-        raise ValueError("Triage task reportにsample情報がありません")
+        raise TypeError("Triage task reportのsample情報がobjectではありません")
     if str(sample.get("id") or "") != sample_id:
         raise ValueError("Triage task reportのsample IDが要求値と一致しません")
     if normalize_sha256(sample.get("sha256")) != digest:
@@ -185,7 +199,7 @@ def extract_report_memory_candidates(
 
     task = report.get("task")
     if not isinstance(task, dict):
-        raise ValueError("Triage task reportにtask情報がありません")
+        raise TypeError("Triage task reportのtask情報がobjectではありません")
     if normalize_sha256(task.get("sha256")) != digest:
         raise ValueError("Triage task reportのtask SHA-256が要求値と一致しません")
     report_task_id = str(task.get("id") or "")
@@ -199,7 +213,7 @@ def extract_report_memory_candidates(
     if dumped is None:
         return []
     if not isinstance(dumped, list):
-        raise ValueError("Triage task reportのdumpedは配列である必要があります")
+        raise TypeError("Triage task reportのdumpedは配列である必要があります")
 
     candidates: list[dict[str, Any]] = []
     total_bytes = 0
@@ -209,16 +223,14 @@ def extract_report_memory_candidates(
             continue
         raw_name = entry.get("name")
         if not isinstance(raw_name, str):
-            raise ValueError("Triage region dumpにnameがありません")
+            raise TypeError("Triage region dumpのnameが文字列ではありません")
         normalized_name = raw_name.replace("\\", "/")
         match = REPORT_MEMORY_NAME_RE.fullmatch(normalized_name)
         if match is None:
             raise ValueError("Triage region dumpのmemory pathが不正です")
         safe_name = safe_basename(normalized_name)
         pid = _strict_positive_int(entry.get("pid"), field="pid", maximum=0xFFFFFFFF)
-        length = _strict_positive_int(
-            entry.get("length"), field="length", maximum=max_bytes
-        )
+        length = _strict_positive_int(entry.get("length"), field="length", maximum=max_bytes)
         name_pid = int(match.group("pid"))
         region_index = int(match.group("procid"))
         start = int(match.group("start"), 16)
@@ -227,23 +239,16 @@ def extract_report_memory_candidates(
             raise ValueError("Triage region dumpのpidがmemory名と一致しません")
         if end <= start or end - start != length:
             raise ValueError("Triage region dumpのlengthがmemory範囲と一致しません")
-        entry_procid = _strict_positive_int(
-            entry.get("procid"), field="procid", maximum=0x7FFFFFFF
-        )
+        entry_procid = _strict_positive_int(entry.get("procid"), field="procid", maximum=0x7FFFFFFF)
         entry_address = entry.get("addr")
         if entry_address is not None and (
-            isinstance(entry_address, bool)
-            or not isinstance(entry_address, int)
-            or entry_address != start
+            isinstance(entry_address, bool) or not isinstance(entry_address, int) or entry_address != start
         ):
             raise ValueError("Triage region dumpのaddrがmemory名と一致しません")
         total_bytes += length
         if total_bytes > max_total_bytes:
             raise ValueError("Triage region dumpの合計lengthが上限を超えています")
-        endpoint = (
-            f"/samples/{sample_id}/{task_id}/memory/"
-            f"{urllib.parse.quote(safe_name, safe='')}"
-        )
+        endpoint = f"/samples/{sample_id}/{task_id}/memory/{urllib.parse.quote(safe_name, safe='')}"
         if endpoint in seen:
             continue
         seen.add(endpoint)
@@ -255,9 +260,7 @@ def extract_report_memory_candidates(
                 "kind": "memory_image",
                 "name": safe_name,
                 "endpoint_path": endpoint,
-                "reference_sha256": hashlib.sha256(
-                    normalized_name.encode("utf-8")
-                ).hexdigest(),
+                "reference_sha256": hashlib.sha256(normalized_name.encode("utf-8")).hexdigest(),
                 "selection": "reported_region_memory",
                 "reported_pid": pid,
                 "reported_procid": entry_procid,
@@ -291,11 +294,7 @@ def extract_artifact_candidates(
     for extracted in overview.get("extracted") or []:
         if not isinstance(extracted, dict):
             continue
-        tasks = [
-            str(task)
-            for task in extracted.get("tasks") or []
-            if TASK_ID_RE.fullmatch(str(task))
-        ]
+        tasks = [str(task) for task in extracted.get("tasks") or [] if TASK_ID_RE.fullmatch(str(task))]
         task = tasks[0] if tasks else None
 
         resource = extracted.get("resource")
@@ -304,10 +303,7 @@ def extract_artifact_candidates(
             if match:
                 resource_task, name = match.groups()
                 safe_name = safe_basename(name)
-                endpoint = (
-                    f"/samples/{sample_id}/{resource_task}/memory/"
-                    f"{urllib.parse.quote(safe_name, safe='')}"
-                )
+                endpoint = f"/samples/{sample_id}/{resource_task}/memory/{urllib.parse.quote(safe_name, safe='')}"
                 if endpoint not in seen:
                     seen.add(endpoint)
                     candidates.append(
@@ -332,10 +328,7 @@ def extract_artifact_candidates(
             continue
         kind = "memory_image" if is_memory else "dumped_file"
         endpoint_kind = "memory" if is_memory else "files"
-        endpoint = (
-            f"/samples/{sample_id}/{task}/{endpoint_kind}/"
-            f"{urllib.parse.quote(safe_name, safe='')}"
-        )
+        endpoint = f"/samples/{sample_id}/{task}/{endpoint_kind}/{urllib.parse.quote(safe_name, safe='')}"
         if endpoint in seen:
             continue
         seen.add(endpoint)
@@ -398,6 +391,7 @@ def verify_public_page(sample_id: str, *, opener: Any, timeout: float) -> bool:
     except (OSError, urllib.error.URLError, urllib.error.HTTPError):
         return False
     return status == 200 and sample_id.encode("ascii") in body
+
 
 def api_json(path: str, api_key: str, *, opener: Any, timeout: float) -> Any:
     """許可済みTriage API pathから上限付きJSONを取得する。"""
@@ -604,9 +598,7 @@ def _manifest_hashes(path: Path) -> list[str]:
     return [normalize_sha256(value) for value in values]
 
 
-def select_reported_candidates(
-    candidates: list[dict[str, Any]], reference_hashes: list[str]
-) -> list[dict[str, Any]]:
+def select_reported_candidates(candidates: list[dict[str, Any]], reference_hashes: list[str]) -> list[dict[str, Any]]:
     """完全一致解析で発見済みの候補をreport参照hashで一意に選ぶ。"""
 
     if not reference_hashes:
@@ -618,12 +610,49 @@ def select_reported_candidates(
         if digest in seen:
             raise ValueError("同じreport参照SHA-256を重複指定できません")
         seen.add(digest)
-        matches = [
-            row for row in candidates if row.get("reference_sha256") == digest
-        ]
+        matches = [row for row in candidates if row.get("reference_sha256") == digest]
         if len(matches) != 1:
             raise ValueError("report参照SHA-256に一致する公開候補は一意に必要です")
         selected.append(matches[0])
+    return selected
+
+
+def select_artifact_download_candidates(
+    candidates: list[dict[str, Any]],
+    *,
+    maximum: int,
+) -> list[dict[str, Any]]:
+    """親SHA-256間をround-robinし、有界な取得対象を決定する。
+
+    親の順序と各親内の順序は入力で最初に現れた順を維持する。これにより、
+    単一親や親ごとに1候補だけの既存入力では従来の順序と一致しつつ、1親に
+    多数のmemory regionがある場合も後続親の最初の候補を件数上限内へ含める。
+    """
+
+    if isinstance(maximum, bool) or not isinstance(maximum, int) or maximum < 1:
+        raise ValueError("artifact取得件数上限は1以上の整数が必要です")
+
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            raise TypeError("artifact候補はobjectである必要があります")
+        parent_sha256 = normalize_sha256(candidate.get("parent_sha256"))
+        grouped.setdefault(parent_sha256, []).append(candidate)
+
+    selected: list[dict[str, Any]] = []
+    depth = 0
+    while len(selected) < maximum:
+        appended = False
+        for parent_candidates in grouped.values():
+            if depth >= len(parent_candidates):
+                continue
+            selected.append(parent_candidates[depth])
+            appended = True
+            if len(selected) == maximum:
+                break
+        if not appended:
+            break
+        depth += 1
     return selected
 
 
@@ -654,10 +683,7 @@ def load_reviewed_candidates(path: Path) -> list[dict[str, Any]]:
             if not resource or resource != safe_name:
                 raise ValueError("発見済みcandidateのnameはbasenameに限定されます")
             endpoint_kind = "memory" if discovered_kind == "memory_image" else "files"
-            endpoint = (
-                f"/samples/{sample_id}/{task_id}/{endpoint_kind}/"
-                f"{urllib.parse.quote(safe_name, safe='')}"
-            )
+            endpoint = f"/samples/{sample_id}/{task_id}/{endpoint_kind}/{urllib.parse.quote(safe_name, safe='')}"
             if discovered_endpoint != endpoint:
                 raise ValueError("発見済みcandidateのAPI pathが再構成値と一致しません")
             reference_sha256 = normalize_sha256(row.get("reference_sha256"))
@@ -669,10 +695,7 @@ def load_reviewed_candidates(path: Path) -> list[dict[str, Any]]:
             safe_name = safe_basename(resource)
             if not safe_name.lower().endswith("memory.dmp"):
                 raise ValueError("reviewed candidateはmemory.dmpに限定されます")
-            endpoint = (
-                f"/samples/{sample_id}/{task_id}/memory/"
-                f"{urllib.parse.quote(safe_name, safe='')}"
-            )
+            endpoint = f"/samples/{sample_id}/{task_id}/memory/{urllib.parse.quote(safe_name, safe='')}"
             reference_sha256 = hashlib.sha256(resource.encode()).hexdigest()
             kind = "memory_image"
             selection = "reviewed_report_memory"
@@ -703,22 +726,18 @@ def verify_reviewed_candidates(
 ) -> None:
     """review済み候補も、完全hash一致かつ公開解析であることを再検証する。"""
 
-    scopes = {
-        (item["parent_sha256"], item["sample_id"])
-        for item in candidates
-    }
+    scopes = {(item["parent_sha256"], item["sample_id"]) for item in candidates}
     for digest, sample_id in sorted(scopes):
-        metadata = api_json(
-            f"/samples/{sample_id}", api_key, opener=opener, timeout=timeout
-        )
+        metadata = api_json(f"/samples/{sample_id}", api_key, opener=opener, timeout=timeout)
         if normalize_sha256(metadata.get("sha256")) != digest:
             raise ValueError("reviewed candidateのTriage SHA-256が一致しません")
         if metadata.get("private") is True or metadata.get("owner"):
             raise ValueError("公開解析ではないためreviewed candidateを拒否しました")
-        if metadata.get("private") is not False and not verify_public_page(
-            sample_id, opener=opener, timeout=timeout
-        ):
+        if metadata.get("private") is not False and not verify_public_page(sample_id, opener=opener, timeout=timeout):
             raise ValueError("公開解析ではないためreviewed candidateを拒否しました")
+    for candidate in candidates:
+        candidate["metadata_sha256_verified"] = True
+        candidate["public_analysis_verified"] = True
 
 
 def _atomic_json(path: Path, value: object) -> None:
@@ -760,7 +779,7 @@ def discover_candidates(
         try:
             query = urllib.parse.urlencode({"query": f"sha256:{digest}"})
             search = api_json(f"/search?{query}", api_key, opener=opener, timeout=timeout)
-        except Exception as error:  # network/API parserは異種例外を返す
+        except Exception as error:  # noqa: BLE001 -- network/API parserは異種例外を返す
             errors.append({"parent_sha256": digest, "stage": "search", **safe_error_record(error)})
             continue
         for row in (search.get("data") or [])[:3]:
@@ -768,9 +787,7 @@ def discover_candidates(
             if not SAMPLE_ID_RE.fullmatch(sample_id):
                 continue
             try:
-                metadata = api_json(
-                    f"/samples/{sample_id}", api_key, opener=opener, timeout=timeout
-                )
+                metadata = api_json(f"/samples/{sample_id}", api_key, opener=opener, timeout=timeout)
                 if normalize_sha256(metadata.get("sha256")) != digest:
                     raise ValueError("Triage metadataのSHA-256が一致しません")
                 if metadata.get("private") is True or metadata.get("owner"):
@@ -797,14 +814,17 @@ def discover_candidates(
                     opener=opener,
                     timeout=timeout,
                 )
-                candidates.extend(
-                    extract_artifact_candidates(
-                        overview,
-                        expected_sha256=digest,
-                        sample_id=sample_id,
-                        include_memory=include_memory,
-                    )
+                overview_candidates = extract_artifact_candidates(
+                    overview,
+                    expected_sha256=digest,
+                    sample_id=sample_id,
+                    include_memory=include_memory,
                 )
+                for candidate in overview_candidates:
+                    candidate["selection"] = "overview_extracted_artifact"
+                    candidate["metadata_sha256_verified"] = True
+                    candidate["public_analysis_verified"] = True
+                candidates.extend(overview_candidates)
                 if include_memory:
                     report_candidates: list[dict[str, Any]] = []
                     for task_id in reported_behavioral_tasks(
@@ -829,18 +849,14 @@ def discover_candidates(
                             )
                         )
                     if len(report_candidates) > report_memory_max_candidates:
-                        raise ValueError(
-                            "Triage region dumpの候補件数がsample上限を超えています"
-                        )
-                    if (
-                        sum(item["reported_length"] for item in report_candidates)
-                        > report_memory_max_total_bytes
-                    ):
-                        raise ValueError(
-                            "Triage region dumpの合計lengthがsample上限を超えています"
-                        )
+                        raise ValueError("Triage region dumpの候補件数がsample上限を超えています")
+                    if sum(item["reported_length"] for item in report_candidates) > report_memory_max_total_bytes:
+                        raise ValueError("Triage region dumpの合計lengthがsample上限を超えています")
+                    for candidate in report_candidates:
+                        candidate["metadata_sha256_verified"] = True
+                        candidate["public_analysis_verified"] = True
                     candidates.extend(report_candidates)
-            except Exception as error:  # network/API parserは異種例外を返す
+            except Exception as error:  # noqa: BLE001 -- network/API parserは異種例外を返す
                 errors.append(
                     {
                         "parent_sha256": digest,
@@ -955,13 +971,11 @@ def _retrieve_root_samples(
                     **result,
                     "expected_sha256": digest,
                     "effective_max_bytes": effective_max_bytes,
-                    "payload_sha256_verified": not bool(
-                        result.get("server_response_encrypted_zip")
-                    ),
+                    "payload_sha256_verified": not bool(result.get("server_response_encrypted_zip")),
                     "metadata_sha256_verified": True,
                 }
             )
-        except Exception as error:  # helper/network/filesystemは異種例外を返す
+        except Exception as error:  # noqa: BLE001 -- helper/network/filesystemは異種例外を返す
             error_record = safe_error_record(error)
             errors.append(
                 {
@@ -980,9 +994,7 @@ def _retrieve_root_samples(
                 }
                 and effective_max_bytes < max_sample_bytes
             ):
-                exhausted_reasons.append(
-                    "root_sample_aggregate_byte_budget_exhausted"
-                )
+                exhausted_reasons.append("root_sample_aggregate_byte_budget_exhausted")
                 break
 
     exhausted_reasons = list(dict.fromkeys(exhausted_reasons))
@@ -1054,7 +1066,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="公開report内の候補件数上限。既定100、明示指定時のみ最大256。",
     )
     parser.add_argument("--timeout", type=float, default=30.0)
-    parser.add_argument("--password", default="infected")
+    parser.add_argument(
+        "--password-stdin",
+        action="store_true",
+        help="既定値infected以外のarchive passwordを標準入力の1行から読む",
+    )
     return parser
 
 
@@ -1062,6 +1078,7 @@ def main(argv: list[str] | None = None) -> int:
     """候補列挙と任意の暗号化取得を実行する。"""
 
     args = build_parser().parse_args(argv)
+    archive_password = _read_password_from_stdin() if args.password_stdin else "infected"
     if not args.allow_network:
         raise SystemExit("--allow-networkなしではTriage APIへ接続しません")
     if not 1 <= args.max_artifacts <= 100:
@@ -1112,9 +1129,7 @@ def main(argv: list[str] | None = None) -> int:
         opener=opener,
         timeout=args.timeout,
         include_memory=args.include_memory,
-        root_sample_candidates=(
-            root_sample_candidates if args.include_root_sample else None
-        ),
+        root_sample_candidates=(root_sample_candidates if args.include_root_sample else None),
         report_memory_max_bytes=args.report_memory_max_bytes,
         report_memory_max_total_bytes=args.report_memory_max_total_bytes,
         report_memory_max_candidates=args.report_memory_max_candidates,
@@ -1126,10 +1141,7 @@ def main(argv: list[str] | None = None) -> int:
             opener=opener,
             timeout=args.timeout,
         )
-        merged = {
-            item["endpoint_path"]: item
-            for item in [*candidates, *reviewed_candidates]
-        }
+        merged = {item["endpoint_path"]: item for item in [*candidates, *reviewed_candidates]}
         candidates = list(merged.values())
         if args.include_root_sample:
             root_sample_candidates.extend(
@@ -1145,12 +1157,12 @@ def main(argv: list[str] | None = None) -> int:
                 for item in reviewed_candidates
             )
     discovered_candidate_count = len(candidates)
-    candidates = select_reported_candidates(
-        candidates, args.candidate_reference_sha256
+    candidates = select_reported_candidates(candidates, args.candidate_reference_sha256)
+    artifact_download_candidates = select_artifact_download_candidates(
+        candidates,
+        maximum=args.max_artifacts,
     )
-    root_sample_candidates = _deduplicate_root_sample_candidates(
-        root_sample_candidates
-    )
+    root_sample_candidates = _deduplicate_root_sample_candidates(root_sample_candidates)
     downloads: list[dict[str, Any]] = []
     root_sample_downloads: list[dict[str, Any]] = []
     root_sample_errors: list[dict[str, Any]] = []
@@ -1166,7 +1178,7 @@ def main(argv: list[str] | None = None) -> int:
     }
     total_bytes = 0
     if args.download:
-        for candidate in candidates[: args.max_artifacts]:
+        for candidate in artifact_download_candidates:
             try:
                 remaining = args.max_total_bytes - total_bytes
                 if remaining <= 0:
@@ -1184,11 +1196,13 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 reported_length = candidate.get("reported_length")
                 if reported_length is not None and len(data) != reported_length:
-                    raise ValueError(
-                        "Triage region dumpの応答長がreportのlengthと一致しません"
-                    )
+                    raise ValueError("Triage region dumpの応答長がreportのlengthと一致しません")
                 digest = hashlib.sha256(data).hexdigest()
-                archive_bytes = encrypted_zip_bytes(data, candidate["name"], args.password)
+                archive_bytes = encrypted_zip_bytes(
+                    data,
+                    candidate["name"],
+                    archive_password,
+                )
                 case_root = output_root / candidate["parent_sha256"] / candidate["sample_id"]
                 case_root.mkdir(parents=True, exist_ok=True)
                 archive_path = case_root / f"artifact-{digest[:16]}.zip"
@@ -1196,7 +1210,7 @@ def main(argv: list[str] | None = None) -> int:
                     archive_path,
                     archive_bytes,
                     member_name=candidate["name"],
-                    password=args.password,
+                    password=archive_password,
                     expected_size=len(data),
                     expected_sha256=digest,
                 )
@@ -1215,7 +1229,7 @@ def main(argv: list[str] | None = None) -> int:
                         "executed": False,
                     }
                 )
-            except Exception as error:  # network/API parserは異種例外を返す
+            except Exception as error:  # noqa: BLE001 -- network/API parserは異種例外を返す
                 errors.append(
                     {
                         "parent_sha256": candidate["parent_sha256"],
@@ -1233,7 +1247,7 @@ def main(argv: list[str] | None = None) -> int:
             ) = _retrieve_root_samples(
                 root_sample_candidates,
                 output_root=output_root,
-                password=args.password,
+                password=archive_password,
                 client=TriageClient(
                     http=HttpClient(
                         timeout=args.timeout,
@@ -1254,6 +1268,14 @@ def main(argv: list[str] | None = None) -> int:
         "discovered_candidate_count": discovered_candidate_count,
         "candidate_count": len(candidates),
         "selected_candidate_reference_sha256": args.candidate_reference_sha256,
+        "artifact_download_selection": {
+            "policy": "parent_sha256_round_robin_v1",
+            "maximum": args.max_artifacts,
+            "selected_candidate_count": len(artifact_download_candidates),
+            "selected_parent_count": len(
+                {normalize_sha256(item["parent_sha256"]) for item in artifact_download_candidates}
+            ),
+        },
         "report_memory_limits": {
             "max_bytes": args.report_memory_max_bytes,
             "max_total_bytes": args.report_memory_max_total_bytes,
@@ -1267,9 +1289,7 @@ def main(argv: list[str] | None = None) -> int:
         "root_sample_opt_in": bool(args.include_root_sample),
         "root_sample_candidates": root_sample_candidates,
         "root_sample_limit": args.max_root_samples,
-        "root_sample_download_attempted": bool(
-            args.download and args.include_root_sample
-        ),
+        "root_sample_download_attempted": bool(args.download and args.include_root_sample),
         "root_sample_downloaded_count": len(root_sample_downloads),
         "root_sample_download_status": root_sample_budget["status"],
         "root_sample_budget": root_sample_budget,
@@ -1283,8 +1303,7 @@ def main(argv: list[str] | None = None) -> int:
             "artifact_executed": False,
             "network_contacted": True,
             "network_scope": (
-                "Triage API exact-hash search, bounded artifact GET, and opted-in "
-                "exact-hash root sample GET"
+                "Triage API exact-hash search, bounded artifact GET, and opted-in exact-hash root sample GET"
                 if args.download and args.include_root_sample
                 else "Triage API exact-hash search and bounded artifact GET only"
             ),

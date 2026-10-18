@@ -44,8 +44,12 @@ def _bounded_alias_closure(
         if assignment_count > _RC4_ALIAS_ASSIGNMENT_LIMIT:
             return {decoder_name}, 0, "decoder_alias_assignment_limit_exceeded"
         left, right = match.group(1), match.group(2)
-        sources.setdefault(left, set()).add(right)
-        reverse.setdefault(right, set()).add(left)
+        if left not in sources:
+            sources[left] = set()
+        sources[left].add(right)
+        if right not in reverse:
+            reverse[right] = set()
+        reverse[right].add(left)
 
     # decoderと代入グラフ上で連結した成分だけを監査する。無関係な変数の
     # cycleや再代入を、このdecoderの曖昧性として誤検出しない。
@@ -65,7 +69,9 @@ def _bounded_alias_closure(
             pending.append(neighbour)
 
     # 多重代入より先にcycleを明示検出し、循環参照を通常の曖昧性へ埋没させない。
-    visiting: set[str] = set()
+    # recursion stackはdict keyで表し、現在nodeだけを ``del`` する。
+    # ``set.remove`` の任意receiver callを監査上許可する必要をなくす。
+    visiting: dict[str, None] = {}
     visited: set[str] = set()
 
     def has_cycle(node: str) -> bool:
@@ -75,11 +81,11 @@ def _bounded_alias_closure(
             return True
         if node in visited:
             return False
-        visiting.add(node)
+        visiting[node] = None
         for source in sources.get(node, set()):
             if source in component and has_cycle(source):
                 return True
-        visiting.remove(node)
+        del visiting[node]
         visited.add(node)
         return False
 
@@ -604,9 +610,7 @@ def deobfuscate_rc4_string_array(data: bytes) -> tuple[dict, bytes | None]:
         if all_aliases.intersection(aliases):
             return {"status": "decoder_alias_ambiguous", "executed": False}, None
         all_aliases.update(aliases)
-        alias_pattern = "|".join(
-            map(re.escape, sorted(aliases, key=len, reverse=True))
-        )
+        alias_pattern = "|".join(map(re.escape, sorted(aliases, key=len, reverse=True)))
         call_pattern = re.compile(
             r"\b(?:" + alias_pattern + r")\(\s*"
             r"(0x[0-9a-fA-F]+|\d+)\s*,\s*(" + quoted + r")\s*\)"
@@ -800,7 +804,9 @@ def deobfuscate_plain_string_array(data: bytes) -> tuple[dict, bytes | None]:
         (
             match
             for match in decoder_matches
-            if re.search(r"\b" + re.escape(array_function) + r"\s*\(\s*\)", match.group(0))
+            if re.search(
+                r"\b" + re.escape(array_function) + r"\s*\(\s*\)", match.group(0)
+            )
         ),
         None,
     )
@@ -846,6 +852,7 @@ def deobfuscate_plain_string_array(data: bytes) -> tuple[dict, bytes | None]:
             return {"status": "rotation_target_invalid", "executed": False}, None
         solved_rotation = None
         for count in range(len(rotated)):
+
             def parse_at(index: int) -> float:
                 """Return JavaScript-like parseInt for one candidate array index."""
                 position = index - decoder_offset
@@ -862,13 +869,15 @@ def deobfuscate_plain_string_array(data: bytes) -> tuple[dict, bytes | None]:
                 break
             rotated.append(rotated.pop(0))
         if solved_rotation is None:
-            return {"status": "rotation_not_solved", "array_size": len(values), "executed": False}, None
+            return {
+                "status": "rotation_not_solved",
+                "array_size": len(values),
+                "executed": False,
+            }, None
         rotation = solved_rotation
         rotation_source = "sentinel"
 
-    call_pattern = re.compile(
-        r"\b(?:" + alias_pattern + r")\(\s*([^,()]{1,160})\s*\)"
-    )
+    call_pattern = re.compile(r"\b(?:" + alias_pattern + r")\(\s*([^,()]{1,160})\s*\)")
     substitutions = 0
 
     def substitute(match: re.Match[str]) -> str:
@@ -1001,12 +1010,8 @@ def _deobfuscate_formatted_plain_string_arrays(
         )
         if alias_error is not None:
             return {"status": alias_error, "executed": False}, None
-        alias_pattern = "|".join(
-            map(re.escape, sorted(aliases, key=len, reverse=True))
-        )
-        calls = re.compile(
-            r"\b(?:" + alias_pattern + r")\(\s*([^,()]{1,160})\s*\)"
-        )
+        alias_pattern = "|".join(map(re.escape, sorted(aliases, key=len, reverse=True)))
+        calls = re.compile(r"\b(?:" + alias_pattern + r")\(\s*([^,()]{1,160})\s*\)")
         if calls.search(text) is None:
             continue
         candidates.append(

@@ -9,7 +9,7 @@
 | `valleyrat` | variant、endpoint、config/stage URL | 復号済み config を伴わない文字列候補は `inferred` |
 | `agenttesla` | FTP/SMTP/HTTP/Telegram/Discord 候補 | credential 値は出力せず、存在 flag だけを保持 |
 | `stealc` | v1 Base64/RC4 skip-key profile と paired-buffer XOR C2 profile | 保護された generation または未対応 generation は、inner payload が復元されるまで未解決 |
-| `remcosrat` | family marker、endpoint 候補 | 暗号化された config または resource config を復元できない場合は確定しない |
+| `remcosrat` | `RCDATA/SETTINGS`のRC4設定、設定index 0のC2、接続・TLS関連metadata | 厳格なresource、鍵長、delimiter、field数、C2構造をすべて検証できた場合だけ確定。平文marker／endpointは`unverified`候補 |
 | `shadowpad` | ScatterBee resource config と x86/x64 Casper Config module | private builder/test endpoint は文脈情報だけとし、packed variant は別途 unpack が必要 |
 | `venomrat` | Quasar/xClient marker、endpoint 候補 | marker の相関があっても、config 参照を確認するまでは `inferred` |
 | `mx-go` | 埋め込み JSON、control server | 埋め込み JSON 内の値は `confirmed`、secret に相当する field は除外 |
@@ -24,7 +24,17 @@ python -m extractors.config_extractor `
   --output C:\malware-lab\output\config.json
 ```
 
+リポジトリ外のディレクトリをカレントディレクトリにしている場合も、ファイルパスから同じCLIを直接起動できます。
+
+```powershell
+python C:\path\to\AI-security-analysis\extractors\config_extractor.py `
+  --family purelogs `
+  --input C:\malware-lab\quarantine\sample.bin `
+  --output C:\malware-lab\output\config.json
+```
+
 入力には、隔離領域の検体、復元済み payload、または復号済み config artifact を指定します。公開結果へ実行可能 byte や credential をコピーしません。
+統合CLIはfamily固有処理より前に、入力がregular fileであることと64 MiB以下であることを単一handleから確認します。`--input`と`--output`が同一path、同じsymlink解決先、または既存hardlinkである場合は、検体の上書きを防ぐため拒否します。
 
 ## 共通出力
 
@@ -57,7 +67,8 @@ python -m pytest -q extractors/tests
 
 - `purehvnc` は native `10FX` profile と、managed Base64/GZip/protobuf PureRAT config に対応します。公開 certificate fingerprint は出力しますが、埋め込まれた private key は公開しません。
 - `donutloader` は delivery layer marker を記録し、静的 unpack 後の terminal config 抽出を対応 extractor へ委譲します。
-- alias は `pure`、`purerat`、`donut` です。
+- alias は `purerat`、`pure-hvnc`、`donut` です。`pure` はPureRATと
+  PureLogsのどちらを指すか一意でないため受理しません。
 
 family extractor は復元済み payload byte を入力できますが、検体を実行せず、設定されたインフラにも接続しません。
 
@@ -78,6 +89,14 @@ python -m extractors.config_extractor --family spyglace --input C:\analysis\enco
 ## StealC の抽出
 
 `stealc` は Base64/RC4 skip-key profile と x86 paired-buffer XOR call site を識別します。完全な PHP gate、dependency directory、build ID、存在する場合は string key、decode 済み string 数を返します。復元 endpoint は静的 config の根拠にすぎません。検体の実行や network request は行いません。
+
+## RemcosRAT の抽出
+
+`remcosrat`は、PEの`RCDATA`（ID 10）にある一意な`SETTINGS` language leafだけを厳格設定として受理します。先頭1 byteのRC4鍵長、暗号文、既知delimiter、16〜128のfield数、設定index 0にある最大32件のC2 recordを順に検証します。同一endpointに競合する第3field解釈がある場合や、異なる`SETTINGS` leafが複数ある場合はfail-closedで拒否します。
+
+厳格検証に成功した出力は`family_attribution_confirmed=true`とし、設定endpointを`confirmed_static_configuration`として返します。RC4鍵、復号済み設定、credential相当値、TLS private keyは返さず、hash、長さ、存在flagだけを公開します。設定内endpointは静的configの証拠であり、稼働中C2やprotocol応答の確認ではありません。
+
+厳格設定を復元できない入力では、generic extractorがmarkerと平文endpointを`unverified`候補として分離し、`family_attribution_confirmed=false`、`static_config_recovered=false`を保持します。候補値をfamily確定または設定C2へ昇格しません。mapped PE memory imageの再構築はfamily handler側で構造gateを通過した場合だけ実施し、再構築後も同じ厳格抽出器で再検証します。
 
 ## Profile 定義型 Windows family
 

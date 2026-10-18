@@ -248,6 +248,8 @@ def test_decode_method_passes_only_declared_body_to_dncil(
     )
 
     assert decoded.code_size == 1
+    assert decoded.exception_handler_count == 0
+    assert decoded.has_extra_sections is False
     assert observed == [b"\x06\x2a"]
 
 
@@ -317,10 +319,14 @@ def test_decode_method_bounds_declared_extra_sections(
             opcode=SimpleNamespace(name="ret"),
             operand=None,
         )
-        return SimpleNamespace(code_size=1, instructions=[instruction])
+        return SimpleNamespace(
+            code_size=1,
+            instructions=[instruction],
+            exception_handlers=[object()],
+        )
 
     monkeypatch.setattr(recovery, "read_method_body_from_bytes", parse_bounded)
-    recovery._decode_method(
+    decoded = recovery._decode_method(
         data,
         _MethodPe(len(data)),
         SimpleNamespace(Rva=1),
@@ -329,6 +335,8 @@ def test_decode_method_bounds_declared_extra_sections(
         clock=time.monotonic,
     )
 
+    assert decoded.has_extra_sections is True
+    assert decoded.exception_handler_count == 1
     assert observed == [body]
 
 
@@ -354,6 +362,46 @@ def test_decode_method_rejects_extra_section_work_limit_before_dncil(
             0x06000001,
             deadline=time.monotonic() + 1,
             clock=time.monotonic,
+        )
+
+
+def _branched_dispatcher(*, branch_target: int = 5, load_local: int = 2):
+    return (
+        recovery.Instruction(0, "ldc.i4", 17),
+        recovery.Instruction(1, "stloc.2"),
+        recovery.Instruction(2, "br.s", branch_target),
+        recovery.Instruction(5, f"ldloc.{load_local}"),
+        recovery.Instruction(6, "switch", (20,) * recovery.MIN_DISPATCH_TARGETS),
+        recovery.Instruction(20, "ret"),
+    )
+
+
+def test_dispatcher_profile_accepts_exact_branched_state_load() -> None:
+    """確認済みbuildの ``stloc; br; ldloc; switch`` だけを受理する。"""
+
+    profile = recovery._dispatcher_profile(_branched_dispatcher())
+
+    assert profile[0] == 4
+    assert profile[1] == (20,) * recovery.MIN_DISPATCH_TARGETS
+    assert profile[2] == 2
+    assert profile[3] == frozenset({5, 6})
+    assert profile[4] == {}
+
+
+@pytest.mark.parametrize(
+    ("branch_target", "load_local"),
+    [(6, 2), (5, 3)],
+)
+def test_dispatcher_profile_rejects_ambiguous_branched_state_load(
+    branch_target: int,
+    load_local: int,
+) -> None:
+    with pytest.raises(recovery.RecoveryError, match="dispatcher_prologue_mismatch"):
+        recovery._dispatcher_profile(
+            _branched_dispatcher(
+                branch_target=branch_target,
+                load_local=load_local,
+            )
         )
 
 

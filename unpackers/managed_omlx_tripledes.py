@@ -186,6 +186,23 @@ _SELECTOR_PROFILE_V1 = (
     (0x0400014E, -2_111_836_516, -341_881_206),
 )
 
+_LEGACY_OMLX_RUNTIME_TOKENS: Mapping[str, int] = {
+    "reader_ctor": 0x060000D9,
+    "reader_base_stream": 0x060000B3,
+    "stream_set_position": 0x060000B4,
+    "stream_get_length": 0x060000B5,
+    "reader_read_bytes": 0x060000B6,
+    "reader_dispose": 0x060000B7,
+    "array_reverse": 0x060000B8,
+    "assembly_get_name": 0x060000B9,
+    "assembly_name_public_key": 0x060000BA,
+    "assembly_entrypoint": 0x060000C3,
+    "object_equality": 0x060000C4,
+    "true": 0x060000C5,
+    "false": 0x060000C6,
+    "resource_transform_ctor": 0x0600008A,
+}
+
 
 class OmlxTripledesError(ValueError):
     """受理済み静的profileから外れた入力を表すfail-closed error。"""
@@ -695,6 +712,7 @@ def _recover_table(
     deadline: float,
     clock: Callable[[], float],
     work_budget: _TerminalWorkBudget,
+    runtime_tokens: Mapping[str, int] = _LEGACY_OMLX_RUNTIME_TOKENS,
 ) -> _TableRecovery:
     _check_time(deadline, clock)
     stack: list[Any] = []
@@ -824,32 +842,32 @@ def _recover_table(
             push(value & 0xFF)
         elif opcode == 150:  # newobj
             token = _required_int(item)
-            if token == 0x060000D9:
+            if token == runtime_tokens["reader_ctor"]:
                 stream = pop()
                 if stream != ("stream", encrypted):
                     raise OmlxTripledesError("omlx_reader_source_mismatch")
                 push(("reader", stream))
-            elif token == 0x0600008A:
+            elif token == runtime_tokens["resource_transform_ctor"]:
                 push(("resource-transform",))
             else:
                 raise OmlxTripledesError("omlx_newobj_out_of_profile")
         elif opcode == 134:  # call
             token = _required_int(item)
-            if token == 0x060000B3:
+            if token == runtime_tokens["reader_base_stream"]:
                 reader = pop()
                 if not isinstance(reader, tuple) or reader[:1] != ("reader",):
                     raise OmlxTripledesError("omlx_reader_getter_mismatch")
                 push(reader[1])
-            elif token == 0x060000B4:
+            elif token == runtime_tokens["stream_set_position"]:
                 position, stream = pop(), pop()
                 if position != 0 or stream != ("stream", encrypted):
                     raise OmlxTripledesError("omlx_stream_position_mismatch")
-            elif token == 0x060000B5:
+            elif token == runtime_tokens["stream_get_length"]:
                 stream = pop()
                 if stream != ("stream", encrypted):
                     raise OmlxTripledesError("omlx_stream_length_source_mismatch")
                 push(len(encrypted))
-            elif token == 0x060000B6:
+            elif token == runtime_tokens["reader_read_bytes"]:
                 count, reader = pop(), pop()
                 if (
                     not isinstance(count, int)
@@ -859,24 +877,24 @@ def _recover_table(
                 ):
                     raise OmlxTripledesError("omlx_reader_read_mismatch")
                 push(encrypted[:count])
-            elif token == 0x060000B7:
+            elif token == runtime_tokens["reader_dispose"]:
                 pop()
-            elif token == 0x060000B8:
+            elif token == runtime_tokens["array_reverse"]:
                 array = pop()
                 if not isinstance(array, list):
                     raise OmlxTripledesError("omlx_reverse_target_mismatch")
                 array.reverse()
-            elif token == 0x060000B9:
+            elif token == runtime_tokens["assembly_get_name"]:
                 pop()
                 push(("assembly-name",))
-            elif token == 0x060000BA:
+            elif token == runtime_tokens["assembly_name_public_key"]:
                 if pop() != ("assembly-name",):
                     raise OmlxTripledesError("omlx_public_key_source_mismatch")
                 push(b"")
-            elif token == 0x060000C3:
+            elif token == runtime_tokens["assembly_entrypoint"]:
                 pop()
                 push(("entrypoint", entrypoint_token))
-            elif token == 0x060000C4:
+            elif token == runtime_tokens["object_equality"]:
                 right, left = pop(), pop()
                 push(1 if left == right else 0)
             elif token in transforms:
@@ -911,12 +929,12 @@ def _recover_table(
                     recipe,
                     steps,
                 )
-            elif token == 0x060000C5:
+            elif token == runtime_tokens["true"]:
                 push(1)
-            elif token == 0x060000C6:
+            elif token == runtime_tokens["false"]:
                 push(0)
             else:
-                raise OmlxTripledesError("omlx_call_out_of_profile")
+                raise OmlxTripledesError(f"omlx_call_out_of_profile:0x{token:08x}")
         elif opcode == 110:  # ret
             if stack or recovered is None:
                 raise OmlxTripledesError("omlx_terminal_state_invalid")
@@ -1449,7 +1467,12 @@ def recover_managed_omlx_tripledes(
         _metadata_row_count(pe)
         resources_list = _resource_blobs(pe)
         _check_time(deadline, clock)
-        if not resources_list or len(resources_list) > MAX_RESOURCE_COUNT:
+        if not resources_list:
+            return {
+                "status": "not_applicable",
+                "reason": "parent_resources_missing",
+            }, []
+        if len(resources_list) > MAX_RESOURCE_COUNT:
             raise OmlxTripledesError("parent_resource_count_limit")
         resources = dict(resources_list)
         if len(resources) != len(resources_list):

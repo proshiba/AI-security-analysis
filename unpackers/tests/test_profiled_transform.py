@@ -41,6 +41,26 @@ def test_default_profile_recovers_validated_donut() -> None:
     assert artifacts == [("rotated-xor-donut-shellcode", clear)]
 
 
+def test_default_sidecar_profile_requires_dat_suffix() -> None:
+    """PureHVNC固有変換を名前のない任意data layerへ適用しない。"""
+
+    report, artifacts = recover_profiled_transforms(
+        b"ordinary detached resource" * 32,
+        input_format="data",
+        source_name="sample.exe::detached-idat-zlib",
+    )
+
+    assert report["status"] == "no_profile_recovered_artifact"
+    assert report["profile_evaluation_complete"] is True
+    assert report["attempts"] == [
+        {
+            "profile_id": "rotate_right_xor_c6_donut",
+            "status": "skipped_name_suffix",
+        }
+    ]
+    assert artifacts == []
+
+
 def test_profile_supports_reusable_operation_and_validator_chain() -> None:
     clear = b"MAGIC-payload"
     encoded = bytes(value ^ 0x22 for value in clear[::-1])

@@ -8,6 +8,9 @@
       "input_formats": [
         "data"
       ],
+      "name_suffixes": [
+        ".dat"
+      ],
       "min_input_size": 256,
       "max_input_size": 67108864,
       "operations": [
