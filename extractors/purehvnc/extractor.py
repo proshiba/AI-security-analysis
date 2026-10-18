@@ -8,7 +8,7 @@ import ipaddress
 import re
 import zlib
 from collections import defaultdict
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping, Sequence
 from typing import Any
 
 import dnfile
@@ -16,6 +16,12 @@ import pefile
 
 from extractors.common import build_result, sha256_bytes
 from extractors.managed_pe import has_clr_metadata
+from extractors.purehvnc_schema import (
+    TERMINAL_SCHEMA_PROFILE_EXPLICIT_FIELDS_1_TO_9,
+    TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELD_7,
+    terminal_default_elided_fields,
+    terminal_schema_profile,
+)
 
 HANDLER_CONTRACT = {
     "input_formats": ["pe"],
@@ -27,6 +33,27 @@ class _ManagedMetadataError(ValueError):
     def __init__(self, reason: str) -> None:
         self.reason = reason
         super().__init__(reason)
+
+
+class ProtobufLimitError(ValueError):
+    """共有protobuf parserが安全上限で未完了になったことを表す。"""
+
+
+class ConfigCandidateBoundaryError(ValueError):
+    """設定候補の上限・完全性境界を満たせず走査が不完全になったことを表す。"""
+
+
+class ParsedProtobufFields(dict[int, list[Any]]):
+    """値と同じ順序のprotobuf wire typeを保持するfield mapping。"""
+
+    def __init__(
+        self,
+        values: Mapping[int, Sequence[Any]],
+        *,
+        wire_types: Mapping[int, Sequence[int]],
+    ) -> None:
+        super().__init__((number, list(items)) for number, items in values.items())
+        self.wire_types = {number: list(items) for number, items in wire_types.items()}
 
 
 MAX_CONFIG_BASE64_CHARS = 8 * 1024 * 1024
@@ -44,6 +71,11 @@ MAX_NATIVE_STRINGS = 16_384
 MAX_NATIVE_TEXT_CHARS = 8 * 1024 * 1024
 MAX_NATIVE_ENDPOINT_CANDIDATES = 16_384
 MAX_RAW_GZIP_WORK_BYTES = 64 * 1024 * 1024
+_INCOMPLETE_USER_STRING_REASONS = frozenset(
+    {
+        "managed_user_string_count_exceeded",
+    }
+)
 BASE64_GZIP_RUN_RE = re.compile(r"H4sI[A-Za-z0-9+/=]{16,}")
 GZIP_MAGIC = b"\x1f\x8b\x08"
 _NATIVE_STRING_PATTERNS = (
@@ -66,17 +98,20 @@ def read_varint(data: bytes, offset: int) -> tuple[int, int]:
     raise ValueError("protobuf varint exceeds 64 bits")
 
 
-def parse_protobuf(data: bytes) -> dict[int, list[Any]]:
+def parse_protobuf(data: bytes) -> ParsedProtobufFields:
     """確認済みPureRAT設定で使うprotobuf wire typeを境界付きで解析する。"""
     if not isinstance(data, bytes) or len(data) > MAX_CONFIG_CLEAR_BYTES:
-        raise ValueError("protobuf input exceeds the static-analysis limit")
+        raise ProtobufLimitError("protobuf input exceeds the static-analysis limit")
     fields: dict[int, list[Any]] = defaultdict(list)
+    wire_types: dict[int, list[int]] = defaultdict(list)
     offset = 0
     field_count = 0
     while offset < len(data):
         field_count += 1
         if field_count > MAX_CONFIG_PROTOBUF_FIELDS:
-            raise ValueError("protobuf field count exceeds the static-analysis limit")
+            raise ProtobufLimitError(
+                "protobuf field count exceeds the static-analysis limit"
+            )
         key, offset = read_varint(data, offset)
         number, wire = key >> 3, key & 7
         if number == 0:
@@ -99,14 +134,19 @@ def parse_protobuf(data: bytes) -> dict[int, list[Any]]:
         else:
             raise ValueError(f"unsupported protobuf wire type: {wire}")
         fields[number].append(value)
-    return dict(fields)
+        wire_types[number].append(wire)
+    return ParsedProtobufFields(fields, wire_types=wire_types)
 
 
 def _bounded_gzip_decompress(data: bytes) -> bytes:
     """単一GZip memberだけを固定上限内で展開する。"""
 
-    if not data or len(data) > MAX_CONFIG_COMPRESSED_BYTES:
-        raise ValueError("managed PureRAT compressed config exceeds the input limit")
+    if not data:
+        raise ValueError("managed PureRAT compressed config is empty")
+    if len(data) > MAX_CONFIG_COMPRESSED_BYTES:
+        raise ConfigCandidateBoundaryError(
+            "managed PureRAT compressed config exceeds the input limit"
+        )
     inflater = zlib.decompressobj(16 + zlib.MAX_WBITS)
     try:
         clear = inflater.decompress(data, MAX_CONFIG_CLEAR_BYTES + 1)
@@ -118,18 +158,28 @@ def _bounded_gzip_decompress(data: bytes) -> bytes:
         or inflater.unused_data
         or inflater.unconsumed_tail
     ):
-        raise ValueError("managed PureRAT GZip config violates output boundaries")
+        raise ConfigCandidateBoundaryError(
+            "managed PureRAT GZip config violates output boundaries"
+        )
     return clear
 
 
 def _decode_base64_gzip(value: str) -> bytes:
     """Convert.FromBase64String互換の空白を除去し、GZipを有界展開する。"""
 
-    if not isinstance(value, str) or len(value) > MAX_CONFIG_BASE64_CHARS:
-        raise ValueError("managed PureRAT Base64 config exceeds the input limit")
+    if not isinstance(value, str):
+        raise TypeError("managed PureRAT Base64 config is not text")
+    if len(value) > MAX_CONFIG_BASE64_CHARS:
+        raise ConfigCandidateBoundaryError(
+            "managed PureRAT Base64 config exceeds the input limit"
+        )
     compact = "".join(value.split())
-    if not compact or len(compact) > MAX_CONFIG_BASE64_CHARS:
-        raise ValueError("managed PureRAT Base64 config is empty or oversized")
+    if not compact:
+        raise ValueError("managed PureRAT Base64 config is empty")
+    if len(compact) > MAX_CONFIG_BASE64_CHARS:
+        raise ConfigCandidateBoundaryError(
+            "managed PureRAT Base64 config exceeds the compact input limit"
+        )
     try:
         compressed = base64.b64decode(compact, validate=True)
     except (binascii.Error, ValueError) as error:
@@ -140,7 +190,7 @@ def _decode_base64_gzip(value: str) -> bytes:
 def _looks_like_base64_gzip(value: str) -> bool:
     """GZip magicをBase64化したprefixを安価に確認する。"""
 
-    if not isinstance(value, str) or not 4 <= len(value) <= MAX_CONFIG_BASE64_CHARS:
+    if not isinstance(value, str) or len(value) < 4:
         return False
     prefix: list[str] = []
     for character in value:
@@ -175,11 +225,15 @@ def _iter_raw_gzip_payloads(data: bytes) -> Iterator[bytes]:
         start = offset + 1
         observed += 1
         if observed > MAX_CONFIG_DECODE_CANDIDATES:
-            raise ValueError("managed PureRAT raw GZip candidate limit exceeded")
+            raise ConfigCandidateBoundaryError(
+                "managed PureRAT raw GZip candidate limit exceeded"
+            )
         compressed = data[offset : offset + MAX_CONFIG_COMPRESSED_BYTES]
         work_bytes += len(compressed)
         if work_bytes > MAX_RAW_GZIP_WORK_BYTES:
-            raise ValueError("managed PureRAT raw GZip work limit exceeded")
+            raise ConfigCandidateBoundaryError(
+                "managed PureRAT raw GZip work limit exceeded"
+            )
         inflater = zlib.decompressobj(16 + zlib.MAX_WBITS)
         try:
             clear = inflater.decompress(compressed, MAX_CONFIG_CLEAR_BYTES + 1)
@@ -190,7 +244,9 @@ def _iter_raw_gzip_payloads(data: bytes) -> Iterator[bytes]:
             or not inflater.eof
             or inflater.unconsumed_tail
         ):
-            continue
+            raise ConfigCandidateBoundaryError(
+                "managed PureRAT raw GZip candidate violates output boundaries"
+            )
         yield clear
 
 
@@ -203,32 +259,65 @@ def _packed_varints(value: bytes) -> list[int]:
         item, offset = read_varint(value, offset)
         values.append(item)
         if len(values) > 32:
-            raise ValueError("packed port list exceeds the static-analysis limit")
+            raise ConfigCandidateBoundaryError(
+                "packed port list exceeds the static-analysis limit"
+            )
     return values
 
 
-def _normalise_config_fields(fields: dict[int, list[Any]]) -> dict[int, list[Any]]:
+def _normalise_config_fields(
+    fields: ParsedProtobufFields,
+) -> ParsedProtobufFields:
     """field 2のpacked／unpacked表現を同じport列へ正規化する。"""
 
     if 2 not in fields:
         return fields
     ports: list[int] = []
-    for item in fields[2]:
+    port_wire_types: list[int] = []
+    field_2_wires = fields.wire_types.get(2, [])
+    if len(field_2_wires) != len(fields[2]):
+        raise ValueError("managed PureRAT port wire inventory is incomplete")
+    for item, wire_type in zip(fields[2], field_2_wires, strict=True):
         if isinstance(item, int) and not isinstance(item, bool):
+            if wire_type != 0:
+                raise ValueError("managed PureRAT port field has an invalid wire type")
             ports.append(item)
+            port_wire_types.append(wire_type)
         elif isinstance(item, bytes):
-            ports.extend(_packed_varints(item))
+            if wire_type != 2:
+                raise ValueError(
+                    "managed PureRAT packed port field has an invalid wire type"
+                )
+            packed_ports = _packed_varints(item)
+            ports.extend(packed_ports)
+            port_wire_types.extend([wire_type] * len(packed_ports))
         else:
             raise TypeError("managed PureRAT port field has an unsupported type")
-    normalized = dict(fields)
+    normalized = {number: list(values) for number, values in fields.items()}
     normalized[2] = ports
-    return normalized
+    normalized_wire_types = {
+        number: list(values) for number, values in fields.wire_types.items()
+    }
+    normalized_wire_types[2] = port_wire_types
+    return ParsedProtobufFields(
+        normalized,
+        wire_types=normalized_wire_types,
+    )
 
 
-def _valid_config_fields(fields: dict[int, list[Any]]) -> bool:
+def _valid_config_fields(fields: ParsedProtobufFields) -> bool:
     """hostとportの構文を満たすmessageだけを設定候補にする。"""
 
     if not fields.get(1) or len(fields[1]) != 1 or not fields.get(2):
+        return False
+    wire_types = fields.wire_types
+    host_wire_types = wire_types.get(1)
+    port_wire_types = wire_types.get(2)
+    if host_wire_types != [2] or not isinstance(port_wire_types, list):
+        return False
+    if len(port_wire_types) != len(fields[2]) or any(
+        wire_type not in {0, 2} for wire_type in port_wire_types
+    ):
         return False
     host_value = fields[1][0]
     if not isinstance(host_value, bytes):
@@ -243,6 +332,12 @@ def _valid_config_fields(fields: dict[int, list[Any]]) -> bool:
         address = ipaddress.ip_address(host)
     except ValueError:
         labels = host.split(".")
+        if len(labels) == 4 and all(
+            label and all("0" <= character <= "9" for character in label)
+            for label in labels
+        ):
+            # ipaddressが拒否したnumeric dotted-quadをDNS名へ降格させない。
+            return False
         if len(labels) < 2 or any(
             not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label)
             for label in labels
@@ -262,36 +357,38 @@ def _valid_config_fields(fields: dict[int, list[Any]]) -> bool:
     )
 
 
-def _valid_terminal_schema_fields(fields: dict[int, list[Any]]) -> bool:
-    """PureRAT terminalのfield 1～9を値を公開せず厳密に検証する。"""
+def _valid_terminal_schema_fields(fields: ParsedProtobufFields) -> bool:
+    """PureRAT terminalの明示field 1～9を値を公開せず厳密に検証する。"""
 
-    if not set(range(1, 10)).issubset(fields):
-        return False
-    if any(len(fields[number]) != 1 for number in (1, 3, 4, 5, 6, 7, 8, 9)):
-        return False
-    if not _valid_config_fields(fields):
-        return False
-    certificate = fields[3][0]
-    if not isinstance(certificate, bytes) or not certificate:
-        return False
-    if any(fields[number][0] not in {0, 1} for number in (5, 6)):
-        return False
-    for number, maximum in ((4, 128), (7, 512), (8, 512), (9, 512)):
-        value = fields[number][0]
-        if not isinstance(value, bytes) or len(value) > maximum:
-            return False
-        try:
-            text = value.decode("utf-8")
-        except UnicodeDecodeError:
-            return False
-        if number == 4 and not text:
-            return False
-        if any(ord(character) < 32 or ord(character) == 127 for character in text):
-            return False
-    return True
+    return terminal_schema_profile(
+        fields,
+        fields.wire_types,
+    ) == TERMINAL_SCHEMA_PROFILE_EXPLICIT_FIELDS_1_TO_9 and _valid_config_fields(fields)
 
 
-def _iter_nested_messages(data: bytes) -> Iterator[tuple[bytes, dict[int, list[Any]]]]:
+def _valid_terminal_default_elided_field_7_schema_fields(
+    fields: ParsedProtobufFields,
+) -> bool:
+    """空文字のfield 7だけをprotobuf既定値として省略したv4設定を検証する。"""
+
+    return terminal_schema_profile(
+        fields,
+        fields.wire_types,
+    ) == TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELD_7 and _valid_config_fields(
+        fields
+    )
+
+
+def _terminal_schema_profile(fields: ParsedProtobufFields) -> str | None:
+    """値とfield inventoryを満たす既知PureRAT設定profileを返す。"""
+
+    profile = terminal_schema_profile(fields, fields.wire_types)
+    return profile if profile is not None and _valid_config_fields(fields) else None
+
+
+def _iter_nested_messages(
+    data: bytes,
+) -> Iterator[tuple[bytes, ParsedProtobufFields]]:
     """外包みfield番号に依存せず、境界付きで入れ子messageを探索する。"""
 
     pending: list[tuple[bytes, int]] = [(data, 0)]
@@ -308,23 +405,39 @@ def _iter_nested_messages(data: bytes) -> Iterator[tuple[bytes, dict[int, list[A
         # 成功・失敗ともuniqueな構造解析を既存の128件枠へ一度だけ計上する。
         count += 1
         if count > MAX_CONFIG_MESSAGE_CANDIDATES:
-            raise ValueError("managed PureRAT nested message candidate limit exceeded")
+            raise ConfigCandidateBoundaryError(
+                "managed PureRAT nested message candidate limit exceeded"
+            )
         try:
             parsed = parse_protobuf(raw)
+        except ProtobufLimitError:
+            # 上限到達を壊れた候補のno-matchとして握りつぶすと、同じsource内の
+            # 未走査候補に相反設定があり得る状態で別候補を公開してしまう。
+            raise
         except ValueError:
             continue
         # 深さ上限の先は構造確認だけ。未評価messageを設定候補へ昇格しない。
         if depth > MAX_CONFIG_NESTING:
-            raise ValueError("managed PureRAT nested message depth limit exceeded")
+            raise ConfigCandidateBoundaryError(
+                "managed PureRAT nested message depth limit exceeded"
+            )
         try:
             fields = _normalise_config_fields(parsed)
+        except ConfigCandidateBoundaryError:
+            raise
         except ValueError:
             fields = parsed
         yield raw, fields
-        for values in parsed.values():
-            for value in values:
+        for number, values in parsed.items():
+            wires = parsed.wire_types.get(number, [])
+            if len(wires) != len(values):
+                raise ValueError(
+                    "managed PureRAT protobuf wire inventory is incomplete"
+                )
+            for value, wire_type in zip(values, wires, strict=True):
                 if (
                     isinstance(value, bytes)
+                    and wire_type == 2
                     and 2 <= len(value) <= MAX_CONFIG_CLEAR_BYTES
                 ):
                     value_digest = sha256_bytes(value)
@@ -338,7 +451,9 @@ def _iter_nested_messages(data: bytes) -> Iterator[tuple[bytes, dict[int, list[A
                     pending.append((value, depth + 1))
                     queued.add(value_digest)
     if candidate_limit_exceeded:
-        raise ValueError("managed PureRAT nested message candidate limit exceeded")
+        raise ConfigCandidateBoundaryError(
+            "managed PureRAT nested message candidate limit exceeded"
+        )
 
 
 def _config_identity(fields: dict[int, list[Any]]) -> tuple[Any, ...]:
@@ -433,8 +548,12 @@ def decode_config_blob(
             if len(fields.get(1, [])) > 1:
                 # 旧host/port条件で受理されるmessageだけを単一host契約の違反にする。
                 # 任意wrapperを設定と推測せず、他candidateからも相反を隠さない。
-                first_host_fields = dict(fields)
+                first_host_fields = ParsedProtobufFields(
+                    fields,
+                    wire_types=fields.wire_types,
+                )
                 first_host_fields[1] = fields[1][:1]
+                first_host_fields.wire_types[1] = fields.wire_types[1][:1]
                 if _valid_config_fields(first_host_fields):
                     raise ValueError(
                         "managed PureRAT host field multiplicity is unsupported"
@@ -453,9 +572,13 @@ def decode_config_blob(
         for candidate in _iter_base64_gzip_candidates(value):
             decoded_candidate_count += 1
             if decoded_candidate_count > MAX_CONFIG_DECODE_CANDIDATES:
-                raise ValueError("managed PureRAT Base64/GZip candidate limit exceeded")
+                raise ConfigCandidateBoundaryError(
+                    "managed PureRAT Base64/GZip candidate limit exceeded"
+                )
             try:
                 clear = _decode_base64_gzip(candidate)
+            except ConfigCandidateBoundaryError:
+                raise
             except ValueError:
                 continue
             evaluate(clear)
@@ -513,6 +636,14 @@ def extract_managed_config(data: bytes) -> dict[str, Any]:
     except _ManagedMetadataError as error:
         metadata_error = error
         strings = []
+    if (
+        metadata_error is not None
+        and metadata_error.reason in _INCOMPLETE_USER_STRING_REASONS
+    ):
+        # #USの未走査領域に相反設定が残り得るため、resource fallbackで
+        # 妥当な候補が見えても設定集合を完全とみなさない。
+        raise metadata_error
+    user_strings_observed = bool(strings)
     # 一部のprotectorは設定文字列を#USではなくmanifest resourceへ移す。
     # CLR構造が妥当な場合だけ、raw resource内の連続ASCII／UTF-16文字列を
     # 同じ厳格なBase64/GZip/protobuf検証へ渡す。
@@ -531,15 +662,29 @@ def extract_managed_config(data: bytes) -> dict[str, Any]:
             strings,
             raw_blobs=[data] if managed_image else None,
         )
+    except (ConfigCandidateBoundaryError, ProtobufLimitError):
+        raise
     except ValueError:
         if metadata_error is not None:
             raise metadata_error
+        if not user_strings_observed:
+            raise _ManagedMetadataError("managed_user_strings_unavailable")
         raise
     host = _text(fields[1][0]).lower().rstrip(".")
     ports = [int(item) for item in fields[2] if isinstance(item, int)]
+    schema_profile = _terminal_schema_profile(fields)
+    default_elided_fields = list(terminal_default_elided_fields(schema_profile))
     config: dict[str, Any] = {
         "variant": "managed_purerat",
-        "protobuf_fields_1_to_9_valid": _valid_terminal_schema_fields(fields),
+        # 旧keyは「1～9がすべてwire上に明示された」意味のまま維持する。
+        "protobuf_fields_1_to_9_valid": (
+            schema_profile == TERMINAL_SCHEMA_PROFILE_EXPLICIT_FIELDS_1_TO_9
+        ),
+        "protobuf_terminal_schema_valid": schema_profile is not None,
+        "protobuf_terminal_schema_profile": schema_profile,
+        "protobuf_wire_types_valid": schema_profile is not None,
+        "protobuf_field_numbers": sorted(fields),
+        "protobuf_default_elided_fields": default_elided_fields,
         "c2_host": host,
         "c2_ports": ports,
         "campaign_id": _text(fields.get(4, [b""])[0]),

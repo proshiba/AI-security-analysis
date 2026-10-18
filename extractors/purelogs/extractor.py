@@ -8,14 +8,18 @@ import ipaddress
 import json
 import re
 from collections.abc import Iterator
+from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlsplit
 
 from extractors.common import build_result, sha256_bytes
-from extractors.purehvnc.extractor import parse_protobuf
+from extractors.purehvnc.extractor import ProtobufLimitError, parse_protobuf
 from extractors.purelogs.managed_resource import (
     PureLogsManagedResource,
+    PureLogsResourceLimitError,
+    PureLogsResourceScanIncomplete,
     public_recovery_evidence,
+    public_scan_failure_evidence,
     recover_purelogs_managed_strings,
 )
 from extractors.purelogs.yqty_resource import PureLogsYqtyResource
@@ -59,8 +63,11 @@ BASE64_RUN_RE = re.compile(
     r"(?![A-Za-z0-9+/=])"
 )
 MAX_CONFIG_BASE64_CHARS = 8 * 1024 * 1024
+MAX_CONFIG_BASE64_WORK_CHARS = 16 * 1024 * 1024
 MAX_CONFIG_CLEAR_BYTES = 4 * 1024 * 1024
-MAX_CONFIG_CANDIDATES = 64
+# protector由来の短いBase64風metadataが多数ある実検体を取りこぼさない。
+# 件数だけを緩和せず、上の総文字数上限でdecode workを同時に拘束する。
+MAX_CONFIG_CANDIDATES = 512
 MAX_CONFIG_MESSAGES = 128
 MAX_CONFIG_NESTING = 3
 MAX_CONFIG_TOTAL_FIELDS = 32_768
@@ -71,6 +78,19 @@ _BOUNDED_STRING_PATTERNS = (
     (re.compile(rb"[\x20-\x7e]{4,}"), "ascii", 1),
     (re.compile(rb"(?:[\x20-\x7e]\x00){4,}"), "utf-16le", 2),
 )
+
+
+class PureLogsConfigLimitError(ValueError):
+    """設定候補探索が安全上限で未完了になったことを表す。"""
+
+
+@dataclass
+class _ConfigScanBudget:
+    """rawとresourceで共有するBase64候補の総work budget。"""
+
+    candidate_count: int = 0
+    work_characters: int = 0
+    seen: set[str] = field(default_factory=set)
 
 
 def _managed_resource_public_evidence(
@@ -128,24 +148,39 @@ def _bounded_text(data: bytes) -> tuple[str, bool]:
     chunks: list[str] = []
     seen: set[str] = set()
     total = 0
-    observed = 0
+    total_strings = 0
     truncated = len(data) > len(scanned)
-    exhausted = False
-    for pattern, encoding, width in _BOUNDED_STRING_PATTERNS:
-        for match in pattern.finditer(scanned):
-            observed += 1
-            if observed > MAX_TEXT_STRINGS:
+    active_patterns = [
+        item for item in _BOUNDED_STRING_PATTERNS if item[0].search(scanned) is not None
+    ]
+    if not active_patterns:
+        return "", truncated
+
+    # 各encodingへ独立した出力枠と件数枠を予約する。ASCIIを先に走査しても
+    # UTF-16LEの枠を消費できず、片方だけ存在する入力では上限全体を使える。
+    per_pattern_chars = max(1, MAX_TEXT_CHARS // len(active_patterns))
+    per_pattern_strings = max(1, MAX_TEXT_STRINGS // len(active_patterns))
+    for pattern_index, (pattern, encoding, width) in enumerate(active_patterns):
+        pattern_chars = 0
+        matches = iter(pattern.finditer(scanned))
+        for pattern_strings, match in enumerate(matches, start=1):
+            if pattern_strings > per_pattern_strings:
                 truncated = True
-                exhausted = True
+                break
+            if total_strings >= MAX_TEXT_STRINGS:
+                truncated = True
                 break
             separator = 1 if chunks else 0
             remaining = MAX_TEXT_CHARS - total - separator
             if remaining <= 0:
                 truncated = True
-                exhausted = True
+                break
+            pattern_remaining = per_pattern_chars - pattern_chars
+            if pattern_remaining <= 0:
+                truncated = True
                 break
             character_count = (match.end() - match.start()) // width
-            retained_count = min(character_count, remaining)
+            retained_count = min(character_count, pattern_remaining, remaining)
             raw = scanned[
                 match.start() : match.start() + retained_count * width
             ].tobytes()
@@ -154,11 +189,15 @@ def _bounded_text(data: bytes) -> tuple[str, bool]:
                 seen.add(value)
                 chunks.append(value)
                 total += separator + len(value)
+                total_strings += 1
+                pattern_chars += len(value)
             if retained_count < character_count:
                 truncated = True
-                exhausted = True
-                break
-        if exhausted:
+            # 既出文字列は出力quotaを消費しない。retained_countが
+            # quotaと同長でも、実際に追加していなければ後続matchを走査する。
+        if total >= MAX_TEXT_CHARS or total_strings >= MAX_TEXT_STRINGS:
+            if pattern_index < len(active_patterns) - 1:
+                truncated = True
             break
     return "\n".join(chunks), truncated
 
@@ -172,6 +211,12 @@ def _valid_host(host: str) -> bool:
         address = ipaddress.ip_address(candidate)
     except ValueError:
         labels = candidate.split(".")
+        if len(labels) == 4 and all(
+            label and all("0" <= character <= "9" for character in label)
+            for label in labels
+        ):
+            # ipaddressが拒否したnumeric dotted-quadをdomainへ降格させない。
+            return False
         return len(labels) >= 2 and all(
             bool(
                 re.fullmatch(
@@ -250,19 +295,33 @@ def _standalone_host(value: str) -> bool:
     return _valid_host(value)
 
 
-def _iter_base64_candidates(text: str) -> Iterator[str]:
+def _iter_base64_candidates(
+    text: str,
+    *,
+    budget: _ConfigScanBudget | None = None,
+) -> Iterator[str]:
     """長さと件数を制限してcanonical Base64候補を列挙する。"""
 
-    observed = 0
-    seen: set[str] = set()
+    scan_budget = budget if budget is not None else _ConfigScanBudget()
     for match in BASE64_RUN_RE.finditer(text):
         value = match.group(0)
-        if value in seen or len(value) > MAX_CONFIG_BASE64_CHARS:
+        if value in scan_budget.seen:
             continue
-        seen.add(value)
-        observed += 1
-        if observed > MAX_CONFIG_CANDIDATES:
-            raise ValueError("PureLogs protobuf Base64 candidate limit exceeded")
+        if len(value) > MAX_CONFIG_BASE64_CHARS:
+            raise PureLogsConfigLimitError(
+                "PureLogs protobuf Base64 candidate size limit exceeded"
+            )
+        scan_budget.work_characters += len(value)
+        if scan_budget.work_characters > MAX_CONFIG_BASE64_WORK_CHARS:
+            raise PureLogsConfigLimitError(
+                "PureLogs protobuf Base64 work limit exceeded"
+            )
+        scan_budget.seen.add(value)
+        scan_budget.candidate_count += 1
+        if scan_budget.candidate_count > MAX_CONFIG_CANDIDATES:
+            raise PureLogsConfigLimitError(
+                "PureLogs protobuf Base64 candidate limit exceeded"
+            )
         yield value
 
 
@@ -282,9 +341,15 @@ def _iter_protobuf_messages(data: bytes) -> Iterator[dict[int, list[Any]]]:
         seen.add(digest)
         observed += 1
         if observed > MAX_CONFIG_MESSAGES:
-            raise ValueError("PureLogs protobuf message candidate limit exceeded")
+            raise PureLogsConfigLimitError(
+                "PureLogs protobuf message candidate limit exceeded"
+            )
         try:
             fields = parse_protobuf(raw)
+        except ProtobufLimitError as error:
+            raise PureLogsConfigLimitError(
+                "PureLogs protobuf parser limit exceeded"
+            ) from error
         except ValueError:
             continue
         yield fields
@@ -307,7 +372,9 @@ def _iter_protobuf_messages(data: bytes) -> Iterator[dict[int, list[Any]]]:
                     pending.append((value, depth + 1))
                     queued.add(value_digest)
     if candidate_limit_exceeded:
-        raise ValueError("PureLogs protobuf message candidate limit exceeded")
+        raise PureLogsConfigLimitError(
+            "PureLogs protobuf message candidate limit exceeded"
+        )
 
 
 def _decode_key_candidate(value: bytes) -> bytes | None:
@@ -331,58 +398,65 @@ def _decode_key_candidate(value: bytes) -> bytes | None:
 def _protobuf_config_candidate(clear: bytes) -> dict[str, Any] | None:
     """PureLogs設定候補からendpointと公開可能な鍵fingerprintを返す。"""
 
-    if not clear or len(clear) > MAX_CONFIG_CLEAR_BYTES:
+    if not clear:
         return None
+    if len(clear) > MAX_CONFIG_CLEAR_BYTES:
+        raise PureLogsConfigLimitError(
+            "PureLogs protobuf cleartext size limit exceeded"
+        )
     strings: set[str] = set()
     integers: set[int] = set()
     key_hashes: set[str] = set()
     field_count = 0
     message_count = 0
-    try:
-        messages = _iter_protobuf_messages(clear)
-    except ValueError:
-        return None
-    try:
-        for fields in messages:
-            message_count += 1
-            field_count += sum(len(values) for values in fields.values())
-            if field_count > MAX_CONFIG_TOTAL_FIELDS:
-                return None
-            for values in fields.values():
-                for value in values:
-                    if isinstance(value, int) and not isinstance(value, bool):
-                        if 1 <= value <= 65535:
-                            integers.add(value)
-                            if len(integers) > MAX_CONFIG_INTEGER_VALUES:
-                                return None
-                        continue
-                    if not isinstance(value, bytes):
-                        continue
-                    key = _decode_key_candidate(value)
-                    if key is not None:
-                        key_hashes.add(sha256_bytes(key))
-                        if len(key_hashes) > MAX_CONFIG_KEY_HASHES:
-                            return None
-                    try:
-                        text = value.decode("utf-8")
-                    except UnicodeDecodeError:
-                        continue
-                    if text and all(
-                        character.isprintable() or character in "\r\n\t"
-                        for character in text
-                    ):
-                        strings.add(text)
-                        if len(strings) > MAX_CONFIG_STRING_VALUES:
-                            return None
-    except ValueError:
-        return None
+    # generatorの終了時に検出する総work上限も通常のno-matchへ変換せず、
+    # source全体が未完了であることを上位へ伝える。
+    for fields in _iter_protobuf_messages(clear):
+        message_count += 1
+        field_count += sum(len(values) for values in fields.values())
+        if field_count > MAX_CONFIG_TOTAL_FIELDS:
+            raise PureLogsConfigLimitError("PureLogs protobuf field limit exceeded")
+        for values in fields.values():
+            for value in values:
+                if isinstance(value, int) and not isinstance(value, bool):
+                    if 1 <= value <= 65535:
+                        integers.add(value)
+                        if len(integers) > MAX_CONFIG_INTEGER_VALUES:
+                            raise PureLogsConfigLimitError(
+                                "PureLogs protobuf integer value limit exceeded"
+                            )
+                    continue
+                if not isinstance(value, bytes):
+                    continue
+                key = _decode_key_candidate(value)
+                if key is not None:
+                    key_hashes.add(sha256_bytes(key))
+                    if len(key_hashes) > MAX_CONFIG_KEY_HASHES:
+                        raise PureLogsConfigLimitError(
+                            "PureLogs protobuf key candidate limit exceeded"
+                        )
+                try:
+                    text = value.decode("utf-8")
+                except UnicodeDecodeError:
+                    continue
+                if text and all(
+                    character.isprintable() or character in "\r\n\t"
+                    for character in text
+                ):
+                    strings.add(text)
+                    if len(strings) > MAX_CONFIG_STRING_VALUES:
+                        raise PureLogsConfigLimitError(
+                            "PureLogs protobuf string value limit exceeded"
+                        )
     endpoints: set[str] = set()
     hosts: set[str] = set()
     implicit_url_hosts: dict[str, int] = {}
     for value in strings:
         endpoints.update(endpoint_candidates(value))
         if len(endpoints) > MAX_ENDPOINT_CANDIDATES:
-            return None
+            raise PureLogsConfigLimitError(
+                "PureLogs protobuf endpoint candidate limit exceeded"
+            )
         for match in URL_RE.finditer(value):
             parsed = urlsplit(match.group(0).rstrip(".,);]"))
             if not parsed.hostname or not _valid_host(parsed.hostname):
@@ -410,7 +484,10 @@ def _protobuf_config_candidate(clear: bytes) -> dict[str, Any] | None:
         # configured C2へ昇格させず、schema証拠が追加されるまで拒否する。
         return None
     if implicit_url_hosts and len(candidate_ports) == 1:
-        port = next(iter(candidate_ports))
+        port = 0
+        for candidate_port in candidate_ports:
+            port = candidate_port
+            break
         for host, default_port in implicit_url_hosts.items():
             default_endpoint = f"{host}:{default_port}"
             endpoints = {
@@ -419,7 +496,9 @@ def _protobuf_config_candidate(clear: bytes) -> dict[str, Any] | None:
             endpoints.add(f"{host}:{port}")
     if hosts and 1 <= len(candidate_ports) <= 8:
         if len(hosts) * len(candidate_ports) > MAX_ENDPOINT_CANDIDATES - len(endpoints):
-            return None
+            raise PureLogsConfigLimitError(
+                "PureLogs protobuf endpoint candidate limit exceeded"
+            )
         endpoints.update(f"{host}:{port}" for host in hosts for port in candidate_ports)
     # 32-byte値が複数ある場合、どれがwire暗号鍵かをfield番号だけで
     # 決め打ちできない。曖昧なfingerprint集合を「設定回収済み」へ
@@ -435,11 +514,15 @@ def _protobuf_config_candidate(clear: bytes) -> dict[str, Any] | None:
     }
 
 
-def decode_config_blob(text: str) -> dict[str, Any]:
+def decode_config_blob(
+    text: str,
+    *,
+    budget: _ConfigScanBudget | None = None,
+) -> dict[str, Any]:
     """Base64／protobuf設定を全候補比較し、一意な設定だけ返す。"""
 
     configurations: dict[tuple[tuple[str, ...], tuple[str, ...]], dict[str, Any]] = {}
-    for encoded in _iter_base64_candidates(text):
+    for encoded in _iter_base64_candidates(text, budget=budget):
         try:
             clear = base64.b64decode(encoded, validate=True)
         except (binascii.Error, ValueError):
@@ -456,28 +539,92 @@ def decode_config_blob(text: str) -> dict[str, Any]:
     if len(configurations) > 1:
         raise ValueError("conflicting PureLogs protobuf configurations were found")
     if configurations:
-        return next(iter(configurations.values()))
+        for candidate in configurations.values():
+            return candidate
     raise ValueError("PureLogs Base64/protobuf configuration was not found")
+
+
+def _decode_config_sources(
+    sources: tuple[str, ...],
+    *,
+    scan_incomplete: bool = False,
+    scan_incomplete_status: str | None = None,
+) -> tuple[dict[str, Any] | None, str]:
+    """独立した文字列源を比較し、一意な設定だけを採用する。"""
+
+    configurations: dict[tuple[tuple[str, ...], tuple[str, ...]], dict[str, Any]] = {}
+    seen_sources: set[str] = set()
+    budget = _ConfigScanBudget()
+    incomplete_status = scan_incomplete_status
+    if incomplete_status is None and scan_incomplete:
+        incomplete_status = "configuration_candidate_scan_incomplete"
+    configuration_conflict = False
+    for source in sources:
+        if not source or source in seen_sources:
+            continue
+        seen_sources.add(source)
+        try:
+            candidate = decode_config_blob(source, budget=budget)
+        except PureLogsConfigLimitError:
+            if incomplete_status is None:
+                incomplete_status = "configuration_candidate_scan_incomplete"
+            continue
+        except ValueError as error:
+            message = str(error)
+            if "conflicting" in message:
+                configuration_conflict = True
+            if (
+                "not found" not in message
+                and "conflicting" not in message
+                and incomplete_status is None
+            ):
+                incomplete_status = "configuration_candidate_scan_incomplete"
+            continue
+        identity = (
+            tuple(candidate["endpoints"]),
+            tuple(candidate["aes_key_sha256"]),
+        )
+        if identity not in configurations:
+            configurations[identity] = candidate
+    if incomplete_status is not None:
+        return None, incomplete_status
+    if configuration_conflict or len(configurations) > 1:
+        return None, "conflicting_configuration_candidates"
+    if configurations:
+        for candidate in configurations.values():
+            return candidate, "configuration_candidate_recovered"
+    return None, "configuration_not_found_or_incompatible"
 
 
 def extract(data: bytes, name: str = "sample") -> dict:
     """検体、メモリ文字列、復号済みPCAPメタデータを実行せず解析する。"""
-    text, truncated = _bounded_text(data)
-    managed_resource = recover_purelogs_managed_strings(data)
+    raw_text, raw_scan_truncated = _bounded_text(data)
+    truncated = raw_scan_truncated
+    text = raw_text
+    config_sources = [raw_text]
+    managed_resource: PureLogsManagedResource | PureLogsYqtyResource | None = None
+    managed_resource_error: PureLogsResourceScanIncomplete | None = None
+    try:
+        managed_resource = recover_purelogs_managed_strings(data)
+    except PureLogsResourceScanIncomplete as error:
+        managed_resource_error = error
     if managed_resource is not None:
         recovered_text = managed_resource.text
         separator = 1 if text and recovered_text else 0
         retained_original = MAX_TEXT_CHARS - len(recovered_text) - separator
         if retained_original < 0:
             # managed_resource側の独立上限が変わっても部分的な設定を
-            # 公開せず、既存textだけで解析を継続する。
+            # raw側から公開せず、候補集合未完了として拒否する。
+            managed_resource_error = PureLogsResourceLimitError(
+                "managed resource復元文字列が統合上限を超えました"
+            )
             managed_resource = None
         else:
             if len(text) > retained_original:
                 text = text[:retained_original]
                 truncated = True
             text = f"{text}\n{recovered_text}" if text else recovered_text
-    config_search_text = managed_resource.text if managed_resource is not None else text
+            config_sources.append(recovered_text)
     lowered = text.lower()
     paths = sorted(path for path in PROTOCOL_PATHS if path in lowered)
     product_markers = sorted(marker for marker in PRODUCT_MARKERS if marker in lowered)
@@ -490,13 +637,17 @@ def extract(data: bytes, name: str = "sample") -> dict:
     except ValueError:
         structured_endpoints = None
         endpoint_limit_exceeded = True
-    decoded_config: dict[str, Any] | None = None
-    config_status = "configuration_not_found_or_incompatible"
-    try:
-        decoded_config = decode_config_blob(config_search_text)
-    except ValueError as error:
-        if "conflicting" in str(error):
-            config_status = "conflicting_configuration_candidates"
+    decoded_config, config_status = _decode_config_sources(
+        tuple(config_sources),
+        # raw走査が上限で途切れた場合、未走査領域に相反設定が
+        # 残る可能性を否定できないため、先行候補も公開しない。
+        scan_incomplete=raw_scan_truncated,
+        scan_incomplete_status=(
+            managed_resource_error.config_status
+            if managed_resource_error is not None
+            else None
+        ),
+    )
 
     try:
         if endpoint_limit_exceeded:
@@ -588,7 +739,9 @@ def extract(data: bytes, name: str = "sample") -> dict:
         "managed_resource_recovery": (
             _managed_resource_public_evidence(managed_resource)
             if managed_resource is not None
-            else {"status": "not_recovered"}
+            else public_scan_failure_evidence(managed_resource_error)
+            if managed_resource_error is not None
+            else {"status": "not_recovered", "candidate_set_complete": True}
         ),
     }
     if decoded_config is not None:
@@ -638,6 +791,11 @@ def extract(data: bytes, name: str = "sample") -> dict:
     if managed_resource is not None:
         limitations.append(
             "managed resourceは実行せず、検証済みAES/Deflate経路だけを静的復元しました。"
+        )
+    if managed_resource_error is not None:
+        limitations.append(
+            "managed resource候補集合を完全に検証できないため、"
+            "raw文字列の設定候補も公開対象から除外しました。"
         )
     if endpoint_limit_exceeded:
         limitations.append(

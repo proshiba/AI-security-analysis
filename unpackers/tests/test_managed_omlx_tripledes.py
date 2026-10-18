@@ -372,6 +372,37 @@ def test_nested_eaz_deadline_is_preserved_in_public_rejection(
     assert report["reason"] == "elapsed_time_limit"
 
 
+def test_public_recovery_treats_empty_parent_resources_as_not_applicable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """resource 0件はquota超過ではなくOMLX recipeの適用外とする。"""
+
+    fake_pe = SimpleNamespace(net=SimpleNamespace())
+    monkeypatch.setattr(recovery, "has_clr_metadata", lambda _data: True)
+    monkeypatch.setattr(recovery, "_contained_parser_diagnostics", nullcontext)
+    monkeypatch.setattr(recovery.dnfile, "dnPE", lambda **_kwargs: fake_pe)
+    monkeypatch.setattr(recovery, "_metadata_row_count", lambda _pe: 1)
+    monkeypatch.setattr(recovery, "_resource_blobs", lambda _pe: [])
+    monkeypatch.setattr(
+        recovery,
+        "recover_managed_eaz_resource",
+        lambda *_args, **_kwargs: pytest.fail(
+            "resource 0件でEaz childを走査してはいけません"
+        ),
+    )
+
+    report, artifacts = recovery.recover_managed_omlx_tripledes(
+        b"MZparent",
+        clock=lambda: 0.0,
+    )
+
+    assert report == {
+        "status": "not_applicable",
+        "reason": "parent_resources_missing",
+    }
+    assert artifacts == []
+
+
 def test_static_initializer_selectors_resolve_exact_string_boundaries() -> None:
     fields = (
         (0x04000143, 1_071_284_645),

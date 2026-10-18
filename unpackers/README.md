@@ -30,10 +30,18 @@
 | JavaScript逆順・区切り文字挿入Base64 | 長大literalを反転し、Base64外の複数separatorを除去して構造を検証 | Lua layerとPE |
 | UTF-16 JavaScript dropper | numeric array、repeating Unicode key 変換、environment chunk を畳み込み | PowerShell と terminal PE |
 | Environment分割型JScript loader | 区切り文字付きBase64、HKCU Environment分割、`Assembly.Load`、暗号化19引数をprofile拘束で照合 | managed loaderとpayload取得URL候補 |
+| Process環境変数型VBScript loader | 固定slice定数、literal self-append、`WScript.Shell.Environment("Process")`、固定CMD pipe、隠しPowerShell起動を一意に照合 | 実行せず復元したPowerShell stdin script |
+| Batch環境変数型PowerShell loader | quoted `set`、canonical PowerShell fallback、stdin pipeを同一変数dataflowで照合 | 実行せず復元したPowerShell source |
+| PowerShell cyclic XOR call chain | 数値配列の周期減算、Base64、可変長の一意な周期XOR鍵、literal関数call、IEX flagを限定profileで照合 | 復号script断片、配布URL、後段Base64／ASCII／substring recipe |
+| Remcos x86 polymorphic XOR callback | 2個のnative span、x86-32 direct-jump CFG、stack引数、処理長、`xor dword ptr [edi+eax], imm32` loop、`call edi`を一意に照合 | 復号済み次段shellcode候補（family／C2／終端確証には不使用） |
+| x86 page自己消去bootstrap | 呼出元return addressの4 KiB境界化、0 byte書込みloop、定数opaque branch、768 byte stack確保、局所領域zeroingをoperand単位で照合 | 後段shellcodeの共通難読化profile（family／C2／終端確証には不使用） |
+| Remcos native span stage | copy loopとdword XOR loopを命令anchor・back edge・有界CFGで独立照合し、第二spanをloop長までzero-padして復号 | 正規化済み次段stageと定数・配布候補（family／C2／終端確証には不使用） |
+| 親子PowerShell context継承 | 親で再検証した鍵と関数だけを取得scriptへ継承し、連続する`Marshal.Copy` source spanを照合 | 取得済みresponseから復元したnative span候補（終端／family／C2確証には不使用） |
 | JavaScript AES/GZip chain | 埋め込み AES-CBC key/IV と GZip 手順を parse | terminal managed PE |
 | Batch／PowerShell／JavaScript polyglot | `set "PREFIX..."` chunk、size／SHA-256 metadata、custom nibble、単一byte変換、AES-CBC／PKCS7／GZipの受渡しを照合 | 検証済みPowerShell、補助PE、HOI1 inventory、KMTA内包PEまたは未解決blocker |
 | PowerShell回転位置付きXOR | 3式の完全一致、Base64 here-string、32 byte key、modulo 7更新、単一script候補を照合 | 再帰静的解析用script（family／C2確証には不使用） |
 | managed Eaz keyed resource | flattened switch、定数key／mask、build固有word変換、partial word、raw DeflateをCILから照合 | resource-only managed PE（終端／family確証には不使用） |
+| managed Eaz/Remcos ResourceSet | 6個のreview済みbuildについてCIL／CFG／EH、DynamicMethod proxy、ResourceSet hash、文字列table、N+1 byte変換を一体で照合 | strict Remcos SETTINGS検証へ渡す構造PE（単独ではfamily／C2確証に不使用） |
 | CMD echo Base64 stream | target 別に redirection をまとめ、chunk を連結して検証 | fragment noise を除いた terminal PE/archive |
 | Jadoo split bundle | manifest の offset と length を検証 | 再構築した file |
 | 宣言型byte変換sidecar | 許可リスト方式の回転、XOR、反転、sliceを適用し、Donut、magic、PE、ZIP構造を検証 | 検証済みchild layerと再帰解析されたterminal payload |
@@ -41,6 +49,30 @@
 | Mach-O | header と segment の inventory | packing 評価だけ |
 
 `static_unpacker.py` が orchestrator です。`javascript_obfuscator.py` は script encoding と string array layer、`javascript_dropper_unpacker.py` は numeric array、Unicode environment、AES-CBC、GZip chain、`javascript_reverse_base64.py` は逆順・複数separator付きBase64 literalを処理します。`javascript_env_assembly.py`と`managed_win32_rmp_loader.py`は、Environment分割型JScriptからmanaged loaderを復元し、確認済みmethod body／resource profileだけで19引数の設定を復号します。`batch_powershell_polyglot.py` はBatch comment内のcarrierを収集し、同梱metadataのsizeとSHA-256へ一致する成分だけを昇格します。`nsis_unpacker.py` は明示的な NSIS script と native constant XOR layer を処理します。`static_control_flow.py` は、上限付きの再帰的 x86/x64 entry CFG triage を提供します。`opaque_native_entry.py` はimportless native PEに限定し、entry CFG、PEB／export resolver、API hash候補、変換loop、埋込みPE候補を実行やCPU emulationなしで調べます。byte走査の完了と意味的な復元完了を分離し、未知hashや動的pointer tableが残る場合は完了扱いにしません。候補関数、追跡関数、resolver callsite、変換loop、API／module hash、entry CFG、埋込み候補は`total`、`returned`、`truncated`で記録し、いずれかの上限到達を`coverage_complete=false`へ反映します。`managed_il_triage.py` は CLR を load せず、managed metadata、CIL、resource を棚卸しします。`managed_proxy_deobfuscator.py` は埋込みresourceのhash・entropy・保護候補を列挙し、確認済みEazfuscator系DynamicMethod proxy表をfield→methodの対応へ静的復号します。
+
+`vbscript_env_powershell.py`は、固定slice decoderで復元した定数を使うVBScriptについて、literalだけの自己連結buffer、単一の`WScript.Shell`、`Process`環境変数へのpayload／launcher設定、canonicalな`powershell.exe`、`cmd.exe /v:on /c echo ^%payload%^ | !launcher! -`、window style 0の`Run`までを同一dataflowとして照合します。時間依存loop由来の閉じ括弧は、正の`DateAdd`、`Do Until (Now() > deadline)`、単一文字反復、定数`Mid`がすべて一致する場合だけ意図されたsuffixとして扱います。入力2 MiB、復元PowerShell 2 MiB、statement 50,000件、literal chunk 4,096件、総work 8 MiBを上限とし、未知式、動的range、代入の曖昧性、定義順不成立、環境変数名の不一致はartifactを出さず拒否します。`Execute`、COM、CMD、PowerShell、復元scriptは実行せず、生payload、環境変数名、launcher pathをreportへ含めません。
+
+`batch_env_powershell.py`は、quoted `set`の一意な定数、`SysWOW64`から`System32`へのcanonical PowerShell fallback、`echo %%PAYLOAD%% | "%RUNNER%" -windowstyle hidden -`を同一dataflowとして照合します。`powershell_cyclic_xor_calls.py`は、数値配列の周期減算から変数名に依存しない4種類のreview済みhelper構文を再構成し、strict Base64と一意な可変長周期XOR鍵へ結び付くliteral callだけを復号します。配布URLは`delivery_payload_url`として記録し、C2確証へ昇格しません。さらに、`FromBase64String`、`.NET Encoding.ASCII.GetString`のreplacement semantics、literal `Substring`境界がすべて揃った場合だけ、取得済みresponseへ適用できる変換recipeを返します。自動解析中にURLへ接続する機能は持たず、responseは別途明示的に取得したfileだけを入力にします。
+
+`powershell_inherited_cyclic_xor.py`は、取得scriptが同じPowerShell process内の親関数を再利用する場合に、親profile、鍵SHA-256、関数名SHA-256を再照合してからmemory内だけでcontextを継承します。子scriptのliteral callを最大512件まで復号し、明示された`Marshal.Copy`のsource offsetとlengthが0から連続し、親のsubstring開始位置へ正確に一致する場合だけ、取得済みresponseからnative span候補を復元します。鍵値、raw script、payloadはreportへ含めません。PowerShell、shellcode、復元物を実行せず、通信も行いません。native spanは後段の静的解析候補であり、それ自体をRemcos、終端payload、C2の根拠にはしません。
+
+native spanが厳密に2個の場合、`remcos_polymorphic_xor_loader.py`は第一spanをx86-32として有界CFG解析します。直接分岐数、2個の間接call、stack引数の保存・再読込、第二span長と整合する復号loop長、一意な32-bit XOR loopとback edge、最後の`call edi`がすべて一致した場合だけ第二spanを復号します。一般emulatorは使用せず、XOR鍵値をreportへ出しません。復元物は次段shellcode候補であり、PEまたは厳格なRemcos設定へ到達するまでfamily、C2、終端payloadを確定しません。
+
+復元した次段には`remcos_obfuscated_shellcode.py`を適用し、x86-32の呼出元page自己消去、定数opaque branch、0x300 byteのstack確保、`[ebp+0x18, ebp+0x178)`の4 byte単位zeroingがすべて一致した場合だけ共通bootstrap profileを記録します。直接jumpだけを件数・byte上限内で辿り、任意branch、shellcode、PowerShellを実行またはemulateしません。このprofileは後段body未復元を明示する中間根拠であり、Remcos family、C2、終端payloadの確証には使用しません。
+
+`remcos_native_span_loader.py`は同じ2個のspanに対し、copy loopとXOR loopをraw byteの命令anchor、長さ一致、後方分岐で別途検証します。第二spanをloaderのloop長までliteral zeroで補ってから、命令から得た32-bit鍵を適用します。既存の有界CFGが同じloop長・鍵SHA-256・入力SHA-256を独立に導出するか、復元stageの厳格な定数writer profileが成立する場合だけartifactを採用します。`remcos_polymorphic_xor_loader.py`の従来出力がzero-pad前のprefixと一致し、残りがloader由来のpaddingであることを確認できた場合は、完全長stageだけを単一の論理candidateとして出力します。不一致時は両方の派生artifactを棄却します。
+
+`remcos_native_constant_writer.py`は、復元stage内のcall/pop型周期XOR helper、式から導出される鍵長、連続dword writer、長さprefixを上限付きで照合します。平文定数と順序付き配布host/path候補を復元しますが、通信schemeを推測せず、配布候補をC2や生存確認へ昇格しません。
+
+保存済みresponseを使う全段の再現には、通信を行わない次のCLIを使用します。親PowerShellから子script境界を導出し、子script、native span、正規化stage、定数までを解析します。raw復元物は指定したWinZip AES-256 archiveへpassword `infected`でだけ保存し、JSON reportへ鍵やraw payloadを含めません。
+
+```powershell
+python -m unpackers.remcos_offline_response_chain `
+  --parent C:\analysis\parent.ps1 `
+  --response C:\analysis\saved-response.bin `
+  --report C:\analysis\offline-chain-report.json `
+  --artifact-zip C:\analysis\offline-chain-artifacts.zip
+```
 
 `rtf_objdata.py`は、32 MiB以下のRTFをgroup depth 256、`objdata` 32件、native data 16 MiBの範囲で完全走査します。control word、`\bin`、nested groupを区別し、OLE1 version／format、長さ付き文字列、native境界を検証します。`Package`ではOle10Nativeの各NUL終端文字列、temp path長、payload長も検証し、宣言された`.pdf`等の拡張子では内容を分類しません。複数objectの一部が壊れている場合は検証済みobjectだけをSHA-256で重複排除し、`partial_artifacts_recovered`として固定点解析へ渡します。RTFや内包payloadは実行しません。
 
@@ -69,6 +101,8 @@ Office起動、外部通信は行いません。`static_unpacker.py`のZIP／OLE
 `batch_powershell_polyglot.py` は入力16 MiB、16,384行、単一行2 MiB、metadata 32件、carrier prefix 4,096件、候補work 64 MiB、metadata入力work 128 MiB／展開出力work 64 MiB、hex変換work 128 MiB、単一復元成分32 MiBを上限とします。Base64はstrict decode、GZipは単一stream終端・trailing dataなし・展開比512倍以下を要求します。custom nibble経路は16文字の一意なalphabetとmetadata hashを、AES経路は復元PowerShell内の共通XOR付きkey／IV配列、CBC、PKCS7、RSC変数の同一callへの受渡し、復号後GZip、PE全section境界を同時に検証します。reportへ生key／IVを出しません。metadata検証済みPLDを`native_kmta_loader.py`で一意に復元できない場合だけ、`metadata_verified_pld_requires_native_loader_analysis`をblockerとして残します。
 
 `powershell_rotational_xor.py` は入力16 MiB、here-string 32件、Base64 12 MiB、復号後8 MiB、keyとciphertextの総復号work 64 MiBを上限とし、レビュー済み式と一意な32 byte key／scriptの組だけを受理します。`managed_eaz_resource.py` は入力32 MiB、MethodDef 4,096件、各256 KiB・8,192命令、1 method当たりの追加section合計256 KiB・4,096件、全method合計32 MiB・1,000,000命令、resource 64件、復元後64 MiB、展開率64倍をhard limitとし、MethodDefの宣言bodyと追加sectionが同じPE section内に収まることもparser呼出し前に検証します。処理境界では10秒の協調的deadlineも適用します。いずれも検体や復元物を実行せず、生key／maskをreportへ含めません。
+
+`managed_eaz_remcos.py` は、Eazfuscator系managed loaderで確認したResourceSet経路を、元PEへ再照合したManifestResource全件、ResourceSet v2のsigned hash順・name/data全域、6個のレビュー済みbuildに対応するCIL role／CFG／EH clause全体、DynamicMethod proxyのfield→target対応へ束縛して静的に復元します。delegateのtarget／`Invoke`／wrapper署名、`ldarg`順、wrapperのEH不在を検証し、ResourceManagerと`Assembly.Load`はentry起点の有界CFGで到達可能なcallだけをsinkとして扱います。文字列tableのcustom word変換、entry境界上のkey／payload名参照、payloadのN+1回XOR・隣接byte減算・末尾1 byte縮小をすべて一意に検証し、overlayのない構造PEへ到達した場合だけ次層artifactを固定点解析へ渡します。共有resource snapshotとmetadata resolverを再利用し、proxy解析へ呼出し元の残りdeadlineを引き継ぎます。未知build、複数候補、切詰め、quota／deadline到達はfail closedとし、familyやC2の確証には使用しません。CLR、CIL、復元PEは実行せず、通信も行いません。resource entry名、生key、生文字列table、生configはreportへ含めません。
 
 `managed_bitmap_argb_xor.py` はroot hashやprovider labelを受理条件にせず、outer CILのwidth外側／height内側の`GetPixel(x,y)`、RGB順、`Take`、同じlocalを通る`Assembly.Load`、field literalから作る3引数と同一`ConstructorInfo.Invoke`までを照合します。第一段childでは19個のreview済みmethod bodyに加え、同一owner、第一exported type、publicな3文字列constructor、constructorからentryへの引数受渡し、framework参照、call graph、crop 2定数、末尾由来mask定数を検証します。BinaryFormatter／CLR／CILは実行せず、NRBFはcanonical 7-bit整数と固定record列だけをbyte単位で読みます。Bitmapは単一のBMPまたはCRC・chunk順・zlib終端を確認したRGBA8 PNGに限定し、crop後のx-major BGRA、little-endian length、UTF-16BE key byte列を文字列長で循環するXOR、managed PE extentと最大4 KiBのoverlayをすべて確認します。
 

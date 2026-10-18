@@ -182,6 +182,11 @@ def test_single_candidate_preserves_full_existing_contract(host):
         "config": {
             "variant": "managed_purerat",
             "protobuf_fields_1_to_9_valid": False,
+            "protobuf_terminal_schema_valid": False,
+            "protobuf_terminal_schema_profile": None,
+            "protobuf_wire_types_valid": False,
+            "protobuf_field_numbers": [1, 2],
+            "protobuf_default_elided_fields": [],
             "c2_host": canonical,
             "c2_ports": ports,
             "campaign_id": "",
@@ -244,16 +249,29 @@ def test_canonical_duplicates_cannot_bypass_candidate_limit():
 @pytest.mark.parametrize(
     "invalid",
     [
-        gzip.compress(_message("same.example")) + b"tail",
-        gzip.compress(_message("same.example")) + gzip.compress(b"extra"),
         b"not-gzip",
         gzip.compress(_message("single-label")),
         gzip.compress(_message("same.example", (0,))),
     ],
 )
-def test_compression_and_config_boundaries_remain_fail_closed(invalid):
+def test_invalid_compression_or_config_candidates_remain_no_match(invalid):
     with pytest.raises(ValueError, match="config was not found"):
         extractor.decode_config_blob([base64.b64encode(invalid).decode()])
+
+
+@pytest.mark.parametrize(
+    "incomplete",
+    [
+        gzip.compress(_message("same.example")) + b"tail",
+        gzip.compress(_message("same.example")) + gzip.compress(b"extra"),
+    ],
+)
+def test_gzip_tail_or_multiple_members_are_incomplete_not_no_match(incomplete):
+    with pytest.raises(
+        extractor.ConfigCandidateBoundaryError,
+        match="output boundaries",
+    ):
+        extractor.decode_config_blob([base64.b64encode(incomplete).decode()])
 
 
 def test_oversized_managed_input_still_fails_before_metadata():

@@ -241,7 +241,7 @@ Get-Content -LiteralPath C:\malware-lab\secrets\archive-password.txt -Raw |
 
 値付きの`--password`、`--inno-password`、standalone unpackerの`--archive-password`は受理しません。credentialはargv、環境変数、作業directory名、request file、公開解析契約へ保存しません。`--password-stdin`と`--inno-password-stdin`は同時指定できません。
 
-標準ZIPとAES ZIPのメモリ内復号には、このarchive credentialを使用します。AES ZIPの復号には`pyzipper`が必要です。一方、外部7-Zip／RAR／innounpへcredentialをargvで渡すことはありません。暗号化された7z／RAR／Inno payloadは、安全な非argv transportを実装するまで`credential_transport_unsupported`または`encrypted_payload_blocked`として`partial`に維持します。復号失敗、暗号方式未対応、上限到達を別層の成功で隠しません。
+標準ZIPとAES ZIPのメモリ内復号には、このarchive credentialを使用します。AES ZIPの復号には`pyzipper`が必要です。外部7-ZipでZIP／7z／RARを扱う場合、credentialはargv・環境変数・レポートへ含めず、最大4096 bytesかつNUL・改行なしを検証したうえで子processのstdinへ1行だけ渡します。暗号化headerは無資格一覧化がpassword要求を明示した場合に限り再試行し、誤credentialや非zero終了時の部分成果物は採用しません。Inno／NSIS PEとinnounpへgeneric archive credentialは渡しません。復号失敗、暗号方式未対応、上限到達を別層の成功で隠しません。
 
 ## 旧ValleyRATワークフロー
 

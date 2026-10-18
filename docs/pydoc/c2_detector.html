@@ -23,14 +23,7 @@ allowlist済みNmap NSEだけを起動して行う。</pre>
 <dl><dt><a name="-build_shodan_queries"><strong>build_shodan_queries</strong></a>(args, result: 'dict', tls: 'dict | None' = None) -&gt; 'dict'</dt><dd><span class="code">private、loopback、予約IPを除外して受動検索式を構築する。</span></dd></dl>
 
 <h2>collect_jarm</h2>
-<dl><dt><a name="-collect_jarm"><strong>collect_jarm</strong></a>(
-    host: 'str',
-    port: 'int',
-    script: 'Path | None',
-    timeout: 'float',
-    *,
-    allow_network: 'bool' = False
-) -&gt; 'dict'</dt><dd><span class="code">helper出力を制限し、fail-closed&nbsp;cleanup付きでJARMを収集する。</span></dd></dl>
+<dl><dt><a name="-collect_jarm"><strong>collect_jarm</strong></a>(host: 'str', port: 'int', script: 'Path | None', timeout: 'float', *, allow_network: 'bool' = False) -&gt; 'dict'</dt><dd><span class="code">helper出力を制限し、fail-closed&nbsp;cleanup付きでJARMを収集する。</span></dd></dl>
 
 <h2>is_public_shodan_address</h2>
 <dl><dt><a name="-is_public_shodan_address"><strong>is_public_shodan_address</strong></a>(value: 'str') -&gt; 'bool'</dt><dd><span class="code">IPがShodanのInternet&nbsp;pivotとして公開対象かを返す。</span></dd></dl>
@@ -72,14 +65,7 @@ allowlist済みNmap NSEだけを起動して行う。</pre>
 <dl><dt><a name="-sanitize_response_headers"><strong>sanitize_response_headers</strong></a>(headers: 'object') -&gt; 'tuple[dict[str, str], list[str]]'</dt><dd><span class="code">HTTP応答ヘッダーを有界化し、資格情報を含む値を秘匿する。</span></dd></dl>
 
 <h2>socks5_connect</h2>
-<dl><dt><a name="-socks5_connect"><strong>socks5_connect</strong></a>(
-    proxy_host: 'str',
-    proxy_port: 'int',
-    target_host: 'str',
-    target_port: 'int',
-    timeout: 'float',
-    result: 'dict | None' = None
-) -&gt; 'socket.socket'</dt><dd><span class="code">proxy認証なしのSOCKS5&nbsp;CONNECT&nbsp;tunnelを開く。</span></dd></dl>
+<dl><dt><a name="-socks5_connect"><strong>socks5_connect</strong></a>(proxy_host: 'str', proxy_port: 'int', target_host: 'str', target_port: 'int', timeout: 'float', result: 'dict | None' = None) -&gt; 'socket.socket'</dt><dd><span class="code">proxy認証なしのSOCKS5&nbsp;CONNECT&nbsp;tunnelを開く。</span></dd></dl>
 
 <h2>tls_metadata</h2>
 <dl><dt><a name="-tls_metadata"><strong>tls_metadata</strong></a>(sock: 'ssl.SSLSocket') -&gt; 'dict'</dt><dd><span class="code">TLS証明書と接続metadataを有界に収集する。</span></dd></dl>
@@ -88,11 +74,6 @@ allowlist済みNmap NSEだけを起動して行う。</pre>
 <dl><dt><a name="-validate_http_request_fields"><strong>validate_http_request_fields</strong></a>(args) -&gt; 'None'</dt><dd><span class="code">HTTP&nbsp;request&nbsp;lineとHostへ入る値をauthority・origin-formとして検証する。</span></dd></dl>
 
 <h2>write_n520_archive</h2>
-<dl><dt><a name="-write_n520_archive"><strong>write_n520_archive</strong></a>(
-    path: 'Path',
-    password: 'str',
-    frames: 'list[dict]',
-    plugins: 'list[dict]'
-) -&gt; 'None'</dt><dd><span class="code">暗号化frameと復元plugin&nbsp;byte列だけをAES-ZIPへ保存する。</span></dd></dl>
+<dl><dt><a name="-write_n520_archive"><strong>write_n520_archive</strong></a>(path: 'Path', password: 'str', frames: 'list[dict]', plugins: 'list[dict]') -&gt; 'None'</dt><dd><span class="code">暗号化frameと復元plugin&nbsp;byte列だけをAES-ZIPへ保存する。</span></dd></dl>
 
 </body></html>

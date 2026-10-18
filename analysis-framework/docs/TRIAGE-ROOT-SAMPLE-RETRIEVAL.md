@@ -15,19 +15,36 @@ py -3.13 analysis-framework/common/triage_artifact_retrieval.py `
   --max-artifacts 20 `
   --max-root-samples 1 `
   --max-root-sample-bytes 536870912 `
-  --max-root-total-bytes 536870912 `
-  --password infected
+  --max-root-total-bytes 536870912
 ```
 
 `MALWARE_ANALYSIS_PRIVATE_ROOT`には、事前にリポジトリ外の隔離領域を設定してください。
+
+archive passwordの既定値は、公開マルウェア共有サービスで一般的な`infected`です。別のpasswordが必要な場合はargvや環境変数へ値を残さず、標準入力から渡します。
+
+```powershell
+$archivePassword = Read-Host 'Archive password'
+$archivePassword |
+  py -3.13 analysis-framework/common/triage_artifact_retrieval.py `
+    --hash e66bbb6c651b5ab839434b8e62f502169f35894e28dbe9f3275911582eccd250 `
+    --output-root $triageOutputRoot `
+    --allow-network `
+    --download `
+    --include-root-sample `
+    --password-stdin
+```
 
 `--include-root-sample`と`--download`の両方がある場合だけroot sampleを取得します。`--include-root-sample`を省略した既存の候補列挙・成果物取得フローは変わりません。保存先はリポジトリ外を指定します。
 
 `--max-root-samples`はroot sample専用の件数上限で、既定は1件、最大は100件です。`--max-artifacts`と`--max-total-bytes`は通常のdrop file／memory artifactだけへ適用され、root sampleには流用しません。root sampleには`--max-root-sample-bytes`の応答・archive単位上限と、`--max-root-total-bytes`の暗号化archive合計上限を別に適用します。既定はいずれも512 MiBで、単体上限の最大は512 MiB、合計上限の最大は1 GiBです。
 
+通常artifactの取得対象は、発見候補全体の先頭を単純に切り取らず、親SHA-256間をdeterministic round-robinして`--max-artifacts`件まで選択します。各親の1件目を配った後に各親の2件目へ進むため、多数のmemory regionを持つ先頭の親だけで上限を消費しません。親の順序と各親内の候補順序は、検証済み候補で最初に現れた順を維持します。単一親の場合は従来どおり先頭からの順序です。候補一覧自体は省略せず`candidates`へ残し、選択方式、上限、選択件数、選択親数を`artifact_download_selection`へ記録します。
+
 ## 検証と保存
 
 root sample候補は、要求した完全SHA-256とTriage metadataのSHA-256が一致し、公開解析と確認できたsample IDからだけ作成します。同じSHA-256に複数の公開解析がある場合は、最初に検証できた1件だけを取得します。
+
+`metadata_sha256_verified`と`public_analysis_verified`は、取得toolがonline取得時に観測した結果です。manifest自体はprovider署名でも、保存済みAPI応答本文によるoffline認証資料でもありません。後段解析はmanifestをpinして内部整合性を検証しますが、providerへ独立した再照会は行いません。
 
 取得には`external_api_helpers.TriageClient.fetch_sample`を使い、常に`expected_sha256`を渡します。
 

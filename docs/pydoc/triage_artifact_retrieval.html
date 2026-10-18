@@ -10,55 +10,22 @@
 <dl><dt><a name="-build_parser"><strong>build_parser</strong></a>() -&gt; 'argparse.ArgumentParser'</dt><dd><span class="code">限定取得CLIの引数parserを構築する。</span></dd></dl>
 
 <h2>discover_candidates</h2>
-<dl><dt><a name="-discover_candidates"><strong>discover_candidates</strong></a>(
-    hashes: 'list[str]',
-    api_key: 'str',
-    *,
-    opener: 'Any',
-    timeout: 'float',
-    include_memory: 'bool',
-    root_sample_candidates: 'list[dict[str, Any]] | None' = None,
-    report_memory_max_candidates: 'int' = 100,
-    report_memory_max_bytes: 'int' = 67108864,
-    report_memory_max_total_bytes: 'int' = 268435456
-) -&gt; 'tuple[list[dict[str, Any]], list[dict[str, Any]]]'</dt><dd><span class="code">完全hash一致の公開解析から取得候補と失敗分類を列挙する。</span></dd></dl>
+<dl><dt><a name="-discover_candidates"><strong>discover_candidates</strong></a>(hashes: 'list[str]', api_key: 'str', *, opener: 'Any', timeout: 'float', include_memory: 'bool', root_sample_candidates: 'list[dict[str, Any]] | None' = None, report_memory_max_candidates: 'int' = 100, report_memory_max_bytes: 'int' = 67108864, report_memory_max_total_bytes: 'int' = 268435456) -&gt; 'tuple[list[dict[str, Any]], list[dict[str, Any]]]'</dt><dd><span class="code">完全hash一致の公開解析から取得候補と失敗分類を列挙する。</span></dd></dl>
 
 <h2>encrypted_zip_bytes</h2>
 <dl><dt><a name="-encrypted_zip_bytes"><strong>encrypted_zip_bytes</strong></a>(data: 'bytes', member_name: 'str', password: 'str') -&gt; 'bytes'</dt><dd><span class="code">平文をdiskへ書かず、AES-256&nbsp;ZIPをmemory上で作る。</span></dd></dl>
 
 <h2>extract_artifact_candidates</h2>
-<dl><dt><a name="-extract_artifact_candidates"><strong>extract_artifact_candidates</strong></a>(
-    overview: 'dict[str, Any]',
-    *,
-    expected_sha256: 'str',
-    sample_id: 'str',
-    include_memory: 'bool'
-) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">overviewから、task境界を検証できる成果物API&nbsp;pathだけを作る。</span></dd></dl>
+<dl><dt><a name="-extract_artifact_candidates"><strong>extract_artifact_candidates</strong></a>(overview: 'dict[str, Any]', *, expected_sha256: 'str', sample_id: 'str', include_memory: 'bool') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">overviewから、task境界を検証できる成果物API&nbsp;pathだけを作る。</span></dd></dl>
 
 <h2>extract_report_memory_candidates</h2>
-<dl><dt><a name="-extract_report_memory_candidates"><strong>extract_report_memory_candidates</strong></a>(
-    report: 'dict[str, Any]',
-    *,
-    expected_sha256: 'str',
-    sample_id: 'str',
-    task_id: 'str',
-    max_candidates: 'int' = 100,
-    max_bytes: 'int' = 67108864,
-    max_total_bytes: 'int' = 268435456
-) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">task&nbsp;reportのregion&nbsp;dumpを、長さを検証したmemory取得候補へ変換する。</span></dd></dl>
+<dl><dt><a name="-extract_report_memory_candidates"><strong>extract_report_memory_candidates</strong></a>(report: 'dict[str, Any]', *, expected_sha256: 'str', sample_id: 'str', task_id: 'str', max_candidates: 'int' = 100, max_bytes: 'int' = 67108864, max_total_bytes: 'int' = 268435456) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">task&nbsp;reportのregion&nbsp;dumpを、長さを検証したmemory取得候補へ変換する。</span></dd></dl>
 
 <h2>fetch_bounded</h2>
-<dl><dt><a name="-fetch_bounded"><strong>fetch_bounded</strong></a>(
-    endpoint_path: 'str',
-    api_key: 'str',
-    *,
-    opener: 'Any',
-    timeout: 'float',
-    max_bytes: 'int'
-) -&gt; 'tuple[bytes, dict[str, Any]]'</dt><dd><span class="code">成果物を指定byte上限内で取得し、HTTP証跡を返す。</span></dd></dl>
+<dl><dt><a name="-fetch_bounded"><strong>fetch_bounded</strong></a>(endpoint_path: 'str', api_key: 'str', *, opener: 'Any', timeout: 'float', max_bytes: 'int') -&gt; 'tuple[bytes, dict[str, Any]]'</dt><dd><span class="code">成果物を指定byte上限内で取得し、HTTP証跡を返す。</span></dd></dl>
 
 <h2>load_reviewed_candidates</h2>
-<dl><dt><a name="-load_reviewed_candidates"><strong>load_reviewed_candidates</strong></a>(path: 'Path') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">人手で確認した公開解析のmemory名を、安全なAPI候補へ変換する。</span></dd></dl>
+<dl><dt><a name="-load_reviewed_candidates"><strong>load_reviewed_candidates</strong></a>(path: 'Path') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">レビュー済みmemoryまたは本ツールの発見候補を安全なAPI候補へ変換する。</span></dd></dl>
 
 <h2>main</h2>
 <dl><dt><a name="-main"><strong>main</strong></a>(argv: 'list[str] | None' = None) -&gt; 'int'</dt><dd><span class="code">候補列挙と任意の暗号化取得を実行する。</span></dd></dl>
@@ -67,23 +34,10 @@
 <dl><dt><a name="-normalize_sha256"><strong>normalize_sha256</strong></a>(value: 'Any') -&gt; 'str'</dt><dd><span class="code">SHA-256を小文字へ正規化し、不正値を拒否する。</span></dd></dl>
 
 <h2>persist_encrypted_archive</h2>
-<dl><dt><a name="-persist_encrypted_archive"><strong>persist_encrypted_archive</strong></a>(
-    archive_path: 'Path',
-    archive_data: 'bytes',
-    *,
-    member_name: 'str',
-    password: 'str',
-    expected_size: 'int',
-    expected_sha256: 'str'
-) -&gt; 'dict[str, Any]'</dt><dd><span class="code">既存archiveを厳密検証し、新規archiveは同一directoryからatomic&nbsp;replaceする。</span></dd></dl>
+<dl><dt><a name="-persist_encrypted_archive"><strong>persist_encrypted_archive</strong></a>(archive_path: 'Path', archive_data: 'bytes', *, member_name: 'str', password: 'str', expected_size: 'int', expected_sha256: 'str') -&gt; 'dict[str, Any]'</dt><dd><span class="code">既存archiveを厳密検証し、新規archiveは同一directoryからatomic&nbsp;replaceする。</span></dd></dl>
 
 <h2>reported_behavioral_tasks</h2>
-<dl><dt><a name="-reported_behavioral_tasks"><strong>reported_behavioral_tasks</strong></a>(
-    overview: 'dict[str, Any]',
-    *,
-    sample_id: 'str',
-    max_tasks: 'int' = 2
-) -&gt; 'list[str]'</dt><dd><span class="code">overviewからreported状態のbehavioral&nbsp;taskを最大件数まで列挙する。</span></dd></dl>
+<dl><dt><a name="-reported_behavioral_tasks"><strong>reported_behavioral_tasks</strong></a>(overview: 'dict[str, Any]', *, sample_id: 'str', max_tasks: 'int' = 2) -&gt; 'list[str]'</dt><dd><span class="code">overviewからreported状態のbehavioral&nbsp;taskを最大件数まで列挙する。</span></dd></dl>
 
 <h2>safe_basename</h2>
 <dl><dt><a name="-safe_basename"><strong>safe_basename</strong></a>(value: 'Any') -&gt; 'str'</dt><dd><span class="code">成果物名をbasenameへ限定し、危険な名前を拒否する。</span></dd></dl>
@@ -91,35 +45,26 @@
 <h2>safe_error_record</h2>
 <dl><dt><a name="-safe_error_record"><strong>safe_error_record</strong></a>(error: 'Exception') -&gt; 'dict[str, Any]'</dt><dd><span class="code">秘密情報を含めず、再試行判断に必要な失敗分類だけを残す。</span></dd></dl>
 
+<h2>select_artifact_download_candidates</h2>
+<dl><dt><a name="-select_artifact_download_candidates"><strong>select_artifact_download_candidates</strong></a>(candidates: 'list[dict[str, Any]]', *, maximum: 'int') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">親SHA-256間をround-robinし、有界な取得対象を決定する。<br>
+&nbsp;<br>
+親の順序と各親内の順序は入力で最初に現れた順を維持する。これにより、<br>
+単一親や親ごとに1候補だけの既存入力では従来の順序と一致しつつ、1親に<br>
+多数のmemory&nbsp;regionがある場合も後続親の最初の候補を件数上限内へ含める。</span></dd></dl>
+
 <h2>select_reported_candidates</h2>
-<dl><dt><a name="-select_reported_candidates"><strong>select_reported_candidates</strong></a>(
-    candidates: 'list[dict[str, Any]]',
-    reference_hashes: 'list[str]'
-) -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">完全一致解析で発見済みの候補をreport参照hashで一意に選ぶ。</span></dd></dl>
+<dl><dt><a name="-select_reported_candidates"><strong>select_reported_candidates</strong></a>(candidates: 'list[dict[str, Any]]', reference_hashes: 'list[str]') -&gt; 'list[dict[str, Any]]'</dt><dd><span class="code">完全一致解析で発見済みの候補をreport参照hashで一意に選ぶ。</span></dd></dl>
 
 <h2>utc_now</h2>
 <dl><dt><a name="-utc_now"><strong>utc_now</strong></a>() -&gt; 'str'</dt><dd><span class="code">現在時刻をUTCのISO&nbsp;8601形式で返す。</span></dd></dl>
 
 <h2>verify_encrypted_archive_bytes</h2>
-<dl><dt><a name="-verify_encrypted_archive_bytes"><strong>verify_encrypted_archive_bytes</strong></a>(
-    archive_data: 'bytes',
-    *,
-    member_name: 'str',
-    password: 'str',
-    expected_size: 'int',
-    expected_sha256: 'str'
-) -&gt; 'str'</dt><dd><span class="code">AES-256&nbsp;ZIPの単一member、長さ、平文hashをmemory上で検証する。</span></dd></dl>
+<dl><dt><a name="-verify_encrypted_archive_bytes"><strong>verify_encrypted_archive_bytes</strong></a>(archive_data: 'bytes', *, member_name: 'str', password: 'str', expected_size: 'int', expected_sha256: 'str') -&gt; 'str'</dt><dd><span class="code">AES-256&nbsp;ZIPの単一member、長さ、平文hashをmemory上で検証する。</span></dd></dl>
 
 <h2>verify_public_page</h2>
 <dl><dt><a name="-verify_public_page"><strong>verify_public_page</strong></a>(sample_id: 'str', *, opener: 'Any', timeout: 'float') -&gt; 'bool'</dt><dd><span class="code">認証情報なしでTriage解析ページが公開されていることを確認する。</span></dd></dl>
 
 <h2>verify_reviewed_candidates</h2>
-<dl><dt><a name="-verify_reviewed_candidates"><strong>verify_reviewed_candidates</strong></a>(
-    candidates: 'list[dict[str, Any]]',
-    api_key: 'str',
-    *,
-    opener: 'Any',
-    timeout: 'float'
-) -&gt; 'None'</dt><dd><span class="code">review済み候補も、完全hash一致かつ公開解析であることを再検証する。</span></dd></dl>
+<dl><dt><a name="-verify_reviewed_candidates"><strong>verify_reviewed_candidates</strong></a>(candidates: 'list[dict[str, Any]]', api_key: 'str', *, opener: 'Any', timeout: 'float') -&gt; 'None'</dt><dd><span class="code">review済み候補も、完全hash一致かつ公開解析であることを再検証する。</span></dd></dl>
 
 </body></html>

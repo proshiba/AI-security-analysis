@@ -13,7 +13,7 @@
 - family固有の `extractors.*.extractor.html`
 - `external_api_helpers.html`：検体取得とIOC補強用の外部API client
 
-今回の静的解析自動化で変更する主要6 moduleは、日本語見出しだけを出す許可リスト方式の生成器で同期します。通常の生成と書込みを伴わない照合は次のとおりです。
+静的解析自動化で変更する主要moduleは、checkout固有pathを除去し、日本語見出しだけを出す許可リスト方式の生成器で同期します。通常の生成と書込みを伴わない照合は次のとおりです。
 
 ```powershell
 python analysis-framework/docs/generate_common_api_docs.py
@@ -41,7 +41,7 @@ python -m pydoc -w asa asa.models asa.conditions asa.loader asa.catalog asa.comp
   extractors.lummastealer.extractor extractors.remusstealer.extractor `
   extractors.amosstealer.extractor `
   extractors.valleyrat.extractor extractors.agenttesla.extractor `
-  extractors.remcosrat.extractor extractors.venomrat.extractor `
+  extractors.remcosrat.extractor extractors.remcosrat.strict_config extractors.venomrat.extractor `
   extractors.unclassified.mx_go.extractor
 ```
 
@@ -128,7 +128,7 @@ python -m pydoc -w deep_static_triage collection_followup_planner sync_collectio
 
 ## PureHVNC／DonutLoaderモジュール
 
-`unpackers.donut_unpacker`、`unpackers.purehvnc_unpacker`、`unpackers.chrd_donut_unpacker`、`extractors.purehvnc.extractor`、`extractors.purelogs.extractor`、`extractors.donutloader.extractor`、`emulators.purehvnc.lab`、`chain`も生成対象です。C2の互換offline moduleは`c2_detector`、正式Nmap adapterは`nmap.nmap_c2_detector`として別pageへ生成します。
+`unpackers.donut_unpacker`、`unpackers.purehvnc_unpacker`、`unpackers.chrd_donut_unpacker`、`extractors.purehvnc.extractor`、`extractors.purehvnc_schema`、`extractors.purelogs.extractor`、`extractors.donutloader.extractor`、`emulators.purehvnc.lab`、`chain`も生成対象です。`extractors.purehvnc.extractor`と`extractors.purehvnc_schema`は`analysis-framework/docs/generate_common_api_docs.py`の固定対象であり、後者はPureRAT terminalのfield型、wire type、既知profileを共有する宣言的schemaです。C2の互換offline moduleは`c2_detector`、正式Nmap adapterは`nmap.nmap_c2_detector`として別pageへ生成します。
 
 ## APT-C-60／SpyGlaceモジュール
 

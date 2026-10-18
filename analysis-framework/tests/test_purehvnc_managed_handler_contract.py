@@ -51,7 +51,13 @@ def _field(number: int, value: bytes) -> bytes:
     return _varint(number << 3 | 2) + _varint(len(value)) + value
 
 
-def _encoded(host: str = HOST, ports: list[int] | None = None) -> str:
+def _encoded(
+    host: str = HOST,
+    ports: list[int] | None = None,
+    *,
+    include_field_7: bool = True,
+    include_field_10: bool = False,
+) -> str:
     """実行能力を持たないBase64／GZip／protobuf設定を生成する。"""
     message = (
         _field(1, host.encode())
@@ -61,10 +67,12 @@ def _encoded(host: str = HOST, ports: list[int] | None = None) -> str:
         + _varint(1)
         + _varint(6 << 3)
         + _varint(0)
-        + _field(7, b"fixture-task")
-        + _field(8, b"fixture-environment")
-        + _field(9, b"fixture-mutex")
     )
+    if include_field_7:
+        message += _field(7, b"fixture-task")
+    message += _field(8, b"fixture-environment") + _field(9, b"fixture-mutex")
+    if include_field_10:
+        message += _varint(10 << 3) + _varint(1)
     for port in PORTS if ports is None else ports:
         message += _varint(2 << 3) + _varint(port)
     return base64.b64encode(gzip.compress(message, mtime=0)).decode()
@@ -141,6 +149,29 @@ def test_strict_managed_recovery_has_standard_flags_and_correlated_endpoints(kin
     assert {(item["host"], item["port"]) for item in summary["qualified_network_endpoints"]} == {
         (HOST, port) for port in PORTS
     }
+
+
+def test_v4_field_7_default_elision_flows_through_handler_and_detector(
+    managed_strings,
+) -> None:
+    """実decoder出力をhandlerと独立detectorが同じprofileとして扱う。"""
+
+    managed_strings[:] = [
+        _encoded(include_field_7=False, include_field_10=True),
+        "4.4.1",
+    ]
+
+    result = _call("family")
+    config = result["config"]
+    assert config["protobuf_fields_1_to_9_valid"] is False
+    assert config["protobuf_terminal_schema_valid"] is True
+    assert config["protobuf_terminal_schema_profile"] == (extractor.TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELD_7)
+    assert config["protobuf_default_elided_fields"] == [7]
+
+    evidence = HANDLER._DETECT_MODULE._managed_terminal_evidence(DATA)
+    assert evidence["matched"] is True
+    assert evidence["protobuf_terminal_schema_profile"] == (extractor.TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELD_7)
+    assert evidence["endpoint_values_retained"] is True
 
 
 @pytest.mark.parametrize("kind", ["family", "integrated"])

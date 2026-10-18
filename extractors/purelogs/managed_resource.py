@@ -46,6 +46,72 @@ class PureLogsResourceError(ValueError):
     """検証済みresource profileを外れた入力を表す。"""
 
 
+class PureLogsResourceScanIncomplete(PureLogsResourceError):
+    """resource候補集合の解析を完了できないことを表す。"""
+
+    status = "managed_resource_candidate_set_incomplete"
+    config_status = "managed_resource_candidate_set_incomplete"
+
+    def public_evidence(self) -> dict[str, object]:
+        """生の例外文言を公開せず、fail-closed状態だけを返す。"""
+
+        return {
+            "status": self.status,
+            "candidate_set_complete": False,
+            "conflicting_candidates_present": False,
+            "scan_limit_exceeded": False,
+            "sample_executed": False,
+            "network_contacted": False,
+        }
+
+
+class PureLogsResourceLimitError(PureLogsResourceScanIncomplete):
+    """resource候補集合の走査が安全上限で未完了になったことを表す。"""
+
+    status = "managed_resource_scan_limit_exceeded"
+    config_status = "managed_resource_scan_limit_exceeded"
+
+    def public_evidence(self) -> dict[str, object]:
+        """上限到達を個別に示す公開可能な状態を返す。"""
+
+        evidence = super().public_evidence()
+        evidence["scan_limit_exceeded"] = True
+        return evidence
+
+
+class PureLogsResourceConflictError(PureLogsResourceScanIncomplete):
+    """resource候補またはprofile間の競合を表す。"""
+
+    status = "conflicting_managed_resource_candidates"
+    config_status = "conflicting_managed_resource_candidates"
+
+    def public_evidence(self) -> dict[str, object]:
+        """候補競合を個別に示す公開可能な状態を返す。"""
+
+        evidence = super().public_evidence()
+        evidence["conflicting_candidates_present"] = True
+        return evidence
+
+
+def public_scan_failure_evidence(
+    error: PureLogsResourceScanIncomplete,
+) -> dict[str, object]:
+    """候補集合の失敗状態を固定schemaの公開evidenceへ変換する。"""
+
+    if not isinstance(error, PureLogsResourceScanIncomplete):
+        raise TypeError("PureLogs managed resource走査エラー型が不正です")
+    return {
+        "status": error.status,
+        "candidate_set_complete": False,
+        "conflicting_candidates_present": isinstance(
+            error, PureLogsResourceConflictError
+        ),
+        "scan_limit_exceeded": isinstance(error, PureLogsResourceLimitError),
+        "sample_executed": False,
+        "network_contacted": False,
+    }
+
+
 @dataclass(frozen=True)
 class PureLogsManagedResource:
     """秘密値を公開evidenceから分離した復元結果。"""
@@ -78,6 +144,9 @@ def public_recovery_evidence(
         raise TypeError("PureLogs managed resource結果が不正です")
     return {
         "status": "recovered",
+        "candidate_set_complete": True,
+        "conflicting_candidates_present": False,
+        "scan_limit_exceeded": False,
         "format": "xor_header_aes256_cbc_raw_deflate_dotnet_strings",
         "resource_sha256": recovered.resource_sha256,
         "decrypted_sha256": recovered.decrypted_sha256,
@@ -112,7 +181,9 @@ def _resolve_profile_overlap(
         or legacy.header_identifier_sha256 != yqty.header_identifier_sha256
         or legacy.records != yqty.records
     ):
-        return None
+        raise PureLogsResourceConflictError(
+            "legacyとYqTYのmanaged resource候補が競合します"
+        )
     return yqty
 
 
@@ -175,17 +246,17 @@ def _inflate_raw_deflate(data: bytes) -> bytes:
         raise PureLogsResourceError("raw Deflate入力が空です")
     output_limit = min(MAX_INFLATED_BYTES, len(data) * MAX_INFLATED_RATIO)
     if output_limit <= 0:
-        raise PureLogsResourceError("raw Deflate出力上限が不正です")
+        raise PureLogsResourceLimitError("raw Deflate出力上限が不正です")
     inflater = zlib.decompressobj(wbits=-zlib.MAX_WBITS)
     try:
         output = inflater.decompress(data, output_limit + 1)
         if len(output) > output_limit or inflater.unconsumed_tail:
-            raise PureLogsResourceError("raw Deflate出力が安全上限を超えました")
+            raise PureLogsResourceLimitError("raw Deflate出力が安全上限を超えました")
         output += inflater.flush(output_limit + 1 - len(output))
     except zlib.error as exc:
         raise PureLogsResourceError("raw Deflate streamが不正です") from exc
     if len(output) > output_limit:
-        raise PureLogsResourceError("raw Deflate出力が安全上限を超えました")
+        raise PureLogsResourceLimitError("raw Deflate出力が安全上限を超えました")
     if not inflater.eof or inflater.unused_data or inflater.unconsumed_tail:
         raise PureLogsResourceError("raw Deflate stream境界が一意ではありません")
     return output
@@ -201,13 +272,15 @@ def _parse_string_table(data: bytes) -> tuple[str, ...]:
     records: list[str] = []
     while offset < len(data):
         if len(records) >= MAX_RECORD_COUNT:
-            raise PureLogsResourceError("PureLogs文字列件数が安全上限を超えました")
+            raise PureLogsResourceLimitError("PureLogs文字列件数が安全上限を超えました")
         length, offset = _read_7bit_integer(data, offset, limit=len(data))
-        if length > MAX_RECORD_BYTES or length > len(data) - offset:
+        if length > MAX_RECORD_BYTES:
+            raise PureLogsResourceLimitError("PureLogs文字列長が安全上限を超えました")
+        if length > len(data) - offset:
             raise PureLogsResourceError("PureLogs文字列長が不正です")
         total += length
         if total > MAX_RECORD_TOTAL_BYTES:
-            raise PureLogsResourceError("PureLogs文字列総量が安全上限を超えました")
+            raise PureLogsResourceLimitError("PureLogs文字列総量が安全上限を超えました")
         raw = data[offset : offset + length]
         offset += length
         try:
@@ -285,59 +358,110 @@ def decode_purelogs_resource_blob(blob: bytes) -> PureLogsManagedResource:
 def recover_purelogs_managed_strings(
     data: bytes,
 ) -> PureLogsManagedResource | PureLogsYqtyResource | None:
-    """managed PE内で一意なPureLogs文字列resourceだけを返す。"""
+    """managed PE内で一意なPureLogs文字列resourceだけを返す。
 
-    if (
-        not isinstance(data, bytes)
-        or not 0 < len(data) <= MAX_INPUT_BYTES
-        or not has_clr_metadata(data)
-    ):
+    ``None``はmanaged resourceが存在しないか、共通outer
+    profileにcommitするresourceがない場合だけを表す。
+    走査上限、parse未完了、複数候補は型付き例外で上位へ伝播する。
+    """
+
+    if not isinstance(data, bytes) or not data or not has_clr_metadata(data):
         return None
+    if len(data) > MAX_INPUT_BYTES:
+        raise PureLogsResourceLimitError("入力長が安全上限を超えました")
     try:
         image = dnfile.dnPE(data=data, clr_lazy_load=False)
-        resources = list(getattr(getattr(image, "net", None), "resources", ()) or ())
-    except Exception:  # noqa: BLE001 - 壊れたmetadataは候補なしとして拒否する
-        return None
+        resources = tuple(getattr(getattr(image, "net", None), "resources", ()) or ())
+    except Exception as error:
+        raise PureLogsResourceScanIncomplete(
+            "managed metadata/resourceの解析に失敗しました"
+        ) from error
     if len(resources) > MAX_RESOURCE_COUNT:
+        raise PureLogsResourceLimitError("resource件数が安全上限を超えました")
+    if not resources:
         return None
 
+    from extractors.purelogs.yqty_resource import (
+        PureLogsYqtyConflictError,
+        PureLogsYqtyLimitError,
+        PureLogsYqtyScanIncomplete,
+        _outer_profile_committed,
+        _scan_purelogs_yqty_candidates,
+    )
+
     candidates: list[PureLogsManagedResource] = []
+    failed_resource_sha256: set[str] = set()
+    committed_resource_present = False
     total = 0
     for item in resources:
         blob = getattr(item, "data", None)
         if not isinstance(blob, bytes):
+            raise PureLogsResourceScanIncomplete(
+                "managed resource候補をbytesとして解析できません"
+            )
+        if not blob:
             continue
-        if not 0 < len(blob) <= MAX_RESOURCE_BYTES:
-            return None
+        if len(blob) > MAX_RESOURCE_BYTES:
+            raise PureLogsResourceLimitError("resource blob長が安全上限外です")
         total += len(blob)
         if total > MAX_TOTAL_RESOURCE_BYTES:
-            return None
+            raise PureLogsResourceLimitError("resource総量が安全上限を超えました")
+        committed = _outer_profile_committed(blob)
+        committed_resource_present = committed_resource_present or committed
         try:
             recovered = decode_purelogs_resource_blob(blob)
+        except PureLogsResourceLimitError:
+            raise
         except PureLogsResourceError:
+            if committed:
+                failed_resource_sha256.add(hashlib.sha256(blob).hexdigest())
             continue
         anchors = _FAMILY_PATHS.intersection(
             value.casefold() for value in recovered.records
         )
         if len(anchors) >= 3:
             candidates.append(recovered)
-            if len(candidates) > 1:
-                return None
-    legacy = candidates[0] if len(candidates) == 1 else None
+    if not committed_resource_present:
+        return None
+    if len(candidates) > 1:
+        raise PureLogsResourceConflictError(
+            "legacy managed resource候補が複数存在します"
+        )
+    legacy = candidates[0] if candidates else None
 
     # YqTY/Pn5はclear[4:]固定の既存profileとは異なる。Pn5 CIL形状、
     # 上限付き境界探索、完全なstring table、固有path、一意なprotobuf設定を
     # 独立moduleで全て確認し、両profileが同時成立する曖昧入力は拒否する。
-    from extractors.purelogs.yqty_resource import recover_purelogs_yqty_strings
+    try:
+        yqty_scan = _scan_purelogs_yqty_candidates(image, data, resources)
+    except PureLogsYqtyLimitError as error:
+        raise PureLogsResourceLimitError(str(error)) from error
+    except PureLogsYqtyConflictError as error:
+        raise PureLogsResourceConflictError(str(error)) from error
+    except PureLogsYqtyScanIncomplete as error:
+        raise PureLogsResourceScanIncomplete(str(error)) from error
 
-    yqty = recover_purelogs_yqty_strings(data)
-    return _resolve_profile_overlap(legacy, yqty)
+    yqty = yqty_scan.candidate
+    selected = _resolve_profile_overlap(legacy, yqty)
+    success_hashes = {candidate.resource_sha256 for candidate in candidates}
+    if yqty is not None:
+        success_hashes.add(yqty.resource_sha256)
+    failed_resource_sha256.update(yqty_scan.failed_resource_sha256)
+    if failed_resource_sha256 - success_hashes:
+        raise PureLogsResourceScanIncomplete(
+            "managed resource候補集合の解析が完了しませんでした"
+        )
+    return selected
 
 
 __all__ = [
     "PureLogsManagedResource",
+    "PureLogsResourceConflictError",
     "PureLogsResourceError",
+    "PureLogsResourceLimitError",
+    "PureLogsResourceScanIncomplete",
     "decode_purelogs_resource_blob",
     "public_recovery_evidence",
+    "public_scan_failure_evidence",
     "recover_purelogs_managed_strings",
 ]

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import struct
 import zlib
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,6 +10,7 @@ import pytest
 from unpackers import static_unpacker as unpacker
 from unpackers.nsis_static import (
     NsisMember,
+    nsis_listing_public,
     nsis_selection_public,
     parse_nsis_launch_graph,
     parse_nsis_listing,
@@ -35,6 +37,102 @@ def _slt(
         lines.extend(f"{key} = {value}" for key, value in record.items())
         lines.append("")
     return "\n".join(lines)
+
+
+def _pe_wrapped_nsis_slt(
+    *,
+    outer_size: int,
+    embedded_offset: int = 0x300,
+    embedded_size: int = 0x100,
+    embedded_packed_size: int = 0x100,
+    nsis_physical_size: int = 0xFC,
+    nsis_tail_size: int = 4,
+    extra_extent: bool = False,
+    records: list[dict[str, str]] | None = None,
+) -> str:
+    lines = [
+        "7-Zip 26.02 (x64)",
+        "",
+        "--",
+        "Path = input.exe",
+        "Type = PE",
+        f"Physical Size = {outer_size}",
+        "----",
+        "Path = [0]",
+        f"Size = {embedded_size}",
+        f"Packed Size = {embedded_packed_size}",
+        f"Offset = {embedded_offset}",
+    ]
+    if extra_extent:
+        lines.extend(
+            [
+                "--",
+                "Path = [1]",
+                "Size = 8",
+                "Packed Size = 8",
+                "Offset = 16",
+            ]
+        )
+    lines.extend(
+        [
+            "--",
+            "Path = [0]",
+            "Type = Nsis",
+            f"Physical Size = {nsis_physical_size}",
+            f"Tail Size = {nsis_tail_size}",
+            "Method = LZMA:23",
+            "SubType = NSIS-3 Unicode",
+            "",
+            "----------",
+        ]
+    )
+    for record in records or [
+        {
+            "Path": "payload.exe",
+            "Size": "4",
+            "Packed Size": "4",
+            "CRC": "9B0D08F1",
+            "Encrypted": "-",
+        }
+    ]:
+        lines.extend(f"{key} = {value}" for key, value in record.items())
+        lines.append("")
+    return "\n".join(lines)
+
+
+def _minimal_pe_nsis_wrapper_with_certificate_table(
+    *,
+    security_offset: int = 0x400,
+    security_size: int = 0x18,
+    certificate_length: int = 0x18,
+    certificate_type: int = 2,
+    certificate_blob: bytes = b"C" * 0x10,
+    include_security_directory: bool = True,
+) -> bytes:
+    source = bytearray(0x418)
+    source[:2] = b"MZ"
+    struct.pack_into("<I", source, 0x3C, 0x80)
+    source[0x80:0x84] = b"PE\0\0"
+    struct.pack_into("<H", source, 0x84, 0x14C)
+    struct.pack_into("<H", source, 0x86, 1)
+    struct.pack_into("<H", source, 0x94, 0xE0)
+    optional = 0x98
+    struct.pack_into("<H", source, optional, 0x10B)
+    struct.pack_into("<I", source, optional + 60, 0x200)
+    struct.pack_into("<I", source, optional + 92, 16)
+    if include_security_directory:
+        security = optional + 96 + 4 * 8
+        struct.pack_into("<II", source, security, security_offset, security_size)
+    section = optional + 0xE0
+    source[section : section + 8] = b".data\0\0\0"
+    struct.pack_into("<I", source, section + 16, 0x100)
+    struct.pack_into("<I", source, section + 20, 0x200)
+    source[0x300:0x400] = b"N" * 0x100
+    struct.pack_into(
+        "<IHH", source, 0x400, certificate_length, 0x0200, certificate_type
+    )
+    source[0x408:0x418] = certificate_blob[:0x10].ljust(0x10, b"\0")
+    return bytes(source)
 
 
 def test_parse_sevenzip_version_requires_recognized_modern_banner() -> None:
@@ -94,6 +192,147 @@ def test_parse_nsis_listing_fails_closed(
         100,
     )
     assert listing.status == status
+    assert listing.complete is False
+
+
+def test_parse_nsis_listing_accepts_structural_security_directory() -> None:
+    source = _minimal_pe_nsis_wrapper_with_certificate_table()
+    listing = parse_nsis_listing(
+        _pe_wrapped_nsis_slt(outer_size=len(source)),
+        0,
+        len(source),
+        source_data=source,
+    )
+
+    assert listing.status == "listed"
+    assert listing.complete is True
+    assert [member.normalized_name for member in listing.members] == ["payload.exe"]
+    assert nsis_listing_public(listing)["container_envelope"] == {
+        "kind": "pe_wrapper",
+        "container_layout_validated": True,
+        "outer_physical_size": 0x418,
+        "pe_section_raw_end": 0x300,
+        "embedded_offset": 0x300,
+        "embedded_size": 0x100,
+        "embedded_packed_size": 0x100,
+        "nsis_physical_size": 0xFC,
+        "nsis_tail_size": 4,
+        "security_offset": 0x400,
+        "security_size": 0x18,
+        "win_certificate_count": 1,
+        "certificate_table_structure_validated": True,
+        "authenticode_signature_verified": False,
+        "signer_verified": False,
+        "revocation_checked": False,
+    }
+
+
+def test_parse_nsis_listing_accepts_unsigned_pe_ending_at_nsis_extent() -> None:
+    source = _minimal_pe_nsis_wrapper_with_certificate_table(
+        include_security_directory=False
+    )[:0x400]
+    listing = parse_nsis_listing(
+        _pe_wrapped_nsis_slt(outer_size=len(source)),
+        0,
+        len(source),
+        source_data=source,
+    )
+
+    assert listing.status == "listed"
+    assert listing.complete is True
+    assert listing.container_envelope is not None
+    assert listing.container_envelope.security_offset is None
+    assert listing.container_envelope.win_certificate_count == 0
+    envelope = nsis_listing_public(listing)["container_envelope"]
+    assert isinstance(envelope, dict)
+    assert envelope["certificate_table_structure_validated"] is False
+    assert envelope["authenticode_signature_verified"] is False
+    assert envelope["signer_verified"] is False
+    assert envelope["revocation_checked"] is False
+
+
+@pytest.mark.parametrize(
+    ("certificate_type", "certificate_blob"),
+    [
+        (0x1234, b"arbitrary-type"),
+        (2, b""),
+        (2, b"not-pkcs7"),
+    ],
+)
+def test_parse_nsis_listing_does_not_treat_structural_certificate_table_as_verified_signature(
+    certificate_type: int, certificate_blob: bytes
+) -> None:
+    source = _minimal_pe_nsis_wrapper_with_certificate_table(
+        certificate_type=certificate_type,
+        certificate_blob=certificate_blob,
+    )
+
+    listing = parse_nsis_listing(
+        _pe_wrapped_nsis_slt(outer_size=len(source)),
+        0,
+        len(source),
+        source_data=source,
+    )
+
+    assert listing.status == "listed"
+    envelope = nsis_listing_public(listing)["container_envelope"]
+    assert isinstance(envelope, dict)
+    assert envelope["certificate_table_structure_validated"] is True
+    assert envelope["authenticode_signature_verified"] is False
+    assert envelope["signer_verified"] is False
+    assert envelope["revocation_checked"] is False
+
+
+@pytest.mark.parametrize(
+    ("listing_overrides", "pe_overrides"),
+    [
+        ({"outer_size": 0x417}, {}),
+        ({"embedded_offset": 0x301}, {}),
+        ({"embedded_size": 0xFF}, {}),
+        (
+            {
+                "embedded_size": 0xF8,
+                "embedded_packed_size": 0xF8,
+                "nsis_physical_size": 0xF4,
+            },
+            {},
+        ),
+        ({"embedded_packed_size": 0xFF}, {}),
+        ({"nsis_physical_size": 0xFB}, {}),
+        ({"extra_extent": True}, {}),
+        ({}, {"security_offset": 0x408}),
+        ({}, {"security_size": 0x10}),
+        ({}, {"certificate_length": 7}),
+        ({}, {"certificate_length": 0x20}),
+        ({}, {"include_security_directory": False}),
+    ],
+)
+def test_parse_nsis_listing_rejects_unexplained_pe_wrapper_boundaries(
+    listing_overrides: dict[str, object], pe_overrides: dict[str, object]
+) -> None:
+    source = _minimal_pe_nsis_wrapper_with_certificate_table(**pe_overrides)
+    arguments: dict[str, object] = {"outer_size": len(source)}
+    arguments.update(listing_overrides)
+    listing = parse_nsis_listing(
+        _pe_wrapped_nsis_slt(**arguments),
+        0,
+        len(source),
+        source_data=source,
+    )
+
+    assert listing.status == "container_envelope_mismatch"
+    assert listing.complete is False
+    assert listing.members == ()
+
+
+def test_parse_nsis_listing_requires_source_bytes_for_pe_wrapper() -> None:
+    listing = parse_nsis_listing(
+        _pe_wrapped_nsis_slt(outer_size=0x418),
+        0,
+        0x418,
+    )
+
+    assert listing.status == "container_envelope_mismatch"
     assert listing.complete is False
 
 
@@ -157,6 +396,7 @@ def _mock_nsis_tool(
     payload_packed_size: int | None = None,
     test_returncode: int = 0,
     unexpected_output: bool = False,
+    listing_output: str | None = None,
 ) -> None:
     records = []
     for name, blob in (("[NSIS].nsi", script), ("payload.exe", payload)):
@@ -174,7 +414,7 @@ def _mock_nsis_tool(
                 "Encrypted": "-",
             }
         )
-    listing = _slt(len(source), records)
+    listing = listing_output or _slt(len(source), records)
 
     monkeypatch.setattr(
         unpacker,
@@ -249,6 +489,61 @@ def test_nsis_static_extract_seals_tool_source_inventory_crc_and_graph(
     ]
 
 
+def test_nsis_static_extract_reports_structural_certificate_validation_without_signature_claims(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = _minimal_pe_nsis_wrapper_with_certificate_table(
+        certificate_type=0x1234,
+        certificate_blob=b"not-pkcs7",
+    )
+    script = (
+        b"; NSIS script NSIS-3\nSetOutPath $INSTDIR\n"
+        b"File payload.exe\nExec $INSTDIR\\payload.exe\n"
+    )
+    payload = b"MZpayload"
+    records = []
+    for name, blob in (("[NSIS].nsi", script), ("payload.exe", payload)):
+        records.append(
+            {
+                "Path": name,
+                "Size": str(len(blob)),
+                "Packed Size": str(len(blob)),
+                "CRC": f"{zlib.crc32(blob) & 0xFFFFFFFF:08X}",
+                "Encrypted": "-",
+            }
+        )
+    _mock_nsis_tool(
+        monkeypatch,
+        source=source,
+        script=script,
+        payload=payload,
+        listing_output=_pe_wrapped_nsis_slt(
+            outer_size=len(source),
+            records=records,
+        ),
+    )
+
+    report, artifacts = unpacker.nsis_static_extract(
+        source,
+        tmp_path / "7z.exe",
+        max_members=8,
+        max_member_size=1024,
+        max_total_size=4096,
+    )
+
+    assert report["status"] == "extracted"
+    assert report["extraction_complete"] is True
+    envelope = report["container_envelope"]
+    assert envelope["certificate_table_structure_validated"] is True
+    assert envelope["authenticode_signature_verified"] is False
+    assert envelope["signer_verified"] is False
+    assert envelope["revocation_checked"] is False
+    assert [kind for kind, _ in artifacts] == [
+        "nsis-install-script.nsi",
+        "nsis-member-001-pe.exe",
+    ]
+
+
 def test_nsis_static_extract_rejects_failed_archive_test(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -282,7 +577,9 @@ def test_nsis_static_extract_rejects_tool_identity_change(
             {"sha256": "b" * 64, "size": 1234},
         )
     )
-    monkeypatch.setattr(unpacker, "_static_tool_identity", lambda _path: next(identities))
+    monkeypatch.setattr(
+        unpacker, "_static_tool_identity", lambda _path: next(identities)
+    )
 
     report, artifacts = unpacker.nsis_static_extract(source, tmp_path / "7z.exe")
 

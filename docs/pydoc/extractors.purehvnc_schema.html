@@ -1,0 +1,21 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>extractors.purehvnc_schema — API仕様</title></head><body>
+<h1>extractors.purehvnc_schema</h1>
+<p><a href="../../extractors/purehvnc_schema.py">実装</a></p>
+<pre>PureRAT terminal設定の宣言的protobuf schemaと既知profile。</pre>
+<h2>TerminalFieldKind</h2>
+<pre>GClass3で確認済みのprotobuf member種別。</pre>
+<pre>TerminalFieldKind(*values)</pre>
+<h2>TerminalFieldRule</h2>
+<pre>GClass3の1 fieldに対するcodec・静的判定共通規則。</pre>
+<pre>TerminalFieldRule(number: &#x27;int&#x27;, property_name: &#x27;str&#x27;, kind: &#x27;TerminalFieldKind&#x27;, semantic_name: &#x27;str&#x27;, repeated: &#x27;bool&#x27; = False, maximum_utf8_bytes: &#x27;int | None&#x27; = None, allow_empty: &#x27;bool&#x27; = True) -&gt; None</pre>
+<h2>TerminalSchemaProfile</h2>
+<pre>family確定へ利用できる、実検体で確認済みのwire inventory。</pre>
+<pre>TerminalSchemaProfile(name: &#x27;str&#x27;, required_fields: &#x27;frozenset[int]&#x27;, allowed_fields: &#x27;frozenset[int]&#x27;, default_elided_fields: &#x27;frozenset[int]&#x27; = frozenset()) -&gt; None</pre>
+<h2>terminal_default_elided_fields</h2>
+<dl><dt><a name="-terminal_default_elided_fields"><strong>terminal_default_elided_fields</strong></a>(profile_name: 'str | None') -&gt; 'tuple[int, ...]'</dt><dd><span class="code">既知profileでwireから省略された既定値fieldを昇順で返す。</span></dd></dl>
+
+<h2>terminal_schema_profile</h2>
+<dl><dt><a name="-terminal_schema_profile"><strong>terminal_schema_profile</strong></a>(fields: 'Mapping[int, list[Any]]', wire_types: 'Mapping[int, list[int]] | None' = None) -&gt; 'str | None'</dt><dd><span class="code">値と明示wire&nbsp;inventoryから既知GClass3&nbsp;profile名を返す。</span></dd></dl>
+
+</body></html>

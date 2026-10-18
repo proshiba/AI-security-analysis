@@ -1,0 +1,26 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>extractors.remcosrat.strict_config — API仕様</title></head><body>
+<h1>extractors.remcosrat.strict_config</h1>
+<p><a href="../../extractors/remcosrat/strict_config.py">実装</a></p>
+<pre>RemcosのRCDATA/SETTINGSを実行せず厳格に検証・復号する共有実装。</pre>
+<h2>RemcosConfigError</h2>
+<pre>推測や別layoutへの無条件fallbackを防ぐ型付き抽出失敗。</pre>
+<pre>RemcosConfigError(reason: &#x27;str&#x27;, message: &#x27;str&#x27;, *, stage: &#x27;str&#x27;, mapped_layout_retry_eligible: &#x27;bool&#x27; = False) -&gt; &#x27;None&#x27;</pre>
+<dl><dt><a name="-public_reason"><strong>public_reason</strong></a>(self) -&gt; 'dict[str, object]'</dt><dd><span class="code">秘密値や検体断片を含まない機械判定用理由を返す。</span></dd></dl>
+
+<h2>decode_settings_blob</h2>
+<dl><dt><a name="-decode_settings_blob"><strong>decode_settings_blob</strong></a>(resource: 'bytes') -&gt; 'tuple[bytes, bytes, int]'</dt><dd><span class="code">先頭1バイトの鍵長、鍵、暗号文というRemcos形式を復号する。</span></dd></dl>
+
+<h2>extract_config</h2>
+<dl><dt><a name="-extract_config"><strong>extract_config</strong></a>(data: 'bytes') -&gt; 'dict[str, object]'</dt><dd><span class="code">C2と構造情報だけを返し、鍵・private&nbsp;key・認証値を公開しない。</span></dd></dl>
+
+<h2>main</h2>
+<dl><dt><a name="-main"><strong>main</strong></a>() -&gt; 'int'</dt><dd><span class="code">単一PEをoffline解析し、公開可能なJSONだけを出力する。</span></dd></dl>
+
+<h2>parse_decrypted_settings</h2>
+<dl><dt><a name="-parse_decrypted_settings"><strong>parse_decrypted_settings</strong></a>(clear: 'bytes') -&gt; 'dict[str, Any]'</dt><dd><span class="code">復号済み設定を既知field境界で検証し、公開可能な値だけ返す。</span></dd></dl>
+
+<h2>rc4_crypt</h2>
+<dl><dt><a name="-rc4_crypt"><strong>rc4_crypt</strong></a>(data: 'bytes', key: 'bytes') -&gt; 'bytes'</dt><dd><span class="code">標準RC4を純粋なバイト変換として適用する。</span></dd></dl>
+
+</body></html>

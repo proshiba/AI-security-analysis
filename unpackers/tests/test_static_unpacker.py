@@ -108,6 +108,54 @@ def test_static_tool_process_drops_host_secret_environment(
     assert completed.stdout.strip() == "missing"
 
 
+def test_static_tool_process_writes_one_bounded_stdin_line(tmp_path: Path) -> None:
+    """小さいcredentialをargvへ載せずstdinへ1行だけ渡す。"""
+
+    payload = b"synthetic-credential"
+    completed = unpacker._run_static_tool_process(
+        [
+            str(Path(sys.executable).resolve()),
+            "-I",
+            "-B",
+            "-c",
+            (
+                "import sys; data=sys.stdin.buffer.read(); "
+                "print(len(data), data.endswith(b'\\n'), data.count(b'\\n'))"
+            ),
+        ],
+        cwd=tmp_path.resolve(),
+        timeout=10,
+        max_temp_entries=8,
+        max_temp_bytes=1024 * 1024,
+        stdin_payload=payload,
+    )
+
+    assert completed.returncode == 0
+    assert completed.stdout.strip() == f"{len(payload) + 1} True 1"
+    assert payload.decode() not in completed.stdout
+
+
+@pytest.mark.parametrize(
+    "payload",
+    (b"", b"X" * 4097, b"nul\x00byte", b"carriage\rreturn", b"line\nfeed"),
+)
+def test_static_tool_process_rejects_invalid_stdin_payload_before_start(
+    tmp_path: Path,
+    payload: bytes,
+) -> None:
+    """複数行・NUL・過大credentialをprocess起動前に拒否する。"""
+
+    with pytest.raises(ValueError, match="stdin payload contract is invalid"):
+        unpacker._run_static_tool_process(
+            [str(Path(sys.executable).resolve()), "-I", "-B", "-c", "pass"],
+            cwd=tmp_path.resolve(),
+            timeout=10,
+            max_temp_entries=8,
+            max_temp_bytes=1024 * 1024,
+            stdin_payload=payload,
+        )
+
+
 def test_static_tool_process_rejects_bounded_stdout_overflow(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -474,6 +522,26 @@ def test_classic_upx_structure_requires_unpack_target_and_entry_stub() -> None:
 
     assert unpacker._has_classic_upx_structure(superficial) is False
     assert unpacker._has_classic_upx_structure(classic) is True
+
+
+def test_classic_upx_candidate_without_trusted_tool_is_explicitly_incomplete(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """UPX候補をtool未指定時に黙って完全解析済みとして扱わない。"""
+
+    monkeypatch.setattr(unpacker, "_has_classic_upx_structure", lambda _summary: True)
+
+    report, artifacts = unpacker.unpack_bytes(minimal_pe(), "packed.exe")
+
+    assert report["upx"] == {
+        "status": "tool_not_configured",
+        "candidate": True,
+        "complete": False,
+        "executed": False,
+        "sample_executed": False,
+        "network_contacted": False,
+    }
+    assert artifacts == []
 
 
 def test_gdpf_pdf_footer_is_recovered_from_validated_pe_overlay() -> None:
@@ -1513,6 +1581,131 @@ def test_sevenzip_inventory_forces_utf8_and_replaces_invalid_output(
     assert report["members"] == ["member-�.bin"]
 
 
+def test_sevenzip_inventory_caps_all_auxiliary_member_collections(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """大量listingで公開名・内部record・size配列を無制限に保持しない。"""
+
+    executable = tmp_path / "7z.exe"
+    executable.write_bytes(b"fixture")
+    monkeypatch.setattr(unpacker, "MAX_ARCHIVE_MEMBERS", 2)
+    monkeypatch.setattr(unpacker, "MAX_SEVENZIP_LISTING_MEMBER_RECORDS", 3)
+    listing = "".join(
+        f"Path = member-{index}.bin\nType = 7z\nSize = {index + 1}\nAttributes = A\n"
+        for index in range(6)
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "_run_static_tool_process",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=listing,
+            stderr="",
+        ),
+    )
+
+    report = unpacker.sevenzip_inventory(b"fixture", executable)
+
+    assert report["members"] == ["member-0.bin", "member-1.bin"]
+    assert report["total_members"] == 6
+    assert report["declared_total_size"] == sum(range(1, 7))
+    assert len(report["_member_records"]) == 3
+    assert report["member_record_limit_exceeded"] is True
+
+
+def test_sevenzip_inventory_retries_header_encryption_via_stdin(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """暗号化headerの明示時だけcredentialをstdinへ1回渡す。"""
+
+    executable = tmp_path / "7z.exe"
+    executable.write_bytes(b"fixture")
+    sentinel = "synthetic-archive-credential"
+    calls: list[tuple[list[str], bytes | None]] = []
+
+    def fake_run(command: list[str], **kwargs):
+        stdin_payload = kwargs.get("stdin_payload")
+        calls.append((command, stdin_payload))
+        if len(calls) == 1:
+            return SimpleNamespace(
+                returncode=2,
+                stdout="Enter password (will not be echoed):",
+                stderr="Headers Error",
+            )
+        source = command[-1]
+        return SimpleNamespace(
+            returncode=0,
+            stdout=(
+                f"Path = {source}\nType = 7z\n"
+                "Path = payload.exe\nSize = 9\nAttributes = A\n"
+            ),
+            stderr="",
+        )
+
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
+    report = unpacker.sevenzip_inventory(b"fixture", executable, sentinel)
+
+    assert len(calls) == 2
+    assert calls[0][1] is None
+    assert calls[1][1] == sentinel.encode("utf-8")
+    assert all(not value.startswith("-p") for command, _ in calls for value in command)
+    assert sentinel not in repr(report)
+    assert report["status"] == "listed"
+    assert report["members"] == ["payload.exe"]
+    assert report["archive_unlock_attempted"] is True
+    assert report["credential_transport"] == "stdin_one_line"
+
+
+def test_sevenzip_inventory_forced_probe_rejects_plain_pe_as_non_archive(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """通常PEの失敗probeを暗号化archiveの未走査扱いにしない。"""
+
+    executable = tmp_path / "7z.exe"
+    executable.write_bytes(b"fixture")
+    monkeypatch.setattr(
+        unpacker,
+        "_run_static_tool_process",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=2,
+            stdout="",
+            stderr="Cannot open the file as archive",
+        ),
+    )
+
+    report = unpacker.sevenzip_inventory(b"MZplain-pe-fixture", executable)
+
+    assert report["status"] == "not_archive_container"
+    assert report["archive_types"] == []
+    assert report["total_members"] == 0
+    assert report["archive_unlock_attempted"] is False
+
+
+def test_sevenzip_inventory_keeps_recognized_archive_failure_incomplete(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """認識済み7z構造の失敗は未走査としてfail closedに保つ。"""
+
+    executable = tmp_path / "7z.exe"
+    executable.write_bytes(b"fixture")
+    monkeypatch.setattr(
+        unpacker,
+        "_run_static_tool_process",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=2,
+            stdout="",
+            stderr="Data error",
+        ),
+    )
+
+    report = unpacker.sevenzip_inventory(
+        b"7z\xbc\xaf'\x1c" + b"\x00" * 32,
+        executable,
+    )
+
+    assert report["status"] == "encrypted_or_unsupported"
+
+
 def test_select_high_value_archive_members_prioritizes_application_code() -> None:
     """大規模Electronアーカイブでは依存ライブラリよりアプリ本体を優先する。"""
 
@@ -1598,6 +1791,52 @@ def test_sevenzip_unsafe_member_blocks_before_external_extraction(
     assert report["unsafe_member_count"] == 1
     assert report["external_extraction_started"] is False
     assert runner_called is False
+    assert artifacts == []
+
+
+def test_sevenzip_member_record_hard_cap_blocks_before_validation_and_extraction(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """大量memberの一覧を保持・二次検査せず外部展開前に停止する。"""
+
+    records = [
+        {"name": f"safe/member-{index}.bin", "size": 0, "attributes": "A"}
+        for index in range(3)
+    ]
+    monkeypatch.setattr(unpacker, "MAX_SEVENZIP_LISTING_MEMBER_RECORDS", 2)
+    monkeypatch.setattr(
+        unpacker,
+        "sevenzip_inventory",
+        lambda *_args, **_kwargs: {
+            "status": "listed",
+            "archive_types": ["7z"],
+            "members": [item["name"] for item in records],
+            "total_members": len(records),
+            "declared_total_size": 0,
+            "archive_unlock_attempted": False,
+            "_member_records": records,
+        },
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "_run_static_tool_process",
+        lambda *_args, **_kwargs: pytest.fail(
+            "member record上限超過後に外部展開してはならない"
+        ),
+    )
+
+    report, artifacts = unpacker.sevenzip_extract(
+        b"7zfixture",
+        tmp_path / "7z.exe",
+        max_members=8,
+        max_member_size=1024,
+        max_total_size=1024,
+    )
+
+    assert report["status"] == "member_record_limit_blocked"
+    assert report["maximum_member_records"] == 2
+    assert report["external_extraction_started"] is False
     assert artifacts == []
 
 
@@ -2491,6 +2730,93 @@ def test_managed_eaz_resource_reaches_fixed_point_without_opaque_duplicate(
     assert ("dotnet-resource-opaque", retained) in artifacts
 
 
+def test_managed_eaz_remcos_reaches_fixed_point_without_opaque_duplicate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Eaz/Remcos終端PEを再帰queueへ渡し、元ResourceSetだけを除く。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": False,
+                "is_dotnet": True,
+                "sections": [],
+                "packer_markers": [],
+                "overlay_size": 0,
+            },
+            [],
+        ),
+    )
+    container = b"synthetic Eaz ResourceSet"
+    terminal = b"MZ exact structural terminal"
+    retained = b"unrelated opaque resource"
+    container_sha256 = unpacker.sha256_bytes(container)
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_eaz_remcos",
+        lambda _data: (
+            {
+                "status": "recovered_terminal_pe",
+                "resource_set": {"container_sha256": container_sha256},
+                "family_attribution_allowed": False,
+                "c2_confirmation_allowed": False,
+                "terminal_promotion_eligible": False,
+                "raw_key_published": False,
+                "raw_string_table_published": False,
+                "raw_config_published": False,
+            },
+            [("managed-eaz-remcos-terminal-pe", terminal)],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_eaz_resource",
+        lambda _data: ({"status": "not_applicable"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_omlx_tripledes",
+        lambda _data: ({"status": "not_applicable"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_omlx_direct_tripledes",
+        lambda _data: ({"status": "not_applicable"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_dotnet_resources",
+        lambda _data: (
+            {"status": "resource_recovered"},
+            [
+                ("dotnet-resource-opaque", container),
+                ("dotnet-resource-opaque", retained),
+            ],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_smartassembly_strings",
+        lambda _data: ({"status": "not_recovered"}, []),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(b"MZfixture", "fixture.exe")
+
+    recipe = report["managed_eaz_remcos"]
+    assert recipe["family_attribution_allowed"] is False
+    assert recipe["c2_confirmation_allowed"] is False
+    assert recipe["terminal_promotion_eligible"] is False
+    assert recipe["raw_key_published"] is False
+    assert recipe["raw_string_table_published"] is False
+    assert recipe["raw_config_published"] is False
+    assert ("managed-eaz-remcos-terminal-pe", terminal) in artifacts
+    assert ("dotnet-resource-opaque", container) not in artifacts
+    assert ("dotnet-resource-opaque", retained) in artifacts
+
+
 def test_managed_omlx_tripledes_preserves_report_and_terminal_lineage(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2618,6 +2944,141 @@ def test_managed_omlx_tripledes_rejection_never_emits_a_terminal_artifact(
         "terminal_config_markers_confirmed": False,
     }
     assert not any(kind == "managed-omlx-tripledes-gzip-pe" for kind, _ in artifacts)
+
+
+def test_managed_omlx_direct_tripledes_replaces_opaque_resourceset_container(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """同一ResourceSet終端を復元した場合はopaque containerを重複保持しない。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": False,
+                "is_dotnet": True,
+                "sections": [],
+                "packer_markers": [],
+                "overlay_size": 0,
+            },
+            [],
+        ),
+    )
+    container = b"synthetic ResourceSet container"
+    terminal = b"MZ synthetic managed terminal"
+    container_sha256 = unpacker.sha256_bytes(container)
+    terminal_sha256 = unpacker.sha256_bytes(terminal)
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_omlx_direct_tripledes",
+        lambda _data: (
+            {
+                "status": "recovered_managed_omlx_direct_tripledes",
+                "terminal_resource": {"container": {"sha256": container_sha256}},
+                "output": {"sha256": terminal_sha256, "format": "managed_pe"},
+                "family_attribution_allowed": False,
+            },
+            [("managed-omlx-direct-tripledes-gzip-pe", terminal)],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_omlx_tripledes",
+        lambda _data: ({"status": "not_applicable"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_eaz_resource",
+        lambda _data: ({"status": "not_applicable"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_dotnet_resources",
+        lambda _data: (
+            {"status": "resource_recovered"},
+            [("dotnet-resource-opaque", container)],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_smartassembly_strings",
+        lambda _data: ({"status": "not_recovered"}, []),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(b"MZfixture", "fixture.exe")
+
+    assert report["managed_omlx_direct_tripledes"]["output"] == {
+        "sha256": terminal_sha256,
+        "format": "managed_pe",
+    }
+    assert ("managed-omlx-direct-tripledes-gzip-pe", terminal) in artifacts
+    assert ("dotnet-resource-opaque", container) not in artifacts
+
+
+def test_managed_omlx_direct_deadline_isolated_and_later_stage_continues(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """direct OMLXの期限超過をstage拒否へ収容し、後続静的stageを継続する。"""
+
+    _stub_inno_routing_dependencies(monkeypatch)
+    monkeypatch.setattr(
+        unpacker,
+        "pe_summary",
+        lambda _data: (
+            {
+                "containerized": False,
+                "is_dotnet": True,
+                "sections": [],
+                "packer_markers": [],
+                "overlay_size": 0,
+            },
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_eaz_resource",
+        lambda _data: ({"status": "not_applicable"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_omlx_tripledes",
+        lambda _data: ({"status": "not_applicable"}, []),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_omlx_direct_tripledes",
+        lambda _data: (_ for _ in ()).throw(
+            unpacker.OmlxTripledesError("elapsed_time_limit")
+        ),
+    )
+    later = b"later stage artifact"
+    monkeypatch.setattr(
+        unpacker,
+        "recover_dotnet_resources",
+        lambda _data: (
+            {"status": "resource_recovered"},
+            [("dotnet-resource-opaque", later)],
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_managed_smartassembly_strings",
+        lambda _data: ({"status": "not_recovered"}, []),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(b"MZfixture", "fixture.exe")
+
+    assert report["managed_omlx_direct_tripledes"] == {
+        "status": "rejected",
+        "reason": "elapsed_time_limit",
+        "sample_execution": False,
+        "external_communication": False,
+        "family_attribution_allowed": False,
+    }
+    assert ("dotnet-resource-opaque", later) in artifacts
 
 
 def test_managed_bitmap_argb_xor_is_routed_once_without_family_promotion(
@@ -2792,12 +3253,12 @@ def test_sevenzip_inno_inventory_never_reuses_generic_archive_password(
 
 
 @pytest.mark.parametrize("archive_type", ["ZIP", "7z", "Rar5"])
-def test_sevenzip_external_encrypted_archives_block_without_credential_argv(
+def test_sevenzip_external_encrypted_archives_use_stdin_and_fail_closed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     archive_type: str,
 ) -> None:
-    """外部ZIP/7z/RARへcredentialを渡せない場合は明示blockedへ閉じる。"""
+    """外部ZIP/7z/RARへstdinでcredentialを渡し、失敗成果物を採用しない。"""
 
     sentinel = "outer-archive-sentinel"
     inventory_passwords: list[str] = []
@@ -2814,8 +3275,9 @@ def test_sevenzip_external_encrypted_archives_block_without_credential_argv(
             "archive_unlock_attempted": bool(password),
         }
 
-    def fake_run(command: list[str], **_kwargs):
+    def fake_run(command: list[str], **kwargs):
         commands.append(command)
+        assert kwargs["stdin_payload"] == sentinel.encode("utf-8")
         return SimpleNamespace(returncode=2, stdout="", stderr="data error")
 
     monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
@@ -2826,13 +3288,14 @@ def test_sevenzip_external_encrypted_archives_block_without_credential_argv(
         password=sentinel,
     )
 
-    assert inventory_passwords == [""]
+    assert inventory_passwords == [sentinel]
     assert len(commands) == 1
     assert all(sentinel not in argument for argument in commands[0])
     assert all(not argument.startswith("-p") for argument in commands[0])
     assert sentinel not in repr(report)
-    assert report["status"] == "credential_transport_unsupported"
-    assert report["archive_unlock_attempted"] is False
+    assert report["status"] == "credential_or_archive_rejected"
+    assert report["archive_unlock_attempted"] is True
+    assert report["credential_transport"] == "stdin_one_line"
     assert artifacts == []
 
 
@@ -2880,10 +3343,10 @@ def test_sevenzip_empty_member_is_inventory_only(
     assert artifacts == []
 
 
-def test_sevenzip_rar_does_not_retry_known_password_in_external_argv(
+def test_sevenzip_rar_uses_known_password_only_via_stdin(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """RARの既知候補も外部process argvへ載せず明示blockedへ閉じる。"""
+    """RARの既知credentialをstdinだけで渡し、誤りならfail closedにする。"""
 
     commands: list[list[str]] = []
 
@@ -2897,8 +3360,9 @@ def test_sevenzip_rar_does_not_retry_known_password_in_external_argv(
             "archive_unlock_attempted": bool(password),
         }
 
-    def fake_run(command, **_kwargs):
+    def fake_run(command, **kwargs):
         commands.append(command)
+        assert kwargs["stdin_payload"] == b"infected"
         output_arg = next(item for item in command if item.startswith("-o"))
         output = Path(output_arg[2:])
         output.mkdir(parents=True)
@@ -2914,8 +3378,9 @@ def test_sevenzip_rar_does_not_retry_known_password_in_external_argv(
 
     assert len(commands) == 1
     assert all(not argument.startswith("-p") for argument in commands[0])
-    assert report["status"] == "credential_transport_unsupported"
-    assert report["archive_unlock_attempted"] is False
+    assert report["status"] == "credential_or_archive_rejected"
+    assert report["archive_unlock_attempted"] is True
+    assert report["credential_transport"] == "stdin_one_line"
     assert "WNcry@2ol7" not in repr(report)
     assert artifacts == []
 
@@ -2979,6 +3444,60 @@ def test_sevenzip_preflight_uses_caller_member_limit(
     )
     assert report["status"] == "member_limit_blocked"
     assert artifacts == []
+
+
+def test_script_routes_remcos_multistage_recoveries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RemcosのJS/PowerShell復元結果をfixed-point解析用artifactへ渡す。"""
+
+    tea_script = b"$tea='recovered'"
+    base52_script = b"$base52='recovered'"
+    table_pe = b"MZtable-pe"
+    base52_pe = b"MZbase52-pe"
+    monkeypatch.setattr(
+        unpacker,
+        "recover_remcos_javascript_tea_rc4",
+        lambda _data: SimpleNamespace(
+            report={"status": "powershell_recovered"},
+            script=tea_script,
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_remcos_javascript_base52",
+        lambda _data: SimpleNamespace(
+            report={"status": "powershell_recovered"},
+            script=base52_script,
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_remcos_powershell_table_gzip",
+        lambda _data: SimpleNamespace(
+            report={"status": "pe_recovered"},
+            artifacts=(("remcos-table-gzip-pe", table_pe),),
+        ),
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_remcos_powershell_base52_pes",
+        lambda _data: SimpleNamespace(
+            report={"status": "pe_recovered"},
+            artifacts=(("remcos-base52-pe-0", base52_pe),),
+        ),
+    )
+
+    report, artifacts = unpacker.unpack_bytes(b"var harmless=1;", "carrier.js")
+
+    assert report["remcos_javascript_tea_rc4"]["status"] == "powershell_recovered"
+    assert report["remcos_javascript_base52"]["status"] == "powershell_recovered"
+    assert report["remcos_powershell_table_gzip"]["status"] == "pe_recovered"
+    assert report["remcos_powershell_base52"]["status"] == "pe_recovered"
+    assert ("remcos-tea-rc4-powershell-script", tea_script) in artifacts
+    assert ("remcos-base52-powershell-script", base52_script) in artifacts
+    assert ("remcos-table-gzip-pe", table_pe) in artifacts
+    assert ("remcos-base52-pe-0", base52_pe) in artifacts
 
 
 def test_unpack_and_cli(tmp_path: Path) -> None:
@@ -3161,6 +3680,279 @@ def test_recover_ole_streams_fails_closed_on_member_limit(
     )
     assert report["status"] == "member_limit_blocked"
     assert artifacts == []
+
+
+def test_javascript_skips_vbscript_constant_sink_parser(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """明示的なJavaScriptを他言語parserの上限超過として誤降格しない。"""
+
+    def fail_if_called(_data: bytes):
+        raise AssertionError("VBScript専用parserがJavaScriptへ呼ばれました")
+
+    monkeypatch.setattr(
+        unpacker,
+        "recover_vbscript_constant_sinks",
+        fail_if_called,
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_powershell_cyclic_xor_calls",
+        fail_if_called,
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "recover_batch_env_powershell",
+        fail_if_called,
+    )
+    report, _artifacts = unpacker.unpack_bytes(
+        b"function sample(){ return 1; }" + b"A" * (2 * 1024 * 1024),
+        "delivery.js",
+    )
+
+    assert report["vbscript_constant_sink"] == {
+        "schema_version": 1,
+        "status": "not_applicable_non_vbscript",
+        "candidate_set_complete": True,
+        "candidate_count": 0,
+        "candidates": [],
+        "applicability": {
+            "script_suffix": ".js",
+            "known_vbscript_suffix": False,
+            "known_non_vbscript_suffix": True,
+            "strict_profile_lexical_signal": False,
+            "strict_profile_lexical_encoding": None,
+            "lexical_scan_scope": "full_input",
+        },
+        "safety": {
+            "sample_executed": False,
+            "network_contacted": False,
+            "general_vbscript_interpreter_used": False,
+            "raw_source_included": False,
+        },
+    }
+    assert report["powershell_cyclic_xor_calls"]["status"] == (
+        "not_applicable_non_powershell"
+    )
+    assert report["powershell_cyclic_xor_calls"]["candidate_set_complete"] is True
+    assert report["batch_env_powershell"]["status"] == "not_applicable_non_batch"
+    assert report["batch_env_powershell"]["candidate_set_complete"] is True
+
+
+def _powershell_cyclic_lexical_fixture() -> bytes:
+    arrays = b"\n".join([b"$x=@(1,2,3,4)"] * 5)
+    calls = b"\n".join([b"Decode 'QUJDREVGRw=='"] * 4)
+    return arrays + b"\nfunction Decode($value){$x=1}\n" + calls
+
+
+def _batch_env_powershell_lexical_fixture() -> bytes:
+    return (
+        b'@set "Payload=$x=[Math]::Abs(1);function X{$x=1}"\n'
+        b'set "Runner=%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"\n'
+        b'echo %%Payload%% | "%Runner%" -windowstyle hidden -\n'
+    )
+
+
+def test_javascript_with_strict_powershell_signal_routes_cyclic_parser(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """拡張子がJSでも厳格profile字句が揃えばPowerShell parserへ渡す。"""
+
+    calls: list[bytes] = []
+
+    def fake_recover(data: bytes):
+        calls.append(data)
+        return {"status": "pattern_not_found", "candidate_set_complete": True}, []
+
+    source = _powershell_cyclic_lexical_fixture()
+    monkeypatch.setattr(
+        unpacker,
+        "recover_powershell_cyclic_xor_calls",
+        fake_recover,
+    )
+
+    report, _artifacts = unpacker.unpack_bytes(source, "embedded.js")
+
+    assert calls == [source]
+    assert report["powershell_cyclic_xor_calls"]["status"] == "pattern_not_found"
+
+
+def test_javascript_with_partial_powershell_signal_remains_not_applicable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """単一array/functionだけではPowerShell例外適用を開始しない。"""
+
+    monkeypatch.setattr(
+        unpacker,
+        "recover_powershell_cyclic_xor_calls",
+        lambda _data: pytest.fail("不完全な字句でPowerShell parserが開始された"),
+    )
+
+    report, _artifacts = unpacker.unpack_bytes(
+        b"function Decode($value){$x=@(1,2,3,4)}",
+        "embedded.js",
+    )
+
+    assert report["powershell_cyclic_xor_calls"]["status"] == (
+        "not_applicable_non_powershell"
+    )
+
+
+def test_javascript_with_strict_batch_signal_routes_batch_parser(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """拡張子がJSでも同一変数のBatch set/sinkが揃えば専用parserへ渡す。"""
+
+    calls: list[bytes] = []
+
+    def fake_recover(data: bytes):
+        calls.append(data)
+        return {"status": "pattern_not_found", "candidate_set_complete": True}, []
+
+    source = _batch_env_powershell_lexical_fixture()
+    monkeypatch.setattr(unpacker, "recover_batch_env_powershell", fake_recover)
+
+    report, _artifacts = unpacker.unpack_bytes(source, "embedded.js")
+
+    assert calls == [source]
+    assert report["batch_env_powershell"]["status"] == "pattern_not_found"
+
+
+def test_unknown_suffix_requires_content_gate_for_specialized_parsers() -> None:
+    """未知suffixは厳格profile字句がある専用parserだけを適用対象にする。"""
+
+    powershell_applicable, powershell_evidence = (
+        unpacker._specialized_script_parser_applicability(
+            _powershell_cyclic_lexical_fixture(),
+            "recovered-script",
+            known_suffixes=unpacker._KNOWN_POWERSHELL_SUFFIXES,
+            signal_detector=unpacker._powershell_cyclic_profile_signal,
+        )
+    )
+    batch_applicable, batch_evidence = (
+        unpacker._specialized_script_parser_applicability(
+            _batch_env_powershell_lexical_fixture(),
+            "recovered-script",
+            known_suffixes=unpacker._KNOWN_BATCH_SUFFIXES,
+            signal_detector=unpacker._batch_env_powershell_profile_signal,
+        )
+    )
+
+    assert powershell_applicable is True
+    assert powershell_evidence["strict_profile_lexical_encoding"] == "ascii"
+    assert batch_applicable is True
+    assert batch_evidence["strict_profile_lexical_encoding"] == "ascii"
+
+
+@pytest.mark.parametrize(
+    ("name", "known_suffixes", "detector"),
+    (
+        (
+            "plain.ps1",
+            unpacker._KNOWN_POWERSHELL_SUFFIXES,
+            unpacker._powershell_cyclic_profile_signal,
+        ),
+        (
+            "plain.bat",
+            unpacker._KNOWN_BATCH_SUFFIXES,
+            unpacker._batch_env_powershell_profile_signal,
+        ),
+        (
+            "plain.cmd",
+            unpacker._KNOWN_BATCH_SUFFIXES,
+            unpacker._batch_env_powershell_profile_signal,
+        ),
+    ),
+)
+def test_known_specialized_suffix_preserves_existing_parser_routing(
+    name: str,
+    known_suffixes: frozenset[str],
+    detector,
+) -> None:
+    """既知PowerShell/Batch suffixは内容signalが薄くても従来通り適用する。"""
+
+    applicable, evidence = unpacker._specialized_script_parser_applicability(
+        b"harmless placeholder",
+        name,
+        known_suffixes=known_suffixes,
+        signal_detector=detector,
+    )
+
+    assert applicable is True
+    assert evidence["known_profile_suffix"] is True
+    assert evidence["strict_profile_lexical_signal"] is False
+
+
+def test_vbscript_suffix_routes_constant_sink_parser(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """VBS入力は内容signalが薄くても専用parserへ渡す。"""
+
+    calls: list[bytes] = []
+
+    def fake_recover(data: bytes):
+        calls.append(data)
+        return {
+            "status": "pattern_not_found",
+            "candidate_set_complete": True,
+            "candidates": [],
+        }, []
+
+    monkeypatch.setattr(
+        unpacker,
+        "recover_vbscript_constant_sinks",
+        fake_recover,
+    )
+    report, _artifacts = unpacker.unpack_bytes(b"Dim value", "delivery.vbs")
+
+    assert calls == [b"Dim value"]
+    assert report["vbscript_constant_sink"]["status"] == "pattern_not_found"
+
+
+def test_hta_constant_command_is_queued_for_fixed_point_analysis() -> None:
+    """HTAの定数Run commandを非実行の次層artifactとして返す。"""
+
+    data = b"""<!doctype html><html><script type="text/vbscript">
+Dim sh, payload
+Set sh = CreateObject(Chr(87) & "Script.Shell")
+payload = "PowerShell -NoProfile -EncodedCommand QQ=="
+sh.Run Chr(34) & sh.ExpandEnvironmentStrings("%COMSPEC%") & Chr(34) & " /c " & payload, 0
+</script></html>"""
+    report, artifacts = unpacker.unpack_bytes(data, "delivery.hta")
+
+    assert report["hta_constant_command"]["status"] == "artifacts_recovered"
+    assert report["hta_constant_command"]["candidate_set_complete"] is True
+    assert (
+        "hta-constant-powershell-command.cmd",
+        b"PowerShell -NoProfile -EncodedCommand QQ==",
+    ) in artifacts
+
+
+def test_unknown_script_suffix_scans_late_vbscript_profile_signal() -> None:
+    """不明suffixでは先頭1 MiB以降のVBScript anchorも見落とさない。"""
+
+    applicable, evidence = unpacker._vbscript_constant_sink_applicability(
+        b"A" * (1024 * 1024 + 17) + b" Function Decode(x)\nEnd Function\nExecute value",
+        "recovered-script",
+    )
+
+    assert applicable is True
+    assert evidence["strict_profile_lexical_signal"] is True
+    assert evidence["strict_profile_lexical_encoding"] == "ascii"
+    assert evidence["lexical_scan_scope"] == "full_input"
+
+
+def test_unknown_script_suffix_routes_utf16le_bom_profile_signal() -> None:
+    """不明suffixのUTF-16LE VBScript候補も専用parserへ残す。"""
+
+    source = "Function Decode(x)\r\nEnd Function\r\nExecute value".encode("utf-16-le")
+    applicable, evidence = unpacker._vbscript_constant_sink_applicability(
+        b"\xff\xfe" + source,
+        "recovered-script",
+    )
+
+    assert applicable is True
+    assert evidence["strict_profile_lexical_encoding"] == "utf-16-le-bom"
 
 
 def test_cab_inventory_filters_paths_and_respects_size() -> None:
@@ -3566,3 +4358,17 @@ def test_whole_file_base64_unknown_carrier_recovery() -> None:
     assert expected[0] in artifacts
     assert unpacker.recover_whole_file_base64(b"prefix" + encoded) == []
     assert unpacker.recover_whole_file_base64(encoded[:-1]) == []
+
+
+def test_unrelated_data_does_not_make_remcos_candidate_set_incomplete() -> None:
+    """通常data層のRemcos非該当結果は完全なnegativeとして扱う。"""
+
+    report, _artifacts = unpacker.unpack_bytes(
+        b"opaque benign data",
+        "opaque.bin",
+    )
+
+    remcos = report["remcos_native_constant_writer"]
+    assert remcos["status"] == "not_applicable_profile"
+    assert remcos["candidate_set_complete"] is True
+    assert remcos["candidate_set_truncated"] is False

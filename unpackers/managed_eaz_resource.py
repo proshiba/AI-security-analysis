@@ -167,6 +167,8 @@ class _DecodedMethod:
     token: int
     code_size: int
     instructions: tuple[Instruction, ...]
+    exception_handler_count: int = 0
+    has_extra_sections: bool = False
 
 
 @contextmanager
@@ -340,7 +342,18 @@ def _decode_method(
     ):
         raise RecoveryError("method_offsets_not_strictly_increasing")
     _check_time(deadline, clock)
-    return _DecodedMethod(token, code_size, instructions)
+    exception_handler_count = len(list(getattr(body, "exception_handlers", ()) or ()))
+    header_kind = bounded[0] & 0x03
+    has_extra_sections = bool(
+        header_kind == 0x03 and struct.unpack_from("<H", bounded, 0)[0] & 0x08
+    )
+    return _DecodedMethod(
+        token,
+        code_size,
+        instructions,
+        exception_handler_count,
+        has_extra_sections,
+    )
 
 
 def _metadata_row_count(pe: Any) -> int:
@@ -524,12 +537,11 @@ def _dispatcher_profile(
     if index < 3:
         raise RecoveryError("dispatcher_prologue_missing")
     state = _local(instructions[index - 2], "stloc")
-    if (
-        _constant(instructions[index - 3]) is None
-        or state is None
-        or _local(instructions[index - 1], "ldloc") != state
-    ):
-        raise RecoveryError("dispatcher_prologue_mismatch")
+    direct_prologue = (
+        _constant(instructions[index - 3]) is not None
+        and state is not None
+        and _local(instructions[index - 1], "ldloc") == state
+    )
     targets = tuple(instructions[index].operand)
     by_offset = {item.offset for item in instructions}
     if any(
@@ -539,6 +551,33 @@ def _dispatcher_profile(
         for target in targets
     ):
         raise RecoveryError("dispatcher_target_invalid")
+
+    # 一部buildは初期stateを保存後、明示branchで ``ldloc; switch`` へ入る。
+    # その2命令だけをdispatcher復帰点として扱い、任意prologueやextensionは
+    # 許さない。stateの初期値、保存先、branch targetをすべて命令境界へ束縛する。
+    if not direct_prologue:
+        if index < 4:
+            raise RecoveryError("dispatcher_prologue_mismatch")
+        initial = _constant(instructions[index - 4])
+        state = _local(instructions[index - 3], "stloc")
+        branch = instructions[index - 2]
+        load = instructions[index - 1]
+        if (
+            initial is None
+            or state is None
+            or branch.opcode not in {"br", "br.s"}
+            or _branch_target(branch) != load.offset
+            or _local(load, "ldloc") != state
+        ):
+            raise RecoveryError("dispatcher_prologue_mismatch")
+        return (
+            index,
+            targets,
+            state,
+            frozenset({load.offset, instructions[index].offset}),
+            {},
+        )
+
     dispatch_offsets = frozenset(
         {
             instructions[index - 2].offset,
