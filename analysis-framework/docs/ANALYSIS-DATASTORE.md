@@ -64,6 +64,45 @@ py -3.13 .\analysis-framework\common\archive_analysis_datastore.py `
 
 各caseを `stage → archive → upload → remote検証 → receipt保存` の順で完了させてから次のcaseへ進みます。remote検証receiptを照合するまでは、そのcase stagingを削除しません。検証後に削除してよいのは、archive時のsource-tree SHA-256、file数、総sizeと再照合できた、helper作成の当該case owned stagingだけです。元のsource、one-shot結果、Ghidra結果は自動削除しません。
 
+### 自動解析Cycleをroot case単位へ分離する
+
+ValleyRATなどの反復holdout Cycleで生成したsource treeと解析run treeも、directory全体を `archive_analysis_datastore.py` へ直接渡しません。完了済みの公式runに対し、次の前段helperをroot case 1件ずつ実行します。ここでいうroot caseはsource manifestの `selected_hashes` に含まれる1件です。development再解析や中断runを公式runへ混ぜません。
+
+```powershell
+py -3.13 .\analysis-framework\common\stage_cycle_case_analysis_datastore.py `
+  --repository C:\work\AI-security-analysis `
+  --collection-id valleyrat-auto-cycle-example `
+  --source-root C:\private\cycle-example\source `
+  --run-root C:\private\cycle-example\official-run `
+  --output-root C:\private\cycle-example\case-datastore-staging `
+  --case-sha256 <root case SHA-256>
+```
+
+helperは、次の境界をすべて確認できた場合だけrepository外にstaging directoryを作成します。
+
+1. source manifestが完全・非実行・暗号化維持を宣言し、選択集合、directory集合、ZIPのsize／SHA-256が一致する。
+2. run rootが `cases`、`summary.json`、`follow-on-analysis.json`、`terminal-payload-acquisition.json` だけから成り、`ABORTED` markerや未束縛entryがない。
+3. 全root／derived caseが `complete` で、summaryにpartial、failed、error、未解析subsetがない。
+4. follow-on graphを既存の終端payload契約で再検証でき、terminal成果物がその決定的生成結果と一致する。
+5. 各復元payloadが親case配下の正規化済み相対pathにある独立した通常fileで、edgeのsize／SHA-256と一致する。
+6. 選択rootから到達するderived graphが別rootと共有されず、別root caseの明示的な `case_sha256` 参照がstagingへ混入しない。
+7. 入力fileを単一handleで秘密値／不要なhost path走査、SHA-256、file identityへ固定し、物理copy時とpromotion後に再照合できる。
+
+出力はrole別に分離されます。
+
+- `source/<root SHA-256>/`: 取得済みの暗号化source ZIP
+- `cycle-analysis/<root SHA-256>/`: 選択rootのcase出力
+- `recovered-payloads/<parent SHA-256>/`: 選択rootのlineageに属し、edge実体を再ハッシュした復元payload
+- `derived/`: root caseだけへ縮約したsource取得、Cycle summary、follow-on、terminal、source sidecar commitment
+
+collection共通のsource manifest、`exclusion-set.json`、`family-hints.json`、run共通JSONはrawのままcopyしません。必要なcase情報だけを派生JSONへ投影し、source sidecarはfile名、size、SHA-256 commitmentだけを記録します。これにより他caseの識別子、取得時の絶対path、共通選択集合をcase archiveへ持ち込みません。元sidecarはpreflight後の差替えも拒否します。
+
+partial、pending、disabled、failed、ABORTED、case集合不一致、共有derived case、orphan、cycle、payload不一致、hardlink、symlink、junction、秘密値、不要なhost path、既存targetはfail-closedで拒否します。拒否時は完成先を作らず、新規一時stagingだけを回収します。入力sourceやrun treeは変更・削除しません。
+
+標準出力の `cases[0].archive_arguments` を同一caseのarchive helperへ渡し、receiptはrepository外またはGit管理外の `.work` 配下へ保存します。targetはcollection IDとroot caseの完全なSHA-256から決定され、既存targetを上書きしません。以降のAES-256 ZIP作成、S3 upload、HeadObjectによるsize／SSE-S3／SHA-256 metadata検証は本節の前後と同じです。この前段helper自体はnetwork接触、S3 upload、receipt作成、検体展開・実行、source削除を行いません。
+
+同じtargetの検証済みprivate receiptが既にある場合は、新しいstagingやarchiveを作らず、そのreceiptのtarget、source-tree SHA-256、remote検証結果を再利用します。local stagingが消えていても、timestampだけが異なる同内容objectを再uploadしません。receiptの有無を確定できない場合はrepository外のreceipt台帳とS3のtarget prefixを照合してから再開します。前段helperの「既存local target拒否」は同時実行・直近再実行の保護であり、検証済みreceiptによる意味的な重複防止を置き換えるものではありません。
+
 `daily_analysis_orchestrator.py` の `private_archive` も、source取得、one-shot private解析、Ghidra解析が完了したsample collectionには同じ逐次処理を使用します。source全体、one-shot job全体、完了済みGhidra出力全体を別々のbulk archiveへ入れる経路は使用しません。解析途中またはupstream失敗時のGhidra checkpointと、caseへ帰属しないdaily newsは、再開情報を失わないため独立targetとして保管できます。case別archiveが失敗した場合はそのcaseで停止し、remote検証前のowned stagingを保持します。
 
 日次requestでGhidra stageを明示的に無効化した場合も、sourceとone-shot private結果はcase別に分離して保管します。この経路では存在しないGhidra rootを要求せず、staging manifestへ `ghidra.status: not_requested` を記録します。Ghidra成果物が存在するかのような補完は行いません。

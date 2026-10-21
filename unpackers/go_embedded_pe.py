@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import capstone
 import pefile
 
-import unpackers.go_decoder_shape as go_decoder_shape
+from unpackers import go_decoder_shape
 from unpackers.bounded_pe_scan import inspect_structural_pe_extent
 
 MAX_INPUT_BYTES = 32 * 1024 * 1024
@@ -216,6 +216,12 @@ class _Function:
 
 
 @dataclass(frozen=True)
+class _FunctionTable:
+    functions: tuple[_Function, ...]
+    zero_text_start_normalized: bool
+
+
+@dataclass(frozen=True)
 class _Instruction:
     address: int
     size: int
@@ -242,10 +248,49 @@ def _offset(pe: pefile.PE, data: bytes, va: int, size: int) -> int:
     return matches[0]
 
 
-def _functions(
+def _normalized_text_start(
+    data: bytes, pe: pefile.PE, declared_text_start: int
+) -> tuple[int, bool]:
+    """Go 1.26のzero textStartを、一意なfile-backed code sectionだけから補正する。"""
+    if declared_text_start:
+        return declared_text_start, False
+    if pe.FILE_HEADER.Machine != 0x8664 or pe.OPTIONAL_HEADER.Magic != 0x20B:
+        raise GoRecoveryError("pclntab_zero_text_start_unresolved")
+    image_base = pe.OPTIONAL_HEADER.ImageBase
+    base_of_code = pe.OPTIONAL_HEADER.BaseOfCode
+    size_of_image = pe.OPTIONAL_HEADER.SizeOfImage
+    if (
+        image_base <= 0
+        or base_of_code <= 0
+        or size_of_image <= 0
+        or base_of_code >= size_of_image
+    ):
+        raise GoRecoveryError("pclntab_zero_text_start_unresolved")
+    matches = [
+        section
+        for section in pe.sections
+        if section.VirtualAddress == base_of_code
+        and section.SizeOfRawData > 0
+        and section.PointerToRawData < len(data)
+        and section.PointerToRawData + section.SizeOfRawData <= len(data)
+        and section.Characteristics & 0x20
+        and section.Characteristics & 0x20000000
+    ]
+    if len(matches) != 1:
+        raise GoRecoveryError("pclntab_zero_text_start_unresolved")
+    normalized = image_base + base_of_code
+    try:
+        _offset(pe, data, normalized, 1)
+    except GoRecoveryError as exc:
+        raise GoRecoveryError("pclntab_zero_text_start_unresolved") from exc
+    return normalized, True
+
+
+def _function_table(
     data: bytes, pe: pefile.PE, deadline: float, clock: Callable[[], float]
-) -> list[_Function]:
-    tables = []
+) -> _FunctionTable:
+    tables: list[_FunctionTable] = []
+    zero_text_start_unresolved = False
     cursor = 0
     checked = 0
     while True:
@@ -274,6 +319,7 @@ def _functions(
         if cu - names > MAX_NAMES_BYTES or offset + funcs + (nfunc + 1) * 8 > len(data):
             continue
         try:
+            text, normalized = _normalized_text_start(data, pe, text)
             found = []
             previous = -1
             for index in range(nfunc):
@@ -314,16 +360,27 @@ def _functions(
                     raise GoRecoveryError("function_not_executable_section")
                 found.append(_Function(name, va, raw, size))
                 previous = entry
-            tables.append(found)
+            tables.append(_FunctionTable(tuple(found), normalized))
         except GoRecoveryError as exc:
             if str(exc) == "elapsed_time_limit":
                 raise
+            if str(exc) == "pclntab_zero_text_start_unresolved":
+                zero_text_start_unresolved = True
             continue
         except (UnicodeError, struct.error):
             continue
     if len(tables) != 1:
+        if not tables and zero_text_start_unresolved:
+            raise GoRecoveryError("pclntab_zero_text_start_unresolved")
         raise GoRecoveryError("pclntab_missing_or_ambiguous")
     return tables[0]
+
+
+def _functions(
+    data: bytes, pe: pefile.PE, deadline: float, clock: Callable[[], float]
+) -> list[_Function]:
+    """既存呼出し向けに関数一覧だけを返す。"""
+    return list(_function_table(data, pe, deadline, clock).functions)
 
 
 def _disassemble(
@@ -573,13 +630,17 @@ def recover_go_embedded_pe(
             or len(pe.sections) > 32
         ):
             raise GoRecoveryError("unsupported_pe_layout")
-        functions = _functions(data, pe, deadline, clock)
+        function_table = _function_table(data, pe, deadline, clock)
+        functions = list(function_table.functions)
         mains = [f for f in functions if f.name == "main.main"]
         if len(mains) != 1:
             raise GoRecoveryError("main_missing_or_ambiguous")
         instructions = _disassemble(data, mains[0], deadline, clock)
         candidates = _candidate_constants(instructions, functions, deadline, clock)
         report["function_count"] = len(functions)
+        report["pclntab_zero_text_start_normalized"] = (
+            function_table.zero_text_start_normalized
+        )
         report["copy_candidate_count"] = len(candidates)
         if not candidates:
             return report, []

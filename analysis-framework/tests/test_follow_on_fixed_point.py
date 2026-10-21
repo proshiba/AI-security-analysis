@@ -983,6 +983,91 @@ def _run_fixed_point(
     return result, calls
 
 
+def test_fixed_point_prioritizes_static_bundle_hint_and_preserves_basename(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """同梱loaderの静的優先度とbasenameを子worker境界まで保持する。"""
+
+    root = "a" * 64
+    ordinary_data = b"MZ ordinary inert child"
+    priority_data = b"MZ priority inert child"
+    ordinary = hashlib.sha256(ordinary_data).hexdigest()
+    priority = hashlib.sha256(priority_data).hexdigest()
+
+    def retained(_output: Path, digest: str, **_kwargs):
+        if digest != root:
+            return [], [], 0, 0
+        return (
+            [
+                {
+                    "sha256": ordinary,
+                    "size": len(ordinary_data),
+                    "path": "p/ordinary.exe",
+                    "role": "recovered_payload",
+                    "kind": "pe",
+                    "data": ordinary_data,
+                    "source_name": "ordinary.exe",
+                    "analysis_priority": 2,
+                },
+                {
+                    "sha256": priority,
+                    "size": len(priority_data),
+                    "path": "p/version.dll",
+                    "role": "recovered_payload",
+                    "kind": "pe",
+                    "data": priority_data,
+                    "source_name": "version.dll",
+                    "analysis_priority": 0,
+                },
+            ],
+            [],
+            2,
+            len(ordinary_data) + len(priority_data),
+        )
+
+    monkeypatch.setattr(one_shot, "_case_retained_payloads", retained)
+    monkeypatch.setattr(
+        one_shot,
+        "_case_result_from_disk",
+        lambda *_args, **_kwargs: {"case_state": "complete"},
+    )
+    monkeypatch.setattr(one_shot, "_case_strict_complete", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(one_shot, "_case_has_follow_on_promotion", lambda *_args, **_kwargs: False)
+    captured = []
+
+    def execute(**kwargs):
+        captured.append((kwargs["digest"], kwargs["source_name"]))
+        return {}
+
+    one_shot._run_follow_on_fixed_point(
+        root_digests=[root],
+        output=tmp_path,
+        registry=REGISTRY,
+        specs=[],
+        requirements_policy={},
+        minimum_confidence="medium",
+        upx=None,
+        sevenzip=None,
+        diec=None,
+        force_container_probe=False,
+        max_static_layers=8,
+        retry_max_static_layers=None,
+        archive_password="infected",
+        inno_password="",
+        string_scan_limit=1000,
+        analysis_contract={},
+        root_analysis_contract={},
+        resume=False,
+        execute_child=execute,
+    )
+
+    assert captured == [
+        (priority, "version.dll"),
+        (ordinary, "ordinary.exe"),
+    ]
+
+
 @pytest.mark.parametrize(
     ('archive_password', 'inno_password'),
     [
@@ -1595,8 +1680,8 @@ def test_fixed_point_recomputes_remaining_time_before_child(tmp_path: Path, monk
             'data': child_data,
         }], [], 1, len(child_data))
 
-    values = iter([0.0, 0.0, 0.0, 0.0, 299.5, 300.1])
-    last = 300.1
+    values = iter([0.0, 0.0, 0.0, 0.0, 419.5, 420.1])
+    last = 420.1
 
     def monotonic() -> float:
         nonlocal last
@@ -1618,6 +1703,102 @@ def test_fixed_point_recomputes_remaining_time_before_child(tmp_path: Path, monk
     assert result['wall_clock_exhausted'] is True
     assert next(node for node in result['nodes'] if node['sha256'] == child)['state'] == (
         'wall_clock_limit'
+    )
+    assert result['limits']['effective_wall_seconds'] == 420
+
+
+def test_fixed_point_scales_bounded_wall_budget_for_nine_children(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """9 childをper-child上限内で処理し、旧固定5分枠で途中停止しない。"""
+
+    root = 'a' * 64
+    payloads = [f'bounded-child-{index}'.encode() for index in range(9)]
+    children = [hashlib.sha256(payload).hexdigest() for payload in payloads]
+
+    def retained(_output: Path, digest: str, **_kwargs):
+        if digest != root:
+            return [], [], 0, 0
+        records = [
+            {
+                'sha256': child,
+                'size': len(payload),
+                'path': f'p/child-{index}.bin',
+                'role': 'terminal_payload',
+                'kind': 'data',
+                'data': payload,
+            }
+            for index, (child, payload) in enumerate(
+                zip(children, payloads, strict=True)
+            )
+        ]
+        return records, [], len(records), sum(len(payload) for payload in payloads)
+
+    monkeypatch.setattr(one_shot, '_case_retained_payloads', retained)
+    monkeypatch.setattr(
+        one_shot,
+        '_case_result_from_disk',
+        lambda *_args, **_kwargs: {'case_state': 'complete'},
+    )
+    monkeypatch.setattr(
+        one_shot,
+        '_case_strict_complete',
+        lambda *_args, **_kwargs: True,
+    )
+    monkeypatch.setattr(
+        one_shot,
+        '_case_has_follow_on_promotion',
+        lambda *_args, **_kwargs: False,
+    )
+    now = 0.0
+    calls: list[str] = []
+    timeouts: list[float] = []
+
+    def monotonic() -> float:
+        return now
+
+    def execute(**kwargs):
+        nonlocal now
+        calls.append(kwargs['digest'])
+        timeouts.append(kwargs['timeout_seconds'])
+        now += 119.0
+        return {}
+
+    result = one_shot._run_follow_on_fixed_point(
+        root_digests=[root],
+        output=tmp_path,
+        registry=REGISTRY,
+        specs=[],
+        requirements_policy={},
+        minimum_confidence='medium',
+        upx=None,
+        sevenzip=None,
+        diec=None,
+        force_container_probe=False,
+        max_static_layers=8,
+        retry_max_static_layers=None,
+        archive_password='infected',
+        inno_password='',
+        string_scan_limit=1000,
+        analysis_contract={},
+        root_analysis_contract={},
+        resume=False,
+        execute_child=execute,
+        monotonic=monotonic,
+    )
+
+    assert calls == children
+    assert timeouts == [one_shot.MAX_FOLLOW_ON_CHILD_SECONDS] * 9
+    assert result['status'] == 'complete'
+    assert result['wall_clock_exhausted'] is False
+    assert result['queued_artifact_count'] == 9
+    assert result['limits']['effective_wall_seconds'] == (
+        one_shot.FOLLOW_ON_BASE_WALL_SECONDS
+        + 9 * one_shot.FOLLOW_ON_PER_QUEUED_CHILD_WALL_SECONDS
+    )
+    assert result['limits']['effective_wall_seconds'] <= (
+        one_shot.MAX_FOLLOW_ON_WALL_SECONDS
     )
 
 

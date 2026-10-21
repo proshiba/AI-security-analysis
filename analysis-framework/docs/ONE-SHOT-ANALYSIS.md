@@ -10,7 +10,7 @@ python .\analysis-framework\common\analyze_sample.py `
   --output C:\malware-lab\analysis-output
 ```
 
-UPX、7-Zip、Detect It Easy CLI、innounpは自動探索せず、必要な場合だけ実行ファイルを明示します。
+UPX、Detect It Easy CLI、innounpは自動探索せず、必要な場合だけ実行ファイルを明示します。7-Zipも既定では明示指定ですが、Windowsの標準install先だけを対象にする `--discover-standard-sevenzip` を指定できます。PATHや作業directoryは探索せず、安全な候補がなければ解析を縮退させずに失敗します。
 
 ```powershell
 python .\analysis-framework\common\analyze_sample.py `
@@ -23,6 +23,17 @@ python .\analysis-framework\common\analyze_sample.py `
 ```
 
 `--sevenzip` は7z、RAR、CAB、DMGおよびコンテナー候補のPE、`--upx` はUPX圧縮層、`--innounp` はInno Setupの静的一覧化・選択展開、`--diec` はPE／Mach-Oの識別補助に使用します。レビュー済みの手掛かりがあるPEを7-Zipで追加検査するときだけ `--force-container-probe` も指定します。指定した実行ファイルの同一性は解析契約へ含めます。
+
+標準install先の7-Zipを使う場合は、明示pathの代わりに次を指定します。
+
+```powershell
+python .\analysis-framework\common\analyze_sample.py `
+  --input C:\analysis-input `
+  --output C:\analysis-output `
+  --discover-standard-sevenzip
+```
+
+`--sevenzip` と `--discover-standard-sevenzip` は同時に指定できません。自動選択した実行ファイルにも、明示指定時と同じ単一link・非reparse・サイズ検証を適用します。`7z.exe` と同じdirectoryに `7z.dll` がある場合は両方を一つの複合identityとして扱い、名前、合計サイズ、構成要素から算出したSHA-256を解析契約へ封印します。direct CLIは検証済みの構成要素を読み取り専用のprivate一時directoryへ複製し、元のinstall先ではなくsnapshotだけを実行します。解析前後にsnapshotのexact entry集合、file identity、権限、サイズ、時刻、複合identityを再検証し、差し替えや追加・削除を検出した場合はfail-closedで終了します。job runnerの信頼済みtool snapshotは別契約であり、このoptionによって標準install探索が暗黙に追加されることはありません。
 
 既存のPowerShell入口も、追加オプションがない場合は同じ処理へ委譲します。
 
@@ -55,7 +66,7 @@ WebUI／ローカルAPIからは`analysis_job_runner.py`を正本入口として
 
 通信候補は候補のまま保持し、静的設定endpointと分離します。静的設定endpointが得られても稼働確認にはせず、family固有frame、serializer、通信関数などの証拠がない限りprotocol確認にも昇格しません。未完phaseにはblockerと次の最小手順を残すため、自動処理後も追加解析が必要な位置を機械的に判断できます。
 
-handlerがraw payloadを復元した場合は、isolated workerの一時成果物を親processが再hashしてcaseへ保持します。保持監査が完全なpayloadだけを、最大64件・128 edge・深さ4・合計256 MiB・300秒の有界fixed-point queueで同じ解析へ再投入します。子caseにはrootとは別の解析契約を使い、timeout途中、seal不一致、成果物hash不一致、cycle、共有payload、上限到達を`partial`として残します。別rootと同じSHA-256はroot nodeを共有しますが、root契約caseをchild契約の親昇格proofには使いません。
+handlerがraw payloadを復元した場合は、isolated workerの一時成果物を親processが再hashしてcaseへ保持します。保持監査が完全なpayloadだけを、最大64件・128 edge・深さ4・合計256 MiBの有界fixed-point queueで同じ解析へ再投入します。全体wall budgetは基礎300秒へqueue投入child 1件ごと120秒を加算し、最大7,980秒のglobal hard capを超えません。子processは1件120秒以内です。解析契約はこの算出方針とhard capを固定し、`follow-on-analysis.json`はqueue件数から決定した実効wall値も記録します。子caseにはrootとは別の解析契約を使い、timeout途中、seal不一致、成果物hash不一致、cycle、共有payload、上限到達を`partial`として残します。別rootと同じSHA-256はroot nodeを共有しますが、root契約caseをchild契約の親昇格proofには使いません。
 
 保持metadataは`edge`、先頭4,096件までの理由付き`omitted_metadata`、それを超える親別の件数・canonical多重集合SHA-256である`omitted_metadata_commitments`へ完全分割します。runnerは親wrapperからこの分割を独立再計算します。omissionまたはcommitmentが1件でもあればjobは`partial`であり、commitmentがある場合は親caseを`complete`へ昇格しません。詳細は[AI非依存の一括静的解析オーケストレーション](AI-FREE-STATIC-ANALYSIS-ORCHESTRATION.md)を参照してください。
 
@@ -113,6 +124,8 @@ HANDLER_CONTRACT = {
   summary.json
   follow-on-analysis.json
   terminal-payload-acquisition.json
+  analysis-run-outcome.json        # fatal／timeout時のみ
+  partial-summary.json             # fatal／timeout時のみ
   cases/<sha256>/
     report.json
     static-layers.json
@@ -137,6 +150,8 @@ HANDLER_CONTRACT = {
 - `summary.json`: root入力の件数・状態、後段payloadの`derived_cases`／`derived_counts`、解析器の証拠状態、汎用解析の網羅状態、再開件数、解析契約
 - `follow-on-analysis.json`: rootから保持payloadを辿ったnode／edge、深さ、除外理由、上限、子解析契約SHA-256
 - `terminal-payload-acquisition.json`: graph終端の検証済みpayload SHA-256、保留候補、停止理由。raw bytesや外部取得結果は含めない
+- `analysis-run-outcome.json`: 隔離workerが異常終了または24時間の上限へ到達した場合だけ、`fatal`／`timeout`、固定理由コード、analyzer／runner／workerの終了コード、partial summaryの状態とSHA-256を記録する。例外本文、入力path、credentialは含めない。direct CLI自身の異常終了は`analyzer_exit_code=2`、外側job runnerがhard timeoutで解析processを停止した場合はanalyzer終了コードを推測せず`analyzer_exit_code=null`、`runner_exit_code=124`とする。途中caseの検証に失敗しても、この成果物自体は可能な限り残し、`partial_summary.status=unavailable`として区別する。正常終了時はrunnerの厳格な出力closureへ未参照fileを加えないため残さない
+- `partial-summary.json`: 異常終了前までに出力先へ存在したcaseのうち、短いwall-clock、case数、entry数、累積byte数の固定予算内でreport seal、成果物hash、解析契約を再検証できたterminal caseだけを列挙する封印済み非最終summary。打切り理由は`scan_limit_reasons`へ記録する。同じ出力先の過去runと今回runを暗号学的に区別できないため、caseは`unattributed_existing_output_evidence`として記録し、今回runの進捗件数にはしない。`final_summary=false`かつ`eligible_for_completion_evaluation=false`であり、正式な`summary.json`や完了評価の代わりには使わない
 - `static-layers.json`: 静的復元の親子関係、方法、上限適用状況。復元本文は含まない
 
 検証済みfamily handlerが復元したbytesは、worker内部の`terminal_payload`、`final_payload`、または非終端の`recovered_payload` recordから親processへだけ渡します。親processがsizeとSHA-256を再計算して一致した場合に限り`p/<sha256>.<kind別拡張子>`へ保持し、root reportの`retained_artifact_paths`と`artifact_sha256`へ結合します。`recovered_payload`はfixed-point解析へ進めますが、子がcompleteでもそのroleだけでは終端payloadへ昇格しません。公開handler JSONは`content_exported=false`のmetadataだけで、bytes、復号key、秘密値を含みません。自己再出力は`cycle_detected`付きの保留frontierになり、`complete`として扱いません。
@@ -251,5 +266,6 @@ Get-Content -LiteralPath C:\malware-lab\secrets\archive-password.txt -Raw |
 
 - `0`: 入力エラーがなく、全caseが `complete`または`assessment_only_complete`
 - `20`: 1件以上の入力エラー、`triaged_unknown`、`partial`、`failed`、または未完了の後段解析あり。成功した処理と成功した段階の結果は保持する
+- `2`: CLI引数不正、隔離workerの起動／containment失敗、workerの致命的失敗、またはwall-clock timeout。出力directoryが既に安全に作成されている場合は、`analysis-run-outcome.json`と`partial-summary.json`を原子的に残す
 
-CLI引数自体が不正な場合は、Pythonの引数parserが終了コード `2` を返します。
+CLI引数自体が不正な場合も、Pythonの引数parserが終了コード `2` を返します。この場合は解析出力directoryを確定できないため、異常成果物を作らないことがあります。正常終了または部分完了で`summary.json`を生成した再実行では、終了コード`0`／`20`を返す前に、過去runの`analysis-run-outcome.json`と`partial-summary.json`を安全に除去します。除去に失敗した場合は正常終了として扱わず、固定理由コード`diagnostic_cleanup_failed`を標準エラーへ出して終了コード`2`を返します。

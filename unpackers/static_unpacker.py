@@ -94,6 +94,7 @@ from unpackers.javascript_reverse_base64 import recover_reverse_base64
 from unpackers.luajit_polyrot_mixed_table import (
     recover_bytes as recover_luajit_polyrot_mixed_table,
 )
+from unpackers.lzma_sdk_resource import LzmaSdkResourceScanner
 from unpackers.managed_bitmap_argb_xor import recover_managed_bitmap_argb_xor
 from unpackers.managed_eaz_remcos import recover_managed_eaz_remcos
 from unpackers.managed_eaz_resource import recover_managed_eaz_resource
@@ -152,11 +153,28 @@ from unpackers.onyx_qt_loader import (
     recover_onyx_qt_payload,
 )
 from unpackers.opaque_native_entry import analyze_opaque_native_pe
+from unpackers.pe_trailer_rc4 import recover_pe_trailer_rc4
 from unpackers.powershell_cyclic_xor_calls import recover_powershell_cyclic_xor_calls
 from unpackers.powershell_rotational_xor import recover_powershell_rotational_xor
 from unpackers.profiled_transform import (
     MAX_RETAINED_ARTIFACT_BYTES,
     recover_profiled_transforms,
+)
+from unpackers.python_marshal_static import (
+    MAX_CANDIDATE_SIZE as PYTHON_MARSHAL_CANDIDATE_LIMIT,
+)
+from unpackers.python_marshal_static import (
+    MAX_CANDIDATE_TOTAL_SIZE as PYTHON_MARSHAL_TOTAL_LIMIT,
+)
+from unpackers.python_marshal_static import (
+    MAX_INPUT_SIZE as PYTHON_MARSHAL_INPUT_LIMIT,
+)
+from unpackers.python_marshal_static import (
+    MAX_SCALAR_SIZE as PYTHON_MARSHAL_SCALAR_LIMIT,
+)
+from unpackers.python_marshal_static import (
+    is_marshaled_code_entry_name,
+    recover_marshaled_constants,
 )
 from unpackers.remcos_base52_chain import (
     recover_remcos_javascript_base52,
@@ -184,6 +202,7 @@ from unpackers.vbe_decoder import recover_vbe_script
 from unpackers.vbscript_array_chr import recover_vbscript_array_chr
 from unpackers.vbscript_constant_sink import recover_vbscript_constant_sinks
 from unpackers.vbscript_env_powershell import recover_vbscript_env_powershell
+from unpackers.winrar_sfx import assess_winrar_sfx
 
 COMMON_ROOT = Path(__file__).resolve().parents[1] / "analysis-framework" / "common"
 if str(COMMON_ROOT) not in sys.path:
@@ -330,6 +349,9 @@ RECOVERY_SUFFIXES = SCRIPT_SUFFIXES | {
 }
 SELECTIVE_ARCHIVE_SUFFIXES = RECOVERY_SUFFIXES | {".jsc", ".node", ".py"}
 ISO_IMAGE_SUFFIXES = {".img", ".iso"}
+MAX_SMALL_ARCHIVE_OPAQUE_MEMBERS = 16
+MAX_SMALL_ARCHIVE_OPAQUE_MEMBER_SIZE = 16 * 1024 * 1024
+MAX_SMALL_ARCHIVE_OPAQUE_TOTAL_SIZE = 32 * 1024 * 1024
 
 
 class StaticToolExecutionError(RuntimeError):
@@ -906,7 +928,7 @@ def _read_static_tool_output(
 
 
 def _static_tool_identity(executable: Path) -> dict[str, object]:
-    """外部toolを単一handleで読み、公開可能な同一性情報を返す。"""
+    """外部toolと既知の同伴binaryを読み、公開可能な同一性を返す。"""
 
     if not executable.is_absolute():
         raise StaticToolExecutionError("tool_file_invalid")
@@ -924,9 +946,53 @@ def _static_tool_identity(executable: Path) -> dict[str, object]:
         raise StaticToolExecutionError("tool_file_invalid") from exc
     if not payload:
         raise StaticToolExecutionError("tool_file_invalid")
-    return {
+    primary: dict[str, object] = {
         "sha256": sha256_bytes(payload),
         "size": len(payload),
+    }
+    components = [
+        {
+            "name": executable.name,
+            "size": len(payload),
+            "sha256": primary["sha256"],
+        }
+    ]
+    if os.name == "nt" and executable.name.casefold() == "7z.exe":
+        companion = executable.with_name("7z.dll")
+        try:
+            companion.lstat()
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            raise StaticToolExecutionError("tool_file_invalid") from exc
+        else:
+            companion_payload = _read_static_tool_output(
+                companion,
+                root=parent,
+                maximum_size=MAX_STATIC_TOOL_BINARY_BYTES,
+            )
+            if not companion_payload:
+                raise StaticToolExecutionError("tool_file_invalid")
+            components.append(
+                {
+                    "name": companion.name,
+                    "size": len(companion_payload),
+                    "sha256": sha256_bytes(companion_payload),
+                }
+            )
+    if len(components) == 1:
+        return primary
+    encoded = json.dumps(
+        components,
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("ascii")
+    return {
+        "sha256": sha256_bytes(encoded),
+        "size": sum(int(component["size"]) for component in components),
+        "component_names": [str(component["name"]) for component in components],
     }
 
 
@@ -1013,7 +1079,6 @@ def detect_format(data: bytes, name: str = "sample") -> str:
                 b"<!doctype html",
                 b"<html",
                 b"<script",
-                b"<?xml",
                 b"<job",
                 b"#@~^",
                 b"function ",
@@ -1045,7 +1110,9 @@ def _looks_like_embedded_script(data: bytes) -> bool:
 
     大きなPowerShell loaderは先頭のhere-stringがほぼ全体を占め、暗号処理は末尾に
     置かれる。このため先頭・末尾を有界に調べる。拡張子やprovider labelだけでは
-    判定せず、printable textと複数の言語固有markerを必須にする。
+    判定せず、printable textと複数の言語固有markerを必須にする。XML系resourceは
+    manifestとの混同を避けるため、実行可能container、script言語、実行sinkが同じ
+    script block内にそろった場合だけscriptとして扱う。
     """
 
     if not 64 <= len(data) <= MAX_ARTIFACT:
@@ -1061,6 +1128,79 @@ def _looks_like_embedded_script(data: bytes) -> bool:
     if printable / len(text) < 0.85:
         return False
     lowered = text.casefold()
+
+    # PE resourceには通常のapplication manifestも多い。XML宣言だけ、あるいは
+    # <component>等の要素名だけではscriptへ昇格させない。WSF/SCT/WSC/HTAで用い
+    # られるcontainerの内側に、認識済み言語属性と実行sinkを持つ完全なscript block
+    # が存在することを必須にする。<scriptlet>を<script>と誤認しないよう\bを使う。
+    stripped = lowered.lstrip("\ufeff \t\r\n")
+    xml_script_candidate = stripped.startswith(
+        (
+            "<?xml",
+            "<!doctype html",
+            "<job",
+            "<scriptlet",
+            "<component",
+            "<html",
+            "<hta:application",
+        )
+    )
+    if xml_script_candidate:
+        containers: list[str] = []
+        for tag in ("job", "scriptlet", "component", "html"):
+            match = re.search(
+                rf"<{tag}\b[^>]*>.*?</{tag}\s*>",
+                lowered,
+                flags=re.DOTALL,
+            )
+            if match:
+                containers.append(match.group(0))
+        # 一部HTAは<html> wrapperを省略し、XML宣言の直後にHTA要素を置く。
+        if "<hta:application" in lowered:
+            containers.append(lowered)
+
+        language_attribute = re.compile(
+            r"\b(?:language|type)\s*=\s*(?:['\"]\s*)?"
+            r"(?:jscript|javascript|vbscript|vbs|text/javascript|"
+            r"application/javascript|text/vbscript)"
+            r"(?:\s*['\"])?(?=\s|/|$)",
+            flags=re.IGNORECASE,
+        )
+        execution_sinks = (
+            "createobject(",
+            "new activexobject(",
+            "getobject(",
+            "wscript.",
+            "wscript.shell",
+            "shell.application",
+            ".run(",
+            ".exec(",
+            "shellexecute",
+            "powershell",
+            "cmd.exe",
+            "rundll32",
+            "mshta",
+            "regsvr32",
+            "xmlhttp",
+            "winhttprequest",
+        )
+        for container in containers:
+            for script_match in re.finditer(
+                r"<script\b(?P<attributes>[^>]*)>"
+                r"(?P<body>.*?)</script\s*>",
+                container,
+                flags=re.DOTALL,
+            ):
+                attributes = script_match.group("attributes")
+                body = script_match.group("body")
+                if language_attribute.search(attributes) and any(
+                    sink in body for sink in execution_sinks
+                ):
+                    return True
+        # XMLらしいdocumentを汎用JavaScript markerへfall throughさせると、説明文中の
+        # function/var等だけでmanifestを誤検出し得るため、ここで明示的に棄却する。
+        return False
+
     powershell_markers = (
         "[pscustomobject]",
         "function ",
@@ -1073,8 +1213,6 @@ def _looks_like_embedded_script(data: bytes) -> bool:
         "payloadraw",
     )
     if "$" in text and sum(marker in lowered for marker in powershell_markers) >= 3:
-        return True
-    if "<job" in lowered and "script" in lowered and "language=" in lowered:
         return True
     javascript_markers = (
         "function ",
@@ -2328,6 +2466,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
     overlay_start = overlay_offset if overlay_offset is not None else len(data)
     overlay_size = len(data) - overlay_start
     overlay_format = _pe_overlay_format(data, overlay_start) if overlay_size else "data"
+    winrar_sfx = assess_winrar_sfx(data, overlay_start=overlay_start)
     overlay_padding = (
         _pe_overlay_repetitive_padding(data, overlay_start) if overlay_size else None
     )
@@ -2376,6 +2515,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
     prioritized_custom_type_entries = 0
     prioritized_data_type_entries = 0
     deprioritized_named_ui_entries = 0
+    lzma_sdk_scanner = LzmaSdkResourceScanner()
     if directory_parse["resources"]["status"] != "parsed":
         resource_exhausted_reasons.append(
             f"resource_directory_{directory_parse['resources']['status']}"
@@ -2433,7 +2573,10 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
                 continue
             resource_bytes_inspected += len(blob)
             if len(blob) != declared_size:
+                invalid_resource_data_entries += 1
+                resource_exhausted_reasons.append("resource_data_short_read")
                 continue
+            lzma_sdk_scanner.inspect(blob)
             resource_format, children, png_report = pe_resource_children(blob)
             archive_resources += int(resource_format in {"7z", "cab", "zip"})
             if png_report is not None:
@@ -2462,6 +2605,10 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
                 opaque_resources += 1
         if invalid_resource_data_entries:
             resource_exhausted_reasons.append("resource_data_metadata_invalid")
+    lzma_sdk_resource, lzma_sdk_artifacts = lzma_sdk_scanner.finalize(
+        resource_inventory_complete=not resource_exhausted_reasons,
+    )
+    artifacts.extend(("pe-resource-lzma-sdk-pe", blob) for blob in lzma_sdk_artifacts)
     resource_scan = {
         "status": "partial" if resource_exhausted_reasons else "complete",
         "entries_inspected": resource_count,
@@ -2540,6 +2687,8 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
         containerization_signals.append("embedded_archive_resource")
     if _overlay_embedded_pe_container_signal(overlay_size, overlay_embedded_scan):
         containerization_signals.append("bounded_overlay_multi_pe_fanout")
+    if winrar_sfx.get("candidate") is True:
+        containerization_signals.append("validated_winrar_sfx_main_header")
     containerized = bool(containerization_signals)
     virtualized_shape = (
         isinstance(imports, int)
@@ -2684,6 +2833,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             "overlay_size": overlay_size,
             "overlay_format": overlay_format,
             "overlay_repetitive_padding": overlay_padding,
+            "winrar_sfx": winrar_sfx,
             "gdpf_pdf_footer": gdpf_pdf_footer,
             "resource_count": resource_count,
             "opaque_resources_recovered": opaque_resources,
@@ -2694,6 +2844,7 @@ def pe_summary(data: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
             "png_resources_inspected": png_resources_inspected,
             "png_resources_with_concealed_data": png_resources_with_concealed_data,
             "invalid_png_resources": invalid_png_resources,
+            "lzma_sdk_resource": lzma_sdk_resource,
             "resource_scan": resource_scan,
             "directory_parse": directory_parse,
             "analysis_coverage": analysis_coverage,
@@ -3297,6 +3448,62 @@ def _read_standard_zip_member_capped(
     return b"".join(chunks)
 
 
+def _validated_native_zip_members(
+    infos: list[zipfile.ZipInfo],
+) -> tuple[list[tuple[zipfile.ZipInfo, str]], int, int, bool]:
+    """ZIP central directoryを展開前に検証し、安全なmemberだけを返す。
+
+    traversal、absolute path、空component、制御文字は、該当entryを開かなければ
+    他memberと独立して隔離できる。一方、link/reparse、ADS、Windows予約名、
+    case/NFKC同値名、file/directory衝突は出力namespace全体を曖昧にするため、
+    archive全体を拒否する。危険な元member名は返却値へ含めない。
+    """
+
+    records: list[dict[str, object]] = []
+    for index, info in enumerate(infos):
+        unix_mode = int(info.external_attr) >> 16
+        unix_type = stat.S_IFMT(unix_mode)
+        link_or_special = bool(
+            stat.S_ISLNK(unix_mode)
+            or (
+                unix_type
+                and not stat.S_ISREG(unix_mode)
+                and not stat.S_ISDIR(unix_mode)
+            )
+            or (int(info.external_attr) & 0x400)
+        )
+        records.append(
+            {
+                "name": info.filename,
+                "attributes": "D" if info.is_dir() else "A",
+                "zip_info_index": index,
+                **({"symbolic_link": True} if link_or_special else {}),
+            }
+        )
+
+    syntactically_safe, isolated_unsafe = (
+        _partition_syntactically_safe_sevenzip_records(records)
+    )
+    validated, conflicting, record_limit_exceeded = (
+        _validated_sevenzip_member_records({}, syntactically_safe)
+    )
+    selected: list[tuple[zipfile.ZipInfo, str]] = []
+    for record in validated:
+        index = record.get("zip_info_index")
+        name = record.get("name")
+        if (
+            isinstance(index, bool)
+            or not isinstance(index, int)
+            or not 0 <= index < len(infos)
+            or not isinstance(name, str)
+        ):
+            # 内部対応関係が壊れた場合もnamespace conflictとして全体を拒否する。
+            conflicting += 1
+            continue
+        selected.append((infos[index], name))
+    return selected, isolated_unsafe, conflicting, record_limit_exceeded
+
+
 def recover_zip(
     data: bytes,
     *,
@@ -3327,22 +3534,71 @@ def recover_zip(
     with _open_aes_zip(data) as archive:
         if password_bytes:
             archive.setpassword(password_bytes)
-        infos = [item for item in archive.infolist() if not item.is_dir()]
-        if len(infos) > max_members:
+        all_infos = archive.infolist()
+        (
+            validated_infos,
+            isolated_unsafe_member_count,
+            conflicting_member_count,
+            member_record_limit_exceeded,
+        ) = _validated_native_zip_members(all_infos)
+        if member_record_limit_exceeded:
+            return [
+                {
+                    "name": "__archive__",
+                    "status": "member_record_limit_blocked",
+                    "maximum_member_records": MAX_SEVENZIP_LISTING_MEMBER_RECORDS,
+                }
+            ], []
+        if conflicting_member_count:
+            return [
+                {
+                    "name": "__archive__",
+                    "status": "unsafe_member_path_blocked",
+                    "unsafe_member_count": (
+                        isolated_unsafe_member_count + conflicting_member_count
+                    ),
+                    "isolated_unsafe_member_count": isolated_unsafe_member_count,
+                    "conflicting_member_count": conflicting_member_count,
+                }
+            ], []
+        infos = [item for item in validated_infos if not item[0].is_dir()]
+        original_file_count = sum(not item.is_dir() for item in all_infos)
+        if original_file_count > max_members:
             return [
                 {
                     "name": "__archive__",
                     "status": "member_limit_applied",
                     "member_limit": max_members,
-                    "total_members": len(infos),
+                    "total_members": original_file_count,
                     "selected_members": 0,
                 }
             ], []
+        if not infos and isolated_unsafe_member_count:
+            return [
+                {
+                    "name": "__archive__",
+                    "status": "unsafe_member_path_blocked",
+                    "unsafe_member_count": isolated_unsafe_member_count,
+                    "isolated_unsafe_member_count": isolated_unsafe_member_count,
+                    "conflicting_member_count": 0,
+                }
+            ], []
+
+        if isolated_unsafe_member_count:
+            inventory.append(
+                {
+                    "name": "__archive__",
+                    "status": "unsafe_members_isolated",
+                    "unsafe_member_count": isolated_unsafe_member_count,
+                    "isolated_unsafe_member_count": isolated_unsafe_member_count,
+                    "safe_member_count": len(infos),
+                    "unsafe_member_names_published": False,
+                }
+            )
 
         prepared: list[tuple[zipfile.ZipInfo, str]] = []
         declared_total = 0
-        for info in infos:
-            name = safe_member_name(info.filename)
+        for info, name in infos:
             declared_size = int(info.file_size)
             compressed_size = int(info.compress_size)
             if declared_size < 0 or compressed_size < 0:
@@ -3742,7 +3998,7 @@ def _validated_sevenzip_member_records(
     """7-Zipの全member名を外部展開前に検証し、正規化済みrecordを返す。"""
 
     source_records: object = records
-    if not source_records:
+    if source_records is None:
         members = listing.get("members")
         if isinstance(members, list):
             source_records = [{"name": name} for name in members]
@@ -3758,6 +4014,12 @@ def _validated_sevenzip_member_records(
     windows_required_directory_prefixes: set[str] = set()
     for record in source_records:
         if not isinstance(record, dict):
+            blocked += 1
+            continue
+        if any(
+            key in record
+            for key in ("symbolic_link", "hard_link", "alternate_stream")
+        ):
             blocked += 1
             continue
         raw_name = record.get("name")
@@ -3807,6 +4069,38 @@ def _validated_sevenzip_member_records(
             windows_file_keys.add(windows_key)
         validated.append({**record, "name": normalized})
     return validated, blocked, False
+
+
+def _partition_syntactically_safe_sevenzip_records(
+    records: object,
+) -> tuple[list[dict[str, object]], int]:
+    """単独で隔離できる危険pathを除き、残りのrecordを保持する。
+
+    traversal、絶対path、空component、制御文字を含むmemberは、7-Zipへ
+    明示選択名として渡さなければ他memberと独立して拒否できる。一方、ADS、
+    Windows予約名、case同値、file／directory衝突は出力先で別memberと衝突する
+    可能性があるため、この関数では残し、後段の全体validatorでfail closedにする。
+    """
+
+    if not isinstance(records, list):
+        return [], 0
+    safe: list[dict[str, object]] = []
+    blocked = 0
+    for record in records:
+        if not isinstance(record, dict):
+            safe.append(record)
+            continue
+        raw_name = record.get("name")
+        if not isinstance(raw_name, str):
+            safe.append(record)
+            continue
+        try:
+            normalized = safe_member_name(raw_name)
+        except ValueError:
+            blocked += 1
+            continue
+        safe.append({**record, "name": normalized})
+    return safe, blocked
 
 
 def safe_temporary_suffix(name: str) -> str:
@@ -4822,6 +5116,142 @@ def _sevenzip_requests_credential(completed: StaticToolCompleted) -> bool:
     )
 
 
+def _parse_sevenzip_slt_listing(text: str) -> dict[str, object]:
+    """7-Zip ``l -slt``をdescriptor部と最終member表に分けて読む。
+
+    PE resource内のCABなどでは、最終member表より前にcarrier itemとnested
+    archive descriptorが同じ``Path``で現れる。``Path``だけを数えると重複pathを
+    unsafe memberと誤判定するため、exact 10-hyphen delimiter以降だけをmemberと
+    する。member表にdescriptor fieldが出る未知layoutはfail closedで返す。
+    """
+
+    paths: list[str] = []
+    archive_types: set[str] = set()
+    member_records: list[dict[str, object]] = []
+    total_members = 0
+    declared_total_size = 0
+    descriptor_count = 0
+    carrier_record_count = 0
+    member_record_limit_exceeded = False
+    member_listing_boundary_observed = False
+    member_layout_ambiguous = False
+    in_member_table = False
+    current: dict[str, object] | None = None
+
+    def finish_current() -> None:
+        nonlocal current
+        nonlocal total_members
+        nonlocal declared_total_size
+        nonlocal descriptor_count
+        nonlocal carrier_record_count
+        nonlocal member_record_limit_exceeded
+        nonlocal member_layout_ambiguous
+        if current is None:
+            return
+        if in_member_table:
+            if "type" in current or "physical_size" in current:
+                member_layout_ambiguous = True
+            name = current.get("name")
+            if not isinstance(name, str):
+                member_layout_ambiguous = True
+                current = None
+                return
+            total_members += 1
+            if len(paths) < MAX_ARCHIVE_MEMBERS:
+                paths.append(name)
+            size = current.get("size")
+            if isinstance(size, int) and not isinstance(size, bool) and size >= 0:
+                declared_total_size += size
+            if len(member_records) < MAX_SEVENZIP_LISTING_MEMBER_RECORDS:
+                member_records.append(
+                    {
+                        key: value
+                        for key, value in current.items()
+                        if key
+                        in {
+                            "name",
+                            "size",
+                            "attributes",
+                            "symbolic_link",
+                            "hard_link",
+                            "alternate_stream",
+                        }
+                    }
+                )
+            else:
+                member_record_limit_exceeded = True
+        elif "type" in current:
+            descriptor_count += 1
+        else:
+            carrier_record_count += 1
+        current = None
+
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip("\r")
+        if line.strip() == "----------":
+            finish_current()
+            if member_listing_boundary_observed:
+                member_layout_ambiguous = True
+            member_listing_boundary_observed = True
+            in_member_table = True
+            continue
+        if line.startswith("Path = "):
+            finish_current()
+            current = {"name": line[7:]}
+            continue
+        if line.startswith("Type = "):
+            value = line[7:]
+            if in_member_table:
+                member_layout_ambiguous = True
+            elif len(archive_types) < 256:
+                archive_types.add(value)
+            else:
+                member_record_limit_exceeded = True
+            if current is not None:
+                current["type"] = value
+            continue
+        if line.startswith("Physical Size = "):
+            if in_member_table:
+                member_layout_ambiguous = True
+            if current is not None:
+                raw_size = line[16:].strip()
+                current["physical_size"] = (
+                    int(raw_size) if raw_size.isdigit() else raw_size
+                )
+            continue
+        if line.startswith("Size = ") and current is not None:
+            raw_size = line[7:].strip()
+            if raw_size.isdigit():
+                current["size"] = int(raw_size)
+            continue
+        if line.startswith("Attributes = ") and current is not None:
+            current["attributes"] = line[13:]
+            continue
+        for prefix, key in (
+            ("Symbolic Link = ", "symbolic_link"),
+            ("Hard Link = ", "hard_link"),
+            ("Alternate Stream = ", "alternate_stream"),
+        ):
+            if line.startswith(prefix) and current is not None:
+                # LinkやADSは出力先namespaceをlistingだけでは安全に再現できない。
+                # 値を公開せず、後段validatorが存在自体を展開前に拒否する。
+                current[key] = True
+                break
+    finish_current()
+    return {
+        "archive_types": sorted(archive_types),
+        "members": paths,
+        "total_members": total_members,
+        "declared_total_size": declared_total_size,
+        "member_record_limit_exceeded": member_record_limit_exceeded,
+        "member_listing_boundary_observed": member_listing_boundary_observed,
+        "member_layout_ambiguous": member_layout_ambiguous,
+        "descriptor_count": descriptor_count,
+        "carrier_record_count": carrier_record_count,
+        "_member_records": member_records,
+    }
+
+
 def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dict:
     """アーカイブ候補を一覧化し、必要時だけcredentialをstdinへ渡す。"""
 
@@ -4883,43 +5313,7 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
                 ),
                 "_member_records": [],
             }
-        paths: list[str] = []
-        archive_types: set[str] = set()
-        total_members = 0
-        declared_total_size = 0
-        member_records: list[dict[str, object]] = []
-        member_record_limit_exceeded = False
-        current: dict[str, object] | None = None
-        for line in completed.stdout.splitlines():
-            if line.startswith("Path = "):
-                value = line[7:]
-                if current is not None:
-                    if len(member_records) < MAX_SEVENZIP_LISTING_MEMBER_RECORDS:
-                        member_records.append(current)
-                    else:
-                        member_record_limit_exceeded = True
-                current = {"name": value} if value != str(source) else None
-                if value != str(source):
-                    total_members += 1
-                    if len(paths) < MAX_ARCHIVE_MEMBERS:
-                        paths.append(value)
-            elif line.startswith("Type = "):
-                if len(archive_types) < 256:
-                    archive_types.add(line[7:])
-                else:
-                    member_record_limit_exceeded = True
-            elif line.startswith("Size = ") and line[7:].strip().isdigit():
-                value = int(line[7:].strip())
-                declared_total_size += value
-                if current is not None:
-                    current["size"] = value
-            if line.startswith("Attributes = ") and current is not None:
-                current["attributes"] = line[13:]
-        if current is not None:
-            if len(member_records) < MAX_SEVENZIP_LISTING_MEMBER_RECORDS:
-                member_records.append(current)
-            else:
-                member_record_limit_exceeded = True
+        parsed = _parse_sevenzip_slt_listing(completed.stdout)
         # reviewed hint による forced probe では、通常の PE や script も
         # 7-Zip へ渡る。parser が単に「archiveではない」と返した結果を
         # encrypted/unsupported と扱うと、完全に走査済みの層まで partial
@@ -4934,10 +5328,21 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
             "zip",
         }
         archive_structure_observed = bool(
-            archive_types or total_members or detected_format in archive_magic_formats
+            parsed["archive_types"]
+            or parsed["total_members"]
+            or detected_format in archive_magic_formats
         )
         status = (
-            "listed"
+            "member_listing_ambiguous"
+            if completed.returncode == 0 and parsed["member_layout_ambiguous"] is True
+            else "member_listing_boundary_missing"
+            if completed.returncode == 0
+            and archive_structure_observed
+            and parsed["member_listing_boundary_observed"] is not True
+            else "listed"
+            if completed.returncode == 0
+            and parsed["member_listing_boundary_observed"] is True
+            else "not_archive_container"
             if completed.returncode == 0
             else "credential_or_archive_rejected"
             if archive_unlock_attempted
@@ -4948,13 +5353,7 @@ def sevenzip_inventory(data: bytes, executable: Path, password: str = "") -> dic
         return {
             "status": status,
             "exit_code": completed.returncode,
-            "archive_types": sorted(archive_types),
-            "members": paths,
-            "total_members": total_members,
-            "declared_total_size": declared_total_size,
-            "member_record_limit_exceeded": member_record_limit_exceeded,
-            # sevenzip_extract内の選択抽出にだけ使い、公開レポートへは残さない。
-            "_member_records": member_records,
+            **parsed,
             "archive_unlock_attempted": archive_unlock_attempted,
             **(
                 {"credential_transport": "stdin_one_line"}
@@ -5173,6 +5572,7 @@ def sevenzip_extract(
     max_members: int = MAX_ARCHIVE_MEMBERS,
     max_member_size: int = MAX_ARTIFACT,
     max_total_size: int = MAX_EXTRACTED_TOTAL,
+    retain_all_bounded_members: bool = False,
 ) -> tuple[dict, list[tuple[str, bytes]]]:
     """認識済みコンテナをパス、件数、バイト数の上限付きで展開する。"""
 
@@ -5183,14 +5583,24 @@ def sevenzip_extract(
     ):
         if isinstance(value, bool) or value <= 0:
             raise ValueError(f"{label} must be positive")
+    if type(retain_all_bounded_members) is not bool:
+        raise ValueError("retain_all_bounded_members must be boolean")
     # inventoryは最初に無資格で試し、暗号化headerが明示された場合だけ
     # sevenzip_inventory内部で1行stdin credentialを使う。
     inventory_credential = "" if data.startswith(b"MZ") else password
     listing = sevenzip_inventory(data, executable, inventory_credential)
-    member_records = listing.pop("_member_records", [])
+    member_records = listing.pop("_member_records", None)
     if listing.get("status") != "listed":
         return listing, []
-    member_records, unsafe_member_count, member_record_limit_exceeded = (
+    if member_records is None:
+        members = listing.get("members")
+        member_records = (
+            [{"name": name} for name in members] if isinstance(members, list) else []
+        )
+    member_records, isolated_unsafe_member_count = (
+        _partition_syntactically_safe_sevenzip_records(member_records)
+    )
+    member_records, conflicting_member_count, member_record_limit_exceeded = (
         _validated_sevenzip_member_records(
             listing,
             member_records,
@@ -5206,11 +5616,33 @@ def sevenzip_extract(
             "maximum_member_records": MAX_SEVENZIP_LISTING_MEMBER_RECORDS,
             "external_extraction_started": False,
         }, []
-    if unsafe_member_count:
+    if conflicting_member_count:
         return {
             **listing,
             "status": "unsafe_member_path_blocked",
-            "unsafe_member_count": unsafe_member_count,
+            "unsafe_member_count": (
+                isolated_unsafe_member_count + conflicting_member_count
+            ),
+            "isolated_unsafe_member_count": isolated_unsafe_member_count,
+            "conflicting_member_count": conflicting_member_count,
+            "external_extraction_started": False,
+        }, []
+    extractable_member_records = [
+        record
+        for record in member_records
+        if "D" not in str(record.get("attributes") or "").upper()
+    ]
+    if not extractable_member_records:
+        status = (
+            "unsafe_member_path_blocked"
+            if isolated_unsafe_member_count
+            else "complete_no_actionable_member"
+        )
+        return {
+            **listing,
+            "status": status,
+            "unsafe_member_count": isolated_unsafe_member_count,
+            "isolated_unsafe_member_count": isolated_unsafe_member_count,
             "external_extraction_started": False,
         }, []
     extractable_types = {
@@ -5250,9 +5682,15 @@ def sevenzip_extract(
     total_size_limit_exceeded = (
         int(listing.get("declared_total_size", 0)) > max_total_size
     )
+    retain_bounded_opaque_members = bool(
+        0 < len(extractable_member_records) <= MAX_SMALL_ARCHIVE_OPAQUE_MEMBERS
+        and 0
+        < int(listing.get("declared_total_size", 0))
+        <= min(max_total_size, MAX_SMALL_ARCHIVE_OPAQUE_TOTAL_SIZE)
+    )
     if member_limit_exceeded or total_size_limit_exceeded:
         selective_members = select_high_value_archive_members(
-            member_records,
+            extractable_member_records,
             max_members=min(MAX_RETAINED_MEMBERS, max_members),
             max_member_size=max_member_size,
             max_total_size=max_total_size,
@@ -5284,7 +5722,7 @@ def sevenzip_extract(
             if selective_members:
                 command.extend(str(item["name"]) for item in selective_members)
             else:
-                command.extend(str(item["name"]) for item in member_records)
+                command.extend(str(item["name"]) for item in extractable_member_records)
             try:
                 completed = _run_static_tool_process(
                     command,
@@ -5352,6 +5790,15 @@ def sevenzip_extract(
                 "archive_unlock_attempted": True,
                 "credential_transport": "stdin_one_line",
             }, []
+        requested_records = (
+            selective_members if selective_members else extractable_member_records
+        )
+        requested_output_keys = {
+            unicodedata.normalize(
+                "NFKC", safe_member_name(str(item["name"]))
+            ).casefold()
+            for item in requested_records
+        }
         inventory, candidates = [], []
         extracted_total = 0
         try:
@@ -5403,10 +5850,21 @@ def sevenzip_extract(
                 continue
             relative = entry.relative_to(output).as_posix()
             try:
-                safe_member_name(relative)
+                normalized_relative = safe_member_name(relative)
             except ValueError:
                 inventory.append({"name": relative, "status": "path_blocked"})
                 continue
+            output_key = unicodedata.normalize("NFKC", normalized_relative).casefold()
+            if output_key not in requested_output_keys:
+                return {
+                    **listing,
+                    "status": "unsafe_tool_output",
+                    "unexpected_output_member_count": 1,
+                    "unsafe_member_count": isolated_unsafe_member_count,
+                    "safe_member_continuation_attempted": bool(
+                        isolated_unsafe_member_count
+                    ),
+                }, []
             size = information.st_size
             extracted_total += size
             if size > max_member_size:
@@ -5479,9 +5937,21 @@ def sevenzip_extract(
             if iso_validation is not None:
                 item["iso9660_validation"] = iso_validation
             inventory.append(item)
-            keep = kind != "data" or suffix in SELECTIVE_ARCHIVE_SUFFIXES
+            keep = (
+                retain_all_bounded_members
+                or kind != "data"
+                or suffix in SELECTIVE_ARCHIVE_SUFFIXES
+            )
             keep = keep or ".part-" in entry.name.lower()
             keep = keep or (not suffix and len(blob) <= 16 * 1024 * 1024)
+            keep = keep or (
+                retain_bounded_opaque_members
+                and len(blob)
+                <= min(
+                    max_member_size,
+                    MAX_SMALL_ARCHIVE_OPAQUE_MEMBER_SIZE,
+                )
+            )
             if keep:
                 priority = recovery_candidate_priority(blob, kind, relative)
                 item["recovery_priority"] = priority
@@ -5503,7 +5973,9 @@ def sevenzip_extract(
         artifacts.extend(inno_artifacts)
         artifacts.extend(split_artifacts)
         artifacts.extend(nsis_artifacts)
-        if selective_members and completed.returncode == 0:
+        if isolated_unsafe_member_count:
+            status = "partially_extracted"
+        elif selective_members and completed.returncode == 0:
             status = "selectively_extracted"
         else:
             status = "extracted" if completed.returncode == 0 else "partially_extracted"
@@ -5530,6 +6002,32 @@ def sevenzip_extract(
                 "inventory": inventory[:max_members],
                 "extracted_total_size": extracted_total,
                 "retained_members": len(selected),
+                "unsafe_member_count": isolated_unsafe_member_count,
+                "safe_member_continuation": {
+                    "applied": bool(isolated_unsafe_member_count),
+                    "blocked_member_count": isolated_unsafe_member_count,
+                    "explicit_safe_member_count": len(requested_records),
+                    "unsafe_member_names_published": False,
+                    "archive_inventory_complete": not bool(
+                        isolated_unsafe_member_count
+                    ),
+                },
+                "bounded_opaque_member_retention": {
+                    "enabled": retain_bounded_opaque_members,
+                    "maximum_member_count": MAX_SMALL_ARCHIVE_OPAQUE_MEMBERS,
+                    "maximum_member_size": MAX_SMALL_ARCHIVE_OPAQUE_MEMBER_SIZE,
+                    "maximum_total_size": MAX_SMALL_ARCHIVE_OPAQUE_TOTAL_SIZE,
+                },
+                "all_bounded_member_retention": {
+                    "enabled": retain_all_bounded_members,
+                    "retained_member_count": len(selected),
+                    "full_inventory_count": len(inventory),
+                    "complete": (
+                        retain_all_bounded_members
+                        and len(selected) == len(inventory)
+                        and all(item.get("status") == "extracted" for item in inventory)
+                    ),
+                },
                 "artifact_name_hints": artifact_name_hints,
                 "selective_extraction": {
                     "enabled": bool(selective_members),
@@ -6643,6 +7141,28 @@ def unpack_bytes(
     artifacts: list[tuple[str, bytes]] = (
         [] if iso9660_candidate else recover_whole_file_base64(data)
     )
+    if is_marshaled_code_entry_name(name):
+        report["python_marshal"], recovered = recover_marshaled_constants(
+            data,
+            name,
+            max_input_size=min(
+                max_archive_member_size,
+                PYTHON_MARSHAL_INPUT_LIMIT,
+            ),
+            max_scalar_size=min(
+                max_archive_member_size,
+                PYTHON_MARSHAL_SCALAR_LIMIT,
+            ),
+            max_candidate_size=min(
+                max_archive_member_size,
+                PYTHON_MARSHAL_CANDIDATE_LIMIT,
+            ),
+            max_candidate_total_size=min(
+                max_archive_total_size,
+                PYTHON_MARSHAL_TOTAL_LIMIT,
+            ),
+        )
+        artifacts.extend(recovered)
     report["inno_scene_record"], inno_scene_artifacts = recover_scene_record_artifacts(
         data, name
     )
@@ -6674,6 +7194,8 @@ def unpack_bytes(
             }
             report["unpack_status"] = "corrupt_or_truncated"
             return report, []
+        artifacts.extend(recovered)
+        report["pe_trailer_rc4"], recovered = recover_pe_trailer_rc4(data)
         artifacts.extend(recovered)
         report["node_sea"], recovered = recover_node_sea_pe(
             static_data,
@@ -6972,6 +7494,17 @@ def unpack_bytes(
                     max_members=max_archive_members,
                     max_member_size=max_archive_member_size,
                     max_total_size=max_archive_total_size,
+                    **(
+                        {"retain_all_bounded_members": True}
+                        if isinstance(report["pe"].get("winrar_sfx"), dict)
+                        and report["pe"]["winrar_sfx"].get("status")
+                        == "validated_sfx_container"
+                        and report["pe"]["winrar_sfx"].get("candidate") is True
+                        and report["pe"]["winrar_sfx"].get("scan_complete") is True
+                        and report["pe"]["winrar_sfx"].get("header_crc_verified")
+                        is True
+                        else {}
+                    ),
                 )
             _extend_artifacts_with_name_hints(
                 report,
@@ -7151,12 +7684,12 @@ def unpack_bytes(
             blocked = {
                 item.get("status") for item in report["zip"] if item.get("status")
             }
-            serious = blocked - {"size_blocked"}
+            serious = blocked - {"size_blocked", "unsafe_members_isolated"}
             if serious or ("size_blocked" in blocked and not recovered):
                 report["unpack_status"] = "bounded_limit"
                 report["recovered"] = []
                 return report, []
-            if "size_blocked" in blocked:
+            if "unsafe_members_isolated" in blocked or "size_blocked" in blocked:
                 report["unpack_status"] = "bounded_limit_with_partial_recovery"
             report["equation_ole"], recovered = recover_equation_ole(data)
             artifacts.extend(recovered)

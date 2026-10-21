@@ -161,8 +161,42 @@ def test_recovers_synthetic_payload_without_sha_or_key_special_case(key: int, pr
     assert report["family_attribution_allowed"] is False
     assert report["c2_confirmation_allowed"] is False
     assert report["terminal_promotion_eligible"] is False
+    assert report["pclntab_zero_text_start_normalized"] is False
     assert "prefix" not in report and "key" not in report
     assert "syntheticDecode" not in json.dumps(report)
+
+
+def test_zero_text_start_is_normalized_from_unique_executable_base_of_code() -> None:
+    image, payload = _fixture()
+    changed = bytearray(image)
+    struct.pack_into("<Q", changed, 0x1200 + 24, 0)
+    report, artifacts = recovery.recover_go_embedded_pe(bytes(changed))
+    assert report["status"] == "recovered", report
+    assert artifacts == [("go-five-stage-decoded-pe", payload)]
+    assert report["pclntab_zero_text_start_normalized"] is True
+    assert report["family_attribution_allowed"] is False
+    assert report["c2_confirmation_allowed"] is False
+    assert report["terminal_promotion_eligible"] is False
+
+
+@pytest.mark.parametrize("layout", ["non_executable", "ambiguous"])
+def test_zero_text_start_requires_unique_file_backed_executable_base_of_code(
+    layout: str,
+) -> None:
+    image, _ = _fixture()
+    changed = bytearray(image)
+    struct.pack_into("<Q", changed, 0x1200 + 24, 0)
+    optional = 0x98
+    if layout == "non_executable":
+        struct.pack_into("<I", changed, optional + 20, 0x3000)
+    else:
+        second_section = optional + 0xF0 + 40
+        struct.pack_into("<I", changed, second_section + 12, 0x1000)
+        struct.pack_into("<I", changed, second_section + 36, 0x60000020)
+    report, artifacts = recovery.recover_go_embedded_pe(bytes(changed))
+    assert report["status"] == "rejected"
+    assert report["reason"] == "pclntab_zero_text_start_unresolved"
+    assert not artifacts
 
 
 def test_does_not_recover_regular_pe_or_non_pe() -> None:

@@ -894,14 +894,16 @@ def _mapping_endpoints(
 def _verified_binary_output(value: object) -> dict[str, Any] | None:
     """wrapperが実bytesで検証したbinary outputだけを厳格schemaで受理する。"""
 
-    if not isinstance(value, Mapping) or set(value) != {
+    base_keys = {
         "role",
         "kind",
         "path",
         "sha256",
         "size",
         "verification",
-    }:
+    }
+    extended_keys = {*base_keys, "source_name", "analysis_priority"}
+    if not isinstance(value, Mapping) or set(value) not in (base_keys, extended_keys):
         return None
     role = value.get("role")
     kind = value.get("kind")
@@ -909,6 +911,8 @@ def _verified_binary_output(value: object) -> dict[str, Any] | None:
     digest = _valid_sha256(value.get("sha256"))
     size = value.get("size")
     verification = value.get("verification")
+    source_name = value.get("source_name")
+    analysis_priority = value.get("analysis_priority")
     if (
         role not in VERIFIED_OUTPUT_ROLES
         or kind not in VERIFIED_OUTPUT_KINDS
@@ -927,9 +931,23 @@ def _verified_binary_output(value: object) -> dict[str, Any] | None:
         or verification.get("status") != "artifact_hash_verified"
         or verification.get("sha256_matches") is not True
         or verification.get("size_matches") is not True
+        or (
+            set(value) == extended_keys
+            and (
+                not isinstance(source_name, str)
+                or not source_name
+                or len(source_name) > 240
+                or "/" in source_name
+                or chr(92) in source_name
+                or any(ord(character) < 0x20 or ord(character) == 0x7F for character in source_name)
+                or isinstance(analysis_priority, bool)
+                or not isinstance(analysis_priority, int)
+                or not 0 <= analysis_priority <= 3
+            )
+        )
     ):
         return None
-    return {
+    normalized = {
         "role": role,
         "kind": kind,
         "path": path,
@@ -941,6 +959,10 @@ def _verified_binary_output(value: object) -> dict[str, Any] | None:
             "size_matches": True,
         },
     }
+    if set(value) == extended_keys:
+        normalized["source_name"] = source_name
+        normalized["analysis_priority"] = analysis_priority
+    return normalized
 
 
 def _verified_output_audit(value: object, *, output_count: int) -> dict[str, Any] | None:

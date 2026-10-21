@@ -6,11 +6,13 @@ import hashlib
 
 import pytest
 
+from common import static_layer_pipeline as pipeline_module
 from common.static_layer_pipeline import (
     InputUnit,
     StaticLayerPolicy,
     recover_static_layers,
 )
+from common.valleyrat_verified_sibling_adapter import VerifiedSiblingBundleLayer
 
 
 def _unit(data: bytes = b"root") -> InputUnit:
@@ -51,6 +53,67 @@ def test_custom_unpacker_and_policy_are_reusable() -> None:
     assert calls[0]["max_archive_compression_ratio"] == 25.0
     assert report["limits"]["max_layers"] == 3
     assert report["executed_sample"] is False
+
+
+def test_verified_sibling_bundle_is_queued_without_adapter_attribution(monkeypatch) -> None:
+    """strict adapter成立時だけ正規化bundleを既存の後段解析へ渡す。"""
+
+    normalized = b"PK\x03\x04verified-sibling-bundle"
+    parent_digest = hashlib.sha256(b"root").hexdigest()
+    observed: list[tuple[bytes, tuple[tuple[str, bytes], ...]]] = []
+
+    def fake_adapter(*, parent_data, parent_sha256, report, artifacts):
+        observed.append((parent_data, tuple(artifacts)))
+        if parent_data != b"root":
+            return None
+        assert parent_sha256 == parent_digest
+        assert report["format"] == "pe"
+        return VerifiedSiblingBundleLayer(
+            data=normalized,
+            parent_sha256=parent_digest,
+            bundle_sha256=hashlib.sha256(normalized).hexdigest(),
+            terminal_sha256="1" * 64,
+            host_sha256="2" * 64,
+            loader_sha256="3" * 64,
+            carrier_sha256="4" * 64,
+            full_inventory_count=5,
+            full_inventory_size=100,
+            materialized_member_count=4,
+            materialized_member_size=90,
+            distinct_artifact_count=3,
+            crc32_verified_member_count=0,
+        )
+
+    monkeypatch.setattr(
+        pipeline_module,
+        "recover_verified_sibling_bundle_layer",
+        fake_adapter,
+    )
+
+    def unpacker(data: bytes, _name: str, **_kwargs):
+        if data == b"root":
+            return {"format": "pe"}, [("ordinary-data", b"ordinary")]
+        return {"format": "data"}, []
+
+    layers, report = recover_static_layers(
+        _unit(),
+        unpacker=unpacker,
+        policy=StaticLayerPolicy(
+            max_layers=4,
+            max_depth=2,
+            max_layer_size=128,
+            max_total_size=256,
+        ),
+    )
+
+    recovered = next(item for item in layers if item.data == normalized)
+    assert recovered.parent_sha256 == parent_digest
+    assert recovered.transform == "verified-sibling-analysis-container"
+    adapter_report = report["steps"][0]["report"]["verified_sibling_bundle_adapter"]
+    assert adapter_report["evidence_boundary"]["adapter_confirms_family"] is False
+    assert adapter_report["evidence_boundary"]["adapter_confirms_c2"] is False
+    assert report["selection_policy"]["name"].endswith("_v6")
+    assert observed[0][1] == (("ordinary-data", b"ordinary"),)
 
 
 def test_depth_limit_is_reported_as_incomplete_static_coverage() -> None:
@@ -424,6 +487,84 @@ def test_script_and_config_precede_media_without_reordering_equal_tiers() -> Non
     ]
 
 
+def test_unverified_pyinstaller_labels_do_not_override_container_content() -> None:
+    """labelだけのCArchive主張では内容由来のcontainer優先度を上書きしない。"""
+
+    base_library = b"PK\x05\x06" + b"\0" * 18
+    main = b"marshal-main-program"
+    module = b"marshal-application-module"
+    pyz = b"PYZ\0application-modules"
+    calls: list[bytes] = []
+
+    def unpacker(data: bytes, _name: str, **_kwargs):
+        calls.append(data)
+        if data == b"root":
+            # 見かけ上のPyInstaller labelだけを返し、束縛先reportは返さない。
+            return {}, [
+                ("pyinstaller-nested_archive-003-base_library.zip", base_library),
+                ("pyinstaller-python_script-000-main", main),
+                ("pyinstaller-python_module-001-application", module),
+                ("pyinstaller-pyz_archive-002-PYZ.pyz", pyz),
+            ]
+        return {}, []
+
+    policy = StaticLayerPolicy(
+        max_layers=2,
+        max_depth=3,
+        max_layer_size=1024,
+        max_total_size=1024 * 1024,
+    )
+    layers, report = recover_static_layers(_unit(), unpacker=unpacker, policy=policy)
+    assert [item.data for item in layers] == [b"root", base_library]
+    assert calls == [b"root", base_library]
+    assert {event["reason"] for event in report["limit_events"]} == {"layer_count_limit"}
+    assert {event["kind"] for event in report["limit_events"]} == {
+        "pyinstaller-python_script-000-main",
+        "pyinstaller-python_module-001-application",
+        "pyinstaller-pyz_archive-002-PYZ.pyz",
+    }
+    assert report["selection_policy"]["primary_order"].startswith(
+        "validated_lineage_then_zip_sideload_or_verified_pyinstaller_role"
+    )
+
+
+def test_malformed_declared_pyz_is_not_execution_prioritized() -> None:
+    """PYZ type labelだけでmagic不一致blobをcontainerより先にしない。"""
+
+    malformed_pyz = b"not-a-pyz-stream"
+    container = b"MSCFbounded-container"
+
+    def unpacker(data: bytes, _name: str, **_kwargs):
+        if data == b"root":
+            return {}, [
+                ("pyinstaller-pyz_archive-000-PYZ.pyz", malformed_pyz),
+                ("nested-container", container),
+            ]
+        return {}, []
+
+    layers, report = recover_static_layers(
+        _unit(),
+        unpacker=unpacker,
+        policy=StaticLayerPolicy(
+            max_layers=2,
+            max_depth=2,
+            max_layer_size=1024,
+            max_total_size=4096,
+        ),
+    )
+
+    assert [item.data for item in layers] == [b"root", container]
+    assert report["limit_events"] == [
+        {
+            "parent_sha256": hashlib.sha256(b"root").hexdigest(),
+            "kind": "pyinstaller-pyz_archive-000-PYZ.pyz",
+            "sha256": hashlib.sha256(malformed_pyz).hexdigest(),
+            "size": len(malformed_pyz),
+            "reason": "layer_count_limit",
+        }
+    ]
+
+
 def test_same_tier_siblings_preserve_discovery_order_when_all_fit() -> None:
     """同一tierが上限内なら従来どおり発見順を完全に維持する。"""
 
@@ -490,8 +631,10 @@ def test_oversubscribed_same_tier_siblings_cover_head_middle_and_tail() -> None:
     selection_policy = report["selection_policy"]
     assert selection_policy == repeated_report["selection_policy"]
     assert selection_policy == {
-        "name": "format_depth_pending_capacity_stratified_siblings_v3",
-        "primary_order": "validated_lineage_then_format_priority_then_deeper_layer",
+        "name": "lineage_zip_sideload_verified_pyinstaller_role_format_depth_pending_capacity_stratified_siblings_v6",
+        "primary_order": (
+            "validated_lineage_then_zip_sideload_or_verified_pyinstaller_role_then_format_priority_then_deeper_layer"
+        ),
         "capacity_evaluation": "all_pending_layers_after_each_expansion",
         "under_capacity_same_tier_order": "discovery_order",
         "oversubscribed_same_parent_tier_order": ("endpoints_then_largest_interval_midpoint"),
@@ -961,6 +1104,16 @@ def test_complete_inno_launch_target_precedes_container_at_small_layer_limit() -
     assert selection["counts"]["selected_child_count"] == 1
     assert selection["selected_relation_counts"] == {"script_launch": 1}
     assert [child["transform"] for child in root_step["accepted_children"]] == ["inno-member-001-unknown.exe"]
+    assert layers[1].launch_lineage_relation == "script_launch"
+    assert root_step["accepted_children"][0]["launch_lineage_priority"] == {
+        "kind": "inno_launch_target",
+        "relation": "script_launch",
+        "queue_prioritization_only": True,
+        "static_execution_lineage_selected": True,
+        "sample_execution_observed": False,
+        "family_confirmation": False,
+        "c2_confirmation": False,
+    }
     assert {event["kind"] for event in report["limit_events"]} == {
         "competing-container",
         "inno-install-script.iss",
@@ -1081,6 +1234,7 @@ def test_inno_install_script_identity_failure_keeps_existing_order(
     root_step = public["steps"][0]
     assert root_step["lineage_child_selection"]["status"] == "partial"
     assert [child["transform"] for child in root_step["accepted_children"]] == ["competing-container"]
+    assert "launch_lineage_priority" not in root_step["accepted_children"][0]
 
 
 def test_complete_bcrypt_target_precedes_container_at_small_layer_limit() -> None:

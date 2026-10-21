@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import stat
 import sys
 from pathlib import Path
 
@@ -33,6 +34,28 @@ def test_static_tool_identity_uses_name_size_and_sha256_only(tmp_path: Path) -> 
         "sha256": hashlib.sha256(payload).hexdigest(),
     }
     assert str(tool.parent) not in repr(identity)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows版7-Zipの同伴DLL契約です")
+def test_sevenzip_identity_seals_same_directory_companion_dll(
+    tmp_path: Path,
+) -> None:
+    """7z.exeと動的loadされる7z.dllを単一の公開identityへ結合する。"""
+
+    executable = tmp_path / "7z.exe"
+    companion = tmp_path / "7z.dll"
+    executable.write_bytes(b"synthetic sevenzip executable")
+    companion.write_bytes(b"synthetic sevenzip companion")
+
+    first = analyzer._tool_identity(executable)
+    companion.write_bytes(b"changed synthetic sevenzip companion")
+    second = analyzer._tool_identity(executable)
+
+    assert first is not None and second is not None
+    assert first["name"] == "7z.exe+7z.dll"
+    assert first["size"] == len(b"synthetic sevenzip executable") + len(b"synthetic sevenzip companion")
+    assert first["sha256"] != second["sha256"]
+    assert str(tmp_path) not in repr(first)
 
 
 def test_static_tool_path_rejects_hardlink(tmp_path: Path) -> None:
@@ -77,6 +100,268 @@ def test_static_tool_path_rejects_oversized_binary(
 
     with pytest.raises(ValueError, match="通常file"):
         analyzer._normalize_tool_path(tool, "UPX")
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows標準install先の探索契約です")
+def test_standard_sevenzip_discovery_uses_only_validated_candidates(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """標準候補は固定順で検証し、通常fileだけを自動選択する。"""
+
+    missing = tmp_path / "missing-7z.exe"
+    tool = tmp_path / "7z.exe"
+    tool.write_bytes(b"synthetic standard sevenzip")
+    monkeypatch.setattr(
+        analyzer,
+        "STANDARD_WINDOWS_SEVENZIP_CANDIDATES",
+        (missing, tool),
+    )
+
+    assert analyzer._discover_standard_sevenzip() == tool.resolve()
+
+
+def test_execute_cli_forwards_discovered_standard_sevenzip(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """自動選択した7-Zipをrun_batchへ渡し、明示pathなしで静的展開を有効化する。"""
+
+    sample = tmp_path / "sample.bin"
+    sample.write_bytes(b"static discovery fixture")
+    tool = tmp_path / "7z.exe"
+    tool.write_bytes(b"synthetic standard sevenzip")
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(analyzer, "_runtime_dependency_preflight_main", lambda: 0)
+    monkeypatch.setattr(analyzer, "_discover_standard_sevenzip", lambda: tool.resolve())
+
+    def fake_run_batch(*_args: object, **kwargs: object) -> dict[str, object]:
+        snapshot = Path(str(kwargs["sevenzip"]))
+        captured["sevenzip"] = snapshot
+        captured["snapshot_bytes"] = snapshot.read_bytes()
+        captured["snapshot_exists_during_run"] = snapshot.is_file()
+        return {
+            "counts": {
+                "errors": 0,
+                "triaged_unknown": 0,
+                "partial": 0,
+                "failed": 0,
+            },
+            "derived_counts": {"triaged_unknown": 0},
+            "follow_on_analysis": {"status": "complete"},
+        }
+
+    monkeypatch.setattr(analyzer, "run_batch", fake_run_batch)
+    exit_code, _counts = analyzer._execute_cli(
+        [
+            "--input",
+            str(sample),
+            "--output",
+            str(tmp_path / "output"),
+            "--archive-mode",
+            "raw",
+            "--discover-standard-sevenzip",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["sevenzip"] != tool.resolve()
+    assert captured["snapshot_bytes"] == tool.read_bytes()
+    assert captured["snapshot_exists_during_run"] is True
+    assert not Path(str(captured["sevenzip"])).exists()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows版7-Zipの同伴DLL契約です")
+def test_execute_cli_snapshots_sevenzip_companion_dll(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """7z.exeと同伴7z.dllを同じprivate directoryへ固定する。"""
+
+    sample = tmp_path / "sample.bin"
+    sample.write_bytes(b"static discovery fixture")
+    tool = tmp_path / "7z.exe"
+    companion = tmp_path / "7z.dll"
+    tool.write_bytes(b"synthetic standard sevenzip")
+    companion.write_bytes(b"synthetic standard sevenzip companion")
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(analyzer, "_runtime_dependency_preflight_main", lambda: 0)
+    monkeypatch.setattr(analyzer, "_discover_standard_sevenzip", lambda: tool.resolve())
+
+    def fake_run_batch(*_args: object, **kwargs: object) -> dict[str, object]:
+        snapshot = Path(str(kwargs["sevenzip"]))
+        captured["snapshot"] = snapshot
+        captured["tool_bytes"] = snapshot.read_bytes()
+        captured["companion_bytes"] = snapshot.with_name("7z.dll").read_bytes()
+        return {
+            "counts": {
+                "errors": 0,
+                "triaged_unknown": 0,
+                "partial": 0,
+                "failed": 0,
+            },
+            "derived_counts": {"triaged_unknown": 0},
+            "follow_on_analysis": {"status": "complete"},
+        }
+
+    monkeypatch.setattr(analyzer, "run_batch", fake_run_batch)
+    exit_code, _counts = analyzer._execute_cli(
+        [
+            "--input",
+            str(sample),
+            "--output",
+            str(tmp_path / "output"),
+            "--archive-mode",
+            "raw",
+            "--discover-standard-sevenzip",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["tool_bytes"] == tool.read_bytes()
+    assert captured["companion_bytes"] == companion.read_bytes()
+    assert not Path(str(captured["snapshot"])).exists()
+
+
+def test_execute_cli_rejects_sevenzip_snapshot_changed_during_run(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """解析中のprivate snapshot改変を成功扱いにしない。"""
+
+    sample = tmp_path / "sample.bin"
+    sample.write_bytes(b"static discovery fixture")
+    tool = tmp_path / "sevenzip.exe"
+    tool.write_bytes(b"synthetic pinned sevenzip")
+
+    monkeypatch.setattr(analyzer, "_runtime_dependency_preflight_main", lambda: 0)
+
+    def fake_run_batch(*_args: object, **kwargs: object) -> dict[str, object]:
+        snapshot = Path(str(kwargs["sevenzip"]))
+        os.chmod(snapshot, stat.S_IREAD | stat.S_IWRITE)
+        snapshot.write_bytes(b"tampered private snapshot")
+        return {
+            "counts": {
+                "errors": 0,
+                "triaged_unknown": 0,
+                "partial": 0,
+                "failed": 0,
+            },
+            "derived_counts": {"triaged_unknown": 0},
+            "follow_on_analysis": {"status": "complete"},
+        }
+
+    monkeypatch.setattr(analyzer, "run_batch", fake_run_batch)
+    with pytest.raises(ValueError, match="snapshotが解析実行中に変更"):
+        analyzer._execute_cli(
+            [
+                "--input",
+                str(sample),
+                "--output",
+                str(tmp_path / "output"),
+                "--archive-mode",
+                "raw",
+                "--sevenzip",
+                str(tool),
+            ]
+        )
+
+
+def test_direct_cli_sevenzip_snapshot_rejects_source_change_during_copy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """初回identity取得後にsourceが変わればrun_batch前に拒否する。"""
+
+    tool = tmp_path / "sevenzip.exe"
+    tool.write_bytes(b"original sevenzip")
+    original_reader = analyzer._read_static_tool_binary_once
+    reads = 0
+
+    def mutate_before_copy(path: Path) -> bytes:
+        nonlocal reads
+        reads += 1
+        if reads == 2:
+            path.write_bytes(b"changed sevenzip!")
+        return original_reader(path)
+
+    monkeypatch.setattr(analyzer, "_read_static_tool_binary_once", mutate_before_copy)
+    with pytest.raises(ValueError, match="sourceがsnapshot作成中に変更"):
+        with analyzer._snapshot_sevenzip_for_direct_cli(tool):
+            pytest.fail("不変性検証前にsnapshotが公開されました")
+
+
+def test_execute_cli_fails_closed_when_standard_sevenzip_is_unavailable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """自動選択を要求したのにtoolがない場合は無言で解析を続けない。"""
+
+    sample = tmp_path / "sample.bin"
+    sample.write_bytes(b"static discovery fixture")
+    monkeypatch.setattr(analyzer, "_runtime_dependency_preflight_main", lambda: 0)
+    monkeypatch.setattr(analyzer, "_discover_standard_sevenzip", lambda: None)
+
+    with pytest.raises(ValueError, match="安全な7-Zip"):
+        analyzer._execute_cli(
+            [
+                "--input",
+                str(sample),
+                "--output",
+                str(tmp_path / "output"),
+                "--archive-mode",
+                "raw",
+                "--discover-standard-sevenzip",
+            ]
+        )
+
+
+def test_execute_cli_rejects_explicit_and_discovered_sevenzip_together(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """operator指定と標準install探索を同時適用して曖昧にしない。"""
+
+    sample = tmp_path / "sample.bin"
+    sample.write_bytes(b"static discovery fixture")
+    tool = tmp_path / "sevenzip.exe"
+    tool.write_bytes(b"synthetic pinned sevenzip")
+    monkeypatch.setattr(analyzer, "_runtime_dependency_preflight_main", lambda: 0)
+
+    with pytest.raises(ValueError, match="同時に指定できません"):
+        analyzer._execute_cli(
+            [
+                "--input",
+                str(sample),
+                "--output",
+                str(tmp_path / "output"),
+                "--archive-mode",
+                "raw",
+                "--sevenzip",
+                str(tool),
+                "--discover-standard-sevenzip",
+            ]
+        )
+
+
+def test_standard_sevenzip_discovery_is_disabled_outside_windows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """標準install探索は候補fileが存在しても非Windowsでは行わない。"""
+
+    candidate = tmp_path / "7z.exe"
+    candidate.write_bytes(b"synthetic standard sevenzip")
+    monkeypatch.setattr(analyzer.os, "name", "posix")
+    monkeypatch.setattr(
+        analyzer,
+        "STANDARD_WINDOWS_SEVENZIP_CANDIDATES",
+        (candidate,),
+    )
+
+    assert analyzer._discover_standard_sevenzip() is None
 
 
 def test_batch_summary_preserves_sealed_static_tool_identity(tmp_path: Path) -> None:

@@ -4,18 +4,18 @@
 この割合は実検体を解析して測定した成功率ではなく、解析完了率、config／C2抽出成功率、終端payload到達率、誤検知率を示しません。
 
 - 対象family: 92件
-- detector＋AST監査＋runtime import確認済みhandler＋品質policyが揃う構造: 81件（88.04%）
+- detector＋AST監査＋runtime import確認済みhandler＋品質policyが揃う構造: 82件（89.13%）
 - 代表fixtureで自動解析完了を実証済み: 0件
-- detector＋安全handlerでfamily自動選択可能: 81件
+- detector＋安全handlerでfamily自動選択可能: 82件
 - automatic宣言済みfamily: 90件（97.83%）
-- AST監査＋runtime import確認済みscript-only handler: 89件（96.74%）
-- 品質policy宣言済み: 90件 / 安全handler＋品質policy: 89件
+- AST監査＋runtime import確認済みscript-only handler: 90件（97.83%）
+- 品質policy宣言済み: 90件 / 安全handler＋品質policy: 90件
 - 安全handlerはあるが品質policy未宣言: 0件
-- handler実装: 宣言111件 / AST監査通過110件 / runtime import確認済み110件 / 停止1件
-- automatic handlerがAST監査またはruntime importで停止: 1件
+- handler実装: 宣言112件 / AST監査通過112件 / runtime import確認済み112件 / 停止0件
+- automatic handlerがAST監査またはruntime importで停止: 0件
 - handlerによる候補検証のみ: 8件
-- 実行したformat別preflight: 1091件（上限2048件）
-- 実行した検体なしruntime import確認: 110件（計画111件）
+- 実行したformat別preflight: 1092件（上限2048件）
+- 実行した検体なしruntime import確認: 112件（計画112件）
 
 | family | 状態 | detector | 品質policy | 宣言handler | 安全handler | blocker |
 |---|---|---:|---:|---:|---:|---|
@@ -104,11 +104,11 @@
 | tor_openssh_backdoor | manual_only_without_detector | なし | なし | 0 | 0 | detector_and_automatic_handler_missing |
 | traffmonetizer_deployer | fully_routable | あり | あり | 1 | 1 | なし |
 | unclassified | manual_only_without_detector | なし | なし | 0 | 0 | detector_and_automatic_handler_missing |
-| valleyrat | fully_routable | あり | あり | 11 | 11 | なし |
+| valleyrat | fully_routable | あり | あり | 12 | 12 | なし |
 | venomrat | fully_routable | あり | あり | 2 | 2 | なし |
 | vidar | fully_routable | あり | あり | 2 | 2 | なし |
 | wannacry | fully_routable | あり | あり | 1 | 1 | なし |
-| windows_script_stager | automatic_handler_blocked | あり | あり | 1 | 0 | automatic_handler_preflight_blocked |
+| windows_script_stager | fully_routable | あり | あり | 1 | 1 | なし |
 | xmrig | fully_routable | あり | あり | 1 | 1 | なし |
 | xworm | fully_routable | あり | あり | 2 | 2 | なし |
 

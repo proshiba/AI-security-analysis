@@ -420,6 +420,12 @@ def test_extractor_incomplete_lineage_is_candidate_only(
     assert config["static_config_recovered"] is False
     assert config["candidate_config_recovered"] is True
     assert config["terminal_family_confirmed"] is False
+    diagnostics = config["recovery_diagnostics"]
+    assert diagnostics["status"] == "route_only"
+    assert diagnostics["raw_configuration_included"] is False
+    assert diagnostics["raw_network_values_included"] is False
+    assert diagnostics["sample_executed"] is False
+    assert diagnostics["network_contacted"] is False
 
 
 @pytest.mark.parametrize("missing", ["recv", "send", "connect", "WSAStartup"])

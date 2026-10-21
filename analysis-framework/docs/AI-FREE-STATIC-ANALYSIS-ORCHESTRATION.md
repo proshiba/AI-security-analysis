@@ -187,11 +187,11 @@ family handlerが返す公開結果と復元bytesは分離します。終端と�
 
 - 最大64 payload、最大128 edge、最大深さ4
 - 個別payload 128 MiB、合計256 MiB
-- job内の後段解析全体300秒、子processごと120秒
+- job内の後段解析全体は基礎300秒にqueue投入child 1件ごと120秒を加算し、最大7,980秒、子processごと120秒
 - SHA-256によるvisited集合、cycle除外、同一payloadの共有edge除外
 - timeout、上限到達、途中生成case、契約不一致、seal不一致は`partial`として記録
 
-`follow-on-analysis.json`はroot、node、edge、除外理由、解析契約SHA-256を持つ機械可読グラフです。terminal stateへ到達した子caseだけを`summary.json`の`derived_cases`へ公開し、rootの`cases`／`counts`とは別に`derived_counts`へ集計します。edge上限、再読込byte上限、期限、成果物検証失敗で走査できなかった保持metadataは、先頭4,096件を親・子SHA-256、size、path、role、kind、理由付きで`omitted_metadata`へ残します。上限を超えた残余は、親ごとの件数と多重集合canonical SHA-256を`omitted_metadata_commitments`へ残します。WebUI runnerはroot／child契約を現在コードと要求から再計算し、seal済みroot caseから全countsを再計算したうえで、グラフ本体のSHA-256、安全フラグ、hard counter、DAGの深さ、edgeとnode状態、子reportのsemantic seal、成果物hash、lineage、summaryとの完全一致を再検証します。さらに親wrapperから残余`Counter`を独立再計算し、`edge + omitted_metadata + commitment`が全保持metadataを多重度込みで完全分割することを照合します。omissionまたはcommitmentが1件でもあれば必ず`partial`です。commitmentがあるgraphでは親昇格を禁止し、保持file本体の再SHA-256は引き続き有界・期限付きで実施します。
+`follow-on-analysis.json`はroot、node、edge、除外理由、解析契約SHA-256を持つ機械可読グラフです。`limits.maximum_wall_seconds`にはglobal hard cap、`limits.effective_wall_seconds`には実際のqueue件数から決定した実効値を記録します。terminal stateへ到達した子caseだけを`summary.json`の`derived_cases`へ公開し、rootの`cases`／`counts`とは別に`derived_counts`へ集計します。edge上限、再読込byte上限、期限、成果物検証失敗で走査できなかった保持metadataは、先頭4,096件を親・子SHA-256、size、path、role、kind、理由付きで`omitted_metadata`へ残します。上限を超えた残余は、親ごとの件数と多重集合canonical SHA-256を`omitted_metadata_commitments`へ残します。WebUI runnerはroot／child契約を現在コードと要求から再計算し、seal済みroot caseから全countsを再計算したうえで、グラフ本体のSHA-256、安全フラグ、hard counter、実効wall値、DAGの深さ、edgeとnode状態、子reportのsemantic seal、成果物hash、lineage、summaryとの完全一致を再検証します。さらに親wrapperから残余`Counter`を独立再計算し、`edge + omitted_metadata + commitment`が全保持metadataを多重度込みで完全分割することを照合します。omissionまたはcommitmentが1件でもあれば必ず`partial`です。commitmentがあるgraphでは親昇格を禁止し、保持file本体の再SHA-256は引き続き有界・期限付きで実施します。
 
 `terminal-payload-acquisition.json`は、この検証済みグラフから最深の終端frontierを決定的に抽出する必須成果物です。厳格な`complete`子だけを`selected_sha256`へ採用し、timeout、解析途中、深さ・size・件数・合計byte上限、cycle、omissionは`pending_sha256`と機械可読`blockers`へ分離します。公開するのはSHA-256、size、深さ、role、kind、親SHA-256、解析状態だけで、payload本文や秘密値は含めません。外部取得は自動実行せず、`external_retrieval_attempted=false`、`network_contacted=false`を固定します。job runnerはsummary参照またはfileの欠落を拒否し、この成果物を`follow-on-analysis.json`から再計算して、artifact SHA-256、件数、状態、安全flagが完全一致しない結果を拒否します。検証済み台帳の相対pathとSHA-256は`result.json.artifacts`にも固定します。
 

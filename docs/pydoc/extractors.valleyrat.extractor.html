@@ -8,7 +8,7 @@
 <table class="heading">
 <tr class="heading-text decor">
 <td class="title">&nbsp;<br><strong class="title"><a href="extractors.html" class="white">extractors</a>.<a href="extractors.valleyrat.html" class="white">valleyrat</a>.extractor</strong></td>
-<td class="extra"><a href=".">index</a><br><a href="file:c%3A%5Cusers%5Cadministrator%5Cw%5Ca26%5Cextractors%5Cvalleyrat%5Cextractor.py">c:\users\administrator\w\a26\extractors\valleyrat\extractor.py</a></td></tr></table>
+<td class="extra"><a href=".">index</a><br><a href="../../extractors/valleyrat/extractor.py">../../extractors/valleyrat/extractor.py</a></td></tr></table>
     <p><span class="code">レビュー済みValleyRAT&nbsp;campaign&nbsp;variantから設定指標を静的に抽出する。</span></p>
 <p>
 <table class="section">
@@ -30,6 +30,7 @@
  <dl><dt><a name="-extract"><strong>extract</strong></a>(data: 'bytes', name: 'str' = 'sample') -&gt; 'dict'</dt><dd><span class="code">endpointへ接続せず、ValleyRAT関連の静的設定候補を返す。</span></dd></dl>
  <dl><dt><a name="-identify_variant"><strong>identify_variant</strong></a>(strings: 'list[str]') -&gt; 'str'</dt><dd><span class="code">すべてのbuildを同一視せず、設定表現からvariantを識別する。</span></dd></dl>
  <dl><dt><a name="-probe_codemark_terminal_config"><strong>probe_codemark_terminal_config</strong></a>(data: 'bytes', *, trusted_static_recovery: 'bool' = False) -&gt; 'dict[str, object]'</dt><dd><span class="code">raw&nbsp;x86／x64&nbsp;code形状とcodemark設定を検証しprovenanceを分離する。</span></dd></dl>
+ <dl><dt><a name="-probe_direct_native_terminal_config"><strong>probe_direct_native_terminal_config</strong></a>(data: 'bytes') -&gt; 'dict[str, object]'</dt><dd><span class="code">x64直結型終端を静的producer-consumer証拠だけで確定する。</span></dd></dl>
  <dl><dt><a name="-probe_run_dll_native_core_config"><strong>probe_run_dll_native_core_config</strong></a>(data: 'bytes') -&gt; 'dict[str, object]'</dt><dd><span class="code">厳格なPE＋data-reference契約からroute-only&nbsp;C2設定を返す。</span></dd></dl>
  <dl><dt><a name="-probe_vvas_config"><strong>probe_vvas_config</strong></a>(data: 'bytes', *, input_format: 'str') -&gt; 'dict[str, object]'</dt><dd><span class="code">一意な反転設定とformat別の構造補強が揃う場合だけfamily帰属を許可する。<br>
 &nbsp;<br>
@@ -48,5 +49,5 @@ probeへ含めない。</span></dd></dl>
 
 <tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
 <td class="singlecolumn"><strong>HANDLER_CONTRACT</strong> = {'input_formats': ['pe', 'data'], 'minimum_evidence_score': 30000}<br>
-<strong>__all__</strong> = ['HANDLER_CONTRACT', 'decode_vvas_reversed_config', 'extract', 'identify_variant', 'probe_codemark_terminal_config', 'probe_run_dll_native_core_config', 'probe_vvas_config', 'probe_x86_codemark_resource_config', 'probe_xor_b1_downloader', 'probe_xor_vvas_config']</td></tr></table>
+<strong>__all__</strong> = ['HANDLER_CONTRACT', 'decode_vvas_reversed_config', 'extract', 'identify_variant', 'probe_codemark_terminal_config', 'probe_run_dll_native_core_config', 'probe_direct_native_terminal_config', 'probe_vvas_config', 'probe_x86_codemark_resource_config', 'probe_xor_b1_downloader', 'probe_xor_vvas_config']</td></tr></table>
 </body></html>

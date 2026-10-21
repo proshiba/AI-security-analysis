@@ -7,7 +7,6 @@ import importlib.util
 from pathlib import Path
 
 import pytest
-
 from extractors.common import build_result
 from extractors.valleyrat import extractor
 from extractors.valleyrat.native_loader_lineage import NativeLoaderLineage
@@ -60,6 +59,7 @@ def _silverfox_observation() -> dict[str, object]:
         "terminal_network_lineage_proven": False,
         "terminal_protocol_lineage_proven": False,
         "candidate_only": True,
+        "decoders": {"decoded_component_size": len(b"MZ route-only component")},
         "endpoint_values_included": False,
         "raw_payload_included": False,
         "sample_executed": False,
@@ -142,15 +142,90 @@ def test_detector_loader_candidates_remain_route_only(
     assert result["supports_family_attribution"] is False
     assert result["campaigns"][0]["terminal_family_confirmed"] is False
     assert result["campaigns"][0]["attribution_scope"] == "component_handler_route"
-    assert "endpoints" not in result
-    lineage_key = (
-        "native_loader_lineage"
-        if route_kind == "native"
-        else "silverfox_loader_lineage"
+    assert result["campaigns"][0]["campaign_type"] == (
+        "silverfox_style_infection_loader" if route_kind == "silverfox" else "native_loader_candidate"
     )
+    assert "endpoints" not in result
+    lineage_key = "native_loader_lineage" if route_kind == "native" else "silverfox_loader_lineage"
     observation = result["observations"][lineage_key]
     assert observation["endpoint_values_included"] is False
     assert "route-only component" not in repr(result)
+
+
+def test_detector_does_not_narrow_incomplete_silverfox_lineage_to_exact_campaign(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """不完全なSilverFox候補では他campaignの復元経路を抑止しない。"""
+
+    observation = _silverfox_observation()
+    observation["status"] = "silverfox_style_loader_candidate_incomplete_lineage"
+    observation["missing_proof_codes"] = ["feedback_decoder_lineage_unproven"]
+    monkeypatch.setattr(DETECT, "_terminal_configuration_detection", lambda *_args: None)
+    monkeypatch.setattr(
+        DETECT,
+        "_appdomainmanager_loader_shape",
+        lambda _data: {"matched": False},
+    )
+    monkeypatch.setattr(DETECT, "analyze_signed_proxy_sideload", lambda *_args: {})
+    monkeypatch.setattr(DETECT, "analyze_native_loader_lineage", lambda _data: None)
+    monkeypatch.setattr(
+        DETECT,
+        "analyze_silverfox_loader_lineage",
+        lambda _data: SilverFoxLoaderLineage(
+            observation=observation,
+            recovered_component=None,
+        ),
+    )
+
+    result = DETECT.detect(b"MZ incomplete silverfox loader", Path("sample.exe"))
+
+    assert result["matched"] is True
+    assert result["supports_family_attribution"] is False
+    assert result["campaigns"] == [
+        {
+            "campaign_type": "native_loader_candidate",
+            "confidence": "medium",
+            "reasons": [
+                "loader復元lineageは静的に観測したがValleyRAT終端証明は未完了",
+                "外部label、hash、filename、endpoint値をfamily確定に使用していない",
+            ],
+            "attribution_scope": "component_handler_route",
+            "supports_family_attribution": False,
+            "terminal_family_confirmed": False,
+        }
+    ]
+    assert result["observations"]["silverfox_loader_lineage"]["missing_proof_codes"] == [
+        "feedback_decoder_lineage_unproven"
+    ]
+
+
+def test_detector_does_not_narrow_validated_status_without_component(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """statusだけがvalidatedでも復元componentがなければstrict routeにしない。"""
+
+    monkeypatch.setattr(DETECT, "_terminal_configuration_detection", lambda *_args: None)
+    monkeypatch.setattr(
+        DETECT,
+        "_appdomainmanager_loader_shape",
+        lambda _data: {"matched": False},
+    )
+    monkeypatch.setattr(DETECT, "analyze_signed_proxy_sideload", lambda *_args: {})
+    monkeypatch.setattr(DETECT, "analyze_native_loader_lineage", lambda _data: None)
+    monkeypatch.setattr(
+        DETECT,
+        "analyze_silverfox_loader_lineage",
+        lambda _data: SilverFoxLoaderLineage(
+            observation=_silverfox_observation(),
+            recovered_component=None,
+        ),
+    )
+
+    result = DETECT.detect(b"MZ inconsistent silverfox loader", Path("sample.exe"))
+
+    assert result["matched"] is True
+    assert result["campaigns"][0]["campaign_type"] == "native_loader_candidate"
+    assert result["campaigns"][0]["confidence"] == "medium"
 
 
 def test_native_route_component_is_exposed_only_as_follow_on(
@@ -367,9 +442,7 @@ def test_shared_extractor_does_not_retain_ambiguous_silverfox_component(
 
     observation = _silverfox_observation()
     observation["status"] = "silverfox_style_loader_candidate_incomplete_lineage"
-    observation["missing_proof_codes"] = [
-        "multiple_outer_stage_interpretations_ambiguous"
-    ]
+    observation["missing_proof_codes"] = ["multiple_outer_stage_interpretations_ambiguous"]
     monkeypatch.setattr(extractor, "analyze_native_loader_lineage", lambda _data: None)
     monkeypatch.setattr(
         extractor,

@@ -9,8 +9,8 @@
     "max_candidates_per_case_before_ranking": 64
   },
   "counts": {
-    "catalog_cases": 4069,
-    "profiled_cases": 3210,
+    "catalog_cases": 4070,
+    "profiled_cases": 3211,
     "candidate_pairs_before_limit": 2246210,
     "candidate_pairs_retained_for_ranking": 161651,
     "candidate_pairs_omitted_before_ranking": 2084559,
@@ -29326,6 +29326,60 @@
         "capabilities"
       ],
       "document_path": "analysis-results/malware/vidar/versions/unknown/cases/2679d8e62411ea12c57b0e12f9c5b49331c94d7748ccb9d2ab79df39b48e1c37/OVERALL-LOGIC.md"
+    },
+    "268eff98904198e2d0284b549681e024b2a1842695f1d185452849712788bc22": {
+      "case_id": "sha256:268eff98904198e2d0284b549681e024b2a1842695f1d185452849712788bc22",
+      "sha256": "268eff98904198e2d0284b549681e024b2a1842695f1d185452849712788bc22",
+      "family": "valleyrat",
+      "version_key": "unknown",
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/268eff98904198e2d0284b549681e024b2a1842695f1d185452849712788bc22",
+      "dimensions": {
+        "execution_stages": [
+          "command_control",
+          "defense_evasion",
+          "loader_execution",
+          "payload_decoding",
+          "process_memory"
+        ],
+        "layer_chain": [
+          "root:unknown",
+          "unknown--bounded_archive_extraction-->unknown",
+          "unknown--custom_base64_like_decode-->unknown",
+          "unknown--embedded_pe_carve-->unknown",
+          "unknown--unknown-->unknown",
+          "unknown--xtea_like_decrypt_repeating_xor_raw_lz4-->unknown"
+        ],
+        "module_stack": [
+          "malicious_winhttp_proxy_loader:x86-64",
+          "terminal_pe:x86-64",
+          "terminal_shellcode_wrapper:x86-64"
+        ],
+        "capabilities": [],
+        "function_roles": [
+          "alternate_in_process_execution_not_selected",
+          "container_record_parser_and_execution_mode_selector",
+          "embedded_config_decryptor",
+          "embedded_terminal_decoder",
+          "encrypted_config_salt_locator",
+          "explorer_process_injection",
+          "fallback_http_resolver_unusable_in_current_build",
+          "loader_entry_and_defense_evasion",
+          "polygon_json_rpc_eth_call_client",
+          "polygon_provider_failover",
+          "resolver_and_c2_connection_scheduler",
+          "solidity_abi_dynamic_string_decoder",
+          "terminal_config_bootstrap",
+          "terminal_entry"
+        ],
+        "code_fingerprints": []
+      },
+      "available_dimensions": [
+        "execution_stages",
+        "layer_chain",
+        "module_stack",
+        "function_roles"
+      ],
+      "document_path": "analysis-results/malware/valleyrat/versions/unknown/cases/268eff98904198e2d0284b549681e024b2a1842695f1d185452849712788bc22/OVERALL-LOGIC.md"
     },
     "2695cedab056adaa9df1e30ad572d3944bdc09e7972ed757d1039121637b619c": {
       "case_id": "sha256:2695cedab056adaa9df1e30ad572d3944bdc09e7972ed757d1039121637b619c",

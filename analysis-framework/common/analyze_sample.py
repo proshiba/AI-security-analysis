@@ -19,7 +19,8 @@ import tempfile
 import time
 import zipfile
 from collections import Counter, deque
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -39,8 +40,13 @@ MAX_FOLLOW_ON_OMITTED_METADATA = 4096
 MAX_FOLLOW_ON_DEPTH = 4
 MAX_FOLLOW_ON_TOTAL_BYTES = 256 * 1024 * 1024
 MAX_FOLLOW_ON_PAYLOAD_SIZE = 128 * 1024 * 1024
-MAX_FOLLOW_ON_WALL_SECONDS = 300.0
-MAX_FOLLOW_ON_CHILD_SECONDS = 120.0
+FOLLOW_ON_BASE_WALL_SECONDS = 300
+MAX_FOLLOW_ON_CHILD_SECONDS = 120
+FOLLOW_ON_PER_QUEUED_CHILD_WALL_SECONDS = MAX_FOLLOW_ON_CHILD_SECONDS
+MAX_FOLLOW_ON_WALL_SECONDS = (
+    FOLLOW_ON_BASE_WALL_SECONDS
+    + MAX_FOLLOW_ON_ARTIFACTS * FOLLOW_ON_PER_QUEUED_CHILD_WALL_SECONDS
+)
 MAX_FOLLOW_ON_WORKER_REQUEST = 64 * 1024
 MAX_FOLLOW_ON_WORKER_RESPONSE = 4 * 1024 * 1024
 FOLLOW_ON_WORKER_FRAME_HEADER_BYTES = 8
@@ -49,9 +55,44 @@ MAX_DIRECT_CLI_ACTIVE_PROCESSES = 32
 MAX_DIRECT_CLI_MEMORY_BYTES = 4 * 1024 * 1024 * 1024
 MAX_DIRECT_CLI_REQUEST = 64 * 1024
 MAX_DIRECT_CLI_RESPONSE = 64 * 1024
+MAX_DIRECT_CLI_FAILURE = 64 * 1024
 MAX_DIRECT_CLI_ARGUMENTS = 256
 MAX_DIRECT_CLI_ARGUMENT_CHARACTERS = 32 * 1024
 MAX_CLI_CREDENTIAL_BYTES = 4096
+MAX_DIRECT_CLI_PARTIAL_CASES = 4
+MAX_DIRECT_CLI_PARTIAL_SCAN_ENTRIES = 256
+MAX_DIRECT_CLI_PARTIAL_CASE_ENTRIES = 128
+MAX_DIRECT_CLI_PARTIAL_TOTAL_BYTES = 16 * 1024 * 1024
+MAX_DIRECT_CLI_PARTIAL_WALL_SECONDS = 2.0
+DIRECT_CLI_OUTCOME_ARTIFACT = "analysis-run-outcome.json"
+DIRECT_CLI_PARTIAL_SUMMARY_ARTIFACT = "partial-summary.json"
+DIRECT_CLI_FAILURE_REASONS = frozenset(
+    {
+        "resource_limit_reached",
+        "filesystem_error",
+        "analysis_runtime_error",
+        "invalid_analysis_state",
+        "analysis_interrupted",
+        "analysis_exit_requested",
+        "unexpected_analysis_error",
+        "isolated_worker_failed",
+        "wall_clock_limit_reached",
+        "worker_start_failed",
+        "worker_response_invalid",
+        "worker_response_write_failed",
+        "request_preparation_failed",
+    }
+)
+DIRECT_CLI_FAILURE_STAGES = frozenset(
+    {
+        "analysis_execution",
+        "isolated_worker",
+        "worker_start_or_containment",
+        "worker_response",
+        "job_runner",
+        "request_preparation",
+    }
+)
 WINDOWS_SAFE_CASE_ARTIFACT_PATH_LENGTH = 240
 LONGEST_FIXED_CASE_ARTIFACT_NAME = "candidate-handler-assessment.json"
 MAX_FOLLOW_ON_WORKER_ACTIVE_PROCESSES = 8
@@ -59,6 +100,9 @@ MAX_FOLLOW_ON_WORKER_MEMORY_BYTES = 2 * 1024 * 1024 * 1024
 MAX_HANDLER_ATTEMPTS_PER_CASE = 64
 MAX_HANDLER_RESULT_BYTES_PER_CASE = 16 * 1024 * 1024
 MAX_HANDLER_WALL_SECONDS_PER_CASE = 300.0
+MAX_CLASSIFICATION_CACHE_ENTRIES = 4_096
+MAX_CLASSIFICATION_CACHE_BYTES = 64 * 1024 * 1024
+MAX_CLASSIFICATION_CACHE_ITEM_BYTES = 2 * 1024 * 1024
 MAX_PE_FUNCTION_WORKER_WALL_SECONDS = 120.0
 MAX_PE_FUNCTION_WORKER_REQUEST = 64 * 1024
 MAX_PE_FUNCTION_WORKER_RESPONSE = 4 * 1024 * 1024
@@ -68,6 +112,10 @@ MAX_PE_FUNCTION_WORKER_PROGRAMS = 8
 MAX_PE_FUNCTION_WORKER_ACTIVE_PROCESSES = 1
 MAX_PE_FUNCTION_WORKER_MEMORY_BYTES = 512 * 1024 * 1024
 MAX_STATIC_TOOL_BINARY_BYTES = 128 * 1024 * 1024
+STANDARD_WINDOWS_SEVENZIP_CANDIDATES = (
+    Path(r"C:\Program Files\7-Zip\7z.exe"),
+    Path(r"C:\Program Files (x86)\7-Zip\7z.exe"),
+)
 CONFIDENCE = {"high": 3, "medium": 2, "low": 1}
 FAMILY_ALIASES = {
     "mx_go": "mx-go",
@@ -128,6 +176,7 @@ from handler_catalog import (  # noqa: E402
     MAX_ASSESSMENT_ATTEMPTS,
     MAX_ASSESSMENT_LAYERS,
     HandlerSpec,
+    _AssessmentExecutionCache,
     _bounded_handler_environment,
     _read_verified_artifact,
     _sanitize_public_text,
@@ -337,6 +386,117 @@ def normalize_family(value: str) -> str:
 
     lowered = value.strip().lower()
     return FAMILY_ALIASES.get(lowered, lowered)
+
+
+class _BatchClassificationCache:
+    """1 batch内の検出器評価をsource sealと入力optionへ結合して再利用する。"""
+
+    def __init__(
+        self,
+        source_identity: str,
+        *,
+        maximum_entries: int = MAX_CLASSIFICATION_CACHE_ENTRIES,
+        maximum_total_bytes: int = MAX_CLASSIFICATION_CACHE_BYTES,
+        maximum_item_bytes: int = MAX_CLASSIFICATION_CACHE_ITEM_BYTES,
+    ) -> None:
+        if not isinstance(source_identity, str) or re.fullmatch(r"[0-9a-f]{64}", source_identity) is None:
+            raise ValueError("classification cache source identityが不正です")
+        for supplied, hard_limit, name in (
+            (maximum_entries, MAX_CLASSIFICATION_CACHE_ENTRIES, "maximum_entries"),
+            (maximum_total_bytes, MAX_CLASSIFICATION_CACHE_BYTES, "maximum_total_bytes"),
+            (maximum_item_bytes, MAX_CLASSIFICATION_CACHE_ITEM_BYTES, "maximum_item_bytes"),
+        ):
+            if (
+                isinstance(supplied, bool)
+                or not isinstance(supplied, int)
+                or not 1 <= supplied <= hard_limit
+            ):
+                raise ValueError(f"{name}が不正です")
+        if maximum_item_bytes > maximum_total_bytes:
+            raise ValueError("maximum_item_bytesがcache総容量を超えています")
+        self.source_identity = source_identity
+        self.maximum_entries = maximum_entries
+        self.maximum_total_bytes = maximum_total_bytes
+        self.maximum_item_bytes = maximum_item_bytes
+        self._entries: dict[tuple[Any, ...], bytes] = {}
+        self._total_bytes = 0
+        self.hit_count = 0
+        self.miss_count = 0
+        self.store_count = 0
+
+    def classify(
+        self,
+        data: bytes,
+        source: Path,
+        registry: Path,
+        malware_type: str | None,
+    ) -> dict[str, Any]:
+        """同一bytes・source名・optionの結果だけを独立objectとして返す。"""
+
+        digest = hashlib.sha256(data).hexdigest()
+        key = (
+            "registered-detectors-v1",
+            self.source_identity,
+            digest,
+            len(data),
+            source.as_posix(),
+            str(registry.resolve(strict=True)).casefold(),
+            malware_type,
+        )
+        cached = self._entries.get(key)
+        if cached is not None:
+            try:
+                value = json.loads(cached)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                self._entries.pop(key, None)
+                self._total_bytes -= len(cached)
+            else:
+                if isinstance(value, dict):
+                    self.hit_count += 1
+                    return value
+                self._entries.pop(key, None)
+                self._total_bytes -= len(cached)
+        self.miss_count += 1
+        result = classify_sample.classify_bytes(data, source, registry, malware_type)
+        if not _classification_result_cacheable(result):
+            return result
+        try:
+            encoded = json.dumps(
+                result,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ).encode("utf-8")
+        except (TypeError, ValueError, RecursionError):
+            return result
+        if (
+            key not in self._entries
+            and len(self._entries) < self.maximum_entries
+            and 0 < len(encoded) <= self.maximum_item_bytes
+            and self._total_bytes + len(encoded) <= self.maximum_total_bytes
+        ):
+            self._entries[key] = encoded
+            self._total_bytes += len(encoded)
+            self.store_count += 1
+        return result
+
+
+def _classification_result_cacheable(value: Mapping[str, Any]) -> bool:
+    """一時的なdetector失敗をbatch内の後続評価へ固定しない。"""
+
+    observations = value.get("observations")
+    evaluations = value.get("detector_evaluations")
+    if (
+        not isinstance(observations, Mapping)
+        or observations.get("detector_errors") != {}
+        or not isinstance(evaluations, list)
+    ):
+        return False
+    return all(
+        isinstance(evaluation, Mapping) and evaluation.get("error") is None
+        for evaluation in evaluations
+    )
 
 
 def _inside(path: Path, root: Path) -> bool:
@@ -913,6 +1073,7 @@ def _candidate_handler_assessment(
     specs: list[HandlerSpec],
     assessment_only: bool,
     artifact_directory: Path | None,
+    execution_cache: _AssessmentExecutionCache | None = None,
     selected_family_reassessment: Sequence[str] = (),
 ) -> dict[str, Any]:
     """互換layerを容量・試行数の上限内で静的に候補検証する。"""
@@ -1041,6 +1202,7 @@ def _candidate_handler_assessment(
         maximum_attempts=MAX_ASSESSMENT_ATTEMPTS,
         artifact_directory=artifact_directory,
         artifact_path_prefix="p",
+        **({"execution_cache": execution_cache} if execution_cache is not None else {}),
     )
     result["selected_layer_count"] = len(selected)
     result["selected_total_size"] = total_size
@@ -1192,6 +1354,7 @@ def _run_handler_rounds(
     states: list[dict[str, Any]],
     *,
     recovered_payload_directory: Path | None,
+    execution_cache: _AssessmentExecutionCache | None = None,
 ) -> str | None:
     """各handlerを1pairずつ巡回し、case共通予算内で静的workerを実行する。"""
 
@@ -1234,6 +1397,7 @@ def _run_handler_rounds(
                     maximum_input_size=DEFAULT_MAXIMUM_ASSESSMENT_LAYER_SIZE,
                     artifact_directory=recovered_payload_directory,
                     artifact_path_prefix="p",
+                    **({"_execution_cache": execution_cache} if execution_cache is not None else {}),
                 )
                 worker_status = bounded.get("status")
                 worker_attempt = {
@@ -2597,6 +2761,8 @@ def analyze_unit(
     string_scan_limit: int = DEFAULT_STRING_SCAN_LIMIT,
     follow_on_lineage: dict[str, Any] | None = None,
     inno_password: str = "",
+    classification_cache: _BatchClassificationCache | None = None,
+    handler_execution_cache: _AssessmentExecutionCache | None = None,
 ) -> dict[str, Any]:
     """1検体を分類し、適用可能な既存静的解析器を一括実行する。"""
 
@@ -2672,12 +2838,20 @@ def analyze_unit(
     layer_selections: list[dict[str, Any]] = []
     public_classifications = []
     for layer in layers:
-        classification = classify_sample.classify_bytes(
-            layer.data,
-            Path(layer.name),
-            registry,
-            classifier_family,
-        )
+        if classification_cache is None:
+            classification = classify_sample.classify_bytes(
+                layer.data,
+                Path(layer.name),
+                registry,
+                classifier_family,
+            )
+        else:
+            classification = classification_cache.classify(
+                layer.data,
+                Path(layer.name),
+                registry,
+                classifier_family,
+            )
         selected_family, selection_basis = _selected_family(
             classification,
             forced_family,
@@ -2823,6 +2997,7 @@ def analyze_unit(
         _run_handler_rounds(
             [state for state in handler_states if "spec" in state],
             recovered_payload_directory=recovered_payload_directory,
+            execution_cache=handler_execution_cache,
         )
         executions = [
             _materialize_handler_state(state, case_dir)
@@ -2845,6 +3020,7 @@ def analyze_unit(
         specs=specs,
         assessment_only=assessment_only,
         artifact_directory=recovered_payload_directory,
+        execution_cache=handler_execution_cache,
         selected_family_reassessment=selected_family_reassessment,
     )
     if recovered_payload_directory is not None:
@@ -3004,15 +3180,6 @@ def analyze_unit(
             ),
         )
     )
-    communication_patterns, c2_analysis = automated_case_analysis.build_case_automation_artifacts(
-        sha256=digest,
-        family=automation_family,
-        layer_report=layer_report,
-        handler_results=handler_results,
-    )
-    write_json(case_dir / "communication-patterns.json", communication_patterns)
-    write_json(case_dir / "c2-analysis.json", c2_analysis)
-
     outcome = orchestration_outcome.build_outcome(
         sample_sha256=digest,
         generic_status=generic_status,
@@ -3035,6 +3202,15 @@ def analyze_unit(
         "handler_config_candidates": "handler-config-candidates.json",
         "component_static_findings": "component-static-findings.json",
     }
+    communication_patterns, c2_analysis = automated_case_analysis.build_case_automation_artifacts(
+        sha256=digest,
+        family=automation_family,
+        layer_report=layer_report,
+        handler_results=handler_results,
+        orchestration=outcome,
+    )
+    write_json(case_dir / "communication-patterns.json", communication_patterns)
+    write_json(case_dir / "c2-analysis.json", c2_analysis)
     write_json(case_dir / "orchestration.json", outcome)
 
     completion = _completion_state(
@@ -3393,6 +3569,23 @@ def _normalize_tool_path(value: Path | None, label: str) -> Path | None:
     return resolved
 
 
+def _discover_standard_sevenzip() -> Path | None:
+    """Windowsの標準install先だけから7-Zipを安全に選択する。
+
+    PATHや作業directoryは探索しない。候補は明示指定と同じ通常file・単一link・
+    非reparse検証を通し、実際に使用したbinary identityは解析契約へ封印する。
+    """
+
+    if os.name != "nt":
+        return None
+    for candidate in STANDARD_WINDOWS_SEVENZIP_CANDIDATES:
+        try:
+            return _normalize_tool_path(candidate, "7-Zip")
+        except ValueError:
+            continue
+    return None
+
+
 def _read_static_tool_binary_once(path: Path) -> bytes:
     """tool binaryを単一handleから有界に読み、置換・hardlinkを拒否する。"""
 
@@ -3441,15 +3634,50 @@ def _read_static_tool_binary_once(path: Path) -> bytes:
 
 
 def _tool_identity(path: Path | None) -> dict[str, Any] | None:
-    """外部toolの絶対pathを公開せず、名前・size・内容hashを契約化する。"""
+    """外部toolと既知の同伴binaryを、絶対pathなしで契約化する。"""
 
     if path is None:
         return None
     data = _read_static_tool_binary_once(path)
-    return {
+    primary = {
         "name": path.name,
         "size": len(data),
         "sha256": hashlib.sha256(data).hexdigest(),
+    }
+    components = [primary]
+    if os.name == "nt" and path.name.casefold() == "7z.exe":
+        companion = path.with_name("7z.dll")
+        try:
+            companion.lstat()
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            raise ValueError("7-Zip同伴DLLを検証できません") from exc
+        else:
+            normalized = _normalize_tool_path(companion, "7-Zip同伴DLL")
+            if normalized is None:  # pragma: no cover - 非None入力の型防御
+                raise ValueError("7-Zip同伴DLLを検証できません")
+            companion_data = _read_static_tool_binary_once(normalized)
+            components.append(
+                {
+                    "name": normalized.name,
+                    "size": len(companion_data),
+                    "sha256": hashlib.sha256(companion_data).hexdigest(),
+                }
+            )
+    if len(components) == 1:
+        return primary
+    encoded = json.dumps(
+        components,
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("ascii")
+    return {
+        "name": "+".join(str(component["name"]) for component in components),
+        "size": sum(int(component["size"]) for component in components),
+        "sha256": hashlib.sha256(encoded).hexdigest(),
     }
 
 
@@ -3465,6 +3693,22 @@ def _static_tool_settings(
         "diec": _tool_identity(diec),
         "innounp": _tool_identity(innounp),
     }
+
+
+def _effective_follow_on_wall_seconds(queued_artifact_count: int) -> int:
+    """queue規模に応じた実効wall budgetを、固定hard cap内で返す。"""
+
+    if (
+        isinstance(queued_artifact_count, bool)
+        or not isinstance(queued_artifact_count, int)
+        or not 0 <= queued_artifact_count <= MAX_FOLLOW_ON_ARTIFACTS
+    ):
+        raise ValueError("follow-on queued artifact countが不正です")
+    return min(
+        MAX_FOLLOW_ON_WALL_SECONDS,
+        FOLLOW_ON_BASE_WALL_SECONDS
+        + queued_artifact_count * FOLLOW_ON_PER_QUEUED_CHILD_WALL_SECONDS,
+    )
 
 
 def _build_analysis_contract(
@@ -3518,6 +3762,14 @@ def _build_analysis_contract(
             "maximum_total_bytes": MAX_FOLLOW_ON_TOTAL_BYTES,
             "maximum_payload_size": MAX_FOLLOW_ON_PAYLOAD_SIZE,
             "maximum_wall_seconds": MAX_FOLLOW_ON_WALL_SECONDS,
+            "wall_budget_policy": {
+                "name": "base_plus_queued_child_v1",
+                "base_seconds": FOLLOW_ON_BASE_WALL_SECONDS,
+                "per_queued_child_seconds": (
+                    FOLLOW_ON_PER_QUEUED_CHILD_WALL_SECONDS
+                ),
+                "hard_maximum_seconds": MAX_FOLLOW_ON_WALL_SECONDS,
+            },
             "maximum_child_seconds": MAX_FOLLOW_ON_CHILD_SECONDS,
         },
         "archive_password_configured": bool(archive_password),
@@ -3766,6 +4018,114 @@ def _write_private_regular_file(path: Path, payload: bytes, *, maximum_size: int
                 pass
         raise
     os.close(descriptor)
+
+
+@contextmanager
+def _snapshot_sevenzip_for_direct_cli(
+    source: Path | None,
+) -> Iterator[Path | None]:
+    """direct CLIの7-Zipを実行中に変更不能なprivate copyへ固定する。
+
+    sourceは実行には使わず、読取り前後の複合identityが一致した場合だけ一時
+    directory内のsnapshotを渡す。Windows版7z.exeは同じdirectoryから動的に
+    loadする7z.dllも同時に固定し、実行後にsnapshot全体の不変性を再検証する。
+    """
+
+    if source is None:
+        yield None
+        return
+
+    normalized_source = _normalize_tool_path(source, "7-Zip")
+    if normalized_source is None:  # pragma: no cover - 非None入力の型防御
+        raise ValueError("7-Zipをsnapshot化できません")
+    expected_identity = _tool_identity(normalized_source)
+    if expected_identity is None:  # pragma: no cover - 非None入力の型防御
+        raise ValueError("7-Zip identityを取得できません")
+
+    source_components = [normalized_source]
+    if os.name == "nt" and normalized_source.name.casefold() == "7z.exe":
+        companion = normalized_source.with_name("7z.dll")
+        try:
+            companion.lstat()
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            raise ValueError("7-Zip同伴DLLを検証できません") from exc
+        else:
+            normalized_companion = _normalize_tool_path(companion, "7-Zip同伴DLL")
+            if normalized_companion is None:  # pragma: no cover - 型防御
+                raise ValueError("7-Zip同伴DLLを検証できません")
+            source_components.append(normalized_companion)
+
+    component_payloads = [
+        (component.name, _read_static_tool_binary_once(component))
+        for component in source_components
+    ]
+    if _tool_identity(normalized_source) != expected_identity:
+        raise ValueError("7-Zip sourceがsnapshot作成中に変更されました")
+
+    with tempfile.TemporaryDirectory(prefix="direct-cli-sevenzip-") as temporary:
+        snapshot_root = Path(temporary).resolve(strict=True)
+        ensure_no_reparse_components(snapshot_root)
+        snapshot = snapshot_root / normalized_source.name
+        for name, payload in component_payloads:
+            destination = snapshot_root / name
+            _write_private_regular_file(
+                destination,
+                payload,
+                maximum_size=MAX_STATIC_TOOL_BINARY_BYTES,
+            )
+            os.chmod(destination, stat.S_IREAD | stat.S_IEXEC)
+
+        snapshot = _normalize_tool_path(snapshot, "7-Zip private snapshot")
+        if snapshot is None:  # pragma: no cover - 非None入力の型防御
+            raise ValueError("7-Zip private snapshotを検証できません")
+        if _tool_identity(snapshot) != expected_identity:
+            raise ValueError("7-Zip sourceとprivate snapshotのidentityが一致しません")
+
+        expected_names = {name for name, _payload in component_payloads}
+        root_information = snapshot_root.lstat()
+        entry_information = {
+            name: (snapshot_root / name).lstat() for name in expected_names
+        }
+
+        def verify_snapshot_tree() -> None:
+            """同一file object・権限・exact entry集合が保たれているか確認する。"""
+
+            ensure_no_reparse_components(snapshot_root)
+            current_root = snapshot_root.lstat()
+            if (
+                not stat.S_ISDIR(current_root.st_mode)
+                or not _same_file_identity(root_information, current_root)
+            ):
+                raise ValueError("7-Zip private snapshotが解析実行中に変更されました")
+            children = list(snapshot_root.iterdir())
+            if {child.name for child in children} != expected_names:
+                raise ValueError("7-Zip private snapshotが解析実行中に変更されました")
+            for child in children:
+                ensure_no_reparse_components(child)
+                before = entry_information[child.name]
+                current = child.lstat()
+                if (
+                    not stat.S_ISREG(current.st_mode)
+                    or not _static_tool_has_single_link(current)
+                    or not _same_file_identity(before, current)
+                    or before.st_mode != current.st_mode
+                    or before.st_size != current.st_size
+                    or before.st_mtime_ns != current.st_mtime_ns
+                    or before.st_ctime_ns != current.st_ctime_ns
+                ):
+                    raise ValueError(
+                        "7-Zip private snapshotが解析実行中に変更されました"
+                    )
+
+        verify_snapshot_tree()
+        try:
+            yield snapshot
+        finally:
+            verify_snapshot_tree()
+            if _tool_identity(snapshot) != expected_identity:
+                raise ValueError("7-Zip private snapshotが解析実行中に変更されました")
 
 
 def _read_private_regular_file(
@@ -4748,6 +5108,7 @@ def _execute_follow_on_child(
     analysis_contract: dict[str, Any],
     timeout_seconds: float,
     family_hints: Sequence[Mapping[str, Any]] | None = None,
+    source_name: str | None = None,
     innounp: Path | None = None,
     inno_password: str = "",
 ) -> dict[str, Any]:
@@ -4762,6 +5123,16 @@ def _execute_follow_on_child(
             normalized_manifest,
             digest,
         )
+    child_source_name = source_name or f"follow-on-{digest[:16]}.bin"
+    if (
+        not isinstance(child_source_name, str)
+        or not child_source_name
+        or len(child_source_name) > 240
+        or "/" in child_source_name
+        or "\\" in child_source_name
+        or any(ord(character) < 32 or ord(character) == 127 for character in child_source_name)
+    ):
+        raise ValueError("follow-on source_nameが安全なbasenameではありません")
     request = {
         "schema_version": 1,
         "output": str(output.resolve(strict=True)),
@@ -4778,7 +5149,7 @@ def _execute_follow_on_child(
         "inno_password": inno_password,
         "string_scan_limit": string_scan_limit,
         "analysis_contract": analysis_contract,
-        "source_name": f"follow-on-{digest[:16]}.bin",
+        "source_name": child_source_name,
         "expected_sha256": digest,
         "expected_size": len(payload),
         "depth": depth,
@@ -5160,6 +5531,14 @@ def _case_retained_payloads(
                 "role": str(metadata["role"]),
                 "kind": str(metadata["kind"]),
                 "data": raw,
+                **(
+                    {
+                        "source_name": str(metadata["source_name"]),
+                        "analysis_priority": int(metadata["analysis_priority"]),
+                    }
+                    if "source_name" in metadata and "analysis_priority" in metadata
+                    else {}
+                ),
             }
         )
     return result(records, read_count, read_bytes)
@@ -5685,6 +6064,7 @@ def _run_follow_on_fixed_point(
         "maximum_total_bytes": MAX_FOLLOW_ON_TOTAL_BYTES,
         "maximum_payload_size": MAX_FOLLOW_ON_PAYLOAD_SIZE,
         "maximum_wall_seconds": MAX_FOLLOW_ON_WALL_SECONDS,
+        "effective_wall_seconds": _effective_follow_on_wall_seconds(0),
         "maximum_child_seconds": MAX_FOLLOW_ON_CHILD_SECONDS,
     }
     base = {
@@ -5708,7 +6088,8 @@ def _run_follow_on_fixed_point(
             "wall_clock_exhausted": False,
         }
     executor = execute_child or _execute_follow_on_child
-    deadline = monotonic() + MAX_FOLLOW_ON_WALL_SECONDS
+    started = monotonic()
+    deadline = started + int(limits["effective_wall_seconds"])
     roots = sorted({normalize_sha256_digest(item) for item in root_digests})
     supplied_root_hints = root_family_hints or {}
     unknown_hint_roots = set(supplied_root_hints) - set(roots)
@@ -5769,7 +6150,7 @@ def _run_follow_on_fixed_point(
 
     def discover(parent_sha256: str) -> None:
         nonlocal queued_artifacts, queued_bytes, verified_read_bytes, verified_read_count
-        nonlocal wall_clock_exhausted
+        nonlocal deadline, wall_clock_exhausted
         parent_depth = depths[parent_sha256]
         if monotonic() >= deadline:
             errors.add(f"{parent_sha256}:wall_clock_limit_before_discovery")
@@ -5880,6 +6261,13 @@ def _run_follow_on_fixed_point(
             wall_clock_exhausted = True
             extraction_errors.append("wall_clock_limit_after_discovery")
         errors.update(f"{parent_sha256}:{item}" for item in extraction_errors)
+        payloads.sort(
+            key=lambda item: (
+                int(item.get("analysis_priority", 4)),
+                str(item.get("source_name", item["path"])).casefold(),
+                item["sha256"],
+            )
+        )
         for payload in payloads:
             child_sha256 = payload["sha256"]
             child_depth = parent_depth + 1
@@ -5940,6 +6328,11 @@ def _run_follow_on_fixed_point(
             visited.add(child_sha256)
             queued_artifacts += 1
             queued_bytes += payload["size"]
+            effective_wall_seconds = _effective_follow_on_wall_seconds(
+                queued_artifacts
+            )
+            limits["effective_wall_seconds"] = effective_wall_seconds
+            deadline = started + effective_wall_seconds
             depths[child_sha256] = child_depth
             ancestors[child_sha256] = frozenset({*ancestors[parent_sha256], child_sha256})
             hint_context_by_digest[child_sha256] = inherited_hints
@@ -6029,6 +6422,7 @@ def _run_follow_on_fixed_point(
                 analysis_contract=analysis_contract,
                 timeout_seconds=timeout,
                 family_hints=item["family_hints"],
+                source_name=item.get("source_name"),
             )
             result = _case_result_from_disk(
                 output,
@@ -6301,6 +6695,10 @@ def run_batch(
         inno_password=inno_password,
     )
     component_snapshot.verify()
+    # process外へ永続化せず、現在の解析契約source sealへ結合したbatch内だけで
+    # 完全な副作用なし結果を再利用する。最終component再検証は従来どおり行う。
+    classification_cache = _BatchClassificationCache(str(analysis_contract["sha256"]))
+    handler_execution_cache = _AssessmentExecutionCache(str(analysis_contract["sha256"]))
     credential_safe_follow_on_resume = resume and not password and not inno_password
     cases = []
     errors = []
@@ -6374,6 +6772,8 @@ def run_batch(
                     analysis_contract=analysis_contract,
                     family_hint_manifest=family_hint_document,
                     family_requirements_policy=family_requirements_policy,
+                    classification_cache=classification_cache,
+                    handler_execution_cache=handler_execution_cache,
                 )
             )
         except Exception as exc:  # noqa: BLE001 - root検体単位で後続解析を継続する
@@ -6675,6 +7075,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="任意の7-Zip実行file。7z/RAR/CAB/DMG/PE containerの静的展開に使用します。",
     )
     parser.add_argument(
+        "--discover-standard-sevenzip",
+        action="store_true",
+        help=(
+            "Windowsの標準install先だけから7-Zipを自動選択します。"
+            "PATHは探索せず、identityを解析契約へ封印します。"
+        ),
+    )
+    parser.add_argument(
         "--innounp",
         type=Path,
         help="任意のinnounp実行file。Inno Setupの静的一覧化・選択展開に使用します。",
@@ -6853,6 +7261,439 @@ def _direct_cli_response(raw: bytes) -> tuple[int, dict[str, int]]:
     return exit_code, dict(counts)
 
 
+def _direct_cli_failure_reason(error: BaseException) -> str:
+    """worker例外を秘密値を含まない固定理由codeへ正規化する。"""
+
+    if isinstance(error, MemoryError):
+        return "resource_limit_reached"
+    if isinstance(error, OSError):
+        return "filesystem_error"
+    if isinstance(error, RuntimeError):
+        return "analysis_runtime_error"
+    if isinstance(error, (TypeError, ValueError)):
+        return "invalid_analysis_state"
+    if isinstance(error, KeyboardInterrupt):
+        return "analysis_interrupted"
+    if isinstance(error, SystemExit):
+        return "analysis_exit_requested"
+    return "unexpected_analysis_error"
+
+
+def _direct_cli_worker_failure_document(error: BaseException) -> dict[str, Any]:
+    """privateな例外本文を含めず、親へ渡すworker失敗契約を作る。"""
+
+    return {
+        "schema_version": 1,
+        "status": "fatal",
+        "stage": "analysis_execution",
+        "reason_code": _direct_cli_failure_reason(error),
+        "executed_sample": False,
+        "network_contacted": False,
+        "ai_used": False,
+    }
+
+
+def _parse_direct_cli_worker_failure(raw: bytes) -> dict[str, Any]:
+    """workerの失敗応答を完全一致schemaとallowlistで検証する。"""
+
+    value = _strict_json_object_bytes(raw, label="direct CLI worker failure")
+    if set(value) != {
+        "schema_version",
+        "status",
+        "stage",
+        "reason_code",
+        "executed_sample",
+        "network_contacted",
+        "ai_used",
+    }:
+        raise ValueError("direct CLI worker failure schemaが不正です")
+    if type(value["schema_version"]) is not int or value["schema_version"] != 1:
+        raise ValueError("direct CLI worker failure versionが不正です")
+    if value["status"] != "fatal" or value["stage"] not in {
+        "analysis_execution",
+        "worker_response",
+    }:
+        raise ValueError("direct CLI worker failure状態が不正です")
+    if value["reason_code"] not in DIRECT_CLI_FAILURE_REASONS:
+        raise ValueError("direct CLI worker failure理由が不正です")
+    if any(
+        value[name] is not False
+        for name in ("executed_sample", "network_contacted", "ai_used")
+    ):
+        raise ValueError("direct CLI worker failure安全flagが不正です")
+    return dict(value)
+
+
+def _resolved_direct_cli_output(
+    output: Path,
+    *,
+    relative_root: Path = REPOSITORY_ROOT,
+) -> Path:
+    """呼出し側が固定した基準directoryで出力先を絶対path化する。"""
+
+    candidate = output if output.is_absolute() else relative_root / output
+    return Path(os.path.abspath(os.fspath(candidate)))
+
+
+def _direct_cli_output_from_arguments(
+    arguments: Sequence[str] | None,
+    *,
+    relative_root: Path = REPOSITORY_ROOT,
+) -> Path | None:
+    """診断保存用にCLI出力先だけを再解釈する。引数不正時は作成しない。"""
+
+    values = list(sys.argv[1:] if arguments is None else arguments)
+    supplied: list[str] = []
+    for index, value in enumerate(values):
+        if value == "--output" and index + 1 < len(values):
+            supplied.append(values[index + 1])
+        elif value.startswith("--output="):
+            supplied.append(value.partition("=")[2])
+    if (
+        len(supplied) != 1
+        or not supplied[0]
+        or "\x00" in supplied[0]
+        or len(supplied[0]) > MAX_DIRECT_CLI_ARGUMENT_CHARACTERS
+    ):
+        return None
+    output = Path(supplied[0])
+    try:
+        _validate_case_output_path_length(output)
+    except (OSError, RuntimeError, TypeError, ValueError):
+        return None
+    return _resolved_direct_cli_output(output, relative_root=relative_root)
+
+
+def _bounded_partial_case_footprint(
+    case_dir: Path,
+    *,
+    deadline: float,
+    maximum_bytes: int,
+) -> tuple[int, int, str | None]:
+    """fatal診断で再検証するcase treeを小さい固定予算へ制限する。"""
+
+    if maximum_bytes < 0 or not math.isfinite(deadline):
+        raise ValueError("partial case予算が不正です")
+    total_bytes = 0
+    total_entries = 0
+    pending = [case_dir]
+    while pending:
+        if time.monotonic() >= deadline:
+            return total_bytes, total_entries, "wall_clock_limit"
+        current = pending.pop()
+        ensure_no_reparse_components(current)
+        with os.scandir(current) as entries:
+            for entry in entries:
+                if time.monotonic() >= deadline:
+                    return total_bytes, total_entries, "wall_clock_limit"
+                total_entries += 1
+                if total_entries > MAX_DIRECT_CLI_PARTIAL_CASE_ENTRIES:
+                    return total_bytes, total_entries, "case_entry_limit"
+                path = Path(entry.path)
+                ensure_no_reparse_components(path)
+                # WindowsのDirEntry.stat()は通常fileでもst_nlink=0を返す場合が
+                # あるため、hardlink境界はPath.lstat()の値で検証する。
+                information = path.lstat()
+                if entry.is_symlink():
+                    raise ValueError("partial caseにsymlinkは使用できません")
+                if stat.S_ISDIR(information.st_mode):
+                    pending.append(path)
+                    continue
+                if not stat.S_ISREG(information.st_mode) or information.st_nlink != 1:
+                    raise ValueError("partial caseに通常file以外があります")
+                if information.st_size < 0:
+                    raise ValueError("partial case file sizeが不正です")
+                total_bytes += information.st_size
+                if total_bytes > maximum_bytes:
+                    return total_bytes, total_entries, "byte_limit"
+    return total_bytes, total_entries, None
+
+
+def _safe_partial_case_record(output: Path, digest: str) -> dict[str, Any]:
+    """seal・成果物hash・解析契約を検証できたcaseだけを縮約する。"""
+
+    normalize_sha256_digest(digest)
+    case_dir = _follow_on_case_directory(output, digest)
+    report = load_json_object_strict(resolve_case_artifact(case_dir, "report.json"))
+    contract = report.get("analysis_contract")
+    if not isinstance(contract, Mapping):
+        raise ValueError("partial caseの解析契約がありません")
+    contract_sha256 = normalize_sha256_digest(contract.get("sha256"))
+    report_sha256 = normalize_sha256_digest(report.get("report_semantic_sha256"))
+    if case_integrity_errors(
+        case_dir,
+        report,
+        expected_digest=digest,
+        expected_contract=contract,
+        require_resumable=False,
+    ):
+        raise ValueError("partial case integrityを検証できません")
+    state = report.get("case_state")
+    classification = report.get("classification")
+    if not isinstance(state, Mapping) or not isinstance(classification, Mapping):
+        raise ValueError("partial caseのterminal stateが不正です")
+    case_state = state.get("status")
+    if case_state not in {"complete", "triaged_unknown", "partial", "failed"}:
+        raise ValueError("partial caseがterminal stateではありません")
+    orchestration = load_json_object_strict(
+        resolve_case_artifact(case_dir, "orchestration.json")
+    )
+    if case_state == "complete" and (
+        orchestration.get("status") != "complete"
+        or orchestration.get("blockers") != []
+    ):
+        raise ValueError("partial caseとorchestration gateが一致しません")
+    families = classification.get("selected_families")
+    if not isinstance(families, list) or any(
+        not isinstance(value, str)
+        or re.fullmatch(r"[a-z0-9_.-]{1,128}", value) is None
+        for value in families
+    ):
+        raise ValueError("partial case familyが不正です")
+    family = classification.get("selected_family")
+    if family is not None and (
+        not isinstance(family, str)
+        or re.fullmatch(r"[a-z0-9_.-]{1,128}", family) is None
+    ):
+        raise ValueError("partial case selected familyが不正です")
+    return {
+        "sha256": digest,
+        "case_state": case_state,
+        "selected_family": family,
+        "selected_families": list(families),
+        "report": f"cases/{digest}/report.json",
+        "report_semantic_sha256": report_sha256,
+        "analysis_contract_sha256": contract_sha256,
+    }
+
+
+def _build_direct_cli_partial_summary(
+    output: Path,
+    *,
+    status: str,
+    reason_code: str,
+) -> dict[str, Any]:
+    """異常終了前にseal済みとなったcaseだけで非最終summaryを作る。"""
+
+    if status not in {"fatal", "timeout"} or reason_code not in DIRECT_CLI_FAILURE_REASONS:
+        raise ValueError("partial summaryのrun状態が不正です")
+    deadline = time.monotonic() + MAX_DIRECT_CLI_PARTIAL_WALL_SECONDS
+    remaining_bytes = MAX_DIRECT_CLI_PARTIAL_TOTAL_BYTES
+    records: list[dict[str, Any]] = []
+    rejected = 0
+    scanned = 0
+    truncated = False
+    scan_limit_reasons: set[str] = set()
+    cases_root = output / "cases"
+    if cases_root.exists():
+        ensure_no_reparse_components(cases_root)
+        information = cases_root.lstat()
+        if not stat.S_ISDIR(information.st_mode):
+            raise ValueError("partial summaryのcasesがdirectoryではありません")
+        candidates: list[str] = []
+        with os.scandir(cases_root) as entries:
+            for entry in entries:
+                if time.monotonic() >= deadline:
+                    truncated = True
+                    scan_limit_reasons.add("wall_clock_limit")
+                    break
+                if scanned >= MAX_DIRECT_CLI_PARTIAL_SCAN_ENTRIES:
+                    truncated = True
+                    scan_limit_reasons.add("directory_entry_limit")
+                    break
+                scanned += 1
+                if re.fullmatch(r"[0-9a-f]{64}", entry.name) is None:
+                    rejected += 1
+                    continue
+                if not entry.is_dir(follow_symlinks=False) or entry.is_symlink():
+                    rejected += 1
+                    continue
+                candidates.append(entry.name)
+        if len(candidates) > MAX_DIRECT_CLI_PARTIAL_CASES:
+            candidates = sorted(candidates)[:MAX_DIRECT_CLI_PARTIAL_CASES]
+            truncated = True
+            scan_limit_reasons.add("case_limit")
+        for digest in sorted(candidates):
+            if time.monotonic() >= deadline:
+                truncated = True
+                scan_limit_reasons.add("wall_clock_limit")
+                break
+            try:
+                case_bytes, _case_entries, limit_reason = _bounded_partial_case_footprint(
+                    _follow_on_case_directory(output, digest),
+                    deadline=deadline,
+                    maximum_bytes=remaining_bytes,
+                )
+                if limit_reason is not None:
+                    rejected += 1
+                    truncated = True
+                    scan_limit_reasons.add(limit_reason)
+                    break
+                remaining_bytes -= case_bytes
+                records.append(_safe_partial_case_record(output, digest))
+            except (OSError, RuntimeError, TypeError, ValueError):
+                rejected += 1
+            if time.monotonic() >= deadline:
+                truncated = True
+                scan_limit_reasons.add("wall_clock_limit")
+                break
+    document = {
+        "schema_version": 1,
+        "status": "partial" if records else "failed",
+        "run_status": status,
+        "reason_code": reason_code,
+        "final_summary": False,
+        "eligible_for_completion_evaluation": False,
+        "counts": {
+            "scanned_case_entries": scanned,
+            "verified_unattributed_terminal_cases": len(records),
+            "rejected_or_unverified_entries": rejected,
+            "scan_truncated": truncated,
+        },
+        "case_membership": "unattributed_existing_output_evidence",
+        "scan_limit_reasons": sorted(scan_limit_reasons),
+        "cases": records,
+        "executed_sample": False,
+        "network_contacted": False,
+        "ai_used": False,
+    }
+    seal_report(document)
+    return document
+
+
+def _publish_direct_cli_failure(
+    output: Path,
+    *,
+    status: str,
+    stage: str,
+    reason_code: str,
+    worker_returncode: int | None,
+    runner_exit_code: int | None = None,
+) -> bool:
+    """既存の安全な出力directoryへfatal/timeoutとpartial summaryを原子的に残す。"""
+
+    if (
+        status not in {"fatal", "timeout"}
+        or stage not in DIRECT_CLI_FAILURE_STAGES
+        or reason_code not in DIRECT_CLI_FAILURE_REASONS
+        or (
+            stage == "job_runner"
+            and (
+                status != "timeout"
+                or reason_code != "wall_clock_limit_reached"
+                or runner_exit_code != 124
+            )
+        )
+        or (stage != "job_runner" and runner_exit_code is not None)
+        or (
+            worker_returncode is not None
+            and (
+                type(worker_returncode) is not int
+                or not -(2**31) <= worker_returncode <= 255
+            )
+        )
+    ):
+        return False
+    try:
+        ensure_no_reparse_components(output)
+        information = output.lstat()
+        if not stat.S_ISDIR(information.st_mode):
+            return False
+    except (OSError, RuntimeError, TypeError, ValueError):
+        return False
+    partial_reference: dict[str, Any] = {
+        "status": "unavailable",
+        "artifact": None,
+        "sha256": None,
+        "verified_unattributed_terminal_cases": 0,
+        "final_summary": False,
+    }
+    try:
+        partial = _build_direct_cli_partial_summary(
+            output,
+            status=status,
+            reason_code=reason_code,
+        )
+        partial_path = output / DIRECT_CLI_PARTIAL_SUMMARY_ARTIFACT
+        _atomic_replace_json(partial_path, partial)
+        partial_sha256 = hashlib.sha256(_encoded_json_document(partial)).hexdigest()
+        partial_reference = {
+            "status": "available",
+            "artifact": DIRECT_CLI_PARTIAL_SUMMARY_ARTIFACT,
+            "sha256": partial_sha256,
+            "verified_unattributed_terminal_cases": partial["counts"][
+                "verified_unattributed_terminal_cases"
+            ],
+            "final_summary": False,
+        }
+    except (OSError, RuntimeError, TypeError, ValueError):
+        pass
+    outcome = {
+        "schema_version": 1,
+        "status": status,
+        "stage": stage,
+        "reason_code": reason_code,
+        "analyzer_exit_code": None if stage == "job_runner" else 2,
+        "runner_exit_code": runner_exit_code,
+        "worker_returncode": worker_returncode,
+        "partial_summary": partial_reference,
+        "executed_sample": False,
+        "network_contacted": False,
+        "ai_used": False,
+    }
+    seal_report(outcome)
+    try:
+        _atomic_replace_json(output / DIRECT_CLI_OUTCOME_ARTIFACT, outcome)
+    except (OSError, RuntimeError, TypeError, ValueError):
+        return False
+    return True
+
+
+def _clear_direct_cli_failure_artifacts(output: Path, *, exit_code: int) -> bool:
+    """正常終了前に過去runの診断だけを除去し、runnerのexact closureを保つ。"""
+
+    if type(exit_code) is not int or exit_code not in {0, 20}:
+        return False
+    try:
+        information = output.lstat()
+    except FileNotFoundError:
+        # unit testのmock workerなど、成果物を生成しない代替実装を許容する。
+        return True
+    except OSError:
+        return False
+    try:
+        ensure_no_reparse_components(output)
+        if not stat.S_ISDIR(information.st_mode):
+            return False
+        # outcomeを先に消し、途中失敗時に存在しないpartialへの参照を残さない。
+        for name in (
+            DIRECT_CLI_OUTCOME_ARTIFACT,
+            DIRECT_CLI_PARTIAL_SUMMARY_ARTIFACT,
+        ):
+            path = output / name
+            try:
+                ensure_no_reparse_components(path)
+                before = path.lstat()
+            except FileNotFoundError:
+                continue
+            if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+                return False
+            try:
+                path.unlink()
+            except OSError:
+                return False
+            try:
+                path.lstat()
+            except FileNotFoundError:
+                continue
+            except OSError:
+                return False
+            return False
+    except (OSError, RuntimeError, TypeError, ValueError):
+        return False
+    return True
+
+
 def _direct_cli_worker_main() -> int:
     """秘密値をargvへ載せず、有界stdin requestから通常CLIを実行する。"""
 
@@ -6878,7 +7719,22 @@ def _direct_cli_worker_main() -> int:
             )
         finally:
             os.chdir(response_root)
-    except BaseException:  # noqa: BLE001 - private request由来の値をstdioへ出さない
+    except BaseException as exc:  # noqa: BLE001 - private request由来の値をstdioへ出さない
+        try:
+            failure_raw = json.dumps(
+                _direct_cli_worker_failure_document(exc),
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ).encode("utf-8")
+            _write_private_regular_file(
+                response_root / "failure.json",
+                failure_raw,
+                maximum_size=MAX_DIRECT_CLI_FAILURE,
+            )
+        except (OSError, TypeError, ValueError):
+            pass
         return 2
     try:
         response_raw = json.dumps(
@@ -6894,6 +7750,29 @@ def _direct_cli_worker_main() -> int:
             maximum_size=MAX_DIRECT_CLI_RESPONSE,
         )
     except (OSError, TypeError, ValueError):
+        try:
+            failure_raw = json.dumps(
+                {
+                    "schema_version": 1,
+                    "status": "fatal",
+                    "stage": "worker_response",
+                    "reason_code": "worker_response_write_failed",
+                    "executed_sample": False,
+                    "network_contacted": False,
+                    "ai_used": False,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ).encode("utf-8")
+            _write_private_regular_file(
+                response_root / "failure.json",
+                failure_raw,
+                maximum_size=MAX_DIRECT_CLI_FAILURE,
+            )
+        except (OSError, TypeError, ValueError):
+            pass
         return 2
     return 0
 
@@ -6909,6 +7788,7 @@ def _run_isolated_cli(argv: Sequence[str] | None) -> int:
     if any(value in {"-h", "--help"} for value in arguments):
         build_parser().print_help()
         return 0
+    output: Path | None = None
     try:
         arguments, archive_password, inno_password = (
             _resolve_cli_stdin_credential_options(arguments)
@@ -6920,7 +7800,9 @@ def _run_isolated_cli(argv: Sequence[str] | None) -> int:
             "inno_password": inno_password,
         }
         arguments, archive_password, inno_password = _direct_cli_request(request)
-        _validate_case_output_path_length(build_parser().parse_args(arguments).output)
+        parsed = build_parser().parse_args(arguments)
+        _validate_case_output_path_length(parsed.output)
+        output = _resolved_direct_cli_output(parsed.output)
         request = {
             "schema_version": 1,
             "arguments": arguments,
@@ -6942,40 +7824,114 @@ def _run_isolated_cli(argv: Sequence[str] | None) -> int:
             temporary_root = Path(temporary).resolve(strict=True)
             ensure_no_reparse_components(temporary_root)
             response_path = temporary_root / "response.json"
+            failure_path = temporary_root / "failure.json"
             worker_temp = temporary_root / "worker-temp"
             worker_temp.mkdir(mode=0o700)
             os.chmod(worker_temp, 0o700)
-            completed = run_bounded(
-                [
-                    sys.executable,
-                    "-I",
-                    "-B",
-                    str(Path(__file__).resolve()),
-                    "--direct-cli-worker",
-                ],
-                cwd=temporary_root,
-                env=_bounded_handler_environment(temporary_root=worker_temp),
-                shell=False,
-                check=False,
-                input=request_raw,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=MAX_DIRECT_CLI_SECONDS,
-                require_containment=True,
-                maximum_active_processes=MAX_DIRECT_CLI_ACTIVE_PROCESSES,
-                maximum_memory_bytes=MAX_DIRECT_CLI_MEMORY_BYTES,
-            )
-            if completed.returncode != 0:
+            try:
+                completed = run_bounded(
+                    [
+                        sys.executable,
+                        "-I",
+                        "-B",
+                        str(Path(__file__).resolve()),
+                        "--direct-cli-worker",
+                    ],
+                    cwd=temporary_root,
+                    env=_bounded_handler_environment(temporary_root=worker_temp),
+                    shell=False,
+                    check=False,
+                    input=request_raw,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=MAX_DIRECT_CLI_SECONDS,
+                    require_containment=True,
+                    maximum_active_processes=MAX_DIRECT_CLI_ACTIVE_PROCESSES,
+                    maximum_memory_bytes=MAX_DIRECT_CLI_MEMORY_BYTES,
+                )
+            except subprocess.TimeoutExpired:
+                _publish_direct_cli_failure(
+                    output,
+                    status="timeout",
+                    stage="isolated_worker",
+                    reason_code="wall_clock_limit_reached",
+                    worker_returncode=None,
+                )
                 return 2
-            response_raw = _read_private_regular_file(
-                response_path,
-                maximum_size=MAX_DIRECT_CLI_RESPONSE,
-            )
-            exit_code, counts = _direct_cli_response(response_raw)
+            except (OSError, RuntimeError, subprocess.SubprocessError, ValueError):
+                _publish_direct_cli_failure(
+                    output,
+                    status="fatal",
+                    stage="worker_start_or_containment",
+                    reason_code="worker_start_failed",
+                    worker_returncode=None,
+                )
+                return 2
+            if completed.returncode != 0:
+                failure = {"reason_code": "isolated_worker_failed"}
+                try:
+                    failure = _parse_direct_cli_worker_failure(
+                        _read_private_regular_file(
+                            failure_path,
+                            maximum_size=MAX_DIRECT_CLI_FAILURE,
+                        )
+                    )
+                except (OSError, TypeError, ValueError):
+                    pass
+                _publish_direct_cli_failure(
+                    output,
+                    status="fatal",
+                    stage=str(failure.get("stage", "isolated_worker")),
+                    reason_code=str(failure["reason_code"]),
+                    worker_returncode=(
+                        completed.returncode
+                        if type(completed.returncode) is int
+                        else None
+                    ),
+                )
+                return 2
+            try:
+                response_raw = _read_private_regular_file(
+                    response_path,
+                    maximum_size=MAX_DIRECT_CLI_RESPONSE,
+                )
+                exit_code, counts = _direct_cli_response(response_raw)
+            except (OSError, TypeError, ValueError):
+                _publish_direct_cli_failure(
+                    output,
+                    status="fatal",
+                    stage="worker_response",
+                    reason_code="worker_response_invalid",
+                    worker_returncode=completed.returncode,
+                )
+                return 2
+            if not _clear_direct_cli_failure_artifacts(output, exit_code=exit_code):
+                print(
+                    json.dumps(
+                        {
+                            "status": "fatal",
+                            "reason_code": "diagnostic_cleanup_failed",
+                            "artifact_written": False,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        allow_nan=False,
+                    ),
+                    file=sys.stderr,
+                )
+                return 2
     except OutputPathLengthError as exc:
         print(str(exc), file=sys.stderr)
         return 2
     except (OSError, RuntimeError, subprocess.SubprocessError, ValueError):
+        if output is not None:
+            _publish_direct_cli_failure(
+                output,
+                status="fatal",
+                stage="request_preparation",
+                reason_code="request_preparation_failed",
+                worker_returncode=None,
+            )
         return 2
     print(json.dumps(counts, ensure_ascii=False, indent=2, allow_nan=False))
     return exit_code
@@ -6992,31 +7948,43 @@ def _execute_cli(
     if _runtime_dependency_preflight_main() != 0:
         raise RuntimeError("runtime dependency preflight failed")
     args = build_parser().parse_args(argv)
-    summary = run_batch(
-        args.input,
-        args.output,
-        registry=args.registry,
-        password=(
-            "infected" if archive_password_override is None else archive_password_override
-        ),
-        archive_mode=args.archive_mode,
-        forced_family=args.family,
-        minimum_confidence=args.minimum_confidence,
-        assessment_only=args.assessment_only,
-        max_files=args.max_files,
-        upx=args.upx,
-        sevenzip=args.sevenzip,
-        diec=args.diec,
-        innounp=args.innounp,
-        inno_password=("" if inno_password_override is None else inno_password_override),
-        force_container_probe=args.force_container_probe,
-        max_static_layers=args.max_static_layers,
-        retry_max_static_layers=args.retry_max_static_layers,
-        max_file_size=args.max_file_size,
-        string_scan_limit=args.string_scan_limit,
-        resume=args.resume,
-        family_hint_manifest=args.family_hint_manifest,
-    )
+    if args.sevenzip is not None and args.discover_standard_sevenzip:
+        raise ValueError(
+            "--sevenzipと--discover-standard-sevenzipは同時に指定できません"
+        )
+    sevenzip = args.sevenzip
+    if args.discover_standard_sevenzip:
+        sevenzip = _discover_standard_sevenzip()
+        if sevenzip is None:
+            raise ValueError("Windows標準install先に安全な7-Zipが見つかりません")
+    with _snapshot_sevenzip_for_direct_cli(sevenzip) as pinned_sevenzip:
+        summary = run_batch(
+            args.input,
+            args.output,
+            registry=args.registry,
+            password=(
+                "infected"
+                if archive_password_override is None
+                else archive_password_override
+            ),
+            archive_mode=args.archive_mode,
+            forced_family=args.family,
+            minimum_confidence=args.minimum_confidence,
+            assessment_only=args.assessment_only,
+            max_files=args.max_files,
+            upx=args.upx,
+            sevenzip=pinned_sevenzip,
+            diec=args.diec,
+            innounp=args.innounp,
+            inno_password=("" if inno_password_override is None else inno_password_override),
+            force_container_probe=args.force_container_probe,
+            max_static_layers=args.max_static_layers,
+            retry_max_static_layers=args.retry_max_static_layers,
+            max_file_size=args.max_file_size,
+            string_scan_limit=args.string_scan_limit,
+            resume=args.resume,
+            family_hint_manifest=args.family_hint_manifest,
+        )
     counts = summary["counts"]
     incomplete = (
         counts.get("errors", 0)
@@ -7042,7 +8010,51 @@ def main(argv: list[str] | None = None) -> int:
         return _run_isolated_cli(argv)
     try:
         exit_code, counts = _execute_cli(argv)
-    except RuntimeError:
+    except Exception as exc:  # noqa: BLE001 - CLI境界で固定理由codeだけを公開する
+        output = _direct_cli_output_from_arguments(argv, relative_root=Path.cwd())
+        written = (
+            _publish_direct_cli_failure(
+                output,
+                status="fatal",
+                stage="analysis_execution",
+                reason_code=_direct_cli_failure_reason(exc),
+                worker_returncode=None,
+            )
+            if output is not None
+            else False
+        )
+        print(
+            json.dumps(
+                {
+                    "status": "fatal",
+                    "reason_code": _direct_cli_failure_reason(exc),
+                    "artifact_written": written,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+                allow_nan=False,
+            ),
+            file=sys.stderr,
+        )
+        return 2
+    output = _direct_cli_output_from_arguments(argv, relative_root=Path.cwd())
+    if output is None or not _clear_direct_cli_failure_artifacts(
+        output,
+        exit_code=exit_code,
+    ):
+        print(
+            json.dumps(
+                {
+                    "status": "fatal",
+                    "reason_code": "diagnostic_cleanup_failed",
+                    "artifact_written": False,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+                allow_nan=False,
+            ),
+            file=sys.stderr,
+        )
         return 2
     print(json.dumps(counts, ensure_ascii=False, indent=2, allow_nan=False))
     return exit_code

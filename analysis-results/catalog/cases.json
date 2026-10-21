@@ -4729,6 +4729,13 @@
       "family": "vidar",
       "version_key": "unknown"
     },
+    "268eff98904198e2d0284b549681e024b2a1842695f1d185452849712788bc22": {
+      "canonical_path": "analysis-results/malware/valleyrat/versions/unknown/cases/268eff98904198e2d0284b549681e024b2a1842695f1d185452849712788bc22",
+      "case_id": "sha256:268eff98904198e2d0284b549681e024b2a1842695f1d185452849712788bc22",
+      "case_kind": "malware",
+      "family": "valleyrat",
+      "version_key": "unknown"
+    },
     "2695cedab056adaa9df1e30ad572d3944bdc09e7972ed757d1039121637b619c": {
       "attribution_status": "unresolved",
       "canonical_path": "analysis-results/malware/unclassified/versions/unknown/cases/2695cedab056adaa9df1e30ad572d3944bdc09e7972ed757d1039121637b619c",

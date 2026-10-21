@@ -61,6 +61,30 @@ MAX_LOGIC_FINGERPRINTS_PER_CASE = corpus.MAX_FUNCTION_RECORDS
 MAX_TOTAL_LOGIC_FINGERPRINTS = 2_000_000
 MAX_NEAR_CANDIDATE_PAIRS = 2_000_000
 
+FAILURE_CATEGORIES = (
+    "family_unresolved",
+    "config_missing",
+    "c2_correlation_missing",
+    "route_only_loader_component",
+    "analysis_incomplete_or_limit",
+    "conflicting_candidates",
+)
+ROUTE_ONLY_GAP_STATUSES = frozenset(
+    {
+        "loader_only",
+        "route_only",
+        "route_config_candidate_only",
+    }
+)
+INCOMPLETE_GAP_STATUSES = frozenset(
+    {
+        "unknown_legacy_schema",
+        "unknown_invalid_schema",
+        "unknown_incomplete_evaluations",
+        "unknown_detector_error",
+    }
+)
+
 
 class HoldoutEvaluationError(ValueError):
     """秘密値を含まない固定codeを持つholdout評価エラー。"""
@@ -82,6 +106,12 @@ class _CaseEvidence:
     family_failure_reason: str | None
     c2_config_confirmed: bool
     c2_failure_reason: str | None
+    # 既存の非公開evidence fixtureとの互換性を保つため、追加フィールドは既定値を持つ。
+    failure_category: str | None = None
+    operator_expected_family_scope: bool = False
+    exact_sha256_pinned: bool = False
+    source_sha256_pinned: bool = False
+    artifact_commitment_verified: bool = False
 
 
 @dataclass(frozen=True)
@@ -126,7 +156,9 @@ def _safe_corpus_summary(run_paths: Sequence[Path]) -> dict[str, Any]:
     """既存のseal検証器を通し、入力由来の値をerrorへ反射しない。"""
 
     try:
-        return corpus.summarize_runs(run_paths)
+        # operatorが指定した対象family scopeと、成果物上の観測成功を
+        # 別母数にするため、期待familyを評価契約へ固定する。
+        return corpus.summarize_runs(run_paths, expected_family=TARGET_FAMILY)
     except corpus.CorpusSummaryError as exc:
         raise HoldoutEvaluationError(
             f"sealed_corpus_{exc.code}",
@@ -346,6 +378,123 @@ def _c2_failure_reason(orchestration: Mapping[str, Any]) -> str | None:
     return "c2_config_correlation_missing"
 
 
+def _failure_category(
+    *,
+    public_case: Mapping[str, Any],
+    orchestration: Mapping[str, Any],
+    route: Mapping[str, Any],
+    family_reason: str | None,
+    c2_reason: str | None,
+) -> str | None:
+    """不成功caseを相互排他的な6分類へ決定的に縮約する。"""
+
+    if family_reason is None and c2_reason is None:
+        return None
+    resolution = orchestration.get("family_resolution")
+    if (
+        route.get("conflicting_configuration_candidates_present") is True
+        or (type(route.get("distinct_configuration_count")) is int and route["distinct_configuration_count"] > 1)
+        or (
+            isinstance(resolution, Mapping)
+            and resolution.get("status") in {"ambiguous", "conflicting", "conflicting_candidates"}
+        )
+    ):
+        return "conflicting_candidates"
+
+    gap = public_case.get("automation_gap")
+    gap_status = gap.get("status") if isinstance(gap, Mapping) else None
+    candidate_gap = gap.get("candidate_attempts", {}) if isinstance(gap, Mapping) else {}
+    route_gap = gap.get("route_projection", {}) if isinstance(gap, Mapping) else {}
+    limits = gap.get("budget_limits", {}) if isinstance(gap, Mapping) else {}
+    candidate_availability = (
+        candidate_gap.get("availability", {})
+        if isinstance(candidate_gap, Mapping)
+        else {}
+    )
+    route_availability = (
+        route_gap.get("availability", {}) if isinstance(route_gap, Mapping) else {}
+    )
+    candidate_accounting_unknown = bool(
+        isinstance(candidate_availability, Mapping)
+        and any(
+            candidate_availability.get(field) in INCOMPLETE_GAP_STATUSES
+            for field in (
+                "attempt_accounting",
+                "budget_reasons",
+                "layer_limit_reasons",
+            )
+        )
+    )
+    route_accounting_unknown = bool(
+        isinstance(route_availability, Mapping)
+        and route_availability.get("reason_accounting") in INCOMPLETE_GAP_STATUSES
+    )
+    incomplete = (
+        gap_status in INCOMPLETE_GAP_STATUSES
+        or candidate_accounting_unknown
+        or route_accounting_unknown
+        or (
+            isinstance(candidate_gap, Mapping)
+            and (
+                candidate_gap.get("budget_exhausted") is True
+                or any(
+                    type(candidate_gap.get(field)) is int and candidate_gap[field] > 0
+                    for field in (
+                        "omitted_attempt_detail_count",
+                        "unattempted_attempt_count",
+                    )
+                )
+            )
+        )
+        or (
+            isinstance(route_gap, Mapping)
+            and (
+                route_gap.get("projection_disposition") == "partial"
+                or any(
+                    type(route_gap.get(field)) is int and route_gap[field] > 0
+                    for field in (
+                        "omitted_handler_attempt_detail_count",
+                        "unattempted_handler_attempt_count",
+                    )
+                )
+            )
+        )
+        or (isinstance(limits, Mapping) and bool(limits.get("reason_counts")))
+    )
+    if incomplete:
+        return "analysis_incomplete_or_limit"
+    if gap_status in ROUTE_ONLY_GAP_STATUSES:
+        return "route_only_loader_component"
+    if family_reason is not None:
+        return "family_unresolved"
+    if c2_reason in {
+        "confirmed_config_missing",
+        "confirmed_config_gate_not_satisfied",
+        "confirmed_config_evidence_missing",
+    }:
+        return "config_missing"
+    if c2_reason == "c2_config_correlation_missing":
+        return "c2_correlation_missing"
+    return "analysis_incomplete_or_limit"
+
+
+def _source_sha256_pin_present(report: Mapping[str, Any]) -> bool:
+    """source artifactのSHA-256宣言を値を公開せず検証する。"""
+
+    sample = report.get("sample")
+    if not isinstance(sample, Mapping):
+        return False
+    source_digest = sample.get("outer_sha256")
+    if source_digest is None:
+        return False
+    if not isinstance(source_digest, str) or corpus.SHA256_RE.fullmatch(source_digest) is None:
+        raise HoldoutEvaluationError(
+            "report_source_sha256_pin_invalid",
+            "case reportのsource SHA-256 pinが不正です。",
+        )
+    return True
+
+
 def _profile_axes(public_case: Mapping[str, Any]) -> frozenset[str]:
     """既存集計器がallowlist化したValleyRAT構造profileだけを返す。"""
 
@@ -424,8 +573,9 @@ def _read_case_evidence(
         orchestration = documents["orchestration.json"]
         static_logic = documents["static-logic.json"]
         corpus._validate_orchestration(orchestration, digest)
+        route = documents["route-config-candidates.json"]
         corpus._validate_candidate_assessment(documents["candidate-handler-assessment.json"])
-        corpus._validate_route(documents["route-config-candidates.json"], digest)
+        corpus._validate_route(route, digest)
     except corpus.CorpusSummaryError as exc:
         raise HoldoutEvaluationError(
             f"sealed_case_{exc.code}",
@@ -459,6 +609,11 @@ def _read_case_evidence(
     resolution = orchestration["family_resolution"]
     family_reason = _family_failure_reason(resolution)
     c2_reason = _c2_failure_reason(orchestration)
+    family_summary = public_case.get("family")
+    operator_expected_family_scope = (
+        isinstance(family_summary, Mapping)
+        and family_summary.get("expected_family") == TARGET_FAMILY
+    )
     return _CaseEvidence(
         digest=digest,
         exact_axes=tuple(sorted(corpus._structure_axes(generic, static_logic).items())),
@@ -468,6 +623,17 @@ def _read_case_evidence(
         family_failure_reason=family_reason,
         c2_config_confirmed=c2_reason is None,
         c2_failure_reason=c2_reason,
+        failure_category=_failure_category(
+            public_case=public_case,
+            orchestration=orchestration,
+            route=route,
+            family_reason=family_reason,
+            c2_reason=c2_reason,
+        ),
+        operator_expected_family_scope=operator_expected_family_scope,
+        exact_sha256_pinned=True,
+        source_sha256_pinned=_source_sha256_pin_present(report),
+        artifact_commitment_verified=True,
     )
 
 
@@ -789,29 +955,32 @@ def _normalized_identity_set(
     identities: Sequence[str],
     *,
     empty_code: str,
+    invalid_code: str = "pre_registration_identity_invalid",
+    duplicate_code: str = "pre_registration_identity_duplicate",
+    label_ja: str = "事前登録するidentity集合",
 ) -> tuple[str, ...]:
     """SHA-256 identity集合を重複なしの決定的順序へ正規化する。"""
 
     if not identities:
         raise HoldoutEvaluationError(
             empty_code,
-            "事前登録するidentity集合が空です。",
+            f"{label_ja}が空です。",
         )
     if len(identities) > MAX_EVALUATION_CASES:
         raise HoldoutEvaluationError(
             "evaluation_case_limit_exceeded",
-            "事前登録するidentity件数が評価上限を超えています。",
+            f"{label_ja}の件数が評価上限を超えています。",
         )
     if any(not isinstance(identity, str) or corpus.SHA256_RE.fullmatch(identity) is None for identity in identities):
         raise HoldoutEvaluationError(
-            "pre_registration_identity_invalid",
-            "事前登録するcase identityがSHA-256契約を満たしません。",
+            invalid_code,
+            f"{label_ja}がcase SHA-256契約を満たしません。",
         )
     normalized = tuple(sorted(identities))
     if len(set(normalized)) != len(normalized):
         raise HoldoutEvaluationError(
-            "pre_registration_identity_duplicate",
-            "同じpartition内のcase identityが重複しています。",
+            duplicate_code,
+            f"{label_ja}に重複があります。",
         )
     return normalized
 
@@ -967,8 +1136,15 @@ def _read_pre_registration(path: Path) -> dict[str, Any]:
     return value
 
 
-def _read_identity_manifest(path: Path) -> tuple[str, ...]:
-    """解析前に固定したprivate holdout SHA-256一覧を有界に読む。"""
+def _read_identity_manifest(
+    path: Path,
+    *,
+    empty_code: str = "holdout_identity_set_missing",
+    invalid_code: str = "pre_registration_identity_invalid",
+    duplicate_code: str = "pre_registration_identity_duplicate",
+    label_ja: str = "解析前holdout identity集合",
+) -> tuple[str, ...]:
+    """private SHA-256 identity manifestを値を公開せず有界に読む。"""
 
     try:
         value, _raw = corpus._read_json_snapshot(
@@ -979,7 +1155,7 @@ def _read_identity_manifest(path: Path) -> tuple[str, ...]:
     except corpus.CorpusSummaryError as exc:
         raise HoldoutEvaluationError(
             f"identity_manifest_{exc.code}",
-            "解析前holdout identity manifestを安全に読み取れません。",
+            "identity manifestを安全に読み取れません。",
         ) from exc
     if (
         set(value) != {"schema_version", "identity_type", "identities"}
@@ -989,11 +1165,14 @@ def _read_identity_manifest(path: Path) -> tuple[str, ...]:
     ):
         raise HoldoutEvaluationError(
             "identity_manifest_schema_invalid",
-            "解析前holdout identity manifestのschemaが不正です。",
+            "identity manifestのschemaが不正です。",
         )
     return _normalized_identity_set(
         value["identities"],
-        empty_code="holdout_identity_set_missing",
+        empty_code=empty_code,
+        invalid_code=invalid_code,
+        duplicate_code=duplicate_code,
+        label_ja=label_ja,
     )
 
 
@@ -1021,7 +1200,10 @@ def _collect_registered_identities(
     )
 
 
-def _public_input_counts(corpus_summary: Mapping[str, Any]) -> dict[str, Any]:
+def _public_input_counts(
+    corpus_summary: Mapping[str, Any],
+    cases: Sequence[_CaseEvidence] = (),
+) -> dict[str, Any]:
     """識別子やpathを含めず、seal検証結果の集計値だけを返す。"""
 
     counts = corpus_summary["counts"]
@@ -1036,6 +1218,8 @@ def _public_input_counts(corpus_summary: Mapping[str, Any]) -> dict[str, Any]:
         "invalid_unique_cases": counts["invalid_unique_cases"],
         "conflicting_case_records": counts["conflicting_case_sha256"],
         "integrity_clean": integrity_clean,
+        "input_commitment_stable_during_evaluation": True,
+        "pins": _input_pin_summary(cases),
     }
 
 
@@ -1102,6 +1286,107 @@ def _case_failure_reason_counts(
             ).items()
         )
     )
+
+
+def _case_failure_category_counts(
+    cases: Sequence[_CaseEvidence],
+) -> dict[str, int]:
+    """不成功caseを重複なしの主失敗カテゴリとして集計する。"""
+
+    failures = [case for case in cases if not (case.family_confirmed and case.c2_config_confirmed)]
+    counts = Counter()
+    for case in failures:
+        category = case.failure_category
+        if category is None:
+            category = (
+                "family_unresolved"
+                if case.family_failure_reason is not None
+                else "c2_correlation_missing"
+                if case.c2_failure_reason == "c2_config_correlation_missing"
+                else "config_missing"
+                if case.c2_failure_reason is not None
+                else "analysis_incomplete_or_limit"
+            )
+        counts[category] += 1
+    unknown = set(counts) - set(FAILURE_CATEGORIES)
+    if unknown:
+        raise HoldoutEvaluationError(
+            "failure_category_internal_error",
+            "主失敗カテゴリに未登録の値があります。",
+        )
+    if sum(counts.values()) != len(failures):
+        raise HoldoutEvaluationError(
+            "failure_category_accounting_mismatch",
+            "主失敗カテゴリのcase件数が不成功件数と一致しません。",
+        )
+    return {category: counts.get(category, 0) for category in FAILURE_CATEGORIES if counts.get(category, 0) > 0}
+
+
+def _input_pin_summary(cases: Sequence[_CaseEvidence]) -> dict[str, Any]:
+    """SHA/source値を公開せず、成果物JSON上のpin検証件数だけを返す。"""
+
+    exact = sum(case.exact_sha256_pinned for case in cases)
+    source = sum(case.source_sha256_pinned for case in cases)
+    artifacts = sum(case.artifact_commitment_verified for case in cases)
+    return {
+        "case_count": len(cases),
+        "exact_case_sha256_bound_cases": exact,
+        "source_sha256_pin_declared_cases": source,
+        "source_sha256_pin_missing_cases": len(cases) - source,
+        "artifact_commitment_verified_cases": artifacts,
+        "all_exact_case_sha256_and_artifact_commitments_verified": (exact == len(cases) and artifacts == len(cases)),
+        "source_file_bytes_opened": False,
+        "raw_pin_values_included": False,
+    }
+
+
+def _denominator_set_summary(
+    cases: Sequence[_CaseEvidence],
+    *,
+    scope: str,
+    curated_reference_cases: Sequence[_CaseEvidence] | None = None,
+) -> dict[str, Any]:
+    """operator scope、観測成功、評価時curated setを別母数にする。"""
+
+    operator_scope_count = sum(case.operator_expected_family_scope for case in cases)
+    observed_count = sum(case.family_confirmed and case.c2_config_confirmed for case in cases)
+    result = {
+        "scope": scope,
+        "sets_are_independent_denominators": True,
+        "operator_expected_family_scope_is_ground_truth": False,
+        "operator_expected_family_scope": {
+            "selection_basis": "operator_expected_family_equals_target",
+            "denominator": operator_scope_count,
+            "denominator_basis": f"{scope}_operator_expected_family_scope_cases",
+        },
+        "observed_strict_positive": {
+            "selection_basis": "current_strict_family_and_c2_evidence_contract",
+            "denominator": observed_count,
+            "denominator_basis": f"{scope}_observed_strict_positive_cases",
+        },
+    }
+    if curated_reference_cases is not None:
+        curated_cases = tuple(curated_reference_cases)
+        curated_identities = {case.digest for case in curated_cases}
+        if len(curated_identities) != len(curated_cases) or not curated_identities.issubset(
+            case.digest for case in cases
+        ):
+            raise HoldoutEvaluationError(
+                "curated_reference_set_internal_error",
+                "curated reference集合が評価scopeと一致しません。",
+            )
+        result["curated_reference_set"] = {
+            "selection_basis": "evaluation_time_curated_reference_identity_manifest",
+            "case_count": len(curated_cases),
+            "used_for_target_gate": False,
+            "observed_strict_contract_success_cases": sum(
+                case.family_confirmed and case.c2_config_confirmed for case in curated_cases
+            ),
+            "supplied_at_evaluation_time": True,
+            "temporal_order_proven_by_evaluator": False,
+        }
+    result["curated_reference_set_available"] = curated_reference_cases is not None
+    return result
 
 
 def _reference_structure_strata(
@@ -1191,6 +1476,8 @@ def _assemble_evaluation(
         Sequence[_CaseEvidence],
     ]
     | None = None,
+    evaluation_scopes: Mapping[str, Sequence[_CaseEvidence]] | None = None,
+    curated_reference_scopes: Mapping[str, Sequence[_CaseEvidence]] | None = None,
     additional_gate_reasons: Sequence[str] = (),
 ) -> dict[str, Any]:
     """全モード共通の成功指標・安全境界・target gateを組み立てる。"""
@@ -1211,6 +1498,7 @@ def _assemble_evaluation(
     )
     joint_count = metrics["joint_success"]["numerator"]
     failure_reasons = _case_failure_reason_counts(holdout_cases)
+    failure_categories = _case_failure_category_counts(holdout_cases)
     required_successes = math.ceil(requested_holdout_count * minimum_success_percentage / 100.0)
     gate_reasons: list[str] = []
     if split["actual_holdout_cases"] != requested_holdout_count:
@@ -1253,6 +1541,7 @@ def _assemble_evaluation(
                     denominator_basis=f"{key}_holdout_cases",
                 ),
                 "failure_reason_counts": _case_failure_reason_counts(structure_strata[key]),
+                "failure_category_counts": _case_failure_category_counts(structure_strata[key]),
             }
             for key in ("known_structure", "new_structure")
         }
@@ -1296,6 +1585,24 @@ def _assemble_evaluation(
         },
         "metrics": metrics,
         "failure_reason_counts": failure_reasons,
+        "failure_category_counts": failure_categories,
+        "failure_category_contract": {
+            "mutually_exclusive": True,
+            "successful_cases_have_no_failure_category": True,
+            "categories": list(FAILURE_CATEGORIES),
+        },
+        "evaluation_sets": {
+            scope: _denominator_set_summary(
+                cases,
+                scope=scope,
+                curated_reference_cases=(
+                    curated_reference_scopes.get(scope)
+                    if curated_reference_scopes is not None
+                    else None
+                ),
+            )
+            for scope, cases in sorted((evaluation_scopes or {"holdout": holdout_cases}).items())
+        },
         "target_gate": {
             "status": "passed" if not gate_reasons else "failed",
             "observed_joint_successes": joint_count,
@@ -1318,6 +1625,7 @@ def _assemble_evaluation(
             "raw_config_included": False,
             "network_values_included": False,
             "source_names_included": False,
+            "source_sha256_values_included": False,
             "private_paths_included": False,
             "integrity_scope": ("report_semantic_seal_and_selected_artifact_digests"),
         },
@@ -1360,6 +1668,7 @@ def evaluate_runs(
         for reason in (case.family_failure_reason, case.c2_failure_reason)
         if reason is not None
     )
+    failure_categories = _case_failure_category_counts(holdout_cases)
     input_counts = corpus_summary["counts"]
     integrity_clean = (
         input_counts["batch_errors"] == 0
@@ -1387,15 +1696,7 @@ def evaluate_runs(
             "minimum_joint_success_percentage": minimum_success_percentage,
             "required_joint_successes": required_successes,
         },
-        "input": {
-            "run_count": corpus_summary["scope"]["run_count"],
-            "input_units": input_counts["input_units"],
-            "unique_valid_cases": input_counts["unique_valid_cases"],
-            "batch_errors": input_counts["batch_errors"],
-            "invalid_unique_cases": input_counts["invalid_unique_cases"],
-            "conflicting_case_records": input_counts["conflicting_case_sha256"],
-            "integrity_clean": integrity_clean,
-        },
+        "input": _public_input_counts(corpus_summary, cases),
         "split": {
             "version": SPLIT_VERSION,
             "algorithm": "fixed_identity_ranked_structural_component_subset",
@@ -1445,6 +1746,18 @@ def evaluate_runs(
             "joint_success": _rate(joint_count, len(holdout_cases)),
         },
         "failure_reason_counts": dict(sorted(failure_reasons.items())),
+        "failure_category_counts": failure_categories,
+        "failure_category_contract": {
+            "mutually_exclusive": True,
+            "successful_cases_have_no_failure_category": True,
+            "categories": list(FAILURE_CATEGORIES),
+        },
+        "evaluation_sets": {
+            "holdout": _denominator_set_summary(
+                holdout_cases,
+                scope="holdout",
+            ),
+        },
         "target_gate": {
             "status": gate_status,
             "observed_joint_successes": joint_count,
@@ -1463,6 +1776,7 @@ def evaluate_runs(
             "raw_config_included": False,
             "network_values_included": False,
             "source_names_included": False,
+            "source_sha256_values_included": False,
             "private_paths_included": False,
             "integrity_scope": "report_semantic_seal_and_selected_artifact_digests",
         },
@@ -1476,6 +1790,7 @@ def _evaluate_reference_holdout_evidence(
     holdout_summary: Mapping[str, Any],
     *,
     pre_registration: Mapping[str, Any],
+    curated_reference_identities: Sequence[str] | None = None,
     expected_holdout_count: int,
     minimum_success_percentage: float,
 ) -> dict[str, Any]:
@@ -1537,12 +1852,31 @@ def _evaluate_reference_holdout_evidence(
         **structure_summary,
         **_cluster_summary(clusters),
     }
-    public_reference = _public_input_counts(reference_summary)
-    public_holdout = _public_input_counts(holdout_summary)
+    public_reference = _public_input_counts(reference_summary, reference_cases)
+    public_holdout = _public_input_counts(holdout_summary, holdout_cases)
     integrity_clean = public_reference["integrity_clean"] and public_holdout["integrity_clean"]
     gate_reasons = []
     if identity_overlap:
         gate_reasons.append("reference_holdout_identity_overlap")
+    curated_reference_cases: tuple[_CaseEvidence, ...] | None = None
+    if curated_reference_identities is not None:
+        curated_identity_set = set(
+            _normalized_identity_set(
+                curated_reference_identities,
+                empty_code="curated_reference_identity_set_missing",
+                invalid_code="curated_reference_identity_invalid",
+                duplicate_code="curated_reference_identity_duplicate",
+                label_ja="curated reference identity集合",
+            )
+        )
+        curated_reference_cases = tuple(
+            case for case in reference_cases if case.digest in curated_identity_set
+        )
+        if len(curated_reference_cases) != len(curated_identity_set):
+            raise HoldoutEvaluationError(
+                "curated_reference_set_internal_error",
+                "curated reference identityをreference成果物へ束縛できません。",
+            )
     return _assemble_evaluation(
         evaluation_mode="offline_sealed_reference_holdout",
         holdout_cases=holdout_cases,
@@ -1560,6 +1894,15 @@ def _evaluate_reference_holdout_evidence(
             "known_structure": known_structure_cases,
             "new_structure": new_structure_cases,
         },
+        evaluation_scopes={
+            "holdout": holdout_cases,
+            "reference": reference_cases,
+        },
+        curated_reference_scopes=(
+            {"reference": curated_reference_cases}
+            if curated_reference_cases is not None
+            else None
+        ),
         additional_gate_reasons=gate_reasons,
     )
 
@@ -1569,6 +1912,7 @@ def evaluate_reference_holdout(
     holdout_run_paths: Sequence[Path],
     *,
     pre_registration: Mapping[str, Any] | None = None,
+    curated_reference_identities: Sequence[str] | None = None,
     expected_holdout_count: int = DEFAULT_HOLDOUT_COUNT,
     minimum_success_percentage: float = DEFAULT_MINIMUM_SUCCESS_PERCENTAGE,
 ) -> dict[str, Any]:
@@ -1597,6 +1941,7 @@ def evaluate_reference_holdout(
         reference_summary,
         holdout_summary,
         pre_registration=pre_registration,
+        curated_reference_identities=curated_reference_identities,
         expected_holdout_count=expected_holdout_count,
         minimum_success_percentage=minimum_success_percentage,
     )
@@ -1611,6 +1956,11 @@ def _rate_text(rate: Mapping[str, Any]) -> str:
 def render_markdown(summary: Mapping[str, Any]) -> str:
     """JSONと同じ母数・判定を持つ日本語Markdownを生成する。"""
 
+    if summary.get("schema_version") != SCHEMA_VERSION:
+        raise HoldoutEvaluationError(
+            "render_schema_version_unsupported",
+            "Markdown生成は現行の評価schemaだけを受理します。",
+        )
     target = summary["target"]
     gate = summary["target_gate"]
     split = summary["split"]
@@ -1812,6 +2162,14 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help=("事前登録作成時に使うprivateな解析前SHA-256一覧JSON。評価modeでは指定できません。"),
     )
+    parser.add_argument(
+        "--curated-reference-identity-manifest",
+        type=Path,
+        help=(
+            "reference集合の比較用に選ぶprivateなSHA-256一覧JSON。"
+            "評価時の補助集合であり、事前登録や公式target分母には使用しません。"
+        ),
+    )
     registration.add_argument(
         "--write-pre-registration",
         type=Path,
@@ -1854,6 +2212,22 @@ def main(argv: list[str] | None = None) -> int:
                     "pre_registration_output_collision",
                     "事前登録を評価結果の出力先として上書きできません。",
                 )
+        if args.curated_reference_identity_manifest is not None:
+            curated_manifest_input = args.curated_reference_identity_manifest.resolve()
+            protected_outputs = {
+                path.resolve()
+                for path in (
+                    args.output_json,
+                    args.output_markdown,
+                    args.write_pre_registration,
+                )
+                if path is not None
+            }
+            if curated_manifest_input in protected_outputs:
+                raise HoldoutEvaluationError(
+                    "curated_reference_manifest_output_collision",
+                    "curated reference manifestを出力で上書きできません。",
+                )
         if args.write_pre_registration:
             if not args.reference_run:
                 raise HoldoutEvaluationError(
@@ -1869,6 +2243,11 @@ def main(argv: list[str] | None = None) -> int:
                 raise HoldoutEvaluationError(
                     "pre_registration_run_input_disallowed",
                     "事前登録作成時は解析後holdout runを指定できません。",
+                )
+            if args.curated_reference_identity_manifest is not None:
+                raise HoldoutEvaluationError(
+                    "curated_reference_manifest_registration_disallowed",
+                    "curated reference manifestは評価時だけ指定できます。",
                 )
             if args.output_json or args.output_markdown or args.fail_below_target:
                 raise HoldoutEvaluationError(
@@ -1923,6 +2302,17 @@ def main(argv: list[str] | None = None) -> int:
                 args.reference_run,
                 run_paths,
                 pre_registration=_read_pre_registration(args.pre_registration),
+                curated_reference_identities=(
+                    _read_identity_manifest(
+                        args.curated_reference_identity_manifest,
+                        empty_code="curated_reference_identity_set_missing",
+                        invalid_code="curated_reference_identity_invalid",
+                        duplicate_code="curated_reference_identity_duplicate",
+                        label_ja="curated reference identity集合",
+                    )
+                    if args.curated_reference_identity_manifest is not None
+                    else None
+                ),
                 expected_holdout_count=args.holdout_count,
                 minimum_success_percentage=args.minimum_success_percentage,
             )
@@ -1931,6 +2321,11 @@ def main(argv: list[str] | None = None) -> int:
                 raise HoldoutEvaluationError(
                     "pre_registration_requires_reference",
                     "事前登録はreference holdout評価でだけ指定できます。",
+                )
+            if args.curated_reference_identity_manifest is not None:
+                raise HoldoutEvaluationError(
+                    "curated_reference_requires_reference",
+                    "curated reference manifestはreference評価でだけ指定できます。",
                 )
             summary = evaluate_runs(
                 run_paths,
