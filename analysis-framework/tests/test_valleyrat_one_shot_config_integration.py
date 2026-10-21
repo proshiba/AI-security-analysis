@@ -308,6 +308,15 @@ def test_selected_valleyrat_zip_routes_child_config_to_case_artifacts(
                     "static_config_recovered": True,
                     "endpoints": ["198.51.100.24:449"],
                 },
+                "findings": [
+                    {
+                        "kind": "network.endpoint",
+                        "value": "198.51.100.24:449",
+                        "role": "static_config_c2",
+                        "confidence": "confirmed_static_config",
+                        "source": "synthetic_decoded_config",
+                    }
+                ],
                 "executed": False,
                 "network_contacted": False,
             }
@@ -390,12 +399,20 @@ def test_selected_valleyrat_zip_routes_child_config_to_case_artifacts(
     )
     assert patterns["family"] == "valleyrat"
     assert patterns["config"]["static_config_recovered"] is True
-    assert patterns["communication"]["candidate_patterns"] == [
+    assert patterns["communication"]["candidate_patterns"] == []
+    assert len(patterns["communication"]["confirmed_static_c2_endpoints"]) == 1
+    assert patterns["communication"]["confirmed_static_c2_endpoints"][0][
+        "host"
+    ] == "198.51.100.24"
+    assert patterns["communication"]["confirmed_static_c2_endpoints"][0][
+        "port"
+    ] == 449
+    assert c2["c2"]["endpoints"] == [
         {
             "value": "198.51.100.24:449",
+            "role": "c2",
             "source": f"handler:{HANDLER_ID}",
-            "source_field": "result.config.endpoints",
-            "status": "candidate_static_handler_output",
+            "confidence": "confirmed_static_configuration",
         }
     ]
     assert all(

@@ -39,6 +39,9 @@ from extractors.valleyrat.ca01_sideload import (
 from extractors.valleyrat.ca01_sideload import (
     validate_recovery_contract as validate_ca01_recovery_contract,
 )
+from extractors.valleyrat.direct_native_terminal import (
+    probe_direct_native_terminal_config,
+)
 from extractors.valleyrat.export_funnel import (
     collect_external_code_roots,
     probe_export_funnel_route,
@@ -55,6 +58,9 @@ from extractors.valleyrat.n520 import (
 from extractors.valleyrat.n520 import (
     structural_evidence as n520_structural_evidence,
 )
+from extractors.valleyrat.native_loader_lineage import (
+    analyze_native_loader_lineage,
+)
 from extractors.valleyrat.nvml_dat import (
     NvmlDatError,
     looks_like_nvml_dat,
@@ -66,8 +72,8 @@ from extractors.valleyrat.nvml_dat import (
     render_authority,
     render_endpoint,
 )
-from extractors.valleyrat.native_loader_lineage import (
-    analyze_native_loader_lineage,
+from extractors.valleyrat.polygon_dead_drop import (
+    analyze_polygon_dead_drop_lineage,
 )
 from extractors.valleyrat.run_dll_native_core import (
     probe_run_dll_native_core_config,
@@ -4117,63 +4123,65 @@ def _extract_wide_pipe_config(data: bytes, name: str) -> dict | None:
         }
         for endpoint in endpoints
     ]
-    return build_result(
-        "valleyrat",
-        data,
-        {
-            "variant": (
-                "winos_plaintext_pipe_bootstrap_terminal"
-                if terminal
-                else "winos_plaintext_pipe_config_candidate"
-            ),
-            "decoded_config_recovered": True,
-            "static_config_recovered": terminal,
-            "candidate_config_recovered": not terminal,
-            "terminal_family_confirmed": terminal,
-            "attribution_scope": (
-                "validated_winos_bootstrap_component"
-                if terminal
-                else "component_handler_route"
-            ),
-            "family_attribution_basis": (
-                "unique_pipe_config_parser_runtime_globals_tcp_vtable_winos_frame_dispatcher"
-                if terminal
-                else "unique_plaintext_pipe_config_without_complete_network_lineage"
-            ),
-            "classification_confidence": (
-                "high_structural_decoded_config"
-                if terminal
-                else "medium_candidate_decoded_config"
-            ),
-            "c2_liveness_confirmed": False,
-            "source_name": _safe_source_name(name),
-            "endpoints": endpoints,
-            "ipv4": ipv4_candidates(endpoints),
-            "urls": [],
-            "slots": slots,
-            "wide_pipe_config": public_wide_pipe_recovery_summary(recovery),
-        },
-        findings,
-        [
-            (
-                "一意なUTF-16LE pipe設定、全field tagのparser参照、実行時endpoint global、"
-                "workerからTCP vtableの同一socket fieldを使うconnect／send／recvまでを"
-                "静的に検証しました。"
-                if terminal
-                else "一意なUTF-16LE pipe設定を復元しましたが、parserから実行時global、"
-                "network sink、protocol dispatcherまでの完全な系譜は証明できないため"
-                "候補としてのみ記録します。"
-            ),
-            (
-                "4-byte長、10-byte header、header由来XOR、初期command 0x0004、"
-                "受信dispatcher markerを同一bootstrap内で検証しました。"
-                if terminal
-                else "不足するnetworkまたはprotocol証拠があるため、ValleyRAT familyへは"
-                "昇格していません。"
-            ),
-            "loopback placeholderはC2候補から除外しました。現在の稼働状態と所有者は確認していません。",
-            "検体実行と外部通信は行っていません。",
-        ],
+    return _with_recovery_diagnostics(
+        build_result(
+            "valleyrat",
+            data,
+            {
+                "variant": (
+                    "winos_plaintext_pipe_bootstrap_terminal"
+                    if terminal
+                    else "winos_plaintext_pipe_config_candidate"
+                ),
+                "decoded_config_recovered": True,
+                "static_config_recovered": terminal,
+                "candidate_config_recovered": not terminal,
+                "terminal_family_confirmed": terminal,
+                "attribution_scope": (
+                    "validated_winos_bootstrap_component"
+                    if terminal
+                    else "component_handler_route"
+                ),
+                "family_attribution_basis": (
+                    "unique_pipe_config_parser_runtime_globals_tcp_vtable_winos_frame_dispatcher"
+                    if terminal
+                    else "unique_plaintext_pipe_config_without_complete_network_lineage"
+                ),
+                "classification_confidence": (
+                    "high_structural_decoded_config"
+                    if terminal
+                    else "medium_candidate_decoded_config"
+                ),
+                "c2_liveness_confirmed": False,
+                "source_name": _safe_source_name(name),
+                "endpoints": endpoints,
+                "ipv4": ipv4_candidates(endpoints),
+                "urls": [],
+                "slots": slots,
+                "wide_pipe_config": public_wide_pipe_recovery_summary(recovery),
+            },
+            findings,
+            [
+                (
+                    "一意なUTF-16LE pipe設定、全field tagのparser参照、実行時endpoint global、"
+                    "workerからTCP vtableの同一socket fieldを使うconnect／send／recvまでを"
+                    "静的に検証しました。"
+                    if terminal
+                    else "一意なUTF-16LE pipe設定を復元しましたが、parserから実行時global、"
+                    "network sink、protocol dispatcherまでの完全な系譜は証明できないため"
+                    "候補としてのみ記録します。"
+                ),
+                (
+                    "4-byte長、10-byte header、header由来XOR、初期command 0x0004、"
+                    "受信dispatcher markerを同一bootstrap内で検証しました。"
+                    if terminal
+                    else "不足するnetworkまたはprotocol証拠があるため、ValleyRAT familyへは"
+                    "昇格していません。"
+                ),
+                "loopback placeholderはC2候補から除外しました。現在の稼働状態と所有者は確認していません。",
+                "検体実行と外部通信は行っていません。",
+            ],
+        )
     )
 
 
@@ -4239,6 +4247,60 @@ def _extract_run_dll_native_core(
     )
 
 
+def _extract_direct_native_terminal(data: bytes, name: str) -> dict | None:
+    """x64直結型終端を、閉じた通信lineageがある場合だけ返す。"""
+
+    terminal = probe_direct_native_terminal_config(data)
+    if (
+        terminal.get("matched") is not True
+        or terminal.get("supports_family_attribution") is not True
+        or terminal.get("terminal_family_confirmed") is not True
+    ):
+        return None
+    endpoints = list(terminal["endpoints"])
+    findings = [
+        {
+            "kind": "network.endpoint",
+            "value": endpoint,
+            "role": "static_config_c2",
+            "confidence": "confirmed_static_config",
+            "source": "validated_direct_native_terminal_config",
+        }
+        for endpoint in endpoints
+    ]
+    return build_result(
+        "valleyrat",
+        data,
+        {
+            "variant": terminal["variant"],
+            "decoded_config_recovered": False,
+            "static_config_recovered": True,
+            "candidate_config_recovered": False,
+            "terminal_family_confirmed": True,
+            "supports_family_attribution": True,
+            "attribution_scope": "terminal_payload",
+            "family_attribution_basis": terminal["family_attribution_basis"],
+            "c2_liveness_confirmed": False,
+            "source_name": _safe_source_name(name),
+            "endpoints": endpoints,
+            "ipv4": ipv4_candidates(endpoints),
+            "urls": [],
+            "slots": list(terminal["slots"]),
+            "excluded_placeholder_defaults": list(
+                terminal["excluded_placeholder_defaults"]
+            ),
+            "direct_native_terminal": dict(terminal["evidence"]),
+        },
+        findings,
+        [
+            "x64直結型終端の3-slot設定からruntime endpointへのproducer-consumer関係を静的に検証しました。",
+            "同一clientのconnect／send／recv、14-byte frame、受信dispatcher、0x1250-byte初回登録、keepaliveを検証しました。",
+            "loopback placeholderはC2候補から除外しました。",
+            "検体実行と外部通信は行っていません。",
+        ],
+    )
+
+
 def _attach_final_payloads(
     result: dict,
     payloads: tuple[dict[str, object], ...],
@@ -4273,6 +4335,182 @@ def _attach_final_payloads(
         result["final_payload"] = retained[0]
     elif retained:
         result["final_payloads"] = retained
+
+
+def _extract_polygon_dead_drop(data: bytes, name: str) -> dict | None:
+    """``.cdata``外層からPolygon resolver終端と埋込みC2を復元する。"""
+
+    lineage = analyze_polygon_dead_drop_lineage(data)
+    if lineage is None:
+        return None
+    observation = dict(lineage.observation)
+    resolver = observation.get("resolver")
+    embedded = observation.get("embedded_config")
+    execution = observation.get("execution_mode")
+    if (
+        observation.get("schema_version") != 1
+        or observation.get("status")
+        != "validated_polygon_dead_drop_terminal_profile"
+        or observation.get("matched") is not True
+        or observation.get("resolver_network_lineage_proven") is not True
+        or observation.get("supports_family_attribution") is not False
+        or observation.get("terminal_family_confirmed") is not False
+        or observation.get("sample_executed") is not False
+        or observation.get("network_contacted") is not False
+        or observation.get("raw_payload_included") is not False
+        or not isinstance(resolver, dict)
+        or resolver.get("method") != "eth_call"
+        or resolver.get("provider_node_count") != 3
+        or resolver.get("provider_nodes_are_c2") is not False
+        or not isinstance(embedded, dict)
+        or not isinstance(execution, dict)
+    ):
+        raise RuntimeError("Polygon dead-drop解析結果のstrict contractが不正です")
+    providers = resolver.get("provider_nodes")
+    fallback = resolver.get("fallback_urls")
+    dormant_urls = resolver.get("unreferenced_url_literals")
+    endpoints = embedded.get("endpoints")
+    embedded_urls = embedded.get("urls")
+    if (
+        not isinstance(providers, list)
+        or len(providers) != 3
+        or any(
+            not isinstance(item, dict)
+            or not isinstance(item.get("host"), str)
+            or not item.get("host")
+            or item.get("role") != "resolver_not_c2"
+            or item.get("shared_infrastructure") is not True
+            for item in providers
+        )
+        or not isinstance(fallback, list)
+        or any(
+            not isinstance(item, dict)
+            or not isinstance(item.get("url"), str)
+            or not item.get("url")
+            or item.get("role") != "resolver_not_c2"
+            for item in fallback
+        )
+        or not isinstance(dormant_urls, list)
+        or any(
+            not isinstance(item, dict)
+            or not isinstance(item.get("url"), str)
+            or not item.get("url")
+            or item.get("role") != "dormant_literal_not_ioc"
+            or item.get("code_referenced") is not False
+            or item.get("promoted_to_network_ioc") is not False
+            for item in dormant_urls
+        )
+        or not isinstance(endpoints, list)
+        or any(not isinstance(item, str) or not item for item in endpoints)
+        or not isinstance(embedded_urls, list)
+        or any(not isinstance(item, str) or not item for item in embedded_urls)
+        or tuple(endpoints) != lineage.embedded_endpoints
+        or tuple(embedded_urls) != lineage.embedded_urls
+    ):
+        raise RuntimeError("Polygon resolver／埋込み設定の公開契約が不正です")
+    provider_hosts = [item["host"] for item in providers]
+    fallback_urls = [item["url"] for item in fallback]
+    findings = [
+        {
+            "kind": "network.endpoint",
+            "value": endpoint,
+            "role": "static_config_c2",
+            "confidence": "confirmed_static_config",
+            "source": "polygon_terminal_embedded_aes_config",
+        }
+        for endpoint in endpoints
+    ]
+    findings.extend(
+        {
+            "kind": "network.domain",
+            "value": host,
+            "role": "resolver_not_c2",
+            "confidence": "confirmed_static_transport",
+            "source": "polygon_eth_call_provider",
+        }
+        for host in provider_hosts
+    )
+    findings.extend(
+        {
+            "kind": "network.url",
+            "value": url,
+            "role": "resolver_not_c2",
+            "confidence": "confirmed_static_transport",
+            "source": "polygon_terminal_fallback_resolver",
+        }
+        for url in fallback_urls
+    )
+    findings.extend(
+        {
+            "kind": "network.url",
+            "value": url,
+            "role": "config_update_dead_drop",
+            "confidence": "confirmed_static_config",
+            "source": "polygon_terminal_embedded_aes_config",
+        }
+        for url in embedded_urls
+    )
+    findings.extend(
+        [
+            {
+                "kind": "blockchain.contract",
+                "value": resolver["contract_address"],
+                "role": "c2_resolver_contract",
+                "confidence": "confirmed_static_transport",
+                "source": "polygon_eth_call_template",
+            },
+            {
+                "kind": "blockchain.function_selector",
+                "value": resolver["function_selector"],
+                "role": "c2_resolver_selector",
+                "confidence": "confirmed_static_transport",
+                "source": "polygon_eth_call_template",
+            },
+        ]
+    )
+    result = build_result(
+        "valleyrat",
+        data,
+        {
+            "variant": "polygon_eth_call_dead_drop_terminal",
+            "source_name": _safe_source_name(name),
+            "decoded_config_recovered": bool(endpoints),
+            "static_config_recovered": bool(endpoints),
+            "candidate_config_recovered": not bool(endpoints),
+            "terminal_family_confirmed": False,
+            "supports_family_attribution": False,
+            "terminal_network_lineage_proven": False,
+            "terminal_protocol_lineage_proven": False,
+            "attribution_scope": "reviewed_terminal_profile_route",
+            "c2_liveness_confirmed": False,
+            "endpoints": endpoints,
+            "ipv4": ipv4_candidates(endpoints),
+            "urls": sorted({*fallback_urls, *embedded_urls}),
+            "polygon_dead_drop": observation,
+            "execution_mode": execution,
+        },
+        findings,
+        [
+            "外層codec、record、暗号／圧縮、shellcode内PE、JSON-RPC producerとABI consumerを同じ静的lineageで検証しました。",
+            "Polygon RPC nodeは共有resolverでありC2ではありません。contract／selectorと埋込みC2を別の役割で記録しています。",
+            "code参照を確認できないURL literalはdormant_literal_not_iocへ降格し、network findingには含めていません。",
+            "埋込みAES設定の鍵はcodeから復元に使用しましたが、結果へ公開していません。",
+            "remote injection分岐はtrailerのworker booleanから判定し、検体は実行していません。",
+            "Polygon RPC、fallback URL、埋込みC2への外部通信は行っていません。",
+        ],
+    )
+    if lineage.terminal_component != data:
+        _attach_final_payloads(
+            result,
+            (
+                {
+                    "role": "final_payload",
+                    "name": f"{sha256_bytes(lineage.terminal_component)}.bin",
+                    "data": lineage.terminal_component,
+                },
+            ),
+        )
+    return result
 
 
 def _extract_native_loader_lineage(
@@ -4464,6 +4702,184 @@ def _extract_native_loader_lineage(
     return None, observations, tuple(follow_ons)
 
 
+def _diagnostic_code(value: object) -> str | None:
+    """公開診断へ載せられる固定形式のreason codeだけを受理する。"""
+
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().lower()
+    if not re.fullmatch(r"[a-z0-9_]{1,128}", normalized):
+        return None
+    return normalized
+
+
+def _recovery_diagnostics(
+    *,
+    variant: str,
+    static_config_confirmed: bool,
+    candidate_config_recovered: bool,
+    string_scan: dict[str, object],
+    vvas_recovery: dict[str, object],
+    native_loader_observations: dict[str, object],
+) -> dict[str, object]:
+    """未確定理由を秘密値なしの機械可読schemaへ正規化する。"""
+
+    blockers: set[str] = set()
+    loader_profiles: list[dict[str, object]] = []
+    for key in ("native_loader_lineage", "silverfox_loader_lineage"):
+        supplied = native_loader_observations.get(key)
+        if not isinstance(supplied, dict):
+            continue
+        missing = sorted(
+            {
+                code
+                for item in supplied.get("missing_proof_codes", [])
+                if (code := _diagnostic_code(item)) is not None
+            }
+        )
+        blockers.update(missing)
+        status = _diagnostic_code(supplied.get("status")) or "invalid_status"
+        loader_profiles.append(
+            {
+                "profile": key,
+                "status": status,
+                "missing_proof_codes": missing,
+                "candidate_only": supplied.get("candidate_only") is True,
+            }
+        )
+        if not static_config_confirmed and not missing:
+            blockers.add(f"{key}_terminal_unproven")
+
+    mapped_scan = vvas_recovery.get("mapped_config_scan")
+    mapped_scan = mapped_scan if isinstance(mapped_scan, dict) else {}
+    recovery_status = _diagnostic_code(vvas_recovery.get("status")) or "not_reported"
+    string_status = _diagnostic_code(string_scan.get("status")) or "not_reported"
+    skip_reason = _diagnostic_code(string_scan.get("skip_reason"))
+    candidate_set_complete = mapped_scan.get("candidate_set_complete")
+    scan_incomplete = candidate_set_complete is False or (
+        string_scan.get("truncated") is True
+    )
+    if candidate_set_complete is False:
+        blockers.add("mapped_config_scan_incomplete")
+    if string_scan.get("truncated") is True:
+        blockers.add("string_scan_truncated")
+    if skip_reason is not None and not static_config_confirmed:
+        blockers.add(skip_reason)
+    format_corroboration = vvas_recovery.get("format_corroboration")
+    if (
+        isinstance(format_corroboration, dict)
+        and format_corroboration.get("matched") is False
+        and candidate_config_recovered
+    ):
+        blockers.add("mapped_config_structural_corroboration_rejected")
+
+    if static_config_confirmed:
+        status = "confirmed"
+    elif (
+        scan_incomplete
+        or "incomplete" in recovery_status
+        or "truncated" in recovery_status
+    ):
+        status = "limit_exhausted"
+    elif candidate_config_recovered or loader_profiles:
+        status = "route_only"
+    elif recovery_status.endswith("rejected"):
+        status = "rejected"
+    else:
+        status = "unsupported_profile"
+    if status != "confirmed" and not blockers:
+        blockers.add("no_supported_terminal_profile")
+
+    next_actions: set[str] = set()
+    if status == "limit_exhausted":
+        next_actions.add("review_or_extend_bounded_scan")
+    if loader_profiles:
+        next_actions.add("complete_static_loader_to_terminal_lineage")
+    if candidate_config_recovered:
+        next_actions.add("corroborate_candidate_with_terminal_code_path")
+    if status in {"unsupported_profile", "rejected"}:
+        next_actions.add("add_or_refine_static_variant_profile")
+
+    def _bounded_count(value: object) -> int | None:
+        return value if type(value) is int and 0 <= value <= 1_000_000 else None
+
+    return {
+        "schema_version": 1,
+        "status": status,
+        "blocker_codes": sorted(blockers),
+        "loader_profiles": loader_profiles,
+        "metrics": {
+            "variant": variant,
+            "mapped_scan_status": _diagnostic_code(mapped_scan.get("status")),
+            "mapped_candidate_count": _bounded_count(
+                mapped_scan.get("candidate_count")
+            ),
+            "mapped_unique_configuration_count": _bounded_count(
+                mapped_scan.get("unique_configuration_count")
+            ),
+            "mapped_candidate_set_complete": (
+                candidate_set_complete if type(candidate_set_complete) is bool else None
+            ),
+            "string_scan_status": string_status,
+            "string_scan_completed": string_scan.get("completed") is True,
+            "string_scan_skipped": string_scan.get("skipped") is True,
+            "string_scan_truncated": string_scan.get("truncated") is True,
+            "string_scan_skip_reason": skip_reason,
+            "vvas_recovery_status": recovery_status,
+        },
+        "next_action_codes": sorted(next_actions),
+        "raw_configuration_included": False,
+        "raw_network_values_included": False,
+        "sample_executed": False,
+        "network_contacted": False,
+    }
+
+
+def _with_recovery_diagnostics(result: dict[str, object]) -> dict[str, object]:
+    """全ての早期returnへ同じ安全な復元診断契約を付与する。"""
+
+    config = result.get("config")
+    if not isinstance(config, dict) or isinstance(config.get("recovery_diagnostics"), dict):
+        return result
+    variant = config.get("variant")
+    if not isinstance(variant, str):
+        variant = "unresolved_variant"
+    string_scan = config.get("string_scan")
+    if not isinstance(string_scan, dict):
+        string_scan = {
+            "status": "not_attempted_profile_specific_early_return",
+            "completed": False,
+            "skipped": True,
+            "truncated": False,
+            "skip_reason": "profile_specific_early_return",
+        }
+    vvas_recovery = config.get("vvas_recovery")
+    if not isinstance(vvas_recovery, dict):
+        recovery_status = _diagnostic_code(config.get("recovery_status"))
+        vvas_recovery = {"status": recovery_status or "not_reported"}
+    loader_observations = {
+        key: config[key]
+        for key in ("native_loader_lineage", "silverfox_loader_lineage")
+        if isinstance(config.get(key), dict)
+    }
+    diagnostics = _recovery_diagnostics(
+        variant=variant,
+        static_config_confirmed=config.get("static_config_recovered") is True,
+        candidate_config_recovered=config.get("candidate_config_recovered") is True,
+        string_scan=string_scan,
+        vvas_recovery=vvas_recovery,
+        native_loader_observations=loader_observations,
+    )
+    # profile固有経路を通ったこと自体は、汎用profile未対応とは区別する。
+    if diagnostics["status"] == "unsupported_profile" and variant != "unresolved_variant":
+        diagnostics["status"] = "rejected"
+        diagnostics["blocker_codes"] = sorted(
+            set(diagnostics["blocker_codes"]) | {"profile_specific_terminal_lineage_unproven"}
+        )
+    config["recovery_diagnostics"] = diagnostics
+    return result
+
+
 def extract(data: bytes, name: str = "sample") -> dict:
     """endpointへ接続せず、ValleyRAT関連の静的設定候補を返す。"""
     safe_name = _safe_source_name(name)
@@ -4482,6 +4898,21 @@ def extract(data: bytes, name: str = "sample") -> dict:
                 "endpoints": [],
                 "ipv4": [],
                 "urls": [],
+                "recovery_diagnostics": {
+                    "schema_version": 1,
+                    "status": "limit_exhausted",
+                    "blocker_codes": ["input_size_limit"],
+                    "loader_profiles": [],
+                    "metrics": {
+                        "input_size": len(data),
+                        "maximum_input_size": MAXIMUM_INPUT_SIZE,
+                    },
+                    "next_action_codes": ["select_or_recover_smaller_child_layer"],
+                    "raw_configuration_included": False,
+                    "raw_network_values_included": False,
+                    "sample_executed": False,
+                    "network_contacted": False,
+                },
             },
             [],
             [
@@ -4491,37 +4922,43 @@ def extract(data: bytes, name: str = "sample") -> dict:
         )
     reviewed_pdfcore8 = _reviewed_pdfcore8_result(data, name)
     if reviewed_pdfcore8 is not None:
-        return reviewed_pdfcore8
+        return _with_recovery_diagnostics(reviewed_pdfcore8)
     ca01 = _extract_ca01_sideload(data, name)
     if ca01 is not None:
-        return ca01
+        return _with_recovery_diagnostics(ca01)
     onyx = _extract_onyx_terminal(data, name)
     if onyx is not None:
-        return onyx
+        return _with_recovery_diagnostics(onyx)
+    polygon_dead_drop = _extract_polygon_dead_drop(data, name)
+    if polygon_dead_drop is not None:
+        return _with_recovery_diagnostics(polygon_dead_drop)
+    direct_native = _extract_direct_native_terminal(data, name)
+    if direct_native is not None:
+        return _with_recovery_diagnostics(direct_native)
     run_dll = _extract_run_dll_native_core(data, name)
     if run_dll is not None:
-        return run_dll
+        return _with_recovery_diagnostics(run_dll)
     x86_codemark_resource = _extract_x86_codemark_resource(data, name)
     if x86_codemark_resource is not None:
-        return x86_codemark_resource
+        return _with_recovery_diagnostics(x86_codemark_resource)
     bin101 = _extract_bin101(data, name)
     if bin101 is not None:
-        return bin101
+        return _with_recovery_diagnostics(bin101)
     codemark_stage = _extract_codemark_stage(data, name)
     if codemark_stage is not None:
-        return codemark_stage
+        return _with_recovery_diagnostics(codemark_stage)
     raw_vvas_transport = _extract_raw_vvas_transport_shellcode(data, name)
     if raw_vvas_transport is not None:
-        return raw_vvas_transport
+        return _with_recovery_diagnostics(raw_vvas_transport)
     n520 = _extract_n520(data, name)
     if n520 is not None:
-        return n520
+        return _with_recovery_diagnostics(n520)
     xor_b1_downloader = _extract_xor_b1_downloader(data, name)
     if xor_b1_downloader is not None:
-        return xor_b1_downloader
+        return _with_recovery_diagnostics(xor_b1_downloader)
     wide_pipe = _extract_wide_pipe_config(data, name)
     if wide_pipe is not None and wide_pipe["config"].get("terminal_family_confirmed") is True:
-        return wide_pipe
+        return _with_recovery_diagnostics(wide_pipe)
     (
         native_terminal,
         native_loader_observations,
@@ -4531,13 +4968,18 @@ def extract(data: bytes, name: str = "sample") -> dict:
         name,
     )
     if native_terminal is not None:
-        return native_terminal
+        return _with_recovery_diagnostics(native_terminal)
     if wide_pipe is not None:
         # 未確定wide設定で既知loaderの復元済み子を打ち切らない。
         # 元候補objectを変更せず、終端確証のない子はfollow-onだけへ渡す。
         result = {**wide_pipe, "config": {**wide_pipe["config"], **native_loader_observations}}
         _attach_final_payloads(result, loader_follow_ons)
-        return result
+        # 後続lineageが採用可能な観測も子も返さなかった場合は、既存候補を
+        # 意味的にも変更しない。未知・unsafeな観測が診断metadataだけを
+        # 混入させると、再利用候補のcross-input不変契約を壊すためである。
+        if not native_loader_observations and not loader_follow_ons:
+            return result
+        return _with_recovery_diagnostics(result)
     mapped_candidates: tuple[_VvasMappedConfigCandidate, ...] = ()
     mapped_decoded: dict[str, str] = {}
     mapped_recovery: dict[str, object] = {}
@@ -4583,7 +5025,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
                 ],
             )
             _attach_final_payloads(result, loader_follow_ons)
-            return result
+            return _with_recovery_diagnostics(result)
     mapped_scan = mapped_recovery.get("mapped_config_scan")
     mapped_scan_incomplete = bool(
         isinstance(mapped_scan, dict)
@@ -4820,6 +5262,14 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "urls": urls,
             "string_scan": string_scan,
             "vvas_recovery": vvas_recovery,
+            "recovery_diagnostics": _recovery_diagnostics(
+                variant=variant,
+                static_config_confirmed=static_config_confirmed,
+                candidate_config_recovered=candidate_config_recovered,
+                string_scan=string_scan,
+                vvas_recovery=vvas_recovery,
+                native_loader_observations=native_loader_observations,
+            ),
             "nvml_dat": (
                 public_recovery_summary(nvml_recovery, data)
                 if nvml_recovery is not None
@@ -4858,6 +5308,7 @@ __all__ = [
     "identify_variant",
     "probe_codemark_terminal_config",
     "probe_run_dll_native_core_config",
+    "probe_direct_native_terminal_config",
     "probe_vvas_config",
     "probe_x86_codemark_resource_config",
     "probe_xor_b1_downloader",

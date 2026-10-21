@@ -73,6 +73,113 @@ def test_raw_msi_requires_packed_valleyrat_pe_shape(
     assert campaign["terminal_family_confirmed"] is False
 
 
+def test_raw_msi_authenticated_ahk_candidate_remains_manual_route_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """構造候補はendpointを含めず、family／C2確定へ昇格しない。"""
+
+    raw_msi = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1fixture"
+    candidate_probe = {
+        "matched": True,
+        "candidate_recovered": True,
+        "automatic_route_eligible": False,
+        "manual_review_required": True,
+        "family": None,
+        "supports_family_attribution": False,
+        "family_attribution_confirmed": False,
+        "terminal_family_confirmed": False,
+        "final_rat_confirmed": False,
+        "static_config_recovered": False,
+        "candidate_config_recovered": True,
+        "c2_confirmed": False,
+        "command_c2_confirmed": False,
+        "qualified": False,
+        "used_for_resolution": False,
+        "used_for_family_resolution": False,
+        "used_for_c2_confirmation": False,
+        "endpoint_count": 0,
+        "candidate_endpoint_count": 1,
+        "profile": "msi_ahk_base64url_aes256_gcm_unverified_candidate",
+        "raw_network_values_included": False,
+        "sample_executed": False,
+        "network_contacted": False,
+    }
+    monkeypatch.setattr(DETECT, "probe_msi_ahk_aes_gcm", lambda _data: candidate_probe)
+    monkeypatch.setattr(
+        DETECT,
+        "inspect_msi_structure",
+        lambda _data: pytest.fail("manual候補の識別後にgeneric MSI検査へ進んだ"),
+    )
+
+    result = DETECT.detect(raw_msi, Path("sample.msi"))
+
+    assert result["matched"] is True
+    assert result["supports_family_attribution"] is False
+    assert result["family_attribution_confirmed"] is False
+    assert result["terminal_family_confirmed"] is False
+    assert result["final_rat_confirmed"] is False
+    assert result["static_config_recovered"] is False
+    assert result["candidate_config_recovered"] is True
+    assert result["c2_confirmed"] is False
+    assert result["command_c2_confirmed"] is False
+    assert result["qualified"] is False
+    assert result["used_for_resolution"] is False
+    assert result["used_for_family_resolution"] is False
+    assert result["used_for_c2_confirmation"] is False
+    assert result["automatic_route_eligible"] is False
+    assert result["observations"]["msi_ahk_aes_gcm_unverified_candidate"] == candidate_probe
+    campaign = result["campaigns"][0]
+    assert campaign["campaign_type"] == "msi_ahk_aes_gcm_terminal"
+    assert campaign["confidence"] == "low"
+    assert campaign["terminal_family_confirmed"] is False
+    assert campaign["supports_family_attribution"] is False
+    assert campaign["static_config_recovered"] is False
+    assert campaign["c2_confirmed"] is False
+    assert campaign["qualified"] is False
+    assert campaign["used_for_resolution"] is False
+    assert campaign["used_for_family_resolution"] is False
+    assert campaign["used_for_c2_confirmation"] is False
+
+
+def test_raw_msi_legacy_terminal_claim_is_not_family_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """旧terminal形のprobe結果をfamily確定へ再利用しない。"""
+
+    raw_msi = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1fixture"
+    monkeypatch.setattr(
+        DETECT,
+        "probe_msi_ahk_aes_gcm",
+        lambda _data: {
+            "matched": True,
+            "supports_family_attribution": True,
+            "terminal_family_confirmed": True,
+            "static_config_recovered": True,
+            "endpoint_count": 1,
+            "profile": "msi_ahk_base64url_aes256_gcm_terminal",
+            "raw_network_values_included": False,
+            "sample_executed": False,
+            "network_contacted": False,
+        },
+    )
+    monkeypatch.setattr(
+        DETECT,
+        "inspect_msi_structure",
+        lambda _data: {
+            "stream_count": 1,
+            "cab_count": 0,
+            "pe_count": 0,
+            "packed_valleyrat_pe_count": 0,
+            "streams": [],
+        },
+    )
+
+    result = DETECT.detect(raw_msi, Path("sample.msi"))
+
+    assert result["matched"] is False
+    assert result["campaigns"] == []
+
+
 def test_generic_msi_with_cab_and_pe_is_not_attributed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

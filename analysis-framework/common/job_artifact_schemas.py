@@ -72,6 +72,22 @@ FOLLOW_ON_STATUSES = (
     "disabled_repository_output",
 )
 ARTIFACT_KINDS = ("status", "progress", "result", "snapshot")
+ANALYSIS_FAILURE_REASON_CODES = (
+    "resource_limit_reached",
+    "filesystem_error",
+    "analysis_runtime_error",
+    "invalid_analysis_state",
+    "analysis_interrupted",
+    "analysis_exit_requested",
+    "unexpected_analysis_error",
+    "isolated_worker_failed",
+    "wall_clock_limit_reached",
+    "worker_start_failed",
+    "worker_response_invalid",
+    "worker_response_write_failed",
+    "request_preparation_failed",
+    "diagnostic_unavailable",
+)
 
 
 def _strict_object(
@@ -533,6 +549,46 @@ def _success_safety_schema() -> dict[str, Any]:
     )
 
 
+def _analysis_failure_artifacts_schema() -> dict[str, Any]:
+    """fatal／timeout診断成果物の参照とhashを相関したexact schemaで返す。"""
+
+    nullable = {"type": "null"}
+
+    def branch(status: str, *, outcome: bool, partial: bool) -> dict[str, Any]:
+        return _strict_object(
+            {
+                "status": {"const": status},
+                "run_status": {"enum": ["fatal", "timeout"]},
+                "reason_code": {"enum": list(ANALYSIS_FAILURE_REASON_CODES)},
+                "final_summary": {"const": False},
+                "analysis_run_outcome": (
+                    {"const": "analysis/analysis-run-outcome.json"}
+                    if outcome
+                    else nullable
+                ),
+                "analysis_run_outcome_sha256": (
+                    {"$ref": "#/$defs/sha256"} if outcome else nullable
+                ),
+                "partial_summary": (
+                    {"const": "analysis/partial-summary.json"}
+                    if partial
+                    else nullable
+                ),
+                "partial_summary_sha256": (
+                    {"$ref": "#/$defs/sha256"} if partial else nullable
+                ),
+            }
+        )
+
+    return {
+        "oneOf": [
+            branch("unavailable", outcome=False, partial=False),
+            branch("outcome_only", outcome=True, partial=False),
+            branch("available", outcome=True, partial=True),
+        ]
+    }
+
+
 def _failure_safety_schema() -> dict[str, Any]:
     return _strict_object(
         {
@@ -577,25 +633,32 @@ def _successful_result_branch(
 
 
 def _failed_result_branch(analysis_state: str) -> dict[str, Any]:
+    properties = {
+        "schema_version": {"const": SCHEMA_VERSION},
+        "job_id": {"$ref": "#/$defs/job_id"},
+        "request_sha256": {"$ref": "#/$defs/sha256"},
+        "accepted": {"const": False},
+        "analysis_state": {"const": analysis_state},
+        "inputs": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/input_record"},
+            "minItems": 1 if analysis_state == "timed_out" else 0,
+            "maxItems": MAX_REQUEST_INPUTS,
+        },
+        "family_hint_manifest": {"$ref": "#/$defs/nullable_relative_path"},
+        "analysis_failure_artifacts": _analysis_failure_artifacts_schema(),
+        "process": _failure_process_schema(timeout=analysis_state == "timed_out"),
+        "safety": _failure_safety_schema(),
+        "error": {"$ref": "#/$defs/error"},
+        "finished_at_utc": {"$ref": "#/$defs/utc_timestamp"},
+    }
     return _strict_object(
-        {
-            "schema_version": {"const": SCHEMA_VERSION},
-            "job_id": {"$ref": "#/$defs/job_id"},
-            "request_sha256": {"$ref": "#/$defs/sha256"},
-            "accepted": {"const": False},
-            "analysis_state": {"const": analysis_state},
-            "inputs": {
-                "type": "array",
-                "items": {"$ref": "#/$defs/input_record"},
-                "minItems": 1 if analysis_state == "timed_out" else 0,
-                "maxItems": MAX_REQUEST_INPUTS,
-            },
-            "family_hint_manifest": {"$ref": "#/$defs/nullable_relative_path"},
-            "process": _failure_process_schema(timeout=analysis_state == "timed_out"),
-            "safety": _failure_safety_schema(),
-            "error": {"$ref": "#/$defs/error"},
-            "finished_at_utc": {"$ref": "#/$defs/utc_timestamp"},
-        }
+        properties,
+        required=[
+            name
+            for name in properties
+            if name != "analysis_failure_artifacts"
+        ],
     )
 
 
@@ -897,6 +960,40 @@ def _validate_result_semantics(value: Mapping[str, Any]) -> None:
     """JSON Schemaで表現しにくいresult内のcross-field整合を検証する。"""
 
     if value.get("accepted") is not True:
+        diagnostics = value.get("analysis_failure_artifacts")
+        if diagnostics is None:
+            return
+        if not isinstance(diagnostics, Mapping):
+            raise _validation_error(
+                "$.analysis_failure_artifacts",
+                "解析失敗診断成果物が不正です",
+            )
+        analysis_state = value.get("analysis_state")
+        run_status = diagnostics.get("run_status")
+        reason_code = diagnostics.get("reason_code")
+        availability = diagnostics.get("status")
+        if (
+            analysis_state == "timed_out"
+            and (
+                run_status != "timeout"
+                or reason_code != "wall_clock_limit_reached"
+            )
+        ) or (analysis_state == "failed" and run_status != "fatal"):
+            raise _validation_error(
+                "$.analysis_failure_artifacts",
+                "job状態と解析失敗診断が一致しません",
+            )
+        if availability == "unavailable":
+            if analysis_state == "failed" and reason_code != "diagnostic_unavailable":
+                raise _validation_error(
+                    "$.analysis_failure_artifacts.reason_code",
+                    "未取得fatal診断の理由codeが不正です",
+                )
+        elif reason_code == "diagnostic_unavailable":
+            raise _validation_error(
+                "$.analysis_failure_artifacts.reason_code",
+                "検証済み診断へ未取得理由は使用できません",
+            )
         return
     provenance = value.get("trusted_static_tools")
     artifacts = value.get("artifacts")

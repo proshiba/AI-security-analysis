@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import stat
 import struct
 import sys
 import zipfile
@@ -391,11 +392,101 @@ def test_hash_entropy_format_and_names() -> None:
         )
         == "script"
     )
+    assert (
+        unpacker.detect_format(
+            b"<?xml version='1.0'?><assembly><trustInfo/></assembly>",
+            "resource.bin",
+        )
+        == "data"
+    )
+    assert (
+        unpacker.detect_format(
+            "<?xml version='1.0'?><assembly><trustInfo/></assembly>".encode("utf-16"),
+            "resource.bin",
+        )
+        == "data"
+    )
+    assert (
+        unpacker.detect_format(
+            b"<?xml version='1.0'?><job><script language='JScript'>"
+            b"var shell = new ActiveXObject('WScript.Shell');"
+            b"</script></job>",
+            "resource.bin",
+        )
+        == "script"
+    )
     assert unpacker.detect_format(b"%PDF-1.7\n%%EOF", "x") == "pdf"
     assert unpacker.detect_format("// loader".encode("utf-16"), "x") == "script"
     assert unpacker.safe_member_name("a/b") == "a/b"
     with pytest.raises(ValueError):
         unpacker.safe_member_name("../x")
+
+
+@pytest.mark.parametrize("encoding", ["utf-8", "utf-16"])
+@pytest.mark.parametrize(
+    "document",
+    [
+        (
+            "<?xml version='1.0'?><scriptlet><registration progid='Fixture'/>"
+            "<script language='JScript'>"
+            "var shell = new ActiveXObject('WScript.Shell');"
+            "shell.Run('cmd.exe /c whoami');"
+            "</script></scriptlet>"
+        ),
+        (
+            "<?xml version='1.0'?><package><component id='Fixture'>"
+            "<script language='VBScript'>"
+            'Set shell = CreateObject("WScript.Shell")\n'
+            'shell.Run "powershell -NoProfile"'
+            "</script></component></package>"
+        ),
+        (
+            "<?xml version='1.0'?><html><head>"
+            "<hta:application id='Fixture'/></head>"
+            "<script type='text/javascript'>"
+            "new ActiveXObject('WScript.Shell').Run('rundll32 fixture.dll,X');"
+            "</script></html>"
+        ),
+    ],
+)
+def test_detect_format_recognizes_executable_xml_script_containers(
+    encoding: str,
+    document: str,
+) -> None:
+    """SCT/WSC/HTAは構造・言語・実行sinkがそろう場合だけ検出する。"""
+
+    assert unpacker.detect_format(document.encode(encoding), "resource.bin") == "script"
+
+
+@pytest.mark.parametrize("encoding", ["utf-8", "utf-16"])
+@pytest.mark.parametrize(
+    "document",
+    [
+        "<?xml version='1.0'?><assembly><trustInfo/></assembly>",
+        (
+            "<?xml version='1.0'?><component language='JScript'>"
+            "CreateObject is documented here, but there is no script block."
+            "</component>"
+        ),
+        (
+            "<?xml version='1.0'?><scriptlet>"
+            "<script language='JScript'>function describe(){ return 'safe'; }</script>"
+            "</scriptlet>"
+        ),
+        (
+            "<?xml version='1.0'?><html>"
+            "<script type='text/javascript'>var label = 'documentation';</script>"
+            "</html>"
+        ),
+    ],
+)
+def test_detect_format_rejects_non_executable_xml_resources(
+    encoding: str,
+    document: str,
+) -> None:
+    """benign manifestや実行sinkのないXML説明文をscriptへ昇格させない。"""
+
+    assert unpacker.detect_format(document.encode(encoding), "resource.bin") == "data"
 
 
 def test_pyinstaller_carchive_is_fully_validated_and_routed_as_static_layer() -> None:
@@ -1081,11 +1172,88 @@ def test_zip_unsafe_member_name_is_absent_from_public_report(member_name: str) -
 
     report, artifacts = unpacker.unpack_bytes(stream.getvalue(), "unsafe.zip")
 
-    assert report["zip_error"] == "zip_validation_failed"
+    assert report["zip"][0]["status"] == "unsafe_member_path_blocked"
+    assert report["zip"][0]["unsafe_member_count"] == 1
     assert report["unpack_status"] == "bounded_limit"
     assert member_name not in repr(report)
     assert "RAW_TRAVERSAL_SENTINEL" not in repr(report)
     assert "RAW_CONTROL_SENTINEL" not in repr(report)
+    assert artifacts == []
+
+
+@pytest.mark.parametrize(
+    "member_name",
+    ("../RAW_TRAVERSAL_SENTINEL.bin", "safe/\x01RAW_CONTROL_SENTINEL.bin"),
+)
+def test_zip_isolates_unsafe_member_and_continues_safe_sibling(
+    member_name: str,
+) -> None:
+    """単独隔離できる危険memberは、安全な兄弟の静的復元を妨げない。"""
+
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as archive:
+        archive.writestr(member_name, b"untrusted")
+        archive.writestr("safe/payload.js", b"var recovered = true")
+
+    report, artifacts = unpacker.unpack_bytes(stream.getvalue(), "mixed.zip")
+
+    assert report["zip"][0] == {
+        "name": "__archive__",
+        "status": "unsafe_members_isolated",
+        "unsafe_member_count": 1,
+        "isolated_unsafe_member_count": 1,
+        "safe_member_count": 1,
+        "unsafe_member_names_published": False,
+    }
+    assert report["unpack_status"] == "bounded_limit_with_partial_recovery"
+    assert member_name not in repr(report)
+    assert "RAW_TRAVERSAL_SENTINEL" not in repr(report)
+    assert "RAW_CONTROL_SENTINEL" not in repr(report)
+    assert artifacts == [("zip-script-payload.js", b"var recovered = true")]
+
+
+@pytest.mark.parametrize(
+    "member_names",
+    (
+        ("safe/Loader.dll", "safe/loader.dll"),
+        ("safe/payload.dll", "safe/payload.dll:stream"),
+        ("safe/CON.dll", "safe/payload.dll"),
+    ),
+)
+def test_zip_namespace_conflict_rejects_safe_siblings(
+    member_names: tuple[str, str],
+) -> None:
+    """Windows namespaceが曖昧なZIPは、部分抽出せず全体を拒否する。"""
+
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as archive:
+        for member_name in member_names:
+            archive.writestr(member_name, b"MZfixture")
+
+    report, artifacts = unpacker.unpack_bytes(stream.getvalue(), "conflict.zip")
+
+    assert report["zip"][0]["status"] == "unsafe_member_path_blocked"
+    assert report["zip"][0]["conflicting_member_count"] >= 1
+    assert report["unpack_status"] == "bounded_limit"
+    assert artifacts == []
+
+
+def test_zip_link_metadata_rejects_safe_siblings() -> None:
+    """symlink metadataを含むZIPは、兄弟memberを含め展開前に拒否する。"""
+
+    link = zipfile.ZipInfo("safe/link.dll")
+    link.create_system = 3
+    link.external_attr = (stat.S_IFLNK | 0o777) << 16
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as archive:
+        archive.writestr(link, b"payload.dll")
+        archive.writestr("safe/payload.dll", b"MZfixture")
+
+    report, artifacts = unpacker.unpack_bytes(stream.getvalue(), "link.zip")
+
+    assert report["zip"][0]["status"] == "unsafe_member_path_blocked"
+    assert report["zip"][0]["conflicting_member_count"] >= 1
+    assert report["unpack_status"] == "bounded_limit"
     assert artifacts == []
 
 
@@ -1566,9 +1734,13 @@ def test_sevenzip_inventory_forces_utf8_and_replaces_invalid_output(
     def fake_run(command, **kwargs):
         observed["command"] = command
         observed["kwargs"] = kwargs
+        source = command[-1]
         return SimpleNamespace(
             returncode=0,
-            stdout="Path = member-�.bin\nType = 7z\nSize = 4\n",
+            stdout=(
+                f"Path = {source}\nType = 7z\nPhysical Size = 4\n"
+                "----------\nPath = member-�.bin\nSize = 4\nAttributes = A\n"
+            ),
             stderr="",
         )
 
@@ -1590,9 +1762,12 @@ def test_sevenzip_inventory_caps_all_auxiliary_member_collections(
     executable.write_bytes(b"fixture")
     monkeypatch.setattr(unpacker, "MAX_ARCHIVE_MEMBERS", 2)
     monkeypatch.setattr(unpacker, "MAX_SEVENZIP_LISTING_MEMBER_RECORDS", 3)
-    listing = "".join(
-        f"Path = member-{index}.bin\nType = 7z\nSize = {index + 1}\nAttributes = A\n"
-        for index in range(6)
+    listing = (
+        "Path = input.bin\nType = 7z\nPhysical Size = 128\n----------\n"
+        + "".join(
+            f"Path = member-{index}.bin\nSize = {index + 1}\nAttributes = A\n"
+            for index in range(6)
+        )
     )
     monkeypatch.setattr(
         unpacker,
@@ -1611,6 +1786,166 @@ def test_sevenzip_inventory_caps_all_auxiliary_member_collections(
     assert report["declared_total_size"] == sum(range(1, 7))
     assert len(report["_member_records"]) == 3
     assert report["member_record_limit_exceeded"] is True
+
+
+def test_sevenzip_inventory_excludes_nested_descriptors_from_member_table(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PE carrierとnested CAB descriptorを実memberへ二重計上しない。"""
+
+    executable = tmp_path / "7z.exe"
+    executable.write_bytes(b"fixture")
+    listing = "\n".join(
+        (
+            "Path = input.bin",
+            "Type = PE",
+            "Physical Size = 4096",
+            "--",
+            "Path = .rsrc/RCDATA/101",
+            "Size = 256",
+            "Packed Size = 256",
+            "--",
+            "Path = .rsrc/RCDATA/101",
+            "Type = Cab",
+            "Physical Size = 256",
+            "Method = MSZip",
+            "----------",
+            "Path = loader.exe",
+            "Size = 96",
+            "Attributes = A",
+            "Method = MSZip",
+            "Block = 0",
+            "Path = payload.dll",
+            "Size = 128",
+            "Attributes = A",
+            "Method = MSZip",
+            "Block = 0",
+        )
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "_run_static_tool_process",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=listing,
+            stderr="",
+        ),
+    )
+
+    report = unpacker.sevenzip_inventory(b"MZfixture", executable)
+
+    assert report["status"] == "listed"
+    assert report["archive_types"] == ["Cab", "PE"]
+    assert report["members"] == ["loader.exe", "payload.dll"]
+    assert report["total_members"] == 2
+    assert report["declared_total_size"] == 224
+    assert report["descriptor_count"] == 2
+    assert report["carrier_record_count"] == 1
+    assert report["member_listing_boundary_observed"] is True
+    assert report["member_layout_ambiguous"] is False
+    assert [item["name"] for item in report["_member_records"]] == [
+        "loader.exe",
+        "payload.dll",
+    ]
+
+
+def test_sevenzip_inventory_rejects_descriptor_fields_after_member_boundary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """未知のnested layoutをmemberとして推測せずfail closedにする。"""
+
+    executable = tmp_path / "7z.exe"
+    executable.write_bytes(b"fixture")
+    monkeypatch.setattr(
+        unpacker,
+        "_run_static_tool_process",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=(
+                "Path = input.bin\nType = 7z\nPhysical Size = 64\n"
+                "----------\nPath = nested.bin\nType = Cab\nPhysical Size = 32\n"
+            ),
+            stderr="",
+        ),
+    )
+
+    report = unpacker.sevenzip_inventory(b"fixture", executable)
+
+    assert report["status"] == "member_listing_ambiguous"
+    assert report["member_layout_ambiguous"] is True
+
+
+@pytest.mark.parametrize(
+    ("property_line", "record_key"),
+    [
+        ("Symbolic Link = target.dll", "symbolic_link"),
+        ("Hard Link = target.dll", "hard_link"),
+        ("Alternate Stream = payload.dll:stage", "alternate_stream"),
+    ],
+)
+def test_sevenzip_inventory_preserves_unsafe_link_metadata_for_preflight_rejection(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    property_line: str,
+    record_key: str,
+) -> None:
+    """link/ADS metadataを捨てず、外部展開前の拒否判定へ引き渡す。"""
+
+    executable = tmp_path / "7z.exe"
+    executable.write_bytes(b"fixture")
+    listing = (
+        "Path = input.bin\nType = 7z\nPhysical Size = 64\n"
+        "----------\nPath = payload.dll\nSize = 16\nAttributes = A\n"
+        f"{property_line}\n"
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "_run_static_tool_process",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=listing,
+            stderr="",
+        ),
+    )
+
+    report = unpacker.sevenzip_inventory(b"fixture", executable)
+
+    assert report["status"] == "listed"
+    assert report["_member_records"] == [
+        {
+            "name": "payload.dll",
+            "size": 16,
+            "attributes": "A",
+            record_key: True,
+        }
+    ]
+
+
+def test_sevenzip_inventory_rejects_archive_listing_without_member_boundary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """認識済みarchiveで最終member表の境界がない出力は推測せず拒否する。"""
+
+    executable = tmp_path / "7z.exe"
+    executable.write_bytes(b"fixture")
+    monkeypatch.setattr(
+        unpacker,
+        "_run_static_tool_process",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=(
+                "Path = input.bin\nType = 7z\nPhysical Size = 64\n"
+                "Path = payload.dll\nSize = 32\nAttributes = A\n"
+            ),
+            stderr="",
+        ),
+    )
+
+    report = unpacker.sevenzip_inventory(b"7z\xbc\xaf\x27\x1cfixture", executable)
+
+    assert report["status"] == "member_listing_boundary_missing"
+    assert report["member_listing_boundary_observed"] is False
+    assert report["total_members"] == 0
 
 
 def test_sevenzip_inventory_retries_header_encryption_via_stdin(
@@ -1637,6 +1972,7 @@ def test_sevenzip_inventory_retries_header_encryption_via_stdin(
             returncode=0,
             stdout=(
                 f"Path = {source}\nType = 7z\n"
+                "Physical Size = 9\n----------\n"
                 "Path = payload.exe\nSize = 9\nAttributes = A\n"
             ),
             stderr="",
@@ -1743,7 +2079,7 @@ def test_select_high_value_archive_members_prioritizes_application_code() -> Non
         (20, 1, 20_000, 1024),
     ],
 )
-def test_sevenzip_unsafe_member_blocks_before_external_extraction(
+def test_sevenzip_unsafe_member_isolated_while_safe_member_continues(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     total_members: int,
@@ -1751,7 +2087,7 @@ def test_sevenzip_unsafe_member_blocks_before_external_extraction(
     declared_total_size: int,
     max_total_size: int,
 ) -> None:
-    """通常・上限超過の双方でunsafe pathを暗黙除外せず展開前に閉じる。"""
+    """危険pathだけを拒否し、明示選択した安全なmemberは静的解析へ渡す。"""
 
     records = [
         {"name": "safe/payload.exe", "size": 10, "attributes": "A"},
@@ -1769,12 +2105,15 @@ def test_sevenzip_unsafe_member_blocks_before_external_extraction(
             "_member_records": records,
         }
 
-    runner_called = False
+    commands: list[list[str]] = []
 
-    def fake_run(*_args, **_kwargs):
-        nonlocal runner_called
-        runner_called = True
-        raise AssertionError("unsafe memberを含むarchiveで展開processを起動しました")
+    def fake_run(command, **_kwargs):
+        commands.append(command)
+        output_arg = next(item for item in command if item.startswith("-o"))
+        output = Path(output_arg[2:]) / "safe"
+        output.mkdir(parents=True)
+        (output / "payload.exe").write_bytes(b"MZfixture")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(unpacker, "sevenzip_inventory", fake_inventory)
     monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
@@ -1787,10 +2126,166 @@ def test_sevenzip_unsafe_member_blocks_before_external_extraction(
         max_total_size=max_total_size,
     )
 
+    assert report["status"] == "partially_extracted"
+    assert report["unsafe_member_count"] == 1
+    assert report["safe_member_continuation"] == {
+        "applied": True,
+        "blocked_member_count": 1,
+        "explicit_safe_member_count": 1,
+        "unsafe_member_names_published": False,
+        "archive_inventory_complete": False,
+    }
+    assert len(commands) == 1
+    assert commands[0][-1] == "safe/payload.exe"
+    assert "../escape.dll" not in commands[0]
+    assert artifacts == [("7z-pe", b"MZfixture")]
+
+
+def test_sevenzip_archive_with_only_unsafe_members_stops_before_extraction(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """安全な明示選択対象がないarchiveでは外部抽出processを開始しない。"""
+
+    records = [{"name": "../escape.dll", "size": 10, "attributes": "A"}]
+    monkeypatch.setattr(
+        unpacker,
+        "sevenzip_inventory",
+        lambda *_args, **_kwargs: {
+            "status": "listed",
+            "archive_types": ["7z"],
+            "members": ["../escape.dll"],
+            "total_members": 1,
+            "declared_total_size": 10,
+            "archive_unlock_attempted": False,
+            "_member_records": records,
+        },
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "_run_static_tool_process",
+        lambda *_args, **_kwargs: pytest.fail(
+            "安全なmemberがないarchiveで外部抽出してはならない"
+        ),
+    )
+
+    report, artifacts = unpacker.sevenzip_extract(
+        b"7zfixture",
+        tmp_path / "7z.exe",
+        max_members=8,
+        max_member_size=1024,
+        max_total_size=1024,
+    )
+
     assert report["status"] == "unsafe_member_path_blocked"
     assert report["unsafe_member_count"] == 1
     assert report["external_extraction_started"] is False
-    assert runner_called is False
+    assert artifacts == []
+
+
+@pytest.mark.parametrize(
+    "records",
+    [
+        [
+            {"name": "bin/Loader.dll", "size": 10, "attributes": "A"},
+            {"name": "bin/loader.dll", "size": 10, "attributes": "A"},
+        ],
+        [
+            {"name": "bin/payload.dll", "size": 10, "attributes": "A"},
+            {"name": "bin/payload.dll:stream", "size": 10, "attributes": "A"},
+        ],
+        [{"name": "bin/CON.dll", "size": 10, "attributes": "A"}],
+    ],
+)
+def test_sevenzip_member_namespace_conflicts_still_block_the_whole_archive(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    records: list[dict[str, object]],
+) -> None:
+    """Windows上で衝突する名前は単独隔離せず、展開前に全体を拒否する。"""
+
+    monkeypatch.setattr(
+        unpacker,
+        "sevenzip_inventory",
+        lambda *_args, **_kwargs: {
+            "status": "listed",
+            "archive_types": ["7z"],
+            "members": [str(item["name"]) for item in records],
+            "total_members": len(records),
+            "declared_total_size": 10 * len(records),
+            "archive_unlock_attempted": False,
+            "_member_records": records,
+        },
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "_run_static_tool_process",
+        lambda *_args, **_kwargs: pytest.fail(
+            "名前空間衝突を含むarchiveで外部抽出してはならない"
+        ),
+    )
+
+    report, artifacts = unpacker.sevenzip_extract(
+        b"7zfixture",
+        tmp_path / "7z.exe",
+        max_members=8,
+        max_member_size=1024,
+        max_total_size=1024,
+    )
+
+    assert report["status"] == "unsafe_member_path_blocked"
+    assert report["conflicting_member_count"] == 1
+    assert report["external_extraction_started"] is False
+    assert artifacts == []
+
+
+@pytest.mark.parametrize("metadata_key", ["symbolic_link", "hard_link", "alternate_stream"])
+def test_sevenzip_link_or_ads_member_stops_before_extraction(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    metadata_key: str,
+) -> None:
+    """linkまたはADSを示すmemberは外部7-Zipを起動する前に拒否する。"""
+
+    records = [
+        {
+            "name": "safe/payload.dll",
+            "size": 10,
+            "attributes": "A",
+            metadata_key: True,
+        }
+    ]
+    monkeypatch.setattr(
+        unpacker,
+        "sevenzip_inventory",
+        lambda *_args, **_kwargs: {
+            "status": "listed",
+            "archive_types": ["7z"],
+            "members": ["safe/payload.dll"],
+            "total_members": 1,
+            "declared_total_size": 10,
+            "archive_unlock_attempted": False,
+            "_member_records": records,
+        },
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "_run_static_tool_process",
+        lambda *_args, **_kwargs: pytest.fail(
+            "link/ADS memberを含むarchiveで外部抽出してはならない"
+        ),
+    )
+
+    report, artifacts = unpacker.sevenzip_extract(
+        b"7zfixture",
+        tmp_path / "7z.exe",
+        max_members=8,
+        max_member_size=1024,
+        max_total_size=1024,
+    )
+
+    assert report["status"] == "unsafe_member_path_blocked"
+    assert report["external_extraction_started"] is False
     assert artifacts == []
 
 
@@ -1885,6 +2380,108 @@ def test_sevenzip_normal_archive_explicitly_extracts_validated_members(
     assert report["status"] == "extracted"
     assert commands[0][-2:] == ["safe/payload.exe", "safe/config.dat"]
     assert {kind for kind, _blob in artifacts} == {"7z-pe", "7z-data"}
+
+
+def test_sevenzip_small_archive_retains_bounded_opaque_members(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """小規模archiveの未知suffixも上限内なら次段静的解析へ保持する。"""
+
+    records = [
+        {"name": "component-a._p", "size": 12, "attributes": "A"},
+        {"name": "component-b._p", "size": 8, "attributes": "A"},
+    ]
+    monkeypatch.setattr(
+        unpacker,
+        "sevenzip_inventory",
+        lambda *_args, **_kwargs: {
+            "status": "listed",
+            "archive_types": ["Cab", "PE"],
+            "members": [item["name"] for item in records],
+            "total_members": len(records),
+            "declared_total_size": 20,
+            "archive_unlock_attempted": False,
+            "_member_records": records,
+        },
+    )
+
+    def fake_run(command, **_kwargs):
+        output_arg = next(item for item in command if item.startswith("-o"))
+        output = Path(output_arg[2:])
+        output.mkdir(parents=True)
+        (output / "component-a._p").write_bytes(b"opaque-one!!")
+        (output / "component-b._p").write_bytes(b"opaque-2")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
+
+    report, artifacts = unpacker.sevenzip_extract(
+        b"MZfixture",
+        tmp_path / "7z.exe",
+        max_members=8,
+        max_member_size=1024,
+        max_total_size=1024,
+    )
+
+    assert report["status"] == "extracted"
+    assert report["bounded_opaque_member_retention"]["enabled"] is True
+    assert report["retained_members"] == 2
+    assert artifacts == [
+        ("7z-data", b"opaque-one!!"),
+        ("7z-data", b"opaque-2"),
+    ]
+
+
+@pytest.mark.parametrize(("member_count", "expected_retained"), [(16, 16), (17, 0)])
+def test_sevenzip_general_archive_preserves_opaque_member_count_boundary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    member_count: int,
+    expected_retained: int,
+) -> None:
+    """WinRAR SFX専用flagなしではsmall opaqueの16件境界を変えない。"""
+
+    records = [
+        {"name": f"opaque-{index:02d}.blob", "size": 8, "attributes": "A"}
+        for index in range(member_count)
+    ]
+    monkeypatch.setattr(
+        unpacker,
+        "sevenzip_inventory",
+        lambda *_args, **_kwargs: {
+            "status": "listed",
+            "archive_types": ["Rar5"],
+            "members": [item["name"] for item in records],
+            "total_members": len(records),
+            "declared_total_size": len(records) * 8,
+            "archive_unlock_attempted": False,
+            "_member_records": records,
+        },
+    )
+
+    def fake_run(command, **_kwargs):
+        output_arg = next(item for item in command if item.startswith("-o"))
+        output = Path(output_arg[2:])
+        output.mkdir(parents=True)
+        for item in records:
+            (output / item["name"]).write_bytes(b"opaque!!")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(unpacker, "_run_static_tool_process", fake_run)
+
+    report, artifacts = unpacker.sevenzip_extract(
+        b"Rar! fixture",
+        tmp_path / "7z.exe",
+        max_members=32,
+        max_member_size=1024,
+        max_total_size=1024,
+    )
+
+    assert report["status"] == "extracted"
+    assert report["all_bounded_member_retention"]["enabled"] is False
+    assert report["bounded_opaque_member_retention"]["enabled"] is (member_count <= 16)
+    assert report["retained_members"] == expected_retained
+    assert len(artifacts) == expected_retained
 
 
 def test_sevenzip_over_member_limit_uses_bounded_selective_extraction(
@@ -2019,6 +2616,51 @@ def test_detected_installer_marker_triggers_archive_probe_without_manual_hint(
     assert report["pe"]["containerized"] is True
     assert report["sevenzip"]["forced_by_reviewed_hint"] is False
     assert report["unpack_status"] == "container_parser_unavailable"
+
+
+def test_validated_winrar_sfx_routes_to_sevenzip_without_manual_hint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """overlay奥のCRC検証済みRAR5だけを既存7-Zip経路へ送る。"""
+
+    body = b"\x01\x00\x00"
+    protected = bytes([len(body)]) + body
+    header = (
+        b"Rar!\x1a\x07\x01\x00" + struct.pack("<I", zlib.crc32(protected)) + protected
+    )
+    sample = minimal_pe() + b"P" * 10_556 + header
+    observed: list[bytes] = []
+    observed_options: list[dict[str, object]] = []
+
+    def fake_extract(data: bytes, *_args, **kwargs):
+        observed.append(data)
+        observed_options.append(kwargs)
+        return {"status": "not_archive_container"}, []
+
+    monkeypatch.setattr(unpacker, "sevenzip_extract", fake_extract)
+    report, _artifacts = unpacker.unpack_bytes(
+        sample,
+        "anonymous.exe",
+        sevenzip=tmp_path / "7z.exe",
+    )
+
+    assert observed == [sample]
+    assert observed_options == [
+        {
+            "max_members": unpacker.MAX_ARCHIVE_MEMBERS,
+            "max_member_size": unpacker.MAX_ARTIFACT,
+            "max_total_size": unpacker.MAX_EXTRACTED_TOTAL,
+            "retain_all_bounded_members": True,
+        }
+    ]
+    assert report["pe"]["containerized"] is True
+    assert report["pe"]["containerization_signals"] == [
+        "validated_winrar_sfx_main_header"
+    ]
+    assert report["pe"]["winrar_sfx"]["status"] == "validated_sfx_container"
+    assert report["pe"]["winrar_sfx"]["family_attribution_allowed"] is False
+    assert report["pe"]["winrar_sfx"]["c2_confirmation_allowed"] is False
+    assert report["sevenzip"]["forced_by_reviewed_hint"] is False
 
 
 def _stub_inno_routing_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -3396,9 +4038,9 @@ def test_sevenzip_temp_source_rejects_unsafe_layer_suffix(
         return {
             "status": "listed",
             "archive_types": ["Cab"],
-            "members": [],
-            "total_members": 0,
-            "declared_total_size": 0,
+            "members": ["payload.bin"],
+            "total_members": 1,
+            "declared_total_size": 1,
             "archive_unlock_attempted": False,
         }
 
@@ -3413,7 +4055,8 @@ def test_sevenzip_temp_source_rejects_unsafe_layer_suffix(
         tmp_path / "7z.exe",
         name="sample.exe::pe-resource-cab",
     )
-    source = Path(commands[0][-1])
+    separator = commands[0].index("--")
+    source = Path(commands[0][separator + 1])
     assert source.name == "input.bin"
     assert report["status"] == "extracted"
     assert artifacts == []

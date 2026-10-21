@@ -44,7 +44,7 @@ def test_repository_reports_expected_offline_component_states() -> None:
     assert result["registry_binding"]["protocol_registry_pin_matches"] is True
     assert result["registry_binding"]["protocol_registry_sha256"] == expected_protocol_sha256
     assert result["registry_binding"]["host_registry_sha256"] == (
-        "aafad94ba8be52cd23508426be58aed079ec36e28367b6a23f738a6187d354ba"
+        "b71d530768c5822f602d4eb4947914fab8338bf9fe537a1ca4fd4e70c1fa65ab"
     )
 
 

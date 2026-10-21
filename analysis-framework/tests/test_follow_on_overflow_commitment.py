@@ -340,6 +340,7 @@ def _schema_graph(parent: str, commitment: dict[str, Any]) -> dict[str, Any]:
             "maximum_total_bytes": runner.MAX_FOLLOW_ON_TOTAL_BYTES,
             "maximum_payload_size": runner.MAX_FOLLOW_ON_PAYLOAD_SIZE,
             "maximum_wall_seconds": runner.MAX_FOLLOW_ON_WALL_SECONDS,
+            "effective_wall_seconds": runner.FOLLOW_ON_BASE_WALL_SECONDS,
             "maximum_child_seconds": runner.MAX_FOLLOW_ON_CHILD_SECONDS,
             "maximum_omitted_metadata": runner.MAX_FOLLOW_ON_OMITTED_METADATA,
         },

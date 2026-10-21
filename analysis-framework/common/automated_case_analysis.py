@@ -3,11 +3,30 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping, Sequence
 from typing import Any
+from urllib.parse import urlsplit
 
 from c2_analysis_contract import REQUIRED_PHASES, build_unresolved_contract
 from handler_evidence import build_communication_pattern_document
+from ioc_markdown import (
+    CONFIRMED_STATIC_CONFIGURATION,
+    normalize_confirmed_network_iocs,
+)
+
+ORCHESTRATION_SCHEMA_VERSION = 2
+ORCHESTRATION_C2_ROLES = frozenset(
+    {"c2", "command_and_control", "control", "control_endpoint"}
+)
+ORCHESTRATION_HANDLER_SOURCES = frozenset(
+    {"candidate_verification", "selected_family_analysis"}
+)
+STRUCTURED_ENDPOINT_FIELDS = frozenset(
+    {"address", "domain", "endpoint", "host", "ip", "uri", "url", "value"}
+)
+MAX_ORCHESTRATION_ENDPOINTS = 256
+MAX_ORCHESTRATION_PROVENANCE = 256
 
 
 def _phase(document: dict[str, Any], name: str) -> dict[str, Any]:
@@ -48,12 +67,286 @@ def _endpoint_value(record: Mapping[str, Any]) -> str | None:
     return None
 
 
+def _family_identity(value: object) -> str | None:
+    """表記上の区切りだけを除いたfamily比較identityを返す。"""
+
+    if not isinstance(value, str) or not value.strip() or len(value) > 256:
+        return None
+    normalized = "".join(character for character in value.casefold() if character.isalnum())
+    return normalized or None
+
+
+def _endpoint_host_port_identity(value: object) -> tuple[str, int | None] | None:
+    """候補文字列と構造化endpointを、相関専用のhost・portへ縮約する。"""
+
+    if isinstance(value, Mapping):
+        host = next(
+            (
+                value.get(key)
+                for key in ("host", "domain", "ip", "address")
+                if isinstance(value.get(key), str) and value.get(key).strip()
+            ),
+            None,
+        )
+        port = value.get("port")
+        if isinstance(port, bool) or (port is not None and not isinstance(port, int)):
+            return None
+        if isinstance(host, str):
+            return host.strip().strip("[]").rstrip(".").casefold(), port
+        supplied = value.get("url") or value.get("endpoint") or value.get("value")
+    else:
+        supplied = value
+    if not isinstance(supplied, str):
+        return None
+    text = supplied.strip()
+    if not text or len(text) > 4_096 or text.startswith("[REDACTED_"):
+        return None
+    try:
+        if "://" in text:
+            parsed = urlsplit(text)
+            if not parsed.hostname:
+                return None
+            return parsed.hostname.rstrip(".").casefold(), parsed.port
+        parsed = urlsplit(f"//{text}")
+        if not parsed.hostname or parsed.path:
+            return None
+        return parsed.hostname.rstrip(".").casefold(), parsed.port
+    except ValueError:
+        return None
+
+
+def _validated_orchestration_c2_endpoints(
+    *,
+    sha256: str,
+    family: str,
+    patterns: Mapping[str, Any],
+    orchestration: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """orchestrationの検証済みconfig相関endpointだけをC2へ再投影する。
+
+    handlerのraw literal、route-only結果、外部family label、既知hashだけの解決は
+    ここでは受理しない。投影値は、同じ信頼済みhandler結果から生成済みの候補値と
+    host・portで一致し、構造化endpoint recordのprovenanceを持つ必要がある。
+    """
+
+    if not isinstance(orchestration, Mapping):
+        return []
+    resolution = orchestration.get("family_resolution")
+    outputs = orchestration.get("outputs")
+    gates = orchestration.get("quality_gates")
+    automation = orchestration.get("automation")
+    config = patterns.get("config")
+    communication = patterns.get("communication")
+    family_identity = _family_identity(family)
+    resolution_source = resolution.get("source") if isinstance(resolution, Mapping) else None
+    if (
+        orchestration.get("schema_version") != ORCHESTRATION_SCHEMA_VERSION
+        or orchestration.get("sample_sha256") != sha256
+        or not isinstance(resolution, Mapping)
+        or resolution.get("status") != "resolved"
+        or family_identity is None
+        or _family_identity(resolution.get("family")) != family_identity
+        or not isinstance(resolution_source, str)
+        or resolution_source not in {"detector_candidate", "detector_selected"}
+        or not isinstance(outputs, Mapping)
+        or outputs.get("config_recovered") is not True
+        or not isinstance(gates, Mapping)
+        or not isinstance(automation, Mapping)
+        or automation.get("ai_used") is not False
+        or automation.get("sample_executed") is not False
+        or automation.get("network_contacted") is not False
+        or not isinstance(config, Mapping)
+        or config.get("static_config_recovered") is not True
+        or not isinstance(communication, Mapping)
+    ):
+        return []
+    requirements = resolution.get("requirements")
+    if (
+        not isinstance(requirements, Mapping)
+        or requirements.get("config_required") is not True
+        or requirements.get("network_required") is not True
+    ):
+        return []
+    for gate_name in ("config", "network"):
+        gate = gates.get(gate_name)
+        if (
+            not isinstance(gate, Mapping)
+            or gate.get("required") is not True
+            or gate.get("satisfied") is not True
+            or gate.get("status") != "satisfied"
+        ):
+            return []
+    blockers = orchestration.get("blockers")
+    if (
+        not isinstance(blockers, list)
+        or any(not isinstance(item, str) for item in blockers)
+        or any(item in {"config", "network"} for item in blockers)
+    ):
+        return []
+    handler_id = resolution.get("handler_id")
+    trusted_handler_ids = config.get("trusted_handler_ids")
+    if (
+        not isinstance(handler_id, str)
+        or not handler_id
+        or not isinstance(trusted_handler_ids, list)
+        or handler_id not in trusted_handler_ids
+        or any(
+            not isinstance(item, str)
+            or not item
+            or len(item) > 512
+            or any(ord(character) < 0x20 for character in item)
+            for item in trusted_handler_ids
+        )
+    ):
+        return []
+    observed_identities = {
+        identity
+        for record in [
+            *communication.get("confirmed_static_endpoints", []),
+            *communication.get("candidate_patterns", []),
+        ]
+        if isinstance(record, Mapping)
+        and (identity := _endpoint_host_port_identity(record)) is not None
+    }
+    if not observed_identities:
+        return []
+    supplied_endpoints = outputs.get("qualified_network_endpoints")
+    if (
+        not isinstance(supplied_endpoints, list)
+        or not 1 <= len(supplied_endpoints) <= MAX_ORCHESTRATION_ENDPOINTS
+    ):
+        return []
+    normalized: dict[str, dict[str, Any]] = {}
+    for supplied in supplied_endpoints:
+        if not isinstance(supplied, Mapping):
+            return []
+        endpoint_identity = _endpoint_host_port_identity(supplied)
+        evidence_basis = supplied.get("evidence_basis")
+        provenance = supplied.get("provenance")
+        role = supplied.get("role")
+        if (
+            endpoint_identity is None
+            or endpoint_identity not in observed_identities
+            or not isinstance(role, str)
+            or role not in ORCHESTRATION_C2_ROLES
+            or supplied.get("contacted") is not False
+            or not isinstance(evidence_basis, list)
+            or any(not isinstance(item, str) or not item for item in evidence_basis)
+            or evidence_basis != sorted(set(evidence_basis))
+            or "static_config_correlation" not in evidence_basis
+            or not isinstance(provenance, list)
+            or not 1 <= len(provenance) <= MAX_ORCHESTRATION_PROVENANCE
+        ):
+            continue
+        winner_seen = False
+        structured_record_seen = False
+        provenance_valid = True
+        for item in provenance:
+            if not isinstance(item, Mapping):
+                provenance_valid = False
+                break
+            item_handler = item.get("handler_id")
+            evidence_path = item.get("evidence_path")
+            source = item.get("source")
+            if (
+                _family_identity(item.get("family")) != family_identity
+                or item_handler not in trusted_handler_ids
+                or not isinstance(source, str)
+                or source not in ORCHESTRATION_HANDLER_SOURCES
+                or not isinstance(evidence_path, str)
+                or not evidence_path
+                or len(evidence_path) > 1_024
+                or any(ord(character) < 0x20 for character in evidence_path)
+            ):
+                provenance_valid = False
+                break
+            winner_seen |= item_handler == handler_id
+            structured_record_seen |= (
+                evidence_path.rsplit(".", 1)[-1].casefold()
+                in STRUCTURED_ENDPOINT_FIELDS
+            )
+        if not provenance_valid or not winner_seen or not structured_record_seen:
+            continue
+        record: dict[str, Any] = {
+            "host": endpoint_identity[0],
+            "role": role,
+            "confidence": CONFIRMED_STATIC_CONFIGURATION,
+            "source": f"handler:{handler_id}",
+            "evidence": {
+                "kind": "orchestration_validated_static_config",
+                "static_config_correlation": True,
+            },
+            "contacted": False,
+            "liveness_confirmed": False,
+        }
+        if endpoint_identity[1] is not None:
+            record["port"] = endpoint_identity[1]
+        protocol = supplied.get("protocol") or supplied.get("scheme")
+        if isinstance(protocol, str) and protocol.strip():
+            record["protocol"] = protocol.strip()
+        path = supplied.get("path")
+        if isinstance(path, str) and path:
+            record["path"] = path
+        projected = normalize_confirmed_network_iocs([record])
+        if len(projected) != 1:
+            continue
+        identity = json.dumps(
+            projected[0],
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        normalized[identity] = projected[0]
+    return [normalized[key] for key in sorted(normalized)]
+
+
+def _merge_orchestration_c2_projection(
+    *,
+    sha256: str,
+    family: str,
+    patterns: dict[str, Any],
+    orchestration: Mapping[str, Any] | None,
+) -> None:
+    """厳格に再検証したorchestration endpointを既存通信文書へ統合する。"""
+
+    projected = _validated_orchestration_c2_endpoints(
+        sha256=sha256,
+        family=family,
+        patterns=patterns,
+        orchestration=orchestration,
+    )
+    if not projected:
+        return
+    communication = patterns["communication"]
+    confirmed = normalize_confirmed_network_iocs(
+        [*communication["confirmed_static_endpoints"], *projected]
+    )
+    confirmed_c2 = normalize_confirmed_network_iocs(
+        [*communication["confirmed_static_c2_endpoints"], *projected]
+    )
+    confirmed_identities = {
+        identity
+        for record in confirmed_c2
+        if (identity := _endpoint_host_port_identity(record)) is not None
+    }
+    communication["confirmed_static_endpoints"] = confirmed
+    communication["confirmed_static_c2_endpoints"] = confirmed_c2
+    communication["candidate_patterns"] = [
+        record
+        for record in communication["candidate_patterns"]
+        if _endpoint_host_port_identity(record) not in confirmed_identities
+    ]
+    patterns["status"] = "confirmed_static_configuration_patterns"
+
+
 def build_case_automation_artifacts(
     *,
     sha256: str,
     family: str,
     layer_report: Mapping[str, Any],
     handler_results: Sequence[tuple[Mapping[str, Any], Mapping[str, Any]]],
+    orchestration: Mapping[str, Any] | None = None,
     screenconnect_no_c2_completion_verified: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """通信パターン文書とfail-closedのC2解析契約を同じ証拠から生成する。"""
@@ -62,6 +355,12 @@ def build_case_automation_artifacts(
         sha256=sha256,
         family=family,
         handler_results=handler_results,
+    )
+    _merge_orchestration_c2_projection(
+        sha256=sha256,
+        family=family,
+        patterns=patterns,
+        orchestration=orchestration,
     )
     contract = build_unresolved_contract(
         sha256,
@@ -183,7 +482,10 @@ def build_case_automation_artifacts(
         if (value := _endpoint_value(record)) is not None
     ]
     contract["c2"]["evidence"] = [
-        "終端clientの双用途管理endpointを分離し、外側の静的品質gate完了下で別のmalware C2 evidenceがないことを確認した。"
+        (
+            "終端clientの双用途管理endpointを分離し、外側の静的品質gate完了下で"
+            "別のmalware C2 evidenceがないことを確認した。"
+        )
         if terminal_management_complete
         else "双用途管理endpointをcommunication-patterns.jsonへ記録し、C2へ昇格していない。"
         if management_only
@@ -254,7 +556,10 @@ def build_case_automation_artifacts(
         contract["deep_analysis"]["next_minimum_step"] = (
             "終端payloadの通信関数またはfamily固有frameを静的に復元し、protocol evidenceを追加する。"
             if confirmed_c2 or candidates
-            else "双用途管理先とは分離した。C2 capabilityを否定するには、静的layer・generic triage・必要なfunction解析の外側quality gateを完了する。"
+            else (
+                "双用途管理先とは分離した。C2 capabilityを否定するには、静的layer・"
+                "generic triage・必要なfunction解析の外側quality gateを完了する。"
+            )
             if terminal_management_only
             else "双用途管理先の不正利用を判断するには、配布経路、導入権限、侵害後telemetryを相関する。"
             if management_only

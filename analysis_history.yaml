@@ -8619,3 +8619,18 @@ analyses:
       - "1 DNS-only candidate（www.hhsaoniss.beauty）"
     notes: "検体を実行せずterminal payloadとTriage memory imageまで解析しました。15 HTTP候補はexact-SHA-256のTriage 2回で再現しましたが、現在検体固有の二層鍵計画、static record対応、live応答は未解決のためpartialです。"
     result_path: analysis-results/malware/formbook/versions/unknown/cases/0eb380a4609662b66d946d0991e810aa47b80dc3733aee4e59cfba1bd1107ce7/
+
+  - malware_type: "valleyrat"
+    analyzed_at: 2026-10-22
+    sample_sha256: 268eff98904198e2d0284b549681e024b2a1842695f1d185452849712788bc22
+    analysis_level: terminal_payload_recovery_characteristic_function_static_analysis_polygon_resolver_and_exact_sandbox_correlation
+    campaign_type: zip_sideload_shellcode_vvas_terminal
+    matched_patterns:
+      - "ZIP二段→ISO→署名済みhost／winhttp proxyサイドロード"
+      - "custom decode→XTEA様変換→反復XOR→raw LZ4によるx64 terminal復元"
+      - "explorer.exeへのsection mapping／suspended thread／APC queue／resume"
+      - "Polygon eth_call dead-dropからABI dynamic string endpointを取得"
+    c2:
+      - "47.243.109.132:5252"
+    notes: "検体を実行せずterminal PE、静的設定、Polygon resolverを解析しました。共有Polygon RPCへread-only確認を行いましたがC2には接続していません。terminalの全command frameは未解決のためpartialです。"
+    result_path: analysis-results/malware/valleyrat/versions/unknown/cases/268eff98904198e2d0284b549681e024b2a1842695f1d185452849712788bc22/

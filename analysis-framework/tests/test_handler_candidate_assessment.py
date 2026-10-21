@@ -729,6 +729,126 @@ def test_route_only_detector_selects_family_wide_and_exact_campaign(
     assert result["families"][0]["status"] == ("handler_evidence_without_detector")
 
 
+def test_silverfox_route_only_detector_uses_strict_exact_campaign_route(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """SilverFox専用routeでは無関係なcampaign fallbackを実行しない。"""
+
+    repository, malware_root = isolated_catalog
+    base = _handler_spec(
+        repository,
+        malware_root,
+        "valleyrat",
+        _source("{}", ("pe",)),
+        input_formats=("pe",),
+    )
+    shared = replace(base, id="valleyrat:shared", campaign=None)
+    matched = replace(
+        base,
+        id="valleyrat:silverfox",
+        campaign="silverfox_style_infection_loader",
+    )
+    unrelated = replace(
+        base,
+        id="valleyrat:unrelated",
+        campaign="signed_proxy_sideload",
+    )
+    calls: list[str] = []
+
+    def execute(handler, *_args, **_kwargs):
+        calls.append(handler.id)
+        return _mock_completed_handler_result()
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    layer = _layer(b"MZ silverfox loader", "loader.exe")
+    result = catalog.assess_candidate_handlers(
+        [_candidate("valleyrat", source="detector_and_external_metadata")],
+        [layer],
+        specs=[unrelated, matched, shared],
+        detector_evaluations={
+            "valleyrat": {
+                layer["sha256"]: _routing_detector(
+                    False,
+                    ["silverfox_style_infection_loader"],
+                )
+            }
+        },
+    )
+
+    assert calls == [shared.id, matched.id]
+    selection = result["families"][0]["handler_selection"]
+    assert selection["strict_exact_campaign_route"] is True
+    assert selection["strict_exact_campaign_route_basis"] == (
+        "reviewed_family_campaign_structure"
+    )
+    assert selection["campaign_selection_basis"] == (
+        "strict_exact_campaign_type_match"
+    )
+    assert selection["selected_handler_count"] == 2
+    assert selection["primary_handler_count"] == 2
+    assert selection["bounded_campaign_fallback_handler_count"] == 0
+    assert selection["deferred_campaign_handler_count"] == 1
+    assert result["pair_planning"]["all_automatic_campaign_handlers_considered"] is False
+    assert result["confirmed_families"] == []
+
+
+def test_incomplete_silverfox_candidate_preserves_campaign_fallbacks(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """不完全lineageをgeneric routeに留め、他campaignの復元機会を残す。"""
+
+    repository, malware_root = isolated_catalog
+    base = _handler_spec(
+        repository,
+        malware_root,
+        "valleyrat",
+        _source("{}", ("pe",)),
+        input_formats=("pe",),
+    )
+    shared = replace(base, id="valleyrat:shared", campaign=None)
+    silverfox = replace(
+        base,
+        id="valleyrat:silverfox",
+        campaign="silverfox_style_infection_loader",
+    )
+    unrelated = replace(
+        base,
+        id="valleyrat:unrelated",
+        campaign="signed_proxy_sideload",
+    )
+    calls: list[str] = []
+
+    def execute(handler, *_args, **_kwargs):
+        calls.append(handler.id)
+        return _mock_completed_handler_result()
+
+    monkeypatch.setattr(catalog, "execute_handler_bounded_for_assessment", execute)
+    layer = _layer(b"MZ incomplete silverfox candidate", "loader.exe")
+    result = catalog.assess_candidate_handlers(
+        [_candidate("valleyrat", source="detector_and_external_metadata")],
+        [layer],
+        specs=[unrelated, silverfox, shared],
+        detector_evaluations={
+            "valleyrat": {
+                layer["sha256"]: _routing_detector(
+                    False,
+                    ["native_loader_candidate"],
+                )
+            }
+        },
+    )
+
+    assert calls == [shared.id, silverfox.id, unrelated.id]
+    selection = result["families"][0]["handler_selection"]
+    assert selection.get("strict_exact_campaign_route") is not True
+    assert selection["selected_handler_count"] == 3
+    assert selection["bounded_campaign_fallback_handler_count"] == 2
+    assert selection["deferred_campaign_handler_count"] == 0
+    assert result["pair_planning"]["all_automatic_campaign_handlers_considered"] is True
+
+
 def test_detector_scope_ignores_well_formed_unmatched_layers() -> None:
     """正常な非一致layerは別layerのroute-only scopeを無効化しない。"""
 
@@ -1645,6 +1765,44 @@ def test_bounded_handler_retains_recovered_payload_as_nonterminal_output(
             },
         }
     ]
+
+
+def test_bounded_handler_preserves_strict_follow_on_basename_and_priority(
+    isolated_catalog,
+    tmp_path: Path,
+) -> None:
+    """reviewed handlerの同梱関係hintを親再hash後も保持する。"""
+
+    repository, malware_root = isolated_catalog
+    payload = b"MZ" + b"S" * 62
+    source = (
+        'HANDLER_CONTRACT = {"input_formats": ["data"], "minimum_evidence_score": 1}\n'
+        "def extract_config(data):\n"
+        f'    return {{"recovered_payload": {{"name": "version.dll", '
+        f'"source_name": "version.dll", "analysis_priority": 0, "data": {payload!r}}}}}\n'
+    )
+    spec = _handler_spec(repository, malware_root, "candidate_family", source)
+    artifact_directory = tmp_path / "retained"
+    artifact_directory.mkdir()
+
+    bounded = catalog.execute_handler_bounded_for_assessment(
+        spec,
+        b"input",
+        "sample.bin",
+        actual_format="data",
+        artifact_directory=artifact_directory,
+        artifact_path_prefix="p",
+    )
+
+    assert bounded["status"] == "completed"
+    output = bounded["execution"]["verified_binary_outputs"][0]
+    assert output["source_name"] == "version.dll"
+    assert output["analysis_priority"] == 0
+    assert catalog._read_verified_artifact(
+        artifact_directory / f"{output['sha256']}.exe",
+        expected_size=len(payload),
+        expected_sha256=output["sha256"],
+    ) == payload
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows extended-length path専用")
@@ -3664,6 +3822,34 @@ def test_bounded_worker_requires_process_and_memory_containment(
     assert not child_temp.exists()
 
 
+def test_bounded_worker_nonzero_exit_has_distinct_safe_diagnostic(
+    isolated_catalog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """応答前のcontainment終了をworker内部例外やtimeoutと混同しない。"""
+
+    repository, malware_root = isolated_catalog
+    spec = _handler_spec(repository, malware_root, "candidate_family", _source("{}"))
+    monkeypatch.setattr(
+        bounded_process,
+        "run_bounded",
+        lambda *_args, **_kwargs: types.SimpleNamespace(returncode=137),
+    )
+
+    result = catalog.execute_handler_bounded_for_assessment(
+        spec,
+        b"input",
+        "sample.bin",
+        actual_format="data",
+        timeout_seconds=1.0,
+    )
+
+    assert result["status"] == "failed"
+    assert result["error"] == "handler_worker_failed"
+    assert result["error_type"] == "HandlerWorkerProcessTerminatedError"
+    assert "returncode" not in result
+
+
 def test_windows_family_profile_data_is_read_from_verified_snapshot(
     isolated_catalog,
 ) -> None:
@@ -4554,13 +4740,15 @@ def test_remus_json_open_review_requires_repository_relative_candidate(
                 "reachable:_recover_pumped_zip",
                 "stream.read",
             ),
-            "import io\nimport zipfile\n"
-            "def _recover_pumped_zip(data):\n"
-            "    archive = zipfile.ZipFile(io.BytesIO(data))\n"
-            "    members = archive.infolist()\n"
-            "    for member in members:\n"
-            '        with archive.open(member, "r") as stream:\n'
-            "            return stream.read(32 * 1024 * 1024)\n",
+            (
+                "import io\nimport zipfile\n"
+                "def _recover_pumped_zip(data):\n"
+                "    archive = zipfile.ZipFile(io.BytesIO(data))\n"
+                "    members = archive.infolist()\n"
+                "    for member in members:\n"
+                '        with archive.open(member, "r") as stream:\n'
+                "            return stream.read(32 * 1024 * 1024)\n"
+            ),
             True,
         ),
         (
@@ -4569,13 +4757,15 @@ def test_remus_json_open_review_requires_repository_relative_candidate(
                 "reachable:_recover_pumped_zip",
                 "stream.read",
             ),
-            "import io\nimport zipfile\n"
-            "def _recover_pumped_zip(data):\n"
-            "    archive = zipfile.ZipFile(io.BytesIO(data))\n"
-            "    members = archive.infolist()\n"
-            "    for member in members:\n"
-            '        with archive.open(member, "r") as stream:\n'
-            "            return stream.read()\n",
+            (
+                "import io\nimport zipfile\n"
+                "def _recover_pumped_zip(data):\n"
+                "    archive = zipfile.ZipFile(io.BytesIO(data))\n"
+                "    members = archive.infolist()\n"
+                "    for member in members:\n"
+                '        with archive.open(member, "r") as stream:\n'
+                "            return stream.read()\n"
+            ),
             False,
         ),
         (
@@ -4584,12 +4774,14 @@ def test_remus_json_open_review_requires_repository_relative_candidate(
                 "reachable:_read_bounded_json",
                 "stream.read",
             ),
-            "import os\nfrom pathlib import Path\n"
-            "def _read_bounded_json(repository_root, relative_path):\n"
-            "    root = Path(os.path.abspath(os.fspath(repository_root)))\n"
-            "    candidate = root / relative_path\n"
-            '    with candidate.open("rb") as stream:\n'
-            "        return stream.read(min(16 * 1024, maximum_bytes - total + 1))\n",
+            (
+                "import os\nfrom pathlib import Path\n"
+                "def _read_bounded_json(repository_root, relative_path):\n"
+                "    root = Path(os.path.abspath(os.fspath(repository_root)))\n"
+                "    candidate = root / relative_path\n"
+                '    with candidate.open("rb") as stream:\n'
+                "        return stream.read(min(16 * 1024, maximum_bytes - total + 1))\n"
+            ),
             True,
         ),
         (
@@ -4598,12 +4790,14 @@ def test_remus_json_open_review_requires_repository_relative_candidate(
                 "reachable:_read_bounded_json",
                 "stream.read",
             ),
-            "import os\nfrom pathlib import Path\n"
-            "def _read_bounded_json(repository_root, relative_path):\n"
-            "    root = Path(os.path.abspath(os.fspath(repository_root)))\n"
-            "    candidate = root / relative_path\n"
-            '    with candidate.open("rb") as stream:\n'
-            "        return stream.read(maximum_bytes)\n",
+            (
+                "import os\nfrom pathlib import Path\n"
+                "def _read_bounded_json(repository_root, relative_path):\n"
+                "    root = Path(os.path.abspath(os.fspath(repository_root)))\n"
+                "    candidate = root / relative_path\n"
+                '    with candidate.open("rb") as stream:\n'
+                "        return stream.read(maximum_bytes)\n"
+            ),
             False,
         ),
     ),
@@ -4670,6 +4864,277 @@ def test_export_funnel_decode_review_requires_one_bounded_instruction(
     )
 
     assert actual is expected
+
+
+@pytest.mark.parametrize(
+    ("function_name", "parameters", "statement", "reviewed_call", "expected"),
+    (
+        (
+            "_register_name",
+            "instruction, register",
+            "return instruction.reg_name(register)",
+            "instruction.reg_name",
+            True,
+        ),
+        (
+            "_register_name",
+            "instruction, register, other",
+            "return other.reg_name(register)",
+            "instruction.reg_name",
+            False,
+        ),
+        (
+            "_register_name",
+            "instruction, register",
+            "return instruction.reg_name(7)",
+            "instruction.reg_name",
+            False,
+        ),
+        (
+            "_register_name",
+            "instruction, register, other",
+            "instruction = other\n    return instruction.reg_name(register)",
+            "instruction.reg_name",
+            False,
+        ),
+        (
+            "_written_register_names",
+            "instruction",
+            (
+                "written = instruction.regs_access()[1]\n"
+                "    return {instruction.reg_name(register) for register in written}"
+            ),
+            "instruction.regs_access",
+            True,
+        ),
+        (
+            "_written_register_names",
+            "instruction, other",
+            (
+                "written = other.regs_access()[1]\n"
+                "    return {other.reg_name(register) for register in written}"
+            ),
+            "instruction.regs_access",
+            False,
+        ),
+        (
+            "_written_register_names",
+            "instruction",
+            (
+                "written = instruction.regs_access(1)[1]\n"
+                "    return {instruction.reg_name(register) for register in written}"
+            ),
+            "instruction.regs_access",
+            False,
+        ),
+        (
+            "_written_register_names",
+            "instruction, other",
+            (
+                "instruction = other\n"
+                "    written = instruction.regs_access()[1]\n"
+                "    return {instruction.reg_name(register) for register in written}"
+            ),
+            "instruction.regs_access",
+            False,
+        ),
+        (
+            "_written_register_names",
+            "instruction",
+            (
+                "written = instruction.regs_access()[1]\n"
+                "    return {instruction.reg_name(register) for register in written}"
+            ),
+            "instruction.reg_name",
+            True,
+        ),
+        (
+            "_written_register_names",
+            "instruction",
+            (
+                "written = instruction.regs_access()[1]\n"
+                "    return {instruction.reg_name(7) for register in written}"
+            ),
+            "instruction.reg_name",
+            False,
+        ),
+    ),
+    ids=(
+        "register-name-exact",
+        "register-name-wrong-receiver",
+        "register-name-literal-id",
+        "register-name-rebound-receiver",
+        "register-access-exact",
+        "register-access-wrong-receiver",
+        "register-access-extra-argument",
+        "register-access-rebound-receiver",
+        "written-register-name-exact",
+        "written-register-name-wrong-argument",
+    ),
+)
+def test_direct_native_capstone_review_requires_exact_receiver_and_arguments(
+    function_name: str,
+    parameters: str,
+    statement: str,
+    reviewed_call: str,
+    expected: bool,
+) -> None:
+    """直結型終端のCapstone例外を別receiverや引数へ拡張しない。"""
+
+    source = f"def {function_name}({parameters}):\n    {statement}\n"
+    tree = ast.parse(source)
+    scope = tree.body[0]
+    assert isinstance(scope, ast.FunctionDef)
+    calls = [node for node in ast.walk(scope) if isinstance(node, ast.Call)]
+    call = next(
+        (
+            node
+            for node in calls
+            if catalog._ast_call_name(node.func) == reviewed_call
+        ),
+        calls[0],
+    )
+    key = (
+        "extractors/valleyrat/direct_native_terminal.py",
+        f"reachable:{function_name}",
+        reviewed_call,
+    )
+
+    actual = catalog._reviewed_source_call_shape_allowed(
+        call,
+        reviewed_call,
+        tree,
+        scope,
+        catalog._import_aliases(tree),
+        key=key,
+    )
+
+    assert actual is expected
+
+
+@pytest.mark.parametrize(
+    "escape",
+    (
+        "    alias = instruction",
+        "    alias = chained = instruction",
+        "    method = instruction.regs_access",
+        "    mutate(instruction)",
+        "    receivers = [instruction]",
+        '    receivers = {"instruction": instruction}',
+        "    holder.value = instruction",
+        "    holder[0] = instruction",
+        "    return instruction",
+        "    yield instruction",
+        "    global leaked\n    leaked = instruction",
+        "    leaked = None\n    def escape_receiver():\n        nonlocal leaked\n        leaked = instruction",
+        "    leaked = lambda: instruction",
+    ),
+)
+def test_direct_native_capstone_review_rejects_receiver_escape(escape: str) -> None:
+    """Direct NativeのCapstone receiverを未証明のaliasやhelperへ渡さない。"""
+
+    source = """def _written_register_names(instruction):
+    try:
+        return {
+            name
+            for register in instruction.regs_access()[1]
+            if (name := instruction.reg_name(register))
+        }
+    except CsError:
+        return set()
+"""
+    source = source.replace("    try:\n", f"{escape}\n    try:\n")
+    key = (
+        "extractors/valleyrat/direct_native_terminal.py",
+        "reachable:_written_register_names",
+        "instruction.regs_access",
+    )
+
+    assert _reviewed_shape_result(source, key) is False
+
+
+@pytest.mark.parametrize(
+    "binding",
+    (
+        "list = lambda value: value",
+        "list: object = lambda value: value",
+        "list = []\nlist += [lambda value: value]",
+        "if (list := lambda value: value):\n    pass",
+        "for list in (lambda value: value,):\n    pass",
+        "[None for list in (lambda value: value,)]",
+        "with context() as list:\n    pass",
+        "try:\n    pass\nexcept Exception as list:\n    pass",
+        "match value:\n    case list:\n        pass",
+        "def list(value):\n    return value",
+        "class list:\n    pass",
+        "del list",
+    ),
+)
+def test_builtin_call_binding_rejects_all_non_import_target_forms(binding: str) -> None:
+    """builtin callable名を導入する全target系統をfail-closedに扱う。"""
+
+    tree = ast.parse(f"{binding}\ndef entry(data):\n    return list(data)\n")
+    scope = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "entry"
+    )
+    call = next(
+        node
+        for node in ast.walk(scope)
+        if isinstance(node, ast.Call) and catalog._ast_call_name(node.func) == "list"
+    )
+
+    assert catalog._expression_binding_is_intact(call.func, tree, scope) is False
+
+
+def test_builtin_call_binding_rejects_global_and_nonlocal_lookup() -> None:
+    """外側bindingをこのscopeで証明できないglobal/nonlocal参照を拒否する。"""
+
+    global_tree = ast.parse("def entry(data):\n    global list\n    return list(data)\n")
+    global_scope = global_tree.body[0]
+    assert isinstance(global_scope, ast.FunctionDef)
+    global_call = next(node for node in ast.walk(global_scope) if isinstance(node, ast.Call))
+    assert catalog._expression_binding_is_intact(global_call.func, global_tree, global_scope) is False
+
+    nonlocal_tree = ast.parse(
+        "def outer():\n"
+        "    list = lambda value: value\n"
+        "    def entry(data):\n"
+        "        nonlocal list\n"
+        "        return list(data)\n"
+    )
+    nonlocal_scope = next(
+        node
+        for node in ast.walk(nonlocal_tree)
+        if isinstance(node, ast.FunctionDef) and node.name == "entry"
+    )
+    nonlocal_call = next(node for node in ast.walk(nonlocal_scope) if isinstance(node, ast.Call))
+    assert catalog._expression_binding_is_intact(
+        nonlocal_call.func,
+        nonlocal_tree,
+        nonlocal_scope,
+    ) is False
+
+
+def test_recursive_audit_rejects_module_rebound_builtin(isolated_catalog) -> None:
+    """module代入で偽装したbuiltin callを監査済みbuiltinへ昇格しない。"""
+
+    repository, _malware_root = isolated_catalog
+    source = repository / "rebound_builtin.py"
+    source.write_text(
+        "list = lambda value: value\n"
+        "def extract(data):\n"
+        "    return list(data)\n",
+        encoding="utf-8",
+    )
+
+    audit = catalog._recursive_handler_side_effect_audit(source, "extract")
+
+    assert any(
+        "rebound_builtin_callable:list" in issue
+        for issue in audit["issues"]
+    )
 
 
 def test_valleyrat_handler_dependency_preflight_accepts_reviewed_static_lineage_modules() -> None:

@@ -122,6 +122,10 @@ CABはparserを呼ぶ前に`MSCF` headerとversion、予約field、cabinet実siz
 
 PyInstaller CArchiveは最大16,384件（hard limit 65,536件）のTOCを先に全検証します。既定budget内では全entryを1件ずつ展開してzlib EOF、宣言size、実size、SHA-256、形式を検証し、非候補bytesは直ちに破棄します。archive全体を自動解析する`analyze_carchive_bytes()`で後段へ保持する候補は最大256件で、caller指定、Python script、module、PYZ、PE名候補、入れ子archiveの順です。一方、名前またはprefixを指定する`extract_selected_entries_from_bytes()`、`analyze()`、standalone CLIの`--max-files`は既定・hard limitとも128件を維持します。256件への拡張はarchive全体の自動候補保持だけに適用され、選択抽出APIの契約を広げません。1 entryは64 MiB、保持総量は128 MiB、全内容検証は256 MiB／120秒を上限とし、超過や高価値候補の未保持は`partial`とblockerへ残します。公開reportは全entry列ではなく件数・形式集計とinventory/content commitmentを持ち、PyInstallerという包装形式だけからmalware familyや悪性意図を推定しません。
 
+`python_marshal_static.py`の単体適用条件は、`python_script`／`python_module`を表すstrictな合成lineage名です。名前だけをCArchive検証済みの証拠とは扱いません。`static_unpacker.py`ではCArchive復元器が生成した合成名に対して呼び出し、再帰layer queueで優先する際は、親入力のSHA-256・size、完全消費、候補集合の完全性、profile、安全性、候補のkind・SHA-256・sizeをreportと実artifactの間で再照合します。構造一致やCArchiveの宣言値だけではPython実行版・marshal wire版を確定しません。
+
+parserは`marshal.loads`やbytecode実行を使わず、CPython 3.8--3.10互換marshal v4 code layout候補について、code fieldの型、wordcode境界、local数、参照、containerのhashability、数値wire表現、入力終端を検証します。定数からBase64、hex、既知magicを持つ構造化bytes、4 KiB以上のopaque bytes、script textを子候補へ渡します。hexとBase64の双方に正規化できる値は、既知magicが片方だけにある場合はその解釈を優先し、それ以外は同じlineageとbudgetの下で両候補を保持します。大量の順序付きBase64断片はcollection全体を一意に連結してから復号し、断片ごとの候補氾濫を避けます。入力・scalar・候補は各64 MiB、node 200,000件、深さ64、collection 100,000件、候補64件を上限とし、trailing byte、未知type、上限到達はfail-closedまたは`partial`として記録します。復元候補は、ファミリー、悪性、終端payload、C2の確証ではありません。
+
 `dotnet_bundle_unpacker.py`は、本体・設定、観測済みのruntime内容不整合、非runtime依存、予算不足または未対応profileで未評価のruntime、内容整合を確認したruntime、形式確認済みsymbolsの順で候補を選定します。予算で未評価だったことを内容不一致や安全確認へ読み替えません。parser拒否、metadata不正、未知statusは高優先のままです。32候補／128MiBの選定上限、64件／128MiB／単体32MiBのruntime内容probe上限を維持し、未選定entryのSHA-256・size・省略理由と`selection_complete=false`を残します。復元と構造照合は、ファミリー特定・C2取得・全解析完了を意味しません。
 
 TOCの`typecode=s`かつname領域が先頭NULの匿名scriptは、TOC順序に束縛した合成名で保持します。元name領域はsizeとSHA-256をinventory commitmentと保持metadataに残し、不透明bytesはpathとして解釈しません。通常名の不正padding、script以外の匿名entry、path衝突、payload境界違反、不正zlib streamは引き続き拒否します。
@@ -314,6 +318,12 @@ ARX20の入力上限は64MiB、全候補合計の暗号処理量は1MiB、呼出
 どちらも包装の復元と親子hashの証拠を生成する機能である。復元成功だけでファミリー、C2、終端解析完了、稼働状態へ昇格させない。これらは後段の設定抽出と関数参照の確認により個別に判断する。
 
 無害なPEと非実行の命令fixtureによる回帰テストは、`test_go_embedded_pe.py`、`test_arx20_chunk_unpacker.py`、`test_arx20_static_route.py`を参照する。実検体binary・復号済みpayload・生の鍵はテストfixtureへ含めない。
+
+## PE末尾RC4 trailerの静的復元
+
+`pe_trailer_rc4.py`は、PE image直後の500-byte headerとfile末尾の4-byte offsetが同じPE境界を指す場合だけ候補を評価する。先頭32 byteをRC4 key、header内の宣言値をpayload長として、header、ciphertext、footerがfile全体を過不足なく構成することを必須とする。RC4出力が既知markerを持つ場合だけ全体へXOR `0x7b`を適用し、それ以外はRC4出力をそのまま検証する。
+
+出力はx86 near jumpの到達範囲と、到達先の命令被覆率・control flowを検証できたraw shellcodeだけを後段へ渡す。復元成功はloader包装の解除を示すだけで、family、C2、終端payloadを確定しない。入力・出力・命令解析には上限があり、offset、宣言長、EOF境界、復号後構造のいずれかが一致しない候補はartifactを返さない。回帰テストは`test_pe_trailer_rc4.py`を参照する。
 
 ## Environment分割型JScript loader
 

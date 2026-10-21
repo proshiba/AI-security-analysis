@@ -7,11 +7,13 @@ import hashlib
 import heapq
 import math
 import re
-from collections.abc import Callable
+import unicodedata
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
+from unpackers.python_marshal_static import PROFILE as PYTHON_MARSHAL_PROFILE
 from unpackers.static_unpacker import (
     detect_format,
     normalize_archive_member_basename,
@@ -20,8 +22,21 @@ from unpackers.static_unpacker import (
 
 try:
     from .static_layer_lineage_adapter import select_static_layer_children
+    from .valleyrat_verified_sibling_adapter import (
+        VerifiedSiblingBundleLayer,
+        recover_verified_sibling_bundle_layer,
+    )
+    from .zip_sideload_pair import (
+        ZipSideLoadArtifactRole,
+        analyze_zip_sideload_pairs,
+    )
 except ImportError:  # pragma: no cover - common directoryを直接sys.pathへ置く実行形態。
     from static_layer_lineage_adapter import select_static_layer_children
+    from valleyrat_verified_sibling_adapter import (
+        VerifiedSiblingBundleLayer,
+        recover_verified_sibling_bundle_layer,
+    )
+    from zip_sideload_pair import ZipSideLoadArtifactRole, analyze_zip_sideload_pairs
 
 MAX_STATIC_LAYERS = 64
 MAX_STATIC_DEPTH = 6
@@ -30,6 +45,7 @@ MAX_RECOVERED_TOTAL_SIZE = 256 * 1024 * 1024
 MAX_STATIC_COMPRESSION_RATIO = 100.0
 MAX_ARCHIVE_MEMBERS = 512
 LINEAGE_SELECTED_PRIORITY = -2
+ZIP_SIDELOAD_PAIR_PRIORITY = -1
 
 ACTIONABLE_FORMATS = frozenset({"pe", "elf", "macho", "script", "autoit-a3x", "java-class"})
 CONTAINER_FORMATS = frozenset(
@@ -53,6 +69,45 @@ HIGH_VALUE_KIND_RE = re.compile(
 )
 LOW_VALUE_RESOURCE_KIND_RE = re.compile(
     r"(?:^|[._-])(?:png|jpe?g|gif|bmp|ico|icon|wav|audio|font|ttf|otf)(?:$|[._-])",
+    re.IGNORECASE,
+)
+PYINSTALLER_ARTIFACT_KIND_RE = re.compile(
+    r"^pyinstaller-(caller_preferred|python_script|python_module|pyz_archive|"
+    r"pe_name_candidate|nested_archive)-([0-9]{3})-[A-Za-z0-9._-]{1,48}$",
+    re.IGNORECASE,
+)
+PYINSTALLER_FRAMEWORK_SCRIPT_RE = re.compile(
+    r"^(?:pyiboot[0-9]*(?:[._-].*)?|pyi[._-]rth(?:[._-].*)?|"
+    r"pyi[._-]runtime(?:[._-].*)?)$",
+    re.IGNORECASE,
+)
+PYINSTALLER_FRAMEWORK_MODULE_RE = re.compile(
+    r"^pyimod[0-9]*(?:[._-].*)?$",
+    re.IGNORECASE,
+)
+PYINSTALLER_SELECTION_CATEGORIES = frozenset(
+    {
+        "caller_preferred",
+        "python_script",
+        "python_module",
+        "pyz_archive",
+        "pe_name_candidate",
+        "nested_archive",
+    }
+)
+PYINSTALLER_ROLE_PRIORITIES = {
+    "entry_script": -1,
+    "application_module": 0,
+    "pyz_archive": 0,
+    "pe_child": 1,
+    "runtime_script": 2,
+    "runtime_module": 2,
+    "nested_archive": 3,
+    "caller_preferred": 1,
+}
+PYTHON_MARSHAL_CANDIDATE_KIND_RE = re.compile(
+    r"^python-marshal-(?:(?:sequence-)?(?:base64|hex)-decoded|"
+    r"literal-(?:structured-bytes|opaque-bytes|script-text))-[0-9]{3}$",
     re.IGNORECASE,
 )
 
@@ -105,11 +160,15 @@ class StaticLayer:
     parent_sha256: str | None
     depth: int
     transform: str
+    container_candidate_kind: str | None = None
+    container_candidate_role: str | None = None
+    container_candidate_pair_count: int = 0
+    launch_lineage_relation: str | None = None
 
     def public(self) -> dict[str, Any]:
         """バイト列を含まないレイヤーメタデータを返す。"""
 
-        return {
+        result = {
             "name": self.name,
             "sha256": self.sha256,
             "size": len(self.data),
@@ -118,6 +177,27 @@ class StaticLayer:
             "depth": self.depth,
             "transform": self.transform,
         }
+        if self.container_candidate_kind is not None:
+            result["container_priority_candidate"] = {
+                "kind": self.container_candidate_kind,
+                "role": self.container_candidate_role,
+                "pair_count": self.container_candidate_pair_count,
+                "queue_prioritization_only": True,
+                "execution_confirmed": False,
+                "family_confirmation": False,
+                "c2_confirmation": False,
+            }
+        if self.launch_lineage_relation is not None:
+            result["launch_lineage_priority"] = {
+                "kind": "inno_launch_target",
+                "relation": self.launch_lineage_relation,
+                "queue_prioritization_only": True,
+                "static_execution_lineage_selected": True,
+                "sample_execution_observed": False,
+                "family_confirmation": False,
+                "c2_confirmation": False,
+            }
+        return result
 
 
 @dataclass(frozen=True)
@@ -240,6 +320,9 @@ def _artifact_analysis_priority(
     artifact_kind: str,
     blob: bytes,
     detection_name: str | None = None,
+    *,
+    verified_marshal_candidate: bool = False,
+    verified_pyinstaller_role: str | None = None,
 ) -> int:
     """内容magicと信頼済みtransform種別から静的解析queueの価値tierを返す。
 
@@ -249,6 +332,18 @@ def _artifact_analysis_priority(
     """
 
     del detection_name
+    # 専用marshal parserの完全消費reportと親入力・候補のkind/hash/sizeを
+    # 呼出側で照合できた内容だけを、残存PyInstaller stdlibより先に処理する。
+    # これはlayer上限内の資源配分であり、family・悪性・payload・C2の根拠ではない。
+    if verified_marshal_candidate and PYTHON_MARSHAL_CANDIDATE_KIND_RE.fullmatch(artifact_kind) is not None:
+        return -2
+    # CArchive reportの親入力・safety・選択entry・artifact identityを呼出側で
+    # 全件照合できた場合だけrole優先度を使う。artifact labelだけでは昇格しない。
+    # これはlayer上限内の資源配分であり、family・悪性・payload・C2の根拠ではない。
+    if verified_pyinstaller_role is not None:
+        priority = PYINSTALLER_ROLE_PRIORITIES.get(verified_pyinstaller_role)
+        if priority is not None:
+            return priority
     artifact_format = detect_format(blob, artifact_kind)
     if artifact_format == "pe" and valid_pe_extent(blob) is None:
         artifact_format = "data"
@@ -319,6 +414,377 @@ def _verified_artifact_name_hints(
         used_basenames.add(collision_key)
         hints[artifact_index] = normalized
     return hints
+
+
+def _verified_zip_artifact_paths(
+    report: dict[str, Any],
+    artifacts: list[tuple[str, bytes]],
+) -> dict[int, str]:
+    """ZIP inventoryをartifact index・kind・hash・sizeへ完全照合する。
+
+    `recover_zip` は復元memberをinventoryと同じ順序で先頭へ追加する。後続の
+    Equation/OLE候補などと混同しないよう `zip-` artifact集合と、SHA-256を持つ
+    inventory行の件数・順序を全件照合し、不整合時は来歴全体を採用しない。
+    """
+
+    inventory = report.get("zip")
+    if (
+        report.get("format") != "zip"
+        or not isinstance(inventory, Sequence)
+        or isinstance(inventory, (str, bytes, bytearray))
+    ):
+        return {}
+    zip_indices = [
+        index
+        for index, artifact in enumerate(artifacts)
+        if isinstance(artifact, tuple)
+        and len(artifact) == 2
+        and isinstance(artifact[0], str)
+        and artifact[0].casefold().startswith("zip-")
+        and isinstance(artifact[1], bytes)
+    ]
+    records: list[tuple[str, str, int, str]] = []
+    observed_paths: set[str] = set()
+    for raw_record in inventory:
+        if not isinstance(raw_record, Mapping):
+            return {}
+        digest = raw_record.get("sha256")
+        if digest is None:
+            continue
+        name = raw_record.get("name")
+        size = raw_record.get("size")
+        artifact_format = raw_record.get("format")
+        if (
+            not isinstance(name, str)
+            or not name
+            or len(name) > 4096
+            or name != unicodedata.normalize("NFC", name)
+            or name.startswith(("/", "\\"))
+            or "\\" in name
+            or any(ord(character) < 32 or ord(character) == 127 for character in name)
+            or not isinstance(digest, str)
+            or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+            or type(size) is not int
+            or size < 0
+            or not isinstance(artifact_format, str)
+            or not artifact_format
+            or len(artifact_format) > 80
+        ):
+            return {}
+        path = PurePosixPath(name)
+        if (
+            path.is_absolute()
+            or name != path.as_posix()
+            or any(part in {"", ".", ".."} or ":" in part for part in path.parts)
+            or name.casefold() in observed_paths
+        ):
+            return {}
+        observed_paths.add(name.casefold())
+        records.append((name, digest, size, artifact_format))
+    if len(records) != len(zip_indices):
+        return {}
+
+    verified: dict[int, str] = {}
+    for artifact_index, (name, digest, size, artifact_format) in zip(
+        zip_indices,
+        records,
+        strict=True,
+    ):
+        artifact_kind, blob = artifacts[artifact_index]
+        expected_kind = f"zip-{artifact_format}-{PurePosixPath(name).name}"
+        if artifact_kind != expected_kind or len(blob) != size or hashlib.sha256(blob).hexdigest() != digest:
+            return {}
+        verified[artifact_index] = name
+    return verified
+
+
+def _verified_marshal_candidate_indices(
+    report: dict[str, Any],
+    artifacts: list[tuple[str, bytes]],
+    *,
+    parent_sha256: str,
+    parent_size: int,
+) -> set[int]:
+    """完全消費reportと親・artifactへ一対一で束縛できる候補indexだけを返す。"""
+
+    envelope = report.get("python_marshal")
+    if not isinstance(envelope, dict):
+        return set()
+    if (
+        envelope.get("schema_version") != 1
+        or envelope.get("status") != "artifacts_recovered"
+        or envelope.get("profile") != PYTHON_MARSHAL_PROFILE
+        or envelope.get("candidate_set_complete") is not True
+        or envelope.get("blockers") != []
+    ):
+        return set()
+    input_metadata = envelope.get("input")
+    coverage = envelope.get("coverage")
+    if not isinstance(input_metadata, dict) or not isinstance(coverage, dict):
+        return set()
+    if input_metadata != {"size": parent_size, "sha256": parent_sha256}:
+        return set()
+    if (
+        coverage.get("full_consumption") is not True
+        or coverage.get("bytes_consumed") != parent_size
+        or coverage.get("input_size") != parent_size
+    ):
+        return set()
+    safety = envelope.get("safety")
+    if not isinstance(safety, dict) or any(
+        safety.get(field) is not False
+        for field in (
+            "sample_executed",
+            "network_contacted",
+            "marshal_loads_used",
+            "python_bytecode_executed",
+            "raw_constant_published",
+        )
+    ):
+        return set()
+    candidates = envelope.get("candidates")
+    candidate_count = envelope.get("candidate_count")
+    if (
+        not isinstance(candidates, list)
+        or not candidates
+        or isinstance(candidate_count, bool)
+        or not isinstance(candidate_count, int)
+        or candidate_count != len(candidates)
+    ):
+        return set()
+    available: dict[tuple[str, str, int], list[int]] = {}
+    for artifact_index, artifact in enumerate(artifacts):
+        if not isinstance(artifact, tuple) or len(artifact) != 2:
+            continue
+        artifact_kind, blob = artifact
+        if not isinstance(artifact_kind, str) or not isinstance(blob, bytes):
+            continue
+        identity = (artifact_kind, hashlib.sha256(blob).hexdigest(), len(blob))
+        available.setdefault(identity, []).append(artifact_index)
+    verified_indices: set[int] = set()
+    verified_digests: set[str] = set()
+    total_size = 0
+    for expected_index, item in enumerate(candidates):
+        if not isinstance(item, dict) or item.get("index") != expected_index:
+            return set()
+        artifact_kind = item.get("artifact_kind")
+        digest = item.get("sha256")
+        size = item.get("size")
+        if (
+            not isinstance(artifact_kind, str)
+            or PYTHON_MARSHAL_CANDIDATE_KIND_RE.fullmatch(artifact_kind) is None
+            or not isinstance(digest, str)
+            or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+            or isinstance(size, bool)
+            or not isinstance(size, int)
+            or size <= 0
+            or digest in verified_digests
+        ):
+            return set()
+        matching_indices = available.get((artifact_kind, digest, size), [])
+        if len(matching_indices) != 1:
+            return set()
+        verified_indices.add(matching_indices[0])
+        verified_digests.add(digest)
+        total_size += size
+    candidate_total_size = envelope.get("candidate_total_size")
+    if (
+        isinstance(candidate_total_size, bool)
+        or not isinstance(candidate_total_size, int)
+        or candidate_total_size != total_size
+    ):
+        return set()
+    return verified_indices
+
+
+def _pyinstaller_artifact_label(
+    category: str,
+    index: int,
+    normalized_path: str,
+) -> str | None:
+    """復元器と同じ規則でCArchive artifact labelを再構成する。"""
+
+    if category not in PYINSTALLER_SELECTION_CATEGORIES or not 0 <= index <= 999:
+        return None
+    try:
+        # path全体の安全性を再検証し、basenameだけをlabel再構成へ使う。
+        normalize_archive_member_basename(normalized_path)
+    except (TypeError, ValueError):
+        return None
+    basename = PurePosixPath(normalized_path.replace("\\", "/")).name
+    label = re.sub(r"[^A-Za-z0-9._-]+", "_", basename).strip("._")
+    label = (label or "entry")[:48]
+    return f"pyinstaller-{category}-{index:03d}-{label}"
+
+
+def _pyinstaller_entry_role(
+    *,
+    category: str,
+    typecode: str,
+    payload_format: str,
+    normalized_path: str,
+    blob: bytes,
+) -> str | None:
+    """検証済みCArchive entryをqueue資源配分用roleへ分類する。"""
+
+    basename = PurePosixPath(normalized_path.replace("\\", "/")).name
+    stem = PurePosixPath(basename).stem
+    if category == "caller_preferred":
+        if typecode == "s" and payload_format == "pyinstaller_python_script_entry":
+            category = "python_script"
+        elif typecode in {"m", "M"} and payload_format == "pyinstaller_python_module_entry":
+            category = "python_module"
+        elif typecode == "z" and payload_format == "pyinstaller_pyz":
+            category = "pyz_archive"
+        elif payload_format == "portable_executable":
+            category = "pe_name_candidate"
+        else:
+            return "caller_preferred"
+    if category == "python_script":
+        if typecode != "s" or payload_format != "pyinstaller_python_script_entry":
+            return None
+        return "runtime_script" if PYINSTALLER_FRAMEWORK_SCRIPT_RE.fullmatch(stem) is not None else "entry_script"
+    if category == "python_module":
+        if typecode not in {"m", "M"} or payload_format != "pyinstaller_python_module_entry":
+            return None
+        return "runtime_module" if PYINSTALLER_FRAMEWORK_MODULE_RE.fullmatch(stem) is not None else "application_module"
+    if category == "pyz_archive":
+        if typecode != "z" or payload_format != "pyinstaller_pyz" or not blob.startswith(b"PYZ\0"):
+            return None
+        return "pyz_archive"
+    if category == "pe_name_candidate":
+        if payload_format != "portable_executable" or valid_pe_extent(blob) is None:
+            return None
+        return "pe_child"
+    if category == "nested_archive":
+        return "nested_archive"
+    return None
+
+
+def _verified_pyinstaller_artifact_roles(
+    report: dict[str, Any],
+    artifacts: list[tuple[str, bytes]],
+    *,
+    parent_sha256: str,
+    parent_size: int,
+) -> dict[int, str]:
+    """親・safety・全選択entryへ束縛できたCArchive roleだけを返す。"""
+
+    envelope = report.get("pyinstaller")
+    if not isinstance(envelope, dict):
+        return {}
+    if envelope.get("schema_version") != 1 or envelope.get("status") not in {
+        "artifacts_recovered",
+        "partial_artifacts_recovered",
+    }:
+        return {}
+    if envelope.get("sample") != {"sha256": parent_sha256, "size": parent_size}:
+        return {}
+    archive = envelope.get("archive")
+    selection = envelope.get("selection")
+    safety = envelope.get("safety")
+    if (
+        not isinstance(archive, dict)
+        or archive.get("format") != "PyInstaller CArchive"
+        or not isinstance(selection, dict)
+        or selection.get("strategy") != "bounded_priority_v1"
+        or not isinstance(safety, dict)
+    ):
+        return {}
+    if any(
+        safety.get(field) is not False
+        for field in (
+            "sample_executed",
+            "external_process_started",
+            "network_contacted",
+            "file_written",
+        )
+    ) or any(
+        safety.get(field) is not True
+        for field in (
+            "bytes_only",
+            "all_toc_records_bounds_validated",
+            "all_payload_ranges_overlap_validated",
+            "all_paths_collision_validated",
+            "retained_declared_and_actual_sizes_validated",
+            "retained_zlib_eof_validated",
+        )
+    ):
+        return {}
+    selected_entries = selection.get("selected_entries")
+    retained_count = selection.get("retained_count")
+    retained_artifact_count = envelope.get("retained_artifact_count")
+    if (
+        not isinstance(selected_entries, list)
+        or not selected_entries
+        or isinstance(retained_count, bool)
+        or not isinstance(retained_count, int)
+        or isinstance(retained_artifact_count, bool)
+        or not isinstance(retained_artifact_count, int)
+        or retained_count != len(selected_entries)
+        or retained_artifact_count != len(selected_entries)
+    ):
+        return {}
+
+    available: dict[tuple[str, str, int], list[int]] = {}
+    pyinstaller_artifact_indices: set[int] = set()
+    for artifact_index, artifact in enumerate(artifacts):
+        if not isinstance(artifact, tuple) or len(artifact) != 2:
+            continue
+        artifact_kind, blob = artifact
+        if not isinstance(artifact_kind, str) or not isinstance(blob, bytes):
+            continue
+        normalized_kind = _artifact_label(artifact_kind)
+        if PYINSTALLER_ARTIFACT_KIND_RE.fullmatch(normalized_kind) is not None:
+            pyinstaller_artifact_indices.add(artifact_index)
+        identity = (normalized_kind, hashlib.sha256(blob).hexdigest(), len(blob))
+        available.setdefault(identity, []).append(artifact_index)
+
+    roles: dict[int, str] = {}
+    for selected_index, item in enumerate(selected_entries):
+        if not isinstance(item, dict):
+            return {}
+        category = item.get("category")
+        typecode = item.get("typecode")
+        payload_format = item.get("payload_format")
+        normalized_path = item.get("normalized_path")
+        digest = item.get("sha256")
+        size = item.get("uncompressed_size")
+        if (
+            not isinstance(category, str)
+            or category not in PYINSTALLER_SELECTION_CATEGORIES
+            or not isinstance(typecode, str)
+            or len(typecode) != 1
+            or not isinstance(payload_format, str)
+            or not isinstance(normalized_path, str)
+            or not isinstance(digest, str)
+            or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+            or isinstance(size, bool)
+            or not isinstance(size, int)
+            or size <= 0
+        ):
+            return {}
+        artifact_kind = _pyinstaller_artifact_label(category, selected_index, normalized_path)
+        if artifact_kind is None or PYINSTALLER_ARTIFACT_KIND_RE.fullmatch(artifact_kind) is None:
+            return {}
+        matching_indices = available.get((artifact_kind, digest, size), [])
+        if len(matching_indices) != 1 or matching_indices[0] in roles:
+            return {}
+        artifact_index = matching_indices[0]
+        blob = artifacts[artifact_index][1]
+        role = _pyinstaller_entry_role(
+            category=category,
+            typecode=typecode,
+            payload_format=payload_format,
+            normalized_path=normalized_path,
+            blob=blob,
+        )
+        if role is None:
+            return {}
+        roles[artifact_index] = role
+    if set(roles) != pyinstaller_artifact_indices:
+        return {}
+    return roles
 
 
 def _stratified_sibling_indices(candidate_count: int) -> list[int]:
@@ -667,6 +1133,14 @@ def recover_static_layers(
             )
             if not isinstance(report, dict) or not isinstance(artifacts, list):
                 raise TypeError("unpackerは(dict, list)を返す必要があります")
+            zip_sideload_roles: dict[int, ZipSideLoadArtifactRole] = {}
+            if report.get("format") == "zip":
+                zip_sideload_analysis = analyze_zip_sideload_pairs(
+                    artifacts,
+                    _verified_zip_artifact_paths(report, artifacts),
+                )
+                zip_sideload_roles = zip_sideload_analysis.roles_by_index()
+                report["zip_sideload_pair_prioritization"] = zip_sideload_analysis.public()
             lineage_selection = select_static_layer_children(
                 parent_data=layer.data,
                 parent_sha256=layer.sha256,
@@ -676,6 +1150,22 @@ def recover_static_layers(
                 report=report,
                 artifacts=artifacts,
             )
+            verified_sibling_bundle = recover_verified_sibling_bundle_layer(
+                parent_data=layer.data,
+                parent_sha256=layer.sha256,
+                report=report,
+                artifacts=artifacts,
+            )
+            if isinstance(verified_sibling_bundle, VerifiedSiblingBundleLayer):
+                # 正規化ZIPは同居memberのidentity全件結合とstrict lineage成立後だけ
+                # 後段へ渡す。ここではfamily/C2を昇格せず、既存detectorへ委ねる。
+                report["verified_sibling_bundle_adapter"] = verified_sibling_bundle.public()
+                artifacts.append(
+                    (
+                        "verified-sibling-analysis-container",
+                        verified_sibling_bundle.data,
+                    )
+                )
             step = {
                 "input_layer": layer.public(),
                 "status": "succeeded",
@@ -698,8 +1188,36 @@ def recover_static_layers(
             if lineage_selection.status == "complete_selected" and lineage_selection.omitted_commitment.complete
             else set()
         )
+        selected_script_launch_digests = {
+            edge.target_sha256
+            for edge in lineage_selection.validated_edges
+            if edge.relation == "script_launch" and edge.target_sha256 in lineage_selected_digests
+        }
         artifact_name_hints = _verified_artifact_name_hints(report, artifacts)
-        candidates: list[tuple[int, int, str, bytes, str, str]] = []
+        verified_marshal_indices = _verified_marshal_candidate_indices(
+            report,
+            artifacts,
+            parent_sha256=layer.sha256,
+            parent_size=len(layer.data),
+        )
+        verified_pyinstaller_roles = _verified_pyinstaller_artifact_roles(
+            report,
+            artifacts,
+            parent_sha256=layer.sha256,
+            parent_size=len(layer.data),
+        )
+        candidates: list[
+            tuple[
+                int,
+                int,
+                str,
+                bytes,
+                str,
+                str,
+                ZipSideLoadArtifactRole | None,
+                str | None,
+            ]
+        ] = []
         for artifact_index, artifact in enumerate(artifacts):
             if not isinstance(artifact, tuple) or len(artifact) != 2:
                 limit_events.append(
@@ -745,20 +1263,32 @@ def recover_static_layers(
             child_name = f"{layer.name}::{artifact_kind}"
             if member_basename is not None:
                 child_name = f"{child_name}::{member_basename}"
+            zip_sideload_role = zip_sideload_roles.get(artifact_index)
+            launch_lineage_relation = (
+                "script_launch"
+                if digest in selected_script_launch_digests and artifact_kind.casefold().startswith("inno-member-")
+                else None
+            )
             candidates.append(
                 (
                     LINEAGE_SELECTED_PRIORITY
                     if digest in lineage_selected_digests
+                    else ZIP_SIDELOAD_PAIR_PRIORITY
+                    if zip_sideload_role is not None
                     else _artifact_analysis_priority(
                         artifact_kind,
                         blob,
                         child_name,
+                        verified_marshal_candidate=(artifact_index in verified_marshal_indices),
+                        verified_pyinstaller_role=verified_pyinstaller_roles.get(artifact_index),
                     ),
                     artifact_index,
                     artifact_kind,
                     blob,
                     digest,
                     child_name,
+                    zip_sideload_role,
+                    launch_lineage_relation,
                 )
             )
         new_candidates: list[_NewStaticLayerCandidate] = []
@@ -771,6 +1301,8 @@ def recover_static_layers(
             blob,
             digest,
             child_name,
+            zip_sideload_role,
+            launch_lineage_relation,
         ) in sorted(candidates, key=lambda item: (item[0], item[1])):
             if digest in processed_digests:
                 deduplicated_artifacts += 1
@@ -787,6 +1319,14 @@ def recover_static_layers(
                     parent_sha256=layer.sha256,
                     depth=layer.depth + 1,
                     transform=str(artifact_kind),
+                    container_candidate_kind=(
+                        "zip_pe_import_export_adjacent_pair" if zip_sideload_role is not None else None
+                    ),
+                    container_candidate_role=(zip_sideload_role.role if zip_sideload_role is not None else None),
+                    container_candidate_pair_count=(
+                        zip_sideload_role.pair_count if zip_sideload_role is not None else 0
+                    ),
+                    launch_lineage_relation=launch_lineage_relation,
                 )
                 queue_revision += 1
                 replacement = _PendingStaticLayer(
@@ -826,6 +1366,12 @@ def recover_static_layers(
                 parent_sha256=layer.sha256,
                 depth=layer.depth + 1,
                 transform=str(artifact_kind),
+                container_candidate_kind=(
+                    "zip_pe_import_export_adjacent_pair" if zip_sideload_role is not None else None
+                ),
+                container_candidate_role=(zip_sideload_role.role if zip_sideload_role is not None else None),
+                container_candidate_pair_count=(zip_sideload_role.pair_count if zip_sideload_role is not None else 0),
+                launch_lineage_relation=launch_lineage_relation,
             )
             new_candidate_digests.add(digest)
             if rejected is None:
@@ -899,8 +1445,10 @@ def recover_static_layers(
         "steps": steps,
         "limit_events": limit_events,
         "selection_policy": {
-            "name": "format_depth_pending_capacity_stratified_siblings_v3",
-            "primary_order": "validated_lineage_then_format_priority_then_deeper_layer",
+            "name": "lineage_zip_sideload_verified_pyinstaller_role_format_depth_pending_capacity_stratified_siblings_v6",
+            "primary_order": (
+                "validated_lineage_then_zip_sideload_or_verified_pyinstaller_role_then_format_priority_then_deeper_layer"
+            ),
             "capacity_evaluation": "all_pending_layers_after_each_expansion",
             "under_capacity_same_tier_order": "discovery_order",
             "oversubscribed_same_parent_tier_order": ("endpoints_then_largest_interval_midpoint"),

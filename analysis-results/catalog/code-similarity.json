@@ -2,7 +2,7 @@
   "schema_version": 2,
   "analysis_mode": "static_function_fingerprint_correlation",
   "counts": {
-    "logic_files": 4068,
+    "logic_files": 4069,
     "functions": 64695,
     "exact_groups": 6680,
     "simhash_groups": 4227,

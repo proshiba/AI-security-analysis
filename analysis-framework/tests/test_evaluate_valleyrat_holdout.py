@@ -32,6 +32,11 @@ def _evidence(
     logic_tokens: tuple[str, ...] = (),
     profile_axes: tuple[str, ...] = (),
     successful: bool = True,
+    failure_category: str | None = None,
+    operator_expected_family_scope: bool = True,
+    exact_sha256_pinned: bool = False,
+    source_sha256_pinned: bool = False,
+    artifact_commitment_verified: bool = False,
 ) -> holdout._CaseEvidence:
     return holdout._CaseEvidence(
         digest=digest or _digest(label),
@@ -44,6 +49,15 @@ def _evidence(
         family_failure_reason=None if successful else "family_not_resolved",
         c2_config_confirmed=successful,
         c2_failure_reason=None if successful else "confirmed_config_missing",
+        failure_category=(
+            None
+            if successful
+            else failure_category or "family_unresolved"
+        ),
+        operator_expected_family_scope=operator_expected_family_scope,
+        exact_sha256_pinned=exact_sha256_pinned,
+        source_sha256_pinned=source_sha256_pinned,
+        artifact_commitment_verified=artifact_commitment_verified,
     )
 
 
@@ -356,6 +370,7 @@ def _write_case(
         "schema_version": 1,
         "sample": {
             "sha256": digest,
+            "outer_sha256": _digest(f"outer-{digest}"),
             "source_name": "TOP-SECRET-SOURCE.exe",
             "input_kind": "file",
         },
@@ -436,6 +451,12 @@ def test_success_contract_rejects_identity_hint_and_uncorrelated_c2(
 
     assert by_digest[digests[0]].family_confirmed is True
     assert by_digest[digests[0]].c2_config_confirmed is True
+    assert all(case.operator_expected_family_scope is True for case in cases)
+    assert all(case.exact_sha256_pinned is True for case in cases)
+    assert all(case.source_sha256_pinned is True for case in cases)
+    pins = holdout._public_input_counts(_summary, cases)["pins"]
+    assert pins["all_exact_case_sha256_and_artifact_commitments_verified"] is True
+    assert pins["source_sha256_pin_declared_cases"] == len(cases)
     assert by_digest[digests[1]].family_failure_reason == (
         "family_sample_identity_only_disallowed"
     )
@@ -829,6 +850,8 @@ def test_cli_help_is_japanese() -> None:
     assert "使用法:" in help_text
     assert "オプション:" in help_text
     assert "holdout件数" in help_text
+    assert "--curated-reference-identity-manifest" in help_text
+    assert "strict-reference-positive" not in help_text
     assert holdout.DEFAULT_HOLDOUT_COUNT == 100
     assert holdout.DEFAULT_MINIMUM_SUCCESS_PERCENTAGE == 50.0
 
@@ -1041,6 +1064,7 @@ def test_reference_mode_evaluates_all_next_100_as_holdout(
     summary = json.loads(captured.out)
 
     assert exit_code == 0
+    assert summary["schema_version"] == 2
     assert summary["evaluation_mode"] == "offline_sealed_reference_holdout"
     assert summary["split"]["full_holdout_evaluated"] is True
     assert summary["split"]["reference_cases"] == 1
@@ -1064,6 +1088,10 @@ def test_reference_mode_evaluates_all_next_100_as_holdout(
     ]["denominator"] == 100
     assert summary["target_gate"]["status"] == "passed"
     assert summary["target_gate"]["reason_codes"] == []
+    reference_sets = summary["evaluation_sets"]["reference"]
+    assert "observed_strict_positive" in reference_sets
+    assert "curated_reference_set" not in reference_sets
+    assert reference_sets["curated_reference_set_available"] is False
     assert str(reference_path) not in captured.out
     assert str(holdout_path) not in captured.out
     assert all(case.digest not in captured.out for case in holdout_cases)
@@ -1109,6 +1137,16 @@ def test_reference_structural_similarity_is_allowed_and_stratified_without_value
         _public_corpus_summary(len(reference_cases)),
         _public_corpus_summary(len(holdout_cases)),
         pre_registration=_registration(reference_cases, holdout_cases),
+        curated_reference_identities=[case.digest for case in reference_cases],
+        expected_holdout_count=100,
+        minimum_success_percentage=50.0,
+    )
+    without_curated = holdout._evaluate_reference_holdout_evidence(
+        reference_cases,
+        holdout_cases,
+        _public_corpus_summary(len(reference_cases)),
+        _public_corpus_summary(len(holdout_cases)),
+        pre_registration=_registration(reference_cases, holdout_cases),
         expected_holdout_count=100,
         minimum_success_percentage=50.0,
     )
@@ -1138,6 +1176,11 @@ def test_reference_structural_similarity_is_allowed_and_stratified_without_value
     assert summary["target_gate"]["reference_holdout_identity_disjoint"] is True
     assert summary["target_gate"]["reference_holdout_structurally_disjoint"] is False
     assert summary["target_gate"]["structural_similarity_allowed"] is True
+    curated = summary["evaluation_sets"]["reference"]["curated_reference_set"]
+    assert curated["case_count"] == 2
+    assert curated["used_for_target_gate"] is False
+    assert curated["temporal_order_proven_by_evaluator"] is False
+    assert summary["target_gate"] == without_curated["target_gate"]
 
     published = (
         json.dumps(summary, ensure_ascii=False, sort_keys=True)
@@ -1236,3 +1279,251 @@ def test_reference_official_gate_rejects_49_joint_successes() -> None:
     assert summary["target_gate"]["reason_codes"] == [
         "joint_success_target_not_met"
     ]
+
+
+@pytest.mark.parametrize(
+    ("expected", "public_case", "resolution_status", "route", "family_reason", "c2_reason"),
+    [
+        ("family_unresolved", {}, "resolved", {}, "family_not_resolved", "confirmed_config_missing"),
+        ("config_missing", {}, "resolved", {}, None, "confirmed_config_missing"),
+        ("c2_correlation_missing", {}, "resolved", {}, None, "c2_config_correlation_missing"),
+        (
+            "route_only_loader_component",
+            {"automation_gap": {"status": "loader_only"}},
+            "resolved",
+            {},
+            "family_not_resolved",
+            "confirmed_config_missing",
+        ),
+        (
+            "analysis_incomplete_or_limit",
+            {
+                "automation_gap": {
+                    "status": "detector_unmatched",
+                    "candidate_attempts": {"budget_exhausted": True},
+                }
+            },
+            "resolved",
+            {},
+            "family_not_resolved",
+            "confirmed_config_missing",
+        ),
+        (
+            "conflicting_candidates",
+            {},
+            "ambiguous",
+            {},
+            "family_not_resolved",
+            "confirmed_config_missing",
+        ),
+    ],
+)
+def test_failure_category_contract_covers_all_six_categories(
+    expected: str,
+    public_case: dict[str, object],
+    resolution_status: str,
+    route: dict[str, object],
+    family_reason: str | None,
+    c2_reason: str | None,
+) -> None:
+    assert (
+        holdout._failure_category(
+            public_case=public_case,
+            orchestration={"family_resolution": {"status": resolution_status}},
+            route=route,
+            family_reason=family_reason,
+            c2_reason=c2_reason,
+        )
+        == expected
+    )
+    assert (
+        holdout._failure_category(
+            public_case={},
+            orchestration={},
+            route={},
+            family_reason=None,
+            c2_reason=None,
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "gap_status",
+    [
+        "unknown_legacy_schema",
+        "unknown_invalid_schema",
+        "unknown_incomplete_evaluations",
+        "unknown_detector_error",
+    ],
+)
+def test_unknown_gap_status_is_analysis_incomplete(gap_status: str) -> None:
+    assert holdout._failure_category(
+        public_case={"automation_gap": {"status": gap_status}},
+        orchestration={"family_resolution": {"status": "unresolved"}},
+        route={},
+        family_reason="family_not_resolved",
+        c2_reason="confirmed_config_missing",
+    ) == "analysis_incomplete_or_limit"
+
+
+@pytest.mark.parametrize(
+    "automation_gap",
+    [
+        {
+            "status": "detector_unmatched",
+            "candidate_attempts": {
+                "availability": {"attempt_accounting": "unknown_legacy_schema"},
+                "budget_exhausted": False,
+                "omitted_attempt_detail_count": 0,
+                "unattempted_attempt_count": 0,
+            },
+        },
+        {
+            "status": "detector_unmatched",
+            "route_projection": {
+                "availability": {"reason_accounting": "unknown_invalid_schema"},
+                "omitted_handler_attempt_detail_count": 0,
+                "unattempted_handler_attempt_count": 0,
+            },
+        },
+    ],
+)
+def test_unknown_nested_accounting_is_analysis_incomplete(
+    automation_gap: dict[str, object],
+) -> None:
+    """旧schemaや不正schemaの会計欠落をfamily未解決へ誤分類しない。"""
+
+    assert holdout._failure_category(
+        public_case={"automation_gap": automation_gap},
+        orchestration={"family_resolution": {"status": "unresolved"}},
+        route={},
+        family_reason="family_not_resolved",
+        c2_reason="confirmed_config_missing",
+    ) == "analysis_incomplete_or_limit"
+
+
+def test_available_nested_accounting_preserves_route_only_classification() -> None:
+    """完全な会計は既存のroute-only分類を変えない。"""
+
+    assert holdout._failure_category(
+        public_case={
+            "automation_gap": {
+                "status": "loader_only",
+                "candidate_attempts": {
+                    "availability": {
+                        "attempt_accounting": "available",
+                        "budget_reasons": "available",
+                        "layer_limit_reasons": "available",
+                    }
+                },
+                "route_projection": {
+                    "availability": {"reason_accounting": "available"}
+                },
+            }
+        },
+        orchestration={"family_resolution": {"status": "unresolved"}},
+        route={},
+        family_reason="family_not_resolved",
+        c2_reason="confirmed_config_missing",
+    ) == "route_only_loader_component"
+
+
+def test_failure_category_precedence_is_conflict_then_limit_then_route() -> None:
+    public_case = {
+        "automation_gap": {
+            "status": "loader_only",
+            "candidate_attempts": {"budget_exhausted": True},
+        }
+    }
+    assert holdout._failure_category(
+        public_case=public_case,
+        orchestration={"family_resolution": {"status": "ambiguous"}},
+        route={},
+        family_reason="family_not_resolved",
+        c2_reason="confirmed_config_missing",
+    ) == "conflicting_candidates"
+    assert holdout._failure_category(
+        public_case=public_case,
+        orchestration={"family_resolution": {"status": "unresolved"}},
+        route={},
+        family_reason="family_not_resolved",
+        c2_reason="confirmed_config_missing",
+    ) == "analysis_incomplete_or_limit"
+
+
+def test_failure_category_accounting_is_exclusive_and_complete() -> None:
+    cases = [
+        _evidence(f"failure-{category}", successful=False, failure_category=category)
+        for category in holdout.FAILURE_CATEGORIES
+    ] + [_evidence("successful")]
+
+    counts = holdout._case_failure_category_counts(cases)
+
+    assert counts == {category: 1 for category in holdout.FAILURE_CATEGORIES}
+    assert sum(counts.values()) == len(cases) - 1
+    with pytest.raises(holdout.HoldoutEvaluationError) as error:
+        holdout._case_failure_category_counts(
+            [_evidence("unknown-category", successful=False, failure_category="unknown")]
+        )
+    assert error.value.code == "failure_category_internal_error"
+
+
+def test_evaluation_sets_separate_operator_scope_observed_and_curated_reference() -> None:
+    first = [
+        _evidence("curated-a", successful=True, operator_expected_family_scope=True),
+        _evidence("curated-b", successful=False, operator_expected_family_scope=True),
+        _evidence("outside-scope", successful=True, operator_expected_family_scope=False),
+    ]
+    regressed = [
+        _evidence(
+            "fixed-a-regressed",
+            digest=first[0].digest,
+            successful=False,
+            operator_expected_family_scope=True,
+        ),
+        _evidence(
+            "fixed-b-regressed",
+            digest=first[1].digest,
+            successful=False,
+            operator_expected_family_scope=True,
+        ),
+        first[2],
+    ]
+    before = holdout._denominator_set_summary(
+        first,
+        scope="reference",
+        curated_reference_cases=first[:2],
+    )
+    after = holdout._denominator_set_summary(
+        regressed,
+        scope="reference",
+        curated_reference_cases=regressed[:2],
+    )
+
+    assert before["operator_expected_family_scope"]["denominator"] == 2
+    assert before["observed_strict_positive"]["denominator"] == 2
+    assert after["observed_strict_positive"]["denominator"] == 1
+    assert before["curated_reference_set"]["case_count"] == 2
+    assert after["curated_reference_set"]["case_count"] == 2
+    assert before["curated_reference_set"]["used_for_target_gate"] is False
+    assert before["curated_reference_set"]["temporal_order_proven_by_evaluator"] is False
+
+    legacy = holdout._denominator_set_summary(first, scope="holdout")
+    assert "observed_strict_positive" in legacy
+    assert "curated_reference_set" not in legacy
+    assert legacy["curated_reference_set_available"] is False
+
+
+def test_source_sha256_pin_is_validated_without_opening_source() -> None:
+    assert holdout._source_sha256_pin_present({"sample": {}}) is False
+    assert holdout._source_sha256_pin_present({"sample": {"outer_sha256": _digest("source")}}) is True
+    with pytest.raises(holdout.HoldoutEvaluationError) as error:
+        holdout._source_sha256_pin_present({"sample": {"outer_sha256": "not-a-sha256"}})
+    assert error.value.code == "report_source_sha256_pin_invalid"
+
+
+def test_markdown_render_rejects_legacy_schema() -> None:
+    with pytest.raises(holdout.HoldoutEvaluationError) as error:
+        holdout.render_markdown({"schema_version": 1})
+    assert error.value.code == "render_schema_version_unsupported"

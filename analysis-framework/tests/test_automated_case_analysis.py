@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import copy
 import importlib
 import sys
 from pathlib import Path
+
+import pytest
 
 COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
@@ -55,6 +58,67 @@ def _screenconnect_pair(result: dict) -> tuple[dict, dict]:
             handler_id=SCREENCONNECT_HANDLER_ID,
         ),
     )
+
+
+def _validated_orchestration_endpoint() -> dict:
+    """静的config相関済みのorchestration endpoint契約を返す。"""
+
+    return {
+        "schema_version": 2,
+        "sample_sha256": DIGEST,
+        "family_resolution": {
+            "status": "resolved",
+            "family": "fixture",
+            "source": "detector_selected",
+            "source_strength": 3,
+            "handler_id": HANDLER_ID,
+            "requirements": {
+                "config_required": True,
+                "network_required": True,
+            },
+        },
+        "outputs": {
+            "config_recovered": True,
+            "qualified_network_endpoints": [
+                {
+                    "host": "c2.example",
+                    "port": 443,
+                    "scheme": None,
+                    "path": None,
+                    "role": "c2",
+                    "protocol": None,
+                    "contacted": False,
+                    "evidence_basis": ["static_config_correlation"],
+                    "provenance": [
+                        {
+                            "family": "fixture",
+                            "handler_id": HANDLER_ID,
+                            "source": "selected_family_analysis",
+                            "evidence_path": "findings.0.value",
+                        }
+                    ],
+                }
+            ],
+        },
+        "quality_gates": {
+            "config": {
+                "required": True,
+                "satisfied": True,
+                "status": "satisfied",
+            },
+            "network": {
+                "required": True,
+                "satisfied": True,
+                "status": "satisfied",
+            },
+        },
+        "blockers": ["function_analysis"],
+        "automation": {
+            "ai_used": False,
+            "sample_executed": False,
+            "network_contacted": False,
+        },
+    }
 
 
 def test_trusted_handler_result_requires_matching_static_evidence() -> None:
@@ -606,6 +670,123 @@ def test_case_automation_records_all_c2_phases_without_overpromotion() -> None:
     assert validation["complete"] is False
     assert validation["daily_ready"] is True
     assert validation["deferred"] is True
+
+
+def test_case_automation_projects_orchestration_validated_handler_config() -> None:
+    """同じhandler候補と相関した検証済みendpointをC2成果物へ欠落させない。"""
+
+    artifact = _artifact(
+        {
+            "static_config_recovered": True,
+            "config": {
+                "static_config_recovered": True,
+                "endpoints": ["c2.example:443"],
+            },
+        }
+    )
+    patterns, contract = case_automation.build_case_automation_artifacts(
+        sha256=DIGEST,
+        family="fixture",
+        layer_report={"counts": {"recovered_layers": 0}},
+        handler_results=[(_execution(), artifact)],
+        orchestration=_validated_orchestration_endpoint(),
+    )
+
+    assert patterns["status"] == "confirmed_static_configuration_patterns"
+    assert patterns["communication"]["candidate_patterns"] == []
+    assert patterns["communication"]["confirmed_static_c2_endpoints"] == [
+        {
+            "host": "c2.example",
+            "port": 443,
+            "role": "c2",
+            "confidence": "confirmed_static_configuration",
+            "evidence": {
+                "kind": "orchestration_validated_static_config",
+                "static_config_correlation": True,
+            },
+            "contacted": False,
+            "liveness_confirmed": False,
+            "source": f"handler:{HANDLER_ID}",
+        }
+    ]
+    assert contract["c2"]["endpoints"] == [
+        {
+            "value": "c2.example:443",
+            "role": "c2",
+            "source": f"handler:{HANDLER_ID}",
+            "confidence": "confirmed_static_configuration",
+        }
+    ]
+    assert contract["c2"]["outcome"] == "unresolved"
+    phases = {item["phase"]: item for item in contract["phase_evidence"]}
+    assert phases["family_config_extraction"]["status"] == "completed"
+    assert phases["c2_endpoint_extraction"]["status"] == "completed"
+    assert phases["c2_protocol_analysis"]["status"] == "blocked"
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    (
+        "family_unresolved",
+        "family_mismatch",
+        "known_hash_only",
+        "network_gate_missing",
+        "network_contacted",
+        "malformed_evidence_basis",
+        "raw_literal_only",
+        "route_only_provenance",
+        "endpoint_not_in_handler_result",
+    ),
+)
+def test_orchestration_projection_remains_fail_closed(tamper: str) -> None:
+    """解決・gate・lineage・構造化相関のどれかが欠ければ候補のまま保つ。"""
+
+    orchestration = copy.deepcopy(_validated_orchestration_endpoint())
+    endpoint = orchestration["outputs"]["qualified_network_endpoints"][0]
+    if tamper == "family_unresolved":
+        orchestration["family_resolution"]["status"] = "unresolved"
+        orchestration["family_resolution"]["family"] = None
+    elif tamper == "family_mismatch":
+        orchestration["family_resolution"]["family"] = "other"
+    elif tamper == "known_hash_only":
+        orchestration["family_resolution"]["source"] = "known_hash"
+    elif tamper == "network_gate_missing":
+        orchestration["quality_gates"]["network"].update(
+            {"satisfied": False, "status": "required_missing"}
+        )
+        orchestration["blockers"].append("network")
+    elif tamper == "network_contacted":
+        orchestration["automation"]["network_contacted"] = True
+    elif tamper == "malformed_evidence_basis":
+        endpoint["evidence_basis"] = [{}]
+    elif tamper == "raw_literal_only":
+        endpoint["provenance"][0]["evidence_path"] = "c2.0"
+    elif tamper == "route_only_provenance":
+        endpoint["provenance"][0]["source"] = "route_candidate_projection"
+    elif tamper == "endpoint_not_in_handler_result":
+        endpoint["host"] = "other.example"
+
+    artifact = _artifact(
+        {
+            "static_config_recovered": True,
+            "config": {
+                "static_config_recovered": True,
+                "endpoints": ["c2.example:443"],
+            },
+        }
+    )
+    patterns, contract = case_automation.build_case_automation_artifacts(
+        sha256=DIGEST,
+        family="fixture",
+        layer_report={"counts": {"recovered_layers": 0}},
+        handler_results=[(_execution(), artifact)],
+        orchestration=orchestration,
+    )
+
+    assert patterns["status"] == "candidate_patterns_only"
+    assert patterns["communication"]["confirmed_static_c2_endpoints"] == []
+    assert len(patterns["communication"]["candidate_patterns"]) == 1
+    assert contract["c2"]["endpoints"] == []
 
 
 def test_case_automation_is_explicit_when_no_config_was_recovered() -> None:

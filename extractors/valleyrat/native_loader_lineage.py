@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import struct
+from bisect import bisect_right
 from collections import deque
 from dataclasses import dataclass, field
 from itertools import pairwise
@@ -32,6 +33,7 @@ from capstone.x86 import (
     X86_REG_INVALID,
     X86_REG_RIP,
 )
+
 from extractors.valleyrat.run_dll_native_core import (
     probe_run_dll_native_core_config,
 )
@@ -44,6 +46,14 @@ MAXIMUM_COMPONENT_SIZE = 16 * 1024 * 1024
 MAXIMUM_RESOURCE_LEAVES = 128
 MAXIMUM_FUNCTIONS = 8_192
 MAXIMUM_INSTRUCTIONS = 250_000
+# AMD64 exception directory全体は軽量rangeとして検証する一方、detail付き
+# Capstone objectはentryから到達した範囲だけに限定する。これらはworkerの
+# 512 MiB containmentより十分低い決定的上限であり、超過時はroute-onlyへ閉じる。
+MAXIMUM_REACHABLE_FUNCTIONS = 512
+MAXIMUM_REACHABLE_INSTRUCTIONS = 32_768
+MAXIMUM_REACHABLE_CODE_BYTES = 4 * 1024 * 1024
+MAXIMUM_RUNTIME_FUNCTION_BYTES = 256 * 1024
+MAXIMUM_RUNTIME_FRAGMENT_SPAN = 0x1000
 MAXIMUM_LINEAGE_DEPTH = 4
 MAXIMUM_RECOVERED_COMPONENTS = 32
 MAXIMUM_FOLLOW_ON_COMPONENTS = 8
@@ -149,6 +159,15 @@ class _Function:
 
 
 @dataclass(frozen=True)
+class _RuntimeRange:
+    """file-backed AMD64 runtime functionの軽量index record。"""
+
+    start: int
+    end: int
+    offset: int
+
+
+@dataclass(frozen=True)
 class _ResourceLeaf:
     type_key: tuple[str, int | str]
     data: bytes
@@ -162,6 +181,7 @@ class _PeContext:
     is_x64: bool
     imports: dict[int, str]
     functions: tuple[_Function, ...]
+    function_starts: tuple[int, ...]
     reachable_functions: frozenset[int]
     resources: tuple[_ResourceLeaf, ...]
 
@@ -525,8 +545,11 @@ def _resource_leaves(image: pefile.PE, data: bytes) -> tuple[_ResourceLeaf, ...]
 
 
 def _function_for_address(context: _PeContext, address: int) -> _Function | None:
-    matches = [item for item in context.functions if item.start <= address < item.end]
-    return matches[0] if len(matches) == 1 else None
+    index = bisect_right(context.function_starts, address) - 1
+    if index < 0:
+        return None
+    function = context.functions[index]
+    return function if function.start <= address < function.end else None
 
 
 def _direct_targets(function: _Function) -> set[int]:
@@ -541,85 +564,256 @@ def _direct_targets(function: _Function) -> set[int]:
     return result
 
 
-def _merge_runtime_fragments(fragments: list[_Function]) -> list[_Function]:
-    """unwind用に分割された同一CFGのruntime function断片を結合する。"""
+def _runtime_range_index(
+    ranges: tuple[_RuntimeRange, ...],
+    starts: tuple[int, ...],
+    address: int,
+) -> int | None:
+    """非重複rangeを二分探索し、一意に含むindexだけを返す。"""
 
-    parent = list(range(len(fragments)))
+    index = bisect_right(starts, address) - 1
+    if index < 0:
+        return None
+    item = ranges[index]
+    return index if item.start <= address < item.end else None
 
-    def root(index: int) -> int:
-        while parent[index] != index:
-            parent[index] = parent[parent[index]]
-            index = parent[index]
-        return index
 
-    def union(left: int, right: int) -> None:
-        left_root = root(left)
-        right_root = root(right)
-        if left_root != right_root:
-            parent[right_root] = left_root
+class _RuntimeAnalysisIncomplete(RuntimeError):
+    """静的解析の不整合または決定的budget超過をroute-onlyへ閉じる。"""
 
-    def containing(address: int) -> int | None:
-        matches = [
-            index
-            for index, item in enumerate(fragments)
-            if item.start <= address < item.end
-        ]
-        return matches[0] if len(matches) == 1 else None
 
-    by_start = {item.start: index for index, item in enumerate(fragments)}
-    for index, fragment in enumerate(fragments):
+def _reachable_runtime_functions(
+    *,
+    data: bytes,
+    image: pefile.PE,
+    image_base: int,
+    entry: int,
+    imports: dict[int, str],
+    resources: tuple[_ResourceLeaf, ...],
+    ranges: tuple[_RuntimeRange, ...],
+    decoder: Cs,
+) -> tuple[tuple[_Function, ...], tuple[int, ...], frozenset[int]] | None:
+    """entryから必要なruntime rangeだけをdecodeし、上限超過時は失敗する。"""
+
+    range_starts = tuple(item.start for item in ranges)
+    entry_index = _runtime_range_index(ranges, range_starts, entry)
+    if entry_index is None:
+        return None
+
+    fragment_cache: dict[int, _Function] = {}
+    range_owner: dict[int, int] = {}
+    functions_by_start: dict[int, _Function] = {}
+    decoded_code_bytes = 0
+    retained_instructions = 0
+    decoded_ranges = 0
+
+    def decode_fragment(index: int) -> _Function:
+        nonlocal decoded_code_bytes, decoded_ranges, retained_instructions
+        cached = fragment_cache.get(index)
+        if cached is not None:
+            return cached
+        item = ranges[index]
+        size = item.end - item.start
+        if (
+            not 1 <= size <= MAXIMUM_RUNTIME_FUNCTION_BYTES
+            or decoded_ranges >= MAXIMUM_REACHABLE_FUNCTIONS
+            or decoded_code_bytes + size > MAXIMUM_REACHABLE_CODE_BYTES
+        ):
+            raise _RuntimeAnalysisIncomplete
+        instructions: list[object] = []
+        expected_address = item.start
+        try:
+            for instruction in decoder.disasm(
+                data[item.offset : item.offset + size], item.start
+            ):
+                address = getattr(instruction, "address", None)
+                instruction_size = getattr(instruction, "size", None)
+                if (
+                    isinstance(address, bool)
+                    or not isinstance(address, int)
+                    or isinstance(instruction_size, bool)
+                    or not isinstance(instruction_size, int)
+                    or address != expected_address
+                    or instruction_size <= 0
+                    or address + instruction_size > item.end
+                    or len(instructions) + retained_instructions
+                    >= min(
+                        MAXIMUM_INSTRUCTIONS,
+                        MAXIMUM_REACHABLE_INSTRUCTIONS,
+                    )
+                ):
+                    raise _RuntimeAnalysisIncomplete
+                instructions.append(instruction)
+                expected_address = address + instruction_size
+        except (CsError, MemoryError, TypeError, ValueError, OverflowError) as exc:
+            raise _RuntimeAnalysisIncomplete from exc
+        # Capstoneは不正byteで例外を出さず、その位置で反復を停止する場合がある。
+        # range末尾まで隙間なくdecodeできない断片を保持すると、停止位置より前の
+        # API列だけで完全なloader lineageを誤肯定し得るため、必ずfail closedにする。
+        if not instructions or expected_address != item.end:
+            raise _RuntimeAnalysisIncomplete
+        function = _Function(item.start, item.end, tuple(instructions))
+        fragment_cache[index] = function
+        decoded_ranges += 1
+        decoded_code_bytes += size
+        retained_instructions += len(instructions)
+        return function
+
+    def fragment_targets(index: int, fragment: _Function) -> set[int]:
+        targets: set[int] = set()
         for instruction in fragment.instructions:
             if (
                 instruction.group(CS_GRP_JUMP)
                 and instruction.operands
                 and instruction.operands[0].type == X86_OP_IMM
             ):
-                target = containing(int(instruction.operands[0].imm))
-                if target is not None:
-                    low = min(fragment.start, fragments[target].start)
-                    high = max(fragment.end, fragments[target].end)
-                    has_intervening_function = any(
-                        other not in {index, target}
-                        and low < candidate.start
-                        and candidate.end < high
-                        for other, candidate in enumerate(fragments)
-                    )
-                else:
-                    has_intervening_function = True
+                target = _runtime_range_index(
+                    ranges,
+                    range_starts,
+                    int(instruction.operands[0].imm) & 0xFFFFFFFFFFFFFFFF,
+                )
                 if (
                     target is not None
-                    and high - low <= 0x1000
-                    and not has_intervening_function
+                    and target != index
+                    and abs(target - index) == 1
+                    and (
+                        ranges[index].end == ranges[target].start
+                        or ranges[target].end == ranges[index].start
+                    )
+                    and max(ranges[index].end, ranges[target].end)
+                    - min(ranges[index].start, ranges[target].start)
+                    <= MAXIMUM_RUNTIME_FRAGMENT_SPAN
                 ):
-                    union(index, target)
+                    targets.add(target)
         final = fragment.instructions[-1]
-        following = by_start.get(fragment.end)
+        following = index + 1
         if (
-            following is not None
+            following < len(ranges)
+            and ranges[following].start == ranges[index].end
+            and ranges[following].end - ranges[index].start
+            <= MAXIMUM_RUNTIME_FRAGMENT_SPAN
             and not final.group(CS_GRP_RET)
             and not (
                 final.group(CS_GRP_JUMP)
                 and final.mnemonic.casefold() in {"jmp", "ljmp"}
             )
         ):
-            union(index, following)
-    groups: dict[int, list[_Function]] = {}
-    for index, fragment in enumerate(fragments):
-        groups.setdefault(root(index), []).append(fragment)
-    merged: list[_Function] = []
-    for members in groups.values():
-        members.sort(key=lambda item: item.start)
-        instructions = tuple(
-            instruction for member in members for instruction in member.instructions
-        )
-        merged.append(
-            _Function(
-                min(item.start for item in members),
-                max(item.end for item in members),
-                tuple(sorted(instructions, key=lambda item: item.address)),
+            targets.add(following)
+        return targets
+
+    def decode_function(seed: int) -> _Function:
+        existing = range_owner.get(seed)
+        if existing is not None:
+            return functions_by_start[existing]
+        members: set[int] = set()
+        pending_fragments = deque([seed])
+        while pending_fragments:
+            index = pending_fragments.popleft()
+            owner = range_owner.get(index)
+            if owner is not None:
+                # 別の入口から一部だけ重なる関数は境界が曖昧なので肯定しない。
+                raise _RuntimeAnalysisIncomplete
+            if index in members:
+                continue
+            members.add(index)
+            fragment = decode_fragment(index)
+            pending_fragments.extend(
+                target
+                for target in sorted(fragment_targets(index, fragment))
+                if target not in members
             )
+        ordered = sorted(members)
+        member_functions = [fragment_cache[index] for index in ordered]
+        merged = _Function(
+            min(item.start for item in member_functions),
+            max(item.end for item in member_functions),
+            tuple(
+                sorted(
+                    (
+                        instruction
+                        for item in member_functions
+                        for instruction in item.instructions
+                    ),
+                    key=lambda instruction: instruction.address,
+                )
+            ),
         )
-    return sorted(merged, key=lambda item: item.start)
+        if merged.start in functions_by_start:
+            raise _RuntimeAnalysisIncomplete
+        functions_by_start[merged.start] = merged
+        for index in members:
+            range_owner[index] = merged.start
+        return merged
+
+    try:
+        reachable: set[int] = set()
+        pending = deque([entry_index])
+        while pending:
+            function = decode_function(pending.popleft())
+            if function.start in reachable:
+                continue
+            if len(reachable) >= MAXIMUM_REACHABLE_FUNCTIONS:
+                raise _RuntimeAnalysisIncomplete
+            reachable.add(function.start)
+            for target in sorted(_direct_targets(function)):
+                target_index = _runtime_range_index(ranges, range_starts, target)
+                if target_index is not None:
+                    pending.append(target_index)
+
+        # EnumResourceNames callbackはdirect call edgeではない。到達済み列挙関数で
+        # code-derived callback pointerを確認できた範囲だけ追加decodeする。
+        if resources and set(imports.values()) & {
+            "enumresourcenamesa",
+            "enumresourcenamesw",
+        }:
+            ordered = tuple(
+                sorted(functions_by_start.values(), key=lambda item: item.start)
+            )
+            temporary = _PeContext(
+                data,
+                image,
+                image_base,
+                True,
+                imports,
+                ordered,
+                tuple(item.start for item in ordered),
+                frozenset(reachable),
+                resources,
+            )
+            callback_indices: set[int] = set()
+            for start in sorted(reachable):
+                trace = _trace_function(temporary, functions_by_start[start])
+                for call in trace.calls:
+                    if call.name not in {
+                        "enumresourcenamesa",
+                        "enumresourcenamesw",
+                    }:
+                        continue
+                    callback = _pointer_va(call.arguments[2])
+                    if callback is None:
+                        continue
+                    callback_index = _runtime_range_index(
+                        ranges, range_starts, callback
+                    )
+                    if callback_index is not None:
+                        callback_indices.add(callback_index)
+            for callback_index in sorted(callback_indices):
+                decode_function(callback_index)
+    except (
+        _RuntimeAnalysisIncomplete,
+        AttributeError,
+        IndexError,
+        TypeError,
+        ValueError,
+        OverflowError,
+    ):
+        return None
+
+    functions = tuple(sorted(functions_by_start.values(), key=lambda item: item.start))
+    starts = tuple(item.start for item in functions)
+    if any(left.end > right.start for left, right in pairwise(functions)):
+        return None
+    return functions, starts, frozenset(reachable)
 
 
 def _load_context(data: bytes) -> _PeContext | None:
@@ -672,7 +866,7 @@ def _load_context(data: bytes) -> _PeContext | None:
     if resources is None:
         return None
     route_context = _PeContext(
-        data, image, image_base, is_x64, imports, (), frozenset(), resources
+        data, image, image_base, is_x64, imports, (), (), frozenset(), resources
     )
     if not is_x64:
         return route_context
@@ -698,8 +892,7 @@ def _load_context(data: bytes) -> _PeContext | None:
         decoder.detail = True
     except CsError:
         return route_context
-    functions: list[_Function] = []
-    total_instructions = 0
+    ranges: list[_RuntimeRange] = []
     for runtime in runtime_functions:
         try:
             start_rva = int(runtime.struct.BeginAddress)
@@ -712,48 +905,40 @@ def _load_context(data: bytes) -> _PeContext | None:
             offset = int(image.get_offset_from_rva(start_rva))
         except (pefile.PEFormatError, TypeError, ValueError, OverflowError):
             return route_context
-        instructions = tuple(
-            decoder.disasm(
-                data[offset : offset + end_rva - start_rva], image_base + start_rva
+        if not 0 <= offset <= len(data) - (end_rva - start_rva):
+            return route_context
+        ranges.append(
+            _RuntimeRange(
+                image_base + start_rva,
+                image_base + end_rva,
+                offset,
             )
         )
-        total_instructions += len(instructions)
-        if not instructions or total_instructions > MAXIMUM_INSTRUCTIONS:
-            return route_context
-        functions.append(
-            _Function(image_base + start_rva, image_base + end_rva, instructions)
-        )
-    functions.sort(key=lambda item: item.start)
-    if any(left.end > right.start for left, right in pairwise(functions)):
+    ranges.sort(key=lambda item: item.start)
+    if any(left.end > right.start for left, right in pairwise(ranges)):
         return route_context
-    functions = _merge_runtime_fragments(functions)
-    temporary = _PeContext(
-        data, image, image_base, True, imports, tuple(functions), frozenset(), resources
+    decoded = _reachable_runtime_functions(
+        data=data,
+        image=image,
+        image_base=image_base,
+        entry=entry,
+        imports=imports,
+        resources=resources,
+        ranges=tuple(ranges),
+        decoder=decoder,
     )
-    entry_function = _function_for_address(temporary, entry)
-    if entry_function is None:
+    if decoded is None:
         return route_context
-    reachable: set[int] = set()
-    pending = deque([entry_function.start])
-    by_start = {item.start: item for item in functions}
-    while pending and len(reachable) <= MAXIMUM_FUNCTIONS:
-        current = pending.popleft()
-        if current in reachable:
-            continue
-        reachable.add(current)
-        function = by_start[current]
-        for target in _direct_targets(function):
-            callee = _function_for_address(temporary, target)
-            if callee is not None and callee.start not in reachable:
-                pending.append(callee.start)
+    functions, function_starts, reachable = decoded
     return _PeContext(
         data,
         image,
         image_base,
         True,
         imports,
-        tuple(functions),
-        frozenset(reachable),
+        functions,
+        function_starts,
+        reachable,
         resources,
     )
 
@@ -1311,9 +1496,7 @@ def _run_dll_terminal_proof(probe: object) -> TerminalComponentProof | None:
         return None
     evidence = probe.get("evidence")
     lineage = (
-        evidence.get("run_dll_terminal_lineage")
-        if isinstance(evidence, dict)
-        else None
+        evidence.get("run_dll_terminal_lineage") if isinstance(evidence, dict) else None
     )
     proof = lineage.get("proof") if isinstance(lineage, dict) else None
     protocol = (
@@ -1488,6 +1671,7 @@ def analyze_native_loader_lineage(
         and ambiguous_stage_count == 0
         and not queue
         and not lineage_depth_exhausted
+        and follow_on_candidate_set_complete
     )
     selected = next(iter(unique_terminals.values())) if confirmed else None
     matched = bool(cluster is not None or matched_stage_count)
@@ -1545,9 +1729,7 @@ def analyze_native_loader_lineage(
         "loader_stage_count": matched_stage_count,
         "recovered_component_count": recovered_component_count,
         "follow_on_component_count": (
-            len(follow_on_components)
-            if follow_on_candidate_set_complete
-            else 0
+            len(follow_on_components) if follow_on_candidate_set_complete else 0
         ),
         "follow_on_candidate_set_complete": follow_on_candidate_set_complete,
         "follow_on_components_truncated": not follow_on_candidate_set_complete,
@@ -1575,8 +1757,7 @@ def analyze_native_loader_lineage(
             tuple(
                 component
                 for identity, component in follow_on_components.items()
-                if selected is None
-                or identity != hashlib.sha256(selected[0]).digest()
+                if selected is None or identity != hashlib.sha256(selected[0]).digest()
             )
             if follow_on_candidate_set_complete
             else ()

@@ -200,6 +200,7 @@ def write_summary(
             "maximum_total_bytes": runner.MAX_FOLLOW_ON_TOTAL_BYTES,
             "maximum_payload_size": runner.MAX_FOLLOW_ON_PAYLOAD_SIZE,
             "maximum_wall_seconds": runner.MAX_FOLLOW_ON_WALL_SECONDS,
+            "effective_wall_seconds": runner.FOLLOW_ON_BASE_WALL_SECONDS,
             "maximum_child_seconds": runner.MAX_FOLLOW_ON_CHILD_SECONDS,
             "maximum_omitted_metadata": runner.MAX_FOLLOW_ON_OMITTED_METADATA,
         },
@@ -504,6 +505,10 @@ def test_derived_summary_is_validated_separately(
             "maximum_total_bytes": runner.MAX_FOLLOW_ON_TOTAL_BYTES,
             "maximum_payload_size": runner.MAX_FOLLOW_ON_PAYLOAD_SIZE,
             "maximum_wall_seconds": runner.MAX_FOLLOW_ON_WALL_SECONDS,
+            "effective_wall_seconds": (
+                runner.FOLLOW_ON_BASE_WALL_SECONDS
+                + runner.FOLLOW_ON_PER_QUEUED_CHILD_WALL_SECONDS
+            ),
             "maximum_child_seconds": runner.MAX_FOLLOW_ON_CHILD_SECONDS,
             "maximum_omitted_metadata": runner.MAX_FOLLOW_ON_OMITTED_METADATA,
         },
@@ -2055,6 +2060,7 @@ def test_build_argv_uses_only_allowlisted_static_options(tmp_path: Path) -> None
     assert "--assessment-only" in argv
     assert "--force-container-probe" in argv
     assert "--retry-max-static-layers" in argv
+    assert "--discover-standard-sevenzip" not in argv
     assert not any("network" in item or "live" in item or "jarm" in item for item in argv)
 
 
@@ -2094,6 +2100,7 @@ def test_trusted_tool_manifest_is_pinned_snapshotted_and_forwarded(
     assert forwarded_7zz == bundle.tools["sevenzip"].path
     assert forwarded_innounp == bundle.tools["innounp"].path
     assert forwarded_upx != source.resolve()
+    assert "--discover-standard-sevenzip" not in argv
     assert "--diec" not in argv
     manifest_text = bundle.manifest_path.read_text(encoding="utf-8")
     assert str(source.resolve()) not in manifest_text
@@ -3430,6 +3437,95 @@ def test_nonaccepted_exit_code_is_a_terminal_failure(tmp_path: Path) -> None:
     assert exit_code == 1
     assert result["error"]["code"] == "analyzer_exit_nonzero"
     assert result["process"]["exit_code"] == 9
+    assert result["analysis_failure_artifacts"] == {
+        "status": "unavailable",
+        "run_status": "fatal",
+        "reason_code": "diagnostic_unavailable",
+        "final_summary": False,
+        "analysis_run_outcome": None,
+        "analysis_run_outcome_sha256": None,
+        "partial_summary": None,
+        "partial_summary_sha256": None,
+    }
+
+
+def test_nonzero_exit_binds_verified_analyzer_failure_artifacts(
+    tmp_path: Path,
+) -> None:
+    """analyzerのfatal成果物をgeneric非zero結果で捨てず、hash参照へ束縛する。"""
+
+    import analyze_sample as analyzer
+
+    input_root, jobs_root = make_roots(tmp_path)
+    request = runner.validate_request_object(request_value("job-fatal-artifact"))
+    analysis = jobs_root / "job-fatal-artifact" / "analysis"
+
+    def fake_run(*_: Any, **__: Any) -> SimpleNamespace:
+        assert analyzer._publish_direct_cli_failure(
+            analysis,
+            status="fatal",
+            stage="analysis_execution",
+            reason_code="invalid_analysis_state",
+            worker_returncode=None,
+        )
+        return SimpleNamespace(returncode=2, stdout=b"", stderr=b"")
+
+    assert runner._run_job_for_test(
+        request,
+        input_root=input_root,
+        jobs_root=jobs_root,
+        timeout_seconds=60,
+        run_process=fake_run,
+    ) == 1
+
+    job_dir = jobs_root / "job-fatal-artifact"
+    result = load_json(job_dir / "result.json")
+    diagnostics = result["analysis_failure_artifacts"]
+    assert diagnostics["status"] == "available"
+    assert diagnostics["run_status"] == "fatal"
+    assert diagnostics["reason_code"] == "invalid_analysis_state"
+    assert diagnostics["final_summary"] is False
+    outcome_path = job_dir / diagnostics["analysis_run_outcome"]
+    partial_path = job_dir / diagnostics["partial_summary"]
+    assert diagnostics["analysis_run_outcome_sha256"] == hashlib.sha256(
+        outcome_path.read_bytes()
+    ).hexdigest()
+    assert diagnostics["partial_summary_sha256"] == hashlib.sha256(
+        partial_path.read_bytes()
+    ).hexdigest()
+    assert runner.read_job_snapshot(jobs_root, request.job_id)["result"] == result
+
+
+def test_nonzero_exit_rejects_invalid_analyzer_failure_artifact(
+    tmp_path: Path,
+) -> None:
+    """非zero時の未封印outcomeを参照せず、固定のunavailableへ縮退する。"""
+
+    input_root, jobs_root = make_roots(tmp_path)
+    request = runner.validate_request_object(request_value("job-invalid-fatal"))
+    analysis = jobs_root / "job-invalid-fatal" / "analysis"
+
+    def fake_run(*_: Any, **__: Any) -> SimpleNamespace:
+        (analysis / "analysis-run-outcome.json").write_text(
+            "{}\n",
+            encoding="utf-8",
+        )
+        return SimpleNamespace(returncode=2, stdout=b"", stderr=b"")
+
+    assert runner._run_job_for_test(
+        request,
+        input_root=input_root,
+        jobs_root=jobs_root,
+        timeout_seconds=60,
+        run_process=fake_run,
+    ) == 1
+    result = load_json(jobs_root / request.job_id / "result.json")
+    diagnostics = result["analysis_failure_artifacts"]
+    assert diagnostics["status"] == "unavailable"
+    assert diagnostics["run_status"] == "fatal"
+    assert diagnostics["reason_code"] == "diagnostic_unavailable"
+    assert diagnostics["analysis_run_outcome"] is None
+    assert runner.read_job_snapshot(jobs_root, request.job_id)["result"] == result
 
 
 def test_analysis_output_reference_closure_rejects_unreferenced_file(
@@ -3511,7 +3607,33 @@ def test_timeout_is_recorded_without_retry(tmp_path: Path) -> None:
     assert exit_code == 124
     assert result["analysis_state"] == "timed_out"
     assert result["error"]["code"] == "analyzer_timeout"
-    assert not (jobs_root / "job-timeout" / "analysis" / ".private-temp").exists()
+    job_dir = jobs_root / "job-timeout"
+    analysis = job_dir / "analysis"
+    diagnostics = result["analysis_failure_artifacts"]
+    assert diagnostics["status"] == "available"
+    assert diagnostics["run_status"] == "timeout"
+    assert diagnostics["reason_code"] == "wall_clock_limit_reached"
+    assert diagnostics["final_summary"] is False
+    outcome_path = job_dir / diagnostics["analysis_run_outcome"]
+    partial_path = job_dir / diagnostics["partial_summary"]
+    assert diagnostics["analysis_run_outcome_sha256"] == hashlib.sha256(
+        outcome_path.read_bytes()
+    ).hexdigest()
+    assert diagnostics["partial_summary_sha256"] == hashlib.sha256(
+        partial_path.read_bytes()
+    ).hexdigest()
+    outcome = load_json(outcome_path)
+    partial = load_json(partial_path)
+    assert outcome["status"] == "timeout"
+    assert outcome["stage"] == "job_runner"
+    assert outcome["reason_code"] == "wall_clock_limit_reached"
+    assert outcome["analyzer_exit_code"] is None
+    assert outcome["runner_exit_code"] == 124
+    assert partial["final_summary"] is False
+    assert partial["eligible_for_completion_evaluation"] is False
+    assert partial["case_membership"] == "unattributed_existing_output_evidence"
+    assert runner.read_job_snapshot(jobs_root, "job-timeout")["result"] == result
+    assert not (analysis / ".private-temp").exists()
 
 
 def test_existing_job_id_is_never_reused(tmp_path: Path) -> None:

@@ -36,6 +36,7 @@ from analysis_contract import (
     ensure_no_reparse_components,
     ensure_tree_without_reparse,
     resolve_case_artifact,
+    verify_report_semantics,
 )
 from bounded_process import TERMINATION_WAIT_SECONDS, ProcessContainment, run_bounded
 from follow_on_commitment import canonical_multiset_commitment
@@ -72,8 +73,13 @@ MAX_FOLLOW_ON_EDGES = 128
 MAX_FOLLOW_ON_DEPTH = 4
 MAX_FOLLOW_ON_TOTAL_BYTES = 256 * 1024 * 1024
 MAX_FOLLOW_ON_PAYLOAD_SIZE = 128 * 1024 * 1024
-MAX_FOLLOW_ON_WALL_SECONDS = 300
+FOLLOW_ON_BASE_WALL_SECONDS = 300
 MAX_FOLLOW_ON_CHILD_SECONDS = 120
+FOLLOW_ON_PER_QUEUED_CHILD_WALL_SECONDS = MAX_FOLLOW_ON_CHILD_SECONDS
+MAX_FOLLOW_ON_WALL_SECONDS = (
+    FOLLOW_ON_BASE_WALL_SECONDS
+    + MAX_FOLLOW_ON_ARTIFACTS * FOLLOW_ON_PER_QUEUED_CHILD_WALL_SECONDS
+)
 MAX_FOLLOW_ON_OMITTED_METADATA = 4_096
 MAX_FAMILY_HINTS_PER_SAMPLE = 16
 MAX_FAMILY_HINT_LINEAGE_DEPTH = 64
@@ -98,6 +104,7 @@ MAX_INPUT_MANIFEST_ACTIVE_PROCESSES = 4
 MAX_INPUT_MANIFEST_MEMORY_BYTES = 1024 * 1024 * 1024
 MAX_INPUT_MANIFEST_RESPONSE_BYTES = 4 * 1024 * 1024
 MAX_ANALYSIS_CONTRACT_BUNDLE_BYTES = 16 * 1024 * 1024
+MAX_ANALYSIS_FAILURE_DIAGNOSTIC_BYTES = 4 * 1024 * 1024
 MAX_INPUT_SNAPSHOT_MANIFEST_BYTES = 16 * 1024 * 1024
 MAX_TRUSTED_TOOL_MANIFEST_BYTES = 1024 * 1024
 MAX_TRUSTED_TOOL_BINARY_BYTES = 128 * 1024 * 1024
@@ -3868,7 +3875,12 @@ def _validated_follow_on_artifact(
         "maximum_child_seconds": MAX_FOLLOW_ON_CHILD_SECONDS,
         "maximum_omitted_metadata": MAX_FOLLOW_ON_OMITTED_METADATA,
     }
-    if contract_required and document.get("limits") != expected_limits:
+    supplied_limits = document.get("limits")
+    if contract_required and (
+        not isinstance(supplied_limits, dict)
+        or set(supplied_limits) != {*expected_limits, "effective_wall_seconds"}
+        or any(supplied_limits.get(key) != value for key, value in expected_limits.items())
+    ):
         raise JobContractError("summary_invalid", "follow-on hard limitが実装契約と一致しません")
     counter_keys = (
         "queued_artifact_count",
@@ -3890,6 +3902,27 @@ def _validated_follow_on_artifact(
             or document["verified_read_bytes"] > MAX_FOLLOW_ON_TOTAL_BYTES
         ):
             raise JobContractError("summary_invalid", "follow-on実行状態が不正です")
+        effective_wall_seconds = supplied_limits.get("effective_wall_seconds")
+        expected_effective_wall_seconds = min(
+            MAX_FOLLOW_ON_WALL_SECONDS,
+            FOLLOW_ON_BASE_WALL_SECONDS
+            + document["queued_artifact_count"]
+            * FOLLOW_ON_PER_QUEUED_CHILD_WALL_SECONDS,
+        )
+        if (
+            isinstance(effective_wall_seconds, bool)
+            or not isinstance(effective_wall_seconds, int)
+            or effective_wall_seconds != expected_effective_wall_seconds
+        ):
+            raise JobContractError(
+                "summary_invalid",
+                "follow-on実効wall limitがqueue規模と一致しません",
+            )
+    elif contract_required and supplied_limits.get("effective_wall_seconds") != FOLLOW_ON_BASE_WALL_SECONDS:
+        raise JobContractError(
+            "summary_invalid",
+            "非稼働follow-onの実効wall limitが不正です",
+        )
     roots = document.get("roots")
     nodes = document.get("nodes")
     edges = document.get("edges")
@@ -5750,6 +5783,164 @@ def validated_daily_static_bundle(
     )
 
 
+def _unavailable_analysis_failure_artifacts(
+    *,
+    run_status: str,
+    reason_code: str,
+) -> dict[str, Any]:
+    """解析失敗診断を安全に発行できなかった状態を固定schemaで返す。"""
+
+    return {
+        "status": "unavailable",
+        "run_status": run_status,
+        "reason_code": reason_code,
+        "final_summary": False,
+        "analysis_run_outcome": None,
+        "analysis_run_outcome_sha256": None,
+        "partial_summary": None,
+        "partial_summary_sha256": None,
+    }
+
+
+def _collect_job_failure_diagnostics(
+    analysis_output: Path,
+    *,
+    expected_status: str,
+    analyzer_exit_code: int | None,
+    runner_exit_code: int | None,
+    unavailable_reason_code: str,
+) -> dict[str, Any]:
+    """analyzerが発行したfatal／timeout診断を独立検証して参照化する。"""
+
+    unavailable = _unavailable_analysis_failure_artifacts(
+        run_status=expected_status,
+        reason_code=unavailable_reason_code,
+    )
+    try:
+        import analyze_sample as analyzer
+
+        outcome_path = analysis_output / analyzer.DIRECT_CLI_OUTCOME_ARTIFACT
+        outcome_raw, outcome = load_json_object_snapshot(
+            outcome_path,
+            max_bytes=MAX_ANALYSIS_FAILURE_DIAGNOSTIC_BYTES,
+        )
+        partial_reference = outcome.get("partial_summary")
+        reason_code = outcome.get("reason_code")
+        stage = outcome.get("stage")
+        worker_returncode = outcome.get("worker_returncode")
+        if (
+            outcome.get("status") != expected_status
+            or stage not in analyzer.DIRECT_CLI_FAILURE_STAGES
+            or reason_code not in analyzer.DIRECT_CLI_FAILURE_REASONS
+            or outcome.get("analyzer_exit_code") != analyzer_exit_code
+            or outcome.get("runner_exit_code") != runner_exit_code
+            or (
+                worker_returncode is not None
+                and (
+                    type(worker_returncode) is not int
+                    or not -(2**31) <= worker_returncode <= 255
+                )
+            )
+            or outcome.get("executed_sample") is not False
+            or outcome.get("network_contacted") is not False
+            or outcome.get("ai_used") is not False
+            or verify_report_semantics(outcome)
+            or not isinstance(partial_reference, Mapping)
+            or (
+                expected_status == "timeout"
+                and (
+                    stage != "job_runner"
+                    or reason_code != "wall_clock_limit_reached"
+                )
+            )
+            or (expected_status == "fatal" and stage == "job_runner")
+        ):
+            return unavailable
+        outcome_digest = hashlib.sha256(outcome_raw).hexdigest()
+        outcome_result = {
+            "status": "outcome_only",
+            "run_status": expected_status,
+            "reason_code": reason_code,
+            "final_summary": False,
+            "analysis_run_outcome": "analysis/analysis-run-outcome.json",
+            "analysis_run_outcome_sha256": outcome_digest,
+            "partial_summary": None,
+            "partial_summary_sha256": None,
+        }
+        if partial_reference.get("status") == "unavailable":
+            return outcome_result
+        if (
+            partial_reference.get("status") != "available"
+            or partial_reference.get("artifact")
+            != analyzer.DIRECT_CLI_PARTIAL_SUMMARY_ARTIFACT
+            or not isinstance(partial_reference.get("sha256"), str)
+            or re.fullmatch(r"[0-9a-f]{64}", partial_reference["sha256"]) is None
+        ):
+            return unavailable
+        partial_path = analysis_output / analyzer.DIRECT_CLI_PARTIAL_SUMMARY_ARTIFACT
+        partial_raw, partial = load_json_object_snapshot(
+            partial_path,
+            max_bytes=MAX_ANALYSIS_FAILURE_DIAGNOSTIC_BYTES,
+        )
+        partial_digest = hashlib.sha256(partial_raw).hexdigest()
+        if (
+            not hmac.compare_digest(partial_digest, partial_reference["sha256"])
+            or partial.get("run_status") != expected_status
+            or partial.get("reason_code") != reason_code
+            or partial.get("final_summary") is not False
+            or partial.get("eligible_for_completion_evaluation") is not False
+            or partial.get("case_membership")
+            != "unattributed_existing_output_evidence"
+            or partial.get("executed_sample") is not False
+            or partial.get("network_contacted") is not False
+            or partial.get("ai_used") is not False
+            or verify_report_semantics(partial)
+        ):
+            return unavailable
+        return {
+            "status": "available",
+            "run_status": expected_status,
+            "reason_code": reason_code,
+            "final_summary": False,
+            "analysis_run_outcome": "analysis/analysis-run-outcome.json",
+            "analysis_run_outcome_sha256": outcome_digest,
+            "partial_summary": "analysis/partial-summary.json",
+            "partial_summary_sha256": partial_digest,
+        }
+    except Exception:  # noqa: BLE001 - 解析失敗の一次理由を診断検証失敗で隠さない
+        return unavailable
+
+
+def _publish_job_timeout_diagnostics(analysis_output: Path) -> dict[str, Any]:
+    """hard timeout後に共有publisherで非最終診断を発行し、独立検証する。"""
+
+    unavailable = _unavailable_analysis_failure_artifacts(
+        run_status="timeout",
+        reason_code="wall_clock_limit_reached",
+    )
+    try:
+        import analyze_sample as analyzer
+
+        if not analyzer._publish_direct_cli_failure(
+            analysis_output,
+            status="timeout",
+            stage="job_runner",
+            reason_code="wall_clock_limit_reached",
+            worker_returncode=None,
+            runner_exit_code=124,
+        ):
+            return unavailable
+    except Exception:  # noqa: BLE001 - timeoutの一次理由を診断発行失敗で隠さない
+        return unavailable
+    return _collect_job_failure_diagnostics(
+        analysis_output,
+        expected_status="timeout",
+        analyzer_exit_code=None,
+        runner_exit_code=124,
+        unavailable_reason_code="wall_clock_limit_reached",
+    )
+
+
 def _write_failure(
     job_dir: Path,
     request: JobRequest,
@@ -5761,28 +5952,32 @@ def _write_failure(
     state: str = "failed",
     process_exit_code: int | None = None,
     inputs: Sequence[InputRecord] = (),
+    analysis_failure_artifacts: Mapping[str, Any] | None = None,
 ) -> None:
     finished = utc_now()
+    result = {
+        "schema_version": JOB_ARTIFACT_SCHEMA_VERSION,
+        "job_id": request.job_id,
+        "request_sha256": _request_digest(request),
+        "accepted": False,
+        "analysis_state": state,
+        "inputs": [item.public() for item in inputs],
+        "family_hint_manifest": request.family_hint_manifest,
+        "process": {"exit_code": process_exit_code, "shell": False},
+        "safety": {
+            "network_or_live_options_allowed": False,
+            "sample_execution_allowed": False,
+            "ai_used": False,
+            "summary_safety_contract_verified": False,
+        },
+        "error": {"code": code, "message": message},
+        "finished_at_utc": finished,
+    }
+    if analysis_failure_artifacts is not None:
+        result["analysis_failure_artifacts"] = dict(analysis_failure_artifacts)
     atomic_json(
         job_dir / "result.json",
-        {
-            "schema_version": JOB_ARTIFACT_SCHEMA_VERSION,
-            "job_id": request.job_id,
-            "request_sha256": _request_digest(request),
-            "accepted": False,
-            "analysis_state": state,
-            "inputs": [item.public() for item in inputs],
-            "family_hint_manifest": request.family_hint_manifest,
-            "process": {"exit_code": process_exit_code, "shell": False},
-            "safety": {
-                "network_or_live_options_allowed": False,
-                "sample_execution_allowed": False,
-                "ai_used": False,
-                "summary_safety_contract_verified": False,
-            },
-            "error": {"code": code, "message": message},
-            "finished_at_utc": finished,
-        },
+        result,
     )
     _write_progress(job_dir, phase=state, percent=100, message=message)
     _write_status(
@@ -6004,6 +6199,17 @@ def _run_job_impl(
         output_manifest_before = analysis_output_content_manifest(analysis_output)
         output_tree = output_manifest_before["tree"]
         if completed.returncode not in {0, 20}:
+            analysis_failure_artifacts = _collect_job_failure_diagnostics(
+                analysis_output,
+                expected_status="fatal",
+                analyzer_exit_code=(
+                    completed.returncode
+                    if type(completed.returncode) is int
+                    else None
+                ),
+                runner_exit_code=None,
+                unavailable_reason_code="diagnostic_unavailable",
+            )
             _write_failure(
                 job_dir,
                 request,
@@ -6013,6 +6219,7 @@ def _run_job_impl(
                 message="analyze_sample.pyが受理対象外の終了codeを返しました",
                 process_exit_code=completed.returncode,
                 inputs=records,
+                analysis_failure_artifacts=analysis_failure_artifacts,
             )
             return 1
         validated_summary, counts = _validated_summary(
@@ -6128,6 +6335,9 @@ def _run_job_impl(
         stderr, _, _ = _bounded_log(exc.stderr)
         _atomic_bytes(job_dir / "stdout.log", stdout)
         _atomic_bytes(job_dir / "stderr.log", stderr)
+        analysis_failure_artifacts = _publish_job_timeout_diagnostics(
+            analysis_output
+        )
         _write_failure(
             job_dir,
             request,
@@ -6137,6 +6347,7 @@ def _run_job_impl(
             message="静的解析が設定された時間上限へ達しました",
             state="timed_out",
             inputs=records,
+            analysis_failure_artifacts=analysis_failure_artifacts,
         )
         return 124
     except JobContractError as exc:

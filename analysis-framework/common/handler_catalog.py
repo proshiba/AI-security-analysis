@@ -24,7 +24,7 @@ from collections.abc import Callable, Mapping, Sequence
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from dataclasses import asdict, dataclass
 from functools import cache, lru_cache
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import unquote, urlsplit, urlunsplit
 
@@ -95,6 +95,24 @@ MAX_ASSESSMENT_RETAINED_ATTEMPT_DETAILS = 96
 MAX_ASSESSMENT_VERIFIED_OUTPUTS = 4_096
 MAX_ASSESSMENT_DETECTOR_CAMPAIGNS = 256
 MAX_BOUNDED_CAMPAIGN_FALLBACK_LAYERS = 2
+# route-only detectorがこのfamily/campaign構造を一意に識別した場合は、
+# family共通handlerと完全一致campaign handlerだけを実行する。SilverFox型の
+# 多段loaderは専用lineage parserが全証拠を再検証するため、無関係な全campaign
+# wrapperへ同じPEを渡しても検出範囲は増えず、worker予算だけを消費する。
+STRICT_EXACT_ROUTE_ONLY_CAMPAIGNS = frozenset(
+    {
+        ("valleyrat", "silverfox_style_infection_loader"),
+    }
+)
+# 完全なproducer-consumer lineageを静的に証明できない候補復元は、
+# 個別調査用handlerとして保持し、自動routingへ入れない。
+MANUAL_ONLY_CAMPAIGN_HANDLERS = frozenset(
+    {
+        ("valleyrat", "msi_ahk_aes_gcm_terminal"),
+        ("valleyrat", "single_pe_hhstg_resource"),
+        ("valleyrat", "silverfox_webio_stage_acquisition_loader"),
+    }
+)
 MAX_ASSESSMENT_IMPORT_DEPTH = 12
 MAX_ASSESSMENT_IMPORT_FILES = 96
 MAX_ASSESSMENT_SOURCE_FILE_SIZE = 8 * 1024 * 1024
@@ -105,6 +123,9 @@ MAX_VERIFIED_BINARY_OUTPUTS = 64
 MAX_VERIFIED_BINARY_TOTAL_SIZE = 256 * 1024 * 1024
 MAX_HANDLER_WORKER_REQUEST_SIZE = 65_536
 MAX_HANDLER_WORKER_OUTPUT_SIZE = 16 * 1024 * 1024
+MAX_ASSESSMENT_EXECUTION_CACHE_ENTRIES = 512
+MAX_ASSESSMENT_EXECUTION_CACHE_BYTES = 32 * 1024 * 1024
+MAX_ASSESSMENT_EXECUTION_CACHE_ITEM_BYTES = 2 * 1024 * 1024
 MAX_PUBLIC_RESULT_ENTRIES = 4_096
 MAX_PUBLIC_RESULT_TOTAL_STRING_CHARS = 2 * 1024 * 1024
 MAX_PUBLIC_RESULT_TOTAL_BINARY_BYTES = 256 * 1024 * 1024
@@ -177,6 +198,93 @@ class _AssessmentInvariantPreflight:
     commitment_sha256: str
 
 
+class _AssessmentExecutionCache:
+    """同一batch内の副作用なしhandler結果を不変JSONとして再利用する。
+
+    cache keyは呼出側で検証したlayer SHA-256、handlerと全依存sourceの
+    commitment、実行optionだけから構築する。値はmutable objectを共有せず、
+    canonical JSON bytesとして保存してhitごとに新しいobjectへ復元する。
+    """
+
+    def __init__(
+        self,
+        source_identity: str,
+        *,
+        maximum_entries: int = MAX_ASSESSMENT_EXECUTION_CACHE_ENTRIES,
+        maximum_total_bytes: int = MAX_ASSESSMENT_EXECUTION_CACHE_BYTES,
+        maximum_item_bytes: int = MAX_ASSESSMENT_EXECUTION_CACHE_ITEM_BYTES,
+    ) -> None:
+        if not isinstance(source_identity, str) or re.fullmatch(r"[0-9a-f]{64}", source_identity) is None:
+            raise ValueError("handler execution cache source identityが不正です")
+        for supplied, hard_limit, name in (
+            (maximum_entries, MAX_ASSESSMENT_EXECUTION_CACHE_ENTRIES, "maximum_entries"),
+            (maximum_total_bytes, MAX_ASSESSMENT_EXECUTION_CACHE_BYTES, "maximum_total_bytes"),
+            (maximum_item_bytes, MAX_ASSESSMENT_EXECUTION_CACHE_ITEM_BYTES, "maximum_item_bytes"),
+        ):
+            if isinstance(supplied, bool) or not isinstance(supplied, int) or not 1 <= supplied <= hard_limit:
+                raise ValueError(f"{name}が不正です")
+        if maximum_item_bytes > maximum_total_bytes:
+            raise ValueError("maximum_item_bytesがcache総容量を超えています")
+        self.source_identity = source_identity
+        self.maximum_entries = maximum_entries
+        self.maximum_total_bytes = maximum_total_bytes
+        self.maximum_item_bytes = maximum_item_bytes
+        self._entries: dict[tuple[Any, ...], bytes] = {}
+        self._total_bytes = 0
+        self.hit_count = 0
+        self.miss_count = 0
+        self.store_count = 0
+
+    def lookup(self, key: tuple[Any, ...]) -> dict[str, Any] | None:
+        """canonical bytesから独立objectを返し、共有mutable stateを残さない。"""
+
+        payload = self._entries.get(key)
+        if payload is None:
+            self.miss_count += 1
+            return None
+        try:
+            value = json.loads(payload)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            # process内memoryの破損も肯定結果として扱わない。
+            self._entries.pop(key, None)
+            self._total_bytes -= len(payload)
+            self.miss_count += 1
+            return None
+        if not isinstance(value, dict):
+            self._entries.pop(key, None)
+            self._total_bytes -= len(payload)
+            self.miss_count += 1
+            return None
+        self.hit_count += 1
+        return value
+
+    def store(self, key: tuple[Any, ...], value: Mapping[str, Any]) -> bool:
+        """容量内のJSON objectだけを保存し、上限到達時は解析を継続する。"""
+
+        if key in self._entries or len(self._entries) >= self.maximum_entries:
+            return False
+        try:
+            payload = json.dumps(
+                value,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ).encode("utf-8")
+        except (TypeError, ValueError, RecursionError):
+            return False
+        if (
+            not payload
+            or len(payload) > self.maximum_item_bytes
+            or self._total_bytes + len(payload) > self.maximum_total_bytes
+        ):
+            return False
+        self._entries[key] = payload
+        self._total_bytes += len(payload)
+        self.store_count += 1
+        return True
+
+
 _ASSESSMENT_INVARIANT_PREFLIGHT_CACHE: dict[
     HandlerSpec,
     _AssessmentInvariantPreflight,
@@ -227,6 +335,10 @@ class _VerifiedModuleBinding:
 
 class HandlerLoadError(RuntimeError):
     """解析ハンドラーの許可リスト検証または読み込みに失敗した。"""
+
+
+class HandlerWorkerProcessTerminatedError(HandlerLoadError):
+    """containment内workerが応答を残さず非正常終了した。"""
 
 
 class HandlerNoEvidenceError(ValueError):
@@ -513,10 +625,21 @@ def _malware_specs() -> list[HandlerSpec]:
                 automatic = relative_family.parts == ("extract_config.py",) and callable_name == "extract_config"
                 if len(relative_family.parts) >= 3 and relative_family.parts[0] == "campaigns":
                     campaign = relative_family.parts[1]
-                    automatic = supported
+                    automatic = (
+                        supported
+                        and (
+                            family,
+                            campaign,
+                        )
+                        not in MANUAL_ONLY_CAMPAIGN_HANDLERS
+                    )
                 reason = shape_reason
                 if supported and not automatic:
-                    reason = "specialized_handler_requires_manual_or_campaign_selection"
+                    reason = (
+                        "candidate_lineage_requires_manual_evidence_review"
+                        if campaign is not None and (family, campaign) in MANUAL_ONLY_CAMPAIGN_HANDLERS
+                        else "specialized_handler_requires_manual_or_campaign_selection"
+                    )
                 specs.append(
                     HandlerSpec(
                         id=_handler_id(family, path, callable_name),
@@ -1085,6 +1208,8 @@ def _verified_binary_role(path: Sequence[str], parent: Mapping[str, Any] | None)
         "file_name",
         "path",
         "relative_path",
+        "source_name",
+        "analysis_priority",
     }
     if parent is not None and set(parent).issubset(allowed_record_keys):
         leaf = normalized_path[-1] if normalized_path else ""
@@ -1226,20 +1351,38 @@ def _verified_binary_outputs(
             if identity in output_keys:
                 return
             output_keys.add(identity)
-            outputs.append(
-                {
-                    "role": role,
-                    "kind": kind,
-                    "path": output_path,
-                    "sha256": digest,
-                    "size": size,
-                    "verification": {
-                        "status": "artifact_hash_verified",
-                        "sha256_matches": True,
-                        "size_matches": True,
-                    },
-                }
-            )
+            output = {
+                "role": role,
+                "kind": kind,
+                "path": output_path,
+                "sha256": digest,
+                "size": size,
+                "verification": {
+                    "status": "artifact_hash_verified",
+                    "sha256_matches": True,
+                    "size_matches": True,
+                },
+            }
+            if parent is not None and ("source_name" in parent or "analysis_priority" in parent):
+                source_name = parent.get("source_name")
+                priority = parent.get("analysis_priority")
+                expected_name = PurePosixPath(output_path).name
+                if (
+                    not isinstance(source_name, str)
+                    or source_name != expected_name
+                    or len(source_name) > 240
+                    or "/" in source_name
+                    or "\\" in source_name
+                    or any(ord(character) < 0x20 or ord(character) == 0x7F for character in source_name)
+                    or isinstance(priority, bool)
+                    or not isinstance(priority, int)
+                    or not 0 <= priority <= 3
+                ):
+                    reasons.add("invalid_follow_on_analysis_hint")
+                else:
+                    output["source_name"] = source_name
+                    output["analysis_priority"] = priority
+            outputs.append(output)
             if artifact_root is not None:
                 try:
                     _stage_verified_binary(artifact_root, digest, raw)
@@ -1277,7 +1420,14 @@ def _verified_binary_outputs(
                 seen.remove(identity)
 
     visit(raw_result, (), None, 0)
-    outputs.sort(key=lambda item: (item["role"], item["path"], item["sha256"]))
+    outputs.sort(
+        key=lambda item: (
+            int(item.get("analysis_priority", 4)),
+            item["role"],
+            item["path"],
+            item["sha256"],
+        )
+    )
     return outputs, {
         "schema_version": 1,
         "maximum_outputs": MAX_VERIFIED_BINARY_OUTPUTS,
@@ -2538,13 +2688,21 @@ def _retain_worker_outputs(
         artifact_directory, artifact_path_prefix = artifact_destination
         for output in observed[:MAX_VERIFIED_BINARY_OUTPUTS]:
             try:
-                if set(output) != {"role", "kind", "path", "sha256", "size", "verification"}:
+                output_keys = set(output)
+                base_output_keys = {"role", "kind", "path", "sha256", "size", "verification"}
+                extended_output_keys = {*base_output_keys, "source_name", "analysis_priority"}
+                if frozenset(output_keys) not in {
+                    frozenset(base_output_keys),
+                    frozenset(extended_output_keys),
+                }:
                     raise HandlerLoadError("worker artifact metadata schema is invalid")
                 role = output.get("role")
                 kind = output.get("kind")
                 digest = output.get("sha256")
                 size = output.get("size")
                 verification = output.get("verification")
+                source_name = output.get("source_name")
+                analysis_priority = output.get("analysis_priority")
                 if (
                     role not in {"terminal_payload", "final_payload", "recovered_payload"}
                     or kind not in VERIFIED_BINARY_KINDS
@@ -2560,6 +2718,20 @@ def _retain_worker_outputs(
                         "sha256_matches": True,
                         "size_matches": True,
                     }
+                    or (
+                        output_keys == extended_output_keys
+                        and (
+                            not isinstance(source_name, str)
+                            or not source_name
+                            or len(source_name) > 240
+                            or "/" in source_name
+                            or "\\" in source_name
+                            or any(ord(character) < 0x20 or ord(character) == 0x7F for character in source_name)
+                            or isinstance(analysis_priority, bool)
+                            or not isinstance(analysis_priority, int)
+                            or not 0 <= analysis_priority <= 3
+                        )
+                    )
                 ):
                     raise HandlerLoadError("worker artifact metadata is invalid")
                 staged = worker_artifacts / f"{digest}.payload"
@@ -2713,7 +2885,10 @@ def _execute_handler_bounded(
             text=False,
         )
         if completed.returncode != 0:
-            raise HandlerLoadError("handler worker failed")
+            # timeoutはrun_boundedがTimeoutExpiredとして分離する。ここでは
+            # Job Objectのmemory/process制限を含む、応答前の非正常終了だけを
+            # 本文やreturn codeを公開せず安定した型へ正規化する。
+            raise HandlerWorkerProcessTerminatedError("handler worker terminated before producing a response")
         try:
             from analysis_contract import ensure_no_reparse_components
 
@@ -3064,6 +3239,7 @@ _APPROVED_EXTERNAL_CALLS = frozenset(
         "base64.b64decode",
         "base64.b64encode",
         "base64.urlsafe_b64decode",
+        "bisect.bisect_right",
         "binascii.crc32",
         "binascii.unhexlify",
         "capstone.Cs",
@@ -3449,20 +3625,60 @@ _REVIEWED_REPOSITORY_DATA_READS = {
 }
 _REVIEWED_SOURCE_CALLS = {
     (
+        "extractors/valleyrat/msi_ahk_aes_gcm.py",
+        "reachable:_cab_members",
+        "cabarchive.CabArchive",
+    ): "64 MiB以下のOLE streamから一意に選んだmemory内CAB bytesだけを静的展開する",
+    (
+        "extractors/valleyrat/msi_ahk_aes_gcm.py",
+        "reachable:_decrypt_gcm",
+        "cipher.decrypt_and_verify",
+    ): "固定schemaのciphertextと16-byte tagをAES-GCMで認証してmemory内復号する",
+    (
+        "extractors/valleyrat/msi_ahk_aes_gcm.py",
+        "reachable:_function_instructions",
+        "disassembler.disasm",
+    ): "4 MiB以下のraw stage内で指定offsetから最大16 KiBだけをx64として静的decodeする",
+    (
+        "extractors/valleyrat/msi_ahk_aes_gcm.py",
+        "reachable:_main_profile",
+        "disassembler.disasm",
+    ): "4 MiB以下のraw stageのentry 16 byteとmain 64 byteだけをx64として静的decodeする",
+    (
+        "extractors/valleyrat/hhstg_resource.py",
+        "reachable:_decode_runtime_functions",
+        "disassembler.disasm",
+    ): "32 MiB以下のPEで検証済みAMD64 exception範囲だけを合計16 MiB・500,000命令上限で静的decodeする",
+    (
+        "extractors/valleyrat/hhstg_resource.py",
+        "reachable:_decode_shellcode",
+        "disassembler.disasm",
+    ): "4 MiB以下の復号bufferでHHSTG設定markerより前だけを100,000命令上限のx64として静的decodeする",
+    (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:_intraprocedural_cfg",
+        "disassembler.disasm",
+    ): "ZIP memberの実行section内で16 byte以下・1命令ずつ、最大100,000命令のx86 CFGを静的decodeする",
+    (
         "analysis-framework/malware/valleyrat/campaigns/protected_installer_bundle/inno_static.py",
-        "reachable:recover_members",
+        "reachable:_initial_archive_metadata",
         "refinery.lib.inno.archive.InnoArchive",
-    ): "32 MiB以下の入力bytesだけからInno archiveを静的構築する",
+    ): "64 MiB以下の入力bytesだけからInno archiveを静的構築する",
     (
         "analysis-framework/malware/valleyrat/campaigns/protected_installer_bundle/inno_static.py",
         "reachable:recover_members",
+        "refinery.lib.inno.archive.InnoArchive",
+    ): "候補passwordごとに64 MiB以下の入力bytesからInno archiveを静的に再構築する",
+    (
+        "analysis-framework/malware/valleyrat/campaigns/protected_installer_bundle/inno_static.py",
+        "reachable:_initial_archive_metadata",
         "archive.ifps.disassembly",
     ): "Inno archive内のPascalScriptを実行せず文字列定数用に静的disassembleする",
     (
         "analysis-framework/malware/valleyrat/campaigns/protected_installer_bundle/inno_static.py",
         "reachable:recover_members",
         "trial.read_file_and_check",
-    ): "最大32 member・合計64 MiBのInno memberを候補passwordで静的検証する",
+    ): "最大64 member・各64 MiB以下・合計64 MiB以下のInno memberを候補passwordで静的検証する",
     (
         "analysis-framework/malware/clipboard_replacement_dll/extract_config.py",
         "reachable:_pe_import_profile",
@@ -3579,25 +3795,40 @@ _REVIEWED_SOURCE_CALLS = {
         "instruction.reg_name",
     ): "Capstone命令objectから固定register IDの正規名だけを取得する",
     (
-        "extractors/valleyrat/native_loader_lineage.py",
-        "reachable:_merge_runtime_fragments",
-        "groups.setdefault",
-    ): "最大8,192件の検証済みruntime function断片をCFG rootごとにメモリ内集約する",
+        "extractors/valleyrat/direct_native_terminal.py",
+        "reachable:_register_name",
+        "instruction.reg_name",
+    ): "Capstone命令objectから呼出側が渡したregister IDの正規名だけを取得する",
+    (
+        "extractors/valleyrat/direct_native_terminal.py",
+        "reachable:_written_register_names",
+        "instruction.regs_access",
+    ): "Capstone命令objectが報告するregister read/write集合だけを取得する",
+    (
+        "extractors/valleyrat/direct_native_terminal.py",
+        "reachable:_written_register_names",
+        "instruction.reg_name",
+    ): "Capstone命令objectが報告した書込みregister IDだけを正規名へ変換する",
     (
         "extractors/valleyrat/native_loader_lineage.py",
-        "reachable:_load_context",
+        "reachable:_reachable_runtime_functions",
         "collections.deque",
-    ): "最大8,192件のfile-backed runtime function到達性を重複排除して辿るqueueを構築する",
+    ): "entryから最大512件のfile-backed runtime rangeとcallback断片だけを遅延解析するqueueを構築する",
     (
         "extractors/valleyrat/native_loader_lineage.py",
-        "reachable:_load_context",
+        "reachable:_reachable_runtime_functions",
         "decoder.disasm",
-    ): "32 MiB以下の入力PEで検証済みruntime function範囲だけを合計250,000命令上限で静的decodeする",
+    ): "32 MiB以下の入力PEで到達済みruntime rangeだけを合計4 MiB・32,768命令上限で静的decodeする",
     (
         "extractors/valleyrat/native_loader_lineage.py",
-        "reachable:_load_context",
+        "reachable:_reachable_runtime_functions",
         "pending.popleft",
-    ): "最大8,192 functionの有界到達性queue先頭だけを取り出す",
+    ): "最大512 runtime functionの有界到達性queue先頭だけを取り出す",
+    (
+        "extractors/valleyrat/native_loader_lineage.py",
+        "reachable:_reachable_runtime_functions",
+        "pending_fragments.popleft",
+    ): "最大512 runtime rangeの有界fragment queue先頭だけを取り出す",
     (
         "extractors/valleyrat/native_loader_lineage.py",
         "reachable:analyze_native_loader_lineage",
@@ -3658,6 +3889,51 @@ _REVIEWED_SOURCE_CALLS = {
         "reachable:_component_layer",
         "decoder.disasm",
     ): "16 MiB以下の復元stageを最大20,000命令まで静的decodeする",
+    (
+        "extractors/valleyrat/silverfox_webio_stage_loader.py",
+        "reachable:_disassemble",
+        "decoder.disasm",
+    ): "64 KiB以下の検証済みx64窓を最大32,768命令まで静的decodeする",
+    (
+        "extractors/valleyrat/silverfox_webio_stage_loader.py",
+        "reachable:_register_name",
+        "instruction.reg_name",
+    ): "Capstone命令objectから呼出側が渡したregister IDの正規名だけを取得する",
+    (
+        "extractors/valleyrat/polygon_dead_drop.py",
+        "reachable:_canonical_register",
+        "instruction.reg_name",
+    ): "Capstone命令objectから構築済みcontract追跡用register名だけを取得する",
+    (
+        "extractors/valleyrat/polygon_dead_drop.py",
+        "reachable:_disassemble",
+        "decoder.disasm",
+    ): "32 MiB以下のx64実行sectionを合計250,000命令上限で静的decodeする",
+    (
+        "extractors/valleyrat/polygon_dead_drop.py",
+        "reachable:_load_pe",
+        "image.close",
+    ): "入力bytesから構築したPE objectをsection数検証失敗時に閉じる局所cleanup",
+    (
+        "extractors/valleyrat/polygon_dead_drop.py",
+        "reachable:_valid_pe",
+        "image.close",
+    ): "入力bytesから構築したPE objectを構造検証後に閉じる局所cleanup",
+    (
+        "extractors/valleyrat/polygon_dead_drop.py",
+        "reachable:_recover_outer",
+        "image.close",
+    ): "入力bytesから構築したPE objectを.cdata抽出後に閉じる局所cleanup",
+    (
+        "extractors/valleyrat/polygon_dead_drop.py",
+        "reachable:_terminal_profile",
+        "image.close",
+    ): "復元済みterminal bytesから構築したPE objectを静的profile解析後に閉じる局所cleanup",
+    (
+        "extractors/valleyrat/polygon_dead_drop.py",
+        "reachable:_terminal_profile",
+        "provider_sources.setdefault",
+    ): "最大3件のPolygon provider host参照元を空の局所dictへ静的集約する",
     (
         "extractors/valleyrat/export_funnel.py",
         "reachable:_bounded_entropy",
@@ -5329,6 +5605,18 @@ def _target_binding_paths(node: ast.AST) -> set[str]:
     return set()
 
 
+def _match_bound_names(pattern: ast.pattern) -> set[str]:
+    """structural pattern matchingが現在scopeへ導入する名前を返す。"""
+
+    names: set[str] = set()
+    for item in ast.walk(pattern):
+        if isinstance(item, (ast.MatchAs, ast.MatchStar)) and item.name:
+            names.add(item.name)
+        elif isinstance(item, ast.MatchMapping) and item.rest:
+            names.add(item.rest)
+    return names
+
+
 def _scope_non_import_bindings(scope: ast.AST) -> set[str]:
     """import自体を除き、scope内で上書きされる名前・属性を列挙する。"""
 
@@ -5373,7 +5661,174 @@ def _scope_non_import_bindings(scope: ast.AST) -> set[str]:
                 result.add(item.name)
         elif isinstance(item, ast.ExceptHandler) and item.name:
             result.add(item.name)
+        elif isinstance(item, ast.Match):
+            for case in item.cases:
+                result.update(_match_bound_names(case.pattern))
+        elif isinstance(item, (ast.Global, ast.Nonlocal)):
+            # 外側scopeの不変性をこのscopeだけでは証明できない。
+            result.update(item.names)
     return result
+
+
+def _receiver_call_binding_is_intact(
+    scope: ast.AST,
+    receiver: str,
+    *,
+    expected_origin: str | None = None,
+    expected_attribute_assignments: tuple[str, ...] = (),
+    expected_receiver_calls: tuple[str, ...] = (),
+    receiver_is_parameter: bool = False,
+) -> bool:
+    """source限定receiverの差替え・escape余地をfail-closedに除く。
+
+    ``receiver.method(...)`` のcall shapeだけでは、直前の属性代入やiteration
+    targetによってmethod自体を差し替えられる。このhelperは通常の代入に加え、
+    comprehension、with/except、match、import、定義、parameter、動的属性変更を含む
+    receiverへの全bindingを列挙し、明示した初期化だけを許可する。さらにreceiverを
+    alias、container、helper、closure、return/yieldへescapeさせる値側参照も拒否し、
+    完全一致したmethod callのreceiver位置だけを許可する。
+    """
+
+    if not isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        return False
+
+    root_parameters = (
+        *scope.args.posonlyargs,
+        *scope.args.args,
+        *scope.args.kwonlyargs,
+        *((scope.args.vararg,) if scope.args.vararg is not None else ()),
+        *((scope.args.kwarg,) if scope.args.kwarg is not None else ()),
+    )
+    receiver_parameters = tuple(item for item in root_parameters if item.arg == receiver)
+    if len(receiver_parameters) != (1 if receiver_is_parameter else 0):
+        return False
+    root_parameter_ids = {id(item) for item in root_parameters}
+
+    allowed_sources = tuple(
+        source
+        for source in (
+            expected_origin,
+            *expected_attribute_assignments,
+        )
+        if source is not None
+    )
+    allowed_statements = {
+        ast.dump(ast.parse(source).body[0], include_attributes=False): source for source in allowed_sources
+    }
+    if len(allowed_statements) != len(allowed_sources):
+        return False
+    observed_allowed = {source: 0 for source in allowed_sources}
+    allowed_calls = {
+        ast.dump(ast.parse(source, mode="eval").body, include_attributes=False): source
+        for source in expected_receiver_calls
+    }
+    if len(allowed_calls) != len(expected_receiver_calls):
+        return False
+    observed_calls = {source: 0 for source in expected_receiver_calls}
+    allowed_receiver_name_ids: set[int] = set()
+    lexical_node_ids = {id(item) for item in _nodes_in_lexical_scope(scope)}
+    nested_lambda_body_ids = {
+        id(candidate)
+        for item in ast.walk(scope)
+        if isinstance(item, ast.Lambda)
+        for candidate in ast.walk(item.body)
+    }
+    lexical_node_ids.difference_update(nested_lambda_body_ids)
+
+    def target_mentions_receiver(target: ast.AST) -> bool:
+        return any(isinstance(item, ast.Name) and item.id == receiver for item in ast.walk(target))
+
+    for item in ast.walk(scope):
+        if isinstance(item, ast.arg) and item.arg == receiver and id(item) not in root_parameter_ids:
+            return False
+
+        targets: tuple[ast.AST, ...] = ()
+        if isinstance(item, ast.Assign):
+            targets = tuple(item.targets)
+        elif isinstance(
+            item,
+            (
+                ast.AnnAssign,
+                ast.AugAssign,
+                ast.NamedExpr,
+                ast.For,
+                ast.AsyncFor,
+                ast.comprehension,
+            ),
+        ):
+            targets = (item.target,)
+        elif isinstance(item, (ast.With, ast.AsyncWith)):
+            targets = tuple(entry.optional_vars for entry in item.items if entry.optional_vars is not None)
+        elif isinstance(item, ast.Delete):
+            targets = tuple(item.targets)
+
+        if targets and any(target_mentions_receiver(target) for target in targets):
+            statement_dump = ast.dump(item, include_attributes=False)
+            allowed_source = allowed_statements.get(statement_dump)
+            if allowed_source is None:
+                return False
+            observed_allowed[allowed_source] += 1
+            allowed_receiver_name_ids.update(
+                id(candidate)
+                for candidate in ast.walk(item)
+                if isinstance(candidate, ast.Name) and candidate.id == receiver
+            )
+
+        if isinstance(item, (ast.Import, ast.ImportFrom)):
+            bound_names = {
+                alias.asname or (alias.name.split(".", 1)[0] if isinstance(item, ast.Import) else alias.name)
+                for alias in item.names
+                if alias.name != "*"
+            }
+            if receiver in bound_names:
+                return False
+        elif isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            if item is not scope and item.name == receiver:
+                return False
+        elif (
+            isinstance(item, ast.ExceptHandler)
+            and item.name == receiver
+            or isinstance(item, ast.Match)
+            and any(receiver in _match_bound_names(case.pattern) for case in item.cases)
+            or isinstance(item, (ast.Global, ast.Nonlocal))
+            and receiver in item.names
+        ):
+            return False
+
+        if isinstance(item, ast.Call):
+            allowed_call_source = allowed_calls.get(ast.dump(item, include_attributes=False))
+            if allowed_call_source is not None:
+                # nested function/class bodyはroot scopeの不変性を証明しないため許可しない。
+                if id(item) not in lexical_node_ids:
+                    return False
+                observed_calls[allowed_call_source] += 1
+                allowed_receiver_name_ids.update(
+                    id(candidate)
+                    for candidate in ast.walk(item.func)
+                    if isinstance(candidate, ast.Name) and candidate.id == receiver
+                )
+            call_name = _ast_call_name(item.func)
+            mutates_receiver = bool(
+                call_name in {"setattr", "delattr", "object.__setattr__", "object.__delattr__"}
+                and item.args
+                and isinstance(item.args[0], ast.Name)
+                and item.args[0].id == receiver
+            )
+            receiver_namespace_mutation = bool(
+                call_name
+                and call_name.startswith(f"{receiver}.__dict__.")
+                and call_name.rsplit(".", 1)[-1] in {"clear", "pop", "popitem", "setdefault", "update"}
+            )
+            if mutates_receiver or receiver_namespace_mutation:
+                return False
+
+    if not all(count == 1 for count in (*observed_allowed.values(), *observed_calls.values())):
+        return False
+    return all(
+        id(item) in allowed_receiver_name_ids
+        for item in ast.walk(scope)
+        if isinstance(item, ast.Name) and item.id == receiver
+    )
 
 
 def _expression_binding_is_intact(
@@ -6083,6 +6538,165 @@ def _approved_export_funnel_decode(
     )
 
 
+def _approved_zip_sideload_cfg_decode(
+    node: ast.Call,
+    tree: ast.Module,
+    scope: ast.AST,
+) -> bool:
+    """ZIP side-load CFGの有界な1命令Capstone callだけを許可する。"""
+
+    if not (
+        isinstance(scope, ast.FunctionDef)
+        and scope.name == "_intraprocedural_cfg"
+        and _parameter_is_not_rebound(scope, "pe")
+        and _parameter_is_not_rebound(scope, "entry")
+        and not any(
+            value.startswith(("pe.", "pe["))
+            for value in _scope_non_import_bindings(scope)
+        )
+    ):
+        return False
+
+    expected_call = ast.parse(
+        "disassembler.disasm("
+        "pe.member.data[offset : offset + 16], address, count=1"
+        ")",
+        mode="eval",
+    ).body
+    if ast.dump(node, include_attributes=False) != ast.dump(
+        expected_call,
+        include_attributes=False,
+    ):
+        return False
+
+    origin = _simple_name_origin(scope, "disassembler")
+    expected_origin = ast.parse(
+        "Cs(CS_ARCH_X86, CS_MODE_32)",
+        mode="eval",
+    ).body
+    expected_detail = ast.parse("disassembler.detail = True").body[0]
+    detail_assignments = [
+        item
+        for item in _nodes_in_lexical_scope(scope)
+        if isinstance(item, ast.Assign)
+        and ast.dump(item, include_attributes=False)
+        == ast.dump(expected_detail, include_attributes=False)
+    ]
+    if not (
+        isinstance(origin, ast.Call)
+        and ast.dump(origin, include_attributes=False)
+        == ast.dump(expected_origin, include_attributes=False)
+        and _expression_binding_is_intact(origin.func, tree, scope)
+        and _receiver_call_binding_is_intact(
+            scope,
+            "disassembler",
+            expected_origin="disassembler = Cs(CS_ARCH_X86, CS_MODE_32)",
+            expected_attribute_assignments=("disassembler.detail = True",),
+            expected_receiver_calls=(
+                "disassembler.disasm(pe.member.data[offset : offset + 16], address, count=1)",
+            ),
+        )
+        and len(detail_assignments) == 1
+        and all(
+            _expression_binding_is_intact(expression, tree, scope)
+            for expression in (
+                ast.parse("tuple", mode="eval").body,
+                ast.parse("len", mode="eval").body,
+                ast.parse("CsError", mode="eval").body,
+            )
+        )
+    ):
+        return False
+
+    def exact_module_assignment(name: str, expression: str) -> bool:
+        expected = ast.parse(f"{name} = {expression}").body[0]
+        assignments = [
+            item
+            for item in tree.body
+            if isinstance(item, (ast.Assign, ast.AnnAssign, ast.AugAssign))
+            and any(
+                isinstance(target, ast.Name) and target.id == name
+                for target in (
+                    tuple(item.targets)
+                    if isinstance(item, ast.Assign)
+                    else (item.target,)
+                )
+            )
+        ]
+        return bool(
+            len(assignments) == 1
+            and ast.dump(assignments[0], include_attributes=False)
+            == ast.dump(expected, include_attributes=False)
+        )
+
+    def exact_scope_statement(source: str) -> bool:
+        expected = ast.parse(source).body[0]
+        matches = [
+            item
+            for item in ast.walk(scope)
+            if ast.dump(item, include_attributes=False)
+            == ast.dump(expected, include_attributes=False)
+        ]
+        return len(matches) == 1
+
+    expected_try = (
+        "try:\n"
+        "    decoded_instructions = tuple(\n"
+        "        disassembler.disasm(\n"
+        "            pe.member.data[offset : offset + 16], address, count=1\n"
+        "        )\n"
+        "    )\n"
+        "except CsError:\n"
+        "    decoded_instructions = ()\n"
+    )
+    expected_selection = (
+        "instruction = (\n"
+        "    decoded_instructions[0]\n"
+        "    if len(decoded_instructions) == 1\n"
+        "    else None\n"
+        ")\n"
+    )
+    enclosing_while_tests = {
+        ast.dump(item.test, include_attributes=False)
+        for item in ast.walk(scope)
+        if isinstance(item, ast.While)
+        and any(candidate is node for candidate in ast.walk(item))
+    }
+    expected_while_tests = {
+        ast.dump(
+            ast.parse(expression, mode="eval").body,
+            include_attributes=False,
+        )
+        for expression in (
+            "pending_index < len(pending)",
+            "_in_ranges(address, executable)",
+        )
+    }
+    return bool(
+        exact_module_assignment(
+            "MAXIMUM_CFG_PENDING_BLOCKS",
+            "16_384",
+        )
+        and exact_module_assignment(
+            "MAXIMUM_CFG_INSTRUCTIONS",
+            "100_000",
+        )
+        and exact_scope_statement(
+            "if len(pending) - pending_index > MAXIMUM_CFG_PENDING_BLOCKS:\n"
+            "    limit_reached = True\n"
+            "    break\n"
+        )
+        and exact_scope_statement(
+            "if len(decoded) >= MAXIMUM_CFG_INSTRUCTIONS:\n"
+            "    limit_reached = True\n"
+            "    break\n"
+        )
+        and exact_scope_statement(expected_try)
+        and exact_scope_statement(expected_selection)
+        and enclosing_while_tests == expected_while_tests
+    )
+
+
 def _reviewed_source_call_shape_allowed(
     node: ast.Call,
     name: str,
@@ -6105,6 +6719,924 @@ def _reviewed_source_call_shape_allowed(
     }
     if supplied_strings & _DANGEROUS_REFLECTION_ATTRIBUTES:
         return False
+    aes_gcm_source = "extractors/valleyrat/msi_ahk_aes_gcm.py"
+    if key == (
+        aes_gcm_source,
+        "reachable:_cab_members",
+        "cabarchive.CabArchive",
+    ):
+        expected = ast.parse("cabarchive.CabArchive(cab_streams[0])", mode="eval").body
+        origin = _simple_name_origin(scope, "cab_streams")
+        return bool(
+            ast.dump(node, include_attributes=False) == ast.dump(expected, include_attributes=False)
+            and isinstance(origin, ast.List)
+            and not origin.elts
+            and _expression_binding_is_intact(node.func, tree, scope)
+            and _parameter_is_not_rebound(scope, "data")
+        )
+    if key == (
+        aes_gcm_source,
+        "reachable:_decrypt_gcm",
+        "cipher.decrypt_and_verify",
+    ):
+        origin = _simple_name_origin(scope, "cipher")
+        expected_origin = ast.parse(
+            "AES.new(key, AES.MODE_GCM, nonce=container.nonce, mac_len=0x10)",
+            mode="eval",
+        ).body
+        expected_call = ast.parse(
+            "cipher.decrypt_and_verify(container.ciphertext, container.tag)",
+            mode="eval",
+        ).body
+        expected_aad = ast.parse("cipher.update(container.aad)", mode="eval").body
+        try_nodes = [item for item in scope.body if isinstance(item, ast.Try)]
+        if len(try_nodes) != 1:
+            return False
+        guarded = try_nodes[0]
+        if (
+            len(guarded.body) != 3
+            or not isinstance(guarded.body[0], ast.Assign)
+            or len(guarded.body[0].targets) != 1
+            or not isinstance(guarded.body[0].targets[0], ast.Name)
+            or guarded.body[0].targets[0].id != "cipher"
+            or not isinstance(guarded.body[1], ast.Expr)
+            or not isinstance(guarded.body[1].value, ast.Call)
+            or not isinstance(guarded.body[2], ast.Return)
+            or guarded.body[2].value is not node
+            or len(guarded.handlers) != 1
+            or not isinstance(guarded.handlers[0].type, ast.Name)
+            or guarded.handlers[0].type.id != "ValueError"
+            or len(guarded.handlers[0].body) != 1
+            or not isinstance(guarded.handlers[0].body[0], ast.Return)
+            or not isinstance(guarded.handlers[0].body[0].value, ast.Constant)
+            or guarded.handlers[0].body[0].value.value is not None
+            or guarded.orelse
+            or guarded.finalbody
+        ):
+            return False
+        aad_call = guarded.body[1].value
+        aad_calls = [
+            item
+            for item in ast.walk(scope)
+            if isinstance(item, ast.Call)
+            and ast.dump(item, include_attributes=False) == ast.dump(expected_aad, include_attributes=False)
+        ]
+        return bool(
+            isinstance(origin, ast.Call)
+            and origin is guarded.body[0].value
+            and ast.dump(origin, include_attributes=False) == ast.dump(expected_origin, include_attributes=False)
+            and ast.dump(node, include_attributes=False) == ast.dump(expected_call, include_attributes=False)
+            and ast.dump(aad_call, include_attributes=False) == ast.dump(expected_aad, include_attributes=False)
+            and _expression_binding_is_intact(origin.func, tree, scope)
+            and len(aad_calls) == 1
+            and all(_parameter_is_not_rebound(scope, parameter) for parameter in ("container", "key"))
+        )
+    if key in {
+        (
+            aes_gcm_source,
+            "reachable:_function_instructions",
+            "disassembler.disasm",
+        ),
+        (
+            aes_gcm_source,
+            "reachable:_main_profile",
+            "disassembler.disasm",
+        ),
+    }:
+        expected_limit = ast.parse("MAXIMUM_FUNCTION_BYTES = 0x4000").body[0]
+        limit_assignments = [
+            item
+            for item in tree.body
+            if (
+                isinstance(item, ast.Assign)
+                and any(
+                    isinstance(target, ast.Name) and target.id == "MAXIMUM_FUNCTION_BYTES" for target in item.targets
+                )
+            )
+            or (
+                isinstance(item, (ast.AnnAssign, ast.AugAssign))
+                and isinstance(item.target, ast.Name)
+                and item.target.id == "MAXIMUM_FUNCTION_BYTES"
+            )
+        ]
+        origin = _simple_name_origin(scope, "disassembler")
+        expected_origin = ast.parse("Cs(CS_ARCH_X86, CS_MODE_64)", mode="eval").body
+        expected_detail = ast.parse("disassembler.detail = True").body[0]
+        detail_assignments = [
+            item
+            for item in _nodes_in_lexical_scope(scope)
+            if isinstance(item, ast.Assign)
+            and ast.dump(item, include_attributes=False) == ast.dump(expected_detail, include_attributes=False)
+        ]
+        expected_receiver_calls = (
+            (
+                (
+                    "disassembler.disasm("
+                    "data[offset : min(len(data), offset + MAXIMUM_FUNCTION_BYTES)], offset"
+                    ")"
+                ),
+            )
+            if key[1] == "reachable:_function_instructions"
+            else (
+                "disassembler.disasm(data[:16], 0)",
+                "disassembler.disasm(data[main_offset : main_offset + 64], main_offset)",
+            )
+        )
+        if not (
+            isinstance(origin, ast.Call)
+            and ast.dump(origin, include_attributes=False) == ast.dump(expected_origin, include_attributes=False)
+            and _expression_binding_is_intact(origin.func, tree, scope)
+            and _receiver_call_binding_is_intact(
+                scope,
+                "disassembler",
+                expected_origin="disassembler = Cs(CS_ARCH_X86, CS_MODE_64)",
+                expected_attribute_assignments=("disassembler.detail = True",),
+                expected_receiver_calls=expected_receiver_calls,
+            )
+            and len(limit_assignments) == 1
+            and ast.dump(limit_assignments[0], include_attributes=False)
+            == ast.dump(expected_limit, include_attributes=False)
+            and len(detail_assignments) == 1
+            and _parameter_is_not_rebound(scope, "data")
+        ):
+            return False
+        if key[1] == "reachable:_function_instructions":
+            expected_call = ast.parse(
+                "disassembler.disasm(data[offset : min(len(data), offset + MAXIMUM_FUNCTION_BYTES)], offset)",
+                mode="eval",
+            ).body
+            return bool(
+                ast.dump(node, include_attributes=False) == ast.dump(expected_call, include_attributes=False)
+                and _parameter_is_not_rebound(scope, "offset")
+            )
+        expected_calls = (
+            ast.parse("disassembler.disasm(data[:16], 0)", mode="eval").body,
+            ast.parse(
+                "disassembler.disasm(data[main_offset : main_offset + 64], main_offset)",
+                mode="eval",
+            ).body,
+        )
+        return any(
+            ast.dump(node, include_attributes=False) == ast.dump(expected, include_attributes=False)
+            for expected in expected_calls
+        )
+    hhstg_source = "extractors/valleyrat/hhstg_resource.py"
+    if key in {
+        (
+            hhstg_source,
+            "reachable:_decode_runtime_functions",
+            "disassembler.disasm",
+        ),
+        (
+            hhstg_source,
+            "reachable:_decode_shellcode",
+            "disassembler.disasm",
+        ),
+    }:
+        origin = _simple_name_origin(scope, "disassembler")
+        expected_origin = ast.parse("Cs(CS_ARCH_X86, CS_MODE_64)", mode="eval").body
+        expected_detail = ast.parse("disassembler.detail = True").body[0]
+        detail_assignments = [
+            item
+            for item in _nodes_in_lexical_scope(scope)
+            if isinstance(item, (ast.Assign, ast.AnnAssign, ast.AugAssign))
+            and any(
+                isinstance(target, ast.Attribute)
+                and isinstance(target.value, ast.Name)
+                and target.value.id == "disassembler"
+                and target.attr == "detail"
+                for target in (tuple(item.targets) if isinstance(item, ast.Assign) else (item.target,))
+            )
+        ]
+
+        def module_constant_matches(name: str, expression: str) -> bool:
+            expected = ast.parse(f"{name} = {expression}").body[0]
+            assignments = [
+                item
+                for item in tree.body
+                if isinstance(item, ast.Assign)
+                and any(isinstance(target, ast.Name) and target.id == name for target in item.targets)
+            ]
+            return bool(
+                len(assignments) == 1
+                and ast.dump(assignments[0], include_attributes=False) == ast.dump(expected, include_attributes=False)
+            )
+
+        def exact_statement_index(statements: Sequence[ast.stmt], source: str) -> int:
+            expected = ast.parse(source).body[0]
+            matches = [
+                index
+                for index, item in enumerate(statements)
+                if ast.dump(item, include_attributes=False) == ast.dump(expected, include_attributes=False)
+            ]
+            return matches[0] if len(matches) == 1 else -1
+
+        def guard_index(statements: Sequence[ast.stmt], expression: str) -> int:
+            expected = ast.parse(expression, mode="eval").body
+            expected_return = ast.parse("return None").body[0]
+            matches: list[int] = []
+            for index, item in enumerate(statements):
+                if not isinstance(item, ast.If) or item.orelse:
+                    continue
+                contains = any(
+                    ast.dump(candidate, include_attributes=False) == ast.dump(expected, include_attributes=False)
+                    for candidate in ast.walk(item.test)
+                )
+                if (
+                    contains
+                    and len(item.body) == 1
+                    and (
+                        ast.dump(item.body[0], include_attributes=False)
+                        == ast.dump(expected_return, include_attributes=False)
+                    )
+                ):
+                    matches.append(index)
+            return matches[0] if len(matches) == 1 else -1
+
+        def containing_statement_index(
+            statements: Sequence[ast.stmt],
+            target: ast.AST,
+        ) -> int:
+            matches = [
+                index
+                for index, statement in enumerate(statements)
+                if any(candidate is target for candidate in ast.walk(statement))
+            ]
+            return matches[0] if len(matches) == 1 else -1
+
+        if not (
+            isinstance(origin, ast.Call)
+            and ast.dump(origin, include_attributes=False) == ast.dump(expected_origin, include_attributes=False)
+            and _expression_binding_is_intact(origin.func, tree, scope)
+            and _receiver_call_binding_is_intact(
+                scope,
+                "disassembler",
+                expected_origin="disassembler = Cs(CS_ARCH_X86, CS_MODE_64)",
+                expected_attribute_assignments=("disassembler.detail = True",),
+                expected_receiver_calls=(
+                    (
+                        "disassembler.disasm(data[offset : offset + size], image_base + start)"
+                        if key[1] == "reachable:_decode_runtime_functions"
+                        else "disassembler.disasm(shellcode[:marker], 0)"
+                    ),
+                ),
+            )
+            and len(detail_assignments) == 1
+            and ast.dump(detail_assignments[0], include_attributes=False)
+            == ast.dump(expected_detail, include_attributes=False)
+        ):
+            return False
+        if key[1] == "reachable:_decode_runtime_functions":
+            expected_call = ast.parse(
+                "disassembler.disasm(data[offset : offset + size], image_base + start)",
+                mode="eval",
+            ).body
+            entry_loops = (
+                [
+                    item
+                    for item in scope.body
+                    if isinstance(item, ast.For)
+                    and isinstance(item.target, ast.Name)
+                    and item.target.id == "entry"
+                    and isinstance(item.iter, ast.Name)
+                    and item.iter.id == "entries"
+                    and not item.orelse
+                    and any(candidate is node for candidate in ast.walk(item))
+                ]
+                if isinstance(scope, ast.FunctionDef)
+                else []
+            )
+            if len(entry_loops) != 1:
+                return False
+            statements = entry_loops[0].body
+            size_index = exact_statement_index(statements, "size = end - start")
+            size_guard_index = guard_index(
+                statements,
+                "0 < size <= MAXIMUM_RUNTIME_FUNCTION_SIZE",
+            )
+            offset_guard_index = guard_index(statements, "offset + size > len(data)")
+            byte_add_index = exact_statement_index(statements, "total_bytes += size")
+            byte_guard_index = guard_index(
+                statements,
+                "total_bytes > MAXIMUM_RUNTIME_FUNCTION_BYTES",
+            )
+            call_index = containing_statement_index(statements, node)
+            instruction_add_index = exact_statement_index(
+                statements,
+                "total_instructions += len(instructions)",
+            )
+            instruction_guard_index = guard_index(
+                statements,
+                "total_instructions > MAXIMUM_INSTRUCTION_COUNT",
+            )
+            return bool(
+                ast.dump(node, include_attributes=False) == ast.dump(expected_call, include_attributes=False)
+                and all(_parameter_is_not_rebound(scope, parameter) for parameter in ("data", "image"))
+                and module_constant_matches("MAXIMUM_RUNTIME_FUNCTION_SIZE", "0x20_000")
+                and module_constant_matches(
+                    "MAXIMUM_RUNTIME_FUNCTION_BYTES",
+                    "16 * 1024 * 1024",
+                )
+                and module_constant_matches("MAXIMUM_INSTRUCTION_COUNT", "500_000")
+                and -1
+                not in {
+                    size_index,
+                    size_guard_index,
+                    offset_guard_index,
+                    byte_add_index,
+                    byte_guard_index,
+                    call_index,
+                    instruction_add_index,
+                    instruction_guard_index,
+                }
+                and size_index < size_guard_index < offset_guard_index
+                and offset_guard_index < byte_add_index < byte_guard_index < call_index
+                and call_index < instruction_add_index < instruction_guard_index
+            )
+        expected_call = ast.parse(
+            "disassembler.disasm(shellcode[:marker], 0)",
+            mode="eval",
+        ).body
+        if not isinstance(scope, ast.FunctionDef):
+            return False
+        statements = scope.body
+        input_guard_index = guard_index(
+            statements,
+            "512 <= marker <= len(shellcode) <= MAXIMUM_SHELLCODE_SIZE",
+        )
+        call_index = containing_statement_index(statements, node)
+        decoded_limit_index = guard_index(
+            statements,
+            "len(decoded) > MAXIMUM_SHELLCODE_INSTRUCTIONS",
+        )
+        coverage_index = guard_index(
+            statements,
+            "sum(item.size for item in decoded) != marker",
+        )
+        loops = [
+            (index, item)
+            for index, item in enumerate(statements)
+            if isinstance(item, ast.While)
+            and ast.dump(item.test, include_attributes=False)
+            == ast.dump(
+                ast.parse("cursor < len(pending)", mode="eval").body,
+                include_attributes=False,
+            )
+            and not item.orelse
+        ]
+        if len(loops) != 1:
+            return False
+        loop_index, loop = loops[0]
+        pending_index = exact_statement_index(statements, "pending = [0]")
+        queued_index = exact_statement_index(statements, "queued = {0}")
+        reachable_index = exact_statement_index(
+            statements,
+            "reachable: set[int] = set()",
+        )
+        cursor_index = exact_statement_index(statements, "cursor = 0")
+        pending_guard_index = guard_index(
+            loop.body,
+            "len(pending) > MAXIMUM_SHELLCODE_INSTRUCTIONS",
+        )
+        reachable_guard_index = guard_index(
+            loop.body,
+            "len(reachable) > MAXIMUM_SHELLCODE_INSTRUCTIONS",
+        )
+        pending_read_index = exact_statement_index(
+            loop.body,
+            "address = pending[cursor]",
+        )
+        cursor_add_index = exact_statement_index(loop.body, "cursor += 1")
+        return bool(
+            ast.dump(node, include_attributes=False) == ast.dump(expected_call, include_attributes=False)
+            and all(_parameter_is_not_rebound(scope, parameter) for parameter in ("shellcode", "marker"))
+            and module_constant_matches("MAXIMUM_SHELLCODE_SIZE", "4 * 1024 * 1024")
+            and module_constant_matches("MAXIMUM_SHELLCODE_INSTRUCTIONS", "100_000")
+            and -1
+            not in {
+                input_guard_index,
+                call_index,
+                decoded_limit_index,
+                coverage_index,
+                pending_index,
+                queued_index,
+                reachable_index,
+                cursor_index,
+                pending_guard_index,
+                reachable_guard_index,
+                pending_read_index,
+                cursor_add_index,
+            }
+            and input_guard_index < call_index < decoded_limit_index
+            and decoded_limit_index == coverage_index
+            and decoded_limit_index < pending_index < queued_index < reachable_index
+            and reachable_index < cursor_index < loop_index
+            and pending_guard_index < pending_read_index < cursor_add_index
+            and cursor_add_index < reachable_guard_index
+        )
+    webio_source = "extractors/valleyrat/silverfox_webio_stage_loader.py"
+    if key == (
+        webio_source,
+        "reachable:_disassemble",
+        "decoder.disasm",
+    ):
+        origin = _simple_name_origin(scope, "decoder")
+        expected_origin = ast.parse("Cs(CS_ARCH_X86, CS_MODE_64)", mode="eval").body
+        expected_call = ast.parse(
+            "decoder.disasm(data, address, count=maximum + 1)",
+            mode="eval",
+        ).body
+        expected_detail = ast.parse("decoder.detail = True").body[0]
+        expected_guard = ast.parse(
+            "if (type(maximum) is not int or not 1 <= maximum <= MAXIMUM_INSTRUCTIONS "
+            "or len(data) > MAXIMUM_FUNCTION_SIZE):\n    return None"
+        ).body[0]
+        expected_constants = {
+            ast.dump(
+                ast.parse("MAXIMUM_INSTRUCTIONS = 32_768").body[0],
+                include_attributes=False,
+            ),
+            ast.dump(
+                ast.parse("MAXIMUM_FUNCTION_SIZE = 64 * 1024").body[0],
+                include_attributes=False,
+            ),
+        }
+        constant_names = {"MAXIMUM_INSTRUCTIONS", "MAXIMUM_FUNCTION_SIZE"}
+        module_constant_bindings: list[ast.AST] = []
+        scoped_constant_rebindings: list[ast.AST] = []
+        for binding_scope, bindings in (
+            (tree, module_constant_bindings),
+            (scope, scoped_constant_rebindings),
+        ):
+            for item in _nodes_in_lexical_scope(binding_scope):
+                targets: tuple[ast.AST, ...] = ()
+                if isinstance(item, (ast.Assign, ast.Delete)):
+                    targets = tuple(item.targets)
+                elif isinstance(
+                    item,
+                    (
+                        ast.AnnAssign,
+                        ast.AugAssign,
+                        ast.NamedExpr,
+                        ast.For,
+                        ast.AsyncFor,
+                        ast.comprehension,
+                    ),
+                ):
+                    targets = (item.target,)
+                elif isinstance(item, (ast.With, ast.AsyncWith)):
+                    targets = tuple(entry.optional_vars for entry in item.items if entry.optional_vars is not None)
+                bound_names = set().union(*(_target_binding_paths(target) for target in targets)) if targets else set()
+                if isinstance(item, ast.Import):
+                    bound_names.update(alias.asname or alias.name.split(".", 1)[0] for alias in item.names)
+                elif isinstance(item, ast.ImportFrom):
+                    bound_names.update(alias.asname or alias.name for alias in item.names if alias.name != "*")
+                elif isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    bound_names.add(item.name)
+                elif isinstance(item, ast.arg):
+                    bound_names.add(item.arg)
+                elif isinstance(item, (ast.MatchAs, ast.MatchStar)) and item.name:
+                    bound_names.add(item.name)
+                elif isinstance(item, ast.MatchMapping) and item.rest:
+                    bound_names.add(item.rest)
+                if bound_names & constant_names or (
+                    isinstance(item, ast.ExceptHandler) and item.name in constant_names
+                ):
+                    bindings.append(item)
+        constants = {
+            ast.dump(item, include_attributes=False)
+            for item in module_constant_bindings
+            if isinstance(item, ast.Assign)
+        }
+        scoped_parameter_names = (
+            {
+                argument.arg
+                for argument in (
+                    *scope.args.posonlyargs,
+                    *scope.args.args,
+                    *scope.args.kwonlyargs,
+                    *((scope.args.vararg,) if scope.args.vararg is not None else ()),
+                    *((scope.args.kwarg,) if scope.args.kwarg is not None else ()),
+                )
+            }
+            if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef))
+            else set()
+        )
+        detail_assignments = (
+            [
+                item
+                for item in scope.body
+                if isinstance(item, ast.Assign)
+                and ast.dump(item, include_attributes=False) == ast.dump(expected_detail, include_attributes=False)
+            ]
+            if isinstance(scope, ast.FunctionDef)
+            else []
+        )
+        guards = (
+            [
+                item
+                for item in scope.body
+                if isinstance(item, ast.If)
+                and ast.dump(item, include_attributes=False) == ast.dump(expected_guard, include_attributes=False)
+            ]
+            if isinstance(scope, ast.FunctionDef)
+            else []
+        )
+        return bool(
+            isinstance(origin, ast.Call)
+            and ast.dump(origin, include_attributes=False) == ast.dump(expected_origin, include_attributes=False)
+            and _expression_binding_is_intact(origin.func, tree, scope)
+            and ast.dump(node, include_attributes=False) == ast.dump(expected_call, include_attributes=False)
+            and _receiver_call_binding_is_intact(
+                scope,
+                "decoder",
+                expected_origin="decoder = Cs(CS_ARCH_X86, CS_MODE_64)",
+                expected_attribute_assignments=("decoder.detail = True",),
+                expected_receiver_calls=(
+                    "decoder.disasm(data, address, count=maximum + 1)",
+                ),
+            )
+            and len(detail_assignments) == 1
+            and len(guards) == 1
+            and len(module_constant_bindings) == 2
+            and not scoped_constant_rebindings
+            and not scoped_parameter_names & constant_names
+            and constants == expected_constants
+            and all(_parameter_is_not_rebound(scope, parameter) for parameter in ("data", "address", "maximum"))
+        )
+    if key == (
+        webio_source,
+        "reachable:_register_name",
+        "instruction.reg_name",
+    ):
+        expected = ast.parse("instruction.reg_name(register)", mode="eval").body
+        return bool(
+            ast.dump(node, include_attributes=False) == ast.dump(expected, include_attributes=False)
+            and _receiver_call_binding_is_intact(
+                scope,
+                "instruction",
+                expected_receiver_calls=("instruction.reg_name(register)",),
+                receiver_is_parameter=True,
+            )
+            and _parameter_is_not_rebound(scope, "instruction")
+            and _parameter_is_not_rebound(scope, "register")
+        )
+    polygon_source = "extractors/valleyrat/polygon_dead_drop.py"
+    if key == (
+        polygon_source,
+        "reachable:_canonical_register",
+        "instruction.reg_name",
+    ):
+        expected = ast.parse("instruction.reg_name(register)", mode="eval").body
+        return bool(
+            ast.dump(node, include_attributes=False) == ast.dump(expected, include_attributes=False)
+            and _receiver_call_binding_is_intact(
+                scope,
+                "instruction",
+                expected_receiver_calls=("instruction.reg_name(register)",),
+                receiver_is_parameter=True,
+            )
+            and _parameter_is_not_rebound(scope, "instruction")
+            and _parameter_is_not_rebound(scope, "register")
+        )
+    if key == (
+        polygon_source,
+        "reachable:_disassemble",
+        "decoder.disasm",
+    ):
+        if not isinstance(scope, ast.FunctionDef):
+            return False
+        expected_origin = ast.parse("Cs(CS_ARCH_X86, CS_MODE_64)", mode="eval").body
+        expected_call = ast.parse("decoder.disasm(raw, address)", mode="eval").body
+        origin = _simple_name_origin(scope, "decoder")
+        raw_origin = _simple_name_origin(scope, "raw")
+        address_origin = _simple_name_origin(scope, "address")
+        expected_raw = ast.parse("bytes(section.get_data())", mode="eval").body
+        expected_address = ast.parse(
+            "int(image.OPTIONAL_HEADER.ImageBase) + int(section.VirtualAddress)",
+            mode="eval",
+        ).body
+        constant_bindings = [
+            item
+            for item in _nodes_in_lexical_scope(tree)
+            if isinstance(item, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Delete))
+            and any(
+                "MAXIMUM_SECTION_SIZE" in _target_binding_paths(target)
+                for target in (
+                    tuple(item.targets)
+                    if isinstance(item, (ast.Assign, ast.Delete))
+                    else (item.target,)
+                )
+            )
+        ]
+        expected_constant = ast.parse("MAXIMUM_SECTION_SIZE = 32 * 1024 * 1024").body[0]
+        loops = [
+            item
+            for item in _nodes_in_lexical_scope(scope)
+            if isinstance(item, ast.For)
+            and isinstance(item.target, ast.Name)
+            and item.target.id == "section"
+            and ast.dump(item.iter, include_attributes=False)
+            == ast.dump(ast.parse("image.sections", mode="eval").body, include_attributes=False)
+        ]
+        expected_loop_body = ast.parse(
+            "if not int(section.Characteristics) & 0x20000000:\n"
+            "    continue\n"
+            "raw = bytes(section.get_data())\n"
+            "if len(raw) > MAXIMUM_SECTION_SIZE:\n"
+            "    return None\n"
+            "address = int(image.OPTIONAL_HEADER.ImageBase) + int(section.VirtualAddress)\n"
+            "instructions = tuple(decoder.disasm(raw, address))\n"
+            "count += len(instructions)\n"
+            "if count > 250_000:\n"
+            "    return None\n"
+            "groups.append(instructions)\n"
+        ).body
+        return bool(
+            isinstance(origin, ast.Call)
+            and ast.dump(origin, include_attributes=False)
+            == ast.dump(expected_origin, include_attributes=False)
+            and _expression_binding_is_intact(origin.func, tree, scope)
+            and ast.dump(node, include_attributes=False)
+            == ast.dump(expected_call, include_attributes=False)
+            and ast.dump(raw_origin, include_attributes=False)
+            == ast.dump(expected_raw, include_attributes=False)
+            and ast.dump(address_origin, include_attributes=False)
+            == ast.dump(expected_address, include_attributes=False)
+            and _receiver_call_binding_is_intact(
+                scope,
+                "decoder",
+                expected_origin="decoder = Cs(CS_ARCH_X86, CS_MODE_64)",
+                expected_attribute_assignments=("decoder.detail = True",),
+                expected_receiver_calls=("decoder.disasm(raw, address)",),
+            )
+            and len(constant_bindings) == 1
+            and ast.dump(constant_bindings[0], include_attributes=False)
+            == ast.dump(expected_constant, include_attributes=False)
+            and len(loops) == 1
+            and [ast.dump(item, include_attributes=False) for item in loops[0].body]
+            == [ast.dump(item, include_attributes=False) for item in expected_loop_body]
+            and _parameter_is_not_rebound(scope, "image")
+        )
+    polygon_image_contexts = {
+        "reachable:_load_pe": {
+            "origin": "pefile.PE(data=data, fast_load=False)",
+            "parameter": "data",
+            "attributes": {"sections", "close"},
+            "method_calls": ("image.close()",),
+            "argument_calls": (),
+        },
+        "reachable:_valid_pe": {
+            "origin": "_load_pe(value)",
+            "parameter": "value",
+            "attributes": {"FILE_HEADER", "OPTIONAL_HEADER", "close"},
+            "method_calls": ("image.close()",),
+            "argument_calls": (),
+        },
+        "reachable:_recover_outer": {
+            "origin": "_load_pe(data)",
+            "parameter": "data",
+            "attributes": {"sections", "close"},
+            "method_calls": ("image.close()",),
+            "argument_calls": (),
+        },
+        "reachable:_terminal_profile": {
+            "origin": "_load_pe(data)",
+            "parameter": "data",
+            "attributes": {
+                "FILE_HEADER",
+                "OPTIONAL_HEADER",
+                "get_rva_from_offset",
+                "sections",
+                "close",
+            },
+            "method_calls": (
+                "image.get_rva_from_offset(first)",
+                "image.get_rva_from_offset(selector_offset)",
+                "image.close()",
+            ),
+            "argument_calls": (
+                "_disassemble(image)",
+                "_abi_parser_proven(image)",
+                "_constructed_contracts(image, data, groups)",
+                "_embedded_configs(image, data, groups)",
+            ),
+        },
+    }
+    image_context = polygon_image_contexts.get(key[1]) if key is not None else None
+    if key is not None and key[0] == polygon_source and key[2] == "image.close":
+        if not isinstance(scope, ast.FunctionDef) or image_context is None:
+            return False
+        expected_close = ast.parse("image.close()", mode="eval").body
+        origin = _simple_name_origin(scope, "image")
+        expected_origin = ast.parse(str(image_context["origin"]), mode="eval").body
+        if not (
+            isinstance(origin, ast.Call)
+            and ast.dump(origin, include_attributes=False)
+            == ast.dump(expected_origin, include_attributes=False)
+            and ast.dump(node, include_attributes=False)
+            == ast.dump(expected_close, include_attributes=False)
+            and _parameter_is_not_rebound(scope, str(image_context["parameter"]))
+        ):
+            return False
+        if key[1] == "reachable:_load_pe" and not _expression_binding_is_intact(
+            origin.func,
+            tree,
+            scope,
+        ):
+            return False
+        if key[1] != "reachable:_load_pe":
+            local_loaders = [
+                item
+                for item in tree.body
+                if isinstance(item, ast.FunctionDef) and item.name == "_load_pe"
+            ]
+            if len(local_loaders) != 1:
+                return False
+        allowed_method_calls: dict[str, int] = {}
+        for source in image_context["method_calls"]:
+            dumped = ast.dump(ast.parse(str(source), mode="eval").body, include_attributes=False)
+            allowed_method_calls[dumped] = allowed_method_calls.get(dumped, 0) + 1
+        observed_method_calls = {dumped: 0 for dumped in allowed_method_calls}
+        allowed_argument_calls = {
+            ast.dump(ast.parse(str(source), mode="eval").body, include_attributes=False)
+            for source in image_context["argument_calls"]
+        }
+        parent_by_id = {
+            id(child): parent
+            for parent in ast.walk(scope)
+            for child in ast.iter_child_nodes(parent)
+        }
+        for item in _nodes_in_lexical_scope(scope):
+            targets: tuple[ast.AST, ...] = ()
+            if isinstance(item, (ast.Assign, ast.Delete)):
+                targets = tuple(item.targets)
+            elif isinstance(
+                item,
+                (ast.AnnAssign, ast.AugAssign, ast.NamedExpr, ast.For, ast.AsyncFor, ast.comprehension),
+            ):
+                targets = (item.target,)
+            elif isinstance(item, (ast.With, ast.AsyncWith)):
+                targets = tuple(
+                    entry.optional_vars
+                    for entry in item.items
+                    if entry.optional_vars is not None
+                )
+            if any(
+                any(
+                    path.startswith(("image.", "image[]"))
+                    for path in _target_binding_paths(target)
+                )
+                for target in targets
+            ):
+                return False
+            if isinstance(item, ast.Call) and isinstance(item.func, ast.Attribute):
+                receiver = item.func.value
+                if isinstance(receiver, ast.Name) and receiver.id == "image":
+                    dumped = ast.dump(item, include_attributes=False)
+                    if dumped not in allowed_method_calls:
+                        return False
+                    observed_method_calls[dumped] += 1
+        if observed_method_calls != allowed_method_calls:
+            return False
+        allowed_attributes = set(image_context["attributes"])
+        for item in ast.walk(scope):
+            if not isinstance(item, ast.Name) or item.id != "image" or not isinstance(item.ctx, ast.Load):
+                continue
+            parent = parent_by_id.get(id(item))
+            if (
+                isinstance(parent, ast.Attribute)
+                and parent.value is item
+                and isinstance(parent.ctx, ast.Load)
+                and parent.attr in allowed_attributes
+            ):
+                continue
+            if (
+                key[1] == "reachable:_load_pe"
+                and isinstance(parent, ast.Return)
+                and parent.value is item
+            ):
+                continue
+            if (
+                key[1] != "reachable:_load_pe"
+                and isinstance(parent, ast.Compare)
+                and ast.dump(parent, include_attributes=False)
+                == ast.dump(
+                    ast.parse("image is None", mode="eval").body,
+                    include_attributes=False,
+                )
+            ):
+                continue
+            if (
+                isinstance(parent, ast.Call)
+                and item in parent.args
+                and ast.dump(parent, include_attributes=False)
+                in allowed_argument_calls
+            ):
+                continue
+            return False
+        return True
+    if key == (
+        polygon_source,
+        "reachable:_terminal_profile",
+        "provider_sources.setdefault",
+    ):
+        if not isinstance(scope, ast.FunctionDef):
+            return False
+        expected = ast.parse(
+            "provider_sources.setdefault(normalized, set())",
+            mode="eval",
+        ).body
+        expected_chain = ast.parse(
+            "provider_sources.setdefault(normalized, set()).add(section_va + offset)",
+            mode="eval",
+        ).body
+        origin = _simple_name_origin(scope, "provider_sources")
+        declarations = [
+            item
+            for item in _nodes_in_lexical_scope(scope)
+            if isinstance(item, ast.AnnAssign)
+            and isinstance(item.target, ast.Name)
+            and item.target.id == "provider_sources"
+        ]
+        expected_declaration = ast.parse(
+            "provider_sources: dict[str, set[int]] = {}"
+        ).body[0]
+        chains = [
+            item
+            for item in _nodes_in_lexical_scope(scope)
+            if isinstance(item, ast.Call)
+            and ast.dump(item, include_attributes=False)
+            == ast.dump(expected_chain, include_attributes=False)
+        ]
+        return bool(
+            ast.dump(node, include_attributes=False)
+            == ast.dump(expected, include_attributes=False)
+            and isinstance(origin, ast.Dict)
+            and not origin.keys
+            and len(declarations) == 1
+            and ast.dump(declarations[0], include_attributes=False)
+            == ast.dump(expected_declaration, include_attributes=False)
+            and len(chains) == 1
+            and any(candidate is node for candidate in ast.walk(chains[0]))
+        )
+    if key is not None and key[0] == polygon_source:
+        # 同module内で将来追加されたcall-siteを既定許可へfall throughさせない。
+        return False
+    direct_native_source = "extractors/valleyrat/direct_native_terminal.py"
+    if key == (
+        direct_native_source,
+        "reachable:_register_name",
+        "instruction.reg_name",
+    ):
+        expected = ast.parse(
+            "instruction.reg_name(register)",
+            mode="eval",
+        ).body
+        return bool(
+            ast.dump(node, include_attributes=False) == ast.dump(expected, include_attributes=False)
+            and _receiver_call_binding_is_intact(
+                scope,
+                "instruction",
+                expected_receiver_calls=("instruction.reg_name(register)",),
+                receiver_is_parameter=True,
+            )
+            and _parameter_is_not_rebound(scope, "instruction")
+            and _parameter_is_not_rebound(scope, "register")
+        )
+    if key in {
+        (
+            direct_native_source,
+            "reachable:_written_register_names",
+            "instruction.regs_access",
+        ),
+        (
+            direct_native_source,
+            "reachable:_written_register_names",
+            "instruction.reg_name",
+        ),
+    }:
+        expected = ast.parse(
+            (
+                "instruction.regs_access()"
+                if key[2] == "instruction.regs_access"
+                else "instruction.reg_name(register)"
+            ),
+            mode="eval",
+        ).body
+        return bool(
+            ast.dump(node, include_attributes=False) == ast.dump(expected, include_attributes=False)
+            and _receiver_call_binding_is_intact(
+                scope,
+                "instruction",
+                expected_receiver_calls=(
+                    "instruction.regs_access()",
+                    "instruction.reg_name(register)",
+                ),
+                receiver_is_parameter=True,
+            )
+            and _parameter_is_not_rebound(scope, "instruction")
+        )
     if key in {
         ("analysis-framework/common/remus_disk_config.py", "reachable:_candidate", "time.monotonic"),
         ("analysis-framework/common/remus_disk_config.py", "reachable:extract_remus_disk_config", "time.monotonic"),
@@ -6181,7 +7713,8 @@ def _reviewed_source_call_shape_allowed(
             and _parameter_is_not_rebound(scope, "data")
         )
     inno_source = "analysis-framework/malware/valleyrat/campaigns/protected_installer_bundle/inno_static.py"
-    inno_context = "reachable:recover_members"
+    inno_initial_context = "reachable:_initial_archive_metadata"
+    inno_recovery_context = "reachable:recover_members"
 
     def inno_archive_origin(value: ast.AST) -> bool:
         return bool(
@@ -6200,13 +7733,25 @@ def _reviewed_source_call_shape_allowed(
             and _parameter_is_not_rebound(scope, "data")
         )
 
-    if key == (
-        inno_source,
-        inno_context,
-        "refinery.lib.inno.archive.InnoArchive",
-    ):
+    if key in {
+        (
+            inno_source,
+            inno_initial_context,
+            "refinery.lib.inno.archive.InnoArchive",
+        ),
+        (
+            inno_source,
+            inno_recovery_context,
+            "refinery.lib.inno.archive.InnoArchive",
+        ),
+    }:
         return inno_archive_origin(node)
-    if key == (inno_source, inno_context, "archive.ifps.disassembly"):
+    if key in {
+        (inno_source, inno_initial_context, "archive.ifps.disassembly"),
+        # 直接call-shape回帰と旧snapshotは、この呼出しを公開復元入口へ
+        # 関連付ける場合がある。同じ厳密shapeを両contextへ適用する。
+        (inno_source, inno_recovery_context, "archive.ifps.disassembly"),
+    }:
         origin = _simple_name_origin(scope, "archive")
         return bool(
             isinstance(node.func, ast.Attribute)
@@ -6220,7 +7765,7 @@ def _reviewed_source_call_shape_allowed(
             and origin is not None
             and inno_archive_origin(origin)
         )
-    if key == (inno_source, inno_context, "trial.read_file_and_check"):
+    if key == (inno_source, inno_recovery_context, "trial.read_file_and_check"):
         origin = _simple_name_origin(scope, "trial")
         return bool(
             isinstance(node.func, ast.Attribute)
@@ -6515,6 +8060,12 @@ def _reviewed_source_call_shape_allowed(
             and origin.args[0].value == "dotnet_rat_config"
             and not origin.keywords
         )
+    if key == (
+        "extractors/valleyrat/zip_sideload_shellcode.py",
+        "reachable:_intraprocedural_cfg",
+        "disassembler.disasm",
+    ):
+        return _approved_zip_sideload_cfg_decode(node, tree, scope)
     if key == (
         "extractors/valleyrat/export_funnel.py",
         "reachable:_decode_one_x86",
@@ -8439,6 +9990,9 @@ def _recursive_handler_side_effect_audit(path: Path, callable_name: str) -> dict
                 allow("reviewed_bounded_callback_or_closure", call.func.id)
                 return
             if call.func.id in _APPROVED_BUILTIN_CALLS:
+                if not _expression_binding_is_intact(call.func, tree, scope):
+                    issues.add(f"{context}:rebound_builtin_callable:{call.func.id}")
+                    return
                 implicit_methods = {
                     "all": ("__iter__", "__next__"),
                     "any": ("__iter__", "__next__"),
@@ -9241,6 +10795,7 @@ def execute_handler_bounded_for_assessment(
     artifact_directory: Path | None = None,
     artifact_path_prefix: str = "recovered-payloads",
     _invariant_preflight: _AssessmentInvariantPreflight | None = None,
+    _execution_cache: _AssessmentExecutionCache | None = None,
 ) -> dict[str, Any]:
     """事前検査済みhandlerを隔離processで実行し、安定した公開結果を返す。"""
 
@@ -9254,6 +10809,8 @@ def execute_handler_bounded_for_assessment(
         or not 0.1 <= float(timeout_seconds) <= MAX_HANDLER_TIMEOUT_SECONDS
     ):
         raise ValueError("timeout_secondsは0.1秒以上300秒以下で指定してください")
+    if _execution_cache is not None and not isinstance(_execution_cache, _AssessmentExecutionCache):
+        raise TypeError("_execution_cacheが不正です")
 
     invariant_preflight = _invariant_preflight
     if invariant_preflight is None:
@@ -9290,6 +10847,24 @@ def execute_handler_bounded_for_assessment(
                 "blockers": ["dependency_source_changed_after_preflight"],
             },
         }
+    cache_key: tuple[Any, ...] | None = None
+    if _execution_cache is not None:
+        cache_key = (
+            "assessment-handler-v1",
+            _execution_cache.source_identity,
+            invariant_preflight.commitment_sha256,
+            spec.id,
+            hashlib.sha256(data).hexdigest(),
+            len(data),
+            source_name,
+            actual_format,
+            maximum_input_size,
+            float(timeout_seconds),
+            artifact_destination is not None,
+        )
+        cached = _execution_cache.lookup(cache_key)
+        if cached is not None:
+            return cached
     try:
         execution = _execute_handler_bounded(
             spec,
@@ -9314,11 +10889,117 @@ def execute_handler_bounded_for_assessment(
             "error": "handler_worker_failed",
             "error_type": type(exc).__name__,
         }
-    return {
+    bounded_result = {
         **base,
         "status": "completed",
         "execution": execution,
     }
+    if _execution_cache is not None and cache_key is not None and _cacheable_assessment_execution(bounded_result):
+        _execution_cache.store(cache_key, bounded_result)
+    return bounded_result
+
+
+def _cacheable_assessment_execution(value: Mapping[str, Any]) -> bool:
+    """artifact副作用も不完全性もない完了結果だけをcache可能とする。"""
+
+    execution = value.get("execution")
+    preflight = value.get("preflight")
+    if (
+        value.get("status") != "completed"
+        or not isinstance(preflight, Mapping)
+        or preflight.get("eligible") is not True
+        or preflight.get("blockers") != []
+        or not isinstance(execution, Mapping)
+        or not isinstance(execution.get("result"), Mapping)
+        or _contains_incomplete_runtime_state(execution.get("result"))
+    ):
+        return False
+    audit = execution.get("verified_binary_output_audit")
+    result_quota = execution.get("result_quota")
+    return bool(
+        execution.get("executed_sample") is False
+        and execution.get("network_contacted") is False
+        and execution.get("verified_binary_outputs") == []
+        and execution.get("observed_binary_outputs") == []
+        and isinstance(audit, Mapping)
+        and audit.get("observed_output_count") == 0
+        and audit.get("retained_output_count") == 0
+        and audit.get("binary_values_seen") == 0
+        and audit.get("binary_bytes_seen") == 0
+        and audit.get("retained_for_follow_on_analysis") is False
+        and audit.get("observation_scope") == "parent_verified_zero_output"
+        and audit.get("truncated") is False
+        and audit.get("reasons") == []
+        and isinstance(result_quota, Mapping)
+        and result_quota.get("truncated") is False
+        and result_quota.get("reasons") == []
+    )
+
+
+def _contains_incomplete_runtime_state(value: object) -> bool:
+    """時間・容量・例外に左右される不完全結果を保守的に識別する。"""
+
+    stack = [value]
+    seen: set[int] = set()
+    unstable_terms = (
+        "budget",
+        "deadline",
+        "error",
+        "exception",
+        "exhausted",
+        "failed",
+        "incomplete",
+        "limit",
+        "partial",
+        "resource_limit",
+        "timed_out",
+        "timeout",
+        "truncated",
+    )
+    while stack:
+        current = stack.pop()
+        if isinstance(current, Mapping):
+            identity = id(current)
+            if identity in seen:
+                return True
+            seen.add(identity)
+            for raw_key, item in current.items():
+                key = str(raw_key).casefold()
+                if (
+                    (
+                        key in {"error", "errors", "exception", "exceptions"}
+                        or key.endswith(("_error", "_errors"))
+                    )
+                    and item is not None
+                    and item != ""
+                    and item != []
+                    and item != {}
+                ):
+                    return True
+                if (key == "complete" or key.endswith("_complete")) and item is False:
+                    return True
+                if (
+                    key in {"budget_exhausted", "deadline_exceeded", "timed_out", "truncated"}
+                    or key.endswith("_truncated")
+                ) and item is True:
+                    return True
+                if item is True and any(term in key for term in unstable_terms):
+                    return True
+                if key in {"reason", "reasons", "status"} or key.endswith(("_reason", "_reasons")):
+                    texts = [item] if isinstance(item, str) else item if isinstance(item, list) else []
+                    if any(
+                        isinstance(text, str) and any(term in text.casefold() for term in unstable_terms)
+                        for text in texts
+                    ):
+                        return True
+                stack.append(item)
+        elif isinstance(current, (list, tuple)):
+            identity = id(current)
+            if identity in seen:
+                return True
+            seen.add(identity)
+            stack.extend(current)
+    return False
 
 
 def _normalized_assessment_layers(
@@ -10111,13 +11792,21 @@ def _candidate_handler_specs(
     matched_campaign_types = sorted(
         {str(spec.campaign) for spec in matching_campaign_handlers if spec.campaign is not None}
     )
+    strict_exact_route = bool(
+        route_only
+        and matching_campaign_handlers
+        and detector_campaign_types
+        and all((family, campaign) in STRICT_EXACT_ROUTE_ONLY_CAMPAIGNS for campaign in detector_campaign_types)
+        and set(matched_campaign_types) == detector_campaign_types
+    )
     if metadata_only:
         primary = family_wide
     elif route_only:
         primary = [*family_wide, *matching_campaign_handlers]
     else:
         primary = automatic
-    fallback = [spec for spec in automatic if spec not in primary and spec.campaign is not None]
+    deferred = [spec for spec in automatic if spec not in primary and spec.campaign is not None]
+    fallback = [] if strict_exact_route else deferred
     selected = [*primary, *fallback]
     if metadata_only and family_wide and fallback:
         mode = "family_wide_then_bounded_campaign_fallback_external_metadata"
@@ -10144,9 +11833,17 @@ def _candidate_handler_specs(
             "selected_handler_count": len(selected),
             "primary_handler_count": len(primary),
             "bounded_campaign_fallback_handler_count": len(fallback),
-            "deferred_campaign_handler_count": 0,
+            "deferred_campaign_handler_count": (len(deferred) if strict_exact_route else 0),
             "campaign_fallback_used": bool(fallback),
             "bounded_campaign_fallback_enabled": bool(fallback),
+            **(
+                {
+                    "strict_exact_campaign_route": True,
+                    "strict_exact_campaign_route_basis": "reviewed_family_campaign_structure",
+                }
+                if strict_exact_route
+                else {}
+            ),
             "bounded_campaign_fallback_maximum_layers_per_handler": (
                 MAX_BOUNDED_CAMPAIGN_FALLBACK_LAYERS if fallback else 0
             ),
@@ -10175,6 +11872,8 @@ def _candidate_handler_specs(
             "campaign_selection_basis": (
                 "exact_campaign_type_match_with_bounded_remaining_campaigns"
                 if route_only and matching_campaign_handlers and fallback
+                else "strict_exact_campaign_type_match"
+                if strict_exact_route
                 else "exact_campaign_type_match"
                 if route_only and matching_campaign_handlers
                 else "no_exact_campaign_type_match_with_bounded_campaign_fallback"
@@ -10210,6 +11909,7 @@ def assess_candidate_handlers(
     handler_timeout_seconds: float = DEFAULT_HANDLER_TIMEOUT_SECONDS,
     artifact_directory: Path | None = None,
     artifact_path_prefix: str = "recovered-payloads",
+    execution_cache: _AssessmentExecutionCache | None = None,
 ) -> dict[str, Any]:
     """候補familyの自動handlerを全復元layerへ安全に試行し、裏付け結果を返す。"""
 
@@ -10250,6 +11950,8 @@ def assess_candidate_handlers(
         or not 0.1 <= float(handler_timeout_seconds) <= MAX_HANDLER_TIMEOUT_SECONDS
     ):
         raise ValueError("handler_timeout_secondsは0.1秒以上300秒以下で指定してください")
+    if execution_cache is not None and not isinstance(execution_cache, _AssessmentExecutionCache):
+        raise TypeError("execution_cacheが不正です")
     normalized_layers = _normalized_assessment_layers(
         layers,
         maximum_layer_size=maximum_layer_size,
@@ -10492,6 +12194,7 @@ def assess_candidate_handlers(
             artifact_directory=artifact_directory,
             artifact_path_prefix=artifact_path_prefix,
             _invariant_preflight=invariant_preflight,
+            **({"_execution_cache": execution_cache} if execution_cache is not None else {}),
         )
         actual_attempt_count += 1
         if time.monotonic() - started >= float(maximum_wall_seconds):
@@ -10703,7 +12406,9 @@ def assess_candidate_handlers(
             "bounded_campaign_fallback_planned_attempt_count": (bounded_campaign_fallback_planned_attempt_count),
             "bounded_campaign_fallback_maximum_layers_per_handler": (MAX_BOUNDED_CAMPAIGN_FALLBACK_LAYERS),
             "bounded_campaign_fallback_selection_basis": ("root_then_format_transform_depth_diversity"),
-            "all_automatic_campaign_handlers_considered": True,
+            "all_automatic_campaign_handlers_considered": (
+                sum(value["deferred_campaign_handler_count"] for value in handler_selection_by_family.values()) == 0
+            ),
             "external_metadata_family_wide_first": True,
             "invariant_preflight_cache_scope": "assessment_call",
             "invariant_preflight_evaluation_count": len(invariant_preflight_by_spec),
