@@ -102,4 +102,3 @@ MalwareBazaarの外部signatureが`ValleyRAT`である新規100件を先に固�
 - [Proofpoint: TA4922 Suspected Chinese Crime Group Going Global](https://www.proofpoint.com/us/blog/threat-insight/ta4922-suspected-chinese-crime-group-going-global) — 19文字RC4 config
 - [Forcepoint: ValleyRAT Overwolf Sideload Tax Scam](https://www.forcepoint.com/blog/x-labs/valleyrat-overwolf-sideload-tax-scam) — modified-RC4 3-record container
 - [Splunk: ValleyRAT Insights, Tactics, Techniques, and Detection Methods](https://www.splunk.com/en_us/blog/security/valleyrat-insights-tactics-techniques-and-detection-methods.html) — `IpDate` compact config
-

@@ -17,6 +17,8 @@ MIN_PAYLOAD_SIZE = 1_000
 MAX_PAYLOAD_SIZE = 64 * 1024 * 1024
 MAX_PERMUTED_PAYLOAD_SIZE = 16 * 1024 * 1024
 CODEMARK = b"codemark"
+CODECODE = b"codecode"
+WINOS_CONFIG_MARKERS = (CODEMARK, CODECODE)
 CODEMARK_HEADER_SIZE = 0x38
 MAX_CODEMARK_OCCURRENCES = 16
 MAX_HOST_BYTES = 256
@@ -26,6 +28,17 @@ MAX_TRAILING_CONFIG_CHARACTERS = 4_096
 MAX_TRAILING_TOTAL_CHARACTERS = 64 * 1024
 TRAILING_SCAN_CHUNK_BYTES = 64 * 1024
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_NON_PUBLIC_HOST_SUFFIXES = (
+    "example",
+    "invalid",
+    "localhost",
+    "test",
+    "local",
+    "internal",
+    "lan",
+    "home.arpa",
+    "onion",
+)
 
 
 class NvmlDatError(ValueError):
@@ -52,6 +65,25 @@ def normalize_host(value: str) -> str | None:
             return None
         host = raw.casefold().rstrip(".")
         return host if valid_host(host) else None
+
+
+def is_public_host(value: str) -> bool:
+    """公開C2候補として扱えるglobal IPまたは複数labelのdomainかを返す。"""
+
+    normalized = normalize_host(value)
+    if normalized is None:
+        return False
+    try:
+        address = ipaddress.ip_address(normalized)
+    except ValueError:
+        labels = normalized.split(".")
+        if len(labels) < 2 or labels[-1].isdigit():
+            return False
+        return not any(
+            normalized == suffix or normalized.endswith(f".{suffix}")
+            for suffix in _NON_PUBLIC_HOST_SUFFIXES
+        )
+    return address.is_global
 
 
 def render_authority(host: str, port: int | None = None) -> str | None:
@@ -538,11 +570,20 @@ def _chunked_sha256(data: bytes | memoryview) -> str:
     return digest.hexdigest()
 
 
-def _parse_codemark_at(stage: bytes, marker_offset: int) -> dict[str, Any]:
-    """指定offsetのcodemark設定を検証する。"""
+def _parse_marker_at(
+    stage: bytes,
+    marker_offset: int,
+    *,
+    marker: bytes,
+) -> dict[str, Any]:
+    """指定offsetのWinos設定markerを境界検証する。"""
+
+    if marker not in WINOS_CONFIG_MARKERS:
+        raise NvmlDatError("未対応のWinos設定markerです")
+    marker_name = marker.decode("ascii")
 
     if marker_offset + CODEMARK_HEADER_SIZE > len(stage):
-        raise NvmlDatError("codemark headerがstage境界を超えています")
+        raise NvmlDatError(f"{marker_name} headerがstage境界を超えています")
     first_length = int.from_bytes(
         stage[marker_offset + 0x20 : marker_offset + 0x24], "little"
     )
@@ -578,9 +619,9 @@ def _parse_codemark_at(stage: bytes, marker_offset: int) -> dict[str, Any]:
         slots = list(trailing_recovery["slots"])
     endpoints = [str(item["endpoint"]) for item in slots if item["endpoint"]]
     if not endpoints:
-        raise NvmlDatError("codemarkに有効なC2 slotがありません")
+        raise NvmlDatError(f"{marker_name}に有効なC2 slotがありません")
     return {
-        "marker": CODEMARK.decode("ascii"),
+        "marker": marker_name,
         "marker_offset": marker_offset,
         "slots": slots,
         "endpoints": endpoints,
@@ -623,30 +664,34 @@ def _parse_codemark_at(stage: bytes, marker_offset: int) -> dict[str, Any]:
     }
 
 
-def parse_codemark_config(stage: bytes) -> dict[str, Any]:
-    """復号stageから一意で有効なcodemark C2設定を返す。"""
+def parse_marker_config(stage: bytes, *, marker: bytes) -> dict[str, Any]:
+    """復号stageから一意で有効なWinos marker設定を返す。"""
+
+    if marker not in WINOS_CONFIG_MARKERS:
+        raise NvmlDatError("未対応のWinos設定markerです")
+    marker_name = marker.decode("ascii")
 
     if len(stage) > MAX_PAYLOAD_SIZE:
-        raise NvmlDatError("codemark解析対象が64 MiB上限を超えています")
+        raise NvmlDatError(f"{marker_name}解析対象が64 MiB上限を超えています")
     valid = []
     cursor = 0
     for _ in range(MAX_CODEMARK_OCCURRENCES):
-        offset = stage.find(CODEMARK, cursor)
+        offset = stage.find(marker, cursor)
         if offset < 0:
             break
         try:
-            valid.append(_parse_codemark_at(stage, offset))
+            valid.append(_parse_marker_at(stage, offset, marker=marker))
         except NvmlDatOptionalConfigLimit:
             # 1件でも探索が不完全なら、別markerの設定だけを採用して
             # 相反configを見落とす可能性があるためstage全体を拒否する。
             raise
         except NvmlDatError:
             pass
-        cursor = offset + len(CODEMARK)
-    if stage.find(CODEMARK, cursor) >= 0:
-        raise NvmlDatError("codemark出現数が上限を超えています")
+        cursor = offset + len(marker)
+    if stage.find(marker, cursor) >= 0:
+        raise NvmlDatError(f"{marker_name}出現数が上限を超えています")
     if not valid:
-        raise NvmlDatError("復号stageに有効なcodemark設定がありません")
+        raise NvmlDatError(f"復号stageに有効な{marker_name}設定がありません")
     configuration_identities = {
         tuple(
             (
@@ -663,8 +708,20 @@ def parse_codemark_config(stage: bytes) -> dict[str, Any]:
         for item in valid
     }
     if len(configuration_identities) != 1:
-        raise NvmlDatError("複数の異なるcodemark設定があり一意に決定できません")
+        raise NvmlDatError(f"複数の異なる{marker_name}設定があり一意に決定できません")
     return valid[0]
+
+
+def parse_codemark_config(stage: bytes) -> dict[str, Any]:
+    """復号stageから一意で有効なcodemark C2設定を返す。"""
+
+    return parse_marker_config(stage, marker=CODEMARK)
+
+
+def parse_codecode_config(stage: bytes) -> dict[str, Any]:
+    """復号stageから一意で有効なcodecode C2設定を返す。"""
+
+    return parse_marker_config(stage, marker=CODECODE)
 
 
 def recover_nvml_dat(

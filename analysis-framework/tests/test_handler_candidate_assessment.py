@@ -1907,6 +1907,30 @@ def test_yuanbao_unmatched_layer_is_no_evidence_not_worker_failure() -> None:
     assert quality["sufficient"] is False
 
 
+def test_yuanbao_unknown_sfx_magic_is_not_a_fixed_delivery_chain() -> None:
+    """汎用7-Zip SFXのmagicだけでYuanbao配布チェーンへ帰属させない。"""
+
+    spec = next(
+        item
+        for item in catalog.discover_handlers()
+        if item.relative_path.endswith("yuanbao_sideload/analyze_bundle.py")
+    )
+    bounded = catalog.execute_handler_bounded_for_assessment(
+        spec,
+        b"MZ" + bytes(64) + bytes.fromhex("377abcaf271c"),
+        "unknown-sfx.exe",
+        actual_format="pe",
+        timeout_seconds=30,
+    )
+
+    assert bounded["status"] == "completed"
+    result = bounded["execution"]["result"]
+    assert result["status"] == "not_applicable"
+    quality = handler_result_quality(result, minimum_score=spec.minimum_evidence_score)
+    assert quality["tier"] == 0
+    assert quality["sufficient"] is False
+
+
 def test_retention_rejects_repository_destination(
     isolated_catalog,
 ) -> None:

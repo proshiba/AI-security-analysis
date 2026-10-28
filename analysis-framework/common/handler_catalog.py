@@ -4340,6 +4340,41 @@ _REVIEWED_SOURCE_CALLS = {
         "component_queued.discard",
     ): "有界callback componentキューの投入済み集合だけを更新する",
     (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_pe_structure_evidence",
+        "inferred_pending.popleft",
+    ): "最大2,048 functionの有界推定キューから先頭要素だけを取り出す",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_pe_structure_evidence",
+        "inferred_queued.discard",
+    ): "有界推定キューの投入済み集合だけを更新する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_register_family",
+        "instruction.reg_name",
+    ): "Capstone命令objectからx64 register family名だけを取得する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_x64_entry_object_aliases",
+        "aliases.discard",
+    ): "最初のcall前に構築した局所register alias集合だけを更新する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_vvas_x64_entry_object_aliases",
+        "preserved.discard",
+    ): "最初のcall前に構築した局所nonvolatile集合だけを更新する",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_extract_modified_rc4_record_route",
+        "recovery.public_summary",
+    ): "入力bytes由来のfrozen recoveryを秘密値除外済み公開要約へ変換する純粋呼び出し",
+    (
+        "extractors/valleyrat/extractor.py",
+        "reachable:_extract_server_log_rc4_route",
+        "recovery.public_summary",
+    ): "入力bytes由来のfrozen recoveryを秘密値除外済み公開要約へ変換する純粋呼び出し",
+    (
         "extractors/profiled_family.py",
         "reachable:load_profiles",
         "path.resolve",
@@ -4517,6 +4552,11 @@ _REVIEWED_SOURCE_CALLS = {
 }
 _APPROVED_CALLBACK_PARAMETERS = frozenset(
     {
+        (
+            "extractors/valleyrat/ca01_sideload.py",
+            "_local_create_thread_wrapper_candidates",
+            "summary",
+        ),
         (
             "extractors/valleyrat/ca01_sideload.py",
             "_parse_producer",

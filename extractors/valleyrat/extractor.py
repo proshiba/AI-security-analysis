@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import re
 import struct
 from collections import deque
@@ -39,12 +40,24 @@ from extractors.valleyrat.ca01_sideload import (
 from extractors.valleyrat.ca01_sideload import (
     validate_recovery_contract as validate_ca01_recovery_contract,
 )
+from extractors.valleyrat.codecode_config import (
+    CodecodeConfigError,
+    extract_codecode_config,
+)
 from extractors.valleyrat.direct_native_terminal import (
     probe_direct_native_terminal_config,
 )
 from extractors.valleyrat.export_funnel import (
     collect_external_code_roots,
     probe_export_funnel_route,
+)
+from extractors.valleyrat.ipdate_compact_config import (
+    IpDateCompactConfigError,
+    extract_ipdate_compact_config,
+)
+from extractors.valleyrat.modified_rc4_records import (
+    ModifiedRc4RecordError,
+    recover_modified_rc4_records,
 )
 from extractors.valleyrat.n520 import (
     N520ConfigError,
@@ -75,8 +88,16 @@ from extractors.valleyrat.nvml_dat import (
 from extractors.valleyrat.polygon_dead_drop import (
     analyze_polygon_dead_drop_lineage,
 )
+from extractors.valleyrat.rc4_full_config import (
+    Rc4FullConfigLimitError,
+    probe_rc4_full_config,
+)
 from extractors.valleyrat.run_dll_native_core import (
     probe_run_dll_native_core_config,
+)
+from extractors.valleyrat.server_log_rc4 import (
+    ServerLogRc4Error,
+    recover_server_log_rc4,
 )
 from extractors.valleyrat.silverfox_loader_lineage import (
     analyze_silverfox_loader_lineage,
@@ -137,6 +158,7 @@ MAXIMUM_PE_IMPORTS = 65_536
 MAXIMUM_PE_IMPORT_NAME_LENGTH = 128
 MAXIMUM_VVAS_PE_SECTIONS = 96
 MAXIMUM_VVAS_EXECUTABLE_BYTES = 8 * 1024 * 1024
+MAXIMUM_VVAS_VIRTUAL_SECTION_BYTES = 64 * 1024 * 1024
 MAXIMUM_VVAS_CONFIG_LOCATIONS = 32
 MAXIMUM_VVAS_MAPPED_SCAN_SECTIONS = 96
 MAXIMUM_VVAS_MAPPED_SCAN_SECTION_BYTES = 40 * 1024 * 1024
@@ -174,6 +196,34 @@ _XOR_B1_WININET_MARKER = re.compile(
 )
 _VVAS_FIELD = re.compile(r"(?:^|\|)([pot][123]):([^|]{0,255})(?=\||$)", re.IGNORECASE)
 _VVAS_TILDE_FIELD = re.compile(r"(?:^|~)([pot][123]):([^~]{0,255})(?=~|$)", re.IGNORECASE)
+_MODERN_VVAS_FIELD_ORDER = (
+    "p1",
+    "o1",
+    "t1",
+    "p2",
+    "o2",
+    "t2",
+    "p3",
+    "o3",
+    "t3",
+    "dd",
+    "cl",
+    "fz",
+    "bb",
+    "bz",
+    "jp",
+    "bh",
+    "ll",
+    "dl",
+    "sh",
+    "kl",
+    "bd",
+    "ur",
+    "ps",
+)
+_MODERN_VVAS_BOOLEAN_FIELDS = ("jp", "bh", "ll", "dl", "sh", "kl", "bd")
+_MODERN_VVAS_VERSION = re.compile(r"[0-9]{1,5}(?:\.[0-9]{1,5}){1,3}\Z")
+_MODERN_VVAS_TRANSPORT_KEY = re.compile(r"[0-9a-fA-F]{64}\Z")
 _SENSITIVE_URL_PATH = re.compile(
     r"(?i)(?:^|/)(?:access[_-]?token|token|secret|password|passwd|"
     r"api[_-]?key|auth(?:orization)?)(?:[=/:_-]|$)"
@@ -192,6 +242,7 @@ class _VvasPeSection:
     name: str
     virtual_start: int
     virtual_end: int
+    mapped_end: int
     raw_start: int
     raw_end: int
     executable: bool
@@ -491,12 +542,161 @@ def _parse_vvas_reversed_value(
     )
 
 
+def _public_modern_fallback_url(value: str) -> str | None:
+    """modern設定の公開可能なHTTP(S) text resolver URLだけを返す。"""
+
+    try:
+        parsed = urlsplit(value)
+        host = normalize_host(parsed.hostname or "")
+        port = parsed.port
+    except ValueError:
+        return None
+    if (
+        parsed.scheme.casefold() not in {"http", "https"}
+        or host is None
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+        or not parsed.path.casefold().endswith(".txt")
+        or len(parsed.path) > 512
+        or (port is not None and not 1 <= port <= 65535)
+    ):
+        return None
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        if host in {"localhost"} or host.endswith(
+            (".localhost", ".local", ".invalid", ".test", ".example")
+        ):
+            return None
+    else:
+        if not address.is_global:
+            return None
+    public_urls = _public_urls([value])
+    if len(public_urls) != 1 or "[REDACTED]" in public_urls[0]:
+        return None
+    return public_urls[0]
+
+
+def _parse_modern_vvas_auxiliary(
+    value: str,
+) -> tuple[bool, dict[str, object] | None]:
+    """2026年型のur／ps補助設定を厳格に検証する。
+
+    戻り値の先頭はurまたはps fieldの観測有無を表す。補助設定が壊れていても
+    既存p/o/t slotの復元は維持し、補助設定だけを不採用にする。
+    """
+
+    if (
+        type(value) is not str
+        or not value
+        or len(value) > MAXIMUM_STRING_LENGTH
+        or value[0] != "|"
+        or value[-1] != "|"
+    ):
+        return False, None
+    plaintext = value[::-1]
+    tokens = plaintext[1:-1].split("|")
+    parsed_tokens: list[tuple[str, str]] = []
+    for token in tokens:
+        key, separator, raw = token.partition(":")
+        if not separator:
+            return False, None
+        parsed_tokens.append((key.casefold(), raw))
+    keys = tuple(key for key, _raw in parsed_tokens)
+    observed = "ur" in keys or "ps" in keys
+    if not observed:
+        return False, None
+    if keys != _MODERN_VVAS_FIELD_ORDER:
+        return True, None
+    fields = dict(parsed_tokens)
+    if any(raw != raw.strip() for raw in fields.values()):
+        return True, None
+    if any(fields[key] not in {"0", "1"} for key in _MODERN_VVAS_BOOLEAN_FIELDS):
+        return True, None
+    if any(
+        not fields[key].isdigit()
+        or len(fields[key]) > 10
+        or int(fields[key]) > 0x7FFFFFFF
+        for key in ("dd", "cl")
+    ):
+        return True, None
+    if (
+        not fields["fz"]
+        or not fields["bz"]
+        or len(fields["fz"]) > 255
+        or len(fields["bz"]) > 255
+        or _MODERN_VVAS_VERSION.fullmatch(fields["bb"]) is None
+        or any(int(item) > 65535 for item in fields["bb"].split("."))
+        or _MODERN_VVAS_TRANSPORT_KEY.fullmatch(fields["ps"]) is None
+    ):
+        return True, None
+    fallback_url = _public_modern_fallback_url(fields["ur"])
+    if fallback_url is None:
+        return True, None
+    transport_key = bytes.fromhex(fields["ps"])
+    transport_key_sha256 = hashlib.sha256(transport_key).hexdigest()
+    configuration_identity = hashlib.sha256(
+        f"{fallback_url}\n{transport_key_sha256}".encode()
+    ).hexdigest()
+    return True, {
+        "status": "validated_candidate",
+        "field_order_validated": True,
+        "field_types_validated": True,
+        "fallback_urls": [fallback_url],
+        "fallback_url_role": "fallback_c2_resolver_candidate",
+        "transport_key_length": len(transport_key),
+        "transport_key_sha256": transport_key_sha256,
+        "configuration_identity_sha256": configuration_identity,
+        "raw_transport_key_included": False,
+        "raw_configuration_included": False,
+        "supports_family_attribution": False,
+        "command_c2_confirmed": False,
+    }
+
+
+def _modern_vvas_auxiliary_evidence(
+    *,
+    status: str,
+    observed_candidate_count: int,
+    valid_candidate_count: int,
+    invalid_candidate_count: int,
+    unique_configuration_count: int,
+    candidate: dict[str, object] | None = None,
+) -> dict[str, object]:
+    """秘密値を含めずmodern補助設定の採否を固定schemaで返す。"""
+
+    result: dict[str, object] = {
+        "status": status,
+        "observed_candidate_count": observed_candidate_count,
+        "valid_candidate_count": valid_candidate_count,
+        "invalid_candidate_count": invalid_candidate_count,
+        "unique_configuration_count": unique_configuration_count,
+        "fallback_urls": [],
+        "raw_transport_key_included": False,
+        "raw_configuration_included": False,
+        "supports_family_attribution": False,
+        "command_c2_confirmed": False,
+    }
+    if candidate is not None:
+        result.update(candidate)
+        result["status"] = status
+    return result
+
+
 def _decode_vvas_reversed_config(
     strings: list[str],
 ) -> tuple[dict[str, str], dict[str, object]]:
     """全候補を評価し、一意なvvaS endpoint集合だけを採用する。"""
 
     candidates: dict[tuple[tuple[int, str, int, int], ...], dict[str, str]] = {}
+    modern_auxiliary_candidates: dict[
+        tuple[tuple[int, str, int, int], ...], dict[str, dict[str, object]]
+    ] = {}
+    modern_auxiliary_observed_count = 0
+    modern_auxiliary_valid_count = 0
+    modern_auxiliary_invalid_count = 0
     candidate_count = 0
     excluded_placeholder_slot_count = 0
     disabled_slot_count = 0
@@ -513,6 +713,19 @@ def _decode_vvas_reversed_config(
         if parsed is None:
             continue
         endpoints, identity, slot_evidence = parsed
+        modern_observed, modern_auxiliary = _parse_modern_vvas_auxiliary(value)
+        modern_auxiliary_observed_count += int(modern_observed)
+        if modern_observed and modern_auxiliary is None:
+            modern_auxiliary_invalid_count += 1
+        elif modern_auxiliary is not None:
+            modern_auxiliary_valid_count += 1
+            auxiliary_by_identity = modern_auxiliary_candidates.get(identity)
+            if auxiliary_by_identity is None:
+                auxiliary_by_identity = {}
+                modern_auxiliary_candidates[identity] = auxiliary_by_identity
+            auxiliary_by_identity[
+                str(modern_auxiliary["configuration_identity_sha256"])
+            ] = modern_auxiliary
         candidate_count += 1
         excluded_placeholder_slot_count += slot_evidence[
             "excluded_placeholder_slot_count"
@@ -547,6 +760,17 @@ def _decode_vvas_reversed_config(
             "tcp_transport_slot_count": 0,
             "udp_transport_slot_count": 0,
             "endpoint_slots": [],
+            "modern_fallback_config": _modern_vvas_auxiliary_evidence(
+                status=(
+                    "invalid_rejected"
+                    if modern_auxiliary_observed_count
+                    else "not_found"
+                ),
+                observed_candidate_count=modern_auxiliary_observed_count,
+                valid_candidate_count=modern_auxiliary_valid_count,
+                invalid_candidate_count=modern_auxiliary_invalid_count,
+                unique_configuration_count=0,
+            ),
         }
     if len(candidates) != 1:
         return {}, {
@@ -564,8 +788,45 @@ def _decode_vvas_reversed_config(
             "tcp_transport_slot_count": tcp_transport_slot_count,
             "udp_transport_slot_count": udp_transport_slot_count,
             "endpoint_slots": [],
+            "modern_fallback_config": _modern_vvas_auxiliary_evidence(
+                status="base_configuration_ambiguous_rejected",
+                observed_candidate_count=modern_auxiliary_observed_count,
+                valid_candidate_count=modern_auxiliary_valid_count,
+                invalid_candidate_count=modern_auxiliary_invalid_count,
+                unique_configuration_count=0,
+            ),
         }
     identity, endpoints = next(iter(candidates.items()))
+    selected_modern_auxiliary = modern_auxiliary_candidates.get(identity, {})
+    if len(selected_modern_auxiliary) == 1:
+        modern_auxiliary_evidence = _modern_vvas_auxiliary_evidence(
+            status="validated_unique",
+            observed_candidate_count=modern_auxiliary_observed_count,
+            valid_candidate_count=modern_auxiliary_valid_count,
+            invalid_candidate_count=modern_auxiliary_invalid_count,
+            unique_configuration_count=1,
+            candidate=next(iter(selected_modern_auxiliary.values())),
+        )
+    elif len(selected_modern_auxiliary) > 1:
+        modern_auxiliary_evidence = _modern_vvas_auxiliary_evidence(
+            status="ambiguous_rejected",
+            observed_candidate_count=modern_auxiliary_observed_count,
+            valid_candidate_count=modern_auxiliary_valid_count,
+            invalid_candidate_count=modern_auxiliary_invalid_count,
+            unique_configuration_count=len(selected_modern_auxiliary),
+        )
+    else:
+        modern_auxiliary_evidence = _modern_vvas_auxiliary_evidence(
+            status=(
+                "invalid_rejected"
+                if modern_auxiliary_observed_count
+                else "not_found"
+            ),
+            observed_candidate_count=modern_auxiliary_observed_count,
+            valid_candidate_count=modern_auxiliary_valid_count,
+            invalid_candidate_count=modern_auxiliary_invalid_count,
+            unique_configuration_count=0,
+        )
     endpoint_slots = [
         {
             "slot": index,
@@ -591,6 +852,7 @@ def _decode_vvas_reversed_config(
         "udp_transport_slot_count": udp_transport_slot_count,
         "endpoint_slots": endpoint_slots,
         "configuration_identity_sha256": _vvas_configuration_identity(identity),
+        "modern_fallback_config": modern_auxiliary_evidence,
     }
 
 
@@ -825,7 +1087,14 @@ def _vvas_pe_sections(
         raw_end = raw_start + mapped_size
         virtual_start = image_base + virtual_address
         virtual_end = virtual_start + mapped_size
-        if raw_end > len(data) or virtual_end <= virtual_start:
+        mapped_virtual_size = max(mapped_size, virtual_size)
+        mapped_end = virtual_start + mapped_virtual_size
+        if (
+            raw_end > len(data)
+            or virtual_end <= virtual_start
+            or mapped_end < virtual_end
+            or mapped_virtual_size > MAXIMUM_VVAS_VIRTUAL_SECTION_BYTES
+        ):
             return None
         name = raw_name.rstrip(b"\0").decode("ascii", errors="replace").casefold()
         executable = bool(characteristics & 0x20000000)
@@ -844,6 +1113,7 @@ def _vvas_pe_sections(
                 name=name,
                 virtual_start=virtual_start,
                 virtual_end=virtual_end,
+                mapped_end=mapped_end,
                 raw_start=raw_start,
                 raw_end=raw_end,
                 executable=executable,
@@ -1389,6 +1659,22 @@ def _vvas_section_for_address(
     return matches[0] if len(matches) == 1 else None
 
 
+def _vvas_mapped_data_section_for_address(
+    address: int,
+    sections: list[_VvasPeSection],
+) -> _VvasPeSection | None:
+    """file-backed末尾後のzero-filled領域を含む一意なdata sectionを返す。"""
+
+    matches = [
+        section
+        for section in sections
+        if not section.executable
+        and not section.resource
+        and section.virtual_start <= address < section.mapped_end
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
 def _vvas_read_pointer(
     data: bytes,
     sections: list[_VvasPeSection],
@@ -1596,6 +1882,413 @@ def _vvas_x86_push_arguments(
     return ()
 
 
+def _vvas_register_family(instruction: object, register: int) -> str:
+    """x64 registerの部分registerを64-bit family名へ正規化する。"""
+
+    name = str(instruction.reg_name(register)).lower()
+    aliases = {
+        "al": "rax",
+        "ah": "rax",
+        "ax": "rax",
+        "eax": "rax",
+        "bl": "rbx",
+        "bh": "rbx",
+        "bx": "rbx",
+        "ebx": "rbx",
+        "cl": "rcx",
+        "ch": "rcx",
+        "cx": "rcx",
+        "ecx": "rcx",
+        "dl": "rdx",
+        "dh": "rdx",
+        "dx": "rdx",
+        "edx": "rdx",
+        "sil": "rsi",
+        "si": "rsi",
+        "esi": "rsi",
+        "dil": "rdi",
+        "di": "rdi",
+        "edi": "rdi",
+        "bpl": "rbp",
+        "bp": "rbp",
+        "ebp": "rbp",
+        "spl": "rsp",
+        "sp": "rsp",
+        "esp": "rsp",
+    }
+    if name in aliases:
+        return aliases[name]
+    match = re.fullmatch(r"(r(?:8|9|1[0-5]))(?:b|w|d)?", name)
+    return match.group(1) if match else name
+
+
+def _vvas_x64_static_argument(
+    instructions: dict[int, object],
+    cfg_successors: dict[int, tuple[int, ...]],
+    callsite: int,
+    register_family: str,
+) -> int | None:
+    """x64 call直前の静的LEA・immediate引数を有界backward sliceする。"""
+
+    ordered = sorted(instructions)
+    ending_at = {
+        address + int(instructions[address].size): address for address in ordered
+    }
+    if len(ending_at) != len(ordered):
+        return None
+    current = callsite
+    for _index in range(MAXIMUM_VVAS_CALLBACK_LOOKBACK_INSTRUCTIONS):
+        address = ending_at.get(current)
+        if address is None or callsite - address > 128:
+            return None
+        instruction = instructions[address]
+        if current not in cfg_successors.get(address, ()):
+            return None
+        operands = list(instruction.operands)
+        destination_family = (
+            _vvas_register_family(instruction, operands[0].reg)
+            if operands and operands[0].type == X86_OP_REG
+            else ""
+        )
+        if destination_family == register_family:
+            if instruction.mnemonic == "lea" and len(operands) == 2:
+                return _vvas_operand_address(instruction, operands[1], 8)
+            if (
+                instruction.mnemonic == "mov"
+                and len(operands) == 2
+                and operands[1].type == X86_OP_IMM
+            ):
+                return _vvas_operand_address(instruction, operands[1], 8)
+            return None
+        if instruction.mnemonic in {"call", "jmp"} or instruction.mnemonic.startswith(
+            ("ret", "iret")
+        ):
+            return None
+        current = address
+    return None
+
+
+def _vvas_x64_register_argument_source(
+    summary: _VvasFunctionSummary,
+    callsite: int,
+    register_family: str,
+) -> str | None:
+    """x64 call引数へ直前にcopyされたregister familyを限定復元する。"""
+
+    ending_at = {
+        address + int(instruction.size): address
+        for address, instruction in summary.instructions.items()
+    }
+    if len(ending_at) != len(summary.instructions):
+        return None
+    current = callsite
+    for _index in range(MAXIMUM_VVAS_CALLBACK_LOOKBACK_INSTRUCTIONS):
+        address = ending_at.get(current)
+        if address is None or callsite - address > 160:
+            return None
+        instruction = summary.instructions[address]
+        if current not in summary.cfg_successors.get(address, ()):
+            return None
+        operands = list(instruction.operands)
+        destination = (
+            _vvas_register_family(instruction, operands[0].reg)
+            if operands and operands[0].type == X86_OP_REG
+            else ""
+        )
+        if destination == register_family:
+            if (
+                instruction.mnemonic == "mov"
+                and len(operands) == 2
+                and operands[1].type == X86_OP_REG
+            ):
+                return _vvas_register_family(instruction, operands[1].reg)
+            return None
+        if instruction.mnemonic in {"call", "jmp"} or instruction.mnemonic.startswith(
+            ("ret", "iret")
+        ):
+            return None
+        current = address
+    return None
+
+
+def _vvas_x64_entry_argument_alias(
+    summary: _VvasFunctionSummary,
+    argument_family: str,
+) -> str | None:
+    """最初のcall前に引数を保存する一意なnonvolatile registerを返す。"""
+
+    nonvolatile = {"rbx", "rbp", "rsi", "rdi", "r12", "r13", "r14", "r15"}
+    aliases: set[str] = set()
+    for address in sorted(summary.instructions):
+        instruction = summary.instructions[address]
+        if instruction.mnemonic == "call":
+            break
+        operands = list(instruction.operands)
+        if (
+            instruction.mnemonic == "mov"
+            and len(operands) == 2
+            and operands[0].type == X86_OP_REG
+            and operands[1].type == X86_OP_REG
+            and _vvas_register_family(instruction, operands[1].reg)
+            == argument_family
+        ):
+            destination = _vvas_register_family(instruction, operands[0].reg)
+            if destination in nonvolatile:
+                aliases.add(destination)
+    return next(iter(aliases)) if len(aliases) == 1 else None
+
+
+def _vvas_x64_context_field_transfer(
+    summary: _VvasFunctionSummary,
+    source_base_aliases: set[str],
+    field_offset: int,
+) -> bool:
+    """context field loadが同offsetの別contextへcopyされるか検証する。"""
+
+    ordered = sorted(summary.instructions)
+    indexes = {address: index for index, address in enumerate(ordered)}
+    for address in ordered:
+        instruction = summary.instructions[address]
+        operands = list(instruction.operands)
+        if (
+            instruction.mnemonic != "mov"
+            or len(operands) != 2
+            or operands[0].type != X86_OP_REG
+            or operands[1].type != X86_OP_MEM
+            or operands[1].mem.index != X86_REG_INVALID
+            or _vvas_register_family(instruction, operands[1].mem.base)
+            not in source_base_aliases
+            or int(operands[1].mem.disp) != field_offset
+        ):
+            continue
+        value_register = _vvas_register_family(instruction, operands[0].reg)
+        current = address
+        for next_address in ordered[indexes[address] + 1 : indexes[address] + 9]:
+            if next_address not in summary.cfg_successors.get(current, ()):
+                break
+            later = summary.instructions[next_address]
+            later_operands = list(later.operands)
+            if (
+                later.mnemonic == "mov"
+                and len(later_operands) == 2
+                and later_operands[0].type == X86_OP_MEM
+                and later_operands[0].mem.base
+                not in {X86_REG_INVALID, X86_REG_RIP}
+                and later_operands[0].mem.index == X86_REG_INVALID
+                and int(later_operands[0].mem.disp) == field_offset
+                and later_operands[1].type == X86_OP_REG
+                and _vvas_register_family(later, later_operands[1].reg)
+                == value_register
+            ):
+                return True
+            destination = (
+                _vvas_register_family(later, later_operands[0].reg)
+                if later_operands and later_operands[0].type == X86_OP_REG
+                else ""
+            )
+            if destination == value_register or later.mnemonic in {"call", "jmp"}:
+                break
+            current = next_address
+    return False
+
+
+def _vvas_x64_thread_wrapper_contract(
+    summaries: dict[int, _VvasFunctionSummary],
+    wrapper_start: int,
+) -> bool:
+    """R8 callback/R9 objectをcontext経由でCreateThreadへ渡すwrapperを検証する。"""
+
+    wrapper = summaries.get(wrapper_start)
+    if wrapper is None:
+        return False
+    create_sites = [
+        address
+        for address, name, _descriptor in wrapper.api_call_sites
+        if name == "createthread"
+    ]
+    if len(create_sites) != 1:
+        return False
+    create_site = create_sites[0]
+    trampoline = _vvas_x64_static_argument(
+        wrapper.instructions,
+        wrapper.cfg_successors,
+        create_site,
+        "r8",
+    )
+    if trampoline is None or trampoline not in wrapper.callback_targets:
+        return False
+    callback_alias = _vvas_x64_entry_argument_alias(wrapper, "r8")
+    object_alias = _vvas_x64_entry_argument_alias(wrapper, "r9")
+    context_base = _vvas_x64_register_argument_source(wrapper, create_site, "r9")
+    if (
+        callback_alias is None
+        or object_alias is None
+        or context_base is None
+        or len({callback_alias, object_alias, context_base}) != 3
+    ):
+        return False
+    stored_fields: dict[str, set[int]] = {callback_alias: set(), object_alias: set()}
+    for address, instruction in wrapper.instructions.items():
+        if address >= create_site or instruction.mnemonic != "mov":
+            continue
+        operands = list(instruction.operands)
+        if (
+            len(operands) != 2
+            or operands[0].type != X86_OP_MEM
+            or operands[0].mem.index != X86_REG_INVALID
+            or _vvas_register_family(instruction, operands[0].mem.base)
+            != context_base
+            or operands[1].type != X86_OP_REG
+        ):
+            continue
+        source = _vvas_register_family(instruction, operands[1].reg)
+        offset = int(operands[0].mem.disp)
+        if source in stored_fields and 0 < offset <= 0x400:
+            stored_fields[source].add(offset)
+    if any(len(offsets) != 1 for offsets in stored_fields.values()):
+        return False
+    callback_offset = next(iter(stored_fields[callback_alias]))
+    object_offset = next(iter(stored_fields[object_alias]))
+    if callback_offset == object_offset:
+        return False
+    trampoline_summary = summaries.get(trampoline)
+    if trampoline_summary is None:
+        return False
+    trampoline_bases = _vvas_x64_entry_object_aliases(trampoline_summary)
+    if not trampoline_bases:
+        return False
+    return all(
+        _vvas_x64_context_field_transfer(
+            trampoline_summary,
+            trampoline_bases,
+            offset,
+        )
+        for offset in (callback_offset, object_offset)
+    )
+
+
+def _vvas_x64_wrapped_callbacks(
+    summaries: dict[int, _VvasFunctionSummary],
+    sections: list[_VvasPeSection],
+) -> dict[int, dict[int, set[int]]]:
+    """検証済みthread wrapper callsiteから静的callback edgeを復元する。"""
+
+    wrappers = {
+        start
+        for start in summaries
+        if _vvas_x64_thread_wrapper_contract(summaries, start)
+    }
+    recovered: dict[int, dict[int, set[int]]] = {}
+    for caller in summaries.values():
+        object_aliases = _vvas_x64_entry_object_aliases(caller)
+        if not object_aliases:
+            continue
+        for wrapper_start in caller.direct_calls & wrappers:
+            for callsite in caller.direct_call_sites.get(wrapper_start, ()):
+                callback = _vvas_x64_static_argument(
+                    caller.instructions,
+                    caller.cfg_successors,
+                    callsite,
+                    "r8",
+                )
+                object_source = _vvas_x64_register_argument_source(
+                    caller,
+                    callsite,
+                    "r9",
+                )
+                if (
+                    callback is None
+                    or object_source not in object_aliases
+                    or _vvas_section_for_address(
+                        callback,
+                        sections,
+                        executable=True,
+                    )
+                    is None
+                ):
+                    continue
+                caller_callbacks = recovered.get(caller.start)
+                if caller_callbacks is None:
+                    caller_callbacks = {}
+                    recovered[caller.start] = caller_callbacks
+                callback_sites = caller_callbacks.get(callback)
+                if callback_sites is None:
+                    callback_sites = set()
+                    caller_callbacks[callback] = callback_sites
+                callback_sites.add(callsite)
+    return recovered
+
+
+def _vvas_x64_vtable_references(
+    instructions: dict[int, object],
+    cfg_successors: dict[int, tuple[int, ...]],
+    sections: list[_VvasPeSection],
+) -> dict[int, set[int]]:
+    """RIP-relative LEAから同一registerのobject storeまでを限定復元する。"""
+
+    ordered = sorted(instructions)
+    indexes = {address: index for index, address in enumerate(ordered)}
+    references: dict[int, set[int]] = {}
+    for source_address in ordered:
+        source = instructions[source_address]
+        operands = list(source.operands)
+        if (
+            source.mnemonic != "lea"
+            or len(operands) != 2
+            or operands[0].type != X86_OP_REG
+        ):
+            continue
+        candidate = _vvas_operand_address(source, operands[1], 8)
+        source_section = (
+            _vvas_section_for_address(candidate, sections, executable=False)
+            if candidate is not None
+            else None
+        )
+        if source_section is None or source_section.resource:
+            continue
+        register_family = _vvas_register_family(source, operands[0].reg)
+        current = source_address
+        for next_address in ordered[indexes[source_address] + 1 :]:
+            if next_address - source_address > 128:
+                break
+            if next_address not in cfg_successors.get(current, ()):
+                break
+            instruction = instructions[next_address]
+            later_operands = list(instruction.operands)
+            if (
+                instruction.mnemonic == "mov"
+                and len(later_operands) == 2
+                and later_operands[0].type == X86_OP_MEM
+                and later_operands[0].mem.base
+                not in {X86_REG_INVALID, X86_REG_RIP}
+                and later_operands[0].mem.index == X86_REG_INVALID
+                and 0 <= int(later_operands[0].mem.disp) <= 0x400
+                and later_operands[1].type == X86_OP_REG
+                and _vvas_register_family(instruction, later_operands[1].reg)
+                == register_family
+            ):
+                reference_sites = references.get(candidate)
+                if reference_sites is None:
+                    reference_sites = set()
+                    references[candidate] = reference_sites
+                reference_sites.add(next_address)
+                break
+            destination_family = (
+                _vvas_register_family(instruction, later_operands[0].reg)
+                if later_operands and later_operands[0].type == X86_OP_REG
+                else ""
+            )
+            if destination_family == register_family:
+                break
+            if (
+                instruction.mnemonic in {"call", "jmp"}
+                or instruction.mnemonic.startswith(("ret", "iret"))
+            ):
+                break
+            current = next_address
+    return references
+
+
 def _vvas_function_summary(
     data: bytes,
     sections: list[_VvasPeSection],
@@ -1782,6 +2475,40 @@ def _vvas_function_summary(
                 callsites = set()
                 callback_call_sites[target] = callsites
             callsites.add(callsite)
+    elif pointer_size == 8:
+        for callsite in create_thread_callsites:
+            target = _vvas_x64_static_argument(
+                instructions,
+                cfg_successors,
+                callsite,
+                "r8",
+            )
+            if (
+                target is None
+                or _vvas_section_for_address(target, sections, executable=True) is None
+            ):
+                continue
+            callback_targets.add(target)
+            if target not in callback_sites:
+                callback_sites[target] = callsite
+            callsites = callback_call_sites.get(target)
+            if callsites is None:
+                callsites = set()
+                callback_call_sites[target] = callsites
+            callsites.add(callsite)
+
+        for address, reference_sites in _vvas_x64_vtable_references(
+            instructions,
+            cfg_successors,
+            sections,
+        ).items():
+            existing_sites = vtable_references.get(address)
+            if existing_sites is None:
+                existing_sites = set()
+                vtable_references[address] = existing_sites
+            existing_sites.update(reference_sites)
+        if len(vtable_references) > MAXIMUM_VVAS_DATA_REFERENCES_PER_FUNCTION:
+            return None
 
     vtable_targets: set[int] = set()
     vtable_target_sites: dict[int, set[int]] = {}
@@ -2208,6 +2935,501 @@ def _vvas_parser_paths(
     }
 
 
+def _vvas_x64_entry_object_aliases(summary: _VvasFunctionSummary) -> set[str]:
+    """最初のcall前にx64第1引数を保存したnonvolatile registerを返す。"""
+
+    aliases = {"rcx"}
+    preserved: set[str] = set()
+    nonvolatile = {"rbx", "rbp", "rsi", "rdi", "r12", "r13", "r14", "r15"}
+    for address in sorted(summary.instructions):
+        instruction = summary.instructions[address]
+        if instruction.mnemonic == "call":
+            break
+        operands = list(instruction.operands)
+        if not operands or operands[0].type != X86_OP_REG:
+            continue
+        destination = _vvas_register_family(instruction, operands[0].reg)
+        source = (
+            _vvas_register_family(instruction, operands[1].reg)
+            if instruction.mnemonic == "mov"
+            and len(operands) == 2
+            and operands[1].type == X86_OP_REG
+            else ""
+        )
+        if source in aliases:
+            aliases.add(destination)
+            if destination in nonvolatile:
+                preserved.add(destination)
+        elif destination in aliases:
+            aliases.discard(destination)
+            preserved.discard(destination)
+    return preserved
+
+
+def _vvas_x64_object_field_before_call(
+    summary: _VvasFunctionSummary,
+    callsite: int,
+    aliases: set[str],
+) -> int | None:
+    """call第1引数がentry objectの固定field loadであることを検証する。"""
+
+    ending_at = {
+        address + int(instruction.size): address
+        for address, instruction in summary.instructions.items()
+    }
+    if len(ending_at) != len(summary.instructions):
+        return None
+    current = callsite
+    for _index in range(MAXIMUM_VVAS_CALLBACK_LOOKBACK_INSTRUCTIONS):
+        address = ending_at.get(current)
+        if address is None or callsite - address > 160:
+            return None
+        instruction = summary.instructions[address]
+        if current not in summary.cfg_successors.get(address, ()):
+            return None
+        operands = list(instruction.operands)
+        destination = (
+            _vvas_register_family(instruction, operands[0].reg)
+            if operands and operands[0].type == X86_OP_REG
+            else ""
+        )
+        if destination == "rcx":
+            if (
+                instruction.mnemonic == "mov"
+                and len(operands) == 2
+                and operands[1].type == X86_OP_MEM
+                and operands[1].mem.index == X86_REG_INVALID
+                and _vvas_register_family(instruction, operands[1].mem.base)
+                in aliases
+                and 0 < int(operands[1].mem.disp) <= 0x1000
+            ):
+                return int(operands[1].mem.disp)
+            return None
+        if instruction.mnemonic in {"call", "jmp"} or instruction.mnemonic.startswith(
+            ("ret", "iret")
+        ):
+            return None
+        current = address
+    return None
+
+
+def _vvas_x64_socket_object_field(
+    summary: _VvasFunctionSummary,
+    descriptor_index: int,
+) -> int | None:
+    """socket戻り値とconnect第1引数が同じobject fieldか検証する。"""
+
+    aliases = _vvas_x64_entry_object_aliases(summary)
+    if not aliases:
+        return None
+    socket_sites = [
+        address
+        for address, name, descriptor in summary.api_call_sites
+        if descriptor == descriptor_index
+        and name in {"socket", "wsasocketa", "wsasocketw"}
+    ]
+    connect_sites = [
+        address
+        for address, name, descriptor in summary.api_call_sites
+        if descriptor == descriptor_index and name in {"connect", "wsaconnect"}
+    ]
+    resolver_names = {
+        name
+        for _address, name, descriptor in summary.api_call_sites
+        if descriptor == descriptor_index
+    }
+    if (
+        len(socket_sites) != 1
+        or len(connect_sites) != 1
+        or "gethostbyname" not in resolver_names
+        or "htons" not in resolver_names
+    ):
+        return None
+
+    socket_site = socket_sites[0]
+    ordered = sorted(summary.instructions)
+    try:
+        socket_index = ordered.index(socket_site)
+    except ValueError:
+        return None
+    stored_fields: set[int] = set()
+    current = socket_site
+    for address in ordered[socket_index + 1 : socket_index + 17]:
+        if address - socket_site > 128 or address not in summary.cfg_successors.get(
+            current, ()
+        ):
+            break
+        instruction = summary.instructions[address]
+        operands = list(instruction.operands)
+        if (
+            instruction.mnemonic == "mov"
+            and len(operands) == 2
+            and operands[0].type == X86_OP_MEM
+            and operands[0].mem.index == X86_REG_INVALID
+            and _vvas_register_family(instruction, operands[0].mem.base) in aliases
+            and 0 < int(operands[0].mem.disp) <= 0x1000
+            and operands[1].type == X86_OP_REG
+            and _vvas_register_family(instruction, operands[1].reg) == "rax"
+        ):
+            stored_fields.add(int(operands[0].mem.disp))
+        if instruction.mnemonic in {"call", "jmp"} or instruction.mnemonic.startswith(
+            ("ret", "iret")
+        ):
+            break
+        current = address
+    connected_field = _vvas_x64_object_field_before_call(
+        summary,
+        connect_sites[0],
+        aliases,
+    )
+    return connected_field if stored_fields == {connected_field} else None
+
+
+def _vvas_x64_io_object_field(
+    summary: _VvasFunctionSummary,
+    descriptor_index: int,
+    api_name: str,
+) -> int | None:
+    """send/recv第1引数がentry objectの一意な固定fieldか検証する。"""
+
+    aliases = _vvas_x64_entry_object_aliases(summary)
+    if not aliases:
+        return None
+    sites = [
+        address
+        for address, name, descriptor in summary.api_call_sites
+        if descriptor == descriptor_index and name == api_name
+    ]
+    if not sites:
+        return None
+    fields = {
+        field
+        for site in sites
+        if (
+            field := _vvas_x64_object_field_before_call(summary, site, aliases)
+        )
+        is not None
+    }
+    return next(iter(fields)) if len(fields) == 1 else None
+
+
+def _vvas_x64_interface_virtual_calls(summary: _VvasFunctionSummary) -> int:
+    """同一objectからloadしたvtableへの複数virtual callを検証する。"""
+
+    ordered = sorted(summary.instructions)
+    ending_at = {
+        address + int(summary.instructions[address].size): address
+        for address in ordered
+    }
+    if len(ending_at) != len(ordered):
+        return 0
+    calls_by_object: dict[str, set[int]] = {}
+    for callsite in ordered:
+        call = summary.instructions[callsite]
+        operands = list(call.operands)
+        if (
+            call.mnemonic != "call"
+            or len(operands) != 1
+            or operands[0].type != X86_OP_MEM
+            or operands[0].mem.base == X86_REG_INVALID
+            or operands[0].mem.index != X86_REG_INVALID
+        ):
+            continue
+        vtable_register = _vvas_register_family(call, operands[0].mem.base)
+        method_offset = int(operands[0].mem.disp)
+        current = callsite
+        for _index in range(MAXIMUM_VVAS_CALLBACK_LOOKBACK_INSTRUCTIONS):
+            address = ending_at.get(current)
+            if address is None or callsite - address > 192:
+                break
+            instruction = summary.instructions[address]
+            if current not in summary.cfg_successors.get(address, ()):
+                break
+            earlier_operands = list(instruction.operands)
+            destination = (
+                _vvas_register_family(instruction, earlier_operands[0].reg)
+                if earlier_operands and earlier_operands[0].type == X86_OP_REG
+                else ""
+            )
+            if destination == vtable_register:
+                if (
+                    instruction.mnemonic == "mov"
+                    and len(earlier_operands) == 2
+                    and earlier_operands[1].type == X86_OP_MEM
+                    and earlier_operands[1].mem.base != X86_REG_INVALID
+                    and earlier_operands[1].mem.index == X86_REG_INVALID
+                    and int(earlier_operands[1].mem.disp) == 0
+                ):
+                    object_register = _vvas_register_family(
+                        instruction,
+                        earlier_operands[1].mem.base,
+                    )
+                    object_calls = calls_by_object.get(object_register)
+                    if object_calls is None:
+                        object_calls = set()
+                        calls_by_object[object_register] = object_calls
+                    object_calls.add(method_offset)
+                break
+            if instruction.mnemonic == "jmp" or instruction.mnemonic.startswith(
+                ("ret", "iret")
+            ):
+                break
+            current = address
+    validated = [offsets for offsets in calls_by_object.values() if len(offsets) >= 3]
+    return len(next(iter(validated))) if len(validated) == 1 else 0
+
+
+def _vvas_x64_parser_global_destinations(
+    summaries: dict[int, _VvasFunctionSummary],
+    parser_paths: dict[int, tuple[set[int], set[int]]],
+    sections: list[_VvasPeSection],
+    config_locations: list[tuple[int, int]],
+) -> dict[int, tuple[int, frozenset[int]]]:
+    """parserのRDX出力先を、launcher単位の一意なstatic global集合へ限定する。"""
+
+    recovered: dict[int, tuple[int, frozenset[int]]] = {}
+    for launcher_start, (reverse_targets, field_targets) in parser_paths.items():
+        if len(field_targets) != 1:
+            continue
+        launcher = summaries.get(launcher_start)
+        if launcher is None:
+            continue
+        direct_children = tuple(summaries.get(x) for x in launcher.direct_calls)
+        config_functions = [
+            summary
+            for summary in (launcher, *direct_children)
+            if summary is not None
+            and summary.start not in reverse_targets | field_targets
+            and summary.config_reference_count > 0
+        ]
+        if len(config_functions) != 1:
+            continue
+        config_function = config_functions[0]
+        field_target = next(iter(field_targets))
+        callsites = config_function.direct_call_sites.get(field_target, ())
+        expected_calls = config_function.direct_call_counts.get(field_target, 0)
+        if len(callsites) < 3 or len(callsites) != expected_calls:
+            continue
+        destinations: set[int] = set()
+        complete = True
+        for callsite in callsites:
+            destination = _vvas_x64_static_argument(
+                config_function.instructions,
+                config_function.cfg_successors,
+                callsite,
+                "rdx",
+            )
+            section = (
+                _vvas_mapped_data_section_for_address(destination, sections)
+                if destination is not None
+                else None
+            )
+            if (
+                destination is None
+                or section is None
+                or section.resource
+                or any(start <= destination < end for start, end in config_locations)
+            ):
+                complete = False
+                break
+            destinations.add(destination)
+        if complete and len(destinations) >= 3:
+            recovered[launcher_start] = (
+                config_function.start,
+                frozenset(destinations),
+            )
+    return recovered
+
+
+def _vvas_parsed_global_object_socket_proof(
+    sections: list[_VvasPeSection],
+    summaries: dict[int, _VvasFunctionSummary],
+    parser_paths: dict[int, tuple[set[int], set[int]]],
+    config_locations: list[tuple[int, int]],
+    selected_reachable: set[int],
+    descriptor_index: int,
+) -> dict[str, object]:
+    """x64 parsed-globalから同一object/socket lineageまでをfail-closedで証明する。"""
+
+    unmatched: dict[str, object] = {
+        "matched": False,
+        "analysis_complete": True,
+    }
+    if len(config_locations) != 1:
+        return unmatched
+    parser_globals = _vvas_x64_parser_global_destinations(
+        summaries,
+        parser_paths,
+        sections,
+        config_locations,
+    )
+    unmatched["applicable"] = bool(parser_globals)
+    proofs: list[dict[str, int]] = []
+    for parser_start, (config_function_start, globals_) in parser_globals.items():
+        launchers = [
+            summary
+            for summary in summaries.values()
+            if summary.start in selected_reachable
+            and len(summary.callback_targets) == 1
+            and (
+                config_function_start in summary.direct_calls
+                or summary.start == parser_start == config_function_start
+            )
+        ]
+        if len(launchers) != 1:
+            continue
+        launcher = launchers[0]
+        callback_start = next(iter(launcher.callback_targets))
+        callback_sites = launcher.callback_call_sites.get(callback_start, ())
+        parser_sites = launcher.direct_call_sites.get(config_function_start, ())
+        parser_before_callback = (
+            any(
+                _vvas_cfg_reaches(launcher, parser_site, callback_site)
+                for parser_site in parser_sites
+                for callback_site in callback_sites
+            )
+            if launcher.start != config_function_start
+            else bool(callback_sites)
+        )
+        if not callback_sites or not parser_before_callback:
+            continue
+        callback = summaries.get(callback_start)
+        if callback is None:
+            continue
+        referenced_globals: set[int] = set()
+        overwritten_globals: set[int] = set()
+        for instruction in callback.instructions.values():
+            operands = list(instruction.operands)
+            for index, operand in enumerate(operands):
+                address = _vvas_operand_address(instruction, operand, 8)
+                if address not in globals_:
+                    continue
+                if index == 0 and operand.type == X86_OP_MEM:
+                    overwritten_globals.add(address)
+                else:
+                    referenced_globals.add(address)
+        if len(referenced_globals) < 3 or overwritten_globals:
+            continue
+        interface_virtual_call_count = _vvas_x64_interface_virtual_calls(callback)
+        if interface_virtual_call_count < 3:
+            continue
+        component = _vvas_reachable_functions(summaries, (callback_start,))
+        if not component:
+            return {"matched": False, "analysis_complete": False}
+        if not any(
+            ("wsastartup", descriptor_index) in summaries[start].api_calls
+            for start in component
+        ):
+            continue
+
+        connection_fields = {
+            start: field
+            for start in component
+            if (
+                field := _vvas_x64_socket_object_field(
+                    summaries[start], descriptor_index
+                )
+            )
+            is not None
+        }
+        send_fields = {
+            start: field
+            for start in component
+            if (
+                field := _vvas_x64_io_object_field(
+                    summaries[start], descriptor_index, "send"
+                )
+            )
+            is not None
+        }
+        receive_fields = {
+            start: field
+            for start in component
+            if (
+                field := _vvas_x64_io_object_field(
+                    summaries[start], descriptor_index, "recv"
+                )
+            )
+            is not None
+        }
+        if not connection_fields or not send_fields or not receive_fields:
+            continue
+
+        matching_lineages: set[tuple[int, int, int]] = set()
+        for constructor_start in callback.direct_calls & component:
+            constructor = summaries[constructor_start]
+            target_groups: dict[tuple[int, ...], set[int]] = {}
+            for target, sites in constructor.vtable_target_sites.items():
+                if target not in component:
+                    continue
+                grouped_targets = target_groups.get(tuple(sites))
+                if grouped_targets is None:
+                    grouped_targets = set()
+                    target_groups[tuple(sites)] = grouped_targets
+                grouped_targets.add(target)
+            for targets in target_groups.values():
+                lineage: set[int] = set()
+                for target in targets:
+                    target_lineage = _vvas_reachable_functions(
+                        summaries,
+                        (target,),
+                    )
+                    if not target_lineage:
+                        return {"matched": False, "analysis_complete": False}
+                    lineage.update(target_lineage)
+                for connection_target in targets & connection_fields.keys():
+                    field = connection_fields[connection_target]
+                    if not any(
+                        send_fields.get(target) == field for target in lineage
+                    ) or not any(
+                        receive_fields.get(target) == field for target in lineage
+                    ):
+                        continue
+                    matching_lineages.add(
+                        (constructor_start, connection_target, field)
+                    )
+        if not matching_lineages:
+            continue
+        proofs.append(
+            {
+                "parsed_global_count": len(globals_),
+                "callback_global_reference_count": len(referenced_globals),
+                "component_function_count": len(component),
+                "object_socket_lineage_count": len(matching_lineages),
+                "interface_virtual_call_count": interface_virtual_call_count,
+            }
+        )
+    if len(proofs) != 1:
+        return unmatched
+    proof = proofs[0]
+    return {
+        "matched": True,
+        "applicable": True,
+        "analysis_complete": True,
+        "single_reachable_chain": True,
+        "parsed_global_object_lineage": True,
+        "same_descriptor": True,
+        "same_socket_field_lineage": True,
+        "parsed_global_count": proof["parsed_global_count"],
+        "callback_global_reference_count": proof[
+            "callback_global_reference_count"
+        ],
+        "chain_function_count": proof["component_function_count"],
+        "object_socket_lineage_count": proof["object_socket_lineage_count"],
+        "interface_virtual_call_count": proof["interface_virtual_call_count"],
+        "network_groups": {
+            "winsock_initialization": True,
+            "socket_creation": True,
+            "connection": True,
+            "send": True,
+            "receive": True,
+        },
+        "raw_addresses_included": False,
+        "raw_config_included": False,
+        "raw_network_values_included": False,
+    }
+
+
 def _vvas_thread_wrapper_callback_parameter(
     summaries: dict[int, _VvasFunctionSummary],
     wrapper_start: int,
@@ -2538,7 +3760,7 @@ def _vvas_pe_structure_evidence(
     allow_resource_config: bool = False,
     mapped_candidates: tuple[_VvasMappedConfigCandidate, ...] | None = None,
 ) -> dict[str, object]:
-    """mapped configと選択root到達可能なparser／network pathを検証する。"""
+    """mapped configと選択root到達可能なparser・network pathを検証する。"""
 
     unmatched: dict[str, object] = {"matched": False}
     if len(data) > MAXIMUM_VVAS_PROBE_INPUT_SIZE or not data.startswith(b"MZ"):
@@ -2607,6 +3829,7 @@ def _vvas_pe_structure_evidence(
     pending: deque[tuple[int, int]] = deque((root, 0) for root in analysis_roots)
     queued: set[int] = set(analysis_roots)
     seen_functions: set[int] = set()
+    function_depths: dict[int, int] = {}
     summaries: dict[int, _VvasFunctionSummary] = {}
     total_instructions = 0
     call_graph_edge_count = 0
@@ -2621,6 +3844,7 @@ def _vvas_pe_structure_evidence(
         ):
             return unmatched
         seen_functions.add(start)
+        function_depths[start] = depth
         summary = _vvas_function_summary(
             data,
             sections,
@@ -2662,6 +3886,85 @@ def _vvas_pe_structure_evidence(
             pending.append((target, depth + 1))
             queued.add(target)
 
+    if pointer_size == 8:
+        for _round in range(8):
+            inferred = _vvas_x64_wrapped_callbacks(summaries, sections)
+            newly_inferred = False
+            inferred_pending: deque[tuple[int, int]] = deque()
+            inferred_queued: set[int] = set()
+            for caller_start, targets in inferred.items():
+                caller = summaries.get(caller_start)
+                if caller is None:
+                    return unmatched
+                for target, sites in targets.items():
+                    if target in caller.callback_targets:
+                        continue
+                    newly_inferred = True
+                    caller.callback_targets.add(target)
+                    caller.callback_sites[target] = min(sites)
+                    caller.callback_call_sites[target] = tuple(sorted(sites))
+                    if target in seen_functions or target in inferred_queued:
+                        continue
+                    inferred_pending.append(
+                        (target, function_depths.get(caller_start, 0) + 1)
+                    )
+                    inferred_queued.add(target)
+            while inferred_pending:
+                start, depth = inferred_pending.popleft()
+                inferred_queued.discard(start)
+                if start in seen_functions:
+                    continue
+                if (
+                    depth > MAXIMUM_VVAS_CALL_GRAPH_DEPTH
+                    or len(seen_functions) >= MAXIMUM_VVAS_REACHABLE_FUNCTIONS
+                ):
+                    return unmatched
+                summary = _vvas_function_summary(
+                    data,
+                    sections,
+                    disassembler,
+                    start,
+                    pointer_size,
+                    import_addresses,
+                    config_locations,
+                )
+                if summary is None:
+                    return unmatched
+                seen_functions.add(start)
+                function_depths[start] = depth
+                summaries[start] = summary
+                total_instructions += summary.instruction_count
+                if total_instructions > MAXIMUM_VVAS_REACHABLE_INSTRUCTIONS:
+                    return unmatched
+                targets = (
+                    summary.direct_calls
+                    | summary.callback_targets
+                    | summary.vtable_targets
+                )
+                for target in sorted(targets):
+                    if target in seen_functions or target in inferred_queued:
+                        continue
+                    if (
+                        depth >= MAXIMUM_VVAS_CALL_GRAPH_DEPTH
+                        or len(inferred_pending) >= MAXIMUM_VVAS_PENDING_FUNCTIONS
+                    ):
+                        return unmatched
+                    inferred_pending.append((target, depth + 1))
+                    inferred_queued.add(target)
+            if not newly_inferred:
+                break
+        else:
+            return unmatched
+
+        call_graph_edge_count = sum(
+            len(summary.direct_calls)
+            + len(summary.callback_targets)
+            + len(summary.vtable_targets)
+            for summary in summaries.values()
+        )
+        if call_graph_edge_count > MAXIMUM_VVAS_CALL_GRAPH_EDGES:
+            return unmatched
+
     parser_paths = _vvas_parser_paths(summaries)
     external_reachable = (
         _vvas_reachable_functions(summaries, analysis_roots)
@@ -2670,6 +3973,27 @@ def _vvas_pe_structure_evidence(
     )
     if not external_reachable:
         return unmatched
+
+    parsed_global_object_socket_proof = (
+        _vvas_parsed_global_object_socket_proof(
+            sections,
+            summaries,
+            parser_paths,
+            config_locations,
+            external_reachable,
+            validated_ws2_descriptor,
+        )
+        if pointer_size == 8 and not resource_config
+        else {"matched": False, "analysis_complete": True}
+    )
+    if parsed_global_object_socket_proof.get("analysis_complete") is not True:
+        return unmatched
+    parsed_global_object_socket_matched = (
+        parsed_global_object_socket_proof.get("matched") is True
+    )
+    parsed_global_object_socket_applicable = (
+        parsed_global_object_socket_proof.get("applicable") is True
+    )
 
     reachable_api_names = {
         name
@@ -2782,10 +4106,9 @@ def _vvas_pe_structure_evidence(
                         continue
                     if resource_config:
                         resource_source_path_count += 1
-                    for callback_site in valid_callback_sites:
-                        validated_paths.add(
-                            (launcher.start, parser_start, callback_start)
-                        )
+                    validated_paths.add(
+                        (launcher.start, parser_start, callback_start)
+                    )
                     network_components.add(tuple(sorted(component_seen)))
 
     validated_network_proofs = [
@@ -2797,14 +4120,31 @@ def _vvas_pe_structure_evidence(
         "resource_source_to_parser": (
             not resource_config or resource_source_path_count > 0
         ),
-        "selected_root_to_launcher": bool(validated_paths),
+        "selected_root_to_launcher": (
+            bool(validated_paths) or parsed_global_object_socket_matched
+        ),
         "reachable_config_reference": bool(parser_paths),
         "reachable_parser_reverse_path": bool(parser_paths),
-        "launcher_parser_before_callback": bool(validated_paths),
-        "launcher_parser_to_callback_cfg_path": bool(validated_paths),
-        "reachable_vtable_network_path": bool(network_components),
-        "same_descriptor_winsock_cluster": bool(validated_paths),
-        "single_reachable_winsock_chain": bool(validated_network_proofs),
+        "launcher_parser_before_callback": (
+            bool(validated_paths) or parsed_global_object_socket_matched
+        ),
+        "launcher_parser_to_callback_cfg_path": (
+            bool(validated_paths) or parsed_global_object_socket_matched
+        ),
+        "reachable_vtable_network_path": (
+            bool(network_components) or parsed_global_object_socket_matched
+        ),
+        "same_descriptor_winsock_cluster": (
+            bool(validated_paths) or parsed_global_object_socket_matched
+        ),
+        "single_reachable_winsock_chain": (
+            bool(validated_network_proofs) or parsed_global_object_socket_matched
+        ),
+        "validated_parser_to_object_socket_lineage": (
+            parsed_global_object_socket_matched
+            if parsed_global_object_socket_applicable
+            else bool(validated_paths)
+        ),
     }
     matched = all(required_groups.values())
     if not matched:
@@ -2836,6 +4176,30 @@ def _vvas_pe_structure_evidence(
         ),
         "reachable_parser_path_count": len(parser_paths),
         "validated_parser_callback_network_path_count": len(validated_paths),
+        "validated_parsed_global_object_socket_path_count": int(
+            parsed_global_object_socket_matched
+        ),
+        "validated_parsed_global_count": int(
+            parsed_global_object_socket_proof.get("parsed_global_count", 0)
+        ),
+        "validated_callback_global_reference_count": int(
+            parsed_global_object_socket_proof.get(
+                "callback_global_reference_count",
+                0,
+            )
+        ),
+        "validated_object_socket_lineage_count": int(
+            parsed_global_object_socket_proof.get(
+                "object_socket_lineage_count",
+                0,
+            )
+        ),
+        "validated_interface_virtual_call_count": int(
+            parsed_global_object_socket_proof.get(
+                "interface_virtual_call_count",
+                0,
+            )
+        ),
         "reachable_callback_edge_count": sum(
             len(summary.callback_targets) for summary in summaries.values()
         ),
@@ -2844,18 +4208,27 @@ def _vvas_pe_structure_evidence(
         ),
         "reachable_network_component_count": len(network_components),
         "reachable_network_groups": reachable_groups,
-        "validated_network_chain_count": len(validated_network_proofs),
+        "validated_network_chain_count": len(validated_network_proofs)
+        + int(parsed_global_object_socket_matched),
         "validated_network_chain_max_function_count": max(
             (
                 int(proof.get("chain_function_count", 0))
-                for proof in validated_network_proofs
+                for proof in (
+                    *validated_network_proofs,
+                    parsed_global_object_socket_proof,
+                )
+                if proof.get("matched") is True
             ),
             default=0,
         ),
         "validated_network_chain_groups": (
-            validated_network_proofs[0].get("network_groups", {})
-            if validated_network_proofs
-            else {}
+            parsed_global_object_socket_proof.get("network_groups", {})
+            if parsed_global_object_socket_matched
+            else (
+                validated_network_proofs[0].get("network_groups", {})
+                if validated_network_proofs
+                else {}
+            )
         ),
         "validated_object_worker_lineage_count": sum(
             proof.get("object_vtable_worker_lineage") is True
@@ -3530,6 +4903,7 @@ def _extract_ca01_sideload(data: bytes, name: str) -> dict | None:
     public_summary = public_ca01_recovery_summary(recovery)
     reviewed_exact = public_summary.get("reviewed_exact_outer_sha256") is True
     outer_profile = public_summary.get("outer_profile")
+    candidate_profile = outer_profile == "export_thread_builder_linked_candidate"
     cef_profile = outer_profile == "cef_alias_export_beginthreadex"
     attribution_scope = (
         ("reviewed_exact_cef_alias_loader_linked_config_and_memory_stage_consumer")
@@ -3545,7 +4919,13 @@ def _extract_ca01_sideload(data: bytes, name: str) -> dict | None:
         else "reviewed_exact_sha256_and_vulkan_export_to_thread_callback_"
         "double_base64_three_slot_consumer_lineage"
     )
-    if not reviewed_exact:
+    if candidate_profile:
+        attribution_scope = "outer_builder_linked_config_candidate"
+        family_attribution_basis = (
+            "export_thread_builder_double_base64_three_slot_consumer_"
+            "lineage_without_terminal_socket_proof"
+        )
+    elif not reviewed_exact:
         attribution_scope = "component_handler_route"
         family_attribution_basis = "ca01_structure_without_reviewed_terminal_identity"
     raw_endpoints = recovery.config.get("endpoints")
@@ -3626,17 +5006,26 @@ def _extract_ca01_sideload(data: bytes, name: str) -> dict | None:
         "valleyrat",
         data,
         {
-            "variant": "ca01_x64_double_base64_sideload_terminal",
+            "variant": (
+                "ca01_x64_double_base64_outer_builder_candidate"
+                if candidate_profile
+                else "ca01_x64_double_base64_sideload_terminal"
+            ),
             "decoded_config_recovered": True,
-            "static_config_recovered": True,
-            "candidate_config_recovered": False,
-            "terminal_family_confirmed": reviewed_exact,
+            "static_config_recovered": not candidate_profile,
+            "candidate_config_recovered": candidate_profile,
+            "terminal_family_confirmed": reviewed_exact and not candidate_profile,
+            "supports_family_attribution": reviewed_exact and not candidate_profile,
             "attribution_scope": attribution_scope,
             "family_attribution_basis": family_attribution_basis,
             "classification_confidence": (
-                "high_structural_decoded_config"
-                if reviewed_exact
-                else "medium_structural_config_route"
+                "medium_structural_config_candidate"
+                if candidate_profile
+                else (
+                    "high_structural_decoded_config"
+                    if reviewed_exact
+                    else "medium_structural_config_route"
+                )
             ),
             "c2_liveness_confirmed": False,
             "source_name": _safe_source_name(name),
@@ -3651,9 +5040,19 @@ def _extract_ca01_sideload(data: bytes, name: str) -> dict | None:
             {
                 "kind": "network.endpoint",
                 "value": endpoint,
-                "role": "static_config_c2",
-                "confidence": "confirmed_static_config",
-                "source": "validated_ca01_loader_linked_config",
+                "role": (
+                    "static_config_c2_candidate"
+                    if candidate_profile
+                    else "static_config_c2"
+                ),
+                "confidence": (
+                    "candidate" if candidate_profile else "confirmed_static_config"
+                ),
+                "source": (
+                    "validated_ca01_outer_builder_config_candidate"
+                    if candidate_profile
+                    else "validated_ca01_loader_linked_config"
+                ),
             }
             for endpoint in endpoints
         ],
@@ -3663,9 +5062,15 @@ def _extract_ca01_sideload(data: bytes, name: str) -> dict | None:
                 "3-slot builder、memory-stage consumerまでを同一の有界CFG "
                 "lineageで検証しました。"
                 if cef_profile
-                else "Vulkan exportからthread callback、二重Base64設定、3-slot "
-                "builder、memory-stage consumerまでを同一の有界CFG lineageで"
-                "検証しました。"
+                else (
+                    "exportからthread backend、二重Base64設定、3-slot builder、"
+                    "memory-stage consumerまでを同一の有界CFG lineageで検証しました。"
+                    "終端socket lineageは未確認のため候補として扱います。"
+                    if candidate_profile
+                    else "Vulkan exportからthread callback、二重Base64設定、3-slot "
+                    "builder、memory-stage consumerまでを同一の有界CFG lineageで"
+                    "検証しました。"
+                )
             ),
             "endpoint、port、transport selectorは静的defaultです。現在の稼働状態と所有者は確認していません。",
             "復元後のmemory stage自体は復号していないため、network APIへの直接到達性は未確認です。",
@@ -4182,6 +5587,286 @@ def _extract_wide_pipe_config(data: bytes, name: str) -> dict | None:
                 "検体実行と外部通信は行っていません。",
             ],
         )
+    )
+
+
+def _extract_codecode_route(data: bytes, name: str) -> dict | None:
+    """codecode世代のstage server設定をroute-onlyで返す。"""
+
+    try:
+        recovery = extract_codecode_config(data)
+    except CodecodeConfigError:
+        return None
+    endpoints = list(recovery["endpoints"])
+    findings = [
+        {
+            "kind": "network.endpoint",
+            "value": endpoint,
+            "role": "stage_server_candidate",
+            "confidence": "decoded_candidate_config",
+            "source": "validated_codecode_stage_profile",
+        }
+        for endpoint in endpoints
+    ]
+    return build_result(
+        "valleyrat",
+        data,
+        {
+            "variant": recovery["variant"],
+            "variant_profile": "codecode_x32_x64_xor_0x2b",
+            "family_role": recovery["family_role"],
+            "decoded_config_recovered": True,
+            "static_config_recovered": False,
+            "candidate_config_recovered": True,
+            "terminal_family_confirmed": False,
+            "supports_family_attribution": False,
+            "attribution_scope": "component_handler_route",
+            "c2_liveness_confirmed": False,
+            "source_name": _safe_source_name(name),
+            "endpoints": endpoints,
+            "ipv4": ipv4_candidates(endpoints),
+            "urls": [],
+            "endpoint_role": recovery["endpoint_role"],
+            "module_request": recovery["module_request"],
+            "request_architecture": recovery["request_architecture"],
+            "download_transform": recovery["download_transform"],
+            "codecode_route": {
+                "status": recovery["status"],
+                "endpoint_count": len(endpoints),
+                "evidence": recovery["evidence"],
+                "safety": recovery["safety"],
+            },
+        },
+        findings,
+        [
+            "codecode設定、x32／x64要求、XOR 0x2B、PEB参照を同一raw stageで検証しました。",
+            "後続online moduleと終端通信の系譜は未証明のため、stage server候補に限定しました。",
+            "検体実行と外部通信は行っていません。",
+        ],
+    )
+
+
+def _extract_rc4_full_config_route(data: bytes, name: str) -> dict | None:
+    """19文字鍵RC4完全設定をroute-only候補として返す。"""
+
+    try:
+        recovery = probe_rc4_full_config(data)
+    except Rc4FullConfigLimitError:
+        return None
+    if recovery is None:
+        return None
+    slots = list(recovery["config"]["slots"])
+    endpoints = [
+        str(item["endpoint"])
+        for item in slots
+        if item.get("endpoint_role") == "interactive_c2_candidate"
+        and isinstance(item.get("endpoint"), str)
+    ]
+    findings = [
+        {
+            "kind": "network.endpoint",
+            "value": endpoint,
+            "role": "interactive_c2_candidate",
+            "confidence": "decoded_candidate_config",
+            "source": "validated_19_character_rc4_full_config",
+        }
+        for endpoint in endpoints
+    ]
+    return build_result(
+        "valleyrat",
+        data,
+        {
+            "variant": "proofpoint_2026_full_rc4_config_candidate",
+            "variant_profile": recovery["variant_profile"],
+            "family_role": recovery["family_role"],
+            "decoded_config_recovered": True,
+            "static_config_recovered": False,
+            "candidate_config_recovered": bool(endpoints),
+            "terminal_family_confirmed": False,
+            "supports_family_attribution": False,
+            "attribution_scope": "component_handler_route",
+            "c2_liveness_confirmed": False,
+            "source_name": _safe_source_name(name),
+            "endpoints": endpoints,
+            "ipv4": ipv4_candidates(endpoints),
+            "urls": [],
+            "slots": slots,
+            "rc4_full_config": recovery,
+        },
+        findings,
+        [
+            "19文字ASCII鍵、16進ciphertext、標準RC4、完全pipe設定文法を有界に検証しました。",
+            "復号routineからconfig consumerとsocket処理までのcode data-flowは未証明のため、familyとC2確定には使用しません。",
+            "raw鍵、暗号文、完全plaintextは公開していません。検体実行と外部通信も行っていません。",
+        ],
+    )
+
+
+def _extract_modified_rc4_record_route(data: bytes, name: str) -> dict | None:
+    """改変RC4 3-record containerと復元coreをroute-onlyで返す。"""
+
+    try:
+        recovery = recover_modified_rc4_records(data)
+    except (IndexError, OverflowError, struct.error, ModifiedRc4RecordError):
+        return None
+    summary = recovery.public_summary()
+    endpoints = list(summary["config"]["endpoint_candidates"])
+    findings = [
+        {
+            "kind": "network.endpoint",
+            "value": endpoint,
+            "role": "interactive_c2_candidate",
+            "confidence": "decoded_candidate_config",
+            "source": "validated_modified_rc4_record_container",
+        }
+        for endpoint in endpoints
+    ]
+    result = build_result(
+        "valleyrat",
+        data,
+        {
+            "variant": "modified_rc4_three_record_container_candidate",
+            "variant_profile": summary["component_profile"],
+            "family_role": "encrypted_core_container",
+            "decoded_config_recovered": True,
+            "static_config_recovered": False,
+            "candidate_config_recovered": bool(endpoints),
+            "terminal_family_confirmed": False,
+            "supports_family_attribution": False,
+            "attribution_scope": "component_handler_route",
+            "c2_liveness_confirmed": False,
+            "source_name": _safe_source_name(name),
+            "endpoints": endpoints,
+            "ipv4": ipv4_candidates(endpoints),
+            "urls": [],
+            "modified_rc4_record_container": summary,
+        },
+        findings,
+        [
+            "zero-length終端を持つ3-record container、115-byte鍵、改変RC4、header-stomped AMD64 PEを静的に検証しました。",
+            "0xA88-byte設定は固定5-byte鍵で復号し、固定offsetを仮定せず明示的なendpoint文字列だけを候補化しました。",
+            "復元coreは実行せず、次段の静的解析だけに渡します。",
+        ],
+    )
+    recovered_name = f"{summary['core']['reconstructed_pe_sha256']}.dll"
+    result["recovered_payload"] = {
+        "role": "recovered_payload",
+        "name": recovered_name,
+        "source_name": recovered_name,
+        "data": recovery.core.reconstructed_pe,
+        "analysis_priority": 3,
+    }
+    return result
+
+
+def _extract_server_log_rc4_route(data: bytes, name: str) -> dict | None:
+    """OIS報告型 ``Server.log`` と復元online moduleをroute-onlyで返す。"""
+
+    try:
+        recovery = recover_server_log_rc4(data)
+    except (IndexError, OverflowError, struct.error, ServerLogRc4Error):
+        return None
+    summary = recovery.public_summary()
+    endpoints = list(summary["config"]["endpoints"])
+    slots = list(summary["config"]["slots"])
+    findings = [
+        {
+            "kind": "network.endpoint",
+            "value": endpoint,
+            "role": "interactive_c2_candidate",
+            "confidence": "decoded_candidate_config",
+            "source": "validated_server_log_rc4_recovered_online_module",
+        }
+        for endpoint in endpoints
+    ]
+    result = build_result(
+        "valleyrat",
+        data,
+        {
+            "variant": "ois_2026_server_log_rc4_candidate",
+            "variant_profile": summary["component_profile"],
+            "family_role": "encrypted_online_module_container",
+            "decoded_config_recovered": True,
+            "static_config_recovered": False,
+            "candidate_config_recovered": True,
+            "terminal_family_confirmed": False,
+            "supports_family_attribution": False,
+            "attribution_scope": "component_handler_route",
+            "c2_liveness_confirmed": False,
+            "source_name": _safe_source_name(name),
+            "endpoints": endpoints,
+            "ipv4": ipv4_candidates(endpoints),
+            "urls": [],
+            "slots": slots,
+            "server_log_rc4_route": summary,
+        },
+        findings,
+        [
+            "入力全体へ標準RC4を適用し、PE32 i386 DLL境界、NtHandleCallback export、一意な反転p/o/t設定を検証しました。",
+            "外層log.dllからServer.logへのbindingはこの入力だけでは証明できないため、familyとC2の確定には使用しません。",
+            "復元PEは実行せず次の静的layerへだけ渡し、鍵、暗号文、PE本文、完全設定は公開していません。",
+        ],
+    )
+    recovered_name = f"{summary['recovered_pe']['sha256']}.dll"
+    result["recovered_payload"] = {
+        "role": "recovered_payload",
+        "name": recovered_name,
+        "source_name": recovered_name,
+        "data": recovery.recovered_payload,
+        "analysis_priority": 3,
+    }
+    return result
+
+
+def _extract_ipdate_compact_route(data: bytes, name: str) -> dict | None:
+    """IpDateのcompact埋込みliteralをruntime設定候補として返す。"""
+
+    try:
+        recovery = extract_ipdate_compact_config(data)
+    except (IndexError, OverflowError, struct.error, IpDateCompactConfigError):
+        return None
+    endpoint = str(recovery["endpoint"])
+    findings = [
+        {
+            "kind": "network.endpoint",
+            "value": endpoint,
+            "role": recovery["endpoint_role"],
+            "confidence": "embedded_runtime_config_candidate",
+            "source": "validated_ipdate_compact_embedded_literal",
+        }
+    ]
+    return build_result(
+        "valleyrat",
+        data,
+        {
+            "variant": recovery["variant"],
+            "variant_profile": "ipdate_compact_embedded_literal",
+            "family_role": recovery["family_role"],
+            "decoded_config_recovered": False,
+            "static_config_recovered": False,
+            "candidate_config_recovered": True,
+            "terminal_family_confirmed": False,
+            "supports_family_attribution": False,
+            "attribution_scope": "component_handler_route",
+            "c2_liveness_confirmed": False,
+            "source_name": _safe_source_name(name),
+            "endpoints": [endpoint],
+            "ipv4": ipv4_candidates([endpoint]),
+            "urls": [],
+            "endpoint_role": recovery["endpoint_role"],
+            "ipdate_compact_route": {
+                "status": recovery["status"],
+                "endpoint_count": 1,
+                "evidence": recovery["evidence"],
+                "safety": recovery["safety"],
+            },
+        },
+        findings,
+        [
+            "mapped非resource PE内でSoftware\\Console、複数のIpDate系value名、compact endpoint literalを検証しました。",
+            "実行時registry値の読取りとnetwork consumerへのdata-flowは未証明のため、runtime設定候補に限定しました。",
+            "検体実行、registry読取り、外部通信は行っていません。",
+        ],
     )
 
 
@@ -4944,6 +6629,15 @@ def extract(data: bytes, name: str = "sample") -> dict:
     bin101 = _extract_bin101(data, name)
     if bin101 is not None:
         return _with_recovery_diagnostics(bin101)
+    modified_rc4_records = _extract_modified_rc4_record_route(data, name)
+    if modified_rc4_records is not None:
+        return _with_recovery_diagnostics(modified_rc4_records)
+    server_log_rc4 = _extract_server_log_rc4_route(data, name)
+    if server_log_rc4 is not None:
+        return _with_recovery_diagnostics(server_log_rc4)
+    codecode_route = _extract_codecode_route(data, name)
+    if codecode_route is not None:
+        return _with_recovery_diagnostics(codecode_route)
     codemark_stage = _extract_codemark_stage(data, name)
     if codemark_stage is not None:
         return _with_recovery_diagnostics(codemark_stage)
@@ -4980,6 +6674,11 @@ def extract(data: bytes, name: str = "sample") -> dict:
         if not native_loader_observations and not loader_follow_ons:
             return result
         return _with_recovery_diagnostics(result)
+    # 19文字鍵RC4はdata形式だけを検証するroute-only候補であり、code lineageを
+    # 持つ既存routeや終端configを先取りさせない。ここで候補だけ保持し、後段の
+    # mapped/raw vvaS・NVML復元も不成立だった場合に限って採用する。
+    rc4_full_config_route = _extract_rc4_full_config_route(data, name)
+    ipdate_compact_route = _extract_ipdate_compact_route(data, name)
     mapped_candidates: tuple[_VvasMappedConfigCandidate, ...] = ()
     mapped_decoded: dict[str, str] = {}
     mapped_recovery: dict[str, object] = {}
@@ -4989,7 +6688,11 @@ def extract(data: bytes, name: str = "sample") -> dict:
         )
     if not mapped_candidates:
         export_funnel_route = probe_export_funnel_route(data)
-        if export_funnel_route.get("matched") is True:
+        if (
+            export_funnel_route.get("matched") is True
+            and rc4_full_config_route is None
+            and ipdate_compact_route is None
+        ):
             result = build_result(
                 "valleyrat",
                 data,
@@ -5169,7 +6872,39 @@ def extract(data: bytes, name: str = "sample") -> dict:
         }
         static_config_confirmed = True
         candidate_config_recovered = False
+    if not decoded and nvml_recovery is None and rc4_full_config_route is not None:
+        result = {
+            **rc4_full_config_route,
+            "config": {
+                **rc4_full_config_route["config"],
+                **native_loader_observations,
+            },
+        }
+        _attach_final_payloads(result, loader_follow_ons)
+        return _with_recovery_diagnostics(result)
+    if not decoded and nvml_recovery is None and ipdate_compact_route is not None:
+        result = {
+            **ipdate_compact_route,
+            "config": {
+                **ipdate_compact_route["config"],
+                **native_loader_observations,
+            },
+        }
+        _attach_final_payloads(result, loader_follow_ons)
+        return _with_recovery_diagnostics(result)
     endpoints, urls = endpoint_candidates(strings), _public_urls(strings)
+    fallback_resolver_urls: list[str] = []
+    modern_fallback_config = vvas_recovery.get("modern_fallback_config")
+    if (
+        decoded
+        and isinstance(modern_fallback_config, dict)
+        and modern_fallback_config.get("status") == "validated_unique"
+    ):
+        fallback_resolver_urls = [
+            item
+            for item in modern_fallback_config.get("fallback_urls", [])
+            if isinstance(item, str)
+        ]
     if not decoded and (
         variant == "unresolved_variant" or native_loader_observations
     ):
@@ -5182,6 +6917,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
         urls = []
     if decoded:
         endpoints = sorted(set(decoded.values()))
+        urls = sorted(set(urls) | set(fallback_resolver_urls))
     ips = (
         ipv4_candidates(endpoints)
         if decoded
@@ -5229,9 +6965,21 @@ def extract(data: bytes, name: str = "sample") -> dict:
         {
             "kind": "network.url",
             "value": item,
-            "role": "config_or_stage_url",
-            "confidence": "inferred",
-            "source": "static_string",
+            "role": (
+                "fallback_c2_resolver_candidate"
+                if item in fallback_resolver_urls
+                else "config_or_stage_url"
+            ),
+            "confidence": (
+                "decoded_candidate_config"
+                if item in fallback_resolver_urls
+                else "inferred"
+            ),
+            "source": (
+                "validated_modern_vvas_auxiliary_config"
+                if item in fallback_resolver_urls
+                else "static_string"
+            ),
         }
         for item in urls
     ]
@@ -5260,6 +7008,7 @@ def extract(data: bytes, name: str = "sample") -> dict:
             "endpoints": endpoints,
             "ipv4": ips,
             "urls": urls,
+            "fallback_c2_resolver_urls": fallback_resolver_urls,
             "string_scan": string_scan,
             "vvas_recovery": vvas_recovery,
             "recovery_diagnostics": _recovery_diagnostics(

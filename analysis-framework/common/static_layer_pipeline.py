@@ -22,6 +22,10 @@ from unpackers.static_unpacker import (
 
 try:
     from .static_layer_lineage_adapter import select_static_layer_children
+    from .valleyrat_nsis_rc4_adapter import (
+        VerifiedNsisRc4SidecarLayer,
+        recover_verified_nsis_rc4_sidecar_layer,
+    )
     from .valleyrat_verified_sibling_adapter import (
         VerifiedSiblingBundleLayer,
         recover_verified_sibling_bundle_layer,
@@ -32,6 +36,10 @@ try:
     )
 except ImportError:  # pragma: no cover - common directoryを直接sys.pathへ置く実行形態。
     from static_layer_lineage_adapter import select_static_layer_children
+    from valleyrat_nsis_rc4_adapter import (
+        VerifiedNsisRc4SidecarLayer,
+        recover_verified_nsis_rc4_sidecar_layer,
+    )
     from valleyrat_verified_sibling_adapter import (
         VerifiedSiblingBundleLayer,
         recover_verified_sibling_bundle_layer,
@@ -1164,6 +1172,24 @@ def recover_static_layers(
                     (
                         "verified-sibling-analysis-container",
                         verified_sibling_bundle.data,
+                    )
+                )
+            verified_nsis_rc4 = recover_verified_nsis_rc4_sidecar_layer(
+                parent_data=layer.data,
+                parent_sha256=layer.sha256,
+                report=report,
+                artifacts=artifacts,
+            )
+            if isinstance(verified_nsis_rc4, VerifiedNsisRc4SidecarLayer):
+                # NSIS同一親memberの全identityと多段code lineageが成立した
+                # 終端PEだけをqueueへ渡す。raw key/config/network値は公開しない。
+                report["verified_nsis_rc4_sidecar_adapter"] = (
+                    verified_nsis_rc4.public()
+                )
+                artifacts.append(
+                    (
+                        "verified-nsis-rc4-terminal-pe",
+                        verified_nsis_rc4.data,
                     )
                 )
             step = {

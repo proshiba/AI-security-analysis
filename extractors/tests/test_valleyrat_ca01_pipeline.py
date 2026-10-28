@@ -231,6 +231,51 @@ def test_unknown_ca01_hash_keeps_config_but_not_family_confirmation(
     assert result["config"]["attribution_scope"] == "component_handler_route"
 
 
+def test_builder_linked_ca01_projects_endpoints_as_candidates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """外層builderだけの未知componentはendpointを保持し、確定設定へ昇格しない。"""
+
+    recovery = _recovery("a" * 64)
+    recovery.structural_evidence.update(
+        {
+            "outer_profile": ca01._BUILDER_LINKED_CANDIDATE_PROFILE,
+            "export_facade": "vulkan",
+            "thread_backend": "imported_beginthreadex",
+            "export_count": 1,
+            "cef_export_count": 0,
+            "cef_loader_marker_count": 0,
+            "export_reachable_thread_config_lineage_present": True,
+            "thread_backend_wrapper_reachable": True,
+            "terminal_socket_lineage_proven": False,
+            "lineage_counts": {
+                "export_to_main_direct_call_count": 1,
+                "main_to_thread_factory_direct_call_count": 1,
+                "thread_backend_api_call_count": 1,
+                "local_wrapper_to_create_thread_count": 0,
+                "producer_pointer_store_count": 1,
+                "callback_trampoline_indirect_call_count": 1,
+            },
+        }
+    )
+    assert ca01.validate_recovery_contract(recovery) is True
+    monkeypatch.setattr(extractor, "recover_ca01_config", lambda _data: recovery)
+
+    result = extractor._extract_ca01_sideload(b"MZ-candidate", "sample.exe")
+
+    assert result is not None
+    config = result["config"]
+    assert config["variant"] == "ca01_x64_double_base64_outer_builder_candidate"
+    assert config["static_config_recovered"] is False
+    assert config["candidate_config_recovered"] is True
+    assert config["terminal_family_confirmed"] is False
+    assert config["supports_family_attribution"] is False
+    assert config["endpoints"] == ["198.51.100.24:449", "198.51.100.24:443"]
+    assert {indicator["role"] for indicator in result["findings"]} == {
+        "static_config_c2_candidate"
+    }
+
+
 def test_reviewed_cef_ca01_confirms_family_with_profile_specific_basis(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
