@@ -5,11 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import pytest
-
 
 COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
@@ -88,7 +87,15 @@ def _fixture(
         selected_metadata.append(dict(metadata))
         case_result = one_shot / "cases" / case_sha256
         case_result.mkdir()
-        _json(case_result / "report.json", {"sha256": case_sha256})
+        _json(
+            case_result / "report.json",
+            {
+                "sha256": case_sha256,
+                "executed_sample": False,
+                "network_contacted": False,
+                "ai_used": False,
+            },
+        )
 
         import_path = ghidra / "import-staging" / f"{case_sha256}.quarantine.bin"
         import_path.write_bytes(pe_payload)
@@ -233,6 +240,55 @@ def _stage(fixture: dict[str, object], *, cases: list[str] | None = None) -> dic
     )
 
 
+def _stage_without_ghidra(fixture: dict[str, object]) -> dict:
+    return target.stage_cases_without_ghidra(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        source_root=fixture["source"],
+        one_shot_root=fixture["one_shot"],
+        output_root=fixture["output"],
+        case_sha256s=[fixture["cases"][0]],
+    )
+
+
+def _add_exclusion_set(
+    fixture: dict[str, object],
+    *,
+    identities: list[str] | None = None,
+) -> list[str]:
+    identities = sorted(
+        identities
+        if identities is not None
+        else {
+            hashlib.sha256(b"excluded-one").hexdigest(),
+            hashlib.sha256(b"excluded-two").hexdigest(),
+        }
+    )
+    manifest_path = fixture["source"] / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    excluded_hashes_sha256 = target._canonical_sha256(identities)
+    manifest["excluded_hashes"] = len(identities)
+    manifest["excluded_hashes_sha256"] = excluded_hashes_sha256
+    _json(manifest_path, manifest)
+    _json(
+        fixture["source"] / "exclusion-set.json",
+        {
+            "schema_version": 1,
+            "identity_type": "sha256",
+            "identity_count": len(identities),
+            "identities": identities,
+            "excluded_hashes_sha256": excluded_hashes_sha256,
+            "selection_commitment_sha256": manifest[
+                "selection_commitment_sha256"
+            ],
+            "classification": "private",
+            "contains_sample_sha256": True,
+            "publishable": False,
+        },
+    )
+    return identities
+
+
 def test_stage_case_without_ghidra_keeps_source_and_one_shot_only(tmp_path: Path) -> None:
     fixture = _fixture(tmp_path)
     digest = fixture["cases"][0]
@@ -255,6 +311,191 @@ def test_stage_case_without_ghidra_keeps_source_and_one_shot_only(tmp_path: Path
     manifest = json.loads((root / target.STAGING_MANIFEST_NAME).read_text(encoding="utf-8"))
     assert manifest["ghidra"] == {"status": "not_requested", "files_included": False}
     assert manifest["safety"]["sample_executed"] is False
+    assert manifest["safety"]["network_contacted"] is False
+    assert manifest["safety"]["ai_used"] is False
+    assert manifest["safety"]["one_shot_report_safety_validated"] is True
+
+
+def test_exclusion_set_is_validated_and_only_its_commitment_is_staged(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    identities = _add_exclusion_set(fixture)
+
+    result = _stage_without_ghidra(fixture)
+
+    root = Path(result["cases"][0]["source_path"])
+    assert not (root / "exclusion-set.json").exists()
+    assert not (root / "source" / "exclusion-set.json").exists()
+    acquisition = json.loads(
+        (root / "derived" / "source-acquisition.case.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert acquisition["source_sidecars"] == [
+        {
+            "name": "exclusion-set.json",
+            "size": (fixture["source"] / "exclusion-set.json").stat().st_size,
+            "sha256": hashlib.sha256(
+                (fixture["source"] / "exclusion-set.json").read_bytes()
+            ).hexdigest(),
+            "raw_content_included": False,
+        }
+    ]
+    assert acquisition["safety"]["raw_source_sidecars_included"] is False
+    staged_bytes = b"".join(
+        path.read_bytes() for path in root.rglob("*") if path.is_file()
+    )
+    assert all(identity.encode("ascii") not in staged_bytes for identity in identities)
+
+
+def test_invalid_exclusion_set_commitment_is_rejected(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    _add_exclusion_set(fixture)
+    sidecar_path = fixture["source"] / "exclusion-set.json"
+    sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    sidecar["excluded_hashes_sha256"] = "f" * 64
+    _json(sidecar_path, sidecar)
+
+    with pytest.raises(target.CaseStagingError, match="commitment"):
+        _stage_without_ghidra(fixture)
+
+    assert list(fixture["output"].iterdir()) == []
+
+
+def test_empty_exclusion_set_is_valid_and_stages_only_its_commitment(
+    tmp_path: Path,
+) -> None:
+    """正規producerが出す空の除外baselineも同じ非公開契約で扱う。"""
+
+    fixture = _fixture(tmp_path)
+    assert _add_exclusion_set(fixture, identities=[]) == []
+
+    result = _stage_without_ghidra(fixture)
+
+    root = Path(result["cases"][0]["source_path"])
+    acquisition = json.loads(
+        (root / "derived" / "source-acquisition.case.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert [item["name"] for item in acquisition["source_sidecars"]] == [
+        "exclusion-set.json"
+    ]
+    assert acquisition["safety"]["raw_source_sidecars_included"] is False
+
+
+@pytest.mark.parametrize(
+    ("report_updates", "removed_fields", "message"),
+    [
+        ({"executed_sample": True}, (), "sample非実行"),
+        ({"network_contacted": True}, (), "network非接触"),
+        ({"ai_used": True}, (), "AI利用"),
+        ({}, ("executed_sample",), "sample非実行"),
+    ],
+)
+def test_without_ghidra_rejects_unsafe_or_ambiguous_one_shot_safety(
+    tmp_path: Path,
+    report_updates: dict[str, object],
+    removed_fields: tuple[str, ...],
+    message: str,
+) -> None:
+    fixture = _fixture(tmp_path)
+    digest = fixture["cases"][0]
+    report_path = fixture["one_shot"] / "cases" / digest / "report.json"
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    report.update(report_updates)
+    for field in removed_fields:
+        report.pop(field, None)
+    _json(report_path, report)
+
+    with pytest.raises(target.CaseStagingError, match=message):
+        _stage_without_ghidra(fixture)
+
+    assert list(fixture["output"].iterdir()) == []
+
+
+def test_without_ghidra_accepts_legacy_execution_field_and_null_ai(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    digest = fixture["cases"][0]
+    report_path = fixture["one_shot"] / "cases" / digest / "report.json"
+    _json(
+        report_path,
+        {
+            "sha256": digest,
+            "sample_executed": False,
+            "network_contacted": False,
+            "ai_used": None,
+        },
+    )
+
+    result = _stage_without_ghidra(fixture)
+
+    assert result["safety"]["ai_used"] is None
+    assert result["safety"]["one_shot_report_safety_validated"] is True
+
+
+def test_cli_requires_exactly_one_ghidra_mode() -> None:
+    base = [
+        "--repository",
+        "repository",
+        "--collection-id",
+        "daily-fixture",
+        "--source-root",
+        "source",
+        "--one-shot-root",
+        "one-shot",
+        "--output-root",
+        "output",
+        "--case-sha256",
+        "a" * 64,
+    ]
+
+    with pytest.raises(SystemExit):
+        target.build_parser().parse_args(base)
+    with pytest.raises(SystemExit):
+        target.build_parser().parse_args(
+            [*base, "--ghidra-root", "ghidra", "--ghidra-not-requested"]
+        )
+
+
+def test_cli_ghidra_not_requested_dispatches_without_ghidra_root(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    observed: dict[str, object] = {}
+
+    def fake_stage(**arguments: object) -> dict[str, object]:
+        observed.update(arguments)
+        return {"schema_version": target.SCHEMA_VERSION, "case_count": 1}
+
+    monkeypatch.setattr(target, "stage_cases_without_ghidra", fake_stage)
+    digest = "a" * 64
+
+    exit_code = target.main(
+        [
+            "--repository",
+            "repository",
+            "--collection-id",
+            "daily-fixture",
+            "--source-root",
+            "source",
+            "--one-shot-root",
+            "one-shot",
+            "--ghidra-not-requested",
+            "--output-root",
+            "output",
+            "--case-sha256",
+            digest,
+        ]
+    )
+
+    assert exit_code == 0
+    assert "ghidra_root" not in observed
+    assert observed["case_sha256s"] == [digest]
+    assert json.loads(capsys.readouterr().out)["case_count"] == 1
 
 
 def _add_shared_program(fixture: dict[str, object]) -> str:

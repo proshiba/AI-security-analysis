@@ -51,7 +51,20 @@ py -3.13 .\analysis-framework\common\stage_case_analysis_datastore.py `
   --case-sha256 <case SHA-256>
 ```
 
-helperは、取得済み暗号化source ZIP、当該caseのone-shot directory、当該caseのrelationshipから到達するGhidra objectとimport-staging PEだけをrole別prefixへ物理copyします。collection共通の `input-relationships.json` と `private-artifact-validation.json` はそのままcopyせず、当該caseだけへ絞り、絶対pathをstaging相対pathへ置換した派生manifestを作ります。複数caseで共有されるPEの `program-result.json` も対象caseのrelationshipだけを残して派生させ、他caseの識別子を持ち込みません。`decompilations.raw.jsonl`は選択済み特徴関数の逆コンパイル結果だけを保持するため、`characteristic_native_decompilation_count=0`の場合はnative関数が存在してもfile欠落を`null`へ正規化します。特徴関数が1件以上ある場合やその他の必須artifact欠落は拒否します。hardlink、symlink、junction、秘密値らしいfile名／内容、現在hostのhome path、不完全なGhidra run、case集合やSHA-256の不一致はfail-closedで拒否します。検体の展開・実行やnetwork接触は行いません。
+Ghidraを明示的に実行しないrunでは、`--ghidra-root`の代わりに`--ghidra-not-requested`を指定します。両者は排他的で、どちらも省略できません。この経路はone-shot reportの`executed_sample`（旧形式は`sample_executed`）、`network_contacted`、`ai_used`を検証し、検体非実行、network非接触、AI未使用または未設定を確認できた場合だけstagingを作成します。
+
+```powershell
+py -3.13 .\analysis-framework\common\stage_case_analysis_datastore.py `
+  --repository C:\work\AI-security-analysis `
+  --collection-id malwarebazaar-windows-20260902-0050 `
+  --source-root C:\private\daily-runs\daily-20260902\malwarebazaar-windows-20260902-0050\source `
+  --one-shot-root C:\work-private\jobs\daily-job\analysis `
+  --ghidra-not-requested `
+  --output-root C:\work-private\daily-orchestrations\daily-20260902\case-datastore-staging `
+  --case-sha256 <case SHA-256>
+```
+
+helperは、取得済み暗号化source ZIP、当該caseのone-shot directory、当該caseのrelationshipから到達するGhidra objectとimport-staging PEだけをrole別prefixへ物理copyします。source rootの`exclusion-set.json`は非公開除外集合、selection commitment、source manifestとの対応を検証しますが、raw内容はcase archiveへcopyしません。派生取得manifestにはfile名、size、SHA-256 commitmentだけを記録します。collection共通の `input-relationships.json` と `private-artifact-validation.json` はそのままcopyせず、当該caseだけへ絞り、絶対pathをstaging相対pathへ置換した派生manifestを作ります。複数caseで共有されるPEの `program-result.json` も対象caseのrelationshipだけを残して派生させ、他caseの識別子を持ち込みません。`decompilations.raw.jsonl`は選択済み特徴関数の逆コンパイル結果だけを保持するため、`characteristic_native_decompilation_count=0`の場合はnative関数が存在してもfile欠落を`null`へ正規化します。特徴関数が1件以上ある場合やその他の必須artifact欠落は拒否します。hardlink、symlink、junction、秘密値らしいfile名／内容、現在hostのhome path、不完全なGhidra run、case集合やSHA-256の不一致はfail-closedで拒否します。検体の展開・実行やnetwork接触は行いません。
 
 標準出力の各 `cases[].archive_arguments` を、同じcaseの `--target` と `--source` として本archive helperへ渡します。`--report` はrepository外のcase別pathを指定します。異なるcaseのstaging directoryを複数の `--source` で同じ呼出しへ渡してはいけません。
 
