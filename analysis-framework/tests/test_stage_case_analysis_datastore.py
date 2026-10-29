@@ -278,15 +278,105 @@ def _add_exclusion_set(
             "identity_count": len(identities),
             "identities": identities,
             "excluded_hashes_sha256": excluded_hashes_sha256,
-            "selection_commitment_sha256": manifest[
-                "selection_commitment_sha256"
-            ],
+            "selection_commitment_sha256": manifest["selection_commitment_sha256"],
             "classification": "private",
             "contains_sample_sha256": True,
             "publishable": False,
         },
     )
     return identities
+
+
+def _add_follow_on_child(
+    fixture: dict[str, object],
+    *,
+    root_index: int = 0,
+    status: str = "child_complete",
+) -> str:
+    root = fixture["cases"][root_index]
+    child_payload = b"MZ-derived-complete"
+    child = hashlib.sha256(child_payload).hexdigest()
+    parent_directory = fixture["one_shot"] / "cases" / root
+    payload_path = parent_directory / "p" / f"{child}.exe"
+    payload_io = archive._extended_length_path(payload_path)
+    payload_io.parent.mkdir()
+    payload_io.write_bytes(child_payload)
+    child_directory = fixture["one_shot"] / "cases" / child
+    child_directory.mkdir()
+    complete = status == "child_complete"
+    _json(
+        child_directory / "report.json",
+        {
+            "sample": {"sha256": child},
+            "executed_sample": False,
+            "network_contacted": False,
+            "ai_used": False,
+            "case_state": {
+                "status": "complete" if complete else "partial",
+                "complete": complete,
+                "blockers": [] if complete else ["fixture_incomplete"],
+            },
+        },
+    )
+    roots = list(fixture["cases"])
+    _json(
+        fixture["one_shot"] / "follow-on-analysis.json",
+        {
+            "schema_version": 1,
+            "executed_sample": False,
+            "network_contacted": False,
+            "ai_used": False,
+            "status": "complete" if complete else "partial",
+            "roots": roots,
+            "nodes": [
+                *({"sha256": digest, "depth": 0, "state": "root"} for digest in roots),
+                {"sha256": child, "depth": 1, "state": "analyzed"},
+            ],
+            "edges": [
+                {
+                    "parent_sha256": root,
+                    "child_sha256": child,
+                    "depth": 1,
+                    "path": f"p/{child}.exe",
+                    "role": "recovered_payload",
+                    "kind": "pe",
+                    "size": len(child_payload),
+                    "status": status,
+                }
+            ],
+            "errors": [],
+            "omitted_metadata": [],
+            "omitted_metadata_commitments": [],
+            "wall_clock_exhausted": False,
+        },
+    )
+    return child
+
+
+def _add_runtime_request_sidecar(fixture: dict[str, object]) -> Path:
+    path = fixture["source"] / "request-improved.json"
+    _json(
+        path,
+        {
+            "schema_version": 1,
+            "job_id": "fixture-improved",
+            "inputs": list(reversed(fixture["cases"])),
+            "family_hint_manifest": None,
+            "options": {
+                "archive_mode": "malwarebazaar",
+                "assessment_only": False,
+                "family": None,
+                "force_container_probe": False,
+                "max_file_size": 1024,
+                "max_files": 2,
+                "max_static_layers": 64,
+                "minimum_confidence": "medium",
+                "retry_max_static_layers": 128,
+                "string_scan_limit": 1000,
+            },
+        },
+    )
+    return path
 
 
 def test_stage_case_without_ghidra_keeps_source_and_one_shot_only(tmp_path: Path) -> None:
@@ -316,6 +406,111 @@ def test_stage_case_without_ghidra_keeps_source_and_one_shot_only(tmp_path: Path
     assert manifest["safety"]["one_shot_report_safety_validated"] is True
 
 
+def test_complete_derived_lineage_is_staged_only_with_its_root(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    root = fixture["cases"][0]
+    child = _add_follow_on_child(fixture)
+
+    result = _stage_without_ghidra(fixture)
+
+    case = result["cases"][0]
+    assert case["derived_case_sha256s"] == [child]
+    staged = Path(case["source_path"])
+    assert (staged / "one-shot-private" / "report.json").is_file()
+    assert archive._extended_length_path(staged / "one-shot-derived" / child / "report.json").is_file()
+    assert not (staged / "one-shot-private" / fixture["cases"][1]).exists()
+    projection = json.loads((staged / "derived" / "follow-on-lineage.case.json").read_text(encoding="utf-8"))
+    assert projection["case_sha256"] == root
+    assert projection["derived_case_sha256s"] == [child]
+    assert projection["edges"][0]["status"] == "child_complete"
+    assert "--expected-source-tree-sha256" in case["archive_arguments"]
+
+
+def test_incomplete_derived_lineage_rejects_only_affected_root(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    _add_follow_on_child(fixture, status="child_incomplete")
+
+    with pytest.raises(target.CaseStagingError, match="derived_child_incomplete"):
+        _stage_without_ghidra(fixture)
+
+    unaffected = target.stage_cases_without_ghidra(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        source_root=fixture["source"],
+        one_shot_root=fixture["one_shot"],
+        output_root=fixture["output"],
+        case_sha256s=[fixture["cases"][1]],
+    )
+    assert unaffected["cases"][0]["derived_case_sha256s"] == []
+
+
+def test_shared_child_lineage_is_rejected_for_all_involved_roots(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_follow_on_child(fixture)
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    second = fixture["cases"][1]
+    second_payload = fixture["one_shot"] / "cases" / second / "p" / f"{child}.exe"
+    second_payload_io = archive._extended_length_path(second_payload)
+    second_payload_io.parent.mkdir()
+    first_payload = fixture["one_shot"] / "cases" / fixture["cases"][0] / "p" / f"{child}.exe"
+    second_payload_io.write_bytes(archive._extended_length_path(first_payload).read_bytes())
+    shared = dict(graph["edges"][0])
+    shared["parent_sha256"] = second
+    shared["status"] = "shared_sha256_reused_complete"
+    graph["edges"].append(shared)
+    _json(graph_path, graph)
+
+    for digest in fixture["cases"]:
+        with pytest.raises(target.CaseStagingError, match="shared_or_cross_root_child"):
+            target.stage_cases_without_ghidra(
+                repository=fixture["repository"],
+                collection_id="daily-fixture",
+                source_root=fixture["source"],
+                one_shot_root=fixture["one_shot"],
+                output_root=fixture["output"],
+                case_sha256s=[digest],
+            )
+
+
+def test_orphan_derived_case_is_rejected_globally(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_follow_on_child(fixture)
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["edges"] = []
+    _json(graph_path, graph)
+
+    with pytest.raises(target.CaseStagingError, match="active parent"):
+        _stage_without_ghidra(fixture)
+
+    assert child in {path.name for path in (fixture["one_shot"] / "cases").iterdir()}
+
+
+def test_runtime_request_sidecar_is_validated_but_not_staged(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    request = _add_runtime_request_sidecar(fixture)
+
+    result = _stage_without_ghidra(fixture)
+
+    staged = Path(result["cases"][0]["source_path"])
+    assert request.is_file()
+    assert not any(path.name == request.name for path in staged.rglob("*"))
+
+
+def test_runtime_request_sidecar_with_unknown_option_is_rejected(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    request = _add_runtime_request_sidecar(fixture)
+    document = json.loads(request.read_text(encoding="utf-8"))
+    document["options"]["allow_network"] = True
+    _json(request, document)
+
+    with pytest.raises(target.CaseStagingError, match="runtime request"):
+        _stage_without_ghidra(fixture)
+
+
 def test_exclusion_set_is_validated_and_only_its_commitment_is_staged(
     tmp_path: Path,
 ) -> None:
@@ -327,25 +522,17 @@ def test_exclusion_set_is_validated_and_only_its_commitment_is_staged(
     root = Path(result["cases"][0]["source_path"])
     assert not (root / "exclusion-set.json").exists()
     assert not (root / "source" / "exclusion-set.json").exists()
-    acquisition = json.loads(
-        (root / "derived" / "source-acquisition.case.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    acquisition = json.loads((root / "derived" / "source-acquisition.case.json").read_text(encoding="utf-8"))
     assert acquisition["source_sidecars"] == [
         {
             "name": "exclusion-set.json",
             "size": (fixture["source"] / "exclusion-set.json").stat().st_size,
-            "sha256": hashlib.sha256(
-                (fixture["source"] / "exclusion-set.json").read_bytes()
-            ).hexdigest(),
+            "sha256": hashlib.sha256((fixture["source"] / "exclusion-set.json").read_bytes()).hexdigest(),
             "raw_content_included": False,
         }
     ]
     assert acquisition["safety"]["raw_source_sidecars_included"] is False
-    staged_bytes = b"".join(
-        path.read_bytes() for path in root.rglob("*") if path.is_file()
-    )
+    staged_bytes = b"".join(path.read_bytes() for path in root.rglob("*") if path.is_file())
     assert all(identity.encode("ascii") not in staged_bytes for identity in identities)
 
 
@@ -374,14 +561,8 @@ def test_empty_exclusion_set_is_valid_and_stages_only_its_commitment(
     result = _stage_without_ghidra(fixture)
 
     root = Path(result["cases"][0]["source_path"])
-    acquisition = json.loads(
-        (root / "derived" / "source-acquisition.case.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    assert [item["name"] for item in acquisition["source_sidecars"]] == [
-        "exclusion-set.json"
-    ]
+    acquisition = json.loads((root / "derived" / "source-acquisition.case.json").read_text(encoding="utf-8"))
+    assert [item["name"] for item in acquisition["source_sidecars"]] == ["exclusion-set.json"]
     assert acquisition["safety"]["raw_source_sidecars_included"] is False
 
 
@@ -456,9 +637,7 @@ def test_cli_requires_exactly_one_ghidra_mode() -> None:
     with pytest.raises(SystemExit):
         target.build_parser().parse_args(base)
     with pytest.raises(SystemExit):
-        target.build_parser().parse_args(
-            [*base, "--ghidra-root", "ghidra", "--ghidra-not-requested"]
-        )
+        target.build_parser().parse_args([*base, "--ghidra-root", "ghidra", "--ghidra-not-requested"])
 
 
 def test_cli_ghidra_not_requested_dispatches_without_ghidra_root(
@@ -673,11 +852,7 @@ def test_collection_session_accepts_strict_provider_hash_alias(tmp_path: Path) -
         },
     )
     _json(
-        fixture["repository"]
-        / "analysis-results"
-        / "collections"
-        / "daily-fixture"
-        / "manifest.json",
+        fixture["repository"] / "analysis-results" / "collections" / "daily-fixture" / "manifest.json",
         {
             "collection_id": "daily-fixture",
             "acquisition_items": [
@@ -717,9 +892,7 @@ def test_collection_session_accepts_strict_provider_hash_alias(tmp_path: Path) -
     assert session.inputs.cases[actual].source_requested_sha256 == requested
     staged = Path(result["cases"][0]["source_path"])
     assert archive._extended_length_path(staged / "source" / f"{requested}.zip").is_file()
-    provenance = json.loads(
-        (staged / "derived" / "source-acquisition.case.json").read_text(encoding="utf-8")
-    )
+    provenance = json.loads((staged / "derived" / "source-acquisition.case.json").read_text(encoding="utf-8"))
     assert provenance["case_sha256"] == actual
     assert provenance["provider_requested_sha256"] == requested
 
@@ -736,9 +909,7 @@ def test_collection_session_rejects_tampered_provider_hash_alias(tmp_path: Path)
     source_document["selected_metadata"][0]["sha256_hash"] = requested
     source_document["items"][0]["sha256"] = requested
     source_document["items"][0]["metadata"]["sha256_hash"] = requested
-    source_document["items"][0]["zip_path"] = str(
-        (source / requested / f"{requested}.zip").resolve()
-    )
+    source_document["items"][0]["zip_path"] = str((source / requested / f"{requested}.zip").resolve())
     _json(source / "manifest.json", source_document)
 
     with pytest.raises(target.CaseStagingError, match="公開collection"):
@@ -905,12 +1076,8 @@ def test_verified_malware_binary_is_hash_bound_without_text_secret_scan(
     imported = staged / "ghidra" / "import-staging" / f"{selected}.quarantine.bin"
     assert archive._extended_length_path(imported).read_bytes() == b"MZ-malware" + marker
     assert result["preflight_verified_malware_binaries_excluded"] == 1
-    manifest = json.loads(
-        (staged / target.STAGING_MANIFEST_NAME).read_text(encoding="utf-8")
-    )
-    assert manifest["safety"]["host_secret_content_scan_scope"] == (
-        "non_sample_content_only"
-    )
+    manifest = json.loads((staged / target.STAGING_MANIFEST_NAME).read_text(encoding="utf-8"))
+    assert manifest["safety"]["host_secret_content_scan_scope"] == ("non_sample_content_only")
     assert manifest["safety"]["verified_malware_binary_count"] == 1
 
 
@@ -943,11 +1110,7 @@ def test_copy_rejects_source_replacement_after_preflight(
 
     fixture = _fixture(tmp_path)
     selected = fixture["cases"][0]
-    archive_path = (
-        fixture["source"]
-        / selected
-        / f"{selected}.zip"
-    )
+    archive_path = fixture["source"] / selected / f"{selected}.zip"
     original_copy_file = target._copy_file
     replaced = False
 
@@ -1045,9 +1208,7 @@ def test_missing_decompilation_file_is_allowed_when_no_characteristic_function_w
     staged = _stage(fixture, cases=[selected])
 
     source = Path(staged["cases"][0]["source_path"])
-    derived = json.loads(
-        (source / "derived" / "private-artifact-validation.case.json").read_text(encoding="utf-8")
-    )
+    derived = json.loads((source / "derived" / "private-artifact-validation.case.json").read_text(encoding="utf-8"))
     assert derived["programs"][0]["artifacts"]["decompilations"] is None
 
 
@@ -1131,9 +1292,7 @@ def test_existing_case_staging_is_fully_revalidated_for_resume(
     assert resumed["case_count"] == 1
     assert resumed["cases"][0]["case_sha256"] == selected
     assert resumed["cases"][0]["target"] == original["target"]
-    assert Path(resumed["cases"][0]["source_path"]) == Path(
-        original["source_path"]
-    )
+    assert Path(resumed["cases"][0]["source_path"]) == Path(original["source_path"])
     assert resumed["safety"]["existing_staging_fully_revalidated"] is True
 
 
@@ -1176,9 +1335,7 @@ def test_existing_ghidra_import_requires_filename_sha256_on_resume(
     manifest_io = archive._extended_length_path(manifest_path)
     manifest = json.loads(manifest_io.read_text(encoding="utf-8"))
     record = next(
-        item
-        for item in manifest["files"]
-        if item["path"] == f"ghidra/import-staging/{selected}.quarantine.bin"
+        item for item in manifest["files"] if item["path"] == f"ghidra/import-staging/{selected}.quarantine.bin"
     )
     record["sha256"] = hashlib.sha256(imported_io.read_bytes()).hexdigest()
     manifest["file_inventory_sha256"] = target._inventory_sha256(manifest["files"])

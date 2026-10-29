@@ -11,7 +11,7 @@
 通常consumerでは次を照合します。
 
 1. immutableなexact `bytes`、PE header、CLI directory、sectionの一意なfile-backed範囲。
-2. metadata root、宣言されたstream、table layoutとrow count、同じ入力内の`#Strings`。
+2. metadata root、宣言された`#~`または`#-`の一意なtable stream、table layoutとrow count、同じ入力内の`#Strings`。
 3. `ManifestResource`のOffset、Name index、Implementation coded index。
 4. embedded resourceの4-byte長さと本文範囲、記述子相互の重複と名前の曖昧性。
 5. 同じparser・table・row container・row・heapに由来する共有snapshotの再消費時の一致。
@@ -19,6 +19,8 @@
 `File`または`AssemblyRef`へ結び付いたlinked resourceはembedded本文として扱いません。RIDと同一tableの関係だけを確認し、本文を外部へ要求しません。
 
 parserが最初に現れたRVA mappingだけを返す場合も、それを単独の証明にはしません。部分的なsection交差、raw領域の別名、CLI宣言とparser viewの差、宣言されていないstreamのlookalikeは拒否対象です。
+
+`#-`を受理する場合も、parserが保持するstream object、stream header名と位置、registryの一意性、全tableのcanonical位置、`#Strings`の入力bytesを再照合します。`#~`向けの検査を省略した別経路ではありません。
 
 ## 共有する予算
 

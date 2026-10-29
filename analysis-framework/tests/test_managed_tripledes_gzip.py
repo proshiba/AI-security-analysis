@@ -293,13 +293,109 @@ def test_gzip_length_eof_and_output_limit(mutation):
     assert report["status"] == "rejected" and not artifacts
 
 
-def test_multiple_recipes_and_method_budget_are_rejected(monkeypatch):
+def test_identical_resource_recipes_collapse_and_method_budget_is_enforced(
+    monkeypatch,
+):
     _, encrypted, method, resource = _fixture()
     report, artifacts = recovery.recover_model(b"parent", [method, deepcopy(method)], {resource: encrypted})
-    assert report["reason"] == "multiple_resource_recipes" and not artifacts
+    assert report["status"] == "recovered"
+    assert artifacts == [("managed-tripledes-gzip-pe", _payload())]
+    assert report["resource_recipe_candidate_count"] == 1
+    assert report["resource_recipe_recovered_count"] == 1
     monkeypatch.setattr(recovery, "MAX_METHODS", 0)
     report, artifacts = recovery.recover_model(b"parent", [method], {resource: encrypted})
     assert report["reason"] == "input_or_method_limit" and not artifacts
+
+
+def test_decoy_resource_binding_is_rejected_before_complete_chain_selection():
+    payload, encrypted, method, resource = _fixture()
+    decoy = "decoy.resource"
+    next_offset = max(item["offset"] for item in method["instructions"]) + 1
+    method["instructions"].extend(
+        [
+            {
+                "offset": next_offset,
+                "opcode": "ldstr",
+                "operand": "None",
+                "resolved_token": None,
+                "string": decoy,
+            },
+            {
+                "offset": next_offset + 1,
+                "opcode": "callvirt",
+                "operand": "None",
+                "resolved_token": ("System.Reflection.Assembly::GetManifestResourceStream"),
+                "parameter_count": None,
+            },
+            {
+                "offset": next_offset + 2,
+                "opcode": "stloc.s",
+                "operand": "local(0x0200)",
+                "resolved_token": None,
+            },
+        ]
+    )
+    report, artifacts = recovery.recover_model(
+        b"parent",
+        [method],
+        {resource: encrypted, decoy: bytes(8)},
+    )
+    assert report["status"] == "recovered", report
+    assert artifacts == [("managed-tripledes-gzip-pe", payload)]
+    assert report["resource_recipe_candidate_count"] == 1
+    assert report["resource_recipe_identical_output_collapsed"] is False
+
+
+def test_distinct_resource_recipe_outputs_remain_ambiguous():
+    _payload_one, encrypted_one, method_one, resource_one = _fixture(name="first.resource")
+    payload_two = bytearray(_payload())
+    payload_two[0x201] = 0x7F
+    clear_two = struct.pack("<i", len(payload_two)) + gzip.compress(
+        bytes(payload_two),
+        mtime=0,
+    )
+    _, encrypted_two, method_two, resource_two = _fixture(
+        name="second.resource",
+        clear=clear_two,
+    )
+    method_two["token"] = 0x06000002
+    report, artifacts = recovery.recover_model(
+        b"parent",
+        [method_one, method_two],
+        {resource_one: encrypted_one, resource_two: encrypted_two},
+    )
+    assert report["reason"] == "multiple_distinct_recovered_payloads"
+    assert not artifacts
+
+
+def test_distinct_resource_recipes_with_same_payload_collapse_by_sha256():
+    payload, encrypted_one, method_one, resource_one = _fixture(name="first.resource")
+    _, encrypted_two, method_two, resource_two = _fixture(name="second.resource")
+    method_two["token"] = 0x06000002
+    report, artifacts = recovery.recover_model(
+        b"parent",
+        [method_one, method_two],
+        {resource_one: encrypted_one, resource_two: encrypted_two},
+    )
+    assert report["status"] == "recovered", report
+    assert artifacts == [("managed-tripledes-gzip-pe", payload)]
+    assert report["resource_recipe_candidate_count"] == 2
+    assert report["resource_recipe_recovered_count"] == 2
+    assert report["resource_recipe_identical_output_collapsed"] is True
+
+
+def test_resource_candidate_ciphertext_work_is_bounded(monkeypatch):
+    _, encrypted_one, method_one, resource_one = _fixture(name="first.resource")
+    _, encrypted_two, method_two, resource_two = _fixture(name="second.resource")
+    method_two["token"] = 0x06000002
+    monkeypatch.setattr(recovery, "MAX_INPUT", len(encrypted_one))
+    report, artifacts = recovery.recover_model(
+        b"parent",
+        [method_one, method_two],
+        {resource_one: encrypted_one, resource_two: encrypted_two},
+    )
+    assert report["reason"] == "resource_candidate_work_limit"
+    assert not artifacts
 
 
 def test_normal_data_with_no_crypto_recipe_is_not_promoted():
@@ -365,6 +461,171 @@ def test_raw_span_rejects_virtual_only_and_overlapping_sections():
         recovery._raw_span(SimpleNamespace(sections=[section]), bytes(16), 0x100F, 2)
     with pytest.raises(recovery.RecipeError):
         recovery._raw_span(SimpleNamespace(sections=[section, section]), bytes(16), 0x1000, 8)
+
+
+def test_proxy_rewrite_preserves_branch_target_offset_as_nop(monkeypatch):
+    field_token = 0x04000001
+    helper_token = 0x06000001
+    target_token = 0x0A000001
+    instructions = [
+        {"offset": 0, "opcode": "br.s", "operand": "10", "token": None},
+        {
+            "offset": 10,
+            "opcode": "ldsfld",
+            "operand": f"token(0x{field_token:08X})",
+            "token": field_token,
+        },
+        {
+            "offset": 11,
+            "opcode": "call",
+            "operand": f"token(0x{helper_token:08X})",
+            "token": helper_token,
+        },
+        {"offset": 12, "opcode": "ret", "operand": "None", "token": None},
+    ]
+    proxy_map = {
+        field_token: {
+            "api": "System.Security.Cryptography.TripleDES::Create",
+            "target_token": target_token,
+            "call_kind": "call",
+            "parameter_count": 0,
+        }
+    }
+    monkeypatch.setattr(
+        recovery,
+        "_validated_proxy_helper",
+        lambda *_args: {"helper_token": helper_token},
+    )
+    rewritten, rewrites = recovery._rewrite_proxy_calls(
+        SimpleNamespace(),
+        b"",
+        instructions,
+        proxy_map,
+        {},
+        {},
+    )
+    assert [item["offset"] for item in rewritten] == [0, 10, 11, 12]
+    assert rewritten[1]["opcode"] == "nop"
+    assert rewritten[1]["token"] is None
+    assert rewritten[2]["opcode"] == "call"
+    assert rewritten[2]["token"] == target_token
+    assert rewrites == [
+        {
+            "field_token": field_token,
+            "helper_token": helper_token,
+            "target_token": target_token,
+        }
+    ]
+
+
+def test_proxy_rewrite_rejects_branch_directly_to_helper_call(monkeypatch):
+    field_token = 0x04000001
+    helper_token = 0x06000001
+    instructions = [
+        {"offset": 0, "opcode": "br.s", "operand": "11", "token": None},
+        {
+            "offset": 10,
+            "opcode": "ldsfld",
+            "operand": f"token(0x{field_token:08X})",
+            "token": field_token,
+        },
+        {
+            "offset": 11,
+            "opcode": "call",
+            "operand": f"token(0x{helper_token:08X})",
+            "token": helper_token,
+        },
+    ]
+    proxy_map = {
+        field_token: {
+            "api": "System.Security.Cryptography.TripleDES::Create",
+            "target_token": 0x0A000001,
+            "call_kind": "call",
+            "parameter_count": 0,
+        }
+    }
+    monkeypatch.setattr(
+        recovery,
+        "_validated_proxy_helper",
+        lambda *_args: {"helper_token": helper_token},
+    )
+    with pytest.raises(recovery.RecipeError, match="proxy_helper_call_is_branch_target"):
+        recovery._rewrite_proxy_calls(
+            SimpleNamespace(),
+            b"",
+            instructions,
+            proxy_map,
+            {},
+            {},
+        )
+
+
+def test_straight_line_delegate_proxy_helper_is_exactly_validated(monkeypatch):
+    helper_row = SimpleNamespace(Signature=SimpleNamespace(value=b"\x00\x03\x08\x08\x08\x12\x04"))
+    invoke_row = SimpleNamespace(
+        Name="Invoke",
+        Signature=SimpleNamespace(value=b"\x20\x02\x08\x08\x08"),
+    )
+    pe = SimpleNamespace(
+        net=SimpleNamespace(mdtables=SimpleNamespace(MethodDef=SimpleNamespace(rows=[helper_row, invoke_row])))
+    )
+    instructions = [
+        {"offset": 0, "opcode": "ldarg.2", "operand": "None", "token": None},
+        {"offset": 1, "opcode": "ldarg.0", "operand": "None", "token": None},
+        {"offset": 2, "opcode": "ldarg.1", "operand": "None", "token": None},
+        {
+            "offset": 3,
+            "opcode": "callvirt",
+            "operand": "token(0x06000002)",
+            "token": 0x06000002,
+        },
+        {"offset": 4, "opcode": "ret", "operand": "None", "token": None},
+    ]
+    monkeypatch.setattr(
+        recovery,
+        "_method_body",
+        lambda *_args: (helper_row, instructions),
+    )
+    mapping = {
+        "stack_argument_count": 2,
+        "field_type": b"\x12\x04",
+        "target_has_this": False,
+        "target_return": b"\x08",
+        "target_parameters": (b"\x08", b"\x08"),
+    }
+    result = recovery._validated_proxy_helper(
+        pe,
+        b"",
+        0x06000001,
+        mapping,
+        {2: 0x02000001},
+    )
+    assert result["helper_token"] == 0x06000001
+    assert result["reachable_instruction_count"] == 5
+
+    branched = deepcopy(instructions)
+    branched[1] = {
+        "offset": 1,
+        "opcode": "br.s",
+        "operand": "2",
+        "token": None,
+    }
+    monkeypatch.setattr(
+        recovery,
+        "_method_body",
+        lambda *_args: (helper_row, branched),
+    )
+    with pytest.raises(
+        recovery.RecipeError,
+        match="proxy_helper_straight_line_branch_present",
+    ):
+        recovery._validated_proxy_helper(
+            pe,
+            b"",
+            0x06000001,
+            mapping,
+            {2: 0x02000001},
+        )
 
 
 def test_cil_direct_call_prefilter_supports_tiny_and_fat_headers():

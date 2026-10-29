@@ -29,14 +29,20 @@ def test_report_path_allows_private_state_and_rejects_public_repo(
     private_report = repository / ".work" / "reports" / "receipt.json"
     external_report = short_tmp / "private-state" / "receipt.json"
 
-    assert datastore._validate_report_path(
-        private_report,
-        repository_root=repository,
-    ) == private_report.resolve()
-    assert datastore._validate_report_path(
-        external_report,
-        repository_root=repository,
-    ) == external_report.resolve()
+    assert (
+        datastore._validate_report_path(
+            private_report,
+            repository_root=repository,
+        )
+        == private_report.resolve()
+    )
+    assert (
+        datastore._validate_report_path(
+            external_report,
+            repository_root=repository,
+        )
+        == external_report.resolve()
+    )
     with pytest.raises(datastore.DatastoreError, match="リポジトリ外または.*work配下"):
         datastore._validate_report_path(
             repository / "analysis-results" / "case" / "datastore-upload.json",
@@ -238,6 +244,86 @@ def test_upload_command_requires_sse_checksum_and_metadata(short_tmp: Path) -> N
     metadata = command[command.index("--metadata") + 1]
     assert "archive-sha256=" + "a" * 64 in metadata
     assert "manifest-sha256=" + "b" * 64 in metadata
+
+
+def test_expected_source_tree_commitment_is_verified_before_archive(
+    short_tmp: Path,
+) -> None:
+    source = short_tmp / "source"
+    source.mkdir()
+    (source / "a.bin").write_bytes(b"one")
+    (source / "b.bin").write_bytes(b"two")
+    files = datastore.collect_source_files([source])
+    observed = datastore.source_tree_commitment(files)
+
+    assert (
+        datastore.verify_expected_source_tree(
+            files,
+            expected_source_tree_sha256=observed["source_tree_sha256"],
+            expected_file_count=observed["file_count"],
+            expected_total_size=observed["total_size"],
+        )
+        == observed
+    )
+    with pytest.raises(datastore.DatastoreError, match="一致しません"):
+        datastore.verify_expected_source_tree(
+            files,
+            expected_source_tree_sha256="f" * 64,
+            expected_file_count=observed["file_count"],
+            expected_total_size=observed["total_size"],
+        )
+    with pytest.raises(datastore.DatastoreError, match="3項目すべて"):
+        datastore.verify_expected_source_tree(
+            files,
+            expected_source_tree_sha256=observed["source_tree_sha256"],
+            expected_file_count=None,
+            expected_total_size=observed["total_size"],
+        )
+
+
+def test_upload_metadata_binds_source_tree_commitment(short_tmp: Path) -> None:
+    command = datastore.build_upload_command(
+        aws_cli=Path("aws.exe"),
+        archive_path=short_tmp / "archive.zip",
+        bucket="bucket",
+        key="analysis-targets/sample/2026/08/archive.zip",
+        region="us-east-1",
+        archive_sha256="a" * 64,
+        manifest_sha256="b" * 64,
+        target="sample",
+        source_tree_sha256="c" * 64,
+    )
+    metadata = command[command.index("--metadata") + 1]
+    assert "source-tree-sha256=" + "c" * 64 in metadata
+
+    valid = {
+        "ContentLength": 123,
+        "ServerSideEncryption": "AES256",
+        "Metadata": {
+            "archive-sha256": "a" * 64,
+            "manifest-sha256": "b" * 64,
+            "analysis-target": "sample",
+            "source-tree-sha256": "c" * 64,
+        },
+    }
+    datastore.verify_head_object(
+        valid,
+        expected_size=123,
+        archive_sha256="a" * 64,
+        manifest_sha256="b" * 64,
+        target="sample",
+        source_tree_sha256="c" * 64,
+    )
+    valid["Metadata"]["source-tree-sha256"] = "d" * 64
+    with pytest.raises(datastore.DatastoreError, match="source-tree-sha256"):
+        datastore.verify_head_object(
+            valid,
+            expected_size=123,
+            archive_sha256="a" * 64,
+            manifest_sha256="b" * 64,
+            target="sample",
+            source_tree_sha256="c" * 64,
+        )
 
 
 def test_head_object_verification_is_fail_closed() -> None:

@@ -3376,6 +3376,28 @@ def test_live_output_scan_retries_only_transient_disappearance(
     assert exhausted_attempts == runner.MAX_LIVE_OUTPUT_SCAN_ATTEMPTS
 
 
+def test_live_output_scan_never_retries_hardlink(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """書換race許容後もhardlink境界は即時fail-closedのまま維持する。"""
+
+    output = tmp_path / "analysis"
+    output.mkdir()
+    original = output / "original.bin"
+    linked = output / "linked.bin"
+    original.write_bytes(b"hardlink boundary")
+    os.link(original, linked)
+    delays: list[float] = []
+    monkeypatch.setattr(runner.time, "sleep", delays.append)
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validate_live_analysis_output_tree(output)
+
+    assert caught.value.code == "analysis_output_hardlink_forbidden"
+    assert delays == []
+
+
 def test_live_output_scan_never_retries_actual_reparse(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -4060,6 +4082,91 @@ def test_input_snapshot_supports_windows_extended_length_destination(tmp_path: P
         "directories": 2,
         "total_bytes": 4,
     }
+
+
+def _create_windows_long_analysis_artifact(
+    tmp_path: Path,
+    *,
+    payload: bytes,
+) -> tuple[Path, Path, Path]:
+    """legacy pathを超える実job同型の保持payloadをextended pathで作る。"""
+
+    digest = "a" * 64
+    filename = "b" * 64 + ".exe"
+    baseline = tmp_path / "analysis" / "cases" / digest / "p" / filename
+    padding = "w" * max(1, 280 - len(os.fspath(baseline)))
+    output = tmp_path / padding / "analysis"
+    relative = Path("cases") / digest / "p" / filename
+    normal_artifact = output / relative
+    io_artifact = runner._extended_length_path(normal_artifact)
+    io_artifact.parent.mkdir(parents=True)
+    io_artifact.write_bytes(payload)
+    assert len(os.fspath(normal_artifact)) > 260
+    return output, normal_artifact, io_artifact
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows extended-length path専用")
+def test_analysis_output_snapshot_normalizes_nested_legacy_long_path(tmp_path: Path) -> None:
+    """通常rootを受けても深い保持payloadをextended I/Oで検証・hashする。"""
+
+    payload = b"long analysis output"
+    output, normal_artifact, _io_artifact = _create_windows_long_analysis_artifact(
+        tmp_path,
+        payload=payload,
+    )
+    relative = normal_artifact.relative_to(output).as_posix()
+
+    tree = runner.validate_analysis_output_tree(output)
+    manifest = runner.analysis_output_content_manifest(output)
+    completed_tree, _root_identity, completed_entries = runner._completed_job_entry_snapshot(output)
+
+    expected_tree = {
+        "entries": 4,
+        "files": 1,
+        "directories": 3,
+        "total_bytes": len(payload),
+    }
+    # analyzerへ渡すroot／TEMPまで不要にextended-length化せず、validatorが
+    # 深いentryを読む瞬間だけextended I/Oへ正規化する。
+    assert runner._analysis_output_io_path(output) == output.resolve()
+    assert tree == expected_tree
+    assert manifest["tree"] == expected_tree
+    assert completed_tree == expected_tree
+    assert any(record[0] == relative and record[1] == "file" for record in completed_entries)
+    assert {
+        "path": relative,
+        "kind": "file",
+        "size": len(payload),
+        "sha256": hashlib.sha256(payload).hexdigest(),
+    } in manifest["entries"]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows extended-length path専用")
+def test_analysis_output_long_path_preserves_hardlink_and_size_quotas(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """long path正規化後もhardlinkとsize quotaをfail-closedで拒否する。"""
+
+    payload = b"long quota boundary"
+    output, normal_artifact, io_artifact = _create_windows_long_analysis_artifact(
+        tmp_path,
+        payload=payload,
+    )
+    monkeypatch.setattr(runner, "MAX_ANALYSIS_OUTPUT_BYTES", len(payload) - 1)
+    with pytest.raises(runner.JobContractError) as size_error:
+        runner.validate_analysis_output_tree(output)
+    assert size_error.value.code == "analysis_output_size_quota_exceeded"
+
+    monkeypatch.setattr(runner, "MAX_ANALYSIS_OUTPUT_BYTES", 1024)
+    linked = runner._extended_length_path(normal_artifact.with_name("linked.exe"))
+    try:
+        os.link(io_artifact, linked)
+    except OSError as exc:
+        pytest.skip(f"hardlinkを作成できない環境です: {exc}")
+    with pytest.raises(runner.JobContractError) as hardlink_error:
+        runner.validate_analysis_output_tree(output)
+    assert hardlink_error.value.code == "analysis_output_hardlink_forbidden"
 
 
 def test_input_snapshot_checks_required_capacity_before_copy(

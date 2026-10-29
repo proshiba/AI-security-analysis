@@ -4576,10 +4576,10 @@ _APPROVED_CALLBACK_PARAMETERS = frozenset(
 # opaque receiverの一般推論は広げず、レビュー済みmanaged helperだけを固定する。
 _MANAGED_RESOURCE_SOURCE_COMMITMENTS = {
     "unpackers/managed_resources.py": "3e1804c709b57670a6a78bfd6292ed78896057c85b2427212310ea4ecd158ea9",
-    "unpackers/dnfile_resource_adapter.py": "ecd84fd4738500967063afa4c9376eb54b6e3c4d211e26810ca28a774b537015",
-    "unpackers/clr_input_binding.py": "f680cc2c9fd8e88ad89f50b6d6a75352d78533e646d48db3576c7907a0cac940",
+    "unpackers/dnfile_resource_adapter.py": "7db768a84defe4b5213a57ae01fd62bdbe1da9ae3754294caf47779ca341337e",
+    "unpackers/clr_input_binding.py": "c902b15c559734c7e4a40994dc965fdf60d65f4f536717856e827f9addbb1303",
     "unpackers/managed_resource_snapshot.py": "df28a45fd2d6d52a328636268dd4d483f81da05b55fb44cedc0f0853ae615d5d",
-    "unpackers/managed_constructor_guard.py": "ce841314eaae64cf85cb97865868694427c06f3bae5493a6272412ca4e84657f",
+    "unpackers/managed_constructor_guard.py": "dba513740580567efd4c2e6f6665fadc5f84367b637b45452cee36e7335d5ce4",
 }
 _MANAGED_RESOURCE_PURE_CALL_SHAPES = {
     ("managed_resource_snapshot.py", "shared_metadata_state", "id"): ("id(table)",),

@@ -85,7 +85,7 @@ def _identity_tuple(value: os.stat_result) -> tuple[int, int, int, int, int, int
         int(value.st_ino),
         int(value.st_size),
         int(value.st_mtime_ns),
-        int(value.st_mode),
+        int(stat.S_IFMT(value.st_mode)),
         int(value.st_nlink),
     )
 

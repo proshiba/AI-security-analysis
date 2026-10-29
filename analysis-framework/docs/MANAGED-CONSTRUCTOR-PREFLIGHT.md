@@ -6,6 +6,8 @@
 
 metadata parserを構築してからrow数を制限すると、その構築時点で過大な宣言に応じた割り当てが生じ得る。`managed_constructor_guard.py`は原本bytesだけからPE、CLI、metadata streamと全45tableの宣言を検査し、固定2consumerの`dnfile.dnPE`より前に拒否する。
 
+table streamは最適化済み`#~`または非最適化`#-`のどちらか一方だけを受理する。`#-`も同じraw header、全table row宣言、canonicalなrow byte範囲、個別・合計row上限を検証してからconstructorへ渡す。両方の同居、未知stream、宣言row本文の不足は拒否し、stream名だけを根拠に互換扱いしない。
+
 | 項目 | 固定上限 | 範囲 |
 |---|---:|---|
 | 原本入力 | 512 MiB | exact `bytes`の受付 |

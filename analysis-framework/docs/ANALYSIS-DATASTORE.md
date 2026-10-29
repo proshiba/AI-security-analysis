@@ -53,6 +53,8 @@ py -3.13 .\analysis-framework\common\stage_case_analysis_datastore.py `
 
 Ghidraを明示的に実行しないrunでは、`--ghidra-root`の代わりに`--ghidra-not-requested`を指定します。両者は排他的で、どちらも省略できません。この経路はone-shot reportの`executed_sample`（旧形式は`sample_executed`）、`network_contacted`、`ai_used`を検証し、検体非実行、network非接触、AI未使用または未設定を確認できた場合だけstagingを作成します。
 
+`follow-on-analysis.json`があるrunでは、source集合とroot集合、nodeとcase directory、active parent、depth、edge payloadのsize／SHA-256をrun全体で検証します。その後、指定rootとactive edgeで到達できる厳格な`complete`子だけを同じ対象のlineageとして分離します。root自身は解析途中でも、当該rootからderived caseへ到達しない場合は保管できます。指定rootのlineageにincomplete、除外edge、shared／cross-root、omission、error、wall-clock exhaustionがある場合はそのrootだけをfail-closedで拒否します。orphan、cycle、未知node、複数active parentなどgraph全体の構造不整合は全rootを拒否します。別rootのcase directoryやrun共通JSONはcopyせず、元graphのSHA-256と当該rootのedgeだけを派生manifestへ固定します。
+
 ```powershell
 py -3.13 .\analysis-framework\common\stage_case_analysis_datastore.py `
   --repository C:\work\AI-security-analysis `
@@ -64,14 +66,17 @@ py -3.13 .\analysis-framework\common\stage_case_analysis_datastore.py `
   --case-sha256 <case SHA-256>
 ```
 
-helperは、取得済み暗号化source ZIP、当該caseのone-shot directory、当該caseのrelationshipから到達するGhidra objectとimport-staging PEだけをrole別prefixへ物理copyします。source rootの`exclusion-set.json`は非公開除外集合、selection commitment、source manifestとの対応を検証しますが、raw内容はcase archiveへcopyしません。派生取得manifestにはfile名、size、SHA-256 commitmentだけを記録します。collection共通の `input-relationships.json` と `private-artifact-validation.json` はそのままcopyせず、当該caseだけへ絞り、絶対pathをstaging相対pathへ置換した派生manifestを作ります。複数caseで共有されるPEの `program-result.json` も対象caseのrelationshipだけを残して派生させ、他caseの識別子を持ち込みません。`decompilations.raw.jsonl`は選択済み特徴関数の逆コンパイル結果だけを保持するため、`characteristic_native_decompilation_count=0`の場合はnative関数が存在してもfile欠落を`null`へ正規化します。特徴関数が1件以上ある場合やその他の必須artifact欠落は拒否します。hardlink、symlink、junction、秘密値らしいfile名／内容、現在hostのhome path、不完全なGhidra run、case集合やSHA-256の不一致はfail-closedで拒否します。検体の展開・実行やnetwork接触は行いません。
+helperは、取得済み暗号化source ZIP、当該caseのone-shot directory、当該caseのrelationshipから到達するGhidra objectとimport-staging PEだけをrole別prefixへ物理copyします。source rootの`exclusion-set.json`は非公開除外集合、selection commitment、source manifestとの対応を検証しますが、raw内容はcase archiveへcopyしません。再解析用の`request-improved.json`も入力集合と静的解析optionを検証しますが、runtime metadataとしてcopyしません。派生取得manifestにはfile名、size、SHA-256 commitmentだけを記録します。collection共通の `input-relationships.json` と `private-artifact-validation.json` はそのままcopyせず、当該caseだけへ絞り、絶対pathをstaging相対pathへ置換した派生manifestを作ります。複数caseで共有されるPEの `program-result.json` も対象caseのrelationshipだけを残して派生させ、他caseの識別子を持ち込みません。`decompilations.raw.jsonl`は選択済み特徴関数の逆コンパイル結果だけを保持するため、`characteristic_native_decompilation_count=0`の場合はnative関数が存在してもfile欠落を`null`へ正規化します。特徴関数が1件以上ある場合やその他の必須artifact欠落は拒否します。hardlink、symlink、junction、秘密値らしいfile名／内容、現在hostのhome path、不完全なGhidra run、case集合やSHA-256の不一致はfail-closedで拒否します。検体の展開・実行やnetwork接触は行いません。
 
-標準出力の各 `cases[].archive_arguments` を、同じcaseの `--target` と `--source` として本archive helperへ渡します。`--report` はrepository外のcase別pathを指定します。異なるcaseのstaging directoryを複数の `--source` で同じ呼出しへ渡してはいけません。
+標準出力の各 `cases[].archive_arguments` を省略せず本archive helperへ渡します。引数には`--target`と`--source`に加え、`--expected-source-tree-sha256`、`--expected-file-count`、`--expected-total-size`が含まれます。archive helperは入力を再列挙・再hashし、3項目がstaging時のcommitmentと一致しない場合はZIP作成前に停止します。`--report` はrepository外のcase別pathを指定します。異なるcaseのstaging directoryを複数の `--source` で同じ呼出しへ渡してはいけません。
 
 ```powershell
 py -3.13 .\analysis-framework\common\archive_analysis_datastore.py `
   --target malwarebazaar-windows-20260902-0050-<case SHA-256> `
   --source C:\work-private\daily-orchestrations\daily-20260902\case-datastore-staging\<target> `
+  --expected-source-tree-sha256 <staging結果のsource_tree_sha256> `
+  --expected-file-count <staging結果のfile_count> `
+  --expected-total-size <staging結果のtotal_size> `
   --report C:\work-private\daily-orchestrations\daily-20260902\archive-reports\<target>.json
 ```
 
@@ -129,8 +134,8 @@ partial、pending、disabled、failed、ABORTED、case集合不一致、共有de
 3. ZIP格納時にも列挙時のfile identityを再照合し、同じ単一handleから全memberをpassword `infected`のWinZip AES-256で暗号化する。列挙後のpath差替えやhardlink追加は拒否する。
 4. ZIPを復号して全memberを再ハッシュする。
 5. `aws sts get-caller-identity`と`HeadBucket`でroleとbucketを確認する。
-6. 同一object keyがないことを確認し、SSE-S3とSHA-256 metadata付きでuploadする。
-7. `HeadObject`でsize、SSE-S3、archive SHA-256、manifest SHA-256、targetを照合する。
+6. 同一object keyがないことを確認し、SSE-S3とarchive／manifest／source-tree SHA-256 metadata付きでuploadする。
+7. `HeadObject`でsize、SSE-S3、archive SHA-256、manifest SHA-256、source-tree SHA-256、targetを照合する。
 8. 検証成功時だけ一時ZIPを削除する。sourceそのものは自動削除しない。
 
 失敗時は再試行できるようにstaging pathを標準エラーへ表示し、暗号化ZIPを保持します。`--keep-local-archive`を指定すると成功時もstagingへ残します。

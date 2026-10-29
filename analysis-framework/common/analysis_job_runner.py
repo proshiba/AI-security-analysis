@@ -1268,7 +1268,7 @@ def _extended_length_path(path: Path) -> Path:
 
 
 def _analysis_output_io_path(path: Path) -> Path:
-    """SHA-256 case directoryがWindowsのlegacy境界へ達する出力だけを拡張path化する。"""
+    """SHA-256 case directory自体がlegacy境界へ達する場合だけrootを拡張path化する。"""
 
     absolute = _absolute_path(path)
     anticipated_case = absolute / "cases" / ("0" * 64)
@@ -3223,13 +3223,14 @@ def _run_process_with_bounded_output(
 def validate_analysis_output_tree(path: Path) -> dict[str, int]:
     """解析出力treeの種類・件数・合計sizeをhard quotaで検証する。"""
 
+    io_path = _extended_length_path(path)
     _ensure_tree_no_reparse(
-        path,
+        io_path,
         max_entries=MAX_ANALYSIS_OUTPUT_ENTRIES,
         code="analysis_output_reparse_forbidden",
         message="解析出力にreparse pointが含まれています",
     )
-    pending = [path]
+    pending = [io_path]
     entries = 0
     files = 0
     directories = 0
@@ -3278,12 +3279,13 @@ def validate_analysis_output_tree(path: Path) -> dict[str, int]:
 def _analysis_output_entry_snapshot(path: Path) -> tuple[tuple[object, ...], ...]:
     """解析treeのpath、種類、file identity、変更検知metadataを固定する。"""
 
+    io_path = _extended_length_path(path)
     records: list[tuple[object, ...]] = []
     for item in sorted(
-        path.rglob("*"),
+        io_path.rglob("*"),
         key=lambda value: (
-            value.relative_to(path).as_posix().casefold(),
-            value.relative_to(path).as_posix(),
+            value.relative_to(io_path).as_posix().casefold(),
+            value.relative_to(io_path).as_posix(),
         ),
     ):
         try:
@@ -3293,7 +3295,7 @@ def _analysis_output_entry_snapshot(path: Path) -> tuple[tuple[object, ...], ...
                 "analysis_output_unreadable",
                 "解析出力entryを安全に確認できません",
             ) from exc
-        relative = item.relative_to(path).as_posix()
+        relative = item.relative_to(io_path).as_posix()
         kind = "directory" if stat.S_ISDIR(information.st_mode) else "file"
         records.append(
             (
@@ -3319,8 +3321,9 @@ def _analysis_output_entry_snapshot(path: Path) -> tuple[tuple[object, ...], ...
 def _hash_analysis_output_file_once(path: Path, *, expected_size: int) -> str:
     """通常fileを単一handleでstream hashし、読取中の変更を拒否する。"""
 
+    io_path = _extended_length_path(path)
     try:
-        before = path.lstat()
+        before = io_path.lstat()
     except OSError as exc:
         raise JobContractError("analysis_output_changed", "解析出力fileを確認できません") from exc
     if (
@@ -3335,7 +3338,7 @@ def _hash_analysis_output_file_once(path: Path, *, expected_size: int) -> str:
     flags |= int(getattr(os, "O_CLOEXEC", 0)) | int(getattr(os, "O_NOINHERIT", 0))
     flags |= int(getattr(os, "O_NOFOLLOW", 0))
     try:
-        descriptor = os.open(path, flags)
+        descriptor = os.open(io_path, flags)
     except OSError as exc:
         raise JobContractError("analysis_output_changed", "解析出力fileを開けません") from exc
     digest = hashlib.sha256()
@@ -3365,7 +3368,7 @@ def _hash_analysis_output_file_once(path: Path, *, expected_size: int) -> str:
     except OSError as exc:
         raise JobContractError("analysis_output_changed", "解析出力fileを読めません") from exc
     try:
-        after_path = path.lstat()
+        after_path = io_path.lstat()
     except OSError as exc:
         raise JobContractError("analysis_output_changed", "解析出力fileが消失しました") from exc
     if (
@@ -3430,19 +3433,20 @@ def _completed_job_entry_snapshot(
 ) -> tuple[dict[str, int], tuple[object, ...], tuple[tuple[object, ...], ...]]:
     """完了job全体を有界な通常file／directory集合として固定する。"""
 
+    io_path = _extended_length_path(path)
     _ensure_no_reparse(
-        path,
+        io_path,
         code="existing_job_reparse_forbidden",
         message="完了job snapshotにreparse pointは使用できません",
     )
     _ensure_tree_no_reparse(
-        path,
+        io_path,
         max_entries=MAX_COMPLETED_JOB_ENTRIES,
         code="existing_job_reparse_forbidden",
         message="完了job snapshotにreparse pointは使用できません",
     )
     try:
-        root_information = path.lstat()
+        root_information = io_path.lstat()
     except OSError as exc:
         raise JobContractError(
             "existing_job_state_changed",
@@ -3454,7 +3458,7 @@ def _completed_job_entry_snapshot(
             "完了job rootが通常directoryではありません",
         )
 
-    pending: list[tuple[Path, os.stat_result]] = [(path, root_information)]
+    pending: list[tuple[Path, os.stat_result]] = [(io_path, root_information)]
     records: list[tuple[object, ...]] = []
     entries = 0
     files = 0
@@ -3511,7 +3515,7 @@ def _completed_job_entry_snapshot(
                     "existing_job_reparse_forbidden",
                     "完了job snapshotにreparse pointは使用できません",
                 )
-            relative = entry_path.relative_to(path).as_posix()
+            relative = entry_path.relative_to(io_path).as_posix()
             if stat.S_ISDIR(information.st_mode):
                 kind = "directory"
                 size = 0
@@ -3643,12 +3647,13 @@ def _completed_job_content_manifest(path: Path) -> dict[str, Any]:
 def _set_completed_job_snapshot_read_only(root: Path, *, read_only: bool) -> None:
     """再検証用private snapshotを読取専用化し、cleanup時に権限を戻す。"""
 
+    io_root = _extended_length_path(root)
     entries = sorted(
-        root.rglob("*"),
+        io_root.rglob("*"),
         key=lambda item: (len(item.parts), str(item).casefold(), str(item)),
         reverse=not read_only,
     )
-    entries.append(root)
+    entries.append(io_root)
     for path in entries:
         information = path.lstat()
         if _stat_has_reparse_attribute(information):

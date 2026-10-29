@@ -6,8 +6,10 @@ import base64
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 
+import pyzipper
 import pytest
 
 MODULE_PATH = Path(__file__).parents[1] / "common" / "evaluate_purelogs_cohort.py"
@@ -65,6 +67,35 @@ def test_strict_success_requires_detector_family_and_protobuf_config() -> None:
     serialized = json.dumps(result)
     assert "logs.example.test" not in serialized
     assert result["strict_evidence_layers"][0]["raw_endpoint_published"] is False
+
+
+def test_endpoint_and_configuration_identifiers_are_run_scoped_opaque_ids() -> None:
+    layer = _layer(_payload(b"logs.example.test:8443"))
+
+    first = MODULE.evaluate_layers(
+        [layer],
+        opaque_id_key=b"A" * MODULE.OPAQUE_ID_KEY_BYTES,
+    )
+    repeated = MODULE.evaluate_layers(
+        [layer],
+        opaque_id_key=b"A" * MODULE.OPAQUE_ID_KEY_BYTES,
+    )
+    other_run = MODULE.evaluate_layers(
+        [layer],
+        opaque_id_key=b"B" * MODULE.OPAQUE_ID_KEY_BYTES,
+    )
+
+    record = first["configuration_evidence_layers"][0]
+    repeated_record = repeated["configuration_evidence_layers"][0]
+    other_record = other_run["configuration_evidence_layers"][0]
+    assert "configured_endpoint_sha256" not in record
+    assert "configuration_identity_sha256" not in record
+    assert record["raw_endpoint_hash_published"] is False
+    assert record["configured_endpoint_opaque_id"] == repeated_record["configured_endpoint_opaque_id"]
+    assert record["configuration_opaque_id"] == repeated_record["configuration_opaque_id"]
+    assert record["configured_endpoint_opaque_id"] != other_record["configured_endpoint_opaque_id"]
+    assert record["configuration_opaque_id"] != other_record["configuration_opaque_id"]
+    assert "logs.example.test" not in json.dumps(record)
 
 
 def test_family_only_http_profile_is_not_strict_config_success() -> None:
@@ -159,6 +190,22 @@ def test_family_and_config_on_different_layers_do_not_form_strict_success() -> N
     assert "config_and_family_evidence_not_on_same_layer" in result["blockers"]
 
 
+def test_purelogs_config_from_different_sha_is_rejected() -> None:
+    layer = _layer(_payload(b"logs.example.test:8443"))
+
+    def extractor(data: bytes, name: str) -> dict:
+        result = MODULE.extract_purelogs(data, name)
+        result["sample_sha256"] = hashlib.sha256(b"different layer").hexdigest()
+        return result
+
+    result = MODULE.evaluate_layers([layer], extractor=extractor)
+
+    assert result["terminal_family_confirmed"] is False
+    assert result["validated_config_recovered"] is False
+    assert result["qualified_c2_recovered"] is False
+    assert result["strict_success"] is False
+
+
 def test_identical_layer_sha_reuses_detector_and_extractor_result() -> None:
     """共有layerはrootごとに高コストな静的解析を繰り返さない。"""
 
@@ -190,7 +237,9 @@ def test_identical_layer_sha_reuses_detector_and_extractor_result() -> None:
     assert first["strict_success"] is True
     assert second["strict_success"] is True
     assert calls == {"detector": 1, "extractor": 1}
-    assert list(cache) == [layer.sha256]
+    assert list(cache) == [
+        ("purelogs", layer.sha256, layer.name, layer.transform)
+    ]
 
 
 def test_baseline_zero_dimension_proves_strict_zero() -> None:
@@ -202,10 +251,43 @@ def test_baseline_zero_dimension_proves_strict_zero() -> None:
         },
     }
 
-    result = MODULE.baseline_metrics(cohort)
+    result = MODULE.baseline_metrics(cohort, root_case_count=1)
 
     assert result["strict_joint_success_case_count"] == 0
     assert result["strict_joint_derivation"] == ("zero_dimension_proves_empty_intersection")
+
+
+def test_baseline_count_cannot_exceed_frozen_root_denominator() -> None:
+    cohort = {
+        "family": {"confirmed_case_count": 2},
+        "config_c2_terminal": {
+            "validated_config_recovered_case_count": 0,
+            "qualified_network_endpoint_recovered_case_count": 0,
+        },
+    }
+
+    with pytest.raises(MODULE.CohortEvaluationError, match="baseline count"):
+        MODULE.baseline_metrics(cohort, root_case_count=1)
+
+
+def test_layer_error_invalidates_same_case_strict_success() -> None:
+    good = _layer(_payload(b"logs.example.test:8443"))
+    bad = MODULE.StaticLayer(
+        name="changed.bin",
+        data=b"changed",
+        sha256="0" * 64,
+        parent_sha256=good.sha256,
+        depth=1,
+        transform="fixture",
+    )
+
+    result = MODULE.evaluate_layers([good, bad])
+
+    assert result["strict_success"] is False
+    assert result["validated_config_recovered"] is False
+    assert result["qualified_c2_recovered"] is False
+    assert result["primary_failure_reason"] == "layer_evaluation_incomplete"
+    assert "layer_evaluation_incomplete" in result["blockers"]
 
 
 def test_static_reason_counts_exposes_only_fixed_format_reasons() -> None:
@@ -292,6 +374,93 @@ def test_evaluate_case_reports_managed_omlx_terminal_recovery(
     assert result["static_layer_sha256"] == sorted([root.sha256, terminal.sha256])
 
 
+def test_evaluate_case_accepts_authenticated_single_member_malwarebazaar_zip(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """取得時に暗号化を維持した単一member ZIPもinner SHAへ束縛して評価する。"""
+
+    data = b"authenticated cohort fixture"
+    digest = hashlib.sha256(data).hexdigest()
+    sample_path = tmp_path / f"{digest}.zip"
+    with pyzipper.AESZipFile(
+        sample_path,
+        "w",
+        compression=pyzipper.ZIP_DEFLATED,
+        encryption=pyzipper.WZ_AES,
+    ) as archive:
+        archive.setpassword(b"infected")
+        archive.setencryption(pyzipper.WZ_AES, nbits=256)
+        archive.writestr("fixture.bin", data)
+    root = _layer(data)
+
+    monkeypatch.setattr(
+        MODULE,
+        "recover_static_layers",
+        lambda *_args, **_kwargs: (
+            [root],
+            {"counts": {"limit_events": 0}, "steps": []},
+        ),
+    )
+
+    result = MODULE.evaluate_case(
+        sample_path,
+        digest,
+        policy=MODULE.StaticLayerPolicy(max_layers=2, max_depth=1),
+    )
+
+    assert result["root_sha256"] == digest
+    assert result["root_size"] == len(data)
+    assert result["input_kind"] == "authenticated_single_member_zip"
+    assert result["sample_executed"] is False
+    assert result["network_contacted"] is False
+
+
+@pytest.mark.parametrize(
+    ("limit_events", "step_status", "expected_reason"),
+    (
+        (1, "ok", "deadline_or_budget_exceeded"),
+        (0, "failed", "static_pipeline_error"),
+    ),
+)
+def test_evaluate_case_pipeline_incompleteness_invalidates_strict_success(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    limit_events: int,
+    step_status: str,
+    expected_reason: str,
+) -> None:
+    data = _payload(b"logs.example.test:8443")
+    digest = hashlib.sha256(data).hexdigest()
+    sample_path = tmp_path / "fixture.bin"
+    sample_path.write_bytes(data)
+    root = _layer(data)
+
+    monkeypatch.setattr(
+        MODULE,
+        "recover_static_layers",
+        lambda *_args, **_kwargs: (
+            [root],
+            {
+                "counts": {"limit_events": limit_events},
+                "steps": [{"status": step_status}],
+            },
+        ),
+    )
+
+    result = MODULE.evaluate_case(
+        sample_path,
+        digest,
+        policy=MODULE.StaticLayerPolicy(max_layers=2, max_depth=1),
+    )
+
+    assert result["strict_success"] is False
+    assert result["validated_config_recovered"] is False
+    assert result["qualified_c2_recovered"] is False
+    assert result["strict_evidence_layers"] == []
+    assert result["primary_failure_reason"] == expected_reason
+
+
 def test_end_to_end_cohort_evaluation_binds_current_implementation(
     tmp_path: Path,
 ) -> None:
@@ -339,7 +508,92 @@ def test_end_to_end_cohort_evaluation_binds_current_implementation(
     assert "analysis-framework/common/evaluate_purelogs_cohort.py" in (result["implementation_sha256"])
     assert "unpackers/managed_tripledes_gzip.py" in result["implementation_sha256"]
     assert "analysis-framework/malware/purelogs/c2_detector.py" in (result["implementation_sha256"])
+    assert result["profile_import_source_sha256"]
+    assert set(result["runtime_callable_sha256"]) == {"assess", "detector", "extractor"}
+    assert result["strict_contract"]["detector_extractor_independence_claimed"] is False
+    assert result["strict_contract"]["detector_extractor_independence_required"] is False
+    assert "live C2" in result["metric_definitions"]["qualified_c2_recovered"]
+    assert result["safety"]["raw_endpoint_hash_published"] is False
+    assert result["safety"]["correlation_key_published"] is False
     assert "logs.example.test" not in json.dumps(result)
+
+
+def test_sample_path_rejects_reparse_parent(tmp_path: Path) -> None:
+    digest = "1" * 64
+    actual_root = tmp_path / "actual"
+    sample_dir = actual_root / digest
+    sample_dir.mkdir(parents=True)
+    (sample_dir / "fixture.bin").write_bytes(b"fixture")
+    linked_root = tmp_path / "linked"
+    try:
+        linked_root.symlink_to(actual_root, target_is_directory=True)
+    except OSError:
+        pytest.skip("この環境ではdirectory symlinkを作成できません")
+
+    with pytest.raises(MODULE.CohortEvaluationError, match="sample directory"):
+        MODULE._sample_path(linked_root, digest)
+
+
+def test_sevenzip_is_copied_to_run_scoped_immutable_snapshot(tmp_path: Path) -> None:
+    tool = tmp_path / ("7zz.exe" if os.name == "nt" else "7zz")
+    original = b"synthetic reviewed tool bytes"
+    tool.write_bytes(original)
+    if os.name != "nt":
+        tool.chmod(0o700)
+
+    with MODULE._immutable_sevenzip_snapshot(tool) as (snapshot, identity):
+        assert snapshot is not None
+        assert snapshot != tool
+        assert snapshot.read_bytes() == original
+        tool.write_bytes(b"source changed after snapshot")
+        assert snapshot.read_bytes() == original
+        assert identity["immutable_snapshot_used"] is True
+        assert identity["sevenzip_sha256"] == hashlib.sha256(original).hexdigest()
+        assert identity["sevenzip_component_sha256"] == {
+            tool.name: hashlib.sha256(original).hexdigest()
+        }
+
+
+def test_sevenzip_snapshot_mutation_fails_closed(tmp_path: Path) -> None:
+    tool = tmp_path / ("7zz.exe" if os.name == "nt" else "7zz")
+    tool.write_bytes(b"synthetic reviewed tool bytes")
+    if os.name != "nt":
+        tool.chmod(0o700)
+
+    with (
+        pytest.raises(MODULE.CohortEvaluationError, match="snapshotが変更"),
+        MODULE._immutable_sevenzip_snapshot(tool) as (snapshot, _identity),
+    ):
+        assert snapshot is not None
+        snapshot.chmod(0o600)
+        snapshot.write_bytes(b"mutated")
+
+
+def test_profile_import_source_change_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+    original_read = MODULE._read_regular_file
+    changed_relative = MODULE.PURELOGS_PROFILE.import_source_sha256[0][0]
+    changed_path = MODULE.REPOSITORY_ROOT / changed_relative
+
+    def changed_read(path: Path, *, maximum_size: int) -> bytes:
+        if path == changed_path:
+            return b"changed after import"
+        return original_read(path, maximum_size=maximum_size)
+
+    monkeypatch.setattr(MODULE, "_read_regular_file", changed_read)
+
+    with pytest.raises(MODULE.CohortEvaluationError, match="import後"):
+        MODULE._verify_profile_import_sources(MODULE.PURELOGS_PROFILE)
+
+
+def test_cohort_name_must_match_selected_profile(tmp_path: Path) -> None:
+    with pytest.raises(MODULE.CohortEvaluationError, match="固定cohort"):
+        MODULE.evaluate_cohort(
+            cohort_manifest=tmp_path / "unused.json",
+            samples_root=tmp_path,
+            cohort_name="PureRAT",
+            policy=MODULE.StaticLayerPolicy(max_layers=2, max_depth=1),
+            profile=MODULE.PURELOGS_PROFILE,
+        )
 
 
 def test_source_identity_covers_transitive_purelogs_and_omlx_dependencies() -> None:

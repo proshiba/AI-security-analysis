@@ -65,6 +65,24 @@ def _v4_default_elided_field_7_message() -> bytes:
     )
 
 
+def _v4_default_elided_fields_7_9_message() -> bytes:
+    """今回のholdoutで確認したfield 7・9省略inventoryを返す。"""
+
+    return b"".join(
+        (
+            _bytes_field(1, b"dual-elided.example.test"),
+            _varint_field(2, 56001),
+            _bytes_field(3, b"fixture-pfx"),
+            _bytes_field(4, b"Default"),
+            _varint_field(5, 1),
+            _varint_field(6, 0),
+            # field 7・9は空文字のprotobuf既定値としてwire上から省略される。
+            _bytes_field(8, b"APPDATA"),
+            _varint_field(10, 1),
+        )
+    )
+
+
 def test_v4_field_7_default_elision_gets_a_distinct_schema_profile(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -99,6 +117,47 @@ def test_v4_field_7_default_elision_gets_a_distinct_schema_profile(
     ]
 
 
+def test_v4_fields_7_9_default_elision_gets_an_exact_schema_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """field 7・9同時省略をfield 10必須の独立profileとして扱う。"""
+
+    encoded = _gzip_base64(_v4_default_elided_fields_7_9_message())
+    monkeypatch.setattr(
+        extractor,
+        "iter_dotnet_user_strings",
+        lambda _data: iter((encoded, "4.4.1")),
+    )
+    monkeypatch.setattr(extractor, "has_clr_metadata", lambda _data: False)
+    monkeypatch.setattr(
+        extractor,
+        "certificate_metadata",
+        lambda _value: {"pfx_sha256": "a" * 64},
+    )
+
+    config = extractor.extract_managed_config(b"MZ managed fixture")
+
+    assert config["protobuf_fields_1_to_9_valid"] is False
+    assert config["protobuf_terminal_schema_valid"] is True
+    assert config["protobuf_terminal_schema_profile"] == (
+        extractor.TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELDS_7_9
+    )
+    assert config["protobuf_field_numbers"] == [1, 2, 3, 4, 5, 6, 8, 10]
+    assert config["protobuf_default_elided_fields"] == [7, 9]
+    assert config["scheduled_task"] == ""
+    assert config["mutex"] == ""
+
+
+@pytest.mark.parametrize("missing_field", [4, 5, 6, 8, 10])
+def test_v4_fields_7_9_profile_keeps_other_fields_required(
+    missing_field: int,
+) -> None:
+    fields = extractor.parse_protobuf(_v4_default_elided_fields_7_9_message())
+    fields.pop(missing_field)
+
+    assert extractor._terminal_schema_profile(fields) is None
+
+
 PRIVATE_FIELD_7_ELIDED_SAMPLE = "PURERAT_FIELD7_ELIDED_TEST_IMAGE"
 
 
@@ -127,7 +186,7 @@ def test_private_real_field_7_elided_terminal_remains_static_positive() -> None:
     assert len(config["endpoints"]) == 3
 
 
-@pytest.mark.parametrize("missing_field", [4, 5, 6, 8, 9])
+@pytest.mark.parametrize("missing_field", [4, 5, 6, 8])
 def test_v4_field_7_profile_does_not_make_other_required_fields_optional(
     missing_field: int,
 ) -> None:

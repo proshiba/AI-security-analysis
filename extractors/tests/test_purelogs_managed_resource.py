@@ -10,8 +10,32 @@ from types import SimpleNamespace
 
 import pytest
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from dnfile import resource as dnresource
 
 from extractors.purelogs import managed_resource, yqty_resource
+
+
+def _resource_set_entry(
+    *,
+    type_name: str,
+    value: object,
+    data: bytes | None = None,
+) -> dnresource.ResourceEntry:
+    """dnfile exact classでResourceSet entryを合成する。"""
+
+    entry = dnresource.ResourceEntry()
+    entry.type_name = type_name
+    entry.value = value
+    entry.data = data
+    return entry
+
+
+def _resource_set(*entries: dnresource.ResourceEntry) -> dnresource.ResourceSet:
+    """parser済みResourceSetのexact classを合成する。"""
+
+    container = dnresource.ResourceSet(b"", None)
+    container.entries = list(entries)
+    return container
 
 
 def _seven_bit(value: int) -> bytes:
@@ -146,6 +170,70 @@ def _bind_managed_image(
     monkeypatch.setattr(managed_resource, "has_clr_metadata", lambda _data: True)
     monkeypatch.setattr(managed_resource.dnfile, "dnPE", lambda **_kwargs: image)
     return image
+
+
+def test_resource_set_byte_array_is_enumerated_without_length_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`.resources` ByteArrayはparser済みvalueだけを暗号blobへ渡す。"""
+
+    resource, _key = _resource(("/plugin", "/userinfo", "/filesearch/req", "/finish"))
+    entry = _resource_set_entry(
+        type_name="System.ByteArray",
+        value=resource,
+        data=len(resource).to_bytes(4, "little") + resource,
+    )
+    image = SimpleNamespace(
+        net=SimpleNamespace(resources=(SimpleNamespace(data=_resource_set(entry)),))
+    )
+    monkeypatch.setattr(managed_resource, "has_clr_metadata", lambda _data: True)
+    monkeypatch.setattr(managed_resource.dnfile, "dnPE", lambda **_kwargs: image)
+    monkeypatch.setattr(
+        yqty_resource,
+        "_scan_purelogs_yqty_candidates",
+        lambda _image, _data, _resources: yqty_resource._YqtyCandidateScan(
+            None,
+            (),
+            0,
+        ),
+    )
+
+    recovered = managed_resource.recover_purelogs_managed_strings(b"MZ fixture")
+
+    assert recovered is not None
+    assert recovered.resource_sha256 == hashlib.sha256(resource).hexdigest()
+
+
+def test_resource_set_unknown_type_is_incomplete() -> None:
+    """user type entryを候補不在として無視しない。"""
+
+    entry = _resource_set_entry(
+        type_name="Example.CustomType",
+        value=None,
+        data=None,
+    )
+    resources = (SimpleNamespace(data=_resource_set(entry)),)
+
+    with pytest.raises(
+        managed_resource.PureLogsResourceScanIncomplete,
+        match="未対応",
+    ):
+        managed_resource._resource_blobs(resources)
+
+
+def test_resource_set_entry_limit_is_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ResourceSet内のentry件数に独立した上限を適用する。"""
+
+    entries = tuple(
+        _resource_set_entry(type_name="System.String", value="x", data=b"x")
+        for _ in range(2)
+    )
+    monkeypatch.setattr(managed_resource, "MAX_RESOURCE_ENTRY_COUNT", 1)
+
+    with pytest.raises(managed_resource.PureLogsResourceLimitError):
+        managed_resource._resource_blobs((SimpleNamespace(data=_resource_set(*entries)),))
 
 
 def test_resource_absence_keeps_raw_only_path_available(

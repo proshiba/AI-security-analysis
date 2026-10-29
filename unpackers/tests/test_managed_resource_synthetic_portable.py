@@ -10,12 +10,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
-from pathlib import Path
 import struct
 
 import pytest
 
-from unpackers.tests.test_managed_resource_consumers_portable import ROOT as RESOURCE_ROOT, RESOURCE_NAMESPACE
+from unpackers.tests.test_managed_resource_consumers_portable import RESOURCE_NAMESPACE
 import importlib
 managed_resources = importlib.import_module(RESOURCE_NAMESPACE + ".managed_resources")
 
@@ -66,9 +65,11 @@ def _resource_rva(offset: int) -> int:
 
 
 def resource_build_synthetic_resource_pe(*, scope: str | None = None, linked_rid: int = 1,
-                                declared_body_size: int | None = None) -> ResourcePortableSyntheticPE:
+                                declared_body_size: int | None = None,
+                                table_stream_name: bytes = b"#~") -> ResourcePortableSyntheticPE:
     """人工PE32と最小metadataを組立てる。実binaryのコピーやpatchではない。"""
     assert scope in (None, "File", "AssemblyRef")
+    assert table_stream_name in (b"#~", b"#-")
     strings = b"\x00" + PRIVATE_NAME.encode("ascii") + b"\x00"
     link_name_index = len(strings)
     strings += LINK_NAME.encode("ascii") + b"\x00"
@@ -91,7 +92,7 @@ def resource_build_synthetic_resource_pe(*, scope: str | None = None, linked_rid
     version = _resource_padding(b"v4.0.30319\x00", 4)
     root = struct.pack("<IHHII", 0x424A5342, 1, 1, 0, len(version))
     root += version + struct.pack("<HH", 0, 2)
-    table_name = _resource_padding(b"#~\x00", 4)
+    table_name = _resource_padding(table_stream_name + b"\x00", 4)
     strings_name = _resource_padding(b"#Strings\x00", 4)
     stream_headers_size = 16 + len(table_name) + len(strings_name)
     table_offset = len(root) + stream_headers_size

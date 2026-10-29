@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402
 """PureLogsコホートのfamily・config・C2静的復元率を厳格に測定する。"""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
+import hmac
 import json
+import marshal
 import math
 import os
 import re
 import stat
 import sys
+import tempfile
 import time
 from collections import Counter
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, MutableMapping, Sequence
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -43,16 +47,38 @@ MAX_CASE_DEADLINE_SECONDS = 2 * 60 * 60.0
 MAX_COHORT_DEADLINE_SECONDS = 24 * 60 * 60.0
 MAX_REASON_SCAN_NODES = 100_000
 MAX_REASON_SCAN_DEPTH = 32
+MAX_EXTERNAL_TOOL_BYTES = 128 * 1024 * 1024
+OPAQUE_ID_KEY_BYTES = 32
 MANAGED_OMLX_TERMINAL_TRANSFORM = "managed-omlx-tripledes-gzip-pe"
-ConfigIdentity = tuple[tuple[str, ...], tuple[str, ...]]
-LayerCacheValue = tuple[bool, bool, ConfigIdentity | None, str | None]
+PURE_ROUTE_STAGE_TRANSFORMS = frozenset(
+    {
+        "managed-eaz-resource-pe",
+        "managed-omlx-direct-tripledes-gzip-pe",
+        "managed-omlx-tripledes-gzip-pe",
+        "rotated-xor-donut-shellcode",
+        "rzk-lece-encrypted-container",
+    }
+)
 
 for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT):
     value = str(trusted)
     if value not in sys.path:
         sys.path.insert(0, value)
 
-from extractors.purelogs.extractor import extract as extract_purelogs
+from immutable_snapshot import (
+    SnapshotIdentity,
+    copy_bounded_snapshot,
+    read_bounded_snapshot,
+)
+from malware_io import ArchiveValidationError, read_single_aes_zip_member
+from malwarebazaar_batch import _signature_selection_commitment
+from pure_cohort_profiles import (
+    PURELOGS_PROFILE,
+    PURERAT_PROFILE,
+    ConfigIdentity,
+    PureCohortProfile,
+)
+from safe_private_output import reject_existing_reparse_components
 from static_layer_pipeline import (
     InputUnit,
     StaticLayer,
@@ -60,25 +86,27 @@ from static_layer_pipeline import (
     recover_static_layers,
 )
 
+__all__ = (
+    "PURELOGS_PROFILE",
+    "PURERAT_PROFILE",
+    "evaluate_case",
+    "evaluate_cohort",
+    "evaluate_layers",
+    "main",
+)
 
-def _load_detector() -> Callable[[bytes, Path | None], dict[str, object]]:
-    """通常package外にあるPureLogs detectorを固定pathから読み込む。"""
-
-    spec = importlib.util.spec_from_file_location(
-        "purelogs_strict_cohort_detector",
-        DETECTOR_PATH,
-    )
-    if spec is None or spec.loader is None:
-        raise RuntimeError("PureLogs detectorを読み込めません")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    detector = getattr(module, "detect", None)
-    if not callable(detector):
-        raise TypeError("PureLogs detectorにdetect関数がありません")
-    return detector
-
-
-PURELOGS_DETECT = _load_detector()
+PURELOGS_DETECT = PURELOGS_PROFILE.detector
+extract_purelogs = PURELOGS_PROFILE.extractor
+LayerCacheKey = tuple[str, str, str, str]
+LayerCacheValue = tuple[
+    bool,
+    bool,
+    bool,
+    ConfigIdentity | None,
+    int,
+    tuple[str, ...],
+    str | None,
+]
 
 
 class CohortEvaluationError(ValueError):
@@ -167,23 +195,42 @@ def _read_regular_file(path: Path, *, maximum_size: int) -> bytes:
     """通常fileだけを上限付きで読み、読込前後の同一性を確認する。"""
 
     try:
-        before = path.lstat()
-    except OSError as exc:
+        return read_bounded_snapshot(path, maximum_size).data
+    except (OSError, ValueError) as exc:
         raise CohortEvaluationError(f"fileを参照できません: {path.name}") from exc
-    if not stat.S_ISREG(before.st_mode) or path.is_symlink():
-        raise CohortEvaluationError(f"通常fileではありません: {path.name}")
-    if before.st_size < 0 or before.st_size > maximum_size:
-        raise CohortEvaluationError(f"file size上限を超えています: {path.name}")
-    try:
-        data = path.read_bytes()
-        after = path.stat()
-    except OSError as exc:
-        raise CohortEvaluationError(f"fileを安定して読めません: {path.name}") from exc
-    identity_before = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
-    identity_after = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
-    if identity_before != identity_after or len(data) != before.st_size:
-        raise CohortEvaluationError(f"読込中にfileが変更されました: {path.name}")
-    return data
+
+
+def _opaque_id(key: bytes, domain: str, value: str) -> str:
+    """公開値から辞書逆引きできないrun-scoped相関IDを返す。"""
+
+    if len(key) != OPAQUE_ID_KEY_BYTES:
+        raise ValueError("opaque ID key長が不正です")
+    payload = domain.encode("ascii") + b"\x00" + value.encode("utf-8")
+    return hmac.new(key, payload, hashlib.sha256).hexdigest()
+
+
+def _callable_code_sha256(value: Callable[..., object]) -> str:
+    """実際に保持しているPython callableのcode objectをhashへ束縛する。"""
+
+    code = getattr(value, "__code__", None)
+    if code is None:
+        raise CohortEvaluationError("profile callableをcode objectへ束縛できません")
+    return hashlib.sha256(marshal.dumps(code)).hexdigest()
+
+
+def _verify_profile_import_sources(profile: PureCohortProfile) -> dict[str, str]:
+    """import時に固定した入口sourceと現在のrepo sourceが同一か検証する。"""
+
+    verified: dict[str, str] = {}
+    for relative_path, expected_sha256 in profile.import_source_sha256:
+        path = REPOSITORY_ROOT / relative_path
+        actual_sha256 = hashlib.sha256(
+            _read_regular_file(path, maximum_size=16 * 1024 * 1024)
+        ).hexdigest()
+        if not hmac.compare_digest(actual_sha256, expected_sha256):
+            raise CohortEvaluationError("profile sourceがimport後に変更されました")
+        verified[relative_path] = expected_sha256
+    return dict(sorted(verified.items()))
 
 
 def _load_json_object(path: Path) -> tuple[bytes, dict[str, Any]]:
@@ -225,6 +272,40 @@ def load_cohort(path: Path, cohort_name: str) -> tuple[dict[str, Any], list[str]
 
     raw, manifest = _load_json_object(path)
     cohorts = manifest.get("cohorts")
+    if cohorts is None:
+        if (
+            manifest.get("selection_mode") != "signature_newest"
+            or manifest.get("signature") != cohort_name
+            or manifest.get("samples_executed") is not False
+            or manifest.get("archives_remain_encrypted") is not True
+            or manifest.get("selection_only") is not False
+            or manifest.get("complete") is not True
+        ):
+            raise CohortEvaluationError("取得manifestの固定signature cohort契約を確認できません")
+        hashes = _validated_hashes(
+            manifest.get("selected_hashes"),
+            expected_count=manifest.get("requested"),
+        )
+        if manifest.get("downloaded") != len(hashes):
+            raise CohortEvaluationError("取得manifestのdownload件数が固定cohortと一致しません")
+        commitment = manifest.get("selection_commitment_sha256")
+        recomputed = _signature_selection_commitment(manifest)
+        if (
+            not isinstance(commitment, str)
+            or SHA256_RE.fullmatch(commitment) is None
+            or not hmac.compare_digest(commitment, recomputed)
+        ):
+            raise CohortEvaluationError("取得manifestのselection commitmentが一致しません")
+        return (
+            {
+                "root_case_count": len(hashes),
+                "root_sha256": hashes,
+                "provider_label_role": "route_cohort_only_not_family_confirmation",
+                "selection_commitment_sha256": commitment,
+            },
+            hashes,
+            hashlib.sha256(raw).hexdigest(),
+        )
     if not isinstance(cohorts, dict):
         raise CohortEvaluationError("cohorts objectがありません")
     cohort = cohorts.get(cohort_name)
@@ -240,17 +321,32 @@ def load_cohort(path: Path, cohort_name: str) -> tuple[dict[str, Any], list[str]
     return cohort, hashes, hashlib.sha256(raw).hexdigest()
 
 
-def baseline_metrics(cohort: Mapping[str, Any]) -> dict[str, Any]:
+def baseline_metrics(
+    cohort: Mapping[str, Any],
+    *,
+    root_case_count: int,
+) -> dict[str, Any]:
     """旧集計から厳格評価に利用できるbaselineだけを取り出す。"""
 
     family = cohort.get("family")
     config = cohort.get("config_c2_terminal")
     if not isinstance(family, Mapping) or not isinstance(config, Mapping):
-        raise CohortEvaluationError("baselineのfamily/config集計がありません")
+        return {
+            "available": False,
+            "family_confirmed_case_count": None,
+            "validated_config_recovered_case_count": None,
+            "qualified_c2_recovered_case_count": None,
+            "strict_joint_success_case_count": None,
+            "strict_joint_derivation": "baseline_not_supplied_for_frozen_cohort",
+        }
 
     def count(mapping: Mapping[str, Any], key: str) -> int:
         value = mapping.get(key)
-        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or not 0 <= value <= root_case_count
+        ):
             raise CohortEvaluationError(f"baseline countが不正です: {key}")
         return value
 
@@ -261,6 +357,7 @@ def baseline_metrics(cohort: Mapping[str, Any]) -> dict[str, Any]:
     # 共通部分も必ず0であり、このコホートの旧baselineを厳密に確定できる。
     strict_joint = 0 if 0 in {family_count, config_count, c2_count} else None
     return {
+        "available": True,
         "family_confirmed_case_count": family_count,
         "validated_config_recovered_case_count": config_count,
         "qualified_c2_recovered_case_count": c2_count,
@@ -271,93 +368,30 @@ def baseline_metrics(cohort: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _validated_config_identity(result: Mapping[str, Any]) -> ConfigIdentity | None:
-    """family相関済みprotobuf設定と標準C2 recordの完全一致を検証する。"""
-
-    config = result.get("config")
-    if not isinstance(config, Mapping):
-        return None
-    required_true = (
-        result.get("supports_family_attribution"),
-        result.get("terminal_family_confirmed"),
-        config.get("static_config_recovered"),
-        config.get("decoded_config_recovered"),
-        config.get("family_attribution_confirmed"),
-        config.get("supports_family_attribution"),
-        config.get("terminal_family_confirmed"),
-    )
-    if any(value is not True for value in required_true):
-        return None
-    if (
-        config.get("variant") != "purelogs_protobuf_config"
-        or config.get("confidence") != "confirmed"
-        or config.get("status") != "purelogs_protobuf_config_recovered"
-    ):
-        return None
-    endpoints = config.get("configured_endpoints")
-    if not isinstance(endpoints, list) or not endpoints:
-        return None
-    if any(not isinstance(item, str) or not item or len(item) > 512 for item in endpoints) or endpoints != sorted(
-        set(endpoints)
-    ):
-        return None
-    protobuf = config.get("protobuf")
-    if not isinstance(protobuf, Mapping):
-        return None
-    key_hashes = protobuf.get("aes_key_sha256")
-    if (
-        not isinstance(key_hashes, list)
-        or len(key_hashes) != 1
-        or any(not isinstance(item, str) or SHA256_RE.fullmatch(item) is None for item in key_hashes)
-        or key_hashes != sorted(set(key_hashes))
-        or protobuf.get("aes_key_length_bytes") != 32
-        or protobuf.get("aes_key_material_published") is not False
-    ):
-        return None
-    c2 = result.get("c2")
-    if not isinstance(c2, list) or len(c2) != len(endpoints):
-        return None
-    reconstructed: list[str] = []
-    for item in c2:
-        if not isinstance(item, Mapping):
-            return None
-        host = item.get("host")
-        port = item.get("port")
-        evidence = item.get("evidence")
-        if (
-            not isinstance(host, str)
-            or not host
-            or len(host) > 253
-            or isinstance(port, bool)
-            or not isinstance(port, int)
-            or not 1 <= port <= 65535
-            or item.get("role") != "c2"
-            or item.get("confidence") != "confirmed_static_configuration"
-            or not isinstance(evidence, Mapping)
-            or evidence.get("kind") != "base64_protobuf_config"
-            or evidence.get("aes_key_length_validated") is not True
-            or evidence.get("family_markers_correlated") is not True
-        ):
-            return None
-        reconstructed.append(f"{host}:{port}")
-    if sorted(reconstructed) != endpoints:
-        return None
-    return tuple(endpoints), tuple(key_hashes)
-
-
 def evaluate_layers(
     layers: Sequence[StaticLayer],
     *,
-    detector: Callable[[bytes, Path | None], Mapping[str, Any]] = PURELOGS_DETECT,
-    extractor: Callable[[bytes, str], Mapping[str, Any]] = extract_purelogs,
-    layer_cache: MutableMapping[str, LayerCacheValue] | None = None,
+    profile: PureCohortProfile = PURELOGS_PROFILE,
+    detector: Callable[[bytes, Path | None], Mapping[str, Any]] | None = None,
+    extractor: Callable[[bytes, str], Mapping[str, Any]] | None = None,
+    layer_cache: MutableMapping[LayerCacheKey, LayerCacheValue] | None = None,
+    opaque_id_key: bytes | None = None,
     deadline: float | None = None,
     clock: Callable[[], float] = time.monotonic,
     deadline_scope: str = "case",
 ) -> dict[str, Any]:
     """全静的layerを評価し、同一layerで成立した厳格証拠だけを数える。"""
 
+    detector = detector or profile.detector
+    extractor = extractor or profile.extractor
+    opaque_id_key = opaque_id_key or os.urandom(OPAQUE_ID_KEY_BYTES)
+    if len(opaque_id_key) != OPAQUE_ID_KEY_BYTES:
+        raise ValueError("opaque ID key長が不正です")
+    root_family_layers: list[dict[str, Any]] = []
+    loader_layers: list[dict[str, Any]] = []
+    terminal_candidate_layers: list[dict[str, Any]] = []
     family_layers: list[dict[str, Any]] = []
+    route_layers: list[dict[str, Any]] = []
     config_layers: list[dict[str, Any]] = []
     strict_layers: list[dict[str, Any]] = []
     errors: list[dict[str, str]] = []
@@ -375,37 +409,49 @@ def evaluate_layers(
             )
             continue
 
-        cached = layer_cache.get(layer.sha256) if layer_cache is not None else None
+        cache_key = (
+            profile.profile_id,
+            layer.sha256,
+            layer.name,
+            layer.transform,
+        )
+        cached = layer_cache.get(cache_key) if layer_cache is not None else None
         if cached is None:
             try:
                 detection = detector(layer.data, Path(layer.name))
                 _check_deadline(deadline, clock=clock, scope=deadline_scope)
                 extraction = extractor(layer.data, layer.name)
                 _check_deadline(deadline, clock=clock, scope=deadline_scope)
-                detector_family = bool(
-                    detection.get("matched") is True
-                    and detection.get("confidence") == "high_static"
-                    and detection.get("sha256") == layer.sha256
+                assessment = profile.assess(
+                    layer.sha256,
+                    detection,
+                    extraction,
                 )
-                config = extraction.get("config")
-                extractor_family = bool(
-                    extraction.get("sample_sha256") == layer.sha256
-                    and extraction.get("family") == "purelogs"
-                    and extraction.get("supports_family_attribution") is True
-                    and extraction.get("terminal_family_confirmed") is True
-                    and isinstance(config, Mapping)
-                    and config.get("family_attribution_confirmed") is True
+                cached = (
+                    assessment.loader_family_confirmed,
+                    assessment.terminal_candidate_verified,
+                    assessment.terminal_family_confirmed,
+                    assessment.config_identity,
+                    assessment.endpoint_count,
+                    assessment.endpoint_sha256,
+                    None,
                 )
-                identity = _validated_config_identity(extraction)
-                cached = (detector_family, extractor_family, identity, None)
             except EvaluationDeadlineExceeded:
                 raise
             except Exception as exc:  # noqa: BLE001 - detector/extractor境界をcase内に閉じ込める
-                cached = (False, False, None, type(exc).__name__)
+                cached = (False, False, False, None, 0, (), type(exc).__name__)
             if layer_cache is not None:
-                layer_cache[layer.sha256] = cached
+                layer_cache[cache_key] = cached
 
-        detector_family, extractor_family, identity, error_type = cached
+        (
+            loader_family,
+            terminal_candidate,
+            terminal_family,
+            identity,
+            endpoint_count,
+            endpoint_hashes,
+            error_type,
+        ) = cached
         if error_type is not None:
             errors.append(
                 {
@@ -414,34 +460,54 @@ def evaluate_layers(
                 }
             )
             continue
-        if detector_family and extractor_family:
-            family_layers.append(
-                {
-                    "layer_sha256": layer.sha256,
-                    "depth": layer.depth,
-                    "transform": layer.transform,
-                }
-            )
+        layer_record = {
+            "layer_sha256": layer.sha256,
+            "depth": layer.depth,
+            "transform": layer.transform,
+        }
+        if layer.transform in PURE_ROUTE_STAGE_TRANSFORMS:
+            route_layers.append(layer_record)
+        if loader_family:
+            loader_layers.append(layer_record)
+        if terminal_candidate:
+            terminal_candidate_layers.append(layer_record)
+        if terminal_family:
+            family_layers.append(layer_record)
+        if layer.depth == 0 and (loader_family or terminal_family):
+            root_family_layers.append(layer_record)
         if identity is not None:
-            endpoints, _key_hashes = identity
-            endpoint_hashes = sorted(hashlib.sha256(item.encode("utf-8")).hexdigest() for item in endpoints)
+            serialized_identity = json.dumps(
+                identity,
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
             record = {
                 "layer_sha256": layer.sha256,
                 "depth": layer.depth,
                 "transform": layer.transform,
-                "configured_endpoint_count": len(endpoints),
-                "configured_endpoint_sha256": endpoint_hashes,
-                "unique_aes_key_fingerprint_verified": True,
+                "configured_endpoint_count": endpoint_count,
+                "configured_endpoint_opaque_id": [
+                    _opaque_id(opaque_id_key, "configured-endpoint", item)
+                    for item in endpoint_hashes
+                ],
+                "configuration_opaque_id": _opaque_id(
+                    opaque_id_key,
+                    "configuration-identity",
+                    serialized_identity,
+                ),
+                "opaque_id_scope": "single_evaluation_run",
                 "raw_endpoint_published": False,
+                "raw_endpoint_hash_published": False,
                 "raw_key_published": False,
             }
             config_layers.append(record)
             config_identities.add(identity)
-            if detector_family and extractor_family:
+            if terminal_family:
                 strict_layers.append(record)
     _check_deadline(deadline, clock=clock, scope=deadline_scope)
     conflict = len(config_identities) > 1
-    strict_success = bool(strict_layers) and not conflict
+    evaluation_complete = not errors
+    strict_success = bool(strict_layers) and not conflict and evaluation_complete
     blockers: list[str] = []
     if not family_layers:
         blockers.append("corroborated_terminal_family_evidence_not_recovered")
@@ -451,15 +517,52 @@ def evaluate_layers(
         blockers.append("config_and_family_evidence_not_on_same_layer")
     if conflict:
         blockers.append("conflicting_configuration_candidates_across_layers")
+    if errors:
+        blockers.append("layer_evaluation_incomplete")
+    route_only = bool(route_layers) and not terminal_candidate_layers
+    if errors:
+        primary_failure = "layer_evaluation_incomplete"
+    elif loader_layers and not terminal_candidate_layers:
+        primary_failure = "loader_only_terminal_not_recovered"
+    elif route_only:
+        primary_failure = "route_stage_only"
+    elif terminal_candidate_layers and not family_layers:
+        primary_failure = "terminal_reached_family_unconfirmed"
+    elif family_layers and not config_layers:
+        primary_failure = "terminal_family_config_not_recovered"
+    elif conflict:
+        primary_failure = "conflicting_configuration_candidates"
+    elif config_layers and not strict_layers:
+        primary_failure = "config_family_different_layer"
+    elif config_layers and not strict_success:
+        primary_failure = "qualified_c2_not_recovered"
+    elif strict_success:
+        primary_failure = "strict_success"
+    else:
+        primary_failure = "no_internal_family_evidence"
     return {
+        "root_family_confirmed": bool(root_family_layers),
+        "loader_family_confirmed": bool(loader_layers),
+        "route_stage_recovered": bool(route_layers),
+        "terminal_payload_reached": bool(terminal_candidate_layers),
+        "terminal_family_confirmed": bool(family_layers),
         "family_confirmed": bool(family_layers),
-        "validated_config_recovered": bool(config_layers) and not conflict,
-        "qualified_c2_recovered": bool(config_layers) and not conflict,
+        "validated_config_recovered": (
+            bool(config_layers) and not conflict and evaluation_complete
+        ),
+        "qualified_c2_recovered": (
+            bool(config_layers) and not conflict and evaluation_complete
+        ),
         "strict_success": strict_success,
+        "root_family_evidence_layers": root_family_layers,
+        "loader_family_evidence_layers": loader_layers,
+        "route_stage_layers": route_layers,
+        "terminal_candidate_layers": terminal_candidate_layers,
         "family_evidence_layers": family_layers,
         "configuration_evidence_layers": config_layers,
         "strict_evidence_layers": strict_layers if not conflict else [],
         "configuration_conflict": conflict,
+        "primary_failure_reason": primary_failure,
         "blockers": blockers,
         "evaluation_error_count": len(errors),
         "evaluation_errors": errors,
@@ -506,8 +609,24 @@ def static_reason_counts(
 def _sample_path(samples_root: Path, digest: str) -> Path:
     sample_dir = samples_root / digest
     try:
-        entries = [item for item in sample_dir.iterdir() if item.is_file()]
-    except OSError as exc:
+        reject_existing_reparse_components(samples_root)
+        reject_existing_reparse_components(sample_dir)
+        root_metadata = samples_root.lstat()
+        directory_metadata = sample_dir.lstat()
+        if (
+            not stat.S_ISDIR(root_metadata.st_mode)
+            or not stat.S_ISDIR(directory_metadata.st_mode)
+            or samples_root.is_symlink()
+            or sample_dir.is_symlink()
+        ):
+            raise ValueError("sample root／directoryが通常directoryではありません")
+        entries = []
+        for item in sample_dir.iterdir():
+            reject_existing_reparse_components(item)
+            metadata = item.lstat()
+            if stat.S_ISREG(metadata.st_mode) and not item.is_symlink():
+                entries.append(item)
+    except (OSError, ValueError) as exc:
         raise CohortEvaluationError(f"sample directoryを読めません: {digest}") from exc
     if len(entries) != 1:
         raise CohortEvaluationError(f"sample directoryは通常fileを1件だけ含む必要があります: {digest}")
@@ -519,28 +638,50 @@ def evaluate_case(
     expected_sha256: str,
     *,
     policy: StaticLayerPolicy,
+    profile: PureCohortProfile = PURELOGS_PROFILE,
     sevenzip: Path | None = None,
-    layer_cache: MutableMapping[str, LayerCacheValue] | None = None,
+    layer_cache: MutableMapping[LayerCacheKey, LayerCacheValue] | None = None,
+    opaque_id_key: bytes | None = None,
     deadline: float | None = None,
     clock: Callable[[], float] = time.monotonic,
     deadline_scope: str = "case",
 ) -> dict[str, Any]:
-    """1 root検体を実行せずに再帰展開し、PureLogs証拠を評価する。"""
+    """1 root検体を実行せずに再帰展開し、選択profileの証拠を評価する。"""
 
     _validate_policy(policy)
     _check_deadline(deadline, clock=clock, scope=deadline_scope)
-    data = _read_regular_file(sample_path, maximum_size=MAX_SAMPLE_BYTES)
+    outer_data = _read_regular_file(sample_path, maximum_size=MAX_SAMPLE_BYTES)
     _check_deadline(deadline, clock=clock, scope=deadline_scope)
+    outer_sha256 = hashlib.sha256(outer_data).hexdigest()
+    data = outer_data
+    input_kind = "raw"
+    source_name = sample_path.name
+    if outer_sha256 != expected_sha256:
+        try:
+            member = read_single_aes_zip_member(
+                outer_data,
+                password="infected",
+                max_member_size=MAX_SAMPLE_BYTES,
+                max_compression_ratio=policy.max_compression_ratio,
+            )
+        except ArchiveValidationError as exc:
+            raise CohortEvaluationError(
+                f"sample SHA-256が一致せず、認証済み単一member ZIPでもありません: {expected_sha256}"
+            ) from exc
+        data = member.data
+        input_kind = "authenticated_single_member_zip"
+        source_name = Path(member.name).name
     actual_sha256 = hashlib.sha256(data).hexdigest()
     _check_deadline(deadline, clock=clock, scope=deadline_scope)
     if actual_sha256 != expected_sha256:
         raise CohortEvaluationError(f"sample SHA-256が一致しません: {expected_sha256}")
     unit = InputUnit(
-        source_name=sample_path.name,
+        source_name=source_name,
         data=data,
-        input_kind="raw",
-        outer_sha256=expected_sha256,
-        outer_size=len(data),
+        input_kind=input_kind,
+        outer_sha256=outer_sha256,
+        outer_size=len(outer_data),
+        member_name=member.name if input_kind == "authenticated_single_member_zip" else None,
     )
     layers, pipeline = recover_static_layers(
         unit,
@@ -551,7 +692,9 @@ def evaluate_case(
     _check_deadline(deadline, clock=clock, scope=deadline_scope)
     result = evaluate_layers(
         layers,
+        profile=profile,
         layer_cache=layer_cache,
+        opaque_id_key=opaque_id_key,
         deadline=deadline,
         clock=clock,
         deadline_scope=deadline_scope,
@@ -566,6 +709,7 @@ def evaluate_case(
         {
             "root_sha256": expected_sha256,
             "root_size": len(data),
+            "input_kind": input_kind,
             "static_layer_count": len(layers),
             "static_layer_sha256": sorted({layer.sha256 for layer in layers}),
             "maximum_depth_reached": max(item.depth for item in layers),
@@ -586,17 +730,31 @@ def evaluate_case(
     )
     if result["static_limit_event_count"]:
         result["blockers"].append("static_layer_limit_reached")
+        result["strict_success"] = False
+        result["validated_config_recovered"] = False
+        result["qualified_c2_recovered"] = False
+        result["strict_evidence_layers"] = []
+        result["primary_failure_reason"] = "deadline_or_budget_exceeded"
     if result["static_pipeline_failed_step_count"]:
         result["blockers"].append("static_unpacker_step_failed")
+        result["strict_success"] = False
+        result["validated_config_recovered"] = False
+        result["qualified_c2_recovered"] = False
+        result["strict_evidence_layers"] = []
+        if result["primary_failure_reason"] != "deadline_or_budget_exceeded":
+            result["primary_failure_reason"] = "static_pipeline_error"
     _check_deadline(deadline, clock=clock, scope=deadline_scope)
     return result
 
 
 def _source_identity_paths() -> tuple[Path, ...]:
-    """評価結果へ影響するrepo内Python実装を安定順で列挙する。"""
+    """評価結果へ影響するrepo内実装・profileを安定順で列挙する。"""
 
     runtime_paths = {
         EVALUATOR_PATH,
+        COMMON_ROOT / "evaluate_pure_cohort.py",
+        COMMON_ROOT / "evaluate_purerat_cohort.py",
+        COMMON_ROOT / "pure_cohort_profiles.py",
         PIPELINE_PATH,
         COMMON_ROOT / "static_layer_lineage_adapter.py",
         COMMON_ROOT / "analysis_contract.py",
@@ -605,14 +763,18 @@ def _source_identity_paths() -> tuple[Path, ...]:
         COMMON_ROOT / "extract_pyinstaller_archive.py",
         COMMON_ROOT / "immutable_snapshot.py",
         COMMON_ROOT / "lineage_child_selector.py",
+        COMMON_ROOT / "malwarebazaar_batch.py",
         COMMON_ROOT / "malware_io.py",
+        COMMON_ROOT / "pe_structural_profile.py",
         COMMON_ROOT / "safe_artifact_io.py",
         COMMON_ROOT / "safe_private_output.py",
+        FRAMEWORK_ROOT / "registry" / "pe_structural_profiles.json",
         FRAMEWORK_ROOT / "malware" / "purehvnc" / "managed_resource_recovery.py",
         EXTRACTOR_PATH,
         REPOSITORY_ROOT / "extractors" / "__init__.py",
         REPOSITORY_ROOT / "extractors" / "common.py",
         REPOSITORY_ROOT / "extractors" / "managed_pe.py",
+        REPOSITORY_ROOT / "extractors" / "purehvnc_schema.py",
         REPOSITORY_ROOT / "extractors" / "purehvnc" / "__init__.py",
         REPOSITORY_ROOT / "extractors" / "purehvnc" / "extractor.py",
         REPOSITORY_ROOT / "unpackers" / "profiles" / "byte_transforms.json",
@@ -620,6 +782,7 @@ def _source_identity_paths() -> tuple[Path, ...]:
     for root in (
         REPOSITORY_ROOT / "unpackers",
         FRAMEWORK_ROOT / "malware" / "purelogs",
+        FRAMEWORK_ROOT / "malware" / "purehvnc",
         REPOSITORY_ROOT / "extractors" / "purelogs",
     ):
         runtime_paths.update(path for path in root.rglob("*.py") if "tests" not in path.relative_to(root).parts)
@@ -642,6 +805,85 @@ def _source_identity() -> dict[str, str]:
     }
 
 
+@contextmanager
+def _immutable_sevenzip_snapshot(
+    executable: Path | None,
+) -> Iterator[tuple[Path | None, dict[str, Any]]]:
+    """review済み7-Zipをprivate snapshotへ固定してから下位処理へ渡す。"""
+
+    if executable is None:
+        yield None, {}
+        return
+    primary = read_bounded_snapshot(executable, MAX_EXTERNAL_TOOL_BYTES)
+    component_sources = [(executable, primary.identity.sha256)]
+    if os.name == "nt" and executable.name.casefold() == "7z.exe":
+        companion = executable.with_name("7z.dll")
+        try:
+            companion.lstat()
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            raise CohortEvaluationError("7-Zip companionを確認できません") from exc
+        else:
+            companion_snapshot = read_bounded_snapshot(
+                companion,
+                MAX_EXTERNAL_TOOL_BYTES,
+            )
+            component_sources.append(
+                (companion, companion_snapshot.identity.sha256)
+            )
+
+    with tempfile.TemporaryDirectory(prefix="asa-pure-cohort-tool-") as temporary:
+        snapshot_root = Path(temporary)
+        components: dict[str, str] = {}
+        snapshot_components: dict[Path, SnapshotIdentity] = {}
+        snapshot_executable: Path | None = None
+        for source, expected_sha256 in component_sources:
+            destination = snapshot_root / source.name
+            copied = copy_bounded_snapshot(
+                source,
+                destination,
+                MAX_EXTERNAL_TOOL_BYTES,
+                expected_sha256=expected_sha256,
+            )
+            if os.name != "nt":
+                source_mode = stat.S_IMODE(source.lstat().st_mode)
+                destination.chmod(
+                    (source_mode & 0o555) | stat.S_IRUSR | stat.S_IXUSR
+                )
+            verified = read_bounded_snapshot(
+                destination,
+                MAX_EXTERNAL_TOOL_BYTES,
+            )
+            if not hmac.compare_digest(
+                copied.identity.sha256,
+                verified.identity.sha256,
+            ):
+                raise CohortEvaluationError("7-Zip snapshotの内容が一致しません")
+            components[source.name] = verified.identity.sha256
+            snapshot_components[destination] = verified.identity
+            if source == executable:
+                snapshot_executable = destination
+        if snapshot_executable is None:  # pragma: no cover - construction invariant
+            raise CohortEvaluationError("7-Zip snapshotを作成できません")
+        try:
+            yield snapshot_executable, {
+                "sevenzip_sha256": primary.identity.sha256,
+                "sevenzip_component_sha256": dict(sorted(components.items())),
+                "immutable_snapshot_used": True,
+            }
+        finally:
+            for destination, expected_identity in snapshot_components.items():
+                final = read_bounded_snapshot(
+                    destination,
+                    MAX_EXTERNAL_TOOL_BYTES,
+                )
+                if final.identity != expected_identity:
+                    raise CohortEvaluationError(
+                        "評価中に7-Zip snapshotが変更されました"
+                    )
+
+
 def _failed_case_result(
     digest: str,
     *,
@@ -655,10 +897,20 @@ def _failed_case_result(
         blockers.append(extra_blocker)
     return {
         "root_sha256": digest,
+        "root_family_confirmed": False,
+        "loader_family_confirmed": False,
+        "route_stage_recovered": False,
+        "terminal_payload_reached": False,
+        "terminal_family_confirmed": False,
         "family_confirmed": False,
         "validated_config_recovered": False,
         "qualified_c2_recovered": False,
         "strict_success": False,
+        "primary_failure_reason": (
+            "deadline_or_budget_exceeded"
+            if extra_blocker in {"case_deadline_exceeded", "cohort_deadline_exceeded"}
+            else "static_pipeline_error"
+        ),
         "blockers": blockers,
         "evaluation_error_count": 1,
         "evaluation_errors": [{"error_type": error_type}],
@@ -673,11 +925,13 @@ def evaluate_cohort(
     samples_root: Path,
     cohort_name: str,
     policy: StaticLayerPolicy,
+    profile: PureCohortProfile = PURELOGS_PROFILE,
     sevenzip: Path | None = None,
     progress: Callable[[str], None] | None = None,
     case_deadline_seconds: float = DEFAULT_CASE_DEADLINE_SECONDS,
     cohort_deadline_seconds: float = DEFAULT_COHORT_DEADLINE_SECONDS,
     clock: Callable[[], float] = time.monotonic,
+    _external_tools: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """provider cohortを分母として、現在実装の厳格な成功率を再測定する。"""
 
@@ -692,16 +946,41 @@ def evaluate_cohort(
         name="cohort_deadline_seconds",
         maximum=MAX_COHORT_DEADLINE_SECONDS,
     )
+    if cohort_name != profile.cohort_name:
+        raise CohortEvaluationError(
+            "cohort名が選択profileの固定cohortと一致しません"
+        )
+    if sevenzip is not None and _external_tools is None:
+        with _immutable_sevenzip_snapshot(sevenzip) as (
+            snapshot_sevenzip,
+            external_tools,
+        ):
+            return evaluate_cohort(
+                cohort_manifest=cohort_manifest,
+                samples_root=samples_root,
+                cohort_name=cohort_name,
+                policy=policy,
+                profile=profile,
+                sevenzip=snapshot_sevenzip,
+                progress=progress,
+                case_deadline_seconds=case_deadline_seconds,
+                cohort_deadline_seconds=cohort_deadline_seconds,
+                clock=clock,
+                _external_tools=external_tools,
+            )
     cohort, hashes, manifest_sha256 = load_cohort(cohort_manifest, cohort_name)
-    baseline = baseline_metrics(cohort)
+    baseline = baseline_metrics(cohort, root_case_count=len(hashes))
+    profile_import_sources = _verify_profile_import_sources(profile)
     implementation_before = _source_identity()
-    external_tools = {}
-    if sevenzip is not None:
-        external_tools["sevenzip_sha256"] = hashlib.sha256(
-            _read_regular_file(sevenzip, maximum_size=128 * 1024 * 1024)
-        ).hexdigest()
+    runtime_callable_sha256 = {
+        "assess": _callable_code_sha256(profile.assess),
+        "detector": _callable_code_sha256(profile.detector),
+        "extractor": _callable_code_sha256(profile.extractor),
+    }
+    external_tools = dict(_external_tools or {})
+    opaque_id_key = os.urandom(OPAQUE_ID_KEY_BYTES)
     cases: list[dict[str, Any]] = []
-    layer_cache: dict[str, LayerCacheValue] = {}
+    layer_cache: dict[LayerCacheKey, LayerCacheValue] = {}
     cohort_deadline = clock() + cohort_deadline_seconds
     for index, digest in enumerate(hashes, start=1):
         if progress is not None:
@@ -724,8 +1003,10 @@ def evaluate_cohort(
                     _sample_path(samples_root, digest),
                     digest,
                     policy=policy,
+                    profile=profile,
                     sevenzip=sevenzip,
                     layer_cache=layer_cache,
+                    opaque_id_key=opaque_id_key,
                     deadline=case_deadline,
                     clock=clock,
                     deadline_scope=deadline_scope,
@@ -782,6 +1063,11 @@ def evaluate_cohort(
         if len(roots) > 1
     ]
     current = {
+        "root_family_confirmed_case_count": sum(item.get("root_family_confirmed") is True for item in cases),
+        "loader_family_confirmed_case_count": sum(item.get("loader_family_confirmed") is True for item in cases),
+        "route_stage_recovered_case_count": sum(item.get("route_stage_recovered") is True for item in cases),
+        "terminal_payload_reached_case_count": sum(item.get("terminal_payload_reached") is True for item in cases),
+        "terminal_family_confirmed_case_count": sum(item.get("terminal_family_confirmed") is True for item in cases),
         "family_confirmed_case_count": sum(item["family_confirmed"] is True for item in cases),
         "validated_config_recovered_case_count": sum(item["validated_config_recovered"] is True for item in cases),
         "qualified_c2_recovered_case_count": sum(item["qualified_c2_recovered"] is True for item in cases),
@@ -803,6 +1089,28 @@ def evaluate_cohort(
         "case_deadline_exceeded_count": case_deadline_count,
         "cohort_deadline_exceeded_case_count": cohort_deadline_count,
         "static_unpacker_reason_case_counts": dict(sorted(reason_case_counts.items())),
+        "primary_failure_reason_case_counts": dict(
+            sorted(
+                Counter(
+                    str(item.get("primary_failure_reason", "no_internal_family_evidence")) for item in cases
+                ).items()
+            )
+        ),
+        "root_family_confirmed_root_sha256": [
+            item["root_sha256"] for item in cases if item.get("root_family_confirmed") is True
+        ],
+        "loader_family_confirmed_root_sha256": [
+            item["root_sha256"] for item in cases if item.get("loader_family_confirmed") is True
+        ],
+        "route_stage_recovered_root_sha256": [
+            item["root_sha256"] for item in cases if item.get("route_stage_recovered") is True
+        ],
+        "terminal_payload_reached_root_sha256": [
+            item["root_sha256"] for item in cases if item.get("terminal_payload_reached") is True
+        ],
+        "terminal_family_confirmed_root_sha256": [
+            item["root_sha256"] for item in cases if item.get("terminal_family_confirmed") is True
+        ],
         "family_confirmed_root_sha256": [item["root_sha256"] for item in cases if item["family_confirmed"] is True],
         "validated_config_recovered_root_sha256": [
             item["root_sha256"] for item in cases if item["validated_config_recovered"] is True
@@ -813,8 +1121,12 @@ def evaluate_cohort(
         "strict_joint_success_root_sha256": [item["root_sha256"] for item in cases if item["strict_success"] is True],
     }
     return {
-        "schema_version": 1,
-        "evaluation": "purelogs_family_config_c2_strict_static_cohort",
+        "schema_version": 2,
+        "evaluation": "pure_family_config_c2_strict_static_cohort",
+        "family_profile": {
+            "profile_id": profile.profile_id,
+            "family": profile.family,
+        },
         "cohort": {
             "name": cohort_name,
             "root_case_count": total,
@@ -822,6 +1134,8 @@ def evaluate_cohort(
             "manifest_sha256": manifest_sha256,
         },
         "implementation_sha256": implementation_before,
+        "profile_import_source_sha256": profile_import_sources,
+        "runtime_callable_sha256": runtime_callable_sha256,
         "external_tools": external_tools,
         "policy": policy.public(),
         "deadlines": {
@@ -832,14 +1146,44 @@ def evaluate_cohort(
         "strict_contract": {
             "same_layer_required": True,
             "detector_match_required": True,
-            "detector_confidence": "high_static",
+            "detector_confidence": profile.detector_confidence,
+            "detector_extractor_independence_claimed": (
+                profile.detector_extractor_independence_claimed
+            ),
+            "detector_extractor_independence_required": False,
+            "shared_decoding_primitives_allowed": True,
             "terminal_family_confirmation_required": True,
-            "configuration_format": "base64_protobuf",
+            "configuration_format": profile.configuration_format,
             "family_bound_configuration_required": True,
             "qualified_c2_record_required": True,
             "cross_layer_configuration_conflict_rejected": True,
             "provider_label_used_for_family_confirmation": False,
             "loose_url_used_as_configured_c2": False,
+        },
+        "metric_definitions": {
+            "route_stage_recovered": (
+                "review済みtransform名の静的layerを復元したことだけを示し、"
+                "family帰属や終端payloadを意味しない"
+            ),
+            "terminal_payload_reached": (
+                "profileが静的terminal候補として検証したlayerを示す。"
+                "後続stageが存在しないことは証明しない"
+            ),
+            "terminal_family_confirmed": (
+                "同一layer上のprofile証拠を照合したfamily判定。"
+                "detectorとextractorの独立実装は主張しない"
+            ),
+            "validated_config_recovered": (
+                "family-bound静的設定を復元したことを示し、endpointの稼働は確認しない"
+            ),
+            "qualified_c2_recovered": (
+                "validated_config_recoveredと同じ静的predicate。"
+                "live C2／protocol応答確認を意味しない"
+            ),
+            "strict_success": (
+                "同一layerのterminal familyと設定が一致し、全静的走査が完走し、"
+                "cross-layer設定競合がないことを示す"
+            ),
         },
         "baseline": baseline,
         "current": current,
@@ -849,6 +1193,10 @@ def evaluate_cohort(
             "network_contacted": False,
             "recovered_payload_written": False,
             "raw_endpoint_published": False,
+            "raw_endpoint_hash_published": False,
+            "configuration_fingerprint_published": False,
+            "correlation_identifier": "run_scoped_hmac_sha256",
+            "correlation_key_published": False,
         },
     }
 
@@ -896,12 +1244,12 @@ def _bounded_deadline_seconds(
     return parse
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser(profile: PureCohortProfile = PURELOGS_PROFILE) -> argparse.ArgumentParser:
     """日本語helpを持つCLI parserを構築する。"""
 
     parser = JapaneseArgumentParser(
         description=(
-            "PureLogsコホートを実行・通信なしで再解析し、provider labelやloose URLを"
+            f"{profile.family}コホートを実行・通信なしで再解析し、provider labelやloose URLを"
             "除外したfamily・config・C2の同時成功率を測定します。"
         ),
         add_help=False,
@@ -933,8 +1281,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--cohort",
-        default="PureLogsStealer",
-        help="評価するcohort名（既定: PureLogsStealer）",
+        default=profile.cohort_name,
+        help=f"評価するcohort名（既定: {profile.cohort_name}）",
     )
     parser.add_argument(
         "--sevenzip",
@@ -996,8 +1344,12 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+def main(
+    argv: Sequence[str] | None = None,
+    *,
+    profile: PureCohortProfile = PURELOGS_PROFILE,
+) -> int:
+    args = build_parser(profile).parse_args(argv)
     policy = StaticLayerPolicy(
         max_layers=args.max_layers,
         max_depth=args.max_depth,
@@ -1009,6 +1361,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         samples_root=args.samples_root.resolve(),
         cohort_name=args.cohort,
         policy=policy,
+        profile=profile,
         sevenzip=args.sevenzip.resolve() if args.sevenzip else None,
         progress=lambda message: print(message, file=sys.stderr, flush=True),
         case_deadline_seconds=args.case_deadline_seconds,

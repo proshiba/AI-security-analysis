@@ -44,6 +44,25 @@ except ImportError:  # 単独CLIまたは新依存が不足した状態
         preflight_clr_declarations = None
 
 try:
+    from .managed_cil_cfg import (
+        CilMethod,
+        assembly_public_key_state,
+        build_bounded_cfg,
+        classify_exact_constant_proxy,
+        instruction_from_raw,
+        summarize_cfg,
+    )
+except ImportError:  # 単独CLI
+    from managed_cil_cfg import (
+        CilMethod,
+        assembly_public_key_state,
+        build_bounded_cfg,
+        classify_exact_constant_proxy,
+        instruction_from_raw,
+        summarize_cfg,
+    )
+
+try:
     import dnfile
 except ImportError:  # pragma: no cover - 依存状態はpatchで試験する。
     dnfile = None
@@ -160,6 +179,8 @@ def _base_result(size: int) -> dict[str, Any]:
         "techniques": {},
         "static_method_plan": [],
         "static_references": [],
+        "constant_proxies": [],
+        "assembly_public_key_state": "unavailable",
     }
 
 
@@ -822,6 +843,7 @@ def analyze_managed_pe(
         result["status"] = "not_managed_pe"
         result["static_method_plan"] = plan_managed_methods(result)
         return result
+    result["assembly_public_key_state"] = assembly_public_key_state(pe)
 
     # 既存TypeDef／ownerの属性参照より前に、同じ13table予算を確立する。
     try:
@@ -941,6 +963,9 @@ def analyze_managed_pe(
         "ldstr": 0,
         "constant_loads": 0,
         "proxy_method_candidates": 0,
+        "cfg_complete_methods": 0,
+        "cfg_rejected_methods": 0,
+        "exact_constant_proxy_methods": 0,
         **resource_counts,
     }
 
@@ -1017,6 +1042,47 @@ def analyze_managed_pe(
             if len(parsed_instructions) > len(counted):
                 method["parse_status"] = "parsed_partial_instruction_budget"
                 budget_exhausted.append("instructions")
+                method["cfg"] = {
+                    "status": "not_built",
+                    "reason": "instruction_budget_truncated_method",
+                    "branch_operands_preserved": False,
+                }
+            else:
+                # dncil本体はoffsetを持つ。人工readerや古い互換readerでは
+                # offsetがないため、triage内だけ列順を安定offsetとして補う。
+                cfg_instructions = tuple(
+                    instruction_from_raw(item, fallback_offset=position)
+                    for position, item in enumerate(counted)
+                )
+                cfg = build_bounded_cfg(cfg_instructions)
+                method["cfg"] = summarize_cfg(cfg)
+                if cfg["status"] == "complete":
+                    totals["cfg_complete_methods"] += 1
+                else:
+                    totals["cfg_rejected_methods"] += 1
+                proxy_kind = classify_exact_constant_proxy(
+                    CilMethod(
+                        token=0x06000000 | index,
+                        owner=method["owner"],
+                        name=method["name"],
+                        body_sha256=hashlib.sha256(
+                            data[offset : offset + body_size]
+                        ).hexdigest(),
+                        instructions=cfg_instructions,
+                    )
+                )
+                if proxy_kind is not None:
+                    method["exact_constant_proxy"] = proxy_kind
+                    result["constant_proxies"].append(
+                        {
+                            "method_token": method["token"],
+                            "kind": proxy_kind,
+                            "body_sha256": hashlib.sha256(
+                                data[offset : offset + body_size]
+                            ).hexdigest(),
+                        }
+                    )
+                    totals["exact_constant_proxy_methods"] += 1
             totals["methods_parsed"] += 1
             for key in (
                 "branches",

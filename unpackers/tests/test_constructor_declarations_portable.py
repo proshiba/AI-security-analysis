@@ -1,7 +1,7 @@
+# ruff: noqa: E402
 """人工 PE の宣言 guard と constructor 前順序だけを確認する。実検体・runtimeなし。"""
 from __future__ import annotations
 import ast
-import hashlib
 import json
 from pathlib import Path
 import struct
@@ -17,6 +17,7 @@ assert (ROOT / "unpackers" / "managed_resource_snapshot.py").is_file()
 sys.path.insert(0, str(ROOT))
 from unpackers import managed_constructor_guard as guard
 from unpackers import clr_input_binding as binding
+from unpackers import managed_cil_cfg as cil_cfg  # noqa: E402
 from unpackers import managed_il_triage as triage
 from unpackers import managed_proxy_deobfuscator as proxy
 actual_constructor = dnfile.dnPE
@@ -90,6 +91,20 @@ def test_each_raw_table_limit_rejects_before_both_constructors(number, monkeypat
         assert result["reference_metadata_coverage"]["shared_snapshot"]["accepted"] is False
 
 
+def test_cil_cfg_rejects_declared_table_overflow_before_constructor(monkeypatch):
+    data = constructor_build_pe({6: 20_001}, payload=False)
+    calls = []
+
+    def factory(**kwargs):
+        calls.append(kwargs)
+        raise AssertionError("拒否入力でconstructorを呼んではいけません")
+
+    monkeypatch.setitem(sys.modules, "dnfile", SimpleNamespace(dnPE=factory))
+    with pytest.raises(ValueError, match="^managed_cil_constructor_preflight_rejected$"):
+        cil_cfg.parse_managed_program(data)
+    assert calls == []
+
+
 @pytest.mark.parametrize("counts", [{n: 2_001 for n in range(45)},
                                     {0: 20_000, 2: 20_000, 6: 20_000, 33: 20_000, 34: 1}])
 def test_total_all45_not_only_shared13_before_constructor(counts, monkeypatch):
@@ -155,10 +170,10 @@ def test_byte_downcap_happens_before_header_and_constructor(monkeypatch):
 
 @pytest.mark.parametrize("case", ["short", "nt", "optional", "section", "cli", "root", "version",
                                   "stream_count", "stream_overlap", "table_version", "table_short",
-                                  "unknown_table", "uncompressed", "unknown_stream", "resource_pair"])
+                                  "unknown_table", "unknown_stream", "resource_pair"])
 def test_invalid_or_unsupported_raw_is_not_empty_metadata(case, monkeypatch):
     data = constructor_build_pe({6: 1})
-    nt, optional, section, metadata, table = 0x80, 0x98, 0x178, 0x300, 0x340
+    optional, section, metadata, table = 0x98, 0x178, 0x300, 0x340
     changes = {
         "nt": (60, (len(data) + 1).to_bytes(4, "little")),
         "optional": (optional, b"\xff\xff"),
@@ -175,8 +190,6 @@ def test_invalid_or_unsupported_raw_is_not_empty_metadata(case, monkeypatch):
     }
     if case == "short":
         data = data[:20]
-    elif case == "uncompressed":
-        data = constructor_build_pe(table_name=b"#-")
     elif case == "unknown_stream":
         data = constructor_build_pe(table_name=b"#X")
     else:
@@ -187,6 +200,66 @@ def test_invalid_or_unsupported_raw_is_not_empty_metadata(case, monkeypatch):
         calls = constructor_factory_counter(monkeypatch, module)
         assert analyze(data)["metadata_preflight"]["accepted"] is False
         assert calls == []
+
+
+def test_uncompressed_table_stream_uses_the_same_bounded_constructor_gate(monkeypatch):
+    """#-もrow宣言と全table extentを検証した場合だけconstructorへ渡す。"""
+    data = constructor_build_pe(table_name=b"#-")
+    outcome = guard.preflight_clr_declarations(data)
+    assert outcome["accepted"]
+    assert outcome["counts"] == {"tables_declared": 0, "rows_declared": 0}
+
+    for module, analyze in (
+        (triage, triage.analyze_managed_pe),
+        (proxy, proxy.analyze_managed_protector),
+    ):
+        calls = constructor_factory_counter(monkeypatch, module, real=True)
+        result = analyze(data)
+        assert len(calls) == 1
+        assert result["metadata_preflight"]["accepted"]
+
+
+@pytest.mark.parametrize(
+    "counts,expected_reason",
+    [
+        ({6: 20_001}, "preflight_metadata_table_row_budget"),
+        ({0: 20_000, 2: 20_000, 6: 20_000, 33: 20_000, 34: 1},
+         "preflight_metadata_total_row_budget"),
+    ],
+)
+def test_uncompressed_table_stream_preserves_row_budgets_before_constructor(
+        counts, expected_reason, monkeypatch):
+    """#-を許容してもrow上限を緩和せず、dnfileへ渡さない。"""
+    data = constructor_build_pe(counts, payload=False, table_name=b"#-")
+    outcome = guard.preflight_clr_declarations(data)
+    assert outcome["reason_counts"] == {expected_reason: 1}
+
+    for module, analyze in (
+        (triage, triage.analyze_managed_pe),
+        (proxy, proxy.analyze_managed_protector),
+    ):
+        calls = constructor_factory_counter(monkeypatch, module)
+        result = analyze(data)
+        assert calls == []
+        assert result["metadata_preflight"] == outcome
+
+
+def test_uncompressed_table_stream_rejects_truncated_row_payload_before_constructor(
+        monkeypatch):
+    """#-名だけが正しくても、宣言rowのbyte範囲が欠けた入力は拒否する。"""
+    data = constructor_build_pe({6: 1}, payload=False, table_name=b"#-")
+    outcome = guard.preflight_clr_declarations(data)
+    assert not outcome["accepted"]
+    assert outcome["reason_counts"] == {"preflight_metadata_layout_unsupported": 1}
+
+    for module, analyze in (
+        (triage, triage.analyze_managed_pe),
+        (proxy, proxy.analyze_managed_protector),
+    ):
+        calls = constructor_factory_counter(monkeypatch, module)
+        result = analyze(data)
+        assert calls == []
+        assert result["metadata_preflight"] == outcome
 
 
 def test_raw_guard_budget_does_not_replace_downstream_shared13_budget(monkeypatch):

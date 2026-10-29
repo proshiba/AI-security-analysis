@@ -112,6 +112,7 @@ collectionは検体の別コピーではなく、収集時点のmembershipとフ
 
 - [Malware-Traffic-Analysis.net PCAP 50件の独自通信解析とSnort 3候補](network-traffic/malware-traffic-analysis-net/2026-07-26/README.md)
 
+- [PureLogs／PureRAT 100検体のAI非依存静的解析監査](research/audits/pure-automation-20261029/README.md)
 - [関数ロジックのコード類似性索引](catalog/CODE-SIMILARITY.md)
 - [過去924caseの静的ロジック補完監査](research/audits/static-logic-backfill-20260723/README.md)
 - [全905caseの挙動・検体特徴と解析充足度監査](research/audits/case-knowledge-20260723/README.md)

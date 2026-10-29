@@ -19,6 +19,7 @@ from extractors.managed_pe import has_clr_metadata
 from extractors.purehvnc_schema import (
     TERMINAL_SCHEMA_PROFILE_EXPLICIT_FIELDS_1_TO_9,
     TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELD_7,
+    TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELDS_7_9,
     terminal_default_elided_fields,
     terminal_schema_profile,
 )
@@ -375,6 +376,19 @@ def _valid_terminal_default_elided_field_7_schema_fields(
         fields,
         fields.wire_types,
     ) == TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELD_7 and _valid_config_fields(
+        fields
+    )
+
+
+def _valid_terminal_default_elided_fields_7_9_schema_fields(
+    fields: ParsedProtobufFields,
+) -> bool:
+    """空文字のfield 7・9だけを既定値省略したv4設定を検証する。"""
+
+    return terminal_schema_profile(
+        fields,
+        fields.wire_types,
+    ) == TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELDS_7_9 and _valid_config_fields(
         fields
     )
 

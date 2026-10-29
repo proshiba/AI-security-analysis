@@ -138,11 +138,15 @@ Go復元では、数学blockの存在順だけでは受理しません。`go_dec
 
 ## 使用 tool
 
-`managed_tripledes_gzip.py` は、literal resource、Base64の16/24-byte keyと8-byte IV、CBC/PKCS7の設定を同じlocalの定義・使用に結び付けます。framework AssemblyRefの名前・公開鍵tokenとMemberRefの完全signatureを検証し、同名の検体内methodや`Assembly.Load(string)`を解釈しません。`TransformFinalBlock`と`CryptoStream`のread/copy方式に対応し、4-byte prefixを除いたMemoryStream、GZipStream、正のread件数をwriteするloop、`ToArray`から`Assembly.Load(byte[])`への受渡しが必要です。正常CFGで各localの一意な定義が使用を支配することを検証し、迂回branch、配列への未レビューの変更・alias、曖昧なresource、重複／file外のresource範囲を拒否します。
+`managed_tripledes_gzip.py` は、literal resource、Base64の16/24-byte keyと8-byte IV、CBC/PKCS7の設定を同じlocalの定義・使用に結び付けます。framework AssemblyRefの名前・公開鍵tokenとMemberRefの完全signatureを検証し、同名の検体内methodや`Assembly.Load(string)`を解釈しません。`TransformFinalBlock`と`CryptoStream`のread/copy方式に対応し、4-byte prefixを除いたMemoryStream、GZipStream、正のread件数をwriteするloop、`ToArray`から`Assembly.Load(byte[])`への受渡しが必要です。複数のliteral resourceがある場合は各resourceから同じ完全chainを個別に検証し、復元managed PEのSHA-256が1種類に収束した場合だけ同一出力として縮約します。異なるPEへ到達する候補は曖昧として拒否します。正常CFGで各localの一意な定義が使用を支配することを検証し、迂回branch、配列への未レビューの変更・alias、重複／file外のresource範囲を拒否します。
 
-入力32 MiB、resource4 MiB、復号出力8 MiB、method4,096件、単一body256 KiB、body合計2 MiB、resource256件、各参照表16,384件、経過10秒が上限です。GZIPのprefix宣言長、単一stream終端、PEの全sectionとCLR metadata境界を再確認します。prefixの検証は静的container検証であり、親コードが長さを実行時検査したという意味ではありません。例外経路の意味的完了は保証せず、復元結果だけでfamily、C2、終端到達を確定しません。親子hash、size、MethodDef token/RVA、sinkと必要命令のbody offsetを記録し、生key／IV、resource名、復号byteは公開reportに含めません。検体・CIL・CLRの実行、CPU emulation、通信、外部process、file書込みは行いません。
+Eazfuscator系の検証済みdelegate proxyは、`ldsfld; call helper`のfield loadがbranch targetの場合も、同じCIL offsetへ`nop`を残してhelper callだけをdirect framework callへ置換します。helper call自体がbranch targetなら拒否します。proxy helperは、既存のentry branch型に加え、EH・branch・余分な命令を持たず、delegate、引数列、`Invoke`、`ret`が完全一致するstraight-line trampolineだけを受理します。いずれもCLRやCILを実行する処理ではありません。
+
+入力32 MiB、resource4 MiB、復号出力8 MiB、method4,096件、単一body256 KiB、body合計2 MiB、resource256件、完全resource recipe 64件、候補ciphertext合計32 MiB、各参照表16,384件、経過10秒が上限です。GZIPのprefix宣言長、単一stream終端、PEの全sectionとCLR metadata境界を再確認します。prefixの検証は静的container検証であり、親コードが長さを実行時検査したという意味ではありません。例外経路の意味的完了は保証せず、復元結果だけでfamily、C2、終端到達を確定しません。親子hash、size、MethodDef token/RVA、sinkと必要命令のbody offsetを記録し、生key／IV、resource名、復号byteは公開reportに含めません。検体・CIL・CLRの実行、CPU emulation、通信、外部process、file書込みは行いません。
 
 推奨する7-Zip binaryはNSIS decompile対応buildです。innounpは同伴DLLを必要としないself-containedな配布物を使用します。いずれも信頼済みの静的archive／installer parserとしてだけ使用し、installerや復元memberは実行しません。
+
+7-Zipの`l -slt`でRAR5を棚卸しすると、通常memberにも空の`Symbolic Link`／`Hard Link`／`Copy Link`と`Alternate Stream = -`が出力されます。generic archive parserはexactな空値と`-`だけを属性なしとして扱います。実target、空白だけの値、真偽語、数値などの曖昧値、link／ADS属性は値を公開せず、外部抽出を始める前にarchive全体を拒否します。
 
 外部toolは`PATH`から探索せず、絶対pathで明示した通常fileだけを使います。各processは子孫process containment、active process 8件、memory 1 GiB、stdout／stderr各1 MiB、明示timeout、一時tree最大10,000 entry／1 GiBの内側で実行します。API keyやPython注入環境を継承せず、一時treeのreparse、hardlink、特殊file、path escapeを拒否し、保持する出力は単一handleからsize上限付きで再読込します。これらはkernel sandboxではありません。WebUI／APIのproduction経路では下記の直接path引数を使わず、operatorがraw SHA-256をpinしたmanifestからjob-private UPX／7zz／innounp snapshotを作る`analysis_job_runner.py`を使用します。request JSON、`PATH`探索、起動時downloadからtoolを指定できません。DIECはproduction契約では無効です。
 
@@ -340,3 +344,25 @@ profile一致時もURLは`payload_acquisition_candidate`として記録する。
 `managed_omlx_tripledes.py`は、OMLXの176-way dispatcher handlerから静的に証明したopcode subsetだけを有界な定数データフローとして解析する。`GetManifestResourceStream`のcallerが指定するresource名、直接Eaz keyed-word transformのcanonical core、未参照の第2引数、partial-word処理、復号後の完全な長さ付きUTF-16LE tableをすべて照合する。initializerの124 fieldから証明したselectorはkey、IV、ResourceSet entry名の境界と一致する場合だけ受理する。
 
 続いて、同じ親PEから復元したEaz child内の単一ByteArray entryにTripleDES-CBC、PKCS#7、4-byte展開長付き単一GZip memberを適用し、展開長、GZip終端、trailing data、PE境界、CLR metadataを再検証する。生keyと生IVはreportへ出力せず、長さとSHA-256だけを記録する。未知opcode、候補の複数成立、resource名の不一致、不正な暗号・圧縮・PE構造はartifactを出力しない。この復元成功は保護recipeと親子層の証拠であり、それだけでfamily、C2、終端設定を確定しない。
+
+`managed_cil_cfg.py`は、復元したmanaged PEを実行せず、branch／switch operandを保持した
+有界CFGを作る。exact true／false proxy、Assembly metadataのPublicKey-null分岐、
+32／16-byte配列からdecryptor sinkまでのreaching definitionを安全側に検証する。
+同一indexの重複書込み、未知分岐、状態loop、sinkの曖昧性はstable reason codeで拒否し、
+生のkey／IVは出力しない。さらにmanifest resource、internal decoder、4-byte長、UTF-16
+decode、2つのcache、prefix更新が同一methodで順序一致する場合だけ文字列cache形を記録する。
+詳細は[PureRAT managed CILの静的semantic相関](../analysis-framework/docs/PURERAT-MANAGED-CIL-SEMANTICS.md)
+を参照する。
+
+`managed_purerat_cache_frontend.py`はreal CILからcache accessor、exact resource、
+internal decoder、keyed-word transformを一意に束縛し、難読化dispatcherの決定済み
+単一路だけを有界に解釈する。`managed_purerat_cache.py`は、そのfront-endが証明したordered
+writeを対象に、32-byte keyと16-byte maskの最終値を再構成する。この限定境界では
+同一indexへの決定的な上書きをCIL semanticsどおり受理するが、候補分岐の合流値は受理しない。
+反転mask、CILで検証済みのEaz keyed-word seed／addend、partial-word profile、manifest
+resource名、cache call-siteのexact offsetが全て一意な場合だけUTF-16LEを復元する。loose
+文字列／URL走査は行わず、reportへraw key、resource、文字列、endpointを出さない。成功は
+managed string routeの証拠に限定し、既存の厳格な設定schemaが別途成立するまでfamily／C2を
+確定しない。後続`string,int` transformが未対応なら安定理由
+`secondary_string_transform_not_recovered`を返す。詳細は[PureRAT managed UTF-16 cacheの静的復元境界](../analysis-framework/docs/PURERAT-MANAGED-UTF16-CACHE.md)
+を参照する。
