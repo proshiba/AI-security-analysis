@@ -84,6 +84,7 @@ _ALLOWED_BEGINTHREADEX_DLLS = frozenset(
 )
 _VULKAN_OUTER_PROFILE = "vulkan_export_create_thread"
 _CEF_OUTER_PROFILE = "cef_alias_export_beginthreadex"
+_BUILDER_LINKED_CANDIDATE_PROFILE = "export_thread_builder_linked_candidate"
 _CEF_EXPORT_DLL_NAME = b"IndCode.dll"
 _REQUIRED_CEF_EXPORTS = frozenset(
     {
@@ -665,6 +666,20 @@ def _cef_loader_markers_present(data: bytes, sections: list[_Section]) -> bool:
         if not section.resource
     ]
     return bool(mapped) and all(
+        any(marker.encode("utf-16le") in region for region in mapped)
+        for marker in _CEF_LOADER_MARKERS
+    )
+
+
+def _cef_loader_marker_count(data: bytes, sections: list[_Section]) -> int:
+    """markerはroute条件にせず、mapped領域で観測できた件数だけ返す。"""
+
+    mapped = [
+        data[section.raw_start : section.raw_end]
+        for section in sections
+        if not section.resource
+    ]
+    return sum(
         any(marker.encode("utf-16le") in region for region in mapped)
         for marker in _CEF_LOADER_MARKERS
     )
@@ -1546,8 +1561,10 @@ def _cef_callback_lineage(
     sections: list[_Section],
     export_root: int,
     summary_resolver: Callable[[int], _FunctionSummary | None],
+    *,
+    local_thread_wrapper: int | None = None,
 ) -> _CefCallbackLineage | None:
-    """alias exportから_beginthreadex経由producerまでの引数flowを検証する。"""
+    """alias exportからthread backend経由producerまでの引数flowを検証する。"""
 
     export_summary = summary_resolver(export_root)
     if (
@@ -1574,11 +1591,21 @@ def _cef_callback_lineage(
             return None
         if candidate_summary.unresolved_control_flow_count:
             continue
-        calls = [
-            address
-            for address, name in candidate_summary.api_calls
-            if name == "_beginthreadex"
-        ]
+        if local_thread_wrapper is None:
+            calls = [
+                address
+                for address, name in candidate_summary.api_calls
+                if name == "_beginthreadex"
+            ]
+        else:
+            calls = [
+                int(instruction.address)
+                for instruction in candidate_summary.instructions.values()
+                if _direct_call_target_from_summary(
+                    instruction, candidate_summary
+                )
+                == local_thread_wrapper
+            ]
         if len(calls) == 1 and main_summary.direct_call_counts.get(candidate) == 1:
             wrappers.append((candidate, candidate_summary, calls[0]))
     if len(wrappers) != 1:
@@ -3348,6 +3375,244 @@ def _recover_cef(data: bytes) -> Ca01SideloadRecovery | None:
     )
 
 
+def _candidate_summary_resolver(
+    data: bytes,
+    sections: list[_Section],
+    imports: dict[int, str],
+    disassembler: Cs,
+) -> Callable[[int], _FunctionSummary | None]:
+    """候補profile用の有界・memoized function resolverを返す。"""
+
+    summaries: dict[int, _FunctionSummary] = {}
+    total_instructions = 0
+
+    def summary(address: int) -> _FunctionSummary | None:
+        nonlocal total_instructions
+        existing = summaries.get(address)
+        if existing is not None:
+            return existing
+        item = _function_summary(data, sections, disassembler, address, imports)
+        if item is None:
+            return None
+        total_instructions += len(item.instructions)
+        if total_instructions > MAXIMUM_TOTAL_INSTRUCTIONS:
+            return None
+        summaries[address] = item
+        return item
+
+    return summary
+
+
+def _local_create_thread_wrapper_candidates(
+    root: int,
+    summary: Callable[[int], _FunctionSummary | None],
+) -> tuple[int, ...] | None:
+    """export→main→factoryからCreateThread所有local wrapperだけを列挙する。"""
+
+    export_summary = summary(root)
+    if (
+        export_summary is None
+        or export_summary.unresolved_control_flow_count
+        or len(export_summary.direct_calls) != 1
+    ):
+        return None
+    main = next(iter(export_summary.direct_calls))
+    main_summary = summary(main)
+    if (
+        main_summary is None
+        or main_summary.unresolved_control_flow_count
+        or len(main_summary.direct_calls) > MAXIMUM_MAIN_CALLEES
+    ):
+        return None
+    wrappers: set[int] = set()
+    for factory in sorted(main_summary.direct_calls):
+        factory_summary = summary(factory)
+        if factory_summary is None:
+            return None
+        if (
+            factory_summary.unresolved_control_flow_count
+            or len(factory_summary.direct_calls) > MAXIMUM_THREAD_CALLEES
+        ):
+            continue
+        for wrapper in sorted(factory_summary.direct_calls):
+            wrapper_summary = summary(wrapper)
+            if wrapper_summary is None:
+                return None
+            create_calls = [
+                address
+                for address, name in wrapper_summary.api_calls
+                if name == "createthread"
+            ]
+            if (
+                not wrapper_summary.unresolved_control_flow_count
+                and len(create_calls) == 1
+                and factory_summary.direct_call_counts.get(wrapper) == 1
+            ):
+                wrappers.add(wrapper)
+                if len(wrappers) > MAXIMUM_DECODER_LINEAGES:
+                    return None
+    return tuple(sorted(wrappers))
+
+
+def _recover_builder_linked_candidate(
+    data: bytes,
+    *,
+    facade: str,
+) -> Ca01SideloadRecovery | None:
+    """Vulkan/CEF exportからthread backend経由の外層設定候補を復元する。"""
+
+    if (
+        facade not in {"vulkan", "cef"}
+        or not isinstance(data, bytes)
+        or len(data) > MAXIMUM_INPUT_SIZE
+        or not data.startswith(b"MZ")
+    ):
+        return None
+    try:
+        image = pefile.PE(data=data, fast_load=False)
+        if int(image.FILE_HEADER.Machine) != _X64_MACHINE:
+            return None
+    except (
+        AttributeError,
+        pefile.PEFormatError,
+        TypeError,
+        ValueError,
+        OverflowError,
+    ):
+        return None
+    section_result = _sections(image, data)
+    if section_result is None:
+        return None
+    sections, image_base = section_result
+    export_profile = None
+    if facade == "vulkan":
+        roots = _export_roots(image, sections, image_base)
+        imports = _cef_import_addresses(image)
+        if roots is None or imports is None:
+            return None
+        root = roots[0]
+        export_count = 1
+        cef_export_count = 0
+        thread_backend = "imported_beginthreadex"
+    else:
+        export_profile = _cef_export_profile(image, sections, image_base)
+        imports = _import_addresses(image)
+        if export_profile is None or imports is None:
+            return None
+        root = export_profile.root
+        export_count = export_profile.export_count
+        cef_export_count = export_profile.cef_export_count
+        thread_backend = "local_wrapper_createthread"
+    token_candidates = _double_base64_candidates(data, sections)
+    if token_candidates is None or not token_candidates:
+        return None
+    try:
+        disassembler = Cs(CS_ARCH_X86, CS_MODE_64)
+        disassembler.detail = True
+    except CsError:
+        return None
+
+    attempts: list[
+        tuple[
+            _CefCallbackLineage,
+            dict[str, object],
+            dict[str, object],
+            int,
+        ]
+    ] = []
+    if facade == "vulkan":
+        summary = _candidate_summary_resolver(
+            data, sections, imports, disassembler
+        )
+        lineage = _cef_callback_lineage(sections, root, summary)
+        if lineage is not None:
+            parsed = _parse_producer(
+                data,
+                sections,
+                disassembler,
+                lineage.producer,
+                token_candidates,
+                summary,
+            )
+            if parsed is not None:
+                attempts.append((lineage, parsed[0], parsed[1], 0))
+    else:
+        discovery = _candidate_summary_resolver(
+            data, sections, imports, disassembler
+        )
+        wrappers = _local_create_thread_wrapper_candidates(root, discovery)
+        if wrappers is None:
+            return None
+        for wrapper in wrappers:
+            # local CRT wrapper自体は上でCreateThread 1 callへ検証済み。
+            # factory側のR8/R9引数flowも同じcontractで再検証する。
+            summary = _candidate_summary_resolver(
+                data, sections, imports, disassembler
+            )
+            lineage = _cef_callback_lineage(
+                sections,
+                root,
+                summary,
+                local_thread_wrapper=wrapper,
+            )
+            if lineage is None:
+                continue
+            parsed = _parse_producer(
+                data,
+                sections,
+                disassembler,
+                lineage.producer,
+                token_candidates,
+                summary,
+            )
+            if parsed is not None:
+                attempts.append((lineage, parsed[0], parsed[1], 1))
+    # 同じ設定値へ収束しても、複数wrapper/producerが成立する場合は
+    # lineageが一意ではない。値でdeduplicateせずfail-closedにする。
+    if len(attempts) != 1:
+        return None
+    lineage, config, producer_evidence, local_wrapper_count = attempts[0]
+    structural_evidence: dict[str, object] = {
+        "architecture": "x64",
+        "outer_profile": _BUILDER_LINKED_CANDIDATE_PROFILE,
+        "export_facade": facade,
+        "thread_backend": thread_backend,
+        "export_count": export_count,
+        "cef_export_count": cef_export_count,
+        "cef_loader_marker_count": (
+            _cef_loader_marker_count(data, sections) if facade == "cef" else 0
+        ),
+        "export_reachable_thread_config_lineage_present": True,
+        "thread_backend_wrapper_reachable": True,
+        "producer_candidate_count": 1,
+        "lineage_counts": {
+            "export_to_main_direct_call_count": (
+                lineage.export_to_main_direct_call_count
+            ),
+            "main_to_thread_factory_direct_call_count": (
+                lineage.main_to_beginthreadex_wrapper_direct_call_count
+            ),
+            "thread_backend_api_call_count": lineage.beginthreadex_api_call_count,
+            "local_wrapper_to_create_thread_count": local_wrapper_count,
+            "producer_pointer_store_count": lineage.producer_pointer_store_count,
+            "callback_trampoline_indirect_call_count": (
+                lineage.callback_trampoline_indirect_call_count
+            ),
+        },
+        "producer": producer_evidence,
+        "overlay": _certificate_overlay_evidence(image, data),
+        "terminal_socket_lineage_proven": False,
+        "sample_executed": False,
+        "recovered_stage_executed": False,
+        "network_contacted": False,
+    }
+    return Ca01SideloadRecovery(
+        outer_sha256=hashlib.sha256(data).hexdigest(),
+        config=config,
+        structural_evidence=structural_evidence,
+    )
+
+
 def validate_recovery_contract(recovery: object) -> bool:
     """CA01復元器の内部schemaを公開・family判定の直前で再検証する。"""
 
@@ -3464,7 +3729,12 @@ def validate_recovery_contract(recovery: object) -> bool:
     producer = evidence.get("producer")
     if (
         evidence.get("architecture") != "x64"
-        or outer_profile not in {_VULKAN_OUTER_PROFILE, _CEF_OUTER_PROFILE}
+        or outer_profile
+        not in {
+            _VULKAN_OUTER_PROFILE,
+            _CEF_OUTER_PROFILE,
+            _BUILDER_LINKED_CANDIDATE_PROFILE,
+        }
         or (reviewed_profile is not None and reviewed_profile != outer_profile)
         or type(evidence.get("producer_candidate_count")) is not int
         or evidence.get("producer_candidate_count") != 1
@@ -3497,7 +3767,7 @@ def validate_recovery_contract(recovery: object) -> bool:
             for key in lineage_keys
         ):
             return False
-    else:
+    elif outer_profile == _CEF_OUTER_PROFILE:
         export_count = evidence.get("cef_export_count")
         named_export_count = evidence.get("cef_named_export_count")
         prefix_count = evidence.get("cef_export_count_with_prefix")
@@ -3550,6 +3820,56 @@ def validate_recovery_contract(recovery: object) -> bool:
             for key in lineage_keys
         ):
             return False
+    else:
+        facade = evidence.get("export_facade")
+        backend = evidence.get("thread_backend")
+        export_count = evidence.get("export_count")
+        cef_export_count = evidence.get("cef_export_count")
+        marker_count = evidence.get("cef_loader_marker_count")
+        expected_backend = {
+            "vulkan": "imported_beginthreadex",
+            "cef": "local_wrapper_createthread",
+        }.get(facade)
+        if (
+            expected_backend is None
+            or backend != expected_backend
+            or type(export_count) is not int
+            or type(cef_export_count) is not int
+            or type(marker_count) is not int
+            or not 0 <= marker_count <= len(_CEF_LOADER_MARKERS)
+            or evidence.get("export_reachable_thread_config_lineage_present")
+            is not True
+            or evidence.get("thread_backend_wrapper_reachable") is not True
+            or evidence.get("terminal_socket_lineage_proven") is not False
+        ):
+            return False
+        if facade == "vulkan":
+            if export_count != 1 or cef_export_count != 0 or marker_count != 0:
+                return False
+            expected_local_wrapper_count = 0
+        else:
+            if (
+                not 128 <= export_count <= MAXIMUM_CEF_EXPORTS
+                or not 128 <= cef_export_count <= export_count
+            ):
+                return False
+            expected_local_wrapper_count = 1
+        exact_lineage_values = {
+            "export_to_main_direct_call_count": 1,
+            "main_to_thread_factory_direct_call_count": 1,
+            "thread_backend_api_call_count": 1,
+            "local_wrapper_to_create_thread_count": (
+                expected_local_wrapper_count
+            ),
+            "producer_pointer_store_count": 1,
+            "callback_trampoline_indirect_call_count": 1,
+        }
+        if any(
+            type(lineage_counts.get(key)) is not int
+            or lineage_counts.get(key) != expected
+            for key, expected in exact_lineage_values.items()
+        ):
+            return False
     required_producer_values = {
         "double_base64_decode_depth": 2,
         "slot_count": 3,
@@ -3590,7 +3910,28 @@ def recover_config(data: bytes) -> Ca01SideloadRecovery | None:
             for recovery in profile_recoveries
             if recovery is not None and validate_recovery_contract(recovery)
         ]
-        return recoveries[0] if len(recoveries) == 1 else None
+        if len(recoveries) == 1:
+            return recoveries[0]
+        if recoveries:
+            return None
+
+        # reviewed exact routeが成立しない場合だけ、同じbuilder/parser/consumer
+        # contractを外層候補として評価する。候補は終端socket証拠ではない。
+        candidate_recoveries = []
+        if _VULKAN_EXPORT in data:
+            candidate_recoveries.append(
+                _recover_builder_linked_candidate(data, facade="vulkan")
+            )
+        if all(marker in data for marker in _REQUIRED_CEF_EXPORTS):
+            candidate_recoveries.append(
+                _recover_builder_linked_candidate(data, facade="cef")
+            )
+        candidates = [
+            recovery
+            for recovery in candidate_recoveries
+            if recovery is not None and validate_recovery_contract(recovery)
+        ]
+        return candidates[0] if len(candidates) == 1 else None
     except (
         AttributeError,
         Ca01SideloadError,
@@ -3630,7 +3971,11 @@ def _public_structural_projection(source: object) -> dict[str, object]:
     if not isinstance(source, dict):
         return {}
     outer_profile = source.get("outer_profile")
-    if outer_profile not in {_VULKAN_OUTER_PROFILE, _CEF_OUTER_PROFILE}:
+    if outer_profile not in {
+        _VULKAN_OUTER_PROFILE,
+        _CEF_OUTER_PROFILE,
+        _BUILDER_LINKED_CANDIDATE_PROFILE,
+    }:
         outer_profile = "unknown"
     projected: dict[str, object] = {
         "architecture": "x64" if source.get("architecture") == "x64" else "unknown",
@@ -3686,6 +4031,44 @@ def _public_structural_projection(source: object) -> dict[str, object]:
                 "export_to_main_direct_call_count",
                 "main_to_beginthreadex_wrapper_direct_call_count",
                 "beginthreadex_api_call_count",
+                "producer_pointer_store_count",
+                "callback_trampoline_indirect_call_count",
+            ),
+        )
+    elif outer_profile == _BUILDER_LINKED_CANDIDATE_PROFILE:
+        facade = source.get("export_facade")
+        backend = source.get("thread_backend")
+        projected["export_facade"] = (
+            facade if facade in {"vulkan", "cef"} else "unknown"
+        )
+        projected["thread_backend"] = (
+            backend
+            if backend
+            in {"imported_beginthreadex", "local_wrapper_createthread"}
+            else "unknown"
+        )
+        projected.update(
+            _public_scalar_projection(
+                source,
+                count_keys=(
+                    "export_count",
+                    "cef_export_count",
+                    "cef_loader_marker_count",
+                ),
+                flag_keys=(
+                    "export_reachable_thread_config_lineage_present",
+                    "thread_backend_wrapper_reachable",
+                    "terminal_socket_lineage_proven",
+                ),
+            )
+        )
+        projected["lineage_counts"] = _public_scalar_projection(
+            source.get("lineage_counts"),
+            count_keys=(
+                "export_to_main_direct_call_count",
+                "main_to_thread_factory_direct_call_count",
+                "thread_backend_api_call_count",
+                "local_wrapper_to_create_thread_count",
                 "producer_pointer_store_count",
                 "callback_trampoline_indirect_call_count",
             ),
@@ -3813,8 +4196,13 @@ def public_recovery_summary(recovery: Ca01SideloadRecovery) -> dict[str, object]
     reviewed_exact = (
         _REVIEWED_CA01_OUTER_PROFILES.get(recovery.outer_sha256) == outer_profile
     )
+    candidate_profile = outer_profile == _BUILDER_LINKED_CANDIDATE_PROFILE
     return {
-        "status": "validated_ca01_x64_double_base64_sideload_config",
+        "status": (
+            "candidate_ca01_x64_double_base64_outer_builder_config"
+            if candidate_profile
+            else "validated_ca01_x64_double_base64_sideload_config"
+        ),
         "outer_sha256": recovery.outer_sha256,
         "reviewed_exact_outer_sha256": reviewed_exact,
         "outer_profile": outer_profile,
@@ -3850,6 +4238,7 @@ def probe_config(data: bytes) -> dict[str, object]:
     reviewed_exact = (
         _REVIEWED_CA01_OUTER_PROFILES.get(recovery.outer_sha256) == outer_profile
     )
+    candidate_profile = outer_profile == _BUILDER_LINKED_CANDIDATE_PROFILE
     reviewed_scope = (
         "reviewed_exact_cef_alias_loader_linked_config_and_memory_stage_consumer"
         if outer_profile == _CEF_OUTER_PROFILE
@@ -3864,28 +4253,39 @@ def probe_config(data: bytes) -> dict[str, object]:
     )
     return {
         "matched": True,
-        "family": "valleyrat" if reviewed_exact else None,
-        "variant": "ca01_x64_double_base64_sideload_terminal",
+        "family": "valleyrat" if reviewed_exact and not candidate_profile else None,
+        "variant": (
+            "ca01_x64_double_base64_outer_builder_candidate"
+            if candidate_profile
+            else "ca01_x64_double_base64_sideload_terminal"
+        ),
         "outer_profile": outer_profile,
-        "supports_family_attribution": reviewed_exact,
+        "supports_family_attribution": reviewed_exact and not candidate_profile,
         "attribution_scope": (
-            reviewed_scope
+            "outer_builder_linked_config_candidate"
+            if candidate_profile
+            else reviewed_scope
             if reviewed_exact
             else "component_handler_route"
         ),
-        "terminal_family_confirmed": reviewed_exact,
+        "terminal_family_confirmed": reviewed_exact and not candidate_profile,
         "family_attribution_basis": (
-            reviewed_basis
+            "export_thread_builder_double_base64_three_slot_consumer_"
+            "lineage_without_terminal_socket_proof"
+            if candidate_profile
+            else reviewed_basis
             if reviewed_exact
             else "ca01_structure_without_reviewed_terminal_identity"
         ),
         "classification_confidence": (
-            "high_structural_decoded_config"
+            "medium_structural_config_candidate"
+            if candidate_profile
+            else "high_structural_decoded_config"
             if reviewed_exact
             else "medium_structural_config_route"
         ),
-        "static_config_recovered": True,
-        "candidate_config_recovered": False,
+        "static_config_recovered": not candidate_profile,
+        "candidate_config_recovered": candidate_profile,
         "evidence": public_recovery_summary(recovery),
         "config": {
             "endpoint_count": endpoint_count,

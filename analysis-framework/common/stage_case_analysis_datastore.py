@@ -4,22 +4,21 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
-from functools import cache
 import hashlib
 import json
 import os
-from pathlib import Path, PurePosixPath
 import re
 import shutil
 import stat
 import sys
 import uuid
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from functools import cache
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import archive_analysis_datastore
-
 
 SCHEMA_VERSION = "analysis-datastore-case-staging/v1"
 RELATIONSHIP_SCHEMA_VERSION = "analysis-datastore-case-input-relationships/v1"
@@ -144,6 +143,7 @@ class ValidatedInputs:
     output_root: Path
     source_manifest: dict[str, Any]
     source_manifest_sha256: str
+    source_sidecar_commitments: Mapping[str, SourceCommitment]
     relationships_manifest: dict[str, Any]
     relationships_manifest_sha256: str
     validation_manifest: dict[str, Any]
@@ -268,6 +268,19 @@ def _read_json(path: Path, *, label: str) -> tuple[dict[str, Any], str]:
     if not isinstance(value, dict):
         raise CaseStagingError(f"{label}のrootはobjectである必要があります")
     return value, hashlib.sha256(raw).hexdigest()
+
+
+def _canonical_sha256(value: Any) -> str:
+    """JSON値をselection側と同じcanonical形式でcommitする。"""
+
+    payload = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _reject_sensitive_name(relative: PurePosixPath) -> None:
@@ -679,9 +692,92 @@ def _case_directories(
     return dict(sorted(result.items()))
 
 
+def _validate_exclusion_set(
+    document: Mapping[str, Any],
+    *,
+    source_manifest: Mapping[str, Any],
+    selected_sha256s: set[str],
+) -> None:
+    """非公開除外集合の内容を検証し、raw内容のcase混入を防ぐ。"""
+
+    identities = document.get("identities")
+    if (
+        document.get("schema_version") != 1
+        or document.get("identity_type") != "sha256"
+        or type(document.get("identity_count")) is not int
+        or not isinstance(identities, list)
+        or len(identities) > MAX_RELATIONSHIPS
+        or document["identity_count"] != len(identities)
+        or document.get("classification") != "private"
+        or document.get("contains_sample_sha256") is not True
+        or document.get("publishable") is not False
+    ):
+        raise CaseStagingError("exclusion-set.jsonの非公開除外集合契約が不正です")
+    normalized = [
+        _validate_sha256(value, label="exclusion-set.json identities item")
+        for value in identities
+    ]
+    if normalized != sorted(normalized) or len(set(normalized)) != len(normalized):
+        raise CaseStagingError("exclusion-set.jsonのidentitiesは一意な昇順SHA-256である必要があります")
+    excluded_sha256 = _validate_sha256(
+        document.get("excluded_hashes_sha256"),
+        label="exclusion-set.json excluded_hashes_sha256",
+    )
+    selection_sha256 = _validate_sha256(
+        document.get("selection_commitment_sha256"),
+        label="exclusion-set.json selection_commitment_sha256",
+    )
+    if excluded_sha256 != _canonical_sha256(normalized):
+        raise CaseStagingError("exclusion-set.jsonの除外集合commitmentが一致しません")
+    if (
+        type(source_manifest.get("excluded_hashes")) is not int
+        or source_manifest.get("excluded_hashes") != len(normalized)
+        or source_manifest.get("excluded_hashes_sha256") != excluded_sha256
+        or source_manifest.get("selection_commitment_sha256") != selection_sha256
+    ):
+        raise CaseStagingError("source manifestとexclusion-set.jsonのcommitmentが一致しません")
+    if selected_sha256s & set(normalized):
+        raise CaseStagingError("選定caseがexclusion-set.jsonの除外集合と重複しています")
+
+
+def _validate_source_sidecars(
+    source_root: Path,
+    *,
+    source_manifest: Mapping[str, Any],
+    selected_sha256s: set[str],
+) -> dict[str, SourceCommitment]:
+    """source共通sidecarを検証し、copyしないcommitmentへ固定する。"""
+
+    commitments: dict[str, SourceCommitment] = {}
+    for name in ("exclusion-set.json", "family-hints.json"):
+        path = source_root / name
+        if not os.path.lexists(path):
+            continue
+        document, document_sha256 = _read_json(path, label=f"source sidecar {name}")
+        if name == "exclusion-set.json":
+            _validate_exclusion_set(
+                document,
+                source_manifest=source_manifest,
+                selected_sha256s=selected_sha256s,
+            )
+        commitment = _snapshot_source_commitment(
+            path,
+            relative=f"source-sidecar/{name}",
+        )
+        if commitment.sha256 != document_sha256:
+            raise CaseStagingError(f"source sidecar {name}が検証中に変更されました")
+        commitments[name] = commitment
+    return commitments
+
+
 def _validate_source_manifest(
     source_root: Path,
-) -> tuple[dict[str, Any], str, dict[str, Path]]:
+) -> tuple[
+    dict[str, Any],
+    str,
+    dict[str, Path],
+    dict[str, SourceCommitment],
+]:
     manifest, manifest_sha256 = _read_json(
         source_root / "manifest.json",
         label="MalwareBazaar source manifest",
@@ -730,7 +826,9 @@ def _validate_source_manifest(
     case_directories = _case_directories(
         source_root,
         label="source root",
-        allowed_noncase_files=frozenset({"manifest.json", "family-hints.json"}),
+        allowed_noncase_files=frozenset(
+            {"manifest.json", "family-hints.json", "exclusion-set.json"}
+        ),
     )
     if set(case_directories) != selected_set:
         raise CaseStagingError("source directoryとselected_hashesのcase集合が一致しません")
@@ -755,7 +853,12 @@ def _validate_source_manifest(
             or item["metadata"].get("sha256_hash") != digest
         ):
             raise CaseStagingError("source archiveとmanifestのsize／SHA-256が一致しません")
-    return manifest, manifest_sha256, case_directories
+    sidecar_commitments = _validate_source_sidecars(
+        source_root,
+        source_manifest=manifest,
+        selected_sha256s=selected_set,
+    )
+    return manifest, manifest_sha256, case_directories, sidecar_commitments
 
 
 def _validated_case_source_bindings(
@@ -926,6 +1029,41 @@ def _validate_one_shot_report_identity(case_directory: Path, *, digest: str) -> 
                 (child, f"{location}[{index}]")
                 for index, child in enumerate(value)
             )
+
+
+def _validate_one_shot_report_safety(case_directory: Path) -> dict[str, Any]:
+    """Ghidra非要求経路でone-shot reportの非実行契約を確認する。"""
+
+    report, _report_sha256 = _read_json(
+        case_directory / "report.json",
+        label="one-shot report safety",
+    )
+    execution_fields = [
+        field
+        for field in ("executed_sample", "sample_executed")
+        if field in report
+    ]
+    if not execution_fields or any(
+        report[field] is not False for field in execution_fields
+    ):
+        raise CaseStagingError(
+            "Ghidra非要求経路のone-shot reportがsample非実行を明示していません"
+        )
+    if report.get("network_contacted") is not False:
+        raise CaseStagingError(
+            "Ghidra非要求経路のone-shot reportがnetwork非接触を明示していません"
+        )
+    ai_used = report.get("ai_used")
+    if ai_used is not False and ai_used is not None:
+        raise CaseStagingError(
+            "Ghidra非要求経路のone-shot reportでAI利用が記録されています"
+        )
+    return {
+        "sample_executed": False,
+        "network_contacted": False,
+        "ai_used": ai_used,
+        "one_shot_report_safety_validated": True,
+    }
 
 
 def _validate_relationships(
@@ -1326,7 +1464,12 @@ def _validate_inputs(
         repository=repository,
         inputs=inputs,
     )
-    source_manifest, source_manifest_sha256, source_cases = _validate_source_manifest(source_root)
+    (
+        source_manifest,
+        source_manifest_sha256,
+        source_cases,
+        source_sidecar_commitments,
+    ) = _validate_source_manifest(source_root)
     one_shot_cases = _case_directories(
         _validate_existing_directory(
             one_shot_root / "cases",
@@ -1399,6 +1542,7 @@ def _validate_inputs(
         output_root=output_root,
         source_manifest=source_manifest,
         source_manifest_sha256=source_manifest_sha256,
+        source_sidecar_commitments=source_sidecar_commitments,
         relationships_manifest=relationships_manifest,
         relationships_manifest_sha256=relationships_manifest_sha256,
         validation_manifest=validation_manifest,
@@ -1427,6 +1571,7 @@ def _source_case_document_from_manifest(
     collection_id: str,
     case_sha256: str,
     source_requested_sha256: str | None = None,
+    source_sidecar_commitments: Mapping[str, SourceCommitment] | None = None,
 ) -> dict[str, Any]:
     requested = source_requested_sha256 or case_sha256
     items = source_manifest["items"]
@@ -1463,10 +1608,22 @@ def _source_case_document_from_manifest(
         },
         "metadata": dict(metadata),
         "provider_metadata": dict(item["metadata"]),
+        "source_sidecars": [
+            {
+                "name": name,
+                "size": commitment.size,
+                "sha256": commitment.sha256,
+                "raw_content_included": False,
+            }
+            for name, commitment in sorted(
+                (source_sidecar_commitments or {}).items()
+            )
+        ],
         "safety": {
             "sample_executed": False,
             "archive_decrypted_for_staging": False,
             "network_contacted_for_staging": False,
+            "raw_source_sidecars_included": False,
         },
     }
 
@@ -1478,6 +1635,7 @@ def _source_case_document(inputs: ValidatedInputs, case: CaseInputs) -> dict[str
         collection_id=inputs.collection_id,
         case_sha256=case.case_sha256,
         source_requested_sha256=case.source_requested_sha256,
+        source_sidecar_commitments=inputs.source_sidecar_commitments,
     )
 
 
@@ -1751,6 +1909,12 @@ def _stage_one(
                     commitments=commitments,
                 )
             )
+        for name, source_commitment in inputs.source_sidecar_commitments.items():
+            _assert_source_commitment(
+                source_commitment.path,
+                commitments=commitments,
+                role=f"source sidecar {name}",
+            )
         copied.append(
             _write_generated_json(
                 temporary / "derived" / "source-acquisition.case.json",
@@ -1907,6 +2071,12 @@ def _preflight_sensitive_content(
         key = os.path.normcase(os.fspath(_absolute(path)))
         files.setdefault(key, (path, label))
 
+    for name, commitment in inputs.source_sidecar_commitments.items():
+        files[_source_commitment_key(commitment.path)] = (
+            commitment.path,
+            f"source-sidecar/{name}",
+        )
+
     for case in inputs.cases.values():
         for path, relative in _walk_files(case.source_directory, role="source"):
             add(path, f"source/{case.case_sha256}/{relative.as_posix()}")
@@ -1930,7 +2100,21 @@ def _preflight_sensitive_content(
             )
     commitments: dict[str, SourceCommitment] = {}
     for key, (path, relative) in sorted(files.items()):
-        commitments[key] = _snapshot_source_commitment(path, relative=relative)
+        commitment = _snapshot_source_commitment(path, relative=relative)
+        expected = next(
+            (
+                item
+                for item in inputs.source_sidecar_commitments.values()
+                if _source_commitment_key(item.path) == key
+            ),
+            None,
+        )
+        if expected is not None and (
+            commitment.sha256 != expected.sha256
+            or commitment.size != expected.size
+        ):
+            raise CaseStagingError("source sidecarがmanifest検証後に変更されました")
+        commitments[key] = commitment
     return commitments
 
 
@@ -2090,7 +2274,12 @@ def stage_cases_without_ghidra(
     if _is_within(source_root, one_shot_root) or _is_within(one_shot_root, source_root):
         raise CaseStagingError("private artifact入力rootは相互に分離してください")
     output_root = _prepare_output_root(output_root, repository=repository, inputs=inputs)
-    source_manifest, source_manifest_sha256, source_cases = _validate_source_manifest(source_root)
+    (
+        source_manifest,
+        source_manifest_sha256,
+        source_cases,
+        source_sidecar_commitments,
+    ) = _validate_source_manifest(source_root)
     one_shot_cases = _case_directories(
         _validate_existing_directory(one_shot_root / "cases", label="one-shot cases root"),
         label="one-shot cases root",
@@ -2102,8 +2291,14 @@ def stage_cases_without_ghidra(
     source_directory = source_cases[digest]
     one_shot_directory = one_shot_cases[digest]
     _validate_one_shot_report_identity(one_shot_directory, digest=digest)
+    one_shot_safety = _validate_one_shot_report_safety(one_shot_directory)
 
     input_files: dict[str, tuple[Path, str]] = {}
+    for name, commitment in source_sidecar_commitments.items():
+        input_files[_source_commitment_key(commitment.path)] = (
+            commitment.path,
+            f"source-sidecar/{name}",
+        )
     for root, role in (
         (source_directory, "source"),
         (one_shot_directory, "one_shot_private"),
@@ -2111,10 +2306,23 @@ def stage_cases_without_ghidra(
         for path, relative in _walk_files(root, role=role):
             key = _source_commitment_key(path)
             input_files.setdefault(key, (path, f"{role}/{digest}/{relative.as_posix()}"))
-    commitments = {
-        key: _snapshot_source_commitment(path, relative=relative)
-        for key, (path, relative) in sorted(input_files.items())
-    }
+    commitments: dict[str, SourceCommitment] = {}
+    for key, (path, relative) in sorted(input_files.items()):
+        commitment = _snapshot_source_commitment(path, relative=relative)
+        expected = next(
+            (
+                item
+                for item in source_sidecar_commitments.values()
+                if _source_commitment_key(item.path) == key
+            ),
+            None,
+        )
+        if expected is not None and (
+            commitment.sha256 != expected.sha256
+            or commitment.size != expected.size
+        ):
+            raise CaseStagingError("source sidecarがmanifest検証後に変更されました")
+        commitments[key] = commitment
     required = sum(item.size for item in commitments.values()) + 1024 * 1024
     try:
         free = shutil.disk_usage(output_root).free
@@ -2152,6 +2360,12 @@ def stage_cases_without_ghidra(
                 commitments=commitments,
             )
         )
+        for name, source_commitment in source_sidecar_commitments.items():
+            _assert_source_commitment(
+                source_commitment.path,
+                commitments=commitments,
+                role=f"source sidecar {name}",
+            )
         copied.append(
             _write_generated_json(
                 temporary / "derived" / "source-acquisition.case.json",
@@ -2160,6 +2374,7 @@ def stage_cases_without_ghidra(
                     source_manifest_sha256=source_manifest_sha256,
                     collection_id=collection_id,
                     case_sha256=digest,
+                    source_sidecar_commitments=source_sidecar_commitments,
                 ),
                 staging_root=temporary,
                 role="derived_acquisition_manifest",
@@ -2201,6 +2416,8 @@ def stage_cases_without_ghidra(
                 "different_cases_included": False,
                 "sample_executed": False,
                 "network_contacted": False,
+                "ai_used": one_shot_safety["ai_used"],
+                "one_shot_report_safety_validated": True,
                 "source_deleted": False,
             },
         }
@@ -2236,6 +2453,8 @@ def stage_cases_without_ghidra(
             "archive_arguments": ["--target", target, "--source", os.fspath(final)],
             "sample_executed": False,
             "network_contacted": False,
+            "ai_used": one_shot_safety["ai_used"],
+            "one_shot_report_safety_validated": True,
         }
     except BaseException:
         if temporary is not None:
@@ -2255,6 +2474,8 @@ def stage_cases_without_ghidra(
             "preflight_secret_name_and_content_scan_complete": True,
             "sample_executed": False,
             "network_contacted": False,
+            "ai_used": one_shot_safety["ai_used"],
+            "one_shot_report_safety_validated": True,
             "s3_upload_performed": False,
             "receipt_created": False,
             "source_deleted": False,
@@ -2655,7 +2876,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--collection-id", required=True)
     parser.add_argument("--source-root", required=True, type=Path)
     parser.add_argument("--one-shot-root", required=True, type=Path)
-    parser.add_argument("--ghidra-root", required=True, type=Path)
+    ghidra = parser.add_mutually_exclusive_group(required=True)
+    ghidra.add_argument("--ghidra-root", type=Path)
+    ghidra.add_argument(
+        "--ghidra-not-requested",
+        action="store_true",
+        help="Ghidraを明示的に実行しないrunとしてsourceとone-shotだけを分離します",
+    )
     parser.add_argument("--output-root", required=True, type=Path)
     parser.add_argument(
         "--case-sha256",
@@ -2668,15 +2895,27 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     arguments = build_parser().parse_args(argv)
     try:
-        result = stage_cases(
-            repository=arguments.repository,
-            collection_id=arguments.collection_id,
-            source_root=arguments.source_root,
-            one_shot_root=arguments.one_shot_root,
-            ghidra_root=arguments.ghidra_root,
-            output_root=arguments.output_root,
-            case_sha256s=[arguments.case_sha256],
-        )
+        if arguments.ghidra_not_requested:
+            result = stage_cases_without_ghidra(
+                repository=arguments.repository,
+                collection_id=arguments.collection_id,
+                source_root=arguments.source_root,
+                one_shot_root=arguments.one_shot_root,
+                output_root=arguments.output_root,
+                case_sha256s=[arguments.case_sha256],
+            )
+        else:
+            if arguments.ghidra_root is None:
+                raise CaseStagingError("--ghidra-rootがありません")
+            result = stage_cases(
+                repository=arguments.repository,
+                collection_id=arguments.collection_id,
+                source_root=arguments.source_root,
+                one_shot_root=arguments.one_shot_root,
+                ghidra_root=arguments.ghidra_root,
+                output_root=arguments.output_root,
+                case_sha256s=[arguments.case_sha256],
+            )
     except CaseStagingError as exc:
         print(
             json.dumps(

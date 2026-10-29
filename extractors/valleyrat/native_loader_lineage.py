@@ -1408,10 +1408,6 @@ def _structural_cluster(context: _PeContext) -> str | None:
         return "resource_process_loader_candidate"
     if {"virtualallocex", "writeprocessmemory", "createprocessw"}.issubset(names):
         return "remote_memory_process_loader_candidate"
-    if "d3d11.dll" in libraries and "wevtapi.dll" in libraries:
-        return "graphics_eventlog_context_loader_candidate"
-    if "d3d11.dll" in libraries:
-        return "graphics_probe_loader_candidate"
     if {"getthreadcontext", "setthreadcontext", "resumethread"}.issubset(names):
         return "thread_context_loader_candidate"
     debug_attribute_group = {

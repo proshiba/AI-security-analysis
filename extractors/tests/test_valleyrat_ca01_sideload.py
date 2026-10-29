@@ -112,6 +112,45 @@ def _valid_recovery(outer_sha256: str) -> ca01.Ca01SideloadRecovery:
     )
 
 
+def _candidate_recovery(*, facade: str = "cef") -> ca01.Ca01SideloadRecovery:
+    recovery = _valid_recovery(hashlib.sha256(b"candidate-fixture").hexdigest())
+    is_cef = facade == "cef"
+    return ca01.Ca01SideloadRecovery(
+        outer_sha256=recovery.outer_sha256,
+        config=recovery.config,
+        structural_evidence={
+            "architecture": "x64",
+            "outer_profile": ca01._BUILDER_LINKED_CANDIDATE_PROFILE,
+            "export_facade": facade,
+            "thread_backend": (
+                "local_wrapper_createthread"
+                if is_cef
+                else "imported_beginthreadex"
+            ),
+            "export_count": 200 if is_cef else 1,
+            "cef_export_count": 196 if is_cef else 0,
+            # marker集合は候補routeの補助証拠であり完全一致を要求しない。
+            "cef_loader_marker_count": 9 if is_cef else 0,
+            "export_reachable_thread_config_lineage_present": True,
+            "thread_backend_wrapper_reachable": True,
+            "terminal_socket_lineage_proven": False,
+            "producer_candidate_count": 1,
+            "lineage_counts": {
+                "export_to_main_direct_call_count": 1,
+                "main_to_thread_factory_direct_call_count": 1,
+                "thread_backend_api_call_count": 1,
+                "local_wrapper_to_create_thread_count": 1 if is_cef else 0,
+                "producer_pointer_store_count": 1,
+                "callback_trampoline_indirect_call_count": 1,
+            },
+            "producer": recovery.structural_evidence["producer"],
+            "sample_executed": False,
+            "recovered_stage_executed": False,
+            "network_contacted": False,
+        },
+    )
+
+
 def _section(
     *,
     raw_start: int,
@@ -991,3 +1030,41 @@ def test_invalid_or_oversized_input_is_fail_closed() -> None:
     assert ca01.recover_config(b"not-a-pe") is None
     assert ca01.recover_config(bytearray(b"MZ")) is None  # type: ignore[arg-type]
     assert ca01.recover_config(b"MZ" + b"\0" * ca01.MAXIMUM_INPUT_SIZE) is None
+
+
+@pytest.mark.parametrize("facade", ["vulkan", "cef"])
+def test_builder_linked_candidate_preserves_attribution_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+    facade: str,
+) -> None:
+    recovery = _candidate_recovery(facade=facade)
+    assert ca01.validate_recovery_contract(recovery) is True
+    monkeypatch.setattr(ca01, "recover_config", lambda _data: recovery)
+
+    probe = ca01.probe_config(b"MZ candidate")
+
+    assert probe["matched"] is True
+    assert probe["family"] is None
+    assert probe["supports_family_attribution"] is False
+    assert probe["terminal_family_confirmed"] is False
+    assert probe["static_config_recovered"] is False
+    assert probe["candidate_config_recovered"] is True
+    assert probe["evidence"]["raw_network_values_included"] is False
+    assert (
+        probe["evidence"]["structural_evidence"][
+            "terminal_socket_lineage_proven"
+        ]
+        is False
+    )
+
+
+def test_builder_linked_candidate_rejects_terminal_or_ambiguous_lineage() -> None:
+    recovery = _candidate_recovery()
+    recovery.structural_evidence["terminal_socket_lineage_proven"] = True
+    assert ca01.validate_recovery_contract(recovery) is False
+
+    recovery = _candidate_recovery()
+    recovery.structural_evidence["lineage_counts"][
+        "local_wrapper_to_create_thread_count"
+    ] = 2
+    assert ca01.validate_recovery_contract(recovery) is False
