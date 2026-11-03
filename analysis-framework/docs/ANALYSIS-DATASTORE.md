@@ -12,6 +12,8 @@
 
 異なる解析対象を1つのZIPへ混在させません。同一キャンペーン内でも親検体またはcaseが異なる場合は、親子関係をmanifestや公開メタデータに記録した上で別targetとします。
 
+固定200件を最大4つのproduction jobへ分割したrunは、`PARTITIONED-ANALYSIS-DATASTORE.md`の全体preflightと単一case handoffを使用します。部分jobを単独で通常のstaging helperへ渡してはいけません。
+
 ## 保存するものと保存しないもの
 
 保存対象は、再解析に必要なraw検体、抽出物、復号物、dump、通信capture、toolの非公開raw出力です。公開可能なハッシュ、IOC、静的解析結果、検知rule、再現用scriptは従来どおりリポジトリへ保存します。
@@ -124,6 +126,20 @@ partial、pending、disabled、failed、ABORTED、case集合不一致、共有de
 `daily_analysis_orchestrator.py` の `private_archive` も、source取得、one-shot private解析、Ghidra解析が完了したsample collectionには同じ逐次処理を使用します。source全体、one-shot job全体、完了済みGhidra出力全体を別々のbulk archiveへ入れる経路は使用しません。解析途中またはupstream失敗時のGhidra checkpointと、caseへ帰属しないdaily newsは、再開情報を失わないため独立targetとして保管できます。case別archiveが失敗した場合はそのcaseで停止し、remote検証前のowned stagingを保持します。
 
 日次requestでGhidra stageを明示的に無効化した場合も、sourceとone-shot private結果はcase別に分離して保管します。この経路では存在しないGhidra rootを要求せず、staging manifestへ `ghidra.status: not_requested` を記録します。Ghidra成果物が存在するかのような補完は行いません。
+
+### 分割jobで共有derivedを外部分離する場合
+
+複数rootのfollow-on graphが同一derived payloadを共有する場合も、既定動作は `shared_or_cross_root_child` による拒否です。自動的に別rootへ混在させたり、同一payloadをrootごとのZIPへ重複格納したりしません。共有derivedがmaterialized済みのleafで、全ownerのpayload copy、edge、graph、case stateを再検証できる場合に限り、`--externalize-shared-derived` を明示して次の順序で外部分離できます。
+
+1. `--preflight-only --externalize-shared-derived` で全jobを再検証し、shared target数を固定する。
+2. `--shared-child-sha256 <child SHA-256> --externalize-shared-derived` でshared targetを先にstageする。
+3. 返された `archive_arguments` を既存の `archive_analysis_datastore.py` へ渡し、AES-256 ZIPをuploadする。
+4. 同じshared actionを再実行し、private receiptとS3 `HeadObject`を再検証してowned shared stagingだけを回収する。
+5. `--case-sha256 <root SHA-256> --externalize-shared-derived` でrootをstageする。shared receiptが未検証ならroot作成前に停止する。
+
+shared archiveはcanonical payload 1 copy、当該derived caseの静的解析tree、日本語README、JSON provenanceだけを含みます。root sourceやroot analysisは含めません。root archiveからは該当edgeのpayload bytesと `one-shot-derived/<child SHA-256>/` を除外し、代わりにshared archiveのtarget、archive SHA-256、manifest SHA-256、source-tree SHA-256、provenance SHA-256、private archive report SHA-256を記録します。object URIはroot参照へ入れません。参照はさらにsource follow-on graph、owner集合、edge集合、partial方針へ束縛します。
+
+non-leaf shared child、同一childの複数job出現、owner／edge／graph／payload copyの競合、partial方針不一致、bindingだけが残る不完全状態、remote metadata不一致、hardlink、symlink、junction、reparse pointはfail-closedで拒否します。archive helper直後にreportだけがある状態は正常な中間状態ですが、live source／planとS3 `HeadObject`の再検証に成功した場合だけbindingを新規作成します。中断後はstaging全inventoryとlive graph commitmentを再照合し、remote検証後に削除するのはhelperが作成したowned stagingだけです。元sourceとjob treeは削除しません。
 
 `--report`が出力するupload検証receiptには、保管先objectや実行基盤の照合情報が含まれます。これはローカル検証専用とし、リポジトリ外またはGit管理外の`.work`配下へ保存してください。`analysis-results`や`ui`へ配置せず、`datastore-upload.json`を公開成果物としてcommitしたり、READMEからリンクしたりしません。CLIはリポジトリ内の`.work`以外を保存先に指定した場合、upload開始前に処理を拒否します。
 

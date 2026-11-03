@@ -167,6 +167,15 @@ class DailyOrchestrationError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class CaseArchiveAnalysisCommitment:
+    """case stagingをlive解析treeとfollow-on graphへ固定する。"""
+
+    analysis_output_manifest: Mapping[str, Any]
+    analysis_output_sha256: str
+    follow_on_lineage_documents: Mapping[str, Mapping[str, Any] | None]
+
+
+@dataclass(frozen=True)
 class DailyRequest:
     """厳格検証済みの日次解析request。"""
 
@@ -769,7 +778,9 @@ def discover_latest_news_source(tech_memo: Path) -> dict[str, Any]:
                 continue
             compact = path.stem
             try:
-                source_date = datetime.strptime(compact, "%Y%m%d").date().isoformat()
+                source_date = date.fromisoformat(
+                    f"{compact[:4]}-{compact[4:6]}-{compact[6:]}"
+                ).isoformat()
             except ValueError:
                 continue
             record = candidates.setdefault(
@@ -4969,6 +4980,85 @@ def _archive_one(
     }
 
 
+def _case_archive_analysis_commitment(
+    *,
+    one_shot_root: Path,
+    collection_id: str,
+    case_sha256s: tuple[str, ...],
+) -> CaseArchiveAnalysisCommitment:
+    """live one-shot treeとroot別lineageを1つの再利用契約へ固定する。"""
+
+    import stage_case_analysis_datastore
+
+    if (
+        not case_sha256s
+        or len(set(case_sha256s)) != len(case_sha256s)
+        or any(SHA256_RE.fullmatch(value) is None for value in case_sha256s)
+    ):
+        raise DailyOrchestrationError(
+            "case_archive_analysis_commitment_invalid",
+            "case staging用のroot SHA-256集合が不正です",
+        )
+    try:
+        analysis_manifest = analysis_job_runner.analysis_output_content_manifest(
+            one_shot_root,
+        )
+        analysis_sha256 = analysis_job_runner.analysis_output_content_sha256(
+            analysis_manifest,
+        )
+        lineage = stage_case_analysis_datastore._validate_one_shot_lineage(
+            one_shot_root,
+            source_case_sha256s=set(case_sha256s),
+        )
+        lineage_documents = {
+            digest: stage_case_analysis_datastore.build_follow_on_lineage_case_document(
+                lineage,
+                collection_id=collection_id,
+                case_sha256=digest,
+            )
+            for digest in case_sha256s
+        }
+    except (
+        analysis_job_runner.JobContractError,
+        stage_case_analysis_datastore.CaseStagingError,
+    ) as exc:
+        raise DailyOrchestrationError(
+            "case_archive_analysis_commitment_failed",
+            "case staging用の解析tree／follow-on commitmentを作成できません",
+        ) from exc
+    if SHA256_RE.fullmatch(analysis_sha256) is None:
+        raise DailyOrchestrationError(
+            "case_archive_analysis_commitment_invalid",
+            "case staging用の解析tree commitmentが不正です",
+        )
+    return CaseArchiveAnalysisCommitment(
+        analysis_output_manifest=analysis_manifest,
+        analysis_output_sha256=analysis_sha256,
+        follow_on_lineage_documents=lineage_documents,
+    )
+
+
+def _verify_case_archive_analysis_commitment(
+    *,
+    one_shot_root: Path,
+    collection_id: str,
+    case_sha256s: tuple[str, ...],
+    expected: CaseArchiveAnalysisCommitment,
+) -> None:
+    """staging直前のlive treeが全体preflight後に変化していないことを確認する。"""
+
+    observed = _case_archive_analysis_commitment(
+        one_shot_root=one_shot_root,
+        collection_id=collection_id,
+        case_sha256s=case_sha256s,
+    )
+    if observed != expected:
+        raise DailyOrchestrationError(
+            "case_archive_analysis_changed",
+            "case staging前に解析treeまたはfollow-on graphが変更されました",
+        )
+
+
 def _archive_analysis_cases(
     context: DailyContext,
     *,
@@ -4995,6 +5085,8 @@ def _archive_analysis_cases(
     # run IDに束縛した短い専用rootを再開時にも一貫して使う。
     staging_root = context.work_root / "cs" / context.request.run_id.replace("daily-", "run-", 1)
     ghidra_session = None
+    ordered_selected = tuple(sorted(selected))
+    analysis_commitment: CaseArchiveAnalysisCommitment | None = None
     if context.request.stages["ghidra"]:
         try:
             ghidra_session = stage_case_analysis_datastore.prepare_case_staging_session(
@@ -5004,15 +5096,21 @@ def _archive_analysis_cases(
                 one_shot_root=one_shot_root,
                 ghidra_root=context.ghidra_private_output,
                 output_root=staging_root,
-                case_sha256s=sorted(selected),
+                case_sha256s=ordered_selected,
             )
         except stage_case_analysis_datastore.CaseStagingError as exc:
             raise DailyOrchestrationError(
                 "case_archive_staging_failed",
                 "case別archiveの全体preflightに失敗しました",
             ) from exc
+    else:
+        analysis_commitment = _case_archive_analysis_commitment(
+            one_shot_root=one_shot_root,
+            collection_id=context.collection_id,
+            case_sha256s=ordered_selected,
+        )
     archived: list[dict[str, Any]] = []
-    for digest in sorted(selected):
+    for digest in ordered_selected:
         archive_digest = digest
         if isinstance(ghidra_session, stage_case_analysis_datastore.CaseStagingSession):
             archive_digest = ghidra_session.requested_to_actual_case_sha256.get(digest, digest)
@@ -5022,10 +5120,31 @@ def _archive_analysis_cases(
                 archive_digest,
             )
             if os.path.lexists(staging_root / expected_target):
+                if analysis_commitment is None:
+                    # Ghidra付きlegacy staging manifestはanalysis tree commitmentを
+                    # 保持しない。現在の解析treeへ再束縛できないため、安全側へ倒す。
+                    raise DailyOrchestrationError(
+                        "case_archive_staging_binding_unavailable",
+                        "Ghidra付き既存case stagingを現在の解析treeへ再束縛できません",
+                    )
+                _verify_case_archive_analysis_commitment(
+                    one_shot_root=one_shot_root,
+                    collection_id=context.collection_id,
+                    case_sha256s=ordered_selected,
+                    expected=analysis_commitment,
+                )
                 staged = stage_case_analysis_datastore.reuse_case_staging(
                     output_root=staging_root,
                     collection_id=context.collection_id,
                     case_sha256=archive_digest,
+                    expected_analysis_output_sha256=(
+                        analysis_commitment.analysis_output_sha256
+                    ),
+                    expected_follow_on_lineage_document=(
+                        analysis_commitment.follow_on_lineage_documents[
+                            archive_digest
+                        ]
+                    ),
                 )
             else:
                 if context.request.stages["ghidra"]:
@@ -5039,6 +5158,17 @@ def _archive_analysis_cases(
                         case_sha256=digest,
                     )
                 else:
+                    if analysis_commitment is None:
+                        raise DailyOrchestrationError(
+                            "case_archive_analysis_commitment_missing",
+                            "case staging用の解析tree commitmentがありません",
+                        )
+                    _verify_case_archive_analysis_commitment(
+                        one_shot_root=one_shot_root,
+                        collection_id=context.collection_id,
+                        case_sha256s=ordered_selected,
+                        expected=analysis_commitment,
+                    )
                     staged = stage_case_analysis_datastore.stage_cases_without_ghidra(
                         repository=context.repository,
                         collection_id=context.collection_id,
@@ -5046,6 +5176,14 @@ def _archive_analysis_cases(
                         one_shot_root=one_shot_root,
                         output_root=staging_root,
                         case_sha256s=[digest],
+                        expected_analysis_output_sha256=(
+                            analysis_commitment.analysis_output_sha256
+                        ),
+                        expected_follow_on_lineage_document=(
+                            analysis_commitment.follow_on_lineage_documents[
+                                archive_digest
+                            ]
+                        ),
                     )
         except stage_case_analysis_datastore.CaseStagingError as exc:
             raise DailyOrchestrationError(
@@ -5091,12 +5229,26 @@ def _archive_analysis_cases(
             expected_source=case,
         )
         try:
+            cleanup_arguments: dict[str, Any] = {
+                "output_root": staging_root,
+                "source_path": source,
+                "collection_id": context.collection_id,
+                "case_sha256": archive_digest,
+                "archive_result": archive_result,
+            }
+            if analysis_commitment is not None:
+                cleanup_arguments.update(
+                    expected_analysis_output_sha256=(
+                        analysis_commitment.analysis_output_sha256
+                    ),
+                    expected_follow_on_lineage_document=(
+                        analysis_commitment.follow_on_lineage_documents[
+                            archive_digest
+                        ]
+                    ),
+                )
             cleanup = stage_case_analysis_datastore.remove_case_staging_after_verified_archive(
-                output_root=staging_root,
-                source_path=source,
-                collection_id=context.collection_id,
-                case_sha256=archive_digest,
-                archive_result=archive_result,
+                **cleanup_arguments,
             )
         except stage_case_analysis_datastore.CaseStagingError as exc:
             raise DailyOrchestrationError(
@@ -5435,7 +5587,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     draft.add_argument("--intelligence-root", required=True, type=Path)
     draft.add_argument("--tech-memo", default="tech-memo")
-    draft.add_argument("--analysis-date", default=date.today().isoformat())
+    draft.add_argument("--analysis-date", default=datetime.now(UTC).date().isoformat())
     draft.add_argument("--run-id")
     draft.add_argument("--malwarebazaar-count", type=int, default=50)
     plan = commands.add_parser("plan", help="副作用なしで固定stageとnetwork境界を表示します")

@@ -18,6 +18,7 @@ build_manifest = manifest_module.build_manifest
 write_manifest = manifest_module.write_manifest
 
 SHA256 = "a" * 64
+SECOND_SHA256 = "b" * 64
 
 
 def test_collection_document_api_is_pure_and_path_independent() -> None:
@@ -133,6 +134,118 @@ def test_collection_metadata_builds_verification_only_candidates(short_tmp: Path
         hint["confidence"] == "unverified"
         for hint in manifest["samples"][SHA256]
     )
+
+
+def test_fixed_selection_manifest_uses_exact_ordered_metadata_as_route_hint(
+    short_tmp: Path,
+) -> None:
+    document = {
+        "selected_hashes": [SHA256, SECOND_SHA256],
+        "selected_metadata": [
+            {
+                "sha256_hash": SHA256,
+                "signature": "AsyncRAT",
+                "first_seen": "2026-11-02 00:00:00",
+            },
+            {
+                "sha256_hash": SECOND_SHA256,
+                "signature": "ValleyRAT",
+            },
+        ],
+        # malwarebazaar_batch.pyの固定選定manifestにはdownload結果も同居する。
+        "items": [{"sha256": SHA256, "status": "downloaded"}],
+    }
+
+    path = short_tmp / "malwarebazaar-fixed-selection.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+
+    manifest = build_collection_manifest(
+        path,
+        source="malwarebazaar_fixed_selection_fixture",
+    )
+
+    assert list(manifest["samples"]) == [SHA256, SECOND_SHA256]
+    assert manifest["samples"][SHA256][0]["family"] == "asyncrat"
+    assert manifest["samples"][SECOND_SHA256][0]["family"] == "valleyrat"
+    for hints in manifest["samples"].values():
+        assert all(hint["confidence"] == "unverified" for hint in hints)
+        assert all(
+            hint["provenance"].startswith("metadata-manifest:")
+            for hint in hints
+        )
+
+
+def test_fixed_selection_manifest_rejects_missing_paired_field() -> None:
+    for document in (
+        {"selected_hashes": [SHA256]},
+        {"selected_metadata": [{"sha256_hash": SHA256}]},
+    ):
+        try:
+            build_collection_manifest_document(document, source="fixture")
+        except ValueError as exc:
+            assert "両方が必要" in str(exc)
+        else:
+            raise AssertionError("片方だけの固定選定fieldが受理されました")
+
+
+def test_fixed_selection_manifest_rejects_duplicate_hashes() -> None:
+    cases = (
+        {
+            "selected_hashes": [SHA256, SHA256],
+            "selected_metadata": [
+                {"sha256_hash": SHA256},
+                {"sha256_hash": SECOND_SHA256},
+            ],
+        },
+        {
+            "selected_hashes": [SHA256, SECOND_SHA256],
+            "selected_metadata": [
+                {"sha256_hash": SHA256},
+                {"sha256_hash": SHA256},
+            ],
+        },
+    )
+    for document in cases:
+        try:
+            build_collection_manifest_document(document, source="fixture")
+        except ValueError as exc:
+            assert "重複" in str(exc)
+        else:
+            raise AssertionError("重複した固定選定hashが受理されました")
+
+
+def test_fixed_selection_manifest_rejects_hash_set_mismatch() -> None:
+    document = {
+        "selected_hashes": [SHA256, SECOND_SHA256],
+        "selected_metadata": [
+            {"sha256_hash": SHA256},
+            {"sha256_hash": "c" * 64},
+        ],
+    }
+
+    try:
+        build_collection_manifest_document(document, source="fixture")
+    except ValueError as exc:
+        assert "集合が一致しません" in str(exc)
+    else:
+        raise AssertionError("集合が異なる固定選定manifestが受理されました")
+
+
+def test_fixed_selection_manifest_rejects_hash_order_mismatch() -> None:
+    document = {
+        "selected_hashes": [SHA256, SECOND_SHA256],
+        "selected_metadata": [
+            {"sha256_hash": SECOND_SHA256},
+            {"sha256_hash": SHA256},
+        ],
+    }
+
+    try:
+        build_collection_manifest_document(document, source="fixture")
+    except ValueError as exc:
+        assert "順序が一致しません" in str(exc)
+    else:
+        raise AssertionError("順序が異なる固定選定manifestが受理されました")
 
 
 def test_private_lookup_uses_provider_sha256_and_skips_not_found(short_tmp: Path) -> None:

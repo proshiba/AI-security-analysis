@@ -1802,6 +1802,190 @@ def test_fixed_point_scales_bounded_wall_budget_for_nine_children(
     )
 
 
+def test_timeout_child_unsealed_tree_is_removed_without_touching_parent(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """timeout childの未seal treeだけを消し、親payloadとgraph証拠を保持する。"""
+
+    root = 'a' * 64
+    payload = b'MZ inert timeout child'
+    child = hashlib.sha256(payload).hexdigest()
+    parent_payload = tmp_path / 'cases' / root / 'p' / 'child.bin'
+    parent_payload.parent.mkdir(parents=True)
+    parent_payload.write_bytes(payload)
+
+    def retained(_output: Path, digest: str, **_kwargs):
+        if digest != root:
+            return [], [], 0, 0
+        return (
+            [
+                {
+                    'sha256': child,
+                    'size': len(payload),
+                    'path': 'p/child.bin',
+                    'role': 'terminal_payload',
+                    'kind': 'pe',
+                    'data': payload,
+                }
+            ],
+            [],
+            1,
+            len(payload),
+        )
+
+    monkeypatch.setattr(one_shot, '_case_retained_payloads', retained)
+    monkeypatch.setattr(
+        one_shot,
+        '_case_strict_complete',
+        lambda _output, digest, **_kwargs: digest == root,
+    )
+    monkeypatch.setattr(one_shot, '_case_has_follow_on_promotion', lambda *_args: False)
+
+    def timeout_child(**kwargs):
+        case_dir = kwargs['output'] / 'cases' / kwargs['digest']
+        (case_dir / 'p').mkdir(parents=True)
+        (case_dir / 'classification.json').write_text('{}', encoding='utf-8')
+        (case_dir / 'p' / 'partial.bin').write_bytes(b'partial')
+        raise subprocess.TimeoutExpired(['python'], kwargs['timeout_seconds'])
+
+    result = one_shot._run_follow_on_fixed_point(
+        root_digests=[root],
+        output=tmp_path,
+        registry=REGISTRY,
+        specs=[],
+        requirements_policy={},
+        minimum_confidence='medium',
+        upx=None,
+        sevenzip=None,
+        diec=None,
+        force_container_probe=False,
+        max_static_layers=8,
+        retry_max_static_layers=None,
+        archive_password='infected',
+        inno_password='',
+        string_scan_limit=1000,
+        analysis_contract={},
+        root_analysis_contract={},
+        resume=False,
+        execute_child=timeout_child,
+    )
+
+    child_node = next(item for item in result['nodes'] if item['sha256'] == child)
+    assert child_node['state'] == 'timeout'
+    assert result['edges'][0]['status'] == 'child_incomplete'
+    assert not (tmp_path / 'cases' / child).exists()
+    assert parent_payload.read_bytes() == payload
+
+
+def test_timeout_child_keeps_seal_validated_terminal_case(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """worker timeout時もseal検証可能なterminal caseはanalyzedとして保持する。"""
+
+    root = 'a' * 64
+    payload = b'MZ inert sealed child'
+    child = hashlib.sha256(payload).hexdigest()
+
+    def retained(_output: Path, digest: str, **_kwargs):
+        if digest != root:
+            return [], [], 0, 0
+        return (
+            [
+                {
+                    'sha256': child,
+                    'size': len(payload),
+                    'path': 'p/child.bin',
+                    'role': 'terminal_payload',
+                    'kind': 'pe',
+                    'data': payload,
+                }
+            ],
+            [],
+            1,
+            len(payload),
+        )
+
+    monkeypatch.setattr(one_shot, '_case_retained_payloads', retained)
+    monkeypatch.setattr(
+        one_shot,
+        '_case_result_from_disk',
+        lambda _output, digest, **_kwargs: (
+            {'case_state': 'partial'}
+            if digest == child
+            else pytest.fail('root caseをresultとして再読込してはならない')
+        ),
+    )
+    monkeypatch.setattr(
+        one_shot,
+        '_case_strict_complete',
+        lambda _output, digest, **_kwargs: digest == root,
+    )
+    monkeypatch.setattr(one_shot, '_case_has_follow_on_promotion', lambda *_args: False)
+
+    def timeout_after_seal(**kwargs):
+        case_dir = kwargs['output'] / 'cases' / kwargs['digest']
+        case_dir.mkdir(parents=True)
+        (case_dir / 'report.json').write_text('{}', encoding='utf-8')
+        raise subprocess.TimeoutExpired(['python'], kwargs['timeout_seconds'])
+
+    result = one_shot._run_follow_on_fixed_point(
+        root_digests=[root],
+        output=tmp_path,
+        registry=REGISTRY,
+        specs=[],
+        requirements_policy={},
+        minimum_confidence='medium',
+        upx=None,
+        sevenzip=None,
+        diec=None,
+        force_container_probe=False,
+        max_static_layers=8,
+        retry_max_static_layers=None,
+        archive_password='infected',
+        inno_password='',
+        string_scan_limit=1000,
+        analysis_contract={},
+        root_analysis_contract={},
+        resume=False,
+        execute_child=timeout_after_seal,
+    )
+
+    child_node = next(item for item in result['nodes'] if item['sha256'] == child)
+    assert child_node['state'] == 'analyzed'
+    assert child_node['case_state'] == 'partial'
+    assert (tmp_path / 'cases' / child / 'report.json').is_file()
+
+
+def test_unsealed_follow_on_cleanup_rejects_hardlinked_file(
+    tmp_path: Path,
+) -> None:
+    """外部hardlinkを含む未seal caseは削除せずfail-closedにする。"""
+
+    child = 'b' * 64
+    case_dir = tmp_path / 'cases' / child
+    case_dir.mkdir(parents=True)
+    partial = case_dir / 'classification.json'
+    partial.write_text('{}', encoding='utf-8')
+    outside = tmp_path / 'outside.json'
+    try:
+        outside.hardlink_to(partial)
+    except OSError as exc:
+        pytest.skip(f'hardlinkを作成できません: {type(exc).__name__}')
+
+    with pytest.raises(ValueError, match='通常file以外'):
+        one_shot._remove_unsealed_follow_on_case(
+            tmp_path,
+            child,
+            expected_contract={},
+        )
+
+    assert case_dir.is_dir()
+    assert partial.read_text(encoding='utf-8') == '{}'
+    assert outside.read_text(encoding='utf-8') == '{}'
+
+
 def test_run_batch_never_publishes_timeout_child_case(tmp_path: Path, monkeypatch) -> None:
     """timeout直前にcaseが残ってもderived_casesへ再読込しない。"""
 

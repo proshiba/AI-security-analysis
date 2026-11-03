@@ -10,6 +10,7 @@ from collections import defaultdict
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Self
 
 import pytest
 
@@ -17,9 +18,9 @@ COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
-import archive_analysis_datastore as datastore_archive
-import daily_analysis_orchestrator as target
-import daily_news_malware_intake as news_intake
+import archive_analysis_datastore as datastore_archive  # noqa: E402
+import daily_analysis_orchestrator as target  # noqa: E402
+import daily_news_malware_intake as news_intake  # noqa: E402
 
 
 def test_ghidra_mcp_url_is_numeric_loopback_only_and_canonical() -> None:
@@ -742,6 +743,7 @@ def test_live_c2_requires_independent_permission_for_carry_forward_targets(
     )
     prior.parent.mkdir(parents=True)
     prior.write_text(json.dumps({"targets": [prior_target]}), encoding="utf-8")
+    (prior.parent / "monitoring-results.json").write_text("{}", encoding="utf-8")
     monkeypatch.setattr(
         build_all_c2_monitoring_targets,
         "build_inventory",
@@ -1862,7 +1864,7 @@ def test_news_requeue_rejects_valid_completed_run(tmp_path: Path) -> None:
         result={"status": "complete"},
         error=None,
     )
-    for name, record in state["stages"].items():
+    for record in state["stages"].values():
         if record["status"] != "skipped":
             record.update(status="complete", retryable=False, error=None)
     state["status"] = "complete"
@@ -2641,9 +2643,12 @@ def test_repository_lock_conflicts_across_different_work_roots(
         allow_live_c2=False,
         create_roots=True,
     )
-    with target._run_lock(first), pytest.raises(target.DailyOrchestrationError) as captured:
-        with target._run_lock(second):
-            pass
+    with (
+        target._run_lock(first),
+        pytest.raises(target.DailyOrchestrationError) as captured,
+        target._run_lock(second),
+    ):
+        pass
     assert captured.value.code == "run_locked"
 
 
@@ -2999,13 +3004,13 @@ def test_acquisition_tree_uses_fresh_path_stat_after_atomic_replace(
         def __init__(self, path: os.PathLike[str] | str) -> None:
             self._iterator = real_scandir(path)
 
-        def __enter__(self) -> ScandirProxy:
+        def __enter__(self) -> Self:
             return self
 
         def __exit__(self, *args: object) -> None:
             self._iterator.close()
 
-        def __iter__(self) -> ScandirProxy:
+        def __iter__(self) -> Self:
             return self
 
         def __next__(self) -> EntryProxy:
@@ -3406,7 +3411,7 @@ def test_archive_analysis_cases_stops_at_failing_case(
     archived_calls: list[str] = []
 
     def stage_cases(**kwargs: object) -> dict[str, object]:
-        digest = list(kwargs["case_sha256s"])[0]
+        digest = next(iter(kwargs["case_sha256s"]))
         staged_calls.append(digest)
         if digest == ordered[2]:
             raise stage_case_analysis_datastore.CaseStagingError("fixture failure")
@@ -3487,17 +3492,30 @@ def test_archive_analysis_cases_reuses_retained_staging_after_upload_failure(
 
     import stage_case_analysis_datastore
 
-    daily_context = context(tmp_path)
+    document = request_document()
+    document["stages"]["ghidra"] = False
+    daily_context = context(tmp_path, document)
     short_state = tmp_path.parent / ("s-" + hashlib.sha256(str(tmp_path).encode("utf-8")).hexdigest()[:8])
     short_state.mkdir()
     daily_context = replace(daily_context, state_root=short_state)
     cases = [f"{index:064x}" for index in range(1, 51)]
     ordered = sorted(cases)
     first = ordered[0]
+    analysis_sha256 = "c" * 64
+    commitment = target.CaseArchiveAnalysisCommitment(
+        analysis_output_manifest={"schema_version": 1, "tree": {}, "entries": []},
+        analysis_output_sha256=analysis_sha256,
+        follow_on_lineage_documents={digest: None for digest in ordered},
+    )
     monkeypatch.setattr(
         target,
         "_load_acquisition_manifest",
         lambda _context: {"selected_hashes": cases},
+    )
+    monkeypatch.setattr(
+        target,
+        "_case_archive_analysis_commitment",
+        lambda **_kwargs: commitment,
     )
     stage_calls: list[str] = []
     reuse_calls: list[str] = []
@@ -3523,7 +3541,9 @@ def test_archive_analysis_cases_reuses_retained_staging_after_upload_failure(
         }
 
     def stage_cases(**kwargs: object) -> dict[str, object]:
-        digest = list(kwargs["case_sha256s"])[0]
+        digest = next(iter(kwargs["case_sha256s"]))
+        assert kwargs["expected_analysis_output_sha256"] == analysis_sha256
+        assert kwargs["expected_follow_on_lineage_document"] is None
         stage_calls.append(digest)
         source = Path(handoff(digest)["cases"][0]["source_path"])
         source.mkdir(parents=True)
@@ -3532,6 +3552,8 @@ def test_archive_analysis_cases_reuses_retained_staging_after_upload_failure(
 
     def reuse_case_staging(**kwargs: object) -> dict[str, object]:
         digest = str(kwargs["case_sha256"])
+        assert kwargs["expected_analysis_output_sha256"] == analysis_sha256
+        assert kwargs["expected_follow_on_lineage_document"] is None
         reuse_calls.append(digest)
         source = Path(handoff(digest)["cases"][0]["source_path"])
         assert (source / "inventory.bin").read_bytes() == b"trusted"
@@ -3563,25 +3585,16 @@ def test_archive_analysis_cases_reuses_retained_staging_after_upload_failure(
         }
 
     def cleanup(**kwargs: object) -> dict[str, object]:
+        assert kwargs["expected_analysis_output_sha256"] == analysis_sha256
+        assert kwargs["expected_follow_on_lineage_document"] is None
         shutil.rmtree(Path(kwargs["source_path"]))
         return {"removed": True}
 
     target_module_error = target.DailyOrchestrationError
-    monkeypatch.setattr(stage_case_analysis_datastore, "stage_cases", stage_cases)
-    session = object()
     monkeypatch.setattr(
         stage_case_analysis_datastore,
-        "prepare_case_staging_session",
-        lambda **_kwargs: session,
-    )
-    monkeypatch.setattr(
-        stage_case_analysis_datastore,
-        "stage_case_from_session",
-        lambda observed, *, case_sha256: (
-            stage_cases(case_sha256s=[case_sha256])
-            if observed is session
-            else pytest.fail("unexpected staging session")
-        ),
+        "stage_cases_without_ghidra",
+        stage_cases,
     )
     monkeypatch.setattr(
         stage_case_analysis_datastore,
@@ -3621,6 +3634,217 @@ def test_archive_analysis_cases_reuses_retained_staging_after_upload_failure(
     assert not retained.exists()
 
 
+def test_archive_analysis_cases_rejects_retained_staging_after_analysis_change(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """再開時のlive解析commitmentが変われば既存stagingを再利用しない。"""
+
+    import stage_case_analysis_datastore
+
+    document = request_document()
+    document["stages"]["ghidra"] = False
+    daily_context = context(tmp_path, document)
+    cases = [f"{index:064x}" for index in range(1, 51)]
+    ordered = sorted(cases)
+    first = ordered[0]
+    generation = {"value": "before"}
+    observed_reuse: list[tuple[str, object]] = []
+    monkeypatch.setattr(
+        target,
+        "_load_acquisition_manifest",
+        lambda _context: {"selected_hashes": cases},
+    )
+
+    def current_commitment(**_kwargs: object) -> target.CaseArchiveAnalysisCommitment:
+        value = generation["value"]
+        analysis_sha256 = ("a" if value == "before" else "b") * 64
+        return target.CaseArchiveAnalysisCommitment(
+            analysis_output_manifest={"generation": value},
+            analysis_output_sha256=analysis_sha256,
+            follow_on_lineage_documents={
+                digest: {"case_sha256": digest, "generation": value}
+                for digest in ordered
+            },
+        )
+
+    monkeypatch.setattr(
+        target,
+        "_case_archive_analysis_commitment",
+        current_commitment,
+    )
+
+    def handoff(digest: str) -> dict[str, object]:
+        archive_target = f"{daily_context.collection_id}-{digest}"
+        source = (
+            daily_context.work_root
+            / "cs"
+            / daily_context.request.run_id.replace("daily-", "run-", 1)
+            / archive_target
+        )
+        return {
+            "case_count": 1,
+            "cases": [
+                {
+                    "case_sha256": digest,
+                    "target": archive_target,
+                    "source_path": str(source),
+                }
+            ],
+        }
+
+    def stage_cases(**kwargs: object) -> dict[str, object]:
+        digest = str(next(iter(kwargs["case_sha256s"])))
+        assert kwargs["expected_analysis_output_sha256"] == "a" * 64
+        assert kwargs["expected_follow_on_lineage_document"] == {
+            "case_sha256": digest,
+            "generation": "before",
+        }
+        Path(handoff(digest)["cases"][0]["source_path"]).mkdir(parents=True)
+        return handoff(digest)
+
+    def reject_stale(**kwargs: object) -> dict[str, object]:
+        observed_reuse.append(
+            (
+                str(kwargs["expected_analysis_output_sha256"]),
+                kwargs["expected_follow_on_lineage_document"],
+            )
+        )
+        raise stage_case_analysis_datastore.CaseStagingError(
+            "既存stagingが現在のanalysis tree commitmentと一致しません"
+        )
+
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "stage_cases_without_ghidra",
+        stage_cases,
+    )
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "reuse_case_staging",
+        reject_stale,
+    )
+    monkeypatch.setattr(
+        target,
+        "_archive_one",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            target.DailyOrchestrationError(
+                "fixture_upload_failed",
+                "一時upload失敗",
+            )
+        ),
+    )
+
+    with pytest.raises(target.DailyOrchestrationError) as first_attempt:
+        target._archive_analysis_cases(
+            daily_context,
+            one_shot_root=tmp_path / "one-shot-analysis",
+        )
+    assert first_attempt.value.code == "fixture_upload_failed"
+
+    generation["value"] = "after"
+    with pytest.raises(target.DailyOrchestrationError) as resumed:
+        target._archive_analysis_cases(
+            daily_context,
+            one_shot_root=tmp_path / "one-shot-analysis",
+        )
+
+    assert resumed.value.code == "case_archive_staging_failed"
+    assert observed_reuse == [
+        (
+            "b" * 64,
+            {"case_sha256": first, "generation": "after"},
+        )
+    ]
+
+
+def test_archive_analysis_cases_rejects_ghidra_staging_without_analysis_binding(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """commitmentを持たないGhidra stagingの再利用は明示的にfail-closedにする。"""
+
+    import stage_case_analysis_datastore
+
+    daily_context = context(tmp_path)
+    cases = [f"{index:064x}" for index in range(1, 51)]
+    first = min(cases)
+    monkeypatch.setattr(
+        target,
+        "_load_acquisition_manifest",
+        lambda _context: {"selected_hashes": cases},
+    )
+    session = object()
+
+    def stage_case(_session: object, *, case_sha256: str) -> dict[str, object]:
+        assert _session is session
+        archive_target = f"{daily_context.collection_id}-{case_sha256}"
+        source = (
+            daily_context.work_root
+            / "cs"
+            / daily_context.request.run_id.replace("daily-", "run-", 1)
+            / archive_target
+        )
+        source.mkdir(parents=True)
+        return {
+            "case_count": 1,
+            "cases": [
+                {
+                    "case_sha256": case_sha256,
+                    "target": archive_target,
+                    "source_path": str(source),
+                }
+            ],
+        }
+
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "prepare_case_staging_session",
+        lambda **_kwargs: session,
+    )
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "stage_case_from_session",
+        stage_case,
+    )
+    monkeypatch.setattr(
+        stage_case_analysis_datastore,
+        "reuse_case_staging",
+        lambda **_kwargs: pytest.fail("Ghidra stagingを再利用しました"),
+    )
+    monkeypatch.setattr(
+        target,
+        "_archive_one",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            target.DailyOrchestrationError(
+                "fixture_upload_failed",
+                "一時upload失敗",
+            )
+        ),
+    )
+
+    with pytest.raises(target.DailyOrchestrationError) as first_attempt:
+        target._archive_analysis_cases(
+            daily_context,
+            one_shot_root=tmp_path / "one-shot-analysis",
+        )
+    assert first_attempt.value.code == "fixture_upload_failed"
+
+    with pytest.raises(target.DailyOrchestrationError) as resumed:
+        target._archive_analysis_cases(
+            daily_context,
+            one_shot_root=tmp_path / "one-shot-analysis",
+        )
+    assert resumed.value.code == "case_archive_staging_binding_unavailable"
+    assert resumed.value.__cause__ is None
+    assert (
+        daily_context.work_root
+        / "cs"
+        / daily_context.request.run_id.replace("daily-", "run-", 1)
+        / f"{daily_context.collection_id}-{first}"
+    ).is_dir()
+
+
 def test_archive_analysis_cases_rejects_tampered_retained_staging(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -3629,16 +3853,30 @@ def test_archive_analysis_cases_rejects_tampered_retained_staging(
 
     import stage_case_analysis_datastore
 
-    daily_context = context(tmp_path)
+    document = request_document()
+    document["stages"]["ghidra"] = False
+    daily_context = context(tmp_path, document)
     short_state = tmp_path.parent / ("s-" + hashlib.sha256(str(tmp_path).encode("utf-8")).hexdigest()[:8])
     short_state.mkdir()
     daily_context = replace(daily_context, state_root=short_state)
     cases = [f"{index:064x}" for index in range(1, 51)]
-    first = sorted(cases)[0]
+    ordered = sorted(cases)
+    first = ordered[0]
+    analysis_sha256 = "c" * 64
+    commitment = target.CaseArchiveAnalysisCommitment(
+        analysis_output_manifest={"schema_version": 1, "tree": {}, "entries": []},
+        analysis_output_sha256=analysis_sha256,
+        follow_on_lineage_documents={digest: None for digest in ordered},
+    )
     monkeypatch.setattr(
         target,
         "_load_acquisition_manifest",
         lambda _context: {"selected_hashes": cases},
+    )
+    monkeypatch.setattr(
+        target,
+        "_case_archive_analysis_commitment",
+        lambda **_kwargs: commitment,
     )
     archive_target = f"{daily_context.collection_id}-{first}"
     source = (
@@ -3648,7 +3886,9 @@ def test_archive_analysis_cases_rejects_tampered_retained_staging(
         / archive_target
     )
 
-    def stage_cases(**_kwargs: object) -> dict[str, object]:
+    def stage_cases(**kwargs: object) -> dict[str, object]:
+        assert kwargs["expected_analysis_output_sha256"] == analysis_sha256
+        assert kwargs["expected_follow_on_lineage_document"] is None
         source.mkdir(parents=True)
         (source / "inventory.bin").write_bytes(b"trusted")
         return {
@@ -3662,7 +3902,9 @@ def test_archive_analysis_cases_rejects_tampered_retained_staging(
             ],
         }
 
-    def reject_tampered(**_kwargs: object) -> dict[str, object]:
+    def reject_tampered(**kwargs: object) -> dict[str, object]:
+        assert kwargs["expected_analysis_output_sha256"] == analysis_sha256
+        assert kwargs["expected_follow_on_lineage_document"] is None
         if (source / "inventory.bin").read_bytes() != b"trusted":
             raise stage_case_analysis_datastore.CaseStagingError("既存case staging inventoryのSHA-256が一致しません")
         pytest.fail("tamperが存在しません")
@@ -3677,21 +3919,10 @@ def test_archive_analysis_cases_rejects_tampered_retained_staging(
             "一時upload失敗",
         )
 
-    monkeypatch.setattr(stage_case_analysis_datastore, "stage_cases", stage_cases)
-    session = object()
     monkeypatch.setattr(
         stage_case_analysis_datastore,
-        "prepare_case_staging_session",
-        lambda **_kwargs: session,
-    )
-    monkeypatch.setattr(
-        stage_case_analysis_datastore,
-        "stage_case_from_session",
-        lambda observed, *, case_sha256: (
-            stage_cases(case_sha256s=[case_sha256])
-            if observed is session
-            else pytest.fail("unexpected staging session")
-        ),
+        "stage_cases_without_ghidra",
+        stage_cases,
     )
     monkeypatch.setattr(
         stage_case_analysis_datastore,

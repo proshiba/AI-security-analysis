@@ -190,7 +190,7 @@ def test_lifecycle_rebinds_shared_root_case_state(tmp_path: Path) -> None:
                 "child_sha256": right,
                 "depth": 1,
                 "path": "retained/shared.bin",
-                "role": "payload",
+                "role": "terminal_payload",
                 "kind": "binary",
                 "size": 7,
                 "status": "shared_sha256_reused_complete",
