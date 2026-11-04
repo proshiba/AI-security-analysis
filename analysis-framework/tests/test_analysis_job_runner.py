@@ -24,7 +24,9 @@ COMMON = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON) not in sys.path:
     sys.path.insert(0, str(COMMON))
 
+import analysis_contract  # noqa: E402
 import analysis_job_runner as runner  # noqa: E402
+import static_implementation_commitment  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -467,7 +469,7 @@ def test_derived_summary_is_validated_separately(
     summary["derived_cases"] = [
         {
             "sha256": child_sha256,
-            "source_name": f"follow-on-{child_sha256[:16]}.bin",
+            "source_name": "procchk.exe",
             "family": "unknown",
             "selected_family": None,
             "selected_families": [],
@@ -568,7 +570,7 @@ def test_derived_summary_is_validated_separately(
         "schema_version": 1,
         "sample": {
             "sha256": child_sha256,
-            "source_name": f"follow-on-{child_sha256[:16]}.bin",
+            "source_name": "procchk.exe",
         },
         "analysis_contract": {"schema_version": 1, "sha256": "c" * 64},
         "classification": {
@@ -613,6 +615,21 @@ def test_derived_summary_is_validated_separately(
 
     assert counts["analyzed"] == 1
     assert len(validated["derived_cases"]) == 1
+
+    unsafe_summary = load_json(output / "summary.json")
+    unsafe_summary["derived_cases"][0]["source_name"] = "../procchk.exe"
+    (output / "summary.json").write_text(
+        json.dumps(unsafe_summary),
+        encoding="utf-8",
+    )
+    report["sample"]["source_name"] = "../procchk.exe"
+    (case_dir / "report.json").write_text(json.dumps(report), encoding="utf-8")
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validated_summary(output / "summary.json", expected_input_files=1)
+    assert caught.value.code == "summary_invalid"
+    report["sample"]["source_name"] = "procchk.exe"
+    (case_dir / "report.json").write_text(json.dumps(report), encoding="utf-8")
+    (output / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
 
     hinted = deepcopy(follow_on)
     hinted["nodes"][1].update(
@@ -1331,10 +1348,36 @@ def test_follow_on_edge_is_rehashed_against_parent_wrapper(tmp_path: Path) -> No
         ],
     }
 
-    runner._validate_follow_on_edge_provenance(
+    verified_payload_paths = runner._validate_follow_on_edge_provenance(
         output / "summary.json",
         follow_on=follow_on,
         validated_case_reports={parent: report},
+    )
+    expected_payload_path = f"cases/{parent}/p/child.bin"
+    assert verified_payload_paths == {expected_payload_path}
+
+    for relative in (
+        "summary.json",
+        "follow-on-analysis.json",
+        "terminal-payload-acquisition.json",
+    ):
+        (output / relative).write_text("{}", encoding="utf-8")
+    (case_dir / "report.json").write_text("{}", encoding="utf-8")
+    sealed_report = {
+        **report,
+        "artifact_sha256": {
+            "handler.json": hashlib.sha256(
+                (case_dir / "handler.json").read_bytes()
+            ).hexdigest(),
+            "candidate-handler-assessment.json": hashlib.sha256(
+                (case_dir / "candidate-handler-assessment.json").read_bytes()
+            ).hexdigest(),
+        },
+    }
+    runner._validate_analysis_output_reference_closure(
+        output / "summary.json",
+        {parent: sealed_report},
+        verified_follow_on_payload_paths=verified_payload_paths,
     )
     bounded_omission = {
         **follow_on,
@@ -1353,11 +1396,19 @@ def test_follow_on_edge_is_rehashed_against_parent_wrapper(tmp_path: Path) -> No
             }
         ],
     }
-    runner._validate_follow_on_edge_provenance(
+    omitted_payload_paths = runner._validate_follow_on_edge_provenance(
         output / "summary.json",
         follow_on=bounded_omission,
         validated_case_reports={parent: report},
     )
+    assert omitted_payload_paths == set()
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validate_analysis_output_reference_closure(
+            output / "summary.json",
+            {parent: sealed_report},
+            verified_follow_on_payload_paths=omitted_payload_paths,
+        )
+    assert caught.value.code == "analysis_output_reference_mismatch"
     omitted = {**follow_on, "verified_read_count": 0, "verified_read_bytes": 0, "edges": []}
     with pytest.raises(runner.JobContractError) as caught:
         runner._validate_follow_on_edge_provenance(
@@ -1609,7 +1660,7 @@ def test_production_root_counts_and_follow_on_status_are_bound_to_contract(
         "_validated_derived_case_report",
         lambda *_args, **_kwargs: {"artifact_sha256": {}},
     )
-    monkeypatch.setattr(runner, "_validate_follow_on_edge_provenance", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(runner, "_validate_follow_on_edge_provenance", lambda *_args, **_kwargs: set())
 
     runner._validated_summary(
         output / "summary.json",
@@ -3376,6 +3427,28 @@ def test_live_output_scan_retries_only_transient_disappearance(
     assert exhausted_attempts == runner.MAX_LIVE_OUTPUT_SCAN_ATTEMPTS
 
 
+def test_live_output_scan_never_retries_hardlink(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """書換race許容後もhardlink境界は即時fail-closedのまま維持する。"""
+
+    output = tmp_path / "analysis"
+    output.mkdir()
+    original = output / "original.bin"
+    linked = output / "linked.bin"
+    original.write_bytes(b"hardlink boundary")
+    os.link(original, linked)
+    delays: list[float] = []
+    monkeypatch.setattr(runner.time, "sleep", delays.append)
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validate_live_analysis_output_tree(output)
+
+    assert caught.value.code == "analysis_output_hardlink_forbidden"
+    assert delays == []
+
+
 def test_live_output_scan_never_retries_actual_reparse(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -3555,6 +3628,7 @@ def test_analysis_output_reference_closure_rejects_unreferenced_file(
     runner._validate_analysis_output_reference_closure(
         analysis / "summary.json",
         reports,
+        verified_follow_on_payload_paths=set(),
     )
 
     (analysis / "unreferenced.bin").write_bytes(b"not part of the sealed result")
@@ -3562,6 +3636,7 @@ def test_analysis_output_reference_closure_rejects_unreferenced_file(
         runner._validate_analysis_output_reference_closure(
             analysis / "summary.json",
             reports,
+            verified_follow_on_payload_paths=set(),
         )
 
     assert caught.value.code == "analysis_output_reference_mismatch"
@@ -3721,6 +3796,17 @@ def test_real_analyzer_runs_with_sanitized_environment(
     )
     assert revalidated["result"] == result
     assert revalidated["counts"] == result["counts"]
+    assert len(revalidated["input_bindings"]) == 1
+    input_binding = revalidated["input_bindings"][0]
+    assert set(input_binding) == {
+        "input_index",
+        "outer_sha256",
+        "member_sha256",
+        "read_succeeded",
+    }
+    assert input_binding["input_index"] == 0
+    assert input_binding["read_succeeded"] is True
+    assert input_binding["outer_sha256"] == input_binding["member_sha256"]
 
     job_dir = jobs_root / "job-real-smoke"
     status_path = job_dir / "status.json"
@@ -3929,6 +4015,168 @@ def test_real_analyzer_runs_with_sanitized_environment(
     assert not any(validation_temp.iterdir())
 
 
+def test_revalidation_input_bindings_reject_two_archive_swap(
+    tmp_path: Path,
+) -> None:
+    outer_a = "a" * 64
+    outer_b = "b" * 64
+    inner_a = "c" * 64
+    inner_b = "d" * 64
+    inputs = (
+        runner.SnapshotInput(
+            index=0,
+            source_relative_path="a.zip",
+            path=tmp_path / "a.zip",
+            snapshot_relative_path="contract-inputs/samples/0000-a.zip",
+            size=1,
+            sha256=outer_a,
+        ),
+        runner.SnapshotInput(
+            index=1,
+            source_relative_path="b.zip",
+            path=tmp_path / "b.zip",
+            snapshot_relative_path="contract-inputs/samples/0001-b.zip",
+            size=1,
+            sha256=outer_b,
+        ),
+    )
+    bundle = runner.InputSnapshotBundle(
+        inputs=inputs,
+        inventory_snapshots=(),
+        manifest_path=tmp_path / "manifest.json",
+        manifest_relative_path="contract-inputs/input-snapshot-manifest.json",
+        manifest_sha256="e" * 64,
+        manifest_document={},
+    )
+    expected = (
+        runner.ExpectedInputUnit("a.zip", "a.exe", inner_a, True),
+        runner.ExpectedInputUnit("b.zip", "b.exe", inner_b, True),
+    )
+
+    assert runner._revalidation_input_bindings(bundle, expected) == [
+        {
+            "input_index": 0,
+            "outer_sha256": outer_a,
+            "member_sha256": inner_a,
+            "read_succeeded": True,
+        },
+        {
+            "input_index": 1,
+            "outer_sha256": outer_b,
+            "member_sha256": inner_b,
+            "read_succeeded": True,
+        },
+    ]
+
+    swapped = (
+        runner.ExpectedInputUnit("b.zip", "b.exe", inner_b, True),
+        runner.ExpectedInputUnit("a.zip", "a.exe", inner_a, True),
+    )
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._revalidation_input_bindings(bundle, swapped)
+
+    assert caught.value.code == "existing_job_contract_invalid"
+
+
+def test_revalidation_source_snapshot_is_private_and_hash_bound(
+    tmp_path: Path,
+) -> None:
+    source = Path(runner.__file__).resolve()
+    relative = source.relative_to(runner.REPOSITORY_ROOT).as_posix()
+    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    manifest = runner._validated_revalidation_source_manifest(
+        {relative: digest}
+    )
+    snapshot_root = tmp_path / "source-snapshot"
+
+    runner._snapshot_revalidation_sources(manifest, snapshot_root)
+    runner._verify_revalidation_source_snapshot(manifest, snapshot_root)
+    copied = snapshot_root / Path(*PurePosixPath(relative).parts)
+    assert copied.read_bytes() == source.read_bytes()
+
+    copied.write_bytes(copied.read_bytes() + b"tampered")
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._verify_revalidation_source_snapshot(manifest, snapshot_root)
+
+    assert caught.value.code == "revalidation_source_snapshot_invalid"
+
+
+def test_input_manifest_worker_runs_from_private_source_snapshot(
+    tmp_path: Path,
+) -> None:
+    excluded = {
+        "tests",
+        ".git",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".venv",
+        "venv",
+        "__pycache__",
+    }
+    candidates = [
+        source.path
+        for source in static_implementation_commitment.discover_implementation_sources(
+            runner.REPOSITORY_ROOT
+        )
+    ]
+    for resource_name in ("registry", "definitions"):
+        resource_root = runner.FRAMEWORK_ROOT / resource_name
+        if resource_root.is_dir():
+            candidates.extend(
+                path for path in resource_root.rglob("*") if path.is_file()
+            )
+    manifest: dict[str, str] = {}
+    for candidate in candidates:
+        path = candidate.resolve()
+        relative = path.relative_to(runner.REPOSITORY_ROOT)
+        if excluded.intersection(relative.parts):
+            continue
+        manifest[relative.as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+    manifest = runner._validated_revalidation_source_manifest(manifest)
+    snapshot_root = tmp_path / "source-snapshot"
+    runner._snapshot_revalidation_sources(manifest, snapshot_root)
+    runner._set_completed_job_snapshot_read_only(snapshot_root, read_only=True)
+    sample = tmp_path / "sample.bin"
+    sample.write_bytes(b"synthetic static input only")
+    output = tmp_path / "analysis"
+    output.mkdir()
+    temporary = tmp_path / "worker-temp"
+    temporary.mkdir()
+    request = runner.validate_request_object(
+        request_value(
+            "job-private-source-worker",
+            archive_mode="raw",
+            assessment_only=True,
+            max_files=1,
+            max_file_size=1024 * 1024,
+            string_scan_limit=100,
+            max_static_layers=4,
+        )
+    )
+    try:
+        root_contract, follow_on_contract, input_manifest = (
+            runner.build_expected_analysis_bundle(
+                request,
+                [sample],
+                output,
+                family_hint_manifest=None,
+                temporary_root=temporary,
+                worker_repository_root=snapshot_root,
+            )
+        )
+    finally:
+        runner._set_completed_job_snapshot_read_only(
+            snapshot_root,
+            read_only=False,
+        )
+
+    assert root_contract["schema_version"] == runner.SCHEMA_VERSION
+    assert follow_on_contract["schema_version"] == runner.SCHEMA_VERSION
+    assert len(input_manifest) == 1
+    assert input_manifest[0].source_name == sample.name
+    assert input_manifest[0].sha256 == hashlib.sha256(sample.read_bytes()).hexdigest()
+
+
 def test_input_snapshot_rejects_original_hardlink(tmp_path: Path) -> None:
     input_root, _ = make_roots(tmp_path)
     source = input_root / "set" / "sample.bin"
@@ -4060,6 +4308,91 @@ def test_input_snapshot_supports_windows_extended_length_destination(tmp_path: P
         "directories": 2,
         "total_bytes": 4,
     }
+
+
+def _create_windows_long_analysis_artifact(
+    tmp_path: Path,
+    *,
+    payload: bytes,
+) -> tuple[Path, Path, Path]:
+    """legacy pathを超える実job同型の保持payloadをextended pathで作る。"""
+
+    digest = "a" * 64
+    filename = "b" * 64 + ".exe"
+    baseline = tmp_path / "analysis" / "cases" / digest / "p" / filename
+    padding = "w" * max(1, 280 - len(os.fspath(baseline)))
+    output = tmp_path / padding / "analysis"
+    relative = Path("cases") / digest / "p" / filename
+    normal_artifact = output / relative
+    io_artifact = runner._extended_length_path(normal_artifact)
+    io_artifact.parent.mkdir(parents=True)
+    io_artifact.write_bytes(payload)
+    assert len(os.fspath(normal_artifact)) > 260
+    return output, normal_artifact, io_artifact
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows extended-length path専用")
+def test_analysis_output_snapshot_normalizes_nested_legacy_long_path(tmp_path: Path) -> None:
+    """通常rootを受けても深い保持payloadをextended I/Oで検証・hashする。"""
+
+    payload = b"long analysis output"
+    output, normal_artifact, _io_artifact = _create_windows_long_analysis_artifact(
+        tmp_path,
+        payload=payload,
+    )
+    relative = normal_artifact.relative_to(output).as_posix()
+
+    tree = runner.validate_analysis_output_tree(output)
+    manifest = runner.analysis_output_content_manifest(output)
+    completed_tree, _root_identity, completed_entries = runner._completed_job_entry_snapshot(output)
+
+    expected_tree = {
+        "entries": 4,
+        "files": 1,
+        "directories": 3,
+        "total_bytes": len(payload),
+    }
+    # analyzerへ渡すroot／TEMPまで不要にextended-length化せず、validatorが
+    # 深いentryを読む瞬間だけextended I/Oへ正規化する。
+    assert runner._analysis_output_io_path(output) == output.resolve()
+    assert tree == expected_tree
+    assert manifest["tree"] == expected_tree
+    assert completed_tree == expected_tree
+    assert any(record[0] == relative and record[1] == "file" for record in completed_entries)
+    assert {
+        "path": relative,
+        "kind": "file",
+        "size": len(payload),
+        "sha256": hashlib.sha256(payload).hexdigest(),
+    } in manifest["entries"]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows extended-length path専用")
+def test_analysis_output_long_path_preserves_hardlink_and_size_quotas(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """long path正規化後もhardlinkとsize quotaをfail-closedで拒否する。"""
+
+    payload = b"long quota boundary"
+    output, normal_artifact, io_artifact = _create_windows_long_analysis_artifact(
+        tmp_path,
+        payload=payload,
+    )
+    monkeypatch.setattr(runner, "MAX_ANALYSIS_OUTPUT_BYTES", len(payload) - 1)
+    with pytest.raises(runner.JobContractError) as size_error:
+        runner.validate_analysis_output_tree(output)
+    assert size_error.value.code == "analysis_output_size_quota_exceeded"
+
+    monkeypatch.setattr(runner, "MAX_ANALYSIS_OUTPUT_BYTES", 1024)
+    linked = runner._extended_length_path(normal_artifact.with_name("linked.exe"))
+    try:
+        os.link(io_artifact, linked)
+    except OSError as exc:
+        pytest.skip(f"hardlinkを作成できない環境です: {exc}")
+    with pytest.raises(runner.JobContractError) as hardlink_error:
+        runner.validate_analysis_output_tree(output)
+    assert hardlink_error.value.code == "analysis_output_hardlink_forbidden"
 
 
 def test_input_snapshot_checks_required_capacity_before_copy(
@@ -4388,3 +4721,424 @@ def test_production_workers_receive_only_job_private_snapshots(
     assert (input_root / "set" / "sample.bin").resolve() not in captured["bundle"]
     result = load_json(jobs_root / request.job_id / "result.json")
     assert result["error"]["code"] == "test_stop_before_analyzer"
+
+
+def _valid_partial_terminal_snapshot(
+    request: runner.JobRequest,
+) -> dict[str, Any]:
+    created = "2026-11-02T00:00:00+00:00"
+    started = "2026-11-02T00:00:01+00:00"
+    finished = "2026-11-02T00:00:02+00:00"
+    updated = "2026-11-02T00:00:03+00:00"
+    message = "analyze_sample.pyが受理対象外の終了codeを返しました"
+    error = {"code": "analyzer_exit_nonzero", "message": message}
+    return {
+        "schema_version": runner.JOB_ARTIFACT_SCHEMA_VERSION,
+        "job_id": request.job_id,
+        "result": {
+            "schema_version": runner.JOB_ARTIFACT_SCHEMA_VERSION,
+            "job_id": request.job_id,
+            "request_sha256": runner._request_digest(request),
+            "accepted": False,
+            "analysis_state": "failed",
+            "inputs": [],
+            "family_hint_manifest": request.family_hint_manifest,
+            "process": {"exit_code": 2, "shell": False},
+            "safety": {
+                "network_or_live_options_allowed": False,
+                "sample_execution_allowed": False,
+                "ai_used": False,
+                "summary_safety_contract_verified": False,
+            },
+            "error": error,
+            "analysis_failure_artifacts": {},
+            "finished_at_utc": finished,
+        },
+        "status": {
+            "schema_version": runner.JOB_ARTIFACT_SCHEMA_VERSION,
+            "job_id": request.job_id,
+            "state": "failed",
+            "terminal": True,
+            "created_at_utc": created,
+            "started_at_utc": started,
+            "finished_at_utc": finished,
+            "progress_path": "progress.json",
+            "result_path": "result.json",
+            "error": error,
+        },
+        "progress": {
+            "schema_version": runner.JOB_ARTIFACT_SCHEMA_VERSION,
+            "job_id": request.job_id,
+            "phase": "failed",
+            "percent": 100,
+            "message": message,
+            "updated_at_utc": updated,
+        },
+    }
+
+
+def _valid_partial_summary(*, case_count: int = 1) -> dict[str, Any]:
+    cases = [
+        {
+            "sha256": f"{index + 1:064x}",
+            "case_state": "partial",
+            "selected_family": "valleyrat",
+            "selected_families": ["valleyrat"],
+            "report": f"cases/{index + 1:064x}/report.json",
+            "report_semantic_sha256": "a" * 64,
+            "analysis_contract_sha256": "b" * 64,
+        }
+        for index in range(case_count)
+    ]
+    value: dict[str, Any] = {
+        "schema_version": 1,
+        "status": "partial" if cases else "failed",
+        "run_status": "fatal",
+        "reason_code": "invalid_analysis_state",
+        "final_summary": False,
+        "eligible_for_completion_evaluation": False,
+        "counts": {
+            "scanned_case_entries": len(cases),
+            "verified_unattributed_terminal_cases": len(cases),
+            "rejected_or_unverified_entries": 0,
+            "scan_truncated": False,
+        },
+        "case_membership": "unattributed_existing_output_evidence",
+        "scan_limit_reasons": [],
+        "cases": cases,
+        "executed_sample": False,
+        "network_contacted": False,
+        "ai_used": False,
+    }
+    analysis_contract.seal_report(value)
+    return value
+
+
+def test_valid_partial_terminal_snapshot_requires_exact_failed_exit_two() -> None:
+    request = runner.validate_request_object(request_value("partial-terminal"))
+    snapshot = _valid_partial_terminal_snapshot(request)
+
+    result, status, progress = runner._validate_valid_partial_terminal_snapshot(
+        snapshot,
+        request,
+    )
+
+    assert result["process"]["exit_code"] == 2
+    assert status["state"] == "failed"
+    assert progress["percent"] == 100
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("accepted", "exit_code", "error_code", "status", "progress"),
+)
+def test_valid_partial_terminal_snapshot_rejects_near_misses(
+    mutation: str,
+) -> None:
+    request = runner.validate_request_object(request_value("partial-terminal-bad"))
+    snapshot = _valid_partial_terminal_snapshot(request)
+    if mutation == "accepted":
+        snapshot["result"]["accepted"] = True
+    elif mutation == "exit_code":
+        snapshot["result"]["process"]["exit_code"] = 1
+    elif mutation == "error_code":
+        snapshot["result"]["error"]["code"] = "other"
+    elif mutation == "status":
+        snapshot["status"]["state"] = "completed_partial"
+    else:
+        snapshot["progress"]["phase"] = "completed_partial"
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validate_valid_partial_terminal_snapshot(snapshot, request)
+
+    assert caught.value.code == "existing_valid_partial_invalid"
+
+
+def test_valid_partial_summary_accepts_only_sealed_complete_scan() -> None:
+    value = _valid_partial_summary(case_count=2)
+
+    records = runner._validate_valid_partial_summary_document(value)
+
+    assert [record["sha256"] for record in records] == [
+        f"{1:064x}",
+        f"{2:064x}",
+    ]
+
+
+def test_valid_partial_summary_accepts_bounded_case_limit_for_fifty_roots() -> None:
+    """fatal診断の4件上限は全50 root独立検証の補助subsetとしてだけ受理する。"""
+
+    value = _valid_partial_summary(case_count=4)
+    value["counts"]["scanned_case_entries"] = 50
+    value["counts"]["scan_truncated"] = True
+    value["scan_limit_reasons"] = ["case_limit"]
+    analysis_contract.seal_report(value)
+
+    records = runner._validate_valid_partial_summary_document(value)
+
+    assert len(records) == 4
+    assert value["counts"]["verified_unattributed_terminal_cases"] == 4
+
+
+@pytest.mark.parametrize(
+    "reasons",
+    (
+        ["case_limit"],
+        ["byte_limit", "case_limit"],
+        ["case_entry_limit", "case_limit"],
+        ["case_limit", "wall_clock_limit"],
+    ),
+)
+def test_valid_partial_summary_allows_bounded_rejection_only_for_full_revalidation(
+    reasons: list[str],
+) -> None:
+    """全rootを後段検証する経路だけ、bounded診断の1件欠落を受理する。"""
+
+    value = _valid_partial_summary(case_count=3)
+    value["counts"].update(
+        {
+            "scanned_case_entries": 50,
+            "rejected_or_unverified_entries": 1,
+            "scan_truncated": True,
+        }
+    )
+    value["scan_limit_reasons"] = reasons
+    analysis_contract.seal_report(value)
+
+    with pytest.raises(runner.JobContractError):
+        runner._validate_valid_partial_summary_document(value)
+
+    records = runner._validate_valid_partial_summary_document(
+        value,
+        allow_bounded_rejected_subset=True,
+    )
+    assert len(records) == 3
+
+
+@pytest.mark.parametrize(
+    ("case_count", "rejected", "reasons"),
+    (
+        (2, 1, ["case_limit"]),
+        (3, 2, ["case_limit"]),
+        (3, 1, ["case_limit", "unknown_limit"]),
+        (3, 1, ["byte_limit"]),
+    ),
+)
+def test_valid_partial_summary_rejects_invalid_bounded_rejection(
+    case_count: int,
+    rejected: int,
+    reasons: list[str],
+) -> None:
+    """互換受入でもsubset上限、固定reason、case-limit証跡を緩和しない。"""
+
+    value = _valid_partial_summary(case_count=case_count)
+    value["counts"].update(
+        {
+            "scanned_case_entries": 50,
+            "rejected_or_unverified_entries": rejected,
+            "scan_truncated": True,
+        }
+    )
+    value["scan_limit_reasons"] = reasons
+    analysis_contract.seal_report(value)
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validate_valid_partial_summary_document(
+            value,
+            allow_bounded_rejected_subset=True,
+        )
+
+    assert caught.value.code == "existing_valid_partial_invalid"
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "eligible",
+        "membership",
+        "safety",
+        "truncated",
+        "rejected",
+        "count",
+        "order",
+        "seal",
+    ),
+)
+def test_valid_partial_summary_rejects_incomplete_or_forged_scan(
+    mutation: str,
+) -> None:
+    value = _valid_partial_summary(case_count=2)
+    if mutation == "eligible":
+        value["eligible_for_completion_evaluation"] = True
+    elif mutation == "membership":
+        value["case_membership"] = "final"
+    elif mutation == "safety":
+        value["network_contacted"] = True
+    elif mutation == "truncated":
+        value["counts"]["scan_truncated"] = True
+        value["scan_limit_reasons"] = ["case_limit"]
+    elif mutation == "rejected":
+        value["counts"]["rejected_or_unverified_entries"] = 1
+        value["counts"]["scanned_case_entries"] = 3
+    elif mutation == "count":
+        value["counts"]["verified_unattributed_terminal_cases"] = 1
+    elif mutation == "order":
+        value["cases"] = list(reversed(value["cases"]))
+    else:
+        value["report_semantic_sha256"] = "f" * 64
+    if mutation != "seal":
+        analysis_contract.seal_report(value)
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validate_valid_partial_summary_document(value)
+
+    assert caught.value.code == "existing_valid_partial_invalid"
+
+
+def test_valid_partial_blocker_allowlist_rejects_unknown_and_unsorted() -> None:
+    valid = {
+        "assessment_only": False,
+        "case_state": {
+            "status": "partial",
+            "complete": False,
+            "resumable": False,
+            "blockers": [
+                "handler_failed",
+                "representative_function_analysis_required",
+            ],
+        }
+    }
+    assert runner._valid_partial_case_blockers_known(valid) is True
+
+    unknown = deepcopy(valid)
+    unknown["case_state"]["blockers"] = ["private_unknown_blocker"]
+    assert runner._valid_partial_case_blockers_known(unknown) is False
+
+    unsorted = deepcopy(valid)
+    unsorted["case_state"]["blockers"] = list(
+        reversed(unsorted["case_state"]["blockers"])
+    )
+    assert runner._valid_partial_case_blockers_known(unsorted) is False
+
+
+def _job_time_contract_fixture() -> tuple[
+    dict[str, Any],
+    dict[str, Any],
+    dict[str, Any],
+    list[SimpleNamespace],
+]:
+    manifest_record = {
+        "index": 0,
+        "outer_sha256": "1" * 64,
+        "outer_size": 100,
+        "unit_source_name": "sample.bin",
+    }
+    root = {
+        "schema_version": runner.SCHEMA_VERSION,
+        "pipeline_contract_version": 1,
+        "sha256": "2" * 64,
+        "component_count": 10,
+        "settings": {"analysis_mode": "script_only_static"},
+    }
+    follow_on = {
+        **root,
+        "sha256": "3" * 64,
+    }
+    stored = {
+        "schema_version": runner.SCHEMA_VERSION,
+        "input_manifest": [manifest_record],
+        "root_analysis_contract": deepcopy(root),
+        "follow_on_analysis_contract": deepcopy(follow_on),
+    }
+    live_manifest = [
+        SimpleNamespace(public=lambda: deepcopy(manifest_record))
+    ]
+    return stored, root, follow_on, live_manifest
+
+
+def test_job_time_partial_contract_reports_exact_live_source_replay() -> None:
+    stored, root, follow_on, live_manifest = _job_time_contract_fixture()
+
+    assert runner._validate_job_time_partial_contract(
+        stored,
+        live_root=root,
+        live_follow_on=follow_on,
+        live_manifest=live_manifest,
+    ) is True
+
+
+def test_job_time_partial_contract_separates_component_source_drift() -> None:
+    stored, root, follow_on, live_manifest = _job_time_contract_fixture()
+    live_root = deepcopy(root)
+    live_follow_on = deepcopy(follow_on)
+    live_root.update({"sha256": "4" * 64, "component_count": 11})
+    live_follow_on.update({"sha256": "5" * 64, "component_count": 11})
+
+    assert runner._validate_job_time_partial_contract(
+        stored,
+        live_root=live_root,
+        live_follow_on=live_follow_on,
+        live_manifest=live_manifest,
+    ) is False
+
+
+def test_job_time_partial_contract_rejects_analysis_setting_change() -> None:
+    stored, root, follow_on, live_manifest = _job_time_contract_fixture()
+    live_root = deepcopy(root)
+    live_root["settings"] = {"analysis_mode": "different"}
+
+    with pytest.raises(runner.JobContractError) as caught:
+        runner._validate_job_time_partial_contract(
+            stored,
+            live_root=live_root,
+            live_follow_on=follow_on,
+            live_manifest=live_manifest,
+        )
+
+    assert caught.value.code == "existing_valid_partial_invalid"
+
+
+def test_valid_partial_report_rejects_contract_or_seal_mutation() -> None:
+    """1 reportだけの契約改変は再sealの有無にかかわらず拒否する。"""
+
+    _stored, root, _follow_on, _manifest = _job_time_contract_fixture()
+    report = {
+        "analysis_contract": deepcopy(root),
+        "sample": {"sha256": "a" * 64},
+    }
+    analysis_contract.seal_report(report)
+    assert runner._valid_partial_report_contract_bound(report, root) is True
+
+    seal_mismatch = deepcopy(report)
+    seal_mismatch["analysis_contract"]["sha256"] = "f" * 64
+    assert (
+        runner._valid_partial_report_contract_bound(seal_mismatch, root)
+        is False
+    )
+
+    resealed_mismatch = deepcopy(seal_mismatch)
+    analysis_contract.seal_report(resealed_mismatch)
+    assert (
+        runner._valid_partial_report_contract_bound(resealed_mismatch, root)
+        is False
+    )
+
+
+def test_valid_partial_report_rejects_mixed_job_time_contracts() -> None:
+    """同一job内でroot契約が混在した場合は不一致reportを拒否する。"""
+
+    _stored, root, follow_on, _manifest = _job_time_contract_fixture()
+    reports = [
+        {"analysis_contract": deepcopy(root), "sample": {"sha256": "a" * 64}},
+        {
+            "analysis_contract": deepcopy(follow_on),
+            "sample": {"sha256": "b" * 64},
+        },
+    ]
+    for report in reports:
+        analysis_contract.seal_report(report)
+
+    assert [
+        runner._valid_partial_report_contract_bound(report, root)
+        for report in reports
+    ] == [True, False]

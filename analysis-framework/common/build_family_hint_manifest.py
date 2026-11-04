@@ -39,8 +39,77 @@ def build_manifest(path: Path, *, source: str) -> dict[str, Any]:
     )
 
 
+def _fixed_selection_items(document: dict[str, Any]) -> tuple[str, list[Any]] | None:
+    """固定選定hash列とmetadata列を厳格照合して互換item列へ変換する。"""
+
+    has_hashes = "selected_hashes" in document
+    has_metadata = "selected_metadata" in document
+    if not has_hashes and not has_metadata:
+        return None
+    if not has_hashes or not has_metadata:
+        raise ValueError(
+            "固定選定manifestにはselected_hashesとselected_metadataの両方が必要です"
+        )
+
+    raw_hashes = document["selected_hashes"]
+    raw_metadata = document["selected_metadata"]
+    if not isinstance(raw_hashes, list):
+        raise TypeError("selected_hashesは配列である必要があります")
+    if not isinstance(raw_metadata, list):
+        raise TypeError("selected_metadataは配列である必要があります")
+    if len(raw_hashes) > MAX_COLLECTION_ITEMS:
+        raise ValueError("selected_hashesがitem件数上限を超えています")
+    if len(raw_metadata) > MAX_COLLECTION_ITEMS:
+        raise ValueError("selected_metadataがitem件数上限を超えています")
+    if len(raw_hashes) != len(raw_metadata):
+        raise ValueError("selected_hashesとselected_metadataの件数が一致しません")
+
+    selected_hashes: list[str] = []
+    for index, value in enumerate(raw_hashes):
+        if (
+            not isinstance(value, str)
+            or classify_sample.SHA256_RE.fullmatch(value.lower()) is None
+        ):
+            raise ValueError(f"selected_hashes[{index}]はSHA-256ではありません")
+        selected_hashes.append(value.lower())
+    if len(set(selected_hashes)) != len(selected_hashes):
+        raise ValueError("selected_hashesに重複があります")
+
+    metadata_hashes: list[str] = []
+    items: list[dict[str, Any]] = []
+    for index, metadata in enumerate(raw_metadata):
+        if not isinstance(metadata, dict):
+            raise TypeError(f"selected_metadata[{index}]はobjectである必要があります")
+        value = metadata.get("sha256_hash")
+        if (
+            not isinstance(value, str)
+            or classify_sample.SHA256_RE.fullmatch(value.lower()) is None
+        ):
+            raise ValueError(
+                f"selected_metadata[{index}].sha256_hashはSHA-256ではありません"
+            )
+        digest = value.lower()
+        metadata_hashes.append(digest)
+        items.append({"sha256": digest, "metadata": metadata})
+    if len(set(metadata_hashes)) != len(metadata_hashes):
+        raise ValueError("selected_metadata.sha256_hashに重複があります")
+    if set(metadata_hashes) != set(selected_hashes):
+        raise ValueError(
+            "selected_hashesとselected_metadata.sha256_hashの集合が一致しません"
+        )
+    if metadata_hashes != selected_hashes:
+        raise ValueError(
+            "selected_hashesとselected_metadata.sha256_hashの順序が一致しません"
+        )
+    return "selected_metadata", items
+
+
 def _collection_items(document: dict[str, Any]) -> tuple[str, list[Any]]:
     """公開collection、private lookup、固定corpusから一意なitem列を取得する。"""
+
+    fixed_selection = _fixed_selection_items(document)
+    if fixed_selection is not None:
+        return fixed_selection
 
     fields = [
         field
@@ -181,8 +250,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--collection-manifest",
         type=Path,
         help=(
-            "取得時のacquisition_items、private lookup items、または固定corpusの"
-            "selectedを含むJSON。"
+            "取得時のacquisition_items、private lookup items、固定corpusのselected、"
+            "またはMalwareBazaar固定選定のselected_hashesとselected_metadataを含むJSON。"
         ),
     )
     parser.add_argument("--output", required=True, type=Path)

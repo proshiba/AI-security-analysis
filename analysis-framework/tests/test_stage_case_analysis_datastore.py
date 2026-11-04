@@ -26,6 +26,14 @@ def _json(path: Path, value: object) -> None:
     )
 
 
+def _recommit_selection(document: dict[str, object]) -> None:
+    """人工selection変更後のcommitmentを本番関数で再計算する。"""
+
+    document["selection_commitment_sha256"] = (
+        target.partitioner.compute_selection_commitment(document)
+    )
+
+
 def _fixture(
     tmp_path: Path,
     *,
@@ -153,22 +161,32 @@ def _fixture(
             }
         )
 
-    _json(
-        source / "manifest.json",
-        {
-            "schema_version": 1,
-            "source": "fixture",
-            "selection_mode": "windows_pe_newest",
-            "selected_at": "2026-09-03T00:00:00Z",
-            "selected_hashes": cases,
-            "selected_metadata": selected_metadata,
-            "items": items,
-            "complete": True,
-            "archives_remain_encrypted": True,
-            "samples_executed": False,
-            "selection_commitment_sha256": "c" * 64,
-        },
+    source_manifest = {
+        "schema_version": 1,
+        "source": "fixture",
+        "selection_mode": "windows_pe_newest",
+        "file_types": ["exe", "dll"],
+        "query_limit": 1000,
+        "selected_at": "2026-09-03T00:00:00Z",
+        "selection_provenance": {"method": "fixture"},
+        "requested": len(cases),
+        "excluded_hashes": 0,
+        "excluded_hashes_sha256": "f" * 64,
+        "excluded_tags": [],
+        "selected_hashes": cases,
+        "selected_metadata": selected_metadata,
+        "items": items,
+        "max_download_bytes": 1024,
+        "max_total_download_bytes": 4096,
+        "minimum_free_bytes": 1024,
+        "complete": True,
+        "archives_remain_encrypted": True,
+        "samples_executed": False,
+    }
+    source_manifest["selection_commitment_sha256"] = (
+        target.partitioner.compute_selection_commitment(source_manifest)
     )
+    _json(source / "manifest.json", source_manifest)
     _json(
         ghidra / "input-relationships.json",
         {
@@ -251,6 +269,56 @@ def _stage_without_ghidra(fixture: dict[str, object]) -> dict:
     )
 
 
+def _recommit_staged_follow_on_lineage(
+    staged_root: Path,
+    document: dict[str, object],
+) -> None:
+    """改ざんlineageと自己申告inventoryを同時更新する負例用helper。"""
+
+    lineage_path = staged_root / "derived" / "follow-on-lineage.case.json"
+    _json(lineage_path, document)
+    payload = archive._extended_length_path(lineage_path).read_bytes()
+    manifest_path = staged_root / target.STAGING_MANIFEST_NAME
+    manifest = json.loads(
+        archive._extended_length_path(manifest_path).read_text(encoding="utf-8")
+    )
+    record = next(
+        item
+        for item in manifest["files"]
+        if item["path"] == "derived/follow-on-lineage.case.json"
+    )
+    record["size"] = len(payload)
+    record["sha256"] = hashlib.sha256(payload).hexdigest()
+    manifest["follow_on_lineage_sha256"] = target._canonical_sha256(document)
+    lineage_safety = document["safety"]
+    manifest["safety"]["incomplete_follow_on_evidence_present"] = (
+        lineage_safety["incomplete_follow_on_evidence_present"]
+    )
+    manifest["safety"]["derived_case_state_counts"] = document[
+        "derived_case_state_counts"
+    ]
+    manifest["safety"]["derived_case_count"] = len(
+        document["derived_case_sha256s"]
+    )
+    manifest["safety"]["derived_cases_complete"] = (
+        document["derived_case_state_counts"]["partial"] == 0
+    )
+    manifest["total_size_excluding_this_manifest"] = sum(
+        int(item["size"]) for item in manifest["files"]
+    )
+    manifest["file_inventory_sha256"] = target._inventory_sha256(
+        manifest["files"]
+    )
+    roles: dict[str, dict[str, int]] = {}
+    for item in manifest["files"]:
+        role = str(item["role"])
+        summary = roles.setdefault(role, {"file_count": 0, "total_size": 0})
+        summary["file_count"] += 1
+        summary["total_size"] += int(item["size"])
+    manifest["roles"] = dict(sorted(roles.items()))
+    _json(manifest_path, manifest)
+
+
 def _add_exclusion_set(
     fixture: dict[str, object],
     *,
@@ -269,6 +337,7 @@ def _add_exclusion_set(
     excluded_hashes_sha256 = target._canonical_sha256(identities)
     manifest["excluded_hashes"] = len(identities)
     manifest["excluded_hashes_sha256"] = excluded_hashes_sha256
+    _recommit_selection(manifest)
     _json(manifest_path, manifest)
     _json(
         fixture["source"] / "exclusion-set.json",
@@ -278,15 +347,140 @@ def _add_exclusion_set(
             "identity_count": len(identities),
             "identities": identities,
             "excluded_hashes_sha256": excluded_hashes_sha256,
-            "selection_commitment_sha256": manifest[
-                "selection_commitment_sha256"
-            ],
+            "selection_commitment_sha256": manifest["selection_commitment_sha256"],
             "classification": "private",
             "contains_sample_sha256": True,
             "publishable": False,
         },
     )
     return identities
+
+
+def _add_follow_on_child(
+    fixture: dict[str, object],
+    *,
+    root_index: int = 0,
+    status: str = "child_complete",
+) -> str:
+    root = fixture["cases"][root_index]
+    child_payload = b"MZ-derived-complete"
+    child = hashlib.sha256(child_payload).hexdigest()
+    parent_directory = fixture["one_shot"] / "cases" / root
+    payload_path = parent_directory / "p" / f"{child}.exe"
+    payload_io = archive._extended_length_path(payload_path)
+    payload_io.parent.mkdir()
+    payload_io.write_bytes(child_payload)
+    child_directory = fixture["one_shot"] / "cases" / child
+    child_directory.mkdir()
+    complete = status == "child_complete"
+    _json(
+        child_directory / "report.json",
+        {
+            "sample": {"sha256": child},
+            "executed_sample": False,
+            "network_contacted": False,
+            "ai_used": False,
+            "case_state": {
+                "status": "complete" if complete else "partial",
+                "complete": complete,
+                "blockers": [] if complete else ["fixture_incomplete"],
+            },
+        },
+    )
+    roots = list(fixture["cases"])
+    _json(
+        fixture["one_shot"] / "follow-on-analysis.json",
+        {
+            "schema_version": 1,
+            "executed_sample": False,
+            "network_contacted": False,
+            "ai_used": False,
+            "status": "complete" if complete else "partial",
+            "roots": roots,
+            "nodes": [
+                *({"sha256": digest, "depth": 0, "state": "root"} for digest in roots),
+                {
+                    "sha256": child,
+                    "depth": 1,
+                    "state": "analyzed",
+                    "case_state": "complete" if complete else "partial",
+                },
+            ],
+            "edges": [
+                {
+                    "parent_sha256": root,
+                    "child_sha256": child,
+                    "depth": 1,
+                    "path": f"p/{child}.exe",
+                    "role": "recovered_payload",
+                    "kind": "pe",
+                    "size": len(child_payload),
+                    "status": status,
+                }
+            ],
+            "errors": [],
+            "omitted_metadata": [],
+            "omitted_metadata_commitments": [],
+            "wall_clock_exhausted": False,
+        },
+    )
+    return child
+
+
+def _add_shared_follow_on_child(
+    fixture: dict[str, object],
+    *,
+    status: str = "child_complete",
+) -> str:
+    """2 rootが同一derived leafを保持するfollow-on graphを作る。"""
+
+    child = _add_follow_on_child(fixture, status=status)
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    second = fixture["cases"][1]
+    first_payload = fixture["one_shot"] / "cases" / fixture["cases"][0] / "p" / f"{child}.exe"
+    second_payload = fixture["one_shot"] / "cases" / second / "p" / f"{child}.exe"
+    second_payload_io = archive._extended_length_path(second_payload)
+    second_payload_io.parent.mkdir()
+    second_payload_io.write_bytes(
+        archive._extended_length_path(first_payload).read_bytes()
+    )
+    shared = dict(graph["edges"][0])
+    shared["parent_sha256"] = second
+    shared["status"] = (
+        "shared_sha256_reused_complete"
+        if status == "child_complete"
+        else "shared_sha256_reused_incomplete"
+    )
+    graph["edges"].append(shared)
+    _json(graph_path, graph)
+    return child
+
+
+def _add_runtime_request_sidecar(fixture: dict[str, object]) -> Path:
+    path = fixture["source"] / "request-improved.json"
+    _json(
+        path,
+        {
+            "schema_version": 1,
+            "job_id": "fixture-improved",
+            "inputs": list(reversed(fixture["cases"])),
+            "family_hint_manifest": None,
+            "options": {
+                "archive_mode": "malwarebazaar",
+                "assessment_only": False,
+                "family": None,
+                "force_container_probe": False,
+                "max_file_size": 1024,
+                "max_files": 2,
+                "max_static_layers": 64,
+                "minimum_confidence": "medium",
+                "retry_max_static_layers": 128,
+                "string_scan_limit": 1000,
+            },
+        },
+    )
+    return path
 
 
 def test_stage_case_without_ghidra_keeps_source_and_one_shot_only(tmp_path: Path) -> None:
@@ -314,6 +508,934 @@ def test_stage_case_without_ghidra_keeps_source_and_one_shot_only(tmp_path: Path
     assert manifest["safety"]["network_contacted"] is False
     assert manifest["safety"]["ai_used"] is False
     assert manifest["safety"]["one_shot_report_safety_validated"] is True
+    assert "externalized_shared_reference_sha256" not in manifest
+    for key in (
+        "physically_included_derived_case_count",
+        "externalized_shared_child_count",
+        "externalized_shared_child_sha256s",
+        "externalized_lineage_derived_case_count",
+        "shared_payload_bytes_included",
+        "shared_derived_analysis_included",
+        "shared_archives_remote_reverified",
+    ):
+        assert key not in manifest["safety"]
+    assert "externalized_shared_reference_sha256" not in case
+    assert "externalized_shared_child_sha256s" not in case
+
+    reused = target.reuse_case_staging(
+        output_root=fixture["output"],
+        collection_id="daily-fixture",
+        case_sha256=digest,
+    )
+    assert "externalized_shared_reference_sha256" not in reused["cases"][0]
+
+
+def test_output_root_creation_failure_removes_only_new_owned_components(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = _fixture(tmp_path)
+    first = tmp_path / "owned-output-a"
+    requested = first / "owned-output-b" / "owned-output-c"
+    original_mkdir = target.os.mkdir
+
+    def controlled_mkdir(path: object, mode: int = 0o777) -> None:
+        if Path(path).name == "owned-output-b":
+            raise OSError("fixture mkdir failure")
+        original_mkdir(path, mode)
+
+    monkeypatch.setattr(target.os, "mkdir", controlled_mkdir)
+    with pytest.raises(target.CaseStagingError, match="作成できません"):
+        target._prepare_output_root(
+            requested,
+            repository=fixture["repository"],
+            inputs=(fixture["source"], fixture["one_shot"]),
+        )
+
+    assert not first.exists()
+    assert (fixture["source"] / "manifest.json").is_file()
+    assert (
+        fixture["one_shot"]
+        / "cases"
+        / fixture["cases"][0]
+        / "report.json"
+    ).is_file()
+
+
+def test_partitioned_run_stages_one_case_against_complete_source_manifest(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    digest = fixture["cases"][0]
+    source_manifest = json.loads((fixture["source"] / "manifest.json").read_text(encoding="utf-8"))
+    source_item = next(item for item in source_manifest["items"] if item["sha256"] == digest)
+    partition = tmp_path / "partition-job" / "analysis"
+    (partition / "cases").mkdir(parents=True)
+    (fixture["one_shot"] / "cases" / digest).rename(partition / "cases" / digest)
+    _json(
+        partition / "cases" / digest / "report.json",
+        {
+            "sample": {
+                "sha256": digest,
+                "input_kind": "authenticated_single_member_zip",
+                "outer_sha256": source_item["zip_sha256"],
+                "outer_size": source_item["zip_size"],
+                "member_name": f"{digest}.exe",
+            },
+            "executed_sample": False,
+            "network_contacted": False,
+            "ai_used": False,
+        },
+    )
+
+    result = target.stage_cases_without_ghidra(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        source_root=fixture["source"],
+        one_shot_root=partition,
+        output_root=fixture["output"],
+        case_sha256s=[digest],
+        source_requested_sha256=digest,
+        expected_run_root_sha256s=[digest],
+    )
+
+    staged = Path(result["cases"][0]["source_path"])
+    assert result["case_count"] == 1
+    assert archive._extended_length_path(staged / "source" / f"{digest}.zip").is_file()
+    assert not archive._extended_length_path(
+        staged / "source" / f"{fixture['cases'][1]}.zip"
+    ).exists()
+    acquisition = json.loads(
+        (staged / "derived" / "source-acquisition.case.json").read_text(encoding="utf-8")
+    )
+    assert acquisition["source_manifest_sha256"] == hashlib.sha256(
+        (fixture["source"] / "manifest.json").read_bytes()
+    ).hexdigest()
+
+
+def test_partitioned_run_rejects_unbound_source_archive(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    digest = fixture["cases"][0]
+    partition = tmp_path / "partition-job" / "analysis"
+    (partition / "cases").mkdir(parents=True)
+    (fixture["one_shot"] / "cases" / digest).rename(partition / "cases" / digest)
+    _json(
+        partition / "cases" / digest / "report.json",
+        {
+            "sample": {
+                "sha256": digest,
+                "input_kind": "authenticated_single_member_zip",
+                "outer_sha256": "f" * 64,
+                "outer_size": 1,
+                "member_name": f"{digest}.exe",
+            },
+            "executed_sample": False,
+            "network_contacted": False,
+            "ai_used": False,
+        },
+    )
+
+    with pytest.raises(target.CaseStagingError, match="取得archiveへ一意"):
+        target.stage_cases_without_ghidra(
+            repository=fixture["repository"],
+            collection_id="daily-fixture",
+            source_root=fixture["source"],
+            one_shot_root=partition,
+            output_root=fixture["output"],
+            case_sha256s=[digest],
+            source_requested_sha256=digest,
+            expected_run_root_sha256s=[digest],
+        )
+
+
+def test_source_manifest_rejects_uncommitted_provider_metadata(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    manifest_path = fixture["source"] / "manifest.json"
+    document = json.loads(manifest_path.read_text(encoding="utf-8"))
+    document["items"][0]["metadata"]["signature"] = "mutated-after-selection"
+    _json(manifest_path, document)
+
+    with pytest.raises(target.CaseStagingError, match="安全投影"):
+        target._validate_source_manifest(fixture["source"])
+
+
+def test_partitioned_run_binds_provider_hash_alias_without_public_manifest(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    actual = fixture["cases"][0]
+    requested = hashlib.sha256(b"partition-provider-request").hexdigest()
+    source = fixture["source"]
+    (source / actual).rename(source / requested)
+    (source / requested / f"{actual}.zip").rename(source / requested / f"{requested}.zip")
+    source_document = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
+    source_document["selected_hashes"][0] = requested
+    source_document["selected_metadata"][0]["sha256_hash"] = requested
+    source_item = source_document["items"][0]
+    source_item["sha256"] = requested
+    source_item["metadata"]["sha256_hash"] = requested
+    source_item["zip_path"] = str((source / requested / f"{requested}.zip").resolve())
+    _recommit_selection(source_document)
+    _json(source / "manifest.json", source_document)
+    partition = tmp_path / "partition-job" / "analysis"
+    (partition / "cases").mkdir(parents=True)
+    (fixture["one_shot"] / "cases" / actual).rename(partition / "cases" / actual)
+    _json(
+        partition / "cases" / actual / "report.json",
+        {
+            "sample": {
+                "sha256": actual,
+                "input_kind": "authenticated_single_member_zip",
+                "outer_sha256": source_item["zip_sha256"],
+                "outer_size": source_item["zip_size"],
+                "member_name": f"{requested}.exe",
+            },
+            "executed_sample": False,
+            "network_contacted": False,
+            "ai_used": False,
+        },
+    )
+
+    result = target.stage_cases_without_ghidra(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        source_root=source,
+        one_shot_root=partition,
+        output_root=fixture["output"],
+        case_sha256s=[actual],
+        source_requested_sha256=requested,
+        expected_run_root_sha256s=[actual],
+    )
+
+    staged = Path(result["cases"][0]["source_path"])
+    acquisition = json.loads(
+        (staged / "derived" / "source-acquisition.case.json").read_text(encoding="utf-8")
+    )
+    assert result["cases"][0]["provider_requested_sha256"] == requested
+    assert acquisition["case_sha256"] == actual
+    assert acquisition["provider_requested_sha256"] == requested
+    assert archive._extended_length_path(staged / "source" / f"{requested}.zip").is_file()
+
+
+def test_complete_derived_lineage_is_staged_only_with_its_root(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    root = fixture["cases"][0]
+    child = _add_follow_on_child(fixture)
+
+    result = _stage_without_ghidra(fixture)
+
+    case = result["cases"][0]
+    assert case["derived_case_sha256s"] == [child]
+    staged = Path(case["source_path"])
+    assert (staged / "one-shot-private" / "report.json").is_file()
+    assert archive._extended_length_path(staged / "one-shot-derived" / child / "report.json").is_file()
+    assert not (staged / "one-shot-private" / fixture["cases"][1]).exists()
+    projection = json.loads((staged / "derived" / "follow-on-lineage.case.json").read_text(encoding="utf-8"))
+    assert projection["case_sha256"] == root
+    assert projection["derived_case_sha256s"] == [child]
+    assert projection["edges"][0]["status"] == "child_complete"
+    assert "--expected-source-tree-sha256" in case["archive_arguments"]
+
+
+def test_incomplete_derived_lineage_rejects_only_affected_root(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    _add_follow_on_child(fixture, status="child_incomplete")
+
+    with pytest.raises(target.CaseStagingError, match="derived_child_incomplete"):
+        _stage_without_ghidra(fixture)
+
+    unaffected = target.stage_cases_without_ghidra(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        source_root=fixture["source"],
+        one_shot_root=fixture["one_shot"],
+        output_root=fixture["output"],
+        case_sha256s=[fixture["cases"][1]],
+    )
+    assert unaffected["cases"][0]["derived_case_sha256s"] == []
+
+
+def test_sealed_partial_derived_lineage_requires_explicit_flag(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_follow_on_child(fixture, status="child_incomplete")
+
+    with pytest.raises(target.CaseStagingError, match="derived_child_incomplete"):
+        _stage_without_ghidra(fixture)
+
+    result = target.stage_cases_without_ghidra(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        source_root=fixture["source"],
+        one_shot_root=fixture["one_shot"],
+        output_root=fixture["output"],
+        case_sha256s=[fixture["cases"][0]],
+        allow_partial_derived_cases=True,
+        expected_analysis_output_sha256="d" * 64,
+    )
+
+    case = result["cases"][0]
+    assert case["derived_case_sha256s"] == [child]
+    assert case["derived_case_state_counts"] == {"complete": 0, "partial": 1}
+    staged = Path(case["source_path"])
+    manifest = json.loads(
+        (staged / target.STAGING_MANIFEST_NAME).read_text(encoding="utf-8")
+    )
+    assert manifest["analysis_output_sha256"] == "d" * 64
+    assert manifest["safety"]["derived_cases_complete"] is False
+    assert manifest["safety"]["derived_case_state_counts"] == {
+        "complete": 0,
+        "partial": 1,
+    }
+
+
+def test_unmaterialized_timeout_is_staged_as_evidence_only_with_explicit_flag(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_follow_on_child(fixture, status="child_incomplete")
+    child_directory = fixture["one_shot"] / "cases" / child
+    for path in child_directory.iterdir():
+        path.unlink()
+    child_directory.rmdir()
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    child_node = next(item for item in graph["nodes"] if item["sha256"] == child)
+    child_node["state"] = "timeout"
+    child_node.pop("case_state")
+    _json(graph_path, graph)
+    live_lineage = target._validate_one_shot_lineage(
+        fixture["one_shot"],
+        source_case_sha256s=set(fixture["cases"]),
+    )
+    expected_lineage = target.build_follow_on_lineage_case_document(
+        live_lineage,
+        collection_id="daily-fixture",
+        case_sha256=fixture["cases"][0],
+    )
+
+    with pytest.raises(target.CaseStagingError, match="derived_child_incomplete"):
+        _stage_without_ghidra(fixture)
+
+    result = target.stage_cases_without_ghidra(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        source_root=fixture["source"],
+        one_shot_root=fixture["one_shot"],
+        output_root=fixture["output"],
+        case_sha256s=[fixture["cases"][0]],
+        allow_partial_derived_cases=True,
+        expected_follow_on_lineage_document=expected_lineage,
+    )
+
+    case = result["cases"][0]
+    assert case["derived_case_sha256s"] == []
+    assert case["incomplete_derived_case_sha256s"] == [child]
+    staged = Path(case["source_path"])
+    assert not (staged / "one-shot-derived").exists()
+    projection = json.loads(
+        (staged / "derived" / "follow-on-lineage.case.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert projection["incomplete_derived_case_sha256s"] == [child]
+    assert projection["incomplete_derived_case_states"] == {child: "timeout"}
+    assert projection["safety"]["incomplete_derived_cases_included"] is False
+    assert projection["safety"]["incomplete_follow_on_evidence_present"] is True
+    with pytest.raises(target.CaseStagingError, match="明示的な許可"):
+        target.reuse_case_staging(
+            output_root=fixture["output"],
+            collection_id="daily-fixture",
+            case_sha256=fixture["cases"][0],
+        )
+    resumed = target.reuse_case_staging(
+        output_root=fixture["output"],
+        collection_id="daily-fixture",
+        case_sha256=fixture["cases"][0],
+        allow_partial_derived_cases=True,
+        expected_follow_on_lineage_document=expected_lineage,
+    )
+    assert resumed["cases"][0]["derived_case_state_counts"] == {
+        "complete": 0,
+        "partial": 0,
+    }
+
+
+@pytest.mark.parametrize("mutation", ["remove_timeout", "change_edge"])
+def test_live_lineage_rejects_self_consistently_recommitted_stale_staging(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_follow_on_child(fixture, status="child_incomplete")
+    child_directory = fixture["one_shot"] / "cases" / child
+    for path in child_directory.iterdir():
+        path.unlink()
+    child_directory.rmdir()
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    child_node = next(item for item in graph["nodes"] if item["sha256"] == child)
+    child_node["state"] = "timeout"
+    child_node.pop("case_state")
+    _json(graph_path, graph)
+    live_lineage = target._validate_one_shot_lineage(
+        fixture["one_shot"],
+        source_case_sha256s=set(fixture["cases"]),
+    )
+    expected_lineage = target.build_follow_on_lineage_case_document(
+        live_lineage,
+        collection_id="daily-fixture",
+        case_sha256=fixture["cases"][0],
+    )
+    staged_result = target.stage_cases_without_ghidra(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        source_root=fixture["source"],
+        one_shot_root=fixture["one_shot"],
+        output_root=fixture["output"],
+        case_sha256s=[fixture["cases"][0]],
+        allow_partial_derived_cases=True,
+        expected_follow_on_lineage_document=expected_lineage,
+    )
+    case_result = staged_result["cases"][0]
+    staged = Path(case_result["source_path"])
+    lineage_path = staged / "derived" / "follow-on-lineage.case.json"
+    stale_lineage = json.loads(
+        archive._extended_length_path(lineage_path).read_text(encoding="utf-8")
+    )
+    if mutation == "remove_timeout":
+        stale_lineage["incomplete_derived_case_sha256s"] = []
+        stale_lineage["incomplete_derived_case_states"] = {}
+        stale_lineage["edges"] = []
+        stale_lineage["safety"]["incomplete_follow_on_evidence_present"] = False
+    else:
+        stale_lineage["edges"][0]["role"] = "recommitted_stale_role"
+    _recommit_staged_follow_on_lineage(staged, stale_lineage)
+
+    with pytest.raises(target.CaseStagingError, match="live graph"):
+        target.reuse_case_staging(
+            output_root=fixture["output"],
+            collection_id="daily-fixture",
+            case_sha256=fixture["cases"][0],
+            allow_partial_derived_cases=True,
+            expected_follow_on_lineage_document=expected_lineage,
+        )
+    with pytest.raises(target.CaseStagingError, match="live graph"):
+        target.remove_case_staging_after_verified_archive(
+            output_root=fixture["output"],
+            source_path=staged,
+            collection_id="daily-fixture",
+            case_sha256=fixture["cases"][0],
+            archive_result=_verified_archive_result(case_result),
+            allow_partial_derived_cases=True,
+            expected_follow_on_lineage_document=expected_lineage,
+        )
+    assert staged.is_dir()
+
+
+@pytest.mark.parametrize("graph_status", ["complete", "no_retained_payloads"])
+def test_timeout_evidence_requires_partial_graph_status(
+    tmp_path: Path,
+    graph_status: str,
+) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_follow_on_child(fixture, status="child_incomplete")
+    child_directory = fixture["one_shot"] / "cases" / child
+    for path in child_directory.iterdir():
+        path.unlink()
+    child_directory.rmdir()
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    child_node = next(item for item in graph["nodes"] if item["sha256"] == child)
+    child_node["state"] = "timeout"
+    child_node.pop("case_state")
+    graph["status"] = graph_status
+    _json(graph_path, graph)
+
+    with pytest.raises(target.CaseStagingError, match="partial follow-on graph"):
+        target.stage_cases_without_ghidra(
+            repository=fixture["repository"],
+            collection_id="daily-fixture",
+            source_root=fixture["source"],
+            one_shot_root=fixture["one_shot"],
+            output_root=fixture["output"],
+            case_sha256s=[fixture["cases"][0]],
+            allow_partial_derived_cases=True,
+        )
+
+
+def test_materialized_partial_derived_requires_partial_graph_status(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    _add_follow_on_child(fixture, status="child_incomplete")
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["status"] = "complete"
+    _json(graph_path, graph)
+
+    with pytest.raises(target.CaseStagingError, match="partial follow-on graph"):
+        target.stage_cases_without_ghidra(
+            repository=fixture["repository"],
+            collection_id="daily-fixture",
+            source_root=fixture["source"],
+            one_shot_root=fixture["one_shot"],
+            output_root=fixture["output"],
+            case_sha256s=[fixture["cases"][0]],
+            allow_partial_derived_cases=True,
+        )
+
+
+def test_complete_follow_on_graph_requires_at_least_one_complete_edge(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_follow_on_child(fixture)
+    child_directory = fixture["one_shot"] / "cases" / child
+    for path in child_directory.iterdir():
+        path.unlink()
+    child_directory.rmdir()
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["nodes"] = [item for item in graph["nodes"] if item["sha256"] != child]
+    graph["edges"] = []
+    _json(graph_path, graph)
+
+    with pytest.raises(target.CaseStagingError, match="未完了edge"):
+        target._validate_one_shot_lineage(
+            fixture["one_shot"],
+            source_case_sha256s=set(fixture["cases"]),
+        )
+
+
+@pytest.mark.parametrize(
+    "node_state",
+    ["queued", "failed", "wall_clock_limit", "incomplete_case_omitted"],
+)
+def test_non_timeout_unmaterialized_node_is_rejected_even_with_partial_flag(
+    tmp_path: Path,
+    node_state: str,
+) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_follow_on_child(fixture, status="child_incomplete")
+    child_directory = fixture["one_shot"] / "cases" / child
+    for path in child_directory.iterdir():
+        path.unlink()
+    child_directory.rmdir()
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    child_node = next(item for item in graph["nodes"] if item["sha256"] == child)
+    child_node["state"] = node_state
+    child_node.pop("case_state")
+    _json(graph_path, graph)
+
+    with pytest.raises(target.CaseStagingError, match="timeout状態だけ"):
+        target.stage_cases_without_ghidra(
+            repository=fixture["repository"],
+            collection_id="daily-fixture",
+            source_root=fixture["source"],
+            one_shot_root=fixture["one_shot"],
+            output_root=fixture["output"],
+            case_sha256s=[fixture["cases"][0]],
+            allow_partial_derived_cases=True,
+        )
+
+
+def test_unmaterialized_timeout_node_rejects_case_state(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_follow_on_child(fixture, status="child_incomplete")
+    child_directory = fixture["one_shot"] / "cases" / child
+    for path in child_directory.iterdir():
+        path.unlink()
+    child_directory.rmdir()
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    child_node = next(item for item in graph["nodes"] if item["sha256"] == child)
+    child_node["state"] = "timeout"
+    child_node["case_state"] = "partial"
+    _json(graph_path, graph)
+
+    with pytest.raises(target.CaseStagingError, match="case_stateは許可しません"):
+        target.stage_cases_without_ghidra(
+            repository=fixture["repository"],
+            collection_id="daily-fixture",
+            source_root=fixture["source"],
+            one_shot_root=fixture["one_shot"],
+            output_root=fixture["output"],
+            case_sha256s=[fixture["cases"][0]],
+            allow_partial_derived_cases=True,
+        )
+
+
+@pytest.mark.parametrize(
+    ("node_state", "directory_present"),
+    [("timeout", True), ("analyzed", False)],
+)
+def test_follow_on_materialized_node_and_directory_sets_must_match(
+    tmp_path: Path,
+    node_state: str,
+    directory_present: bool,
+) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_follow_on_child(fixture)
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    child_node = next(item for item in graph["nodes"] if item["sha256"] == child)
+    child_node["state"] = node_state
+    if node_state == "timeout":
+        child_node.pop("case_state")
+        graph["edges"][0]["status"] = "child_incomplete"
+    if not directory_present:
+        child_directory = fixture["one_shot"] / "cases" / child
+        for path in child_directory.iterdir():
+            path.unlink()
+        child_directory.rmdir()
+    _json(graph_path, graph)
+
+    with pytest.raises(target.CaseStagingError, match="materialized node集合"):
+        target._validate_one_shot_lineage(
+            fixture["one_shot"],
+            source_case_sha256s=set(fixture["cases"]),
+        )
+
+
+def test_failed_follow_on_graph_is_not_a_sealed_staging_source(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    _add_follow_on_child(fixture)
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["status"] = "failed"
+    _json(graph_path, graph)
+
+    with pytest.raises(target.CaseStagingError, match="schemaまたは安全契約"):
+        target._validate_one_shot_lineage(
+            fixture["one_shot"],
+            source_case_sha256s=set(fixture["cases"]),
+        )
+
+
+def test_shared_child_lineage_is_rejected_for_all_involved_roots(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_follow_on_child(fixture)
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    second = fixture["cases"][1]
+    second_payload = fixture["one_shot"] / "cases" / second / "p" / f"{child}.exe"
+    second_payload_io = archive._extended_length_path(second_payload)
+    second_payload_io.parent.mkdir()
+    first_payload = fixture["one_shot"] / "cases" / fixture["cases"][0] / "p" / f"{child}.exe"
+    second_payload_io.write_bytes(archive._extended_length_path(first_payload).read_bytes())
+    shared = dict(graph["edges"][0])
+    shared["parent_sha256"] = second
+    shared["status"] = "shared_sha256_reused_complete"
+    graph["edges"].append(shared)
+    _json(graph_path, graph)
+
+    for digest in fixture["cases"]:
+        with pytest.raises(target.CaseStagingError, match="shared_or_cross_root_child"):
+            target.stage_cases_without_ghidra(
+                repository=fixture["repository"],
+                collection_id="daily-fixture",
+                source_root=fixture["source"],
+                one_shot_root=fixture["one_shot"],
+                output_root=fixture["output"],
+                case_sha256s=[digest],
+            )
+
+
+def test_shared_child_is_staged_once_then_referenced_without_root_bytes(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    fixture["output"] = (
+        tmp_path
+        / ("shared-stage-a-" + "a" * 80)
+        / ("shared-stage-b-" + "b" * 80)
+        / ("shared-stage-c-" + "c" * 80)
+    )
+    assert len(os.fspath(fixture["output"])) > 260
+    assert not os.path.lexists(
+        archive._extended_length_path(fixture["output"])
+    )
+    child = _add_shared_follow_on_child(fixture)
+    lineage = target._validate_one_shot_lineage(
+        fixture["one_shot"],
+        source_case_sha256s=set(fixture["cases"]),
+    )
+    document = target.build_shared_derived_externalization_documents(
+        lineage,
+        collection_id="daily-fixture",
+        allow_partial_derived_cases=False,
+    )[child]
+    analysis_sha256 = "a" * 64
+    shared = target.stage_externalized_shared_derived_case(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        one_shot_root=fixture["one_shot"],
+        output_root=fixture["output"],
+        expected_run_root_sha256s=fixture["cases"],
+        child_sha256=child,
+        allow_partial_derived_cases=False,
+        expected_analysis_output_sha256=analysis_sha256,
+        expected_externalization_document=document,
+    )
+    shared_root = Path(shared["source_path"])
+    shared_root_io = archive._extended_length_path(shared_root)
+    assert not os.path.lexists(shared_root_io / "source")
+    assert not os.path.lexists(shared_root_io / "one-shot-private")
+    assert os.path.isfile(
+        shared_root_io / "one-shot-derived" / child / "report.json"
+    )
+    assert sum(
+        archive._hash_source_snapshot(path)[0] == child
+        for path, _relative in target._walk_files(
+            shared_root,
+            role="test shared staging",
+        )
+    ) == 1
+    reused_shared = target.reuse_externalized_shared_derived_staging(
+        output_root=fixture["output"],
+        collection_id="daily-fixture",
+        child_sha256=child,
+        allow_partial_derived_cases=False,
+        expected_analysis_output_sha256=analysis_sha256,
+        expected_externalization_document=document,
+    )
+    assert reused_shared["source_tree_sha256"] == shared["source_tree_sha256"]
+
+    receipt = {
+        "target": shared["target"],
+        "archive_sha256": "b" * 64,
+        "manifest_sha256": "c" * 64,
+        "source_tree_sha256": shared["source_tree_sha256"],
+        "provenance_sha256": shared["provenance_sha256"],
+        "archive_report_sha256": "d" * 64,
+        "externalization_document_sha256": target._canonical_sha256(document),
+        "source_follow_on_sha256": document["source_follow_on_sha256"],
+        "owner_set_commitment_sha256": document["owner_set_commitment_sha256"],
+        "edge_set_commitment_sha256": document["edge_set_commitment_sha256"],
+        "child_case_state": document["child_case_state"],
+        "remote_reverified": True,
+    }
+    root = fixture["cases"][0]
+    lineage_document = target.build_follow_on_lineage_case_document(
+        lineage,
+        collection_id="daily-fixture",
+        case_sha256=root,
+    )
+    staged_result = target._stage_cases_without_ghidra(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        source_root=fixture["source"],
+        one_shot_root=fixture["one_shot"],
+        output_root=fixture["output"],
+        case_sha256s=[root],
+        expected_run_root_sha256s=fixture["cases"],
+        expected_analysis_output_sha256=analysis_sha256,
+        expected_follow_on_lineage_document=lineage_document,
+        externalized_shared_receipts={child: receipt},
+    )
+    staged_root = Path(staged_result["cases"][0]["source_path"])
+    staged_root_io = archive._extended_length_path(staged_root)
+    assert not os.path.lexists(
+        staged_root_io / "one-shot-private" / "p" / f"{child}.exe"
+    )
+    assert not os.path.lexists(staged_root_io / "one-shot-derived" / child)
+    reference, _reference_sha256 = target._read_json(
+        staged_root / "derived" / "shared-derived-reference.case.json",
+        label="test shared reference",
+    )
+    assert reference["items"][0]["shared_archive"]["archive_sha256"] == "b" * 64
+    assert "object_uri" not in reference["items"][0]["shared_archive"]
+    assert not any(
+        archive._hash_source_snapshot(path)[0] == child
+        for path, _relative in target._walk_files(
+            staged_root,
+            role="test root staging",
+        )
+    )
+    reused_root = target.reuse_case_staging(
+        output_root=fixture["output"],
+        collection_id="daily-fixture",
+        case_sha256=root,
+        expected_analysis_output_sha256=analysis_sha256,
+        expected_follow_on_lineage_document=lineage_document,
+        expected_externalized_shared_reference_document=reference,
+    )
+    assert (
+        reused_root["cases"][0]["externalized_shared_reference_sha256"]
+        == target._canonical_sha256(reference)
+    )
+    cleanup_result = target.remove_externalized_shared_staging_after_verified_archive(
+        output_root=fixture["output"],
+        source_path=shared_root,
+        collection_id="daily-fixture",
+        child_sha256=child,
+        archive_result={
+            **receipt,
+            "status": "verified_reused",
+            "file_count": shared["file_count"],
+            "total_size": shared["total_size"],
+        },
+        allow_partial_derived_cases=False,
+        expected_analysis_output_sha256=analysis_sha256,
+        expected_externalization_document=document,
+    )
+    assert cleanup_result["removed"] is True
+    assert not os.path.lexists(archive._extended_length_path(shared_root))
+    root_case = staged_result["cases"][0]
+    root_cleanup = target.remove_case_staging_after_verified_archive(
+        output_root=fixture["output"],
+        source_path=staged_root,
+        collection_id="daily-fixture",
+        case_sha256=root,
+        archive_result={
+            "target": root_case["target"],
+            "status": "verified_reused",
+            "archive_sha256": "e" * 64,
+            "manifest_sha256": "f" * 64,
+            "source_tree_sha256": root_case["source_tree_sha256"],
+            "file_count": root_case["file_count"],
+            "total_size": root_case["total_size"],
+        },
+        expected_analysis_output_sha256=analysis_sha256,
+        expected_follow_on_lineage_document=lineage_document,
+        expected_externalized_shared_reference_document=reference,
+    )
+    assert root_cleanup["removed"] is True
+    assert not os.path.lexists(archive._extended_length_path(staged_root))
+    assert (fixture["source"] / "manifest.json").is_file()
+    assert (fixture["one_shot"] / "follow-on-analysis.json").is_file()
+
+
+def test_partial_shared_child_externalization_requires_matching_policy(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_shared_follow_on_child(
+        fixture,
+        status="child_incomplete",
+    )
+    lineage = target._validate_one_shot_lineage(
+        fixture["one_shot"],
+        source_case_sha256s=set(fixture["cases"]),
+    )
+
+    with pytest.raises(target.CaseStagingError, match="明示的な許可"):
+        target.build_shared_derived_externalization_documents(
+            lineage,
+            collection_id="daily-fixture",
+            allow_partial_derived_cases=False,
+        )
+    document = target.build_shared_derived_externalization_documents(
+        lineage,
+        collection_id="daily-fixture",
+        allow_partial_derived_cases=True,
+    )[child]
+    assert document["partial_policy"]["allow_partial_derived_cases"] is True
+    assert document["child_case_state"] == "partial"
+
+
+def test_non_leaf_shared_child_is_not_externalized(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_shared_follow_on_child(fixture)
+    grand_payload = b"MZ-derived-grandchild"
+    grandchild = hashlib.sha256(grand_payload).hexdigest()
+    child_payload = fixture["one_shot"] / "cases" / child / "p" / f"{grandchild}.exe"
+    child_payload_io = archive._extended_length_path(child_payload)
+    child_payload_io.parent.mkdir()
+    child_payload_io.write_bytes(grand_payload)
+    grand_directory = fixture["one_shot"] / "cases" / grandchild
+    grand_directory_io = archive._extended_length_path(grand_directory)
+    grand_directory_io.mkdir()
+    grand_report = {
+        "sample": {"sha256": grandchild},
+        "executed_sample": False,
+        "network_contacted": False,
+        "ai_used": False,
+        "case_state": {"status": "complete", "complete": True, "blockers": []},
+    }
+    (grand_directory_io / "report.json").write_text(
+        json.dumps(grand_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["nodes"].append(
+        {
+            "sha256": grandchild,
+            "depth": 2,
+            "state": "analyzed",
+            "case_state": "complete",
+        }
+    )
+    graph["edges"].append(
+        {
+            "parent_sha256": child,
+            "child_sha256": grandchild,
+            "depth": 2,
+            "path": f"p/{grandchild}.exe",
+            "role": "recovered_payload",
+            "kind": "pe",
+            "size": len(grand_payload),
+            "status": "child_complete",
+        }
+    )
+    _json(graph_path, graph)
+    lineage = target._validate_one_shot_lineage(
+        fixture["one_shot"],
+        source_case_sha256s=set(fixture["cases"]),
+    )
+
+    with pytest.raises(target.CaseStagingError, match="leafではない"):
+        target.build_shared_derived_externalization_documents(
+            lineage,
+            collection_id="daily-fixture",
+            allow_partial_derived_cases=False,
+        )
+
+
+def test_orphan_derived_case_is_rejected_globally(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    child = _add_follow_on_child(fixture)
+    graph_path = fixture["one_shot"] / "follow-on-analysis.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["edges"] = []
+    _json(graph_path, graph)
+
+    with pytest.raises(target.CaseStagingError, match="active parent"):
+        _stage_without_ghidra(fixture)
+
+    assert child in {path.name for path in (fixture["one_shot"] / "cases").iterdir()}
+
+
+def test_runtime_request_sidecar_is_validated_but_not_staged(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path)
+    request = _add_runtime_request_sidecar(fixture)
+
+    result = _stage_without_ghidra(fixture)
+
+    staged = Path(result["cases"][0]["source_path"])
+    assert request.is_file()
+    assert not any(path.name == request.name for path in staged.rglob("*"))
+
+
+def test_runtime_request_sidecar_with_unknown_option_is_rejected(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    request = _add_runtime_request_sidecar(fixture)
+    document = json.loads(request.read_text(encoding="utf-8"))
+    document["options"]["allow_network"] = True
+    _json(request, document)
+
+    with pytest.raises(target.CaseStagingError, match="runtime request"):
+        _stage_without_ghidra(fixture)
 
 
 def test_exclusion_set_is_validated_and_only_its_commitment_is_staged(
@@ -327,25 +1449,17 @@ def test_exclusion_set_is_validated_and_only_its_commitment_is_staged(
     root = Path(result["cases"][0]["source_path"])
     assert not (root / "exclusion-set.json").exists()
     assert not (root / "source" / "exclusion-set.json").exists()
-    acquisition = json.loads(
-        (root / "derived" / "source-acquisition.case.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    acquisition = json.loads((root / "derived" / "source-acquisition.case.json").read_text(encoding="utf-8"))
     assert acquisition["source_sidecars"] == [
         {
             "name": "exclusion-set.json",
             "size": (fixture["source"] / "exclusion-set.json").stat().st_size,
-            "sha256": hashlib.sha256(
-                (fixture["source"] / "exclusion-set.json").read_bytes()
-            ).hexdigest(),
+            "sha256": hashlib.sha256((fixture["source"] / "exclusion-set.json").read_bytes()).hexdigest(),
             "raw_content_included": False,
         }
     ]
     assert acquisition["safety"]["raw_source_sidecars_included"] is False
-    staged_bytes = b"".join(
-        path.read_bytes() for path in root.rglob("*") if path.is_file()
-    )
+    staged_bytes = b"".join(path.read_bytes() for path in root.rglob("*") if path.is_file())
     assert all(identity.encode("ascii") not in staged_bytes for identity in identities)
 
 
@@ -374,14 +1488,8 @@ def test_empty_exclusion_set_is_valid_and_stages_only_its_commitment(
     result = _stage_without_ghidra(fixture)
 
     root = Path(result["cases"][0]["source_path"])
-    acquisition = json.loads(
-        (root / "derived" / "source-acquisition.case.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    assert [item["name"] for item in acquisition["source_sidecars"]] == [
-        "exclusion-set.json"
-    ]
+    acquisition = json.loads((root / "derived" / "source-acquisition.case.json").read_text(encoding="utf-8"))
+    assert [item["name"] for item in acquisition["source_sidecars"]] == ["exclusion-set.json"]
     assert acquisition["safety"]["raw_source_sidecars_included"] is False
 
 
@@ -456,9 +1564,7 @@ def test_cli_requires_exactly_one_ghidra_mode() -> None:
     with pytest.raises(SystemExit):
         target.build_parser().parse_args(base)
     with pytest.raises(SystemExit):
-        target.build_parser().parse_args(
-            [*base, "--ghidra-root", "ghidra", "--ghidra-not-requested"]
-        )
+        target.build_parser().parse_args([*base, "--ghidra-root", "ghidra", "--ghidra-not-requested"])
 
 
 def test_cli_ghidra_not_requested_dispatches_without_ghidra_root(
@@ -657,6 +1763,7 @@ def test_collection_session_accepts_strict_provider_hash_alias(tmp_path: Path) -
     source_item["sha256"] = requested
     source_item["metadata"]["sha256_hash"] = requested
     source_item["zip_path"] = str((requested_case / f"{requested}.zip").resolve())
+    _recommit_selection(source_document)
     _json(source / "manifest.json", source_document)
 
     one_shot_report = fixture["one_shot"] / "cases" / actual / "report.json"
@@ -673,11 +1780,7 @@ def test_collection_session_accepts_strict_provider_hash_alias(tmp_path: Path) -
         },
     )
     _json(
-        fixture["repository"]
-        / "analysis-results"
-        / "collections"
-        / "daily-fixture"
-        / "manifest.json",
+        fixture["repository"] / "analysis-results" / "collections" / "daily-fixture" / "manifest.json",
         {
             "collection_id": "daily-fixture",
             "acquisition_items": [
@@ -717,9 +1820,7 @@ def test_collection_session_accepts_strict_provider_hash_alias(tmp_path: Path) -
     assert session.inputs.cases[actual].source_requested_sha256 == requested
     staged = Path(result["cases"][0]["source_path"])
     assert archive._extended_length_path(staged / "source" / f"{requested}.zip").is_file()
-    provenance = json.loads(
-        (staged / "derived" / "source-acquisition.case.json").read_text(encoding="utf-8")
-    )
+    provenance = json.loads((staged / "derived" / "source-acquisition.case.json").read_text(encoding="utf-8"))
     assert provenance["case_sha256"] == actual
     assert provenance["provider_requested_sha256"] == requested
 
@@ -736,9 +1837,8 @@ def test_collection_session_rejects_tampered_provider_hash_alias(tmp_path: Path)
     source_document["selected_metadata"][0]["sha256_hash"] = requested
     source_document["items"][0]["sha256"] = requested
     source_document["items"][0]["metadata"]["sha256_hash"] = requested
-    source_document["items"][0]["zip_path"] = str(
-        (source / requested / f"{requested}.zip").resolve()
-    )
+    source_document["items"][0]["zip_path"] = str((source / requested / f"{requested}.zip").resolve())
+    _recommit_selection(source_document)
     _json(source / "manifest.json", source_document)
 
     with pytest.raises(target.CaseStagingError, match="公開collection"):
@@ -905,12 +2005,8 @@ def test_verified_malware_binary_is_hash_bound_without_text_secret_scan(
     imported = staged / "ghidra" / "import-staging" / f"{selected}.quarantine.bin"
     assert archive._extended_length_path(imported).read_bytes() == b"MZ-malware" + marker
     assert result["preflight_verified_malware_binaries_excluded"] == 1
-    manifest = json.loads(
-        (staged / target.STAGING_MANIFEST_NAME).read_text(encoding="utf-8")
-    )
-    assert manifest["safety"]["host_secret_content_scan_scope"] == (
-        "non_sample_content_only"
-    )
+    manifest = json.loads((staged / target.STAGING_MANIFEST_NAME).read_text(encoding="utf-8"))
+    assert manifest["safety"]["host_secret_content_scan_scope"] == ("non_sample_content_only")
     assert manifest["safety"]["verified_malware_binary_count"] == 1
 
 
@@ -943,11 +2039,7 @@ def test_copy_rejects_source_replacement_after_preflight(
 
     fixture = _fixture(tmp_path)
     selected = fixture["cases"][0]
-    archive_path = (
-        fixture["source"]
-        / selected
-        / f"{selected}.zip"
-    )
+    archive_path = fixture["source"] / selected / f"{selected}.zip"
     original_copy_file = target._copy_file
     replaced = False
 
@@ -1045,9 +2137,7 @@ def test_missing_decompilation_file_is_allowed_when_no_characteristic_function_w
     staged = _stage(fixture, cases=[selected])
 
     source = Path(staged["cases"][0]["source_path"])
-    derived = json.loads(
-        (source / "derived" / "private-artifact-validation.case.json").read_text(encoding="utf-8")
-    )
+    derived = json.loads((source / "derived" / "private-artifact-validation.case.json").read_text(encoding="utf-8"))
     assert derived["programs"][0]["artifacts"]["decompilations"] is None
 
 
@@ -1131,10 +2221,105 @@ def test_existing_case_staging_is_fully_revalidated_for_resume(
     assert resumed["case_count"] == 1
     assert resumed["cases"][0]["case_sha256"] == selected
     assert resumed["cases"][0]["target"] == original["target"]
-    assert Path(resumed["cases"][0]["source_path"]) == Path(
-        original["source_path"]
-    )
+    assert Path(resumed["cases"][0]["source_path"]) == Path(original["source_path"])
     assert resumed["safety"]["existing_staging_fully_revalidated"] is True
+
+
+def test_complete_derived_staging_can_be_reused_and_cleaned_up(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    selected = fixture["cases"][0]
+    child = _add_follow_on_child(fixture)
+    staged = _stage_without_ghidra(fixture)
+    case_result = staged["cases"][0]
+
+    resumed = target.reuse_case_staging(
+        output_root=fixture["output"],
+        collection_id="daily-fixture",
+        case_sha256=selected,
+    )
+
+    assert resumed["cases"][0]["derived_case_state_counts"] == {
+        "complete": 1,
+        "partial": 0,
+    }
+    assert archive._extended_length_path(
+        Path(resumed["cases"][0]["source_path"])
+        / "one-shot-derived"
+        / child
+        / "report.json"
+    ).is_file()
+    cleanup = target.remove_case_staging_after_verified_archive(
+        output_root=fixture["output"],
+        source_path=Path(case_result["source_path"]),
+        collection_id="daily-fixture",
+        case_sha256=selected,
+        archive_result=_verified_archive_result(case_result),
+    )
+    assert cleanup["removed"] is True
+
+
+def test_partial_derived_staging_reuse_and_cleanup_require_explicit_policy(
+    tmp_path: Path,
+) -> None:
+    fixture = _fixture(tmp_path)
+    selected = fixture["cases"][0]
+    _add_follow_on_child(fixture, status="child_incomplete")
+    staged = target.stage_cases_without_ghidra(
+        repository=fixture["repository"],
+        collection_id="daily-fixture",
+        source_root=fixture["source"],
+        one_shot_root=fixture["one_shot"],
+        output_root=fixture["output"],
+        case_sha256s=[selected],
+        allow_partial_derived_cases=True,
+        expected_analysis_output_sha256="d" * 64,
+    )
+    case_result = staged["cases"][0]
+
+    with pytest.raises(target.CaseStagingError, match="明示的な許可"):
+        target.reuse_case_staging(
+            output_root=fixture["output"],
+            collection_id="daily-fixture",
+            case_sha256=selected,
+        )
+    with pytest.raises(target.CaseStagingError, match="analysis tree commitment"):
+        target.reuse_case_staging(
+            output_root=fixture["output"],
+            collection_id="daily-fixture",
+            case_sha256=selected,
+            allow_partial_derived_cases=True,
+            expected_analysis_output_sha256="e" * 64,
+        )
+
+    resumed = target.reuse_case_staging(
+        output_root=fixture["output"],
+        collection_id="daily-fixture",
+        case_sha256=selected,
+        allow_partial_derived_cases=True,
+        expected_analysis_output_sha256="d" * 64,
+    )
+    assert resumed["cases"][0]["derived_case_state_counts"]["partial"] == 1
+
+    with pytest.raises(target.CaseStagingError, match="明示的な許可"):
+        target.remove_case_staging_after_verified_archive(
+            output_root=fixture["output"],
+            source_path=Path(case_result["source_path"]),
+            collection_id="daily-fixture",
+            case_sha256=selected,
+            archive_result=_verified_archive_result(case_result),
+        )
+    cleanup = target.remove_case_staging_after_verified_archive(
+        output_root=fixture["output"],
+        source_path=Path(case_result["source_path"]),
+        collection_id="daily-fixture",
+        case_sha256=selected,
+        archive_result=_verified_archive_result(case_result),
+        allow_partial_derived_cases=True,
+        expected_analysis_output_sha256="d" * 64,
+    )
+    assert cleanup["removed"] is True
 
 
 def test_existing_case_staging_tamper_is_rejected_on_resume(
@@ -1176,9 +2361,7 @@ def test_existing_ghidra_import_requires_filename_sha256_on_resume(
     manifest_io = archive._extended_length_path(manifest_path)
     manifest = json.loads(manifest_io.read_text(encoding="utf-8"))
     record = next(
-        item
-        for item in manifest["files"]
-        if item["path"] == f"ghidra/import-staging/{selected}.quarantine.bin"
+        item for item in manifest["files"] if item["path"] == f"ghidra/import-staging/{selected}.quarantine.bin"
     )
     record["sha256"] = hashlib.sha256(imported_io.read_bytes()).hexdigest()
     manifest["file_inventory_sha256"] = target._inventory_sha256(manifest["files"])
@@ -1317,8 +2500,12 @@ def test_cleanup_rejects_directory_swap_at_rename_boundary(
     def swap_then_replace(source: Path, destination: Path) -> None:
         nonlocal swapped
         source_path = Path(source)
-        if source_path == staged and not swapped:
-            source_path.rename(saved)
+        if (
+            source_path
+            == archive._extended_length_path(staged)
+            and not swapped
+        ):
+            source_path.rename(archive._extended_length_path(saved))
             source_path.mkdir()
             (source_path / "attacker.bin").write_bytes(b"same-name-different-tree")
             swapped = True

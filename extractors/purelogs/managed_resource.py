@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 
 import dnfile
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from dnfile import resource as dnresource
 
 from extractors.managed_pe import has_clr_metadata
 
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
 
 MAX_INPUT_BYTES = 32 << 20
 MAX_RESOURCE_COUNT = 64
+MAX_RESOURCE_ENTRY_COUNT = 512
 MAX_RESOURCE_BYTES = 4 << 20
 MAX_TOTAL_RESOURCE_BYTES = 16 << 20
 MAX_HEADER_BYTES = 4 << 10
@@ -40,6 +42,28 @@ MAX_RECORD_TOTAL_BYTES = 8 << 20
 
 _FAMILY_PATHS = frozenset({"/plugin", "/userinfo", "/filesearch/req", "/finish"})
 _TABLE_KEY_RE = re.compile(rb"[A-Za-z0-9]{7}\Z")
+_NON_BINARY_RESOURCE_TYPES = frozenset(
+    {
+        "Null",
+        "System.String",
+        "System.Int32",
+        "System.Byte",
+        "System.SByte",
+        "System.Boolean",
+        "System.Char",
+        "System.Int16",
+        "System.Int64",
+        "System.UInt16",
+        "System.UInt32",
+        "System.UInt64",
+        "System.Single",
+        "System.Double",
+        "System.DateTime",
+        "System.TimeSpan",
+        "System.Decimal",
+    }
+)
+_BINARY_RESOURCE_TYPES = frozenset({"System.ByteArray", "System.Stream"})
 
 
 class PureLogsResourceError(ValueError):
@@ -91,6 +115,50 @@ class PureLogsResourceConflictError(PureLogsResourceScanIncomplete):
         evidence = super().public_evidence()
         evidence["conflicting_candidates_present"] = True
         return evidence
+
+
+def _resource_blobs(resources: tuple[object, ...]) -> tuple[bytes, ...]:
+    """dnfileの直接resourceと`.resources` byte[]を有界列挙する。
+
+    `ResourceSet` entryはreview済みdnfileのexact classだけを受理する。
+    PureLogs暗号blobを保持し得る`ByteArray`と`Stream`は、長さprefixを
+    除いたparser済み`value`がexact bytesの場合だけ候補にする。
+    未対応のuser typeや不完全entryが1件でもあれば、候補集合の
+    完全性を証明できないためfail-closedで拒否する。
+    """
+
+    if type(resources) is not tuple:
+        raise PureLogsResourceScanIncomplete("managed resource集合の型が不正です")
+    blobs: list[bytes] = []
+    entry_count = 0
+    for item in resources:
+        value = getattr(item, "data", None)
+        if type(value) is bytes:
+            blobs.append(value)
+            continue
+        if type(value) is not dnresource.ResourceSet:
+            raise PureLogsResourceScanIncomplete(
+                "managed resource候補をbytesとして解析できません"
+            )
+        entries = value.entries
+        if type(entries) is not list:
+            raise PureLogsResourceScanIncomplete("ResourceSet entry集合が不正です")
+        entry_count += len(entries)
+        if entry_count > MAX_RESOURCE_ENTRY_COUNT:
+            raise PureLogsResourceLimitError("ResourceSet entry件数が安全上限を超えました")
+        for entry in entries:
+            if type(entry) is not dnresource.ResourceEntry or type(entry.type_name) is not str:
+                raise PureLogsResourceScanIncomplete("ResourceSet entryの型が不正です")
+            if entry.type_name in _NON_BINARY_RESOURCE_TYPES:
+                continue
+            if entry.type_name not in _BINARY_RESOURCE_TYPES or type(entry.value) is not bytes:
+                raise PureLogsResourceScanIncomplete(
+                    "ResourceSet entryに未対応の型があります"
+                )
+            blobs.append(entry.value)
+    if len(blobs) > MAX_RESOURCE_COUNT:
+        raise PureLogsResourceLimitError("binary resource件数が安全上限を超えました")
+    return tuple(blobs)
 
 
 def public_scan_failure_evidence(
@@ -389,16 +457,12 @@ def recover_purelogs_managed_strings(
         _scan_purelogs_yqty_candidates,
     )
 
+    blobs = _resource_blobs(resources)
     candidates: list[PureLogsManagedResource] = []
     failed_resource_sha256: set[str] = set()
     committed_resource_present = False
     total = 0
-    for item in resources:
-        blob = getattr(item, "data", None)
-        if not isinstance(blob, bytes):
-            raise PureLogsResourceScanIncomplete(
-                "managed resource候補をbytesとして解析できません"
-            )
+    for blob in blobs:
         if not blob:
             continue
         if len(blob) > MAX_RESOURCE_BYTES:

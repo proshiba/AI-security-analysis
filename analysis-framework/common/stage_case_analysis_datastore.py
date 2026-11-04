@@ -12,6 +12,7 @@ import shutil
 import stat
 import sys
 import uuid
+from collections import Counter, defaultdict, deque
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from functools import cache
@@ -19,6 +20,8 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 import archive_analysis_datastore
+import build_malwarebazaar_job_requests as partitioner
+import malwarebazaar_selection_contract as selection_contract
 
 SCHEMA_VERSION = "analysis-datastore-case-staging/v1"
 RELATIONSHIP_SCHEMA_VERSION = "analysis-datastore-case-input-relationships/v1"
@@ -30,11 +33,21 @@ MAX_CASES = 1000
 MAX_RELATIONSHIPS = 250_000
 MAX_FILES = 500_000
 MAX_JSON_BYTES = 256 * 1024 * 1024
+_EXPECTED_LINEAGE_UNSET = object()
 MINIMUM_FREE_RESERVE_BYTES = 512 * 1024 * 1024
 COPY_CHUNK_BYTES = 1024 * 1024
 SCAN_OVERLAP_BYTES = 1024
 FILE_ATTRIBUTE_REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
 STAGING_MANIFEST_NAME = "_case_staging_manifest.json"
+SHARED_DERIVED_STAGING_SCHEMA_VERSION = (
+    "analysis-datastore-externalized-shared-staging/v1"
+)
+SHARED_DERIVED_PROVENANCE_SCHEMA_VERSION = (
+    "analysis-datastore-shared-derived-provenance/v1"
+)
+SHARED_DERIVED_REFERENCE_SCHEMA_VERSION = (
+    "analysis-datastore-externalized-shared-reference/v1"
+)
 
 FORBIDDEN_SENSITIVE_NAMES = frozenset(
     {
@@ -164,6 +177,35 @@ class CaseStagingSession:
     observed_free_bytes_before_staging: int
 
 
+@dataclass(frozen=True)
+class OneShotLineage:
+    """検証済みfollow-on graphをroot単位へ分離した契約。"""
+
+    case_directories: Mapping[str, Path]
+    materialized_case_states: Mapping[str, str]
+    incomplete_case_states: Mapping[str, str]
+    descendants_by_root: Mapping[str, tuple[str, ...]]
+    incomplete_descendants_by_root: Mapping[str, tuple[str, ...]]
+    edges_by_root: Mapping[str, tuple[dict[str, Any], ...]]
+    unsafe_reasons_by_root: Mapping[str, tuple[str, ...]]
+    graph_sha256: str | None
+    graph_schema_version: Any
+
+
+@dataclass(frozen=True)
+class SharedDerivedStaging:
+    """共有derivedを単独archiveへ渡すための検証済みstaging。"""
+
+    child_sha256: str
+    target: str
+    source_path: Path
+    source_tree_sha256: str
+    file_count: int
+    total_size: int
+    provenance_sha256: str
+    externalization_document_sha256: str
+
+
 def _absolute(path: Path) -> Path:
     return Path(os.path.abspath(os.fspath(path)))
 
@@ -181,34 +223,40 @@ def _reject_reparse_components(path: Path, *, label: str) -> None:
     current = Path(absolute.anchor)
     for part in absolute.parts[1:]:
         current /= part
-        if not os.path.lexists(current):
+        current_io = archive_analysis_datastore._extended_length_path(current)
+        if not os.path.lexists(current_io):
             break
         try:
-            metadata = current.lstat()
+            metadata = current_io.lstat()
         except OSError as exc:
             raise CaseStagingError(f"{label}のmetadataを確認できません") from exc
-        if current.is_symlink() or _is_reparse(metadata):
+        if current_io.is_symlink() or _is_reparse(metadata):
             raise CaseStagingError(f"{label}にreparse pointは使用できません")
 
 
 def _validate_existing_directory(path: Path, *, label: str) -> Path:
     absolute = _absolute(path)
     _reject_reparse_components(absolute, label=label)
+    is_extended = os.name == "nt" and os.fspath(absolute).startswith("\\\\?\\")
+    absolute_io = archive_analysis_datastore._extended_length_path(absolute)
     try:
-        resolved = absolute.resolve(strict=True)
-        metadata = resolved.lstat()
+        metadata = absolute_io.lstat()
     except OSError as exc:
         raise CaseStagingError(f"{label}を安全に確認できません") from exc
-    if not stat.S_ISDIR(metadata.st_mode) or resolved.is_symlink() or _is_reparse(metadata):
+    if (
+        not stat.S_ISDIR(metadata.st_mode)
+        or absolute_io.is_symlink()
+        or _is_reparse(metadata)
+    ):
         raise CaseStagingError(f"{label}は通常directoryである必要があります")
-    return resolved
+    return absolute_io if is_extended else absolute
 
 
 def _prepare_output_root(path: Path, *, repository: Path, inputs: Sequence[Path]) -> Path:
     absolute = _absolute(path)
     _reject_reparse_components(absolute, label="case staging output root")
     ancestor = absolute
-    while not os.path.lexists(ancestor):
+    while not os.path.lexists(archive_analysis_datastore._extended_length_path(ancestor)):
         if ancestor.parent == ancestor:
             raise CaseStagingError("case staging output rootの既存parentがありません")
         ancestor = ancestor.parent
@@ -218,10 +266,76 @@ def _prepare_output_root(path: Path, *, repository: Path, inputs: Sequence[Path]
         raise CaseStagingError("case staging outputをrepository内へ作成できません")
     if any(_is_within(prospective, item) or _is_within(item, prospective) for item in inputs):
         raise CaseStagingError("case staging outputを入力rootと重複させられません")
+    created: list[tuple[Path, tuple[int, int]]] = []
     try:
-        prospective.mkdir(parents=True, exist_ok=True)
+        current = ancestor
+        for part in prospective.relative_to(ancestor).parts:
+            current_io = archive_analysis_datastore._extended_length_path(current)
+            before = current_io.lstat()
+            if not stat.S_ISDIR(before.st_mode) or _is_reparse(before):
+                raise CaseStagingError("case staging output parentのidentityが不正です")
+            child = current / part
+            child_io = archive_analysis_datastore._extended_length_path(child)
+            if os.path.lexists(child_io):
+                child_metadata = child_io.lstat()
+                if (
+                    not stat.S_ISDIR(child_metadata.st_mode)
+                    or child_io.is_symlink()
+                    or _is_reparse(child_metadata)
+                ):
+                    raise CaseStagingError(
+                        "case staging outputの既存componentが通常directoryではありません"
+                    )
+            else:
+                os.mkdir(child_io)
+                child_metadata = child_io.lstat()
+                if not stat.S_ISDIR(child_metadata.st_mode) or _is_reparse(child_metadata):
+                    raise CaseStagingError(
+                        "case staging output componentを安全に作成できません"
+                    )
+                created.append(
+                    (child, (child_metadata.st_dev, child_metadata.st_ino))
+                )
+            after = current_io.lstat()
+            if (
+                not stat.S_ISDIR(after.st_mode)
+                or _is_reparse(after)
+                or (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino)
+            ):
+                raise CaseStagingError(
+                    "case staging output parentのidentityが作成中に変化しました"
+                )
+            current = child
     except OSError as exc:
-        raise CaseStagingError("case staging output rootを作成できません") from exc
+        error: BaseException = CaseStagingError(
+            "case staging output rootを作成できません"
+        )
+        error.__cause__ = exc
+    except BaseException as exc:
+        error = exc
+    else:
+        error = None
+    if error is not None:
+        cleanup_failed = False
+        for created_path, expected_identity in reversed(created):
+            created_io = archive_analysis_datastore._extended_length_path(created_path)
+            try:
+                metadata = created_io.lstat()
+                if (
+                    stat.S_ISDIR(metadata.st_mode)
+                    and not _is_reparse(metadata)
+                    and (metadata.st_dev, metadata.st_ino) == expected_identity
+                ):
+                    os.rmdir(created_io)
+                else:
+                    cleanup_failed = True
+            except OSError:
+                cleanup_failed = True
+        if cleanup_failed:
+            raise CaseStagingError(
+                "case staging output root作成失敗後のowned componentを安全に削除できません"
+            ) from error
+        raise error
     output = _validate_existing_directory(prospective, label="case staging output root")
     if output != prospective:
         raise CaseStagingError("case staging output rootのidentityが作成中に変化しました")
@@ -296,7 +410,7 @@ def _reject_sensitive_name(relative: PurePosixPath) -> None:
 
 @cache
 def _host_path_patterns() -> tuple[tuple[str, re.Pattern[bytes]], ...]:
-    # bare home（Windows既定の C:\Users\Administrator など）は、検体の
+    # bare home（Windows既定の C:\Users\<name> など）は、検体の
     # build path、標的path、実コマンドラインにも現れるため、それだけで
     # 解析host由来と判定しない。現在のrepositoryと資格情報／daily private
     # rootを指す具体的なpathだけを漏えい候補として拒否する。
@@ -321,9 +435,7 @@ def _host_path_patterns() -> tuple[tuple[str, re.Pattern[bytes]], ...]:
             }
         )
     return tuple(
-        ("current_host_analysis_path", re.compile(re.escape(value), re.IGNORECASE))
-        for value in candidates
-        if value
+        ("current_host_analysis_path", re.compile(re.escape(value), re.IGNORECASE)) for value in candidates if value
     )
 
 
@@ -406,9 +518,7 @@ def _copy_file(
     carry = b""
     commitment = _required_source_commitment(source, commitments=commitments)
     if commitment.sensitive_content_scanned != _sensitive_content_scan_required(relative):
-        raise CaseStagingError(
-            f"{role}の秘密値scan契約が出力先と一致しません"
-        )
+        raise CaseStagingError(f"{role}の秘密値scan契約が出力先と一致しません")
     try:
         with archive_analysis_datastore._open_verified_source(
             source,
@@ -428,11 +538,7 @@ def _copy_file(
         raise CaseStagingError(f"{role}を安全な単一handleでcopyできません") from exc
     except OSError as exc:
         raise CaseStagingError(f"{role}を物理copyできません") from exc
-    if (
-        size != identity.st_size
-        or size != commitment.size
-        or digest.hexdigest() != commitment.sha256
-    ):
+    if size != identity.st_size or size != commitment.size or digest.hexdigest() != commitment.sha256:
         raise CaseStagingError(f"{role}がpreflight commitmentから変更されました")
     try:
         metadata = destination_io.lstat()
@@ -542,8 +648,17 @@ def _assert_source_commitment(
         raise CaseStagingError(f"{role}がpreflight commitmentから変更されました")
 
 
-def _scan_staged_case_references(root: Path, *, case_sha256: str) -> None:
-    """派生後成果物の明示的なcase参照が対象caseだけであることを確認する。"""
+def _scan_staged_case_references(
+    root: Path,
+    *,
+    case_sha256: str,
+    allowed_case_sha256s: frozenset[str] | None = None,
+) -> None:
+    """派生後成果物のcase参照が対象rootと検証済み子孫だけであることを確認する。"""
+
+    allowed = allowed_case_sha256s or frozenset({case_sha256})
+    if case_sha256 not in allowed or any(SHA256_RE.fullmatch(value) is None for value in allowed):
+        raise CaseStagingError("case参照scanの許可集合が不正です")
 
     for path, relative in _walk_files(root, role="case reference scan"):
         if _is_verified_ghidra_import(relative.as_posix()):
@@ -558,9 +673,9 @@ def _scan_staged_case_references(root: Path, *, case_sha256: str) -> None:
                     data = carry + chunk
                     for match in CASE_SHA256_FIELD_RE.finditer(data):
                         observed = match.group(1).decode("ascii").lower()
-                        if observed != case_sha256:
+                        if observed not in allowed:
                             raise CaseStagingError(
-                                f"case stagingに他caseの明示的なcase_sha256参照があります: {relative.as_posix()}"
+                                f"case stagingに許可lineage外の明示的なcase_sha256参照があります: {relative.as_posix()}"
                             )
                     carry = data[-SCAN_OVERLAP_BYTES:]
         except archive_analysis_datastore.DatastoreError as exc:
@@ -578,11 +693,7 @@ def _copy_tree(
     files = list(_walk_files(source, role=role))
     source_absolute = _absolute(archive_analysis_datastore._extended_length_path(source))
     observed_keys = {_source_commitment_key(path) for path, _relative in files}
-    expected_keys = {
-        key
-        for key, commitment in commitments.items()
-        if _is_within(commitment.path, source_absolute)
-    }
+    expected_keys = {key for key, commitment in commitments.items() if _is_within(commitment.path, source_absolute)}
     if observed_keys != expected_keys:
         raise CaseStagingError(f"{role}のfile集合がpreflight commitmentから変更されました")
     copied: list[CopiedFile] = []
@@ -599,6 +710,101 @@ def _copy_tree(
     if not copied:
         raise CaseStagingError(f"{role}に保管対象fileがありません")
     return copied
+
+
+def _copy_tree_excluding(
+    source: Path,
+    destination: Path,
+    *,
+    staging_root: Path,
+    role: str,
+    commitments: Mapping[str, SourceCommitment],
+    excluded_relative_paths: frozenset[str],
+) -> list[CopiedFile]:
+    """preflightで固定したfileだけを、exact相対path除外付きで物理copyする。"""
+
+    normalized_exclusions: set[str] = set()
+    for value in excluded_relative_paths:
+        try:
+            member = archive_analysis_datastore._validate_member_name(value)
+        except archive_analysis_datastore.DatastoreError as exc:
+            raise CaseStagingError(f"{role}の除外pathが安全な相対pathではありません") from exc
+        normalized_exclusions.add(member)
+    if len(normalized_exclusions) != len(excluded_relative_paths):
+        raise CaseStagingError(f"{role}の除外pathが正規化後に重複しています")
+
+    files = list(_walk_files(source, role=role))
+    observed_by_relative = {relative.as_posix(): path for path, relative in files}
+    if not normalized_exclusions.issubset(observed_by_relative):
+        raise CaseStagingError(f"{role}の除外対象fileがexact source treeにありません")
+    source_absolute = _absolute(archive_analysis_datastore._extended_length_path(source))
+    observed_keys = {_source_commitment_key(path) for path, _relative in files}
+    expected_keys = {
+        key
+        for key, commitment in commitments.items()
+        if _is_within(commitment.path, source_absolute)
+    }
+    if observed_keys != expected_keys:
+        raise CaseStagingError(f"{role}のfile集合がpreflight commitmentから変更されました")
+    for relative in sorted(normalized_exclusions):
+        _assert_source_commitment(
+            observed_by_relative[relative],
+            commitments=commitments,
+            role=f"{role} excluded file",
+        )
+
+    copied: list[CopiedFile] = []
+    for path, relative in files:
+        if relative.as_posix() in normalized_exclusions:
+            continue
+        copied.append(
+            _copy_file(
+                path,
+                destination.joinpath(*relative.parts),
+                staging_root=staging_root,
+                role=role,
+                commitments=commitments,
+            )
+        )
+    if not copied:
+        raise CaseStagingError(f"{role}は共有payload除外後に空になります")
+    return copied
+
+
+def _create_owned_staging_directory(
+    output_root: Path,
+    *,
+    label: str,
+) -> tuple[Path, tuple[int, int]]:
+    """検証済み直親の下へWindows long path対応で排他directoryを作る。"""
+
+    output = _validate_existing_directory(output_root, label="owned staging output root")
+    candidate = output / f".candidate-{label[:16]}-{uuid.uuid4().hex[:12]}"
+    output_io = archive_analysis_datastore._extended_length_path(output)
+    candidate_io = archive_analysis_datastore._extended_length_path(candidate)
+    before = output_io.lstat()
+    if not stat.S_ISDIR(before.st_mode) or _is_reparse(before):
+        raise CaseStagingError("owned staging output rootのidentityが不正です")
+    if os.path.lexists(candidate_io):
+        raise CaseStagingError("owned staging candidateが既に存在します")
+    try:
+        os.mkdir(candidate_io)
+    except OSError as exc:
+        raise CaseStagingError("owned staging candidateを排他作成できません") from exc
+    after = output_io.lstat()
+    if (
+        not stat.S_ISDIR(after.st_mode)
+        or _is_reparse(after)
+        or (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino)
+    ):
+        raise CaseStagingError("owned staging parent identityが作成中に変更されました")
+    validated = _validate_existing_directory(candidate_io, label="owned staging candidate")
+    if validated.parent != output_io:
+        raise CaseStagingError("owned staging candidateが検証済み直親から外れました")
+    candidate_metadata = archive_analysis_datastore._extended_length_path(candidate).lstat()
+    if not stat.S_ISDIR(candidate_metadata.st_mode) or _is_reparse(candidate_metadata):
+        raise CaseStagingError("owned staging candidateのidentityが不正です")
+    return candidate, (candidate_metadata.st_dev, candidate_metadata.st_ino)
 
 
 def _json_bytes(value: Mapping[str, Any]) -> bytes:
@@ -659,6 +865,55 @@ def _write_generated_json(
     )
 
 
+def _write_generated_text(
+    path: Path,
+    value: str,
+    *,
+    staging_root: Path,
+    role: str,
+) -> CopiedFile:
+    """日本語provenance文書を排他作成し、inventory commitmentを返す。"""
+
+    relative = path.relative_to(staging_root).as_posix()
+    _reject_sensitive_name(PurePosixPath(relative))
+    payload = value.encode("utf-8")
+    _scan_sensitive_content(payload, relative=relative)
+    path_io = archive_analysis_datastore._extended_length_path(path)
+    path_io.parent.mkdir(parents=True, exist_ok=True)
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(
+            path_io,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0),
+            0o600,
+        )
+        with os.fdopen(descriptor, "wb", closefd=True) as stream:
+            descriptor = None
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+    except OSError as exc:
+        raise CaseStagingError(f"{role}を排他作成できません") from exc
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+    metadata = path_io.lstat()
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or metadata.st_nlink != 1
+        or path_io.is_symlink()
+        or _is_reparse(metadata)
+    ):
+        raise CaseStagingError(f"{role}が独立した通常fileではありません")
+    return CopiedFile(
+        path=path,
+        relative=relative,
+        size=len(payload),
+        sha256=hashlib.sha256(payload).hexdigest(),
+        role=role,
+    )
+
+
 def _case_directories(
     root: Path,
     *,
@@ -692,6 +947,621 @@ def _case_directories(
     return dict(sorted(result.items()))
 
 
+_FOLLOW_ON_NODE_STATES = frozenset(
+    {
+        "root",
+        "queued",
+        "analyzed",
+        "resumed_complete",
+        "timeout",
+        "failed",
+        "wall_clock_limit",
+        "incomplete_case_omitted",
+    }
+)
+_FOLLOW_ON_EDGE_STATUSES = frozenset(
+    {
+        "cycle_excluded",
+        "depth_limit",
+        "payload_size_limit",
+        "shared_sha256_excluded",
+        "shared_sha256_reused_complete",
+        "shared_sha256_reused_incomplete",
+        "artifact_count_limit",
+        "total_bytes_limit",
+        "child_complete",
+        "child_incomplete",
+    }
+)
+_FOLLOW_ON_ACTIVE_EDGE_STATUSES = frozenset({"child_complete", "child_incomplete"})
+_FOLLOW_ON_SHARED_EDGE_STATUSES = frozenset({"shared_sha256_reused_complete", "shared_sha256_reused_incomplete"})
+_FOLLOW_ON_MATERIALIZED_NODE_STATES = frozenset({"analyzed", "resumed_complete"})
+_FOLLOW_ON_UNMATERIALIZED_NODE_STATES = frozenset({"timeout"})
+_FOLLOW_ON_REJECTED_UNMATERIALIZED_NODE_STATES = frozenset(
+    {"queued", "failed", "wall_clock_limit", "incomplete_case_omitted"}
+)
+
+
+def _validate_follow_on_edge_payload(
+    *,
+    case_directories: Mapping[str, Path],
+    edge: Mapping[str, Any],
+) -> None:
+    """active/shared edgeのpayloadを親case内の通常fileへ束縛する。"""
+
+    parent = str(edge["parent_sha256"])
+    path_value = str(edge["path"])
+    try:
+        member = archive_analysis_datastore._validate_member_name(path_value)
+    except archive_analysis_datastore.DatastoreError as exc:
+        raise CaseStagingError("follow-on edge pathが安全な相対pathではありません") from exc
+    parent_root = case_directories[parent]
+    candidate = parent_root.joinpath(*PurePosixPath(member).parts)
+    try:
+        archive_analysis_datastore._reject_reparse_components(candidate)
+    except archive_analysis_datastore.DatastoreError as exc:
+        raise CaseStagingError("follow-on edge payload pathにreparse pointがあります") from exc
+    candidate_io = archive_analysis_datastore._extended_length_path(candidate)
+    try:
+        metadata = candidate_io.lstat()
+    except OSError as exc:
+        raise CaseStagingError("follow-on edge payloadを親case内で確認できません") from exc
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or metadata.st_nlink != 1
+        or candidate_io.is_symlink()
+        or _is_reparse(metadata)
+    ):
+        raise CaseStagingError("follow-on edge payloadは親case内の独立した通常fileではありません")
+    try:
+        digest, size, _identity = archive_analysis_datastore._hash_source_snapshot(candidate_io)
+    except archive_analysis_datastore.DatastoreError as exc:
+        raise CaseStagingError("follow-on edge payloadを単一handleで照合できません") from exc
+    if digest != edge["child_sha256"] or size != edge["size"]:
+        raise CaseStagingError("follow-on edge payloadのsizeまたはSHA-256が一致しません")
+
+
+def _validate_one_shot_lineage(
+    one_shot_root: Path,
+    *,
+    source_case_sha256s: set[str],
+) -> OneShotLineage:
+    """run全体のfollow-on graphを検証し、root別の安全なlineageを算出する。"""
+
+    cases_root = _validate_existing_directory(
+        one_shot_root / "cases",
+        label="one-shot cases root",
+    )
+    case_directories = _case_directories(cases_root, label="one-shot cases root")
+    graph_path = one_shot_root / "follow-on-analysis.json"
+    if not os.path.lexists(graph_path):
+        if set(case_directories) != source_case_sha256s:
+            raise CaseStagingError("derived caseがあるone-shot runにfollow-on-analysis.jsonがありません")
+        return OneShotLineage(
+            case_directories=case_directories,
+            materialized_case_states={},
+            incomplete_case_states={},
+            descendants_by_root={digest: () for digest in sorted(source_case_sha256s)},
+            incomplete_descendants_by_root={
+                digest: () for digest in sorted(source_case_sha256s)
+            },
+            edges_by_root={digest: () for digest in sorted(source_case_sha256s)},
+            unsafe_reasons_by_root={digest: () for digest in sorted(source_case_sha256s)},
+            graph_sha256=None,
+            graph_schema_version=None,
+        )
+
+    graph, graph_sha256 = _read_json(graph_path, label="one-shot follow-on analysis")
+    roots_raw = graph.get("roots")
+    nodes_raw = graph.get("nodes")
+    edges_raw = graph.get("edges")
+    if (
+        graph.get("schema_version") != 1
+        or graph.get("status")
+        not in {"complete", "partial", "no_retained_payloads"}
+        or graph.get("executed_sample") is not False
+        or graph.get("network_contacted") is not False
+        or graph.get("ai_used") not in (False, None)
+        or not isinstance(roots_raw, list)
+        or not isinstance(nodes_raw, list)
+        or not isinstance(edges_raw, list)
+        or len(nodes_raw) > MAX_CASES
+        or len(edges_raw) > MAX_RELATIONSHIPS
+    ):
+        raise CaseStagingError("follow-on graphのschemaまたは安全契約が不正です")
+    roots = [_validate_sha256(value, label="follow-on root") for value in roots_raw]
+    if len(roots) != len(set(roots)) or set(roots) != source_case_sha256s:
+        raise CaseStagingError("follow-on root集合がsource case集合と一致しません")
+
+    nodes: dict[str, dict[str, Any]] = {}
+    for raw in nodes_raw:
+        if not isinstance(raw, Mapping):
+            raise CaseStagingError("follow-on nodeがobjectではありません")
+        digest = _validate_sha256(raw.get("sha256"), label="follow-on node.sha256")
+        depth = raw.get("depth")
+        state = raw.get("state")
+        if digest in nodes or type(depth) is not int or not 0 <= depth <= 64 or state not in _FOLLOW_ON_NODE_STATES:
+            raise CaseStagingError("follow-on nodeの型、状態または重複が不正です")
+        case_state = raw.get("case_state")
+        if state in _FOLLOW_ON_MATERIALIZED_NODE_STATES and case_state not in {
+            "complete",
+            "partial",
+        }:
+            raise CaseStagingError("materialized follow-on nodeのcase状態が不正です")
+        if state in _FOLLOW_ON_REJECTED_UNMATERIALIZED_NODE_STATES:
+            raise CaseStagingError(
+                "evidence-only follow-on nodeはtimeout状態だけを許可します"
+            )
+        if (
+            state in _FOLLOW_ON_UNMATERIALIZED_NODE_STATES
+            and case_state is not None
+        ):
+            raise CaseStagingError(
+                "evidence-only timeout nodeにcase_stateは許可しません"
+            )
+        nodes[digest] = {
+            "sha256": digest,
+            "depth": depth,
+            "state": state,
+            "case_state": case_state,
+        }
+    if not set(roots).issubset(nodes):
+        raise CaseStagingError("follow-on root nodeが不足しています")
+    expected_case_directories = set(roots) | {
+        digest
+        for digest, node in nodes.items()
+        if node["state"] in _FOLLOW_ON_MATERIALIZED_NODE_STATES
+    }
+    if expected_case_directories != set(case_directories):
+        raise CaseStagingError(
+            "follow-on materialized node集合とone-shot case directory集合が一致しません"
+        )
+    if any(
+        nodes[root]
+        != {
+            "sha256": root,
+            "depth": 0,
+            "state": "root",
+            "case_state": None,
+        }
+        for root in roots
+    ):
+        raise CaseStagingError("follow-on root nodeのdepthまたはstateが不正です")
+    if any(nodes[digest]["depth"] == 0 for digest in set(nodes) - set(roots)):
+        raise CaseStagingError("derived nodeのdepthが0です")
+
+    edges: list[dict[str, Any]] = []
+    identities: set[tuple[Any, ...]] = set()
+    for raw in edges_raw:
+        if not isinstance(raw, Mapping):
+            raise CaseStagingError("follow-on edgeがobjectではありません")
+        parent = _validate_sha256(raw.get("parent_sha256"), label="follow-on edge.parent_sha256")
+        child = _validate_sha256(raw.get("child_sha256"), label="follow-on edge.child_sha256")
+        depth = raw.get("depth")
+        size = raw.get("size")
+        status = raw.get("status")
+        path_value = raw.get("path")
+        role = raw.get("role")
+        kind = raw.get("kind")
+        if (
+            parent not in nodes
+            or type(depth) is not int
+            or not 1 <= depth <= 64
+            or type(size) is not int
+            or size <= 0
+            or status not in _FOLLOW_ON_EDGE_STATUSES
+            or not isinstance(path_value, str)
+            or not path_value
+            or not isinstance(role, str)
+            or not role
+            or not isinstance(kind, str)
+            or not kind
+        ):
+            raise CaseStagingError("follow-on edgeの型、状態または参照が不正です")
+        active_or_shared = status in (_FOLLOW_ON_ACTIVE_EDGE_STATUSES | _FOLLOW_ON_SHARED_EDGE_STATUSES)
+        if active_or_shared and child not in nodes:
+            raise CaseStagingError("active/shared follow-on edgeが未知nodeを参照しています")
+        if active_or_shared and parent not in case_directories:
+            raise CaseStagingError(
+                "active/shared follow-on edgeの親nodeがmaterialized caseではありません"
+            )
+        if status in _FOLLOW_ON_ACTIVE_EDGE_STATUSES and (
+            child in roots or nodes[child]["depth"] != nodes[parent]["depth"] + 1 or depth != nodes[child]["depth"]
+        ):
+            raise CaseStagingError("active follow-on edgeのdepthまたはroot境界が不正です")
+        if child not in roots and status in {
+            "child_complete",
+            "shared_sha256_reused_complete",
+        } and (
+            nodes[child]["state"] not in _FOLLOW_ON_MATERIALIZED_NODE_STATES
+            or nodes[child]["case_state"] != "complete"
+        ):
+            raise CaseStagingError("complete follow-on edgeのnode状態が不正です")
+        if child not in roots and status in {
+            "child_incomplete",
+            "shared_sha256_reused_incomplete",
+        } and (
+            nodes[child]["state"] in _FOLLOW_ON_MATERIALIZED_NODE_STATES
+            and nodes[child]["case_state"] == "complete"
+        ):
+            raise CaseStagingError("incomplete follow-on edgeのnode状態が不正です")
+        edge = {
+            "parent_sha256": parent,
+            "child_sha256": child,
+            "depth": depth,
+            "path": path_value,
+            "role": role,
+            "kind": kind,
+            "size": size,
+            "status": status,
+        }
+        identity = tuple(edge[key] for key in sorted(edge))
+        if identity in identities:
+            raise CaseStagingError("follow-on edgeに重複があります")
+        identities.add(identity)
+        edges.append(edge)
+        if active_or_shared:
+            _validate_follow_on_edge_payload(case_directories=case_directories, edge=edge)
+
+    outgoing: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    active_incoming: dict[str, list[str]] = defaultdict(list)
+    for edge in edges:
+        outgoing[edge["parent_sha256"]].append(edge)
+        if edge["status"] in _FOLLOW_ON_ACTIVE_EDGE_STATUSES:
+            active_incoming[edge["child_sha256"]].append(edge["parent_sha256"])
+    for child in set(nodes) - set(roots):
+        if len(active_incoming.get(child, [])) != 1:
+            raise CaseStagingError("derived nodeのactive parentが一意ではありません")
+
+    graph_status = str(graph["status"])
+    derived_nodes = set(nodes) - set(roots)
+    partial_or_incomplete_derived = any(
+        node["case_state"] == "partial"
+        or node["state"] in _FOLLOW_ON_UNMATERIALIZED_NODE_STATES
+        for digest, node in nodes.items()
+        if digest in derived_nodes
+    )
+    if partial_or_incomplete_derived and graph_status != "partial":
+        raise CaseStagingError(
+            "partial／incomplete derived nodeにはpartial follow-on graphが必要です"
+        )
+    if graph_status == "complete" and (
+        not edges
+        or any(
+            edge["status"]
+            not in {"child_complete", "shared_sha256_reused_complete"}
+            for edge in edges
+        )
+    ):
+        raise CaseStagingError("complete follow-on graphに未完了edgeがあります")
+    if graph_status == "no_retained_payloads" and (derived_nodes or edges):
+        raise CaseStagingError(
+            "no_retained_payloads graphにderived nodeまたはedgeがあります"
+        )
+
+    descendants_by_root: dict[str, tuple[str, ...]] = {}
+    incomplete_descendants_by_root: dict[str, tuple[str, ...]] = {}
+    lineage_nodes_by_root: dict[str, tuple[str, ...]] = {}
+    owners: dict[str, set[str]] = defaultdict(set)
+    for root in sorted(roots):
+        observed: set[str] = set()
+        queue: deque[str] = deque([root])
+        while queue:
+            parent = queue.popleft()
+            if parent in observed:
+                raise CaseStagingError("follow-on active graphにcycleがあります")
+            observed.add(parent)
+            owners[parent].add(root)
+            for edge in outgoing.get(parent, []):
+                if edge["status"] in _FOLLOW_ON_ACTIVE_EDGE_STATUSES:
+                    queue.append(edge["child_sha256"])
+        lineage_nodes = tuple(
+            sorted(
+                observed - {root},
+                key=lambda value: (nodes[value]["depth"], value),
+            )
+        )
+        lineage_nodes_by_root[root] = lineage_nodes
+        descendants_by_root[root] = tuple(
+            value
+            for value in lineage_nodes
+            if nodes[value]["state"] in _FOLLOW_ON_MATERIALIZED_NODE_STATES
+        )
+        incomplete_descendants_by_root[root] = tuple(
+            value
+            for value in lineage_nodes
+            if nodes[value]["state"] in _FOLLOW_ON_UNMATERIALIZED_NODE_STATES
+        )
+    if any(not owners.get(digest) for digest in set(nodes) - set(roots)):
+        raise CaseStagingError("rootから到達できないorphan derived nodeがあります")
+
+    unsafe: dict[str, set[str]] = {root: set() for root in roots}
+    edges_by_root: dict[str, tuple[dict[str, Any], ...]] = {}
+    for root in sorted(roots):
+        lineage = {root, *lineage_nodes_by_root[root]}
+        selected_edges = [edge for edge in edges if edge["parent_sha256"] in lineage]
+        for edge in selected_edges:
+            status = edge["status"]
+            if status == "child_incomplete":
+                unsafe[root].add("derived_child_incomplete")
+            elif status in _FOLLOW_ON_SHARED_EDGE_STATUSES:
+                unsafe[root].add("shared_or_cross_root_child")
+                for other in owners.get(edge["child_sha256"], set()):
+                    unsafe[other].add("shared_or_cross_root_child")
+            elif status != "child_complete":
+                unsafe[root].add(f"excluded_edge:{status}")
+        edges_by_root[root] = tuple(
+            sorted(
+                selected_edges,
+                key=lambda item: (
+                    int(item["depth"]),
+                    str(item["parent_sha256"]),
+                    str(item["child_sha256"]),
+                    str(item["path"]),
+                ),
+            )
+        )
+
+    errors = graph.get("errors")
+    omitted = graph.get("omitted_metadata")
+    commitments = graph.get("omitted_metadata_commitments")
+    if errors not in (None, []):
+        for root in roots:
+            unsafe[root].add("follow_on_errors_present")
+    if commitments not in (None, []):
+        for root in roots:
+            unsafe[root].add("unattributed_omission_commitment")
+    if omitted not in (None, []):
+        if not isinstance(omitted, list):
+            raise CaseStagingError("follow-on omitted_metadataがlistではありません")
+        for item in omitted:
+            if not isinstance(item, Mapping):
+                raise CaseStagingError("follow-on omitted metadata itemがobjectではありません")
+            parent = item.get("parent_sha256")
+            if parent in owners:
+                for root in owners[str(parent)]:
+                    unsafe[root].add("omitted_follow_on_metadata")
+            else:
+                for root in roots:
+                    unsafe[root].add("unattributed_omitted_metadata")
+    if graph.get("wall_clock_exhausted") is True:
+        for root in roots:
+            unsafe[root].add("follow_on_wall_clock_exhausted")
+
+    return OneShotLineage(
+        case_directories=case_directories,
+        materialized_case_states={
+            digest: str(node["case_state"])
+            for digest, node in sorted(nodes.items())
+            if node["state"] in _FOLLOW_ON_MATERIALIZED_NODE_STATES
+        },
+        incomplete_case_states={
+            digest: str(node["state"])
+            for digest, node in sorted(nodes.items())
+            if node["state"] in _FOLLOW_ON_UNMATERIALIZED_NODE_STATES
+        },
+        descendants_by_root=descendants_by_root,
+        incomplete_descendants_by_root=incomplete_descendants_by_root,
+        edges_by_root=edges_by_root,
+        unsafe_reasons_by_root={root: tuple(sorted(reasons)) for root, reasons in sorted(unsafe.items())},
+        graph_sha256=graph_sha256,
+        graph_schema_version=graph.get("schema_version"),
+    )
+
+
+def build_follow_on_lineage_case_document(
+    lineage: OneShotLineage,
+    *,
+    collection_id: str,
+    case_sha256: str,
+) -> dict[str, Any] | None:
+    """live graphからroot別の決定的なfollow-on lineage文書を構築する。"""
+
+    if COLLECTION_RE.fullmatch(collection_id) is None:
+        raise CaseStagingError("follow-on lineageのcollection IDが不正です")
+    digest = _validate_sha256(case_sha256, label="follow-on lineage case SHA-256")
+    if digest not in lineage.descendants_by_root:
+        raise CaseStagingError("follow-on lineageに指定rootがありません")
+    if lineage.graph_sha256 is None:
+        return None
+    derived = lineage.descendants_by_root[digest]
+    incomplete = lineage.incomplete_descendants_by_root[digest]
+    derived_states = {
+        value: lineage.materialized_case_states[value] for value in derived
+    }
+    state_counts = {
+        state: sum(value == state for value in derived_states.values())
+        for state in ("complete", "partial")
+    }
+    return {
+        "schema_version": "analysis-datastore-case-follow-on-lineage/v1",
+        "source_schema_version": lineage.graph_schema_version,
+        "source_follow_on_sha256": lineage.graph_sha256,
+        "collection_id": collection_id,
+        "case_sha256": digest,
+        "derived_case_sha256s": list(derived),
+        "derived_case_states": dict(sorted(derived_states.items())),
+        "derived_case_state_counts": state_counts,
+        "incomplete_derived_case_sha256s": list(incomplete),
+        "incomplete_derived_case_states": {
+            value: lineage.incomplete_case_states[value] for value in incomplete
+        },
+        "edges": [dict(edge) for edge in lineage.edges_by_root[digest]],
+        "safety": {
+            "different_root_cases_included": False,
+            "incomplete_derived_cases_included": False,
+            "incomplete_follow_on_evidence_present": bool(incomplete),
+            "sample_executed": False,
+            "network_contacted": False,
+        },
+    }
+
+
+def _shared_derived_target(collection_id: str, child_sha256: str) -> str:
+    """collection衝突を避けた128文字以内の共有derived targetを返す。"""
+
+    if COLLECTION_RE.fullmatch(collection_id) is None:
+        raise CaseStagingError("共有derivedのcollection IDが不正です")
+    digest = _validate_sha256(child_sha256, label="共有derived child SHA-256")
+    collection_commitment = hashlib.sha256(collection_id.encode("utf-8")).hexdigest()[:16]
+    target = f"shared-derived-{collection_commitment}-{digest}"
+    try:
+        return archive_analysis_datastore.validate_target(target)
+    except archive_analysis_datastore.DatastoreError as exc:
+        raise CaseStagingError("共有derived datastore targetを安全に構成できません") from exc
+
+
+def build_shared_derived_externalization_documents(
+    lineage: OneShotLineage,
+    *,
+    collection_id: str,
+    allow_partial_derived_cases: bool,
+) -> dict[str, dict[str, Any]]:
+    """共有derived leafを一意なowner／edge集合へ固定する。
+
+    既定のroot staging拒否はこの関数だけでは解除しない。返した文書をshared
+    archiveへ先にstageし、remote receiptを再検証した呼出し側だけがrootから
+    bytesを外部分離できる。
+    """
+
+    if type(allow_partial_derived_cases) is not bool:
+        raise CaseStagingError("共有derived partial許可値はbooleanである必要があります")
+    if COLLECTION_RE.fullmatch(collection_id) is None:
+        raise CaseStagingError("共有derivedのcollection IDが不正です")
+    if lineage.graph_sha256 is None:
+        return {}
+
+    edge_owner_pairs: list[tuple[str, dict[str, Any]]] = []
+    all_edges: dict[tuple[Any, ...], dict[str, Any]] = {}
+    shared_children: set[str] = set()
+    for owner_root, raw_edges in sorted(lineage.edges_by_root.items()):
+        owner = _validate_sha256(owner_root, label="共有derived owner root")
+        for raw_edge in raw_edges:
+            edge = dict(raw_edge)
+            identity = tuple(edge[key] for key in sorted(edge))
+            all_edges[identity] = edge
+            if edge["status"] in _FOLLOW_ON_SHARED_EDGE_STATUSES:
+                shared_children.add(str(edge["child_sha256"]))
+            edge_owner_pairs.append((owner, edge))
+
+    documents: dict[str, dict[str, Any]] = {}
+    for child in sorted(shared_children):
+        child = _validate_sha256(child, label="共有derived child")
+        incoming_by_identity: dict[tuple[Any, ...], dict[str, Any]] = {}
+        owners_by_identity: dict[tuple[Any, ...], set[str]] = defaultdict(set)
+        for owner, edge in edge_owner_pairs:
+            if edge["child_sha256"] != child:
+                continue
+            identity = tuple(edge[key] for key in sorted(edge))
+            incoming_by_identity[identity] = edge
+            owners_by_identity[identity].add(owner)
+        incoming = list(incoming_by_identity.values())
+        active = [edge for edge in incoming if edge["status"] in _FOLLOW_ON_ACTIVE_EDGE_STATUSES]
+        shared = [edge for edge in incoming if edge["status"] in _FOLLOW_ON_SHARED_EDGE_STATUSES]
+        if len(active) != 1 or not shared:
+            raise CaseStagingError("共有derived childのactive/shared edge集合が一意ではありません")
+        if child not in lineage.case_directories or child not in lineage.materialized_case_states:
+            raise CaseStagingError("共有derived childがmaterialized caseへ束縛されていません")
+        if any(
+            edge["parent_sha256"] == child
+            and edge["status"] in (_FOLLOW_ON_ACTIVE_EDGE_STATUSES | _FOLLOW_ON_SHARED_EDGE_STATUSES)
+            for edge in all_edges.values()
+        ):
+            raise CaseStagingError("共有derived childがleafではないため外部分離できません")
+
+        owner_edges: list[dict[str, Any]] = []
+        observed_owners: set[str] = set()
+        for identity, edge in incoming_by_identity.items():
+            edge_owners = owners_by_identity[identity]
+            if len(edge_owners) != 1:
+                raise CaseStagingError("共有derived edgeが複数root lineageへ重複しています")
+            owner = next(iter(edge_owners))
+            if owner in observed_owners:
+                raise CaseStagingError("共有derived ownerに複数のincoming edgeがあります")
+            observed_owners.add(owner)
+            owner_edges.append({"owner_root_sha256": owner, **edge})
+        if len(owner_edges) != len(incoming) or len(observed_owners) < 2:
+            raise CaseStagingError("共有derived owner／edge集合が一対一ではありません")
+
+        case_state = lineage.materialized_case_states[child]
+        expected_active = "child_complete" if case_state == "complete" else "child_incomplete"
+        expected_shared = (
+            "shared_sha256_reused_complete"
+            if case_state == "complete"
+            else "shared_sha256_reused_incomplete"
+        )
+        if active[0]["status"] != expected_active or any(
+            edge["status"] != expected_shared for edge in shared
+        ):
+            raise CaseStagingError("共有derived edge状態とsealed child状態が一致しません")
+        if case_state == "partial" and not allow_partial_derived_cases:
+            raise CaseStagingError("partial共有derivedの外部分離には明示的な許可が必要です")
+        payload_sizes = {int(edge["size"]) for edge in incoming}
+        if len(payload_sizes) != 1:
+            raise CaseStagingError("共有derived payload copyのsizeが競合しています")
+
+        ordered_owners = sorted(observed_owners)
+        ordered_edges = sorted(
+            owner_edges,
+            key=lambda item: (
+                str(item["owner_root_sha256"]),
+                str(item["parent_sha256"]),
+                str(item["path"]),
+                str(item["status"]),
+            ),
+        )
+        owner_set_commitment = _canonical_sha256(ordered_owners)
+        edge_set_commitment = _canonical_sha256(ordered_edges)
+        document = {
+            "schema_version": SHARED_DERIVED_PROVENANCE_SCHEMA_VERSION,
+            "collection_id": collection_id,
+            "target": _shared_derived_target(collection_id, child),
+            "child_sha256": child,
+            "child_case_state": case_state,
+            "source_follow_on_sha256": lineage.graph_sha256,
+            "source_schema_version": lineage.graph_schema_version,
+            "owners": ordered_owners,
+            "owner_set_commitment_sha256": owner_set_commitment,
+            "owner_edges": ordered_edges,
+            "edge_set_commitment_sha256": edge_set_commitment,
+            "canonical_parent_sha256": str(active[0]["parent_sha256"]),
+            "payload_size": next(iter(payload_sizes)),
+            "payload_copy_count": len(ordered_edges),
+            "partial_policy": {
+                "allow_partial_derived_cases": allow_partial_derived_cases,
+                "child_case_state": case_state,
+            },
+            "safety": {
+                "child_is_leaf": True,
+                "payload_copies_sha256_verified": True,
+                "root_sources_included": False,
+                "root_analysis_included": False,
+                "sample_executed": False,
+                "network_contacted": False,
+                "source_deleted": False,
+            },
+        }
+        documents[child] = document
+    return documents
+
+
+def _shared_children_for_root(
+    documents: Mapping[str, Mapping[str, Any]],
+    *,
+    root_sha256: str,
+) -> tuple[str, ...]:
+    """検証済みexternalization文書からrootが参照するchild集合を返す。"""
+
+    digest = _validate_sha256(root_sha256, label="共有derived参照root")
+    return tuple(
+        sorted(
+            child
+            for child, document in documents.items()
+            if digest in document.get("owners", [])
+        )
+    )
+
+
 def _validate_exclusion_set(
     document: Mapping[str, Any],
     *,
@@ -713,10 +1583,7 @@ def _validate_exclusion_set(
         or document.get("publishable") is not False
     ):
         raise CaseStagingError("exclusion-set.jsonの非公開除外集合契約が不正です")
-    normalized = [
-        _validate_sha256(value, label="exclusion-set.json identities item")
-        for value in identities
-    ]
+    normalized = [_validate_sha256(value, label="exclusion-set.json identities item") for value in identities]
     if normalized != sorted(normalized) or len(set(normalized)) != len(normalized):
         raise CaseStagingError("exclusion-set.jsonのidentitiesは一意な昇順SHA-256である必要があります")
     excluded_sha256 = _validate_sha256(
@@ -770,6 +1637,49 @@ def _validate_source_sidecars(
     return commitments
 
 
+def _validate_runtime_request_sidecar(
+    source_root: Path,
+    *,
+    selected_sha256s: Sequence[str],
+) -> None:
+    """再解析用requestをraw非収録のruntime metadataとして検証する。"""
+
+    path = source_root / "request-improved.json"
+    if not os.path.lexists(path):
+        return
+    document, _document_sha256 = _read_json(path, label="source runtime request")
+    options = document.get("options")
+    request_inputs = document.get("inputs")
+    allowed_option_keys = {
+        "archive_mode",
+        "assessment_only",
+        "family",
+        "force_container_probe",
+        "max_file_size",
+        "max_files",
+        "max_static_layers",
+        "minimum_confidence",
+        "retry_max_static_layers",
+        "string_scan_limit",
+    }
+    if (
+        document.get("schema_version") != 1
+        or not isinstance(document.get("job_id"), str)
+        or not document["job_id"]
+        or not isinstance(request_inputs, list)
+        or len(request_inputs) != len(selected_sha256s)
+        or len(set(request_inputs)) != len(request_inputs)
+        or set(request_inputs) != set(selected_sha256s)
+        or document.get("family_hint_manifest") not in (None, "family-hints.json")
+        or not isinstance(options, Mapping)
+        or set(options) != allowed_option_keys
+        or options.get("archive_mode") != "malwarebazaar"
+        or options.get("assessment_only") is not False
+        or options.get("force_container_probe") is not False
+    ):
+        raise CaseStagingError("source runtime requestの静的・非実行契約が不正です")
+
+
 def _validate_source_manifest(
     source_root: Path,
 ) -> tuple[
@@ -801,6 +1711,19 @@ def _validate_source_manifest(
     selected_values = [_validate_sha256(value, label="selected_hashes item") for value in selected]
     if len(set(selected_values)) != len(selected_values):
         raise CaseStagingError("selected_hashesに重複があります")
+    try:
+        fixed_selection = partitioner.validate_fixed_selection(manifest)
+        selection_contract.validate_item_metadata_binding(
+            manifest,
+            expected_hashes=fixed_selection.hashes,
+        )
+    except (
+        partitioner.PartitionContractError,
+        selection_contract.SelectionMetadataContractError,
+    ) as exc:
+        raise CaseStagingError(f"source manifestの固定選定metadata契約が不正です: {exc}") from exc
+    if tuple(selected_values) != fixed_selection.hashes:
+        raise CaseStagingError("source manifestの固定選定順序が一致しません")
     item_map: dict[str, dict[str, Any]] = {}
     metadata_map: dict[str, dict[str, Any]] = {}
     for item in items:
@@ -827,7 +1750,12 @@ def _validate_source_manifest(
         source_root,
         label="source root",
         allowed_noncase_files=frozenset(
-            {"manifest.json", "family-hints.json", "exclusion-set.json"}
+            {
+                "manifest.json",
+                "family-hints.json",
+                "exclusion-set.json",
+                "request-improved.json",
+            }
         ),
     )
     if set(case_directories) != selected_set:
@@ -853,6 +1781,10 @@ def _validate_source_manifest(
             or item["metadata"].get("sha256_hash") != digest
         ):
             raise CaseStagingError("source archiveとmanifestのsize／SHA-256が一致しません")
+    _validate_runtime_request_sidecar(
+        source_root,
+        selected_sha256s=selected_values,
+    )
     sidecar_commitments = _validate_source_sidecars(
         source_root,
         source_manifest=manifest,
@@ -883,11 +1815,7 @@ def _validated_case_source_bindings(
     items = public.get("acquisition_items")
     if public.get("collection_id") != collection_id or not isinstance(items, list):
         raise CaseStagingError("provider hash不一致の公開collection bindingがありません")
-    private_items = {
-        item["sha256"]: item
-        for item in source_manifest["items"]
-        if isinstance(item, Mapping)
-    }
+    private_items = {item["sha256"]: item for item in source_manifest["items"] if isinstance(item, Mapping)}
     for item in items:
         if not isinstance(item, Mapping):
             raise CaseStagingError("公開collection acquisition itemが不正です")
@@ -957,9 +1885,7 @@ def _validate_one_shot_report_identity(case_directory: Path, *, digest: str) -> 
 
     root_sha256 = report.get("sha256")
     if root_sha256 is not None:
-        authoritative.append(
-            _validate_sha256(root_sha256, label="one-shot report.sha256")
-        )
+        authoritative.append(_validate_sha256(root_sha256, label="one-shot report.sha256"))
     sample = report.get("sample")
     if sample is not None:
         if not isinstance(sample, Mapping):
@@ -979,9 +1905,7 @@ def _validate_one_shot_report_identity(case_directory: Path, *, digest: str) -> 
                 )
             )
     if not authoritative or any(value != digest for value in authoritative):
-        raise CaseStagingError(
-            "one-shot reportを対象case SHA-256へ束縛できないか、他caseを参照しています"
-        )
+        raise CaseStagingError("one-shot reportを対象case SHA-256へ束縛できないか、他caseを参照しています")
 
     pending: list[tuple[Any, str]] = [(report, "one-shot report")]
     while pending:
@@ -994,9 +1918,7 @@ def _validate_one_shot_report_identity(case_directory: Path, *, digest: str) -> 
                     label=f"{location}.sample.sha256",
                 )
                 if observed != digest:
-                    raise CaseStagingError(
-                        "one-shot reportに他caseのsample.sha256があります"
-                    )
+                    raise CaseStagingError("one-shot reportに他caseのsample.sha256があります")
             for key, child in value.items():
                 if key in REPORT_CASE_IDENTITY_KEYS:
                     observed = _validate_sha256(
@@ -1004,9 +1926,7 @@ def _validate_one_shot_report_identity(case_directory: Path, *, digest: str) -> 
                         label=f"{location}.{key}",
                     )
                     if observed != digest:
-                        raise CaseStagingError(
-                            f"one-shot reportに他caseの{key}があります"
-                        )
+                        raise CaseStagingError(f"one-shot reportに他caseの{key}があります")
                 elif key == "sample_sha256s":
                     if (
                         not isinstance(child, list)
@@ -1020,15 +1940,10 @@ def _validate_one_shot_report_identity(case_directory: Path, *, digest: str) -> 
                             for item in child
                         )
                     ):
-                        raise CaseStagingError(
-                            "one-shot reportに他caseのsample_sha256sがあります"
-                        )
+                        raise CaseStagingError("one-shot reportに他caseのsample_sha256sがあります")
                 pending.append((child, f"{location}.{key}"))
         elif isinstance(value, list):
-            pending.extend(
-                (child, f"{location}[{index}]")
-                for index, child in enumerate(value)
-            )
+            pending.extend((child, f"{location}[{index}]") for index, child in enumerate(value))
 
 
 def _validate_one_shot_report_safety(case_directory: Path) -> dict[str, Any]:
@@ -1038,32 +1953,58 @@ def _validate_one_shot_report_safety(case_directory: Path) -> dict[str, Any]:
         case_directory / "report.json",
         label="one-shot report safety",
     )
-    execution_fields = [
-        field
-        for field in ("executed_sample", "sample_executed")
-        if field in report
-    ]
-    if not execution_fields or any(
-        report[field] is not False for field in execution_fields
-    ):
-        raise CaseStagingError(
-            "Ghidra非要求経路のone-shot reportがsample非実行を明示していません"
-        )
+    execution_fields = [field for field in ("executed_sample", "sample_executed") if field in report]
+    if not execution_fields or any(report[field] is not False for field in execution_fields):
+        raise CaseStagingError("Ghidra非要求経路のone-shot reportがsample非実行を明示していません")
     if report.get("network_contacted") is not False:
-        raise CaseStagingError(
-            "Ghidra非要求経路のone-shot reportがnetwork非接触を明示していません"
-        )
+        raise CaseStagingError("Ghidra非要求経路のone-shot reportがnetwork非接触を明示していません")
     ai_used = report.get("ai_used")
     if ai_used is not False and ai_used is not None:
-        raise CaseStagingError(
-            "Ghidra非要求経路のone-shot reportでAI利用が記録されています"
-        )
+        raise CaseStagingError("Ghidra非要求経路のone-shot reportでAI利用が記録されています")
     return {
         "sample_executed": False,
         "network_contacted": False,
         "ai_used": ai_used,
         "one_shot_report_safety_validated": True,
     }
+
+
+def _validate_sealed_derived_case_state(
+    case_directory: Path,
+    *,
+    expected_state: str | None = None,
+    allow_partial: bool,
+) -> str:
+    """derived reportをsealed complete／明示許可済みpartialへ限定する。"""
+
+    report, _report_sha256 = _read_json(
+        case_directory / "report.json",
+        label="derived one-shot report",
+    )
+    case_state = report.get("case_state")
+    if not isinstance(case_state, Mapping):
+        raise CaseStagingError("derived caseにsealed case_stateがありません")
+    state = case_state.get("status")
+    blockers = case_state.get("blockers")
+    if expected_state is not None and state != expected_state:
+        raise CaseStagingError("derived case reportとfollow-on nodeの状態が一致しません")
+    if state == "complete":
+        if case_state.get("complete") is not True or blockers not in (None, []):
+            raise CaseStagingError("derived complete caseのsealed状態が不正です")
+        return state
+    if state == "partial" and allow_partial:
+        if (
+            case_state.get("complete") is not False
+            or not isinstance(blockers, list)
+            or not blockers
+            or any(not isinstance(item, str) or not item for item in blockers)
+            or blockers != sorted(set(blockers))
+        ):
+            raise CaseStagingError("derived partial caseのsealed状態が不正です")
+        return state
+    if state == "partial":
+        raise CaseStagingError("derived partial caseには明示的な許可が必要です")
+    raise CaseStagingError("derived caseはsealed complete／partial状態ではありません")
 
 
 def _validate_relationships(
@@ -1276,10 +2217,7 @@ def _rewrite_artifact_paths(
         _reject_reparse_components(supplied, label="private validation artifact")
         supplied_io = archive_analysis_datastore._extended_length_path(supplied)
         if not os.path.lexists(supplied_io):
-            if (
-                key == "decompilations"
-                and program.get("characteristic_native_decompilation_count") == 0
-            ):
+            if key == "decompilations" and program.get("characteristic_native_decompilation_count") == 0:
                 rewritten[key] = None
                 continue
             raise CaseStagingError("private validationの必須artifactが存在しません")
@@ -1514,9 +2452,12 @@ def _validate_inputs(
         expected_pe_sha256s=all_pe_sha256s,
         object_directories=object_directories,
     )
-    requested = [value if value in expected_cases else next(
-        (actual for actual, provider in source_bindings.items() if provider == value), value
-    ) for value in requested]
+    requested = [
+        value
+        if value in expected_cases
+        else next((actual for actual, provider in source_bindings.items() if provider == value), value)
+        for value in requested
+    ]
     if any(value not in expected_cases for value in requested) or len(set(requested)) != len(requested):
         raise CaseStagingError("指定caseが検証済みsource集合にありません")
     selected_cases: dict[str, CaseInputs] = {}
@@ -1581,11 +2522,7 @@ def _source_case_document_from_manifest(
         None,
     )
     metadata = next(
-        (
-            value
-            for value in selected_metadata
-            if isinstance(value, Mapping) and value.get("sha256_hash") == requested
-        ),
+        (value for value in selected_metadata if isinstance(value, Mapping) and value.get("sha256_hash") == requested),
         None,
     )
     if not isinstance(item, Mapping) or not isinstance(metadata, Mapping):
@@ -1607,7 +2544,7 @@ def _source_case_document_from_manifest(
             "remains_encrypted": True,
         },
         "metadata": dict(metadata),
-        "provider_metadata": dict(item["metadata"]),
+        "provider_metadata": selection_contract.safe_metadata_projection(item["metadata"]),
         "source_sidecars": [
             {
                 "name": name,
@@ -1615,9 +2552,7 @@ def _source_case_document_from_manifest(
                 "sha256": commitment.sha256,
                 "raw_content_included": False,
             }
-            for name, commitment in sorted(
-                (source_sidecar_commitments or {}).items()
-            )
+            for name, commitment in sorted((source_sidecar_commitments or {}).items())
         ],
         "safety": {
             "sample_executed": False,
@@ -1685,11 +2620,7 @@ def _copy_case_ghidra_object(
     files = list(_walk_files(source_root, role="ghidra_object"))
     source_absolute = _absolute(archive_analysis_datastore._extended_length_path(source_root))
     observed_keys = {_source_commitment_key(path) for path, _relative in files}
-    expected_keys = {
-        key
-        for key, commitment in commitments.items()
-        if _is_within(commitment.path, source_absolute)
-    }
+    expected_keys = {key for key, commitment in commitments.items() if _is_within(commitment.path, source_absolute)}
     if observed_keys != expected_keys:
         raise CaseStagingError("ghidra_objectのfile集合がpreflight commitmentから変更されました")
     copied: list[CopiedFile] = []
@@ -1804,6 +2735,7 @@ def _verify_promoted_staging(
     copied: Sequence[CopiedFile],
     *,
     case_sha256: str,
+    allowed_case_sha256s: frozenset[str] | None = None,
 ) -> tuple[list[archive_analysis_datastore.SourceFile], str, int]:
     """昇格後treeをcopy時のexact inventoryへ再拘束し、秘密値も再scanする。"""
 
@@ -1819,9 +2751,7 @@ def _verify_promoted_staging(
             raise CaseStagingError("昇格後case stagingに未束縛fileがあります")
         _scan_file_for_sensitive_content(path, relative=relative.as_posix())
         try:
-            digest, size, _identity = archive_analysis_datastore._hash_source_snapshot(
-                path
-            )
+            digest, size, _identity = archive_analysis_datastore._hash_source_snapshot(path)
         except archive_analysis_datastore.DatastoreError as exc:
             raise CaseStagingError("昇格後case stagingを安全に照合できません") from exc
         if size != item.size or digest != item.sha256:
@@ -1829,15 +2759,16 @@ def _verify_promoted_staging(
         observed.add(key)
     if observed != set(expected):
         raise CaseStagingError("昇格後case stagingのfile集合が一致しません")
-    _scan_staged_case_references(root, case_sha256=case_sha256)
+    _scan_staged_case_references(
+        root,
+        case_sha256=case_sha256,
+        allowed_case_sha256s=allowed_case_sha256s,
+    )
     try:
         archive_files = archive_analysis_datastore.collect_source_files([root])
     except archive_analysis_datastore.DatastoreError as exc:
         raise CaseStagingError("昇格後case stagingをarchive helperへ渡せません") from exc
-    records = [
-        {"path": item.archive_name, "size": item.size, "sha256": item.sha256}
-        for item in archive_files
-    ]
+    records = [{"path": item.archive_name, "size": item.size, "sha256": item.sha256} for item in archive_files]
     return (
         archive_files,
         _inventory_sha256(records),
@@ -1852,6 +2783,34 @@ def _remove_new_staging(path: Path, *, output_root: Path) -> None:
     if absolute.parent != output_root or not (absolute.name.startswith(".") and absolute.name.endswith(".staging")):
         raise CaseStagingError("一時stagingのcleanup境界を確認できません")
     _reject_reparse_components(absolute, label="owned一時staging")
+    shutil.rmtree(archive_analysis_datastore._extended_length_path(absolute))
+
+
+def _remove_owned_candidate(
+    path: Path,
+    *,
+    output_root: Path,
+    expected_identity: tuple[int, int],
+) -> None:
+    """新規作成したcandidateだけをidentity確認後に回収する。"""
+
+    if not os.path.lexists(archive_analysis_datastore._extended_length_path(path)):
+        return
+    absolute = _absolute(path)
+    output = _validate_existing_directory(output_root, label="owned candidate output root")
+    if absolute.parent != output or not absolute.name.startswith(".candidate-"):
+        raise CaseStagingError("owned candidateのcleanup境界を確認できません")
+    _reject_reparse_components(
+        archive_analysis_datastore._extended_length_path(absolute),
+        label="owned candidate cleanup",
+    )
+    metadata = archive_analysis_datastore._extended_length_path(absolute).lstat()
+    if (
+        not stat.S_ISDIR(metadata.st_mode)
+        or _is_reparse(metadata)
+        or (metadata.st_dev, metadata.st_ino) != expected_identity
+    ):
+        raise CaseStagingError("owned candidate cleanup対象のidentityが一致しません")
     shutil.rmtree(archive_analysis_datastore._extended_length_path(absolute))
 
 
@@ -1956,6 +2915,8 @@ def _stage_one(
             "target": target,
             "collection_id": inputs.collection_id,
             "case_sha256": case.case_sha256,
+            "analysis_output_sha256": None,
+            "follow_on_lineage_sha256": None,
             "file_count_excluding_this_manifest": len(records),
             "total_size_excluding_this_manifest": sum(int(item["size"]) for item in records),
             "file_inventory_sha256": _inventory_sha256(records),
@@ -1985,6 +2946,11 @@ def _stage_one(
                 "verified_malware_binary_content_scan_excluded": True,
                 "verified_malware_binary_count": len(case.pe_sha256s),
                 "different_cases_included": False,
+                "derived_case_count": 0,
+                "derived_case_state_counts": {"complete": 0, "partial": 0},
+                "derived_cases_complete": True,
+                "incomplete_derived_cases_included": False,
+                "incomplete_follow_on_evidence_present": False,
                 "sample_executed": False,
                 "network_contacted": False,
                 "source_deleted": False,
@@ -2006,12 +2972,10 @@ def _stage_one(
             raise CaseStagingError("case staging inventoryとarchive inventoryが一致しません")
         os.replace(temporary, final)
         temporary = None
-        final_archive_files, source_tree_sha256, total_size = (
-            _verify_promoted_staging(
-                final,
-                copied,
-                case_sha256=case.case_sha256,
-            )
+        final_archive_files, source_tree_sha256, total_size = _verify_promoted_staging(
+            final,
+            copied,
+            case_sha256=case.case_sha256,
         )
         return {
             "case_sha256": case.case_sha256,
@@ -2026,6 +2990,12 @@ def _stage_one(
                 target,
                 "--source",
                 os.fspath(final),
+                "--expected-source-tree-sha256",
+                source_tree_sha256,
+                "--expected-file-count",
+                str(len(final_archive_files)),
+                "--expected-total-size",
+                str(total_size),
             ],
             "sample_executed": False,
             "network_contacted": False,
@@ -2102,17 +3072,10 @@ def _preflight_sensitive_content(
     for key, (path, relative) in sorted(files.items()):
         commitment = _snapshot_source_commitment(path, relative=relative)
         expected = next(
-            (
-                item
-                for item in inputs.source_sidecar_commitments.values()
-                if _source_commitment_key(item.path) == key
-            ),
+            (item for item in inputs.source_sidecar_commitments.values() if _source_commitment_key(item.path) == key),
             None,
         )
-        if expected is not None and (
-            commitment.sha256 != expected.sha256
-            or commitment.size != expected.size
-        ):
+        if expected is not None and (commitment.sha256 != expected.sha256 or commitment.size != expected.size):
             raise CaseStagingError("source sidecarがmanifest検証後に変更されました")
         commitments[key] = commitment
     return commitments
@@ -2140,13 +3103,12 @@ def prepare_case_staging_session(
         case_sha256s=case_sha256s,
         require_single_case=False,
     )
-    projected = {
-        digest: _projected_case_staging_bytes(inputs, case)
-        for digest, case in inputs.cases.items()
-    }
+    projected = {digest: _projected_case_staging_bytes(inputs, case) for digest, case in inputs.cases.items()}
     maximum_required = max(projected.values())
     try:
-        free = shutil.disk_usage(inputs.output_root).free
+        free = shutil.disk_usage(
+            archive_analysis_datastore._extended_length_path(inputs.output_root)
+        ).free
     except OSError as exc:
         raise CaseStagingError("case staging filesystemの空き容量を確認できません") from exc
     if free < maximum_required + MINIMUM_FREE_RESERVE_BYTES:
@@ -2160,8 +3122,7 @@ def prepare_case_staging_session(
     return CaseStagingSession(
         inputs=inputs,
         requested_to_actual_case_sha256={
-            case.source_requested_sha256: case.case_sha256
-            for case in inputs.cases.values()
+            case.source_requested_sha256: case.case_sha256 for case in inputs.cases.values()
         },
         commitments=commitments,
         projected_case_bytes=projected,
@@ -2186,7 +3147,11 @@ def stage_case_from_session(
         raise CaseStagingError(f"既存case stagingを上書きしません: {target}")
     required = session.projected_case_bytes[digest]
     try:
-        free = shutil.disk_usage(session.inputs.output_root).free
+        free = shutil.disk_usage(
+            archive_analysis_datastore._extended_length_path(
+                session.inputs.output_root
+            )
+        ).free
     except OSError as exc:
         raise CaseStagingError("case staging filesystemの空き容量を確認できません") from exc
     if free < required + MINIMUM_FREE_RESERVE_BYTES:
@@ -2249,7 +3214,672 @@ def stage_cases(
     return stage_case_from_session(session, case_sha256=case_sha256s[0])
 
 
-def stage_cases_without_ghidra(
+def stage_externalized_shared_derived_case(
+    *,
+    repository: Path,
+    collection_id: str,
+    one_shot_root: Path,
+    output_root: Path,
+    expected_run_root_sha256s: Sequence[str],
+    child_sha256: str,
+    allow_partial_derived_cases: bool,
+    expected_analysis_output_sha256: str,
+    expected_externalization_document: Mapping[str, Any],
+) -> dict[str, Any]:
+    """共有derived leafをcanonical payload 1 copyと解析treeへ分離する。"""
+
+    child = _validate_sha256(child_sha256, label="共有derived child SHA-256")
+    analysis_output_sha256 = _validate_sha256(
+        expected_analysis_output_sha256,
+        label="analysis output SHA-256",
+    )
+    if type(allow_partial_derived_cases) is not bool:
+        raise CaseStagingError("共有derived partial許可値はbooleanである必要があります")
+    if not isinstance(expected_externalization_document, Mapping):
+        raise CaseStagingError("共有derived externalization commitmentがobjectではありません")
+    expected_document = dict(expected_externalization_document)
+    repository = _validate_existing_directory(repository, label="repository")
+    one_shot_root = _validate_existing_directory(one_shot_root, label="one-shot root")
+    if _is_within(one_shot_root, repository):
+        raise CaseStagingError("private one-shot入力をrepository内から取得できません")
+    output_root = _prepare_output_root(
+        output_root,
+        repository=repository,
+        inputs=(one_shot_root,),
+    )
+    roots = [
+        _validate_sha256(value, label="production run root SHA-256")
+        for value in expected_run_root_sha256s
+    ]
+    if not roots or len(roots) > MAX_CASES or len(set(roots)) != len(roots):
+        raise CaseStagingError("production run root集合が空、重複、または上限超過です")
+    lineage = _validate_one_shot_lineage(one_shot_root, source_case_sha256s=set(roots))
+    documents = build_shared_derived_externalization_documents(
+        lineage,
+        collection_id=collection_id,
+        allow_partial_derived_cases=allow_partial_derived_cases,
+    )
+    live_document = documents.get(child)
+    if live_document is None or live_document != expected_document:
+        raise CaseStagingError("共有derived live graphがexternalization commitmentと一致しません")
+    for owner in live_document["owners"]:
+        rejected = {
+            reason
+            for reason in lineage.unsafe_reasons_by_root[owner]
+            if reason != "shared_or_cross_root_child"
+            and not (
+                allow_partial_derived_cases
+                and reason == "derived_child_incomplete"
+            )
+        }
+        if rejected:
+            raise CaseStagingError(
+                "共有derived owner lineageに外部分離できない理由があります: "
+                + ", ".join(sorted(rejected))
+            )
+
+    child_directory = lineage.case_directories[child]
+    _validate_one_shot_report_identity(child_directory, digest=child)
+    child_safety = _validate_one_shot_report_safety(child_directory)
+    child_state = _validate_sealed_derived_case_state(
+        child_directory,
+        expected_state=str(live_document["child_case_state"]),
+        allow_partial=allow_partial_derived_cases,
+    )
+    if child_state != live_document["child_case_state"]:
+        raise CaseStagingError("共有derived sealed状態がprovenanceと一致しません")
+
+    graph_path = one_shot_root / "follow-on-analysis.json"
+    input_files: dict[str, tuple[Path, str]] = {}
+    for path, relative in _walk_files(child_directory, role="shared derived case"):
+        input_files[_source_commitment_key(path)] = (
+            path,
+            f"one-shot-derived/{child}/{relative.as_posix()}",
+        )
+    payload_paths: dict[str, Path] = {}
+    canonical_payload: Path | None = None
+    for owner_edge in live_document["owner_edges"]:
+        owner = str(owner_edge["owner_root_sha256"])
+        parent = str(owner_edge["parent_sha256"])
+        path_value = str(owner_edge["path"])
+        if parent not in lineage.case_directories:
+            raise CaseStagingError("共有derived edge parentがmaterialized caseではありません")
+        try:
+            member = archive_analysis_datastore._validate_member_name(path_value)
+        except archive_analysis_datastore.DatastoreError as exc:
+            raise CaseStagingError("共有derived edge pathが安全ではありません") from exc
+        payload = lineage.case_directories[parent].joinpath(*PurePosixPath(member).parts)
+        key = _source_commitment_key(payload)
+        if key in payload_paths:
+            raise CaseStagingError("共有derived payload pathがowner間で重複しています")
+        payload_paths[key] = payload
+        input_files[key] = (payload, f"owner-payload/{owner}/{member}")
+        if parent == live_document["canonical_parent_sha256"]:
+            if canonical_payload is not None:
+                raise CaseStagingError("共有derived canonical payloadが一意ではありません")
+            canonical_payload = payload
+    if canonical_payload is None or len(payload_paths) != live_document["payload_copy_count"]:
+        raise CaseStagingError("共有derived payload copy集合がprovenanceと一致しません")
+    input_files[_source_commitment_key(graph_path)] = (
+        graph_path,
+        "follow-on-analysis.json",
+    )
+
+    commitments: dict[str, SourceCommitment] = {}
+    for key, (path, relative) in sorted(input_files.items()):
+        commitments[key] = _snapshot_source_commitment(path, relative=relative)
+    graph_commitment = commitments[_source_commitment_key(graph_path)]
+    if graph_commitment.sha256 != lineage.graph_sha256:
+        raise CaseStagingError("follow-on graphがlineage commitmentと一致しません")
+    for path in payload_paths.values():
+        commitment = commitments[_source_commitment_key(path)]
+        if (
+            commitment.sha256 != child
+            or commitment.size != live_document["payload_size"]
+        ):
+            raise CaseStagingError("共有derived payload copyのSHA-256またはsizeが競合しています")
+
+    required = sum(item.size for item in commitments.values()) + 1024 * 1024
+    try:
+        free = shutil.disk_usage(
+            archive_analysis_datastore._extended_length_path(output_root)
+        ).free
+    except OSError as exc:
+        raise CaseStagingError("共有derived stagingの空き容量を確認できません") from exc
+    if free < required + MINIMUM_FREE_RESERVE_BYTES:
+        raise CaseStagingError("共有derived stagingに必要な空き容量と安全余白がありません")
+
+    target = _shared_derived_target(collection_id, child)
+    final = output_root / target
+    if os.path.lexists(archive_analysis_datastore._extended_length_path(final)):
+        raise CaseStagingError(f"既存共有derived stagingを上書きしません: {target}")
+    temporary, temporary_identity = _create_owned_staging_directory(
+        output_root,
+        label=child,
+    )
+    copied: list[CopiedFile] = []
+    externalization_document_sha256 = _canonical_sha256(live_document)
+    try:
+        copied.append(
+            _copy_file(
+                canonical_payload,
+                temporary / "payload" / f"{child}.quarantine.bin",
+                staging_root=temporary,
+                role="shared_derived_payload",
+                commitments=commitments,
+            )
+        )
+        copied.extend(
+            _copy_tree(
+                child_directory,
+                temporary / "one-shot-derived" / child,
+                staging_root=temporary,
+                role="shared_derived_analysis",
+                commitments=commitments,
+            )
+        )
+        for path in payload_paths.values():
+            _assert_source_commitment(
+                path,
+                commitments=commitments,
+                role="shared derived owner payload",
+            )
+        _assert_source_commitment(
+            graph_path,
+            commitments=commitments,
+            role="shared derived follow-on graph",
+        )
+        provenance = {
+            **live_document,
+            "analysis_output_sha256": analysis_output_sha256,
+            "externalization_document_sha256": externalization_document_sha256,
+        }
+        provenance_sha256 = _canonical_sha256(provenance)
+        copied.append(
+            _write_generated_json(
+                temporary / "provenance" / "shared-derived.json",
+                provenance,
+                staging_root=temporary,
+                role="shared_derived_provenance",
+            )
+        )
+        copied.append(
+            _write_generated_text(
+                temporary / "README.md",
+                (
+                    "# 共有派生payloadの外部分離\n\n"
+                    "このarchiveは、複数rootから同一SHA-256で復元された派生payloadを、"
+                    "root別archiveから分離して一度だけ保管します。canonical payload 1 copy、"
+                    "当該derived caseの静的解析結果、検証済みprovenanceだけを含みます。\n\n"
+                    "- root source／root analysis: 含めない\n"
+                    "- 検体実行: なし\n"
+                    "- 解析中の外部通信: なし\n"
+                    "- 元sourceの削除: なし\n"
+                ),
+                staging_root=temporary,
+                role="shared_derived_readme",
+            )
+        )
+        records = sorted(
+            (_inventory_record(item) for item in copied),
+            key=lambda item: str(item["path"]).casefold(),
+        )
+        roles: dict[str, dict[str, int]] = {}
+        for item in records:
+            summary = roles.setdefault(str(item["role"]), {"file_count": 0, "total_size": 0})
+            summary["file_count"] += 1
+            summary["total_size"] += int(item["size"])
+        manifest_document = {
+            "schema_version": SHARED_DERIVED_STAGING_SCHEMA_VERSION,
+            "target": target,
+            "collection_id": collection_id,
+            "child_sha256": child,
+            "child_case_state": child_state,
+            "analysis_output_sha256": analysis_output_sha256,
+            "source_follow_on_sha256": lineage.graph_sha256,
+            "externalization_document_sha256": externalization_document_sha256,
+            "provenance_sha256": provenance_sha256,
+            "file_count_excluding_this_manifest": len(records),
+            "total_size_excluding_this_manifest": sum(int(item["size"]) for item in records),
+            "file_inventory_sha256": _inventory_sha256(records),
+            "files": records,
+            "roles": dict(sorted(roles.items())),
+            "archive_handoff": {
+                "tool": "analysis-framework/common/archive_analysis_datastore.py",
+                "target": target,
+                "source": "<this-shared-derived-staging-directory>",
+                "receipt_must_remain_outside_repository": True,
+                "datastore_upload_json_created": False,
+            },
+            "safety": {
+                "physical_copy_only": True,
+                "hardlinks_allowed": False,
+                "symlinks_or_junctions_allowed": False,
+                "shared_payload_copy_count": 1,
+                "root_sources_included": False,
+                "root_analysis_included": False,
+                "sample_executed": False,
+                "network_contacted": False,
+                "ai_used": child_safety["ai_used"],
+                "source_deleted": False,
+            },
+        }
+        manifest_file = _write_generated_json(
+            temporary / STAGING_MANIFEST_NAME,
+            manifest_document,
+            staging_root=temporary,
+            role="shared_derived_staging_manifest",
+        )
+        copied.append(manifest_file)
+        if sum(item.sha256 == child and item.size == live_document["payload_size"] for item in copied) != 1:
+            raise CaseStagingError("共有derived stagingのpayloadが正確に1 copyではありません")
+        _scan_staged_case_references(
+            archive_analysis_datastore._extended_length_path(temporary),
+            case_sha256=child,
+            allowed_case_sha256s=frozenset({child, *live_document["owners"]}),
+        )
+        try:
+            archive_files = archive_analysis_datastore.collect_source_files([temporary])
+        except archive_analysis_datastore.DatastoreError as exc:
+            raise CaseStagingError("共有derived stagingをarchive helperへ渡せません") from exc
+        if len(archive_files) != len(copied):
+            raise CaseStagingError("共有derived inventoryとarchive inventoryが一致しません")
+        current_identity = archive_analysis_datastore._extended_length_path(temporary).lstat()
+        if (current_identity.st_dev, current_identity.st_ino) != temporary_identity:
+            raise CaseStagingError("共有derived candidate identityが昇格前に変更されました")
+        os.replace(
+            archive_analysis_datastore._extended_length_path(temporary),
+            archive_analysis_datastore._extended_length_path(final),
+        )
+        temporary = None
+        final_archive_files, source_tree_sha256, total_size = _verify_promoted_staging(
+            archive_analysis_datastore._extended_length_path(final),
+            copied,
+            case_sha256=child,
+            allowed_case_sha256s=frozenset({child, *live_document["owners"]}),
+        )
+    except BaseException:
+        if temporary is not None:
+            _remove_owned_candidate(
+                temporary,
+                output_root=output_root,
+                expected_identity=temporary_identity,
+            )
+        raise
+
+    staged = SharedDerivedStaging(
+        child_sha256=child,
+        target=target,
+        source_path=final,
+        source_tree_sha256=source_tree_sha256,
+        file_count=len(final_archive_files),
+        total_size=total_size,
+        provenance_sha256=provenance_sha256,
+        externalization_document_sha256=externalization_document_sha256,
+    )
+    return {
+        "schema_version": SHARED_DERIVED_STAGING_SCHEMA_VERSION,
+        "status": "staging_ready",
+        "collection_id": collection_id,
+        "child_sha256": child,
+        "target": staged.target,
+        "source_path": os.fspath(staged.source_path),
+        "source_tree_sha256": staged.source_tree_sha256,
+        "file_count": staged.file_count,
+        "total_size": staged.total_size,
+        "provenance_sha256": staged.provenance_sha256,
+        "externalization_document_sha256": staged.externalization_document_sha256,
+        "source_follow_on_sha256": lineage.graph_sha256,
+        "owner_set_commitment_sha256": live_document["owner_set_commitment_sha256"],
+        "edge_set_commitment_sha256": live_document["edge_set_commitment_sha256"],
+        "child_case_state": child_state,
+        "archive_arguments": [
+            "--target",
+            staged.target,
+            "--source",
+            os.fspath(staged.source_path),
+            "--expected-source-tree-sha256",
+            staged.source_tree_sha256,
+            "--expected-file-count",
+            str(staged.file_count),
+            "--expected-total-size",
+            str(staged.total_size),
+        ],
+        "sample_executed": False,
+        "network_contacted": False,
+        "s3_upload_performed": False,
+        "source_deleted": False,
+    }
+
+
+def reuse_externalized_shared_derived_staging(
+    *,
+    output_root: Path,
+    collection_id: str,
+    child_sha256: str,
+    allow_partial_derived_cases: bool,
+    expected_analysis_output_sha256: str,
+    expected_externalization_document: Mapping[str, Any],
+) -> dict[str, Any]:
+    """中断後の共有derived stagingを全inventory再検証して再利用する。"""
+
+    child = _validate_sha256(child_sha256, label="共有derived再利用child")
+    analysis_sha256 = _validate_sha256(
+        expected_analysis_output_sha256,
+        label="共有derived再利用analysis output",
+    )
+    if type(allow_partial_derived_cases) is not bool:
+        raise CaseStagingError("共有derived partial許可値はbooleanである必要があります")
+    if not isinstance(expected_externalization_document, Mapping):
+        raise CaseStagingError("共有derived再利用commitmentがobjectではありません")
+    expected_document = dict(expected_externalization_document)
+    expected_document_sha256 = _canonical_sha256(expected_document)
+    if expected_document.get("child_sha256") != child:
+        raise CaseStagingError("共有derived再利用commitmentのchildが一致しません")
+    partial_policy = expected_document.get("partial_policy")
+    if (
+        not isinstance(partial_policy, Mapping)
+        or partial_policy.get("allow_partial_derived_cases")
+        is not allow_partial_derived_cases
+    ):
+        raise CaseStagingError("共有derived再利用のpartial policyが一致しません")
+
+    output = _validate_existing_directory(output_root, label="共有derived staging output root")
+    target = _shared_derived_target(collection_id, child)
+    source = output / target
+    if not os.path.lexists(archive_analysis_datastore._extended_length_path(source)):
+        raise CaseStagingError("再利用する共有derived stagingが存在しません")
+    source = _validate_existing_directory(
+        archive_analysis_datastore._extended_length_path(source),
+        label="既存共有derived staging",
+    )
+    if source.parent != archive_analysis_datastore._extended_length_path(output) or source.name != target:
+        raise CaseStagingError("共有derived stagingをowned output rootへ束縛できません")
+
+    manifest, manifest_sha256 = _read_json(
+        source / STAGING_MANIFEST_NAME,
+        label="共有derived staging manifest",
+    )
+    files = manifest.get("files")
+    safety = manifest.get("safety")
+    handoff = manifest.get("archive_handoff")
+    expected_state = str(expected_document.get("child_case_state"))
+    if (
+        manifest.get("schema_version") != SHARED_DERIVED_STAGING_SCHEMA_VERSION
+        or manifest.get("target") != target
+        or manifest.get("collection_id") != collection_id
+        or manifest.get("child_sha256") != child
+        or manifest.get("child_case_state") != expected_state
+        or manifest.get("analysis_output_sha256") != analysis_sha256
+        or manifest.get("source_follow_on_sha256")
+        != expected_document.get("source_follow_on_sha256")
+        or manifest.get("externalization_document_sha256")
+        != expected_document_sha256
+        or not isinstance(files, list)
+        or not files
+        or not isinstance(safety, Mapping)
+        or safety.get("physical_copy_only") is not True
+        or safety.get("hardlinks_allowed") is not False
+        or safety.get("symlinks_or_junctions_allowed") is not False
+        or safety.get("shared_payload_copy_count") != 1
+        or safety.get("root_sources_included") is not False
+        or safety.get("root_analysis_included") is not False
+        or safety.get("sample_executed") is not False
+        or safety.get("network_contacted") is not False
+        or safety.get("source_deleted") is not False
+        or not isinstance(handoff, Mapping)
+        or handoff.get("target") != target
+        or handoff.get("datastore_upload_json_created") is not False
+    ):
+        raise CaseStagingError("共有derived staging manifestの束縛または安全契約が不正です")
+
+    declared: dict[str, dict[str, Any]] = {}
+    normalized_records: list[dict[str, Any]] = []
+    roles: dict[str, dict[str, int]] = {}
+    for raw in files:
+        if not isinstance(raw, Mapping):
+            raise CaseStagingError("共有derived inventoryがobjectではありません")
+        relative_value = raw.get("path")
+        role = raw.get("role")
+        size = raw.get("size")
+        sha256 = raw.get("sha256")
+        if not isinstance(relative_value, str) or not relative_value:
+            raise CaseStagingError("共有derived inventory pathが不正です")
+        relative = PurePosixPath(relative_value)
+        if (
+            relative.is_absolute()
+            or any(part in {"", ".", ".."} or ":" in part or "\\" in part for part in relative.parts)
+            or relative.as_posix() == STAGING_MANIFEST_NAME
+            or not isinstance(role, str)
+            or not role
+            or type(size) is not int
+            or size < 0
+        ):
+            raise CaseStagingError("共有derived inventoryの型またはpathが不正です")
+        digest = _validate_sha256(sha256, label="共有derived inventory SHA-256")
+        key = relative.as_posix().casefold()
+        if key in declared:
+            raise CaseStagingError("共有derived inventory pathが重複しています")
+        record = {
+            "path": relative.as_posix(),
+            "role": role,
+            "size": size,
+            "sha256": digest,
+        }
+        declared[key] = record
+        normalized_records.append(record)
+        summary = roles.setdefault(role, {"file_count": 0, "total_size": 0})
+        summary["file_count"] += 1
+        summary["total_size"] += size
+    normalized_records.sort(key=lambda item: str(item["path"]).casefold())
+    if (
+        manifest.get("file_count_excluding_this_manifest") != len(normalized_records)
+        or manifest.get("total_size_excluding_this_manifest")
+        != sum(int(item["size"]) for item in normalized_records)
+        or manifest.get("file_inventory_sha256") != _inventory_sha256(normalized_records)
+        or manifest.get("roles") != dict(sorted(roles.items()))
+    ):
+        raise CaseStagingError("共有derived inventory集計が一致しません")
+
+    observed = _walk_files(source, role="existing shared derived staging")
+    if len(observed) != len(normalized_records) + 1:
+        raise CaseStagingError("共有derived file集合がmanifestと一致しません")
+    payload_copy_count = 0
+    for path, relative in observed:
+        _reject_sensitive_name(relative)
+        _scan_file_for_sensitive_content(path, relative=relative.as_posix())
+        if relative.as_posix() == STAGING_MANIFEST_NAME:
+            continue
+        record = declared.get(relative.as_posix().casefold())
+        if record is None or record["path"] != relative.as_posix():
+            raise CaseStagingError("共有derived stagingに未束縛fileがあります")
+        try:
+            observed_sha256, observed_size, _identity = (
+                archive_analysis_datastore._hash_source_snapshot(path)
+            )
+        except archive_analysis_datastore.DatastoreError as exc:
+            raise CaseStagingError("共有derived staging fileを照合できません") from exc
+        if observed_sha256 != record["sha256"] or observed_size != record["size"]:
+            raise CaseStagingError("共有derived staging inventoryが一致しません")
+        if observed_sha256 == child and observed_size == expected_document["payload_size"]:
+            payload_copy_count += 1
+    if payload_copy_count != 1:
+        raise CaseStagingError("共有derived stagingのpayloadが正確に1 copyではありません")
+    if os.path.lexists(source / "source") or os.path.lexists(source / "one-shot-private"):
+        raise CaseStagingError("共有derived stagingにroot sourceまたはroot analysisがあります")
+    derived_directory = source / "one-shot-derived" / child
+    _validate_one_shot_report_identity(derived_directory, digest=child)
+    _validate_sealed_derived_case_state(
+        derived_directory,
+        expected_state=expected_state,
+        allow_partial=allow_partial_derived_cases,
+    )
+    provenance, _provenance_file_sha256 = _read_json(
+        source / "provenance" / "shared-derived.json",
+        label="共有derived provenance",
+    )
+    expected_provenance = {
+        **expected_document,
+        "analysis_output_sha256": analysis_sha256,
+        "externalization_document_sha256": expected_document_sha256,
+    }
+    if provenance != expected_provenance or manifest.get("provenance_sha256") != _canonical_sha256(provenance):
+        raise CaseStagingError("共有derived provenanceがcommitmentと一致しません")
+    _scan_staged_case_references(
+        source,
+        case_sha256=child,
+        allowed_case_sha256s=frozenset({child, *expected_document["owners"]}),
+    )
+    try:
+        archive_files = archive_analysis_datastore.collect_source_files([source])
+    except archive_analysis_datastore.DatastoreError as exc:
+        raise CaseStagingError("共有derived stagingをarchive helperへ渡せません") from exc
+    if len(archive_files) != len(normalized_records) + 1:
+        raise CaseStagingError("共有derived archive inventoryが一致しません")
+    archive_records = [
+        {"path": item.archive_name, "size": item.size, "sha256": item.sha256}
+        for item in archive_files
+    ]
+    source_tree_sha256 = _inventory_sha256(archive_records)
+    total_size = sum(item.size for item in archive_files)
+    return {
+        "schema_version": SHARED_DERIVED_STAGING_SCHEMA_VERSION,
+        "status": "staging_ready",
+        "collection_id": collection_id,
+        "child_sha256": child,
+        "target": target,
+        "source_path": os.fspath(source),
+        "source_tree_sha256": source_tree_sha256,
+        "file_count": len(archive_files),
+        "total_size": total_size,
+        "provenance_sha256": manifest["provenance_sha256"],
+        "externalization_document_sha256": expected_document_sha256,
+        "source_follow_on_sha256": manifest["source_follow_on_sha256"],
+        "owner_set_commitment_sha256": expected_document["owner_set_commitment_sha256"],
+        "edge_set_commitment_sha256": expected_document["edge_set_commitment_sha256"],
+        "child_case_state": expected_state,
+        "staging_manifest_sha256": manifest_sha256,
+        "archive_arguments": [
+            "--target",
+            target,
+            "--source",
+            os.fspath(source),
+            "--expected-source-tree-sha256",
+            source_tree_sha256,
+            "--expected-file-count",
+            str(len(archive_files)),
+            "--expected-total-size",
+            str(total_size),
+        ],
+        "reused_existing_staging": True,
+        "sample_executed": False,
+        "network_contacted": False,
+        "s3_upload_performed": False,
+        "source_deleted": False,
+    }
+
+
+def _validated_shared_receipt_reference(
+    *,
+    collection_id: str,
+    child_sha256: str,
+    externalization_document: Mapping[str, Any],
+    receipt: Mapping[str, Any],
+) -> dict[str, Any]:
+    """remote再検証済み共有archiveの最小hash commitmentだけを返す。"""
+
+    child = _validate_sha256(child_sha256, label="共有receipt child")
+    if receipt.get("remote_reverified") is not True:
+        raise CaseStagingError("共有derived receiptはremote再検証済みではありません")
+    expected_target = _shared_derived_target(collection_id, child)
+    expected_document_sha256 = _canonical_sha256(externalization_document)
+    hashes: dict[str, str] = {}
+    for key in (
+        "archive_sha256",
+        "manifest_sha256",
+        "source_tree_sha256",
+        "provenance_sha256",
+        "archive_report_sha256",
+    ):
+        hashes[key] = _validate_sha256(receipt.get(key), label=f"共有receipt {key}")
+    if (
+        receipt.get("target") != expected_target
+        or receipt.get("externalization_document_sha256")
+        != expected_document_sha256
+        or receipt.get("source_follow_on_sha256")
+        != externalization_document.get("source_follow_on_sha256")
+        or receipt.get("owner_set_commitment_sha256")
+        != externalization_document.get("owner_set_commitment_sha256")
+        or receipt.get("edge_set_commitment_sha256")
+        != externalization_document.get("edge_set_commitment_sha256")
+        or receipt.get("child_case_state")
+        != externalization_document.get("child_case_state")
+    ):
+        raise CaseStagingError("共有derived receiptがexternalization commitmentと一致しません")
+    return {
+        "target": expected_target,
+        **hashes,
+        "externalization_document_sha256": expected_document_sha256,
+    }
+
+
+def build_shared_derived_reference_document(
+    *,
+    collection_id: str,
+    root_sha256: str,
+    source_follow_on_sha256: str,
+    externalization_documents: Mapping[str, Mapping[str, Any]],
+    verified_receipts: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any] | None:
+    """live graph文書とremote検証済みreceiptからroot参照を決定的に作る。"""
+
+    root = _validate_sha256(root_sha256, label="共有derived参照root")
+    graph_sha256 = _validate_sha256(
+        source_follow_on_sha256,
+        label="共有derived参照follow-on graph",
+    )
+    children = _shared_children_for_root(
+        externalization_documents,
+        root_sha256=root,
+    )
+    if set(verified_receipts) != set(children):
+        raise CaseStagingError("共有derived receipt集合がrootのshared child集合と一致しません")
+    if not children:
+        return None
+    normalized = {
+        child: _validated_shared_receipt_reference(
+            collection_id=collection_id,
+            child_sha256=child,
+            externalization_document=externalization_documents[child],
+            receipt=verified_receipts[child],
+        )
+        for child in children
+    }
+    return {
+        "schema_version": SHARED_DERIVED_REFERENCE_SCHEMA_VERSION,
+        "collection_id": collection_id,
+        "root_sha256": root,
+        "source_follow_on_sha256": graph_sha256,
+        "items": [
+            {
+                "child_sha256": child,
+                "externalization": dict(externalization_documents[child]),
+                "shared_archive": normalized[child],
+            }
+            for child in children
+        ],
+        "safety": {
+            "shared_payload_bytes_included": False,
+            "shared_derived_analysis_included": False,
+            "shared_archives_remote_reverified": True,
+            "sample_executed": False,
+            "network_contacted_during_analysis": False,
+            "source_deleted": False,
+        },
+    }
+
+
+def _stage_cases_without_ghidra(
     *,
     repository: Path,
     collection_id: str,
@@ -2257,12 +3887,41 @@ def stage_cases_without_ghidra(
     one_shot_root: Path,
     output_root: Path,
     case_sha256s: Sequence[str],
+    source_requested_sha256: str | None = None,
+    expected_run_root_sha256s: Sequence[str] | None = None,
+    allow_partial_derived_cases: bool = False,
+    expected_analysis_output_sha256: str | None = None,
+    expected_follow_on_lineage_document: Mapping[str, Any] | None | object = (
+        _EXPECTED_LINEAGE_UNSET
+    ),
+    externalized_shared_receipts: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Ghidraを実行しないrunのsourceとone-shot結果を単一caseへ分離する。"""
+    """Ghidraを実行しないrunのsourceとone-shot結果を単一caseへ分離する。
+
+    ``expected_run_root_sha256s`` は、完全な取得manifestを複数のproduction
+    runへ分割した呼出しだけで使用する。省略時は従来どおり、取得manifest
+    全体と単一runのroot集合が一致しなければならない。指定時も取得manifest
+    自体は完全検証し、run側のroot集合だけを明示された部分集合へ束縛する。
+    """
 
     if len(case_sha256s) != 1:
         raise CaseStagingError("容量制御とcase分離のため、caseは1回につき1件だけ指定してください")
     digest = _validate_sha256(case_sha256s[0], label="case SHA-256")
+    requested_digest = (
+        _validate_sha256(source_requested_sha256, label="provider requested SHA-256")
+        if source_requested_sha256 is not None
+        else digest
+    )
+    if type(allow_partial_derived_cases) is not bool:
+        raise CaseStagingError("derived partial許可値はbooleanである必要があります")
+    analysis_output_sha256 = (
+        _validate_sha256(
+            expected_analysis_output_sha256,
+            label="analysis output SHA-256",
+        )
+        if expected_analysis_output_sha256 is not None
+        else None
+    )
     if not COLLECTION_RE.fullmatch(collection_id):
         raise CaseStagingError("collection IDは小文字英数字で開始し、小文字英数字・._-だけを許可します")
     repository = _validate_existing_directory(repository, label="repository")
@@ -2280,18 +3939,193 @@ def stage_cases_without_ghidra(
         source_cases,
         source_sidecar_commitments,
     ) = _validate_source_manifest(source_root)
-    one_shot_cases = _case_directories(
-        _validate_existing_directory(one_shot_root / "cases", label="one-shot cases root"),
-        label="one-shot cases root",
+    if expected_run_root_sha256s is None:
+        expected_run_roots = set(source_cases)
+    else:
+        expected_run_root_values = [
+            _validate_sha256(value, label="production run root SHA-256")
+            for value in expected_run_root_sha256s
+        ]
+        if (
+            not expected_run_root_values
+            or len(expected_run_root_values) > MAX_CASES
+            or len(set(expected_run_root_values)) != len(expected_run_root_values)
+        ):
+            raise CaseStagingError("production run root集合が空、重複、または上限超過です")
+        expected_run_roots = set(expected_run_root_values)
+    lineage = _validate_one_shot_lineage(
+        one_shot_root,
+        source_case_sha256s=expected_run_roots,
     )
-    if set(one_shot_cases) != set(source_cases):
-        raise CaseStagingError("sourceとone-shotのcase集合が一致しません")
-    if digest not in source_cases:
-        raise CaseStagingError("指定caseが検証済みsource集合にありません")
-    source_directory = source_cases[digest]
-    one_shot_directory = one_shot_cases[digest]
-    _validate_one_shot_report_identity(one_shot_directory, digest=digest)
-    one_shot_safety = _validate_one_shot_report_safety(one_shot_directory)
+    if digest not in expected_run_roots or requested_digest not in source_cases:
+        raise CaseStagingError("指定caseまたはprovider要求hashが検証済み集合にありません")
+    supplied_receipts = externalized_shared_receipts
+    if supplied_receipts is None:
+        externalization_documents: dict[str, dict[str, Any]] = {}
+        root_shared_children: tuple[str, ...] = ()
+        normalized_shared_references: dict[str, dict[str, Any]] = {}
+    else:
+        if not isinstance(supplied_receipts, Mapping):
+            raise CaseStagingError("共有derived receipt集合がobjectではありません")
+        externalization_documents = build_shared_derived_externalization_documents(
+            lineage,
+            collection_id=collection_id,
+            allow_partial_derived_cases=allow_partial_derived_cases,
+        )
+        root_shared_children = _shared_children_for_root(
+            externalization_documents,
+            root_sha256=digest,
+        )
+        if set(supplied_receipts) != set(root_shared_children):
+            raise CaseStagingError("共有derived receipt集合がrootのshared child集合と一致しません")
+        normalized_shared_references = {
+            child: _validated_shared_receipt_reference(
+                collection_id=collection_id,
+                child_sha256=child,
+                externalization_document=externalization_documents[child],
+                receipt=supplied_receipts[child],
+            )
+            for child in root_shared_children
+        }
+    unsafe_reasons = lineage.unsafe_reasons_by_root[digest]
+    rejected_unsafe_reasons = tuple(
+        reason
+        for reason in unsafe_reasons
+        if not (
+            allow_partial_derived_cases
+            and reason == "derived_child_incomplete"
+        )
+        and not (
+            reason == "shared_or_cross_root_child"
+            and supplied_receipts is not None
+            and set(normalized_shared_references) == set(root_shared_children)
+            and bool(root_shared_children)
+        )
+    )
+    if rejected_unsafe_reasons:
+        raise CaseStagingError(
+            "指定rootのfollow-on lineageを安全に分離できません: "
+            + ", ".join(rejected_unsafe_reasons)
+        )
+    source_directory = source_cases[requested_digest]
+    lineage_sha256s = (digest, *lineage.descendants_by_root[digest])
+    one_shot_directories = {value: lineage.case_directories[value] for value in lineage_sha256s}
+    safety_records: list[dict[str, Any]] = []
+    derived_case_states: dict[str, str] = {}
+    for value, directory in one_shot_directories.items():
+        _validate_one_shot_report_identity(directory, digest=value)
+        safety_records.append(_validate_one_shot_report_safety(directory))
+        if value != digest:
+            derived_case_states[value] = _validate_sealed_derived_case_state(
+                directory,
+                expected_state=lineage.materialized_case_states[value],
+                allow_partial=allow_partial_derived_cases,
+            )
+    derived_case_state_counts = {
+        state: sum(value == state for value in derived_case_states.values())
+        for state in ("complete", "partial")
+    }
+    if sum(derived_case_state_counts.values()) != len(derived_case_states):
+        raise CaseStagingError("derived case状態集計がsealed case集合と一致しません")
+    incomplete_descendants = lineage.incomplete_descendants_by_root[digest]
+    lineage_document = build_follow_on_lineage_case_document(
+        lineage,
+        collection_id=collection_id,
+        case_sha256=digest,
+    )
+    follow_on_lineage_sha256 = (
+        _canonical_sha256(lineage_document)
+        if lineage_document is not None
+        else None
+    )
+    if (
+        lineage_document is not None
+        and lineage_document["derived_case_state_counts"]
+        != derived_case_state_counts
+    ):
+        raise CaseStagingError(
+            "live follow-on graphとsealed derived reportの状態が一致しません"
+        )
+    if expected_follow_on_lineage_document is not _EXPECTED_LINEAGE_UNSET:
+        if expected_follow_on_lineage_document is not None and not isinstance(
+            expected_follow_on_lineage_document,
+            Mapping,
+        ):
+            raise CaseStagingError("期待follow-on lineage文書の型が不正です")
+        expected_lineage = (
+            dict(expected_follow_on_lineage_document)
+            if isinstance(expected_follow_on_lineage_document, Mapping)
+            else None
+        )
+        if lineage_document != expected_lineage:
+            raise CaseStagingError(
+                "live follow-on lineageがcoordinator commitmentと一致しません"
+            )
+    shared_reference_document: dict[str, Any] | None = None
+    shared_reference_sha256: str | None = None
+    if normalized_shared_references:
+        if lineage.graph_sha256 is None or supplied_receipts is None:
+            raise CaseStagingError("共有derived referenceのgraphまたはreceiptがありません")
+        shared_reference_document = build_shared_derived_reference_document(
+            collection_id=collection_id,
+            root_sha256=digest,
+            source_follow_on_sha256=lineage.graph_sha256,
+            externalization_documents=externalization_documents,
+            verified_receipts=supplied_receipts,
+        )
+        if shared_reference_document is None:
+            raise CaseStagingError("共有derived referenceを構築できません")
+        shared_reference_sha256 = _canonical_sha256(shared_reference_document)
+    ai_values = {record["ai_used"] for record in safety_records}
+    if len(ai_values) != 1:
+        raise CaseStagingError("lineage内のAI利用契約が一致しません")
+    one_shot_safety = safety_records[0]
+    if source_requested_sha256 is not None:
+        source_item = next(
+            (
+                item
+                for item in source_manifest["items"]
+                if isinstance(item, Mapping) and item.get("sha256") == requested_digest
+            ),
+            None,
+        )
+        report, _report_sha256 = _read_json(
+            one_shot_directories[digest] / "report.json",
+            label="partitioned production root report",
+        )
+        sample = report.get("sample")
+        if (
+            not isinstance(source_item, Mapping)
+            or not isinstance(sample, Mapping)
+            or sample.get("sha256") != digest
+            or sample.get("input_kind") != "authenticated_single_member_zip"
+            or sample.get("outer_sha256") != source_item.get("zip_sha256")
+            or sample.get("outer_size") != source_item.get("zip_size")
+            or not isinstance(sample.get("member_name"), str)
+            or not sample["member_name"]
+            or "/" in sample["member_name"].replace("\\", "/")
+        ):
+            raise CaseStagingError("production run rootを取得archiveへ一意に束縛できません")
+
+    excluded_paths_by_case: dict[str, set[str]] = defaultdict(set)
+    for shared_child in root_shared_children:
+        document = externalization_documents[shared_child]
+        owner_edges = [
+            item
+            for item in document["owner_edges"]
+            if item["owner_root_sha256"] == digest
+        ]
+        if len(owner_edges) != 1:
+            raise CaseStagingError("rootに対応する共有derived edgeが一意ではありません")
+        edge = owner_edges[0]
+        parent = str(edge["parent_sha256"])
+        if parent != digest and parent not in lineage.descendants_by_root[digest]:
+            raise CaseStagingError("共有derived edge parentがroot lineage外です")
+        try:
+            member = archive_analysis_datastore._validate_member_name(str(edge["path"]))
+        except archive_analysis_datastore.DatastoreError as exc:
+            raise CaseStagingError("共有derived除外pathが安全ではありません") from exc
+        excluded_paths_by_case[parent].add(member)
 
     input_files: dict[str, tuple[Path, str]] = {}
     for name, commitment in source_sidecar_commitments.items():
@@ -2299,33 +4133,40 @@ def stage_cases_without_ghidra(
             commitment.path,
             f"source-sidecar/{name}",
         )
-    for root, role in (
-        (source_directory, "source"),
-        (one_shot_directory, "one_shot_private"),
+    for root, role, destination in (
+        (source_directory, "source", "source"),
+        (
+            one_shot_directories[digest],
+            "one_shot_private",
+            "one-shot-private",
+        ),
+        *(
+            (
+                one_shot_directories[child],
+                "one_shot_derived",
+                f"one-shot-derived/{child}",
+            )
+            for child in lineage.descendants_by_root[digest]
+        ),
     ):
         for path, relative in _walk_files(root, role=role):
             key = _source_commitment_key(path)
-            input_files.setdefault(key, (path, f"{role}/{digest}/{relative.as_posix()}"))
+            input_files.setdefault(key, (path, f"{destination}/{relative.as_posix()}"))
     commitments: dict[str, SourceCommitment] = {}
     for key, (path, relative) in sorted(input_files.items()):
         commitment = _snapshot_source_commitment(path, relative=relative)
         expected = next(
-            (
-                item
-                for item in source_sidecar_commitments.values()
-                if _source_commitment_key(item.path) == key
-            ),
+            (item for item in source_sidecar_commitments.values() if _source_commitment_key(item.path) == key),
             None,
         )
-        if expected is not None and (
-            commitment.sha256 != expected.sha256
-            or commitment.size != expected.size
-        ):
+        if expected is not None and (commitment.sha256 != expected.sha256 or commitment.size != expected.size):
             raise CaseStagingError("source sidecarがmanifest検証後に変更されました")
         commitments[key] = commitment
     required = sum(item.size for item in commitments.values()) + 1024 * 1024
     try:
-        free = shutil.disk_usage(output_root).free
+        free = shutil.disk_usage(
+            archive_analysis_datastore._extended_length_path(output_root)
+        ).free
     except OSError as exc:
         raise CaseStagingError("case staging filesystemの空き容量を確認できません") from exc
     if free < required + MINIMUM_FREE_RESERVE_BYTES:
@@ -2333,13 +4174,12 @@ def stage_cases_without_ghidra(
 
     target = _datastore_target(collection_id, digest)
     final = output_root / target
-    if os.path.lexists(final):
+    if os.path.lexists(archive_analysis_datastore._extended_length_path(final)):
         raise CaseStagingError(f"既存case stagingを上書きしません: {target}")
-    temporary: Path | None = output_root / f".{digest[:12]}.{uuid.uuid4().hex[:12]}.staging"
-    try:
-        temporary.mkdir()
-    except OSError as exc:
-        raise CaseStagingError("case一時stagingを排他作成できません") from exc
+    temporary, temporary_identity = _create_owned_staging_directory(
+        output_root,
+        label=digest,
+    )
     copied: list[CopiedFile] = []
     try:
         copied.extend(
@@ -2351,15 +4191,56 @@ def stage_cases_without_ghidra(
                 commitments=commitments,
             )
         )
+        root_exclusions = frozenset(excluded_paths_by_case.get(digest, set()))
         copied.extend(
-            _copy_tree(
-                one_shot_directory,
+            _copy_tree_excluding(
+                one_shot_directories[digest],
+                temporary / "one-shot-private",
+                staging_root=temporary,
+                role="one_shot_private",
+                commitments=commitments,
+                excluded_relative_paths=root_exclusions,
+            )
+            if root_exclusions
+            else _copy_tree(
+                one_shot_directories[digest],
                 temporary / "one-shot-private",
                 staging_root=temporary,
                 role="one_shot_private",
                 commitments=commitments,
             )
         )
+        for child in lineage.descendants_by_root[digest]:
+            if child in root_shared_children:
+                for path, _relative in _walk_files(
+                    one_shot_directories[child],
+                    role="externalized shared derived analysis",
+                ):
+                    _assert_source_commitment(
+                        path,
+                        commitments=commitments,
+                        role="externalized shared derived analysis",
+                    )
+                continue
+            child_exclusions = frozenset(excluded_paths_by_case.get(child, set()))
+            copied.extend(
+                _copy_tree_excluding(
+                    one_shot_directories[child],
+                    temporary / "one-shot-derived" / child,
+                    staging_root=temporary,
+                    role="one_shot_derived",
+                    commitments=commitments,
+                    excluded_relative_paths=child_exclusions,
+                )
+                if child_exclusions
+                else _copy_tree(
+                    one_shot_directories[child],
+                    temporary / "one-shot-derived" / child,
+                    staging_root=temporary,
+                    role="one_shot_derived",
+                    commitments=commitments,
+                )
+            )
         for name, source_commitment in source_sidecar_commitments.items():
             _assert_source_commitment(
                 source_commitment.path,
@@ -2374,12 +4255,31 @@ def stage_cases_without_ghidra(
                     source_manifest_sha256=source_manifest_sha256,
                     collection_id=collection_id,
                     case_sha256=digest,
+                    source_requested_sha256=requested_digest,
                     source_sidecar_commitments=source_sidecar_commitments,
                 ),
                 staging_root=temporary,
                 role="derived_acquisition_manifest",
             )
         )
+        if lineage_document is not None:
+            copied.append(
+                _write_generated_json(
+                    temporary / "derived" / "follow-on-lineage.case.json",
+                    lineage_document,
+                    staging_root=temporary,
+                    role="derived_follow_on_lineage_manifest",
+                )
+            )
+        if shared_reference_document is not None:
+            copied.append(
+                _write_generated_json(
+                    temporary / "derived" / "shared-derived-reference.case.json",
+                    shared_reference_document,
+                    staging_root=temporary,
+                    role="shared_derived_reference",
+                )
+            )
         records = sorted(
             (_inventory_record(item) for item in copied),
             key=lambda item: str(item["path"]).casefold(),
@@ -2394,6 +4294,9 @@ def stage_cases_without_ghidra(
             "target": target,
             "collection_id": collection_id,
             "case_sha256": digest,
+            "provider_requested_sha256": requested_digest if requested_digest != digest else None,
+            "analysis_output_sha256": analysis_output_sha256,
+            "follow_on_lineage_sha256": follow_on_lineage_sha256,
             "file_count_excluding_this_manifest": len(records),
             "total_size_excluding_this_manifest": sum(int(item["size"]) for item in records),
             "file_inventory_sha256": _inventory_sha256(records),
@@ -2413,7 +4316,18 @@ def stage_cases_without_ghidra(
                 "symlinks_or_junctions_allowed": False,
                 "host_secret_name_scan_complete": True,
                 "host_secret_content_scan_complete": True,
-                "different_cases_included": False,
+                "different_cases_included": bool(
+                    set(lineage.descendants_by_root[digest])
+                    - set(root_shared_children)
+                ),
+                "different_root_cases_included": False,
+                "derived_case_count": len(lineage.descendants_by_root[digest]),
+                "derived_case_state_counts": derived_case_state_counts,
+                "derived_cases_complete": derived_case_state_counts["partial"] == 0,
+                "incomplete_derived_cases_included": False,
+                "incomplete_follow_on_evidence_present": bool(
+                    incomplete_descendants
+                ),
                 "sample_executed": False,
                 "network_contacted": False,
                 "ai_used": one_shot_safety["ai_used"],
@@ -2421,6 +4335,27 @@ def stage_cases_without_ghidra(
                 "source_deleted": False,
             },
         }
+        if root_shared_children:
+            staging_manifest["externalized_shared_reference_sha256"] = (
+                shared_reference_sha256
+            )
+            staging_manifest["safety"].update(
+                {
+                    "physically_included_derived_case_count": len(
+                        set(lineage.descendants_by_root[digest])
+                        - set(root_shared_children)
+                    ),
+                    "externalized_shared_child_count": len(root_shared_children),
+                    "externalized_shared_child_sha256s": list(root_shared_children),
+                    "externalized_lineage_derived_case_count": len(
+                        set(lineage.descendants_by_root[digest])
+                        & set(root_shared_children)
+                    ),
+                    "shared_payload_bytes_included": False,
+                    "shared_derived_analysis_included": False,
+                    "shared_archives_remote_reverified": True,
+                }
+            )
         manifest_file = _write_generated_json(
             temporary / STAGING_MANIFEST_NAME,
             staging_manifest,
@@ -2428,37 +4363,110 @@ def stage_cases_without_ghidra(
             role="case_staging_manifest",
         )
         copied.append(manifest_file)
-        _scan_staged_case_references(temporary, case_sha256=digest)
+        for shared_child in root_shared_children:
+            document = externalization_documents[shared_child]
+            if os.path.lexists(
+                archive_analysis_datastore._extended_length_path(
+                    temporary / "one-shot-derived" / shared_child
+                )
+            ):
+                raise CaseStagingError("root stagingに共有derived analysisが残っています")
+            owner_edge = next(
+                item
+                for item in document["owner_edges"]
+                if item["owner_root_sha256"] == digest
+            )
+            parent = str(owner_edge["parent_sha256"])
+            base = (
+                temporary / "one-shot-private"
+                if parent == digest
+                else temporary / "one-shot-derived" / parent
+            )
+            excluded_payload = base.joinpath(
+                *PurePosixPath(str(owner_edge["path"])).parts
+            )
+            if os.path.lexists(
+                archive_analysis_datastore._extended_length_path(excluded_payload)
+            ):
+                raise CaseStagingError("root stagingに共有payload bytesが残っています")
+            if any(
+                item.sha256 == shared_child
+                and item.size == int(document["payload_size"])
+                for item in copied
+            ):
+                raise CaseStagingError("root staging inventoryに共有payload bytesがあります")
+        allowed_case_sha256s = frozenset(
+            (*lineage_sha256s, *incomplete_descendants, *root_shared_children)
+        )
+        _scan_staged_case_references(
+            temporary,
+            case_sha256=digest,
+            allowed_case_sha256s=allowed_case_sha256s,
+        )
         try:
             archive_files = archive_analysis_datastore.collect_source_files([temporary])
         except archive_analysis_datastore.DatastoreError as exc:
             raise CaseStagingError("case stagingを既存archive helperへ安全に渡せません") from exc
         if len(archive_files) != len(copied):
             raise CaseStagingError("case staging inventoryとarchive inventoryが一致しません")
-        os.replace(temporary, final)
+        current_identity = archive_analysis_datastore._extended_length_path(temporary).lstat()
+        if (current_identity.st_dev, current_identity.st_ino) != temporary_identity:
+            raise CaseStagingError("root candidate identityが昇格前に変更されました")
+        os.replace(
+            archive_analysis_datastore._extended_length_path(temporary),
+            archive_analysis_datastore._extended_length_path(final),
+        )
         temporary = None
         final_archive_files, source_tree_sha256, total_size = _verify_promoted_staging(
-            final,
+            archive_analysis_datastore._extended_length_path(final),
             copied,
             case_sha256=digest,
+            allowed_case_sha256s=allowed_case_sha256s,
         )
         staged = {
             "case_sha256": digest,
+            "provider_requested_sha256": requested_digest if requested_digest != digest else None,
             "target": target,
             "source_path": os.fspath(final),
             "file_count": len(final_archive_files),
             "total_size": total_size,
             "source_tree_sha256": source_tree_sha256,
             "staging_manifest_sha256": manifest_file.sha256,
-            "archive_arguments": ["--target", target, "--source", os.fspath(final)],
+            "archive_arguments": [
+                "--target",
+                target,
+                "--source",
+                os.fspath(final),
+                "--expected-source-tree-sha256",
+                source_tree_sha256,
+                "--expected-file-count",
+                str(len(final_archive_files)),
+                "--expected-total-size",
+                str(total_size),
+            ],
+            "derived_case_sha256s": list(lineage.descendants_by_root[digest]),
+            "derived_case_state_counts": derived_case_state_counts,
+            "incomplete_derived_case_sha256s": list(incomplete_descendants),
+            "incomplete_derived_case_states": {
+                value: lineage.incomplete_case_states[value]
+                for value in incomplete_descendants
+            },
+            "follow_on_lineage_sha256": follow_on_lineage_sha256,
             "sample_executed": False,
             "network_contacted": False,
             "ai_used": one_shot_safety["ai_used"],
             "one_shot_report_safety_validated": True,
         }
+        if root_shared_children:
+            staged["externalized_shared_reference_sha256"] = shared_reference_sha256
+            staged["externalized_shared_child_sha256s"] = list(root_shared_children)
     except BaseException:
         if temporary is not None:
-            _remove_new_staging(temporary, output_root=output_root)
+            _remove_owned_candidate(
+                temporary,
+                output_root=output_root,
+                expected_identity=temporary_identity,
+            )
         raise
     return {
         "schema_version": SCHEMA_VERSION,
@@ -2483,11 +4491,507 @@ def stage_cases_without_ghidra(
     }
 
 
+def stage_cases_without_ghidra(
+    *,
+    repository: Path,
+    collection_id: str,
+    source_root: Path,
+    one_shot_root: Path,
+    output_root: Path,
+    case_sha256s: Sequence[str],
+    source_requested_sha256: str | None = None,
+    expected_run_root_sha256s: Sequence[str] | None = None,
+    allow_partial_derived_cases: bool = False,
+    expected_analysis_output_sha256: str | None = None,
+    expected_follow_on_lineage_document: Mapping[str, Any] | None | object = (
+        _EXPECTED_LINEAGE_UNSET
+    ),
+) -> dict[str, Any]:
+    """既存互換のroot staging入口。共有derivedは常に従来どおり拒否する。"""
+
+    return _stage_cases_without_ghidra(
+        repository=repository,
+        collection_id=collection_id,
+        source_root=source_root,
+        one_shot_root=one_shot_root,
+        output_root=output_root,
+        case_sha256s=case_sha256s,
+        source_requested_sha256=source_requested_sha256,
+        expected_run_root_sha256s=expected_run_root_sha256s,
+        allow_partial_derived_cases=allow_partial_derived_cases,
+        expected_analysis_output_sha256=expected_analysis_output_sha256,
+        expected_follow_on_lineage_document=expected_follow_on_lineage_document,
+        externalized_shared_receipts=None,
+    )
+
+
+def _staged_derived_directories(root: Path) -> dict[str, Path]:
+    """Windows long path対応でstaged derived直下だけを列挙する。"""
+
+    validated = _validate_existing_directory(root, label="staged derived cases root")
+    io_root = archive_analysis_datastore._extended_length_path(validated)
+    try:
+        with os.scandir(io_root) as iterator:
+            entries = list(iterator)
+    except OSError as exc:
+        raise CaseStagingError("staged derived cases rootを列挙できません") from exc
+    if not entries or len(entries) > MAX_CASES:
+        raise CaseStagingError("staged derived case件数が上限外です")
+    result: dict[str, Path] = {}
+    for entry in entries:
+        path = Path(entry.path)
+        try:
+            metadata = path.lstat()
+        except OSError as exc:
+            raise CaseStagingError("staged derived case entryを確認できません") from exc
+        if (
+            SHA256_RE.fullmatch(entry.name) is None
+            or entry.is_symlink()
+            or _is_reparse(metadata)
+            or not stat.S_ISDIR(metadata.st_mode)
+        ):
+            raise CaseStagingError("staged derived cases rootに未束縛entryがあります")
+        result[entry.name] = path
+    return dict(sorted(result.items()))
+
+
+def _validate_staged_shared_reference(
+    source: Path,
+    *,
+    digest: str,
+    manifest: Mapping[str, Any],
+    allow_partial_derived_cases: bool,
+) -> dict[str, Mapping[str, Any]]:
+    """root stagingの共有archive参照とbytes除外を再検証する。"""
+
+    safety = manifest.get("safety")
+    if not isinstance(safety, Mapping):
+        raise CaseStagingError("case staging manifestにsafetyがありません")
+    raw_children = safety.get("externalized_shared_child_sha256s", [])
+    raw_count = safety.get("externalized_shared_child_count", 0)
+    reference_sha256 = manifest.get("externalized_shared_reference_sha256")
+    reference_path = source / "derived" / "shared-derived-reference.case.json"
+    if not isinstance(raw_children, list):
+        raise CaseStagingError("externalized shared child集合がlistではありません")
+    children = [
+        _validate_sha256(value, label="externalized shared child")
+        for value in raw_children
+    ]
+    if len(children) != len(set(children)) or raw_count != len(children):
+        raise CaseStagingError("externalized shared child集合が重複または集計不一致です")
+    if not children:
+        if reference_sha256 is not None or os.path.lexists(
+            archive_analysis_datastore._extended_length_path(reference_path)
+        ):
+            raise CaseStagingError("externalized childなしのstagingに共有参照があります")
+        if (
+            safety.get("shared_payload_bytes_included", False) is not False
+            or safety.get("shared_derived_analysis_included", False) is not False
+            or safety.get("shared_archives_remote_reverified", False) is not False
+        ):
+            raise CaseStagingError("externalized childなしの共有安全値が不正です")
+        return {}
+
+    reference_sha256 = _validate_sha256(
+        reference_sha256,
+        label="externalized shared reference SHA-256",
+    )
+    if (
+        safety.get("shared_payload_bytes_included") is not False
+        or safety.get("shared_derived_analysis_included") is not False
+        or safety.get("shared_archives_remote_reverified") is not True
+    ):
+        raise CaseStagingError("externalized shared安全値が不正です")
+    reference, _file_sha256 = _read_json(
+        reference_path,
+        label="externalized shared reference",
+    )
+    items = reference.get("items")
+    reference_safety = reference.get("safety")
+    if (
+        reference.get("schema_version") != SHARED_DERIVED_REFERENCE_SCHEMA_VERSION
+        or reference.get("collection_id") != manifest.get("collection_id")
+        or reference.get("root_sha256") != digest
+        or reference.get("source_follow_on_sha256") is None
+        or not isinstance(items, list)
+        or len(items) != len(children)
+        or not isinstance(reference_safety, Mapping)
+        or reference_safety.get("shared_payload_bytes_included") is not False
+        or reference_safety.get("shared_derived_analysis_included") is not False
+        or reference_safety.get("shared_archives_remote_reverified") is not True
+        or reference_safety.get("sample_executed") is not False
+        or reference_safety.get("network_contacted_during_analysis") is not False
+        or reference_safety.get("source_deleted") is not False
+        or _canonical_sha256(reference) != reference_sha256
+    ):
+        raise CaseStagingError("externalized shared referenceのschemaまたは安全値が不正です")
+
+    result: dict[str, Mapping[str, Any]] = {}
+    for raw in items:
+        if not isinstance(raw, Mapping):
+            raise CaseStagingError("externalized shared reference itemがobjectではありません")
+        child = _validate_sha256(raw.get("child_sha256"), label="shared reference child")
+        externalization = raw.get("externalization")
+        shared_archive = raw.get("shared_archive")
+        if (
+            child in result
+            or child not in children
+            or not isinstance(externalization, Mapping)
+            or not isinstance(shared_archive, Mapping)
+        ):
+            raise CaseStagingError("externalized shared reference itemが集合と一致しません")
+        owners = externalization.get("owners")
+        owner_edges = externalization.get("owner_edges")
+        partial_policy = externalization.get("partial_policy")
+        if (
+            externalization.get("schema_version")
+            != SHARED_DERIVED_PROVENANCE_SCHEMA_VERSION
+            or externalization.get("collection_id") != manifest.get("collection_id")
+            or externalization.get("child_sha256") != child
+            or externalization.get("source_follow_on_sha256")
+            != reference.get("source_follow_on_sha256")
+            or not isinstance(owners, list)
+            or digest not in owners
+            or len(owners) != len(set(owners))
+            or externalization.get("owner_set_commitment_sha256")
+            != _canonical_sha256(sorted(owners))
+            or not isinstance(owner_edges, list)
+            or externalization.get("edge_set_commitment_sha256")
+            != _canonical_sha256(owner_edges)
+            or not isinstance(partial_policy, Mapping)
+            or partial_policy.get("allow_partial_derived_cases")
+            is not allow_partial_derived_cases
+        ):
+            raise CaseStagingError("externalized shared provenance commitmentが不正です")
+        normalized_archive = _validated_shared_receipt_reference(
+            collection_id=str(manifest.get("collection_id")),
+            child_sha256=child,
+            externalization_document=externalization,
+            receipt={**shared_archive, "remote_reverified": True,
+                "source_follow_on_sha256": externalization.get("source_follow_on_sha256"),
+                "owner_set_commitment_sha256": externalization.get("owner_set_commitment_sha256"),
+                "edge_set_commitment_sha256": externalization.get("edge_set_commitment_sha256"),
+                "child_case_state": externalization.get("child_case_state")},
+        )
+        if dict(shared_archive) != normalized_archive:
+            raise CaseStagingError("externalized shared archive commitmentが最小schemaではありません")
+        owner_edges_for_root = [
+            edge
+            for edge in owner_edges
+            if isinstance(edge, Mapping) and edge.get("owner_root_sha256") == digest
+        ]
+        if len(owner_edges_for_root) != 1:
+            raise CaseStagingError("externalized shared owner edgeが一意ではありません")
+        edge = owner_edges_for_root[0]
+        parent = _validate_sha256(edge.get("parent_sha256"), label="shared owner edge parent")
+        try:
+            member = archive_analysis_datastore._validate_member_name(str(edge.get("path")))
+        except archive_analysis_datastore.DatastoreError as exc:
+            raise CaseStagingError("externalized shared owner edge pathが不正です") from exc
+        base = (
+            source / "one-shot-private"
+            if parent == digest
+            else source / "one-shot-derived" / parent
+        )
+        if os.path.lexists(
+            archive_analysis_datastore._extended_length_path(
+                base.joinpath(*PurePosixPath(member).parts)
+            )
+        ):
+            raise CaseStagingError("root stagingにexternalized shared payloadが残っています")
+        if os.path.lexists(
+            archive_analysis_datastore._extended_length_path(
+                source / "one-shot-derived" / child
+            )
+        ):
+            raise CaseStagingError("root stagingにexternalized shared analysisが残っています")
+        result[child] = externalization
+    if set(result) != set(children):
+        raise CaseStagingError("externalized shared referenceのchild集合が一致しません")
+
+    for path, relative in _walk_files(source, role="externalized shared bytes absence scan"):
+        if relative.as_posix() == STAGING_MANIFEST_NAME:
+            continue
+        try:
+            observed_sha256, observed_size, _identity = (
+                archive_analysis_datastore._hash_source_snapshot(path)
+            )
+        except archive_analysis_datastore.DatastoreError as exc:
+            raise CaseStagingError("externalized shared bytes absenceを照合できません") from exc
+        if any(
+            observed_sha256 == child
+            and observed_size == int(result[child]["payload_size"])
+            for child in result
+        ):
+            raise CaseStagingError("root stagingにexternalized shared payload bytesがあります")
+    return result
+
+
+def _validate_staged_derived_policy(
+    source: Path,
+    *,
+    digest: str,
+    manifest: Mapping[str, Any],
+    allow_partial_derived_cases: bool,
+    expected_analysis_output_sha256: str | None,
+    expected_follow_on_lineage_document: Mapping[str, Any] | None | object,
+    expected_externalized_shared_reference_document: (
+        Mapping[str, Any] | None | object
+    ) = _EXPECTED_LINEAGE_UNSET,
+) -> frozenset[str]:
+    """stagingのderived集合、sealed状態、incomplete証拠を再構成する。"""
+
+    if type(allow_partial_derived_cases) is not bool:
+        raise CaseStagingError("derived partial許可値はbooleanである必要があります")
+    expected_analysis = (
+        _validate_sha256(
+            expected_analysis_output_sha256,
+            label="expected analysis output SHA-256",
+        )
+        if expected_analysis_output_sha256 is not None
+        else None
+    )
+    observed_analysis = manifest.get("analysis_output_sha256")
+    if observed_analysis is not None:
+        observed_analysis = _validate_sha256(
+            observed_analysis,
+            label="staging analysis output SHA-256",
+        )
+    if expected_analysis is not None and observed_analysis != expected_analysis:
+        raise CaseStagingError("既存stagingが現在のanalysis tree commitmentと一致しません")
+    expected_lineage = _EXPECTED_LINEAGE_UNSET
+    if expected_follow_on_lineage_document is not _EXPECTED_LINEAGE_UNSET:
+        if expected_follow_on_lineage_document is not None and not isinstance(
+            expected_follow_on_lineage_document,
+            Mapping,
+        ):
+            raise CaseStagingError("期待follow-on lineage文書の型が不正です")
+        expected_lineage = (
+            dict(expected_follow_on_lineage_document)
+            if isinstance(expected_follow_on_lineage_document, Mapping)
+            else None
+        )
+    observed_lineage_sha256 = manifest.get("follow_on_lineage_sha256")
+    if observed_lineage_sha256 is not None:
+        observed_lineage_sha256 = _validate_sha256(
+            observed_lineage_sha256,
+            label="staging follow-on lineage SHA-256",
+        )
+    if expected_lineage is not _EXPECTED_LINEAGE_UNSET:
+        expected_lineage_sha256 = (
+            _canonical_sha256(expected_lineage)
+            if isinstance(expected_lineage, Mapping)
+            else None
+        )
+        if observed_lineage_sha256 != expected_lineage_sha256:
+            raise CaseStagingError(
+                "既存stagingのfollow-on lineage commitmentがlive graphと一致しません"
+            )
+
+    safety = manifest.get("safety")
+    if not isinstance(safety, Mapping):
+        raise CaseStagingError("case staging manifestにsafetyがありません")
+    state_counts = safety.get("derived_case_state_counts")
+    if (
+        not isinstance(state_counts, Mapping)
+        or set(state_counts) != {"complete", "partial"}
+        or any(
+            type(state_counts.get(state)) is not int
+            or state_counts.get(state, -1) < 0
+            for state in ("complete", "partial")
+        )
+    ):
+        raise CaseStagingError("derived case状態集計が不正です")
+    normalized_counts = {
+        state: int(state_counts[state]) for state in ("complete", "partial")
+    }
+    derived_count = sum(normalized_counts.values())
+    incomplete_evidence = safety.get("incomplete_follow_on_evidence_present")
+    if (
+        safety.get("derived_case_count") != derived_count
+        or safety.get("derived_cases_complete")
+        is not (normalized_counts["partial"] == 0)
+        or safety.get("incomplete_derived_cases_included") is not False
+        or type(incomplete_evidence) is not bool
+    ):
+        raise CaseStagingError("derived case状態集計とstaging安全値が一致しません")
+    if (
+        normalized_counts["partial"] or incomplete_evidence
+    ) and not allow_partial_derived_cases:
+        raise CaseStagingError(
+            "derived partial／incomplete evidence stagingの再利用には明示的な許可が必要です"
+        )
+    externalized_documents = _validate_staged_shared_reference(
+        source,
+        digest=digest,
+        manifest=manifest,
+        allow_partial_derived_cases=allow_partial_derived_cases,
+    )
+    if expected_externalized_shared_reference_document is not _EXPECTED_LINEAGE_UNSET:
+        if (
+            expected_externalized_shared_reference_document is not None
+            and not isinstance(expected_externalized_shared_reference_document, Mapping)
+        ):
+            raise CaseStagingError("期待externalized shared referenceの型が不正です")
+        expected_shared_reference = (
+            dict(expected_externalized_shared_reference_document)
+            if isinstance(expected_externalized_shared_reference_document, Mapping)
+            else None
+        )
+        observed_reference_path = source / "derived" / "shared-derived-reference.case.json"
+        if expected_shared_reference is None:
+            if externalized_documents or os.path.lexists(
+                archive_analysis_datastore._extended_length_path(
+                    observed_reference_path
+                )
+            ):
+                raise CaseStagingError("externalized shared referenceがlive planと一致しません")
+        else:
+            observed_reference, _observed_reference_file_sha256 = _read_json(
+                observed_reference_path,
+                label="staged externalized shared reference",
+            )
+            if (
+                observed_reference != expected_shared_reference
+                or manifest.get("externalized_shared_reference_sha256")
+                != _canonical_sha256(expected_shared_reference)
+            ):
+                raise CaseStagingError("externalized shared referenceがlive planと一致しません")
+
+    lineage_path = source / "derived" / "follow-on-lineage.case.json"
+    if not os.path.lexists(
+        archive_analysis_datastore._extended_length_path(lineage_path)
+    ):
+        if derived_count or incomplete_evidence:
+            raise CaseStagingError("derived／incomplete follow-on stagingにlineage証拠がありません")
+        if expected_lineage is not _EXPECTED_LINEAGE_UNSET and expected_lineage is not None:
+            raise CaseStagingError("live graphに対応するstaged follow-on lineageがありません")
+        if observed_lineage_sha256 is not None:
+            raise CaseStagingError("lineage fileのないstagingにlineage commitmentがあります")
+        derived_root = source / "one-shot-derived"
+        if os.path.lexists(
+            archive_analysis_datastore._extended_length_path(derived_root)
+        ):
+            raise CaseStagingError("lineage証拠のないderived directoryがあります")
+        return frozenset({digest, *externalized_documents})
+
+    lineage, _lineage_sha256 = _read_json(
+        lineage_path,
+        label="staged follow-on lineage",
+    )
+    if observed_lineage_sha256 != _canonical_sha256(lineage):
+        raise CaseStagingError("staged follow-on lineage commitmentが内容と一致しません")
+    if expected_lineage is not _EXPECTED_LINEAGE_UNSET and lineage != expected_lineage:
+        raise CaseStagingError(
+            "staged follow-on lineageがlive one-shot lineageと一致しません"
+        )
+    raw_derived = lineage.get("derived_case_sha256s")
+    raw_incomplete = lineage.get("incomplete_derived_case_sha256s")
+    raw_states = lineage.get("derived_case_states")
+    raw_incomplete_states = lineage.get("incomplete_derived_case_states")
+    raw_counts = lineage.get("derived_case_state_counts")
+    lineage_safety = lineage.get("safety")
+    if (
+        lineage.get("schema_version")
+        != "analysis-datastore-case-follow-on-lineage/v1"
+        or lineage.get("collection_id") != manifest.get("collection_id")
+        or lineage.get("case_sha256") != digest
+        or not isinstance(raw_derived, list)
+        or not isinstance(raw_incomplete, list)
+        or not isinstance(raw_states, Mapping)
+        or not isinstance(raw_incomplete_states, Mapping)
+        or raw_counts != normalized_counts
+        or not isinstance(lineage_safety, Mapping)
+        or lineage_safety.get("different_root_cases_included") is not False
+        or lineage_safety.get("incomplete_derived_cases_included") is not False
+        or lineage_safety.get("incomplete_follow_on_evidence_present")
+        is not incomplete_evidence
+        or lineage_safety.get("sample_executed") is not False
+        or lineage_safety.get("network_contacted") is not False
+    ):
+        raise CaseStagingError("staged follow-on lineageのschemaまたは安全値が不正です")
+    derived = [
+        _validate_sha256(value, label="staged derived case SHA-256")
+        for value in raw_derived
+    ]
+    incomplete = [
+        _validate_sha256(value, label="staged incomplete derived case SHA-256")
+        for value in raw_incomplete
+    ]
+    if (
+        len(set(derived)) != len(derived)
+        or len(set(incomplete)) != len(incomplete)
+        or digest in {*derived, *incomplete}
+        or set(derived) & set(incomplete)
+        or bool(incomplete) is not incomplete_evidence
+        or len(derived) != derived_count
+        or set(raw_states) != set(derived)
+        or any(raw_states[value] not in {"complete", "partial"} for value in derived)
+        or set(raw_incomplete_states) != set(incomplete)
+        or any(
+            raw_incomplete_states[value]
+            not in _FOLLOW_ON_UNMATERIALIZED_NODE_STATES
+            for value in incomplete
+        )
+    ):
+        raise CaseStagingError("staged follow-on lineageのcase集合が不正です")
+    observed_counts = Counter(str(raw_states[value]) for value in derived)
+    if any(
+        observed_counts.get(state, 0) != normalized_counts[state]
+        for state in ("complete", "partial")
+    ):
+        raise CaseStagingError("staged follow-on lineageのcase状態集計が一致しません")
+
+    derived_root = source / "one-shot-derived"
+    included_derived = [value for value in derived if value not in externalized_documents]
+    physical_count = safety.get("physically_included_derived_case_count", derived_count)
+    externalized_lineage_count = safety.get(
+        "externalized_lineage_derived_case_count",
+        0,
+    )
+    if (
+        safety.get("different_cases_included") is not bool(included_derived)
+        or type(physical_count) is not int
+        or not 0 <= physical_count <= derived_count
+        or physical_count != len(included_derived)
+        or type(externalized_lineage_count) is not int
+        or not 0 <= externalized_lineage_count <= derived_count
+        or externalized_lineage_count
+        != len(set(derived) & set(externalized_documents))
+        or physical_count + externalized_lineage_count != derived_count
+    ):
+        raise CaseStagingError("derived caseの物理包含集計が一致しません")
+    if included_derived:
+        directories = _staged_derived_directories(derived_root)
+        if set(directories) != set(included_derived):
+            raise CaseStagingError("staged derived directory集合がlineageと一致しません")
+        for child in included_derived:
+            _validate_one_shot_report_identity(directories[child], digest=child)
+            _validate_sealed_derived_case_state(
+                directories[child],
+                expected_state=str(raw_states[child]),
+                allow_partial=allow_partial_derived_cases,
+            )
+    elif os.path.lexists(
+        archive_analysis_datastore._extended_length_path(derived_root)
+    ):
+        raise CaseStagingError("derived caseがないstagingにderived directoryがあります")
+    return frozenset((digest, *derived, *incomplete, *externalized_documents))
+
+
 def reuse_case_staging(
     *,
     output_root: Path,
     collection_id: str,
     case_sha256: str,
+    allow_partial_derived_cases: bool = False,
+    expected_analysis_output_sha256: str | None = None,
+    expected_follow_on_lineage_document: Mapping[str, Any] | None | object = (
+        _EXPECTED_LINEAGE_UNSET
+    ),
+    expected_externalized_shared_reference_document: (
+        Mapping[str, Any] | None | object
+    ) = _EXPECTED_LINEAGE_UNSET,
 ) -> dict[str, Any]:
     """中断後に残ったowned stagingを全inventory再検証して再利用する。"""
 
@@ -2497,7 +5001,9 @@ def reuse_case_staging(
     output = _validate_existing_directory(output_root, label="case staging output root")
     target = _datastore_target(collection_id, digest)
     source = output / target
-    if not os.path.lexists(source):
+    if not os.path.lexists(
+        archive_analysis_datastore._extended_length_path(source)
+    ):
         raise CaseStagingError("再利用対象case stagingが存在しません")
     source = _validate_existing_directory(source, label="既存case staging")
     if source.parent != output or source.name != target:
@@ -2525,12 +5031,22 @@ def reuse_case_staging(
         or safety.get("physical_copy_only") is not True
         or safety.get("hardlinks_allowed") is not False
         or safety.get("symlinks_or_junctions_allowed") is not False
-        or safety.get("different_cases_included") is not False
         or safety.get("sample_executed") is not False
         or safety.get("network_contacted") is not False
         or safety.get("source_deleted") is not False
     ):
         raise CaseStagingError("既存case staging manifestの束縛または安全契約が不正です")
+    allowed_case_sha256s = _validate_staged_derived_policy(
+        source,
+        digest=digest,
+        manifest=manifest,
+        allow_partial_derived_cases=allow_partial_derived_cases,
+        expected_analysis_output_sha256=expected_analysis_output_sha256,
+        expected_follow_on_lineage_document=expected_follow_on_lineage_document,
+        expected_externalized_shared_reference_document=(
+            expected_externalized_shared_reference_document
+        ),
+    )
 
     declared: dict[str, dict[str, Any]] = {}
     normalized_records: list[dict[str, Any]] = []
@@ -2574,8 +5090,7 @@ def reuse_case_staging(
     normalized_records.sort(key=lambda item: str(item["path"]).casefold())
     if (
         manifest.get("file_count_excluding_this_manifest") != len(normalized_records)
-        or manifest.get("total_size_excluding_this_manifest")
-        != sum(int(item["size"]) for item in normalized_records)
+        or manifest.get("total_size_excluding_this_manifest") != sum(int(item["size"]) for item in normalized_records)
         or manifest.get("file_inventory_sha256") != _inventory_sha256(normalized_records)
         or manifest.get("roles") != dict(sorted(roles.items()))
     ):
@@ -2593,9 +5108,7 @@ def reuse_case_staging(
         if record is None or record["path"] != relative.as_posix():
             raise CaseStagingError("既存case stagingに未束縛fileがあります")
         try:
-            observed_sha256, observed_size, _identity = (
-                archive_analysis_datastore._hash_source_snapshot(path)
-            )
+            observed_sha256, observed_size, _identity = archive_analysis_datastore._hash_source_snapshot(path)
         except archive_analysis_datastore.DatastoreError as exc:
             raise CaseStagingError("既存case staging fileを安全に照合できません") from exc
         if observed_size != record["size"] or observed_sha256 != record["sha256"]:
@@ -2604,40 +5117,55 @@ def reuse_case_staging(
             suffix = ".quarantine.bin"
             expected_sha256 = relative.name[: -len(suffix)]
             if observed_sha256 != expected_sha256:
-                raise CaseStagingError(
-                    "既存case stagingのGhidra importがファイル名SHA-256と一致しません"
-                )
-    _scan_staged_case_references(source, case_sha256=digest)
+                raise CaseStagingError("既存case stagingのGhidra importがファイル名SHA-256と一致しません")
+    _scan_staged_case_references(
+        source,
+        case_sha256=digest,
+        allowed_case_sha256s=allowed_case_sha256s,
+    )
     try:
         archive_files = archive_analysis_datastore.collect_source_files([source])
     except archive_analysis_datastore.DatastoreError as exc:
         raise CaseStagingError("既存case stagingをarchive helperへ渡せません") from exc
     if len(archive_files) != len(normalized_records) + 1:
         raise CaseStagingError("既存case stagingのarchive inventoryが一致しません")
-    archive_records = [
-        {"path": item.archive_name, "size": item.size, "sha256": item.sha256}
-        for item in archive_files
-    ]
+    archive_records = [{"path": item.archive_name, "size": item.size, "sha256": item.sha256} for item in archive_files]
     source_tree_sha256 = _inventory_sha256(archive_records)
+    reused_case = {
+        "case_sha256": digest,
+        "target": target,
+        "source_path": os.fspath(source),
+        "file_count": len(archive_files),
+        "total_size": sum(item.size for item in archive_files),
+        "source_tree_sha256": source_tree_sha256,
+        "staging_manifest_sha256": manifest_sha256,
+        "derived_case_state_counts": dict(safety["derived_case_state_counts"]),
+        "follow_on_lineage_sha256": manifest.get("follow_on_lineage_sha256"),
+        "archive_arguments": [
+            "--target",
+            target,
+            "--source",
+            os.fspath(source),
+            "--expected-source-tree-sha256",
+            source_tree_sha256,
+            "--expected-file-count",
+            str(len(archive_files)),
+            "--expected-total-size",
+            str(sum(item.size for item in archive_files)),
+        ],
+        "sample_executed": False,
+        "network_contacted": False,
+    }
+    if "externalized_shared_reference_sha256" in manifest:
+        reused_case["externalized_shared_reference_sha256"] = manifest[
+            "externalized_shared_reference_sha256"
+        ]
     return {
         "schema_version": SCHEMA_VERSION,
         "collection_id": collection_id,
         "case_count": 1,
         "reused_existing_staging": True,
-        "cases": [
-            {
-                "case_sha256": digest,
-                "target": target,
-                "source_path": os.fspath(source),
-                "file_count": len(archive_files),
-                "total_size": sum(item.size for item in archive_files),
-                "source_tree_sha256": source_tree_sha256,
-                "staging_manifest_sha256": manifest_sha256,
-                "archive_arguments": ["--target", target, "--source", os.fspath(source)],
-                "sample_executed": False,
-                "network_contacted": False,
-            }
-        ],
+        "cases": [reused_case],
         "safety": {
             "case_separated": True,
             "physical_copy_only": True,
@@ -2659,6 +5187,14 @@ def remove_case_staging_after_verified_archive(
     case_sha256: str,
     archive_result: Mapping[str, Any],
     archive_target: str | None = None,
+    allow_partial_derived_cases: bool = False,
+    expected_analysis_output_sha256: str | None = None,
+    expected_follow_on_lineage_document: Mapping[str, Any] | None | object = (
+        _EXPECTED_LINEAGE_UNSET
+    ),
+    expected_externalized_shared_reference_document: (
+        Mapping[str, Any] | None | object
+    ) = _EXPECTED_LINEAGE_UNSET,
 ) -> dict[str, Any]:
     """remote検証済みarchiveに対応するowned case stagingだけを削除する。"""
 
@@ -2691,12 +5227,16 @@ def remove_case_staging_after_verified_archive(
         raise CaseStagingError("remote検証済みarchive結果をcleanup対象caseへ束縛できません")
 
     output = _validate_existing_directory(output_root, label="case staging output root")
-    source = _absolute(source_path)
-    _reject_reparse_components(source, label="owned case staging")
-    if source.parent != output or source.name != target:
+    source_normal = _absolute(source_path)
+    source_io = archive_analysis_datastore._extended_length_path(source_normal)
+    _reject_reparse_components(source_io, label="owned case staging")
+    if source_normal.parent != output or source_normal.name != target:
         raise CaseStagingError("cleanup対象がowned case staging境界外です")
-    source = _validate_existing_directory(source, label="owned case staging")
-    if source.parent != output or source.name != target:
+    source = _validate_existing_directory(source_io, label="owned case staging")
+    if (
+        source.parent != archive_analysis_datastore._extended_length_path(output)
+        or source.name != target
+    ):
         raise CaseStagingError("cleanup対象case stagingのidentityが変化しました")
     try:
         archive_files = archive_analysis_datastore.collect_source_files([source])
@@ -2723,13 +5263,23 @@ def remove_case_staging_after_verified_archive(
         or staging_manifest.get("case_sha256") != digest
         or not isinstance(files, list)
         or not isinstance(safety, Mapping)
-        or safety.get("different_cases_included") is not False
         or safety.get("physical_copy_only") is not True
         or safety.get("sample_executed") is not False
         or safety.get("network_contacted") is not False
         or safety.get("source_deleted") is not False
     ):
         raise CaseStagingError("cleanup対象case staging manifestの境界または安全値が不正です")
+    allowed_case_sha256s = _validate_staged_derived_policy(
+        source,
+        digest=digest,
+        manifest=staging_manifest,
+        allow_partial_derived_cases=allow_partial_derived_cases,
+        expected_analysis_output_sha256=expected_analysis_output_sha256,
+        expected_follow_on_lineage_document=expected_follow_on_lineage_document,
+        expected_externalized_shared_reference_document=(
+            expected_externalized_shared_reference_document
+        ),
+    )
 
     expected: dict[str, dict[str, Any]] = {}
     normalized_records: list[dict[str, Any]] = []
@@ -2797,9 +5347,15 @@ def remove_case_staging_after_verified_archive(
         observed.add(key)
     if observed != set(expected):
         raise CaseStagingError("owned case stagingのfile集合がmanifestと一致しません")
+    _scan_staged_case_references(
+        source,
+        case_sha256=digest,
+        allowed_case_sha256s=allowed_case_sha256s,
+    )
 
+    source_io = archive_analysis_datastore._extended_length_path(source)
     try:
-        source_metadata = source.lstat()
+        source_metadata = source_io.lstat()
     except OSError as exc:
         raise CaseStagingError("cleanup対象directory identityを固定できません") from exc
     if not stat.S_ISDIR(source_metadata.st_mode) or _is_reparse(source_metadata):
@@ -2807,38 +5363,27 @@ def remove_case_staging_after_verified_archive(
     source_identity = (source_metadata.st_dev, source_metadata.st_ino)
 
     tombstone = output / f".{digest[:12]}.{uuid.uuid4().hex[:12]}.verified-delete"
-    if os.path.lexists(tombstone):
+    tombstone_io = archive_analysis_datastore._extended_length_path(tombstone)
+    if os.path.lexists(tombstone_io):
         raise CaseStagingError("owned staging cleanup用pathが既に存在します")
     try:
-        os.replace(source, tombstone)
-        _reject_reparse_components(tombstone, label="owned staging cleanup")
-        tombstone_metadata = tombstone.lstat()
+        os.replace(source_io, tombstone_io)
+        _reject_reparse_components(tombstone_io, label="owned staging cleanup")
+        tombstone_metadata = tombstone_io.lstat()
         if (
             not stat.S_ISDIR(tombstone_metadata.st_mode)
             or _is_reparse(tombstone_metadata)
-            or (tombstone_metadata.st_dev, tombstone_metadata.st_ino)
-            != source_identity
+            or (tombstone_metadata.st_dev, tombstone_metadata.st_ino) != source_identity
         ):
-            raise CaseStagingError(
-                f"cleanup昇格後directory identityが一致しません。保持path: {tombstone}"
-            )
+            raise CaseStagingError(f"cleanup昇格後directory identityが一致しません。保持path: {tombstone}")
         try:
-            tombstone_files = archive_analysis_datastore.collect_source_files(
-                [tombstone]
-            )
+            tombstone_files = archive_analysis_datastore.collect_source_files([tombstone_io])
         except archive_analysis_datastore.DatastoreError as exc:
-            raise CaseStagingError(
-                f"cleanup昇格後treeを再検証できません。保持path: {tombstone}"
-            ) from exc
+            raise CaseStagingError(f"cleanup昇格後treeを再検証できません。保持path: {tombstone}") from exc
         tombstone_prefix = f"data/{tombstone.name}/"
         canonical_prefix = f"data/{target}/"
-        if any(
-            not item.archive_name.startswith(tombstone_prefix)
-            for item in tombstone_files
-        ):
-            raise CaseStagingError(
-                f"cleanup昇格後archive pathを正規化できません。保持path: {tombstone}"
-            )
+        if any(not item.archive_name.startswith(tombstone_prefix) for item in tombstone_files):
+            raise CaseStagingError(f"cleanup昇格後archive pathを正規化できません。保持path: {tombstone}")
         tombstone_records = [
             {
                 "path": canonical_prefix + item.archive_name[len(tombstone_prefix) :],
@@ -2848,23 +5393,146 @@ def remove_case_staging_after_verified_archive(
             for item in tombstone_files
         ]
         if (
-            _inventory_sha256(tombstone_records)
-            != archive_result["source_tree_sha256"]
+            _inventory_sha256(tombstone_records) != archive_result["source_tree_sha256"]
             or len(tombstone_files) != archive_result["file_count"]
-            or sum(item.size for item in tombstone_files)
-            != archive_result["total_size"]
+            or sum(item.size for item in tombstone_files) != archive_result["total_size"]
         ):
-            raise CaseStagingError(
-                f"cleanup昇格後tree commitmentが一致しません。保持path: {tombstone}"
-            )
-        shutil.rmtree(archive_analysis_datastore._extended_length_path(tombstone))
+            raise CaseStagingError(f"cleanup昇格後tree commitmentが一致しません。保持path: {tombstone}")
+        shutil.rmtree(tombstone_io)
     except OSError as exc:
         raise CaseStagingError(f"検証済みowned stagingの削除に失敗しました。残存path: {tombstone}") from exc
-    if os.path.lexists(source) or os.path.lexists(tombstone):
+    if os.path.lexists(source_io) or os.path.lexists(tombstone_io):
         raise CaseStagingError("検証済みowned stagingの削除完了を確認できません")
     return {
         "target": target,
         "case_sha256": digest,
+        "removed": True,
+        "source_deleted": False,
+    }
+
+
+def remove_externalized_shared_staging_after_verified_archive(
+    *,
+    output_root: Path,
+    source_path: Path,
+    collection_id: str,
+    child_sha256: str,
+    archive_result: Mapping[str, Any],
+    allow_partial_derived_cases: bool,
+    expected_analysis_output_sha256: str,
+    expected_externalization_document: Mapping[str, Any],
+) -> dict[str, Any]:
+    """remote再検証済み共有archiveに対応するowned stagingだけを削除する。"""
+
+    child = _validate_sha256(child_sha256, label="共有cleanup child")
+    target = _shared_derived_target(collection_id, child)
+    if (
+        archive_result.get("target") != target
+        or archive_result.get("status") not in {"verified", "verified_reused"}
+        or archive_result.get("remote_reverified") is not True
+        or any(
+            SHA256_RE.fullmatch(str(archive_result.get(key))) is None
+            for key in (
+                "archive_sha256",
+                "manifest_sha256",
+                "source_tree_sha256",
+                "provenance_sha256",
+            )
+        )
+        or type(archive_result.get("file_count")) is not int
+        or int(archive_result["file_count"]) <= 0
+        or type(archive_result.get("total_size")) is not int
+        or int(archive_result["total_size"]) <= 0
+    ):
+        raise CaseStagingError("remote再検証済み共有archiveをcleanup対象へ束縛できません")
+    reused = reuse_externalized_shared_derived_staging(
+        output_root=output_root,
+        collection_id=collection_id,
+        child_sha256=child,
+        allow_partial_derived_cases=allow_partial_derived_cases,
+        expected_analysis_output_sha256=expected_analysis_output_sha256,
+        expected_externalization_document=expected_externalization_document,
+    )
+    for key in (
+        "source_tree_sha256",
+        "file_count",
+        "total_size",
+        "provenance_sha256",
+        "externalization_document_sha256",
+    ):
+        if archive_result.get(key) != reused.get(key):
+            raise CaseStagingError("共有archive receiptとowned staging commitmentが一致しません")
+
+    output = _validate_existing_directory(output_root, label="共有cleanup output root")
+    source_normal = _absolute(source_path)
+    source_io = archive_analysis_datastore._extended_length_path(source_normal)
+    expected_source_io = archive_analysis_datastore._extended_length_path(
+        _absolute(Path(str(reused["source_path"])))
+    )
+    if (
+        os.path.normcase(os.fspath(source_io))
+        != os.path.normcase(os.fspath(expected_source_io))
+        or source_normal.parent != output
+        or source_normal.name != target
+    ):
+        raise CaseStagingError("共有cleanup対象がowned staging境界外です")
+    source = _validate_existing_directory(
+        source_io,
+        label="共有cleanup owned staging",
+    )
+    metadata = source.lstat()
+    if not stat.S_ISDIR(metadata.st_mode) or _is_reparse(metadata):
+        raise CaseStagingError("共有cleanup対象が通常directoryではありません")
+    identity = (metadata.st_dev, metadata.st_ino)
+    tombstone = output / f".shared-{child[:12]}.{uuid.uuid4().hex[:12]}.verified-delete"
+    tombstone_io = archive_analysis_datastore._extended_length_path(tombstone)
+    if os.path.lexists(tombstone_io):
+        raise CaseStagingError("共有cleanup tombstoneが既に存在します")
+    try:
+        os.replace(source, tombstone_io)
+        _reject_reparse_components(tombstone_io, label="共有owned staging cleanup")
+        moved = tombstone_io.lstat()
+        if (
+            not stat.S_ISDIR(moved.st_mode)
+            or _is_reparse(moved)
+            or (moved.st_dev, moved.st_ino) != identity
+        ):
+            raise CaseStagingError(
+                f"共有cleanup昇格後identityが一致しません。保持path: {tombstone}"
+            )
+        tombstone_files = archive_analysis_datastore.collect_source_files([tombstone_io])
+        old_prefix = f"data/{tombstone.name}/"
+        canonical_prefix = f"data/{target}/"
+        if any(not item.archive_name.startswith(old_prefix) for item in tombstone_files):
+            raise CaseStagingError(
+                f"共有cleanup後archive pathを正規化できません。保持path: {tombstone}"
+            )
+        records = [
+            {
+                "path": canonical_prefix + item.archive_name[len(old_prefix) :],
+                "size": item.size,
+                "sha256": item.sha256,
+            }
+            for item in tombstone_files
+        ]
+        if (
+            _inventory_sha256(records) != archive_result["source_tree_sha256"]
+            or len(tombstone_files) != archive_result["file_count"]
+            or sum(item.size for item in tombstone_files) != archive_result["total_size"]
+        ):
+            raise CaseStagingError(
+                f"共有cleanup後tree commitmentが一致しません。保持path: {tombstone}"
+            )
+        shutil.rmtree(tombstone_io)
+    except (archive_analysis_datastore.DatastoreError, OSError) as exc:
+        raise CaseStagingError(
+            f"検証済み共有stagingの削除に失敗しました。残存path: {tombstone}"
+        ) from exc
+    if os.path.lexists(archive_analysis_datastore._extended_length_path(source_path)) or os.path.lexists(tombstone_io):
+        raise CaseStagingError("検証済み共有stagingの削除完了を確認できません")
+    return {
+        "target": target,
+        "child_sha256": child,
         "removed": True,
         "source_deleted": False,
     }

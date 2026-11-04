@@ -200,7 +200,9 @@ def bind_strings_heap(data: bytes, pe: Any, metadata: Any, previous: Any = None,
                 or any(type(name) is not bytes or len(name) > 32 for name in registry)
                 or registry.get(b"#Strings") is not heap or sum(item is heap for item in streams) != 1
                 or sum(item is metadata for item in streams) != 1
-                or sum(registry.get(name) is metadata for name in (b"#~", b"#-", b"#Schema")) != 1
+                or sum(name in registry for name in (b"#~", b"#-")) != 1
+                or b"#Schema" in registry
+                or sum(registry.get(name) is metadata for name in (b"#~", b"#-")) != 1
                 or any(type(name) is not bytes or len(name) > 32 or sum(item is value for item in streams) != 1
                        for name, value in registry.items())):
             return None, "dnfile_string_heap_provenance_invalid", 0
@@ -254,17 +256,18 @@ def bind_strings_heap(data: bytes, pe: Any, metadata: Any, previous: Any = None,
         header_raw = data[metadata.file_offset:metadata.file_offset + 24]
         table_header = metadata.struct
         table_entry = object.__getattribute__(table_header, "__file_offset__")
-        if (type(table_header) is not _STREAM_STRUCT_CLASS or type(table_header.Name) is not bytes or table_header.Name != b"#~"
+        table_name = table_header.Name if type(table_header) is _STREAM_STRUCT_CLASS else None
+        if (type(table_name) is not bytes or table_name not in (b"#~", b"#-")
                 or not _uint32(table_header.Offset) or not _uint32(table_header.Size)
                 or table_header.Offset + table_header.Size > metadata_size or table_header.Size < 24
                 or type(metadata.file_offset) is not int or metadata.file_offset != metadata_offset + table_header.Offset
                 or type(metadata.rva) is not int or metadata.rva != metadata_rva + table_header.Offset
                 or _unique_file_span(data, pe, metadata.rva, table_header.Size) != metadata.file_offset
                 or type(table_entry) is not int or not metadata_offset <= table_entry <= metadata_offset + metadata_size - 8
-                or declared_entries.get(b"#~") != (table_entry, b"#~", table_header.Offset, table_header.Size)
+                or declared_entries.get(table_name) != (table_entry, table_name, table_header.Offset, table_header.Size)
                 or int.from_bytes(data[table_entry:table_entry + 4], "little") != table_header.Offset
                 or int.from_bytes(data[table_entry + 4:table_entry + 8], "little") != table_header.Size
-                or data[table_entry + 8:table_entry + 11] != b"#~\x00"
+                or data[table_entry + 8:table_entry + 11] != table_name + b"\x00"
                 or len(header_raw) != 24):
             return None, "dnfile_metadata_registry_incomplete", size
         mask = int.from_bytes(header_raw[8:16], "little")

@@ -181,7 +181,7 @@ def _row_size(number, counts, heaps):
 
 
 def canonical_table_layout(data, offset, size):
-    """#~ v2.0のraw宣言だけで全table位置を計算する。rowや未知callbackを評価しない。
+    """#~／#- v2.0のraw宣言だけで全table位置を計算する。rowや未知callbackを評価しない。
 
     ECMA-335で予約された ``Reserved_2`` byteはtable配置を変えない。難読化器が
     1以外へ書き換えた場合もその値を意味として使わず、後続のschema・row数・

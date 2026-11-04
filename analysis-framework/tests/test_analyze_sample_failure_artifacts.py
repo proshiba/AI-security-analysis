@@ -5,8 +5,11 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import os
+import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -20,10 +23,13 @@ for trusted in (REPOSITORY_ROOT, FRAMEWORK_ROOT, COMMON_ROOT):
     if value not in sys.path:
         sys.path.insert(0, value)
 
-import analysis_job_runner as runner
-import analyze_sample as analyzer
-import bounded_process
-from analysis_contract import verify_report_semantics
+import analysis_job_runner as runner  # noqa: E402
+import analyze_sample as analyzer  # noqa: E402
+import bounded_process  # noqa: E402
+from analysis_contract import (  # noqa: E402
+    _extended_length_path,
+    verify_report_semantics,
+)
 
 
 def _request(arguments: list[str]) -> bytes:
@@ -241,6 +247,45 @@ def test_partial_summary_stops_before_hashing_beyond_byte_budget(
     assert partial["scan_limit_reasons"] == ["byte_limit"]
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows長pathの回帰試験")
+def test_partial_footprint_uses_extended_length_paths(
+    tmp_path: Path,
+) -> None:
+    """保持payloadがMAX_PATHを超えても欠損と誤判定しない。"""
+
+    deep_root = tmp_path / ("d" * 56)
+    case_dir = deep_root / ("a" * 64)
+    payload = case_dir / "p" / (("b" * 64) + ".bin")
+    payload_io = _extended_length_path(payload)
+    payload_io.parent.mkdir(parents=True)
+    payload_io.write_bytes(b"static payload")
+    assert len(os.path.abspath(payload)) > 260
+    try:
+        total_bytes, total_entries, reason = (
+            analyzer._bounded_partial_case_footprint(
+                case_dir,
+                deadline=time.monotonic() + 30,
+                maximum_bytes=1024,
+            )
+        )
+        assert total_bytes == len(b"static payload")
+        assert total_entries == 2
+        assert reason is None
+
+        total_bytes, total_entries, reason = (
+            analyzer._bounded_partial_case_footprint(
+                case_dir,
+                deadline=time.monotonic() + 30,
+                maximum_bytes=1,
+            )
+        )
+        assert total_bytes == len(b"static payload")
+        assert total_entries == 2
+        assert reason == "byte_limit"
+    finally:
+        shutil.rmtree(_extended_length_path(deep_root))
+
+
 def test_failure_publisher_never_creates_a_missing_output_directory(tmp_path: Path) -> None:
     """出力境界未確定時に親directoryを推測作成しない。"""
 
@@ -372,7 +417,11 @@ def test_completed_run_removes_failure_artifacts_and_passes_runner_closure(
     assert analyzer._clear_direct_cli_failure_artifacts(output, exit_code=0)
     assert not (output / analyzer.DIRECT_CLI_OUTCOME_ARTIFACT).exists()
     assert not (output / analyzer.DIRECT_CLI_PARTIAL_SUMMARY_ARTIFACT).exists()
-    runner._validate_analysis_output_reference_closure(output / "summary.json", {})
+    runner._validate_analysis_output_reference_closure(
+        output / "summary.json",
+        {},
+        verified_follow_on_payload_paths=set(),
+    )
 
 
 def test_completed_run_fails_closed_when_diagnostic_cleanup_is_unsafe(

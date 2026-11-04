@@ -45,6 +45,9 @@ TERMINAL_SCHEMA_PROFILE_EXPLICIT_FIELDS_1_TO_9 = (
 TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELD_7 = (
     "managed_purerat_v4_default_elided_field_7"
 )
+TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELDS_7_9 = (
+    "managed_purerat_v4_default_elided_fields_7_9"
+)
 
 
 # property_nameは4.4.1 terminalのCLR metadata、semantic_nameは既存codecの
@@ -128,6 +131,12 @@ TERMINAL_SCHEMA_PROFILES: tuple[TerminalSchemaProfile, ...] = (
         required_fields=frozenset(range(1, 10)) - {7},
         allowed_fields=_KNOWN_FIELDS,
         default_elided_fields=frozenset({7}),
+    ),
+    TerminalSchemaProfile(
+        name=TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELDS_7_9,
+        required_fields=(frozenset(range(1, 11)) - {7, 9}),
+        allowed_fields=_KNOWN_FIELDS,
+        default_elided_fields=frozenset({7, 9}),
     ),
 )
 
@@ -238,6 +247,7 @@ __all__ = [
     "TERMINAL_SCHEMA_PROFILES_BY_NAME",
     "TERMINAL_SCHEMA_PROFILE_EXPLICIT_FIELDS_1_TO_9",
     "TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELD_7",
+    "TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELDS_7_9",
     "TerminalFieldKind",
     "TerminalFieldRule",
     "TerminalSchemaProfile",

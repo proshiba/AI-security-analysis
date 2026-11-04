@@ -19,6 +19,10 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from dncil.cil.body.reader import read_method_body_from_bytes
 
 from extractors.managed_pe import has_clr_metadata
+from extractors.purelogs.managed_resource import (
+    PureLogsResourceLimitError,
+    _resource_blobs,
+)
 
 MAX_INPUT_BYTES = 32 << 20
 MAX_RESOURCE_COUNT = 64
@@ -684,6 +688,8 @@ def _scan_purelogs_yqty_candidates(
         methods = _method_shapes(image, data)
     except PureLogsYqtyLimitError:
         raise
+    except PureLogsResourceLimitError as error:
+        raise PureLogsYqtyLimitError(str(error)) from error
     except Exception as error:
         raise PureLogsYqtyScanIncomplete(
             "Pn5 CIL候補集合の解析に失敗しました"
@@ -694,15 +700,19 @@ def _scan_purelogs_yqty_candidates(
     if profile_count == 0:
         return _YqtyCandidateScan(None, (), 0)
 
+    try:
+        blobs = _resource_blobs(resources)
+    except Exception as error:
+        # managed_resource側の型付き上限／不完全状態をYqTY側で
+        # 正常no-matchへ降格しない。詳細は外部へ出さず一定理由に束縛する。
+        raise PureLogsYqtyScanIncomplete(
+            "managed resource候補集合の列挙に失敗しました"
+        ) from error
+
     candidates: list[PureLogsYqtyResource] = []
     failures: set[str] = set()
     total = 0
-    for item in resources:
-        blob = getattr(item, "data", None)
-        if not isinstance(blob, bytes):
-            raise PureLogsYqtyScanIncomplete(
-                "managed resource候補をbytesとして解析できません"
-            )
+    for blob in blobs:
         if not blob:
             continue
         if len(blob) > MAX_RESOURCE_BYTES:

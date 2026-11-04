@@ -27,6 +27,15 @@ def test_reads_maximum_bytes_and_rejects_maximum_plus_one(tmp_path: Path) -> Non
         read_bounded_snapshot(oversized, 4)
 
 
+def test_reads_executable_suffix_with_handle_identity(tmp_path: Path) -> None:
+    """Windowsでもpath statとhandle statのpermission表現差を誤検知しない。"""
+
+    executable = tmp_path / "reviewed-tool.exe"
+    executable.write_bytes(b"tool")
+
+    assert read_bounded_snapshot(executable, 16).data == b"tool"
+
+
 def test_copy_snapshot_hash_binds_and_cleans_mismatch(tmp_path: Path) -> None:
     source = tmp_path / "source.pcapng"
     source.write_bytes(b"pcap")

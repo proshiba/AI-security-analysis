@@ -14,8 +14,9 @@ import sys
 import tempfile
 import time
 from collections import Counter, defaultdict
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 COMMON = Path(__file__).resolve().parent
 REPOSITORY = COMMON.parents[1]
@@ -24,7 +25,6 @@ if str(COMMON) not in sys.path:
 
 import analysis_job_runner  # noqa: E402
 import orchestration_outcome  # noqa: E402
-from automated_case_analysis import build_case_automation_artifacts  # noqa: E402
 from analysis_contract import (  # noqa: E402
     artifact_hashes,
     case_integrity_errors,
@@ -35,6 +35,7 @@ from analysis_contract import (  # noqa: E402
     resolve_case_artifact,
     seal_report,
 )
+from automated_case_analysis import build_case_automation_artifacts  # noqa: E402
 from c2_analysis_contract import (  # noqa: E402
     REQUIRED_PHASES,
     build_unresolved_contract,
@@ -55,6 +56,7 @@ from malwarebazaar_family_labels import (  # noqa: E402
     is_reported_name_placeholder,
     normalize_reported_name,
 )
+from malwarebazaar_selection_contract import safe_metadata_projection  # noqa: E402
 from overall_logic_diagrams import render_overall_logic_markdown  # noqa: E402
 from result_layout import (  # noqa: E402
     resolve_catalog_case_path,
@@ -125,25 +127,6 @@ INTERNAL_FAMILY_TO_PUBLIC = {
     "screenconnect_rmm": "screenconnect-rmm",
 }
 TERMINAL_ATTRIBUTION_REQUIRED_FAMILIES = frozenset({"formbook_loader"})
-PUBLIC_METADATA_KEYS = (
-    "sha256_hash",
-    "sha1_hash",
-    "md5_hash",
-    "first_seen",
-    "last_seen",
-    "file_name",
-    "file_size",
-    "file_type",
-    "file_format",
-    "file_arch",
-    "imphash",
-    "tlsh",
-    "ssdeep",
-    "signature",
-    "tags",
-)
-
-
 def load_json(path: Path) -> dict[str, Any]:
     return load_json_object_strict(path)
 
@@ -154,6 +137,17 @@ def write_json(path: Path, value: Any) -> None:
         json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def collection_case_records(
+    summaries: Sequence[Mapping[str, Any]],
+) -> list[dict[str, str]]:
+    """固定selectionで検証済みの順序を変えずcollection参照へ変換する。"""
+
+    return [
+        {"case_id": f"sha256:{normalize_sha256_digest(item.get('sha256'))}"}
+        for item in summaries
+    ]
 
 
 def build_post_analysis_publication_record(
@@ -510,7 +504,7 @@ def render_published_features_markdown(profile: dict[str, Any]) -> str:
 
 def safe_metadata(item: dict[str, Any]) -> dict[str, Any]:
     metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
-    return {key: metadata.get(key) for key in PUBLIC_METADATA_KEYS}
+    return safe_metadata_projection(metadata)
 
 
 def collection_display_metadata(
@@ -1843,6 +1837,8 @@ def publish_case(
     existing_families: set[str],
     *,
     allow_function_staging: bool = False,
+    reject_existing_case: bool = False,
+    reference_repository: Path | None = None,
     _staging_destination: Path | None = None,
 ) -> tuple[str, Path, dict[str, Any]]:
     digest = item.get("sha256")
@@ -1885,6 +1881,8 @@ def publish_case(
             existing = canonical_destination.is_dir()
             if not existing and os.path.lexists(canonical_destination):
                 raise ValueError("canonical case pathがdirectoryではありません")
+            if reject_existing_case and existing:
+                raise ValueError(f"既存caseの上書きは禁止されています: {digest}")
             old_tree_sha256 = _case_tree_sha256(canonical_destination) if existing else None
             token = f".casepub-{_publication_case_name_key(canonical_destination)}.{os.getpid():x}-{time.time_ns():x}"
             staging_container = canonical_destination.parent / f"{token}.staging"
@@ -1918,6 +1916,8 @@ def publish_case(
                     item,
                     existing_families,
                     allow_function_staging=allow_function_staging,
+                    reject_existing_case=reject_existing_case,
+                    reference_repository=reference_repository,
                     _staging_destination=staging,
                 )
                 new_tree_sha256 = _case_tree_sha256(staging)
@@ -2112,7 +2112,11 @@ def publish_case(
         c2_analysis = source_c2
     else:
         c2_analysis = build_unresolved_contract(digest, family, handlers=handler_ids)
-    c2_validation = validate_c2_contract(c2_analysis, digest, repository=repository)
+    c2_validation = validate_c2_contract(
+        c2_analysis,
+        digest,
+        repository=reference_repository or repository,
+    )
     write_json(destination / "c2-analysis.json", c2_analysis)
     case_state = report.get("case_state")
     if c2_validation.get("complete") is not True and isinstance(case_state, dict):
@@ -2486,6 +2490,9 @@ def _publish_from_snapshots(
     expected_contract_sha256: str | None = None,
     post_analysis_resource_scan_observations: int | None = None,
     post_analysis_resource_failures: int = 0,
+    reject_existing_cases: bool = False,
+    reject_existing_collection: bool = False,
+    reference_repository: Path | None = None,
     _expected_snapshot_manifests: dict[Path, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     if not COLLECTION_RE.fullmatch(collection_id):
@@ -2555,6 +2562,8 @@ def _publish_from_snapshots(
     canonical_collection.parent.mkdir(parents=True, exist_ok=True)
     with _CasePublicationLock(canonical_collection):
         _recover_case_publication(canonical_collection)
+        if reject_existing_collection and os.path.lexists(canonical_collection):
+            raise ValueError("既存collectionの上書きは禁止されています")
     collection_token = f".casepub-{_publication_case_name_key(canonical_collection)}.{os.getpid():x}-{time.time_ns():x}"
     collection_staging_container = canonical_collection.parent / f"{collection_token}.staging"
     collection_staging_container_io = _publication_io_path(collection_staging_container)
@@ -2583,6 +2592,8 @@ def _publish_from_snapshots(
             item,
             existing_families,
             allow_function_staging=allow_function_staging,
+            reject_existing_case=reject_existing_cases,
+            reference_repository=reference_repository,
         )
         by_family[family].append(destination)
         summaries.append(summary)
@@ -2712,9 +2723,10 @@ def _publish_from_snapshots(
     (collection / "README.md").write_text("\n".join(lines), encoding="utf-8")
     collection_manifest = load_json(collection / "manifest.json")
     collection_manifest["analysis_contract_sha256"] = analysis_contract_sha256
-    collection_manifest["cases"] = [
-        {"case_id": f"sha256:{item['sha256']}"} for item in sorted(summaries, key=lambda value: value["sha256"])
-    ]
+    # 取得manifestで固定した順序はselection commitmentの一部である。公開時に
+    # SHA-256順へ並べ替えると、分割jobを再結合した際の順序証明を失うため、
+    # 全sourceを検証したpublication_itemsの順序をそのまま保持する。
+    collection_manifest["cases"] = collection_case_records(summaries)
     collection_manifest["family_sources"] = [
         {"family": family, "path": f"sources/{family}"} for family in sorted(by_family)
     ]
@@ -2746,6 +2758,8 @@ def _publish_from_snapshots(
         existing_collection = canonical_collection.is_dir()
         if not existing_collection and os.path.lexists(canonical_collection):
             raise ValueError("canonical collection pathがdirectoryではありません")
+        if reject_existing_collection and existing_collection:
+            raise ValueError("既存collectionの上書きは禁止されています")
         old_collection_sha256 = _case_tree_sha256(canonical_collection) if existing_collection else None
         collection_backup = canonical_collection.parent / f"{collection_token}.backup"
         collection_journal = {
@@ -2837,6 +2851,9 @@ def publish(
     expected_contract_sha256: str | None = None,
     post_analysis_resource_scan_observations: int | None = None,
     post_analysis_resource_failures: int = 0,
+    reject_existing_cases: bool = False,
+    reject_existing_collection: bool = False,
+    reference_repository: Path | None = None,
 ) -> dict[str, Any]:
     """検証と消費を同じ読取専用private snapshotへ固定して公開する。"""
 
@@ -2858,6 +2875,9 @@ def publish(
                 expected_contract_sha256=expected_contract_sha256,
                 post_analysis_resource_scan_observations=post_analysis_resource_scan_observations,
                 post_analysis_resource_failures=post_analysis_resource_failures,
+                reject_existing_cases=reject_existing_cases,
+                reject_existing_collection=reject_existing_collection,
+                reference_repository=reference_repository,
                 _expected_snapshot_manifests={
                     snapshot: expected_manifest for snapshot, expected_manifest in snapshot_records
                 },

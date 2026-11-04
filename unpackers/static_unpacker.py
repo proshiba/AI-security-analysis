@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402
 """検体を実行せず、上限付きで静的展開とアーティファクト復元を行う。"""
 
 from __future__ import annotations
@@ -4018,7 +4019,12 @@ def _validated_sevenzip_member_records(
             continue
         if any(
             key in record
-            for key in ("symbolic_link", "hard_link", "alternate_stream")
+            for key in (
+                "symbolic_link",
+                "hard_link",
+                "alternate_stream",
+                "copy_link",
+            )
         ):
             blocked += 1
             continue
@@ -5175,6 +5181,7 @@ def _parse_sevenzip_slt_listing(text: str) -> dict[str, object]:
                             "symbolic_link",
                             "hard_link",
                             "alternate_stream",
+                            "copy_link",
                         }
                     }
                 )
@@ -5231,11 +5238,18 @@ def _parse_sevenzip_slt_listing(text: str) -> dict[str, object]:
             ("Symbolic Link = ", "symbolic_link"),
             ("Hard Link = ", "hard_link"),
             ("Alternate Stream = ", "alternate_stream"),
+            ("Copy Link = ", "copy_link"),
         ):
             if line.startswith(prefix) and current is not None:
-                # LinkやADSは出力先namespaceをlistingだけでは安全に再現できない。
-                # 値を公開せず、後段validatorが存在自体を展開前に拒否する。
-                current[key] = True
+                # RAR5の通常memberでも7-Zipは空のlink値と、``-``の
+                # Alternate Stream値を出力する。実測済みのexact sentinelだけを
+                # 属性なしとして扱う。``-``はAlternate Streamにだけ許容し、
+                # link種別の``-``は安全な未設定値と推測せず、後段validatorが
+                # 展開前に拒否する。
+                value = line[len(prefix) :]
+                unset_values = {"", "-"} if key == "alternate_stream" else {""}
+                if value not in unset_values:
+                    current[key] = True
                 break
     finish_current()
     return {

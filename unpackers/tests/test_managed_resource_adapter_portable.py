@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 """全人工CLR PEと通常codeのloader fault injectionで専用adapterの陰性境界を試験する。"""
 
 from __future__ import annotations
@@ -10,8 +11,7 @@ import json
 import pytest
 
 from unpackers.tests.test_managed_resource_synthetic_portable import resource_build_synthetic_resource_pe
-from unpackers.tests.test_managed_resource_consumers_portable import ROOT as RESOURCE_ROOT, RESOURCE_NAMESPACE
-import importlib
+from unpackers.tests.test_managed_resource_consumers_portable import RESOURCE_NAMESPACE
 managed_resources = importlib.import_module(RESOURCE_NAMESPACE + ".managed_resources")
 adapter = importlib.import_module(RESOURCE_NAMESPACE + ".dnfile_resource_adapter")
 
@@ -36,6 +36,25 @@ def resource_adapter_partial(resource_view_fixture, pe, reason=None, **limits):
     if reason:
         assert reason in coverage["reason_counts"]
     return result
+
+
+@pytest.mark.parametrize("scope", [None, "File", "AssemblyRef"])
+def test_resource_portable_uncompressed_table_stream_keeps_exact_input_binding(scope):
+    """#-でもstream header、canonical table位置、heapを原入力へ照合する。"""
+    resource_view_fixture = resource_build_synthetic_resource_pe(
+        scope=scope, table_stream_name=b"#-")
+    pe = dnfile.dnPE(data=resource_view_fixture.data, clr_lazy_load=True)
+    try:
+        assert pe.net.mdtables.struct.Name == b"#-"
+        first = managed_resources.describe_clr_resources(resource_view_fixture.data, pe)
+        second = managed_resources.describe_clr_resources(
+            resource_view_fixture.data, pe, row_snapshot=first._row_snapshot)
+        assert first.coverage()["status"] == second.coverage()["status"] == "complete"
+        assert first.coverage()["input_binding_verified"] is True
+        assert first._descriptors[0].name == resource_view_fixture.name
+        assert pe.net._resources is None
+    finally:
+        pe.close()
 
 
 @pytest.mark.parametrize("kind", ["function", "method", "foreign_owner", "instance_parser_override"])

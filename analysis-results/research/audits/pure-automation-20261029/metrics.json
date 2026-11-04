@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "audit_id": "pure-automation-20261029",
+  "evaluation_contract": "same_terminal_layer_family_config_configured_c2",
+  "root_case_count": 100,
+  "families": {
+    "purelogs": {
+      "root_case_count": 50,
+      "route_stage_recovered_case_count": 23,
+      "managed_omlx_terminal_recovered_case_count": 18,
+      "terminal_payload_reached_case_count": 13,
+      "terminal_family_confirmed_case_count": 13,
+      "validated_config_recovered_case_count": 13,
+      "qualified_c2_recovered_case_count": 13,
+      "strict_joint_success_case_count": 13,
+      "strict_joint_success_rate": 0.26,
+      "case_evaluation_failure_count": 0,
+      "deadline_exceeded_case_count": 0,
+      "implementation_stable_during_evaluation": true
+    },
+    "purerat": {
+      "root_case_count": 50,
+      "route_stage_recovered_case_count": 15,
+      "managed_omlx_terminal_recovered_case_count": 6,
+      "terminal_payload_reached_case_count": 1,
+      "terminal_family_confirmed_case_count": 1,
+      "validated_config_recovered_case_count": 1,
+      "qualified_c2_recovered_case_count": 1,
+      "strict_joint_success_case_count": 1,
+      "strict_joint_success_rate": 0.02,
+      "case_evaluation_failure_count": 0,
+      "deadline_exceeded_case_count": 0,
+      "implementation_stable_during_evaluation": true
+    }
+  },
+  "aggregate": {
+    "route_stage_recovered_case_count": 38,
+    "managed_omlx_terminal_recovered_case_count": 24,
+    "terminal_payload_reached_case_count": 14,
+    "terminal_family_confirmed_case_count": 14,
+    "validated_config_recovered_case_count": 14,
+    "qualified_c2_recovered_case_count": 14,
+    "strict_joint_success_case_count": 14,
+    "strict_joint_success_rate": 0.14,
+    "case_evaluation_failure_count": 0,
+    "deadline_exceeded_case_count": 0
+  },
+  "safety": {
+    "sample_executed": false,
+    "c2_or_dead_drop_contacted": false,
+    "raw_config_published": false,
+    "raw_endpoint_published": false,
+    "datastore_receipt_published": false
+  },
+  "datastore": {
+    "purerat_verified_case_count": 49,
+    "purelogs_verified_case_count": 41,
+    "verified_case_count": 90,
+    "blocked_case_count": 10,
+    "archive_or_upload_failure_count": 0
+  }
+}

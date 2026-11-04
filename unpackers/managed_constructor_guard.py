@@ -115,10 +115,15 @@ def preflight_clr_declarations(data, *, max_input_bytes=MAX_INPUT_BYTES,
     if entries is None:
         return _result("preflight_metadata_streams_invalid", limits)
     streams = {name: (metadata + relative, length) for _, name, relative, length in entries}
-    if (b"#~" not in streams or b"#Strings" not in streams or b"#-" in streams
-            or any(name not in (b"#~", b"#Strings", b"#Blob", b"#GUID", b"#US") for name in streams)):
+    table_streams = tuple(name for name in (b"#~", b"#-") if name in streams)
+    if (len(table_streams) != 1 or b"#Strings" not in streams
+            or any(name not in (b"#~", b"#-", b"#Strings", b"#Blob", b"#GUID", b"#US") for name in streams)):
         return _result("preflight_metadata_layout_unsupported", limits)
-    table_offset, table_size = streams[b"#~"]
+    # ``#-`` はECMA-335の非最適化table streamであり、header／row宣言の
+    # byte配置はここで検証している ``#~`` と同じである。stream名だけで
+    # constructorを拒否せず、未知table、row budget、全row extentを同じ
+    # canonical layout検証へ通す。両streamの同居は曖昧なので拒否する。
+    table_offset, table_size = streams[table_streams[0]]
     if table_size < 24:
         return _result("preflight_metadata_layout_unsupported", limits)
     mask = _integer(data, table_offset + 8, 8)

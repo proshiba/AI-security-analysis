@@ -49,6 +49,7 @@ MAX_FOLLOW_ON_WALL_SECONDS = (
 )
 MAX_FOLLOW_ON_WORKER_REQUEST = 64 * 1024
 MAX_FOLLOW_ON_WORKER_RESPONSE = 4 * 1024 * 1024
+MAX_FOLLOW_ON_CLEANUP_ENTRIES = 10_000
 FOLLOW_ON_WORKER_FRAME_HEADER_BYTES = 8
 MAX_DIRECT_CLI_SECONDS = 24 * 60 * 60
 MAX_DIRECT_CLI_ACTIVE_PROCESSES = 32
@@ -147,6 +148,7 @@ import structural_candidates as structural_candidate_aggregation  # noqa: E402
 import terminal_payload_acquisition  # noqa: E402
 from analysis_contract import (  # noqa: E402
     PIPELINE_CONTRACT_VERSION,
+    _extended_length_path,
     artifact_hashes,
     case_integrity_errors,
     ensure_no_reparse_components,
@@ -5341,6 +5343,85 @@ def _follow_on_case_directory(output: Path, digest: str) -> Path:
     return resolved
 
 
+def _remove_unsealed_follow_on_case(
+    output: Path,
+    digest: str,
+    *,
+    expected_contract: Mapping[str, Any],
+) -> bool:
+    """timeout／失敗childの未seal treeだけを厳格検証後に除去する。"""
+
+    normalized = normalize_sha256_digest(digest)
+    try:
+        _case_result_from_disk(
+            output,
+            normalized,
+            expected_contract=expected_contract,
+        )
+    except (OSError, TypeError, ValueError):
+        pass
+    else:
+        raise ValueError("seal検証済みfollow-on caseは除去できません")
+
+    ensure_no_reparse_components(output)
+    resolved_output = output.resolve(strict=True)
+    cases_root = output / "cases"
+    ensure_no_reparse_components(cases_root)
+    try:
+        resolved_cases_root = cases_root.resolve(strict=True)
+    except FileNotFoundError:
+        return False
+    if (
+        not resolved_cases_root.is_dir()
+        or resolved_cases_root.parent != resolved_output
+        or resolved_cases_root.name != "cases"
+    ):
+        raise ValueError("follow-on cases rootが固定output直下ではありません")
+
+    case_dir = cases_root / normalized
+    ensure_no_reparse_components(case_dir)
+    try:
+        before = case_dir.lstat()
+    except FileNotFoundError:
+        return False
+    resolved_case = case_dir.resolve(strict=True)
+    if (
+        not stat.S_ISDIR(before.st_mode)
+        or resolved_case.parent != resolved_cases_root
+        or resolved_case.name != normalized
+    ):
+        raise ValueError("cleanup対象follow-on caseが固定case境界外です")
+
+    ensure_tree_without_reparse(
+        resolved_case,
+        max_entries=MAX_FOLLOW_ON_CLEANUP_ENTRIES,
+    )
+    pending = [resolved_case]
+    observed_entries = 0
+    while pending:
+        directory = pending.pop()
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                observed_entries += 1
+                if observed_entries > MAX_FOLLOW_ON_CLEANUP_ENTRIES:
+                    raise ValueError("cleanup対象follow-on caseのentry数が上限を超えています")
+                path = Path(entry.path)
+                information = path.lstat()
+                if stat.S_ISDIR(information.st_mode):
+                    pending.append(path)
+                elif not stat.S_ISREG(information.st_mode) or information.st_nlink != 1:
+                    raise ValueError("cleanup対象follow-on caseに通常file以外があります")
+
+    ensure_no_reparse_components(resolved_case)
+    after = resolved_case.lstat()
+    if not _same_file_identity(before, after):
+        raise ValueError("cleanup対象follow-on caseが検証中に差し替えられました")
+    shutil.rmtree(resolved_case)
+    if case_dir.exists():
+        raise ValueError("未seal follow-on caseを完全に除去できません")
+    return True
+
+
 def _case_retained_payloads(
     output: Path,
     digest: str,
@@ -6400,6 +6481,9 @@ def _run_follow_on_fixed_point(
                 nodes[pending["sha256"]]["state"] = "wall_clock_limit"
             break
         timeout = min(MAX_FOLLOW_ON_CHILD_SECONDS, remaining)
+        result: dict[str, Any] | None = None
+        failure_state: str | None = None
+        failure_type: str | None = None
         try:
             executor(
                 payload=item["data"],
@@ -6429,24 +6513,44 @@ def _run_follow_on_fixed_point(
                 digest,
                 expected_contract=analysis_contract,
             )
-            if monotonic() >= deadline:
-                wall_clock_exhausted = True
-                nodes[digest]["state"] = "wall_clock_limit"
-                while queue:
-                    pending = queue.popleft()
-                    nodes[pending["sha256"]]["state"] = "wall_clock_limit"
-                break
-            nodes[digest]["state"] = "analyzed"
-            nodes[digest]["case_state"] = result.get("case_state")
-            if result.get("case_state") == "complete":
-                strict_complete_digests.add(digest)
-            discover(digest)
         except subprocess.TimeoutExpired:
-            nodes[digest]["state"] = "timeout"
+            failure_state = "timeout"
         except Exception as exc:  # noqa: BLE001 - 子worker境界の失敗をqueue状態へ正規化する
-            nodes[digest]["state"] = "failed"
-            nodes[digest]["error_type"] = type(exc).__name__
-            errors.add(f"{digest}:child_analysis_failed:{type(exc).__name__}")
+            failure_state = "failed"
+            failure_type = type(exc).__name__
+
+        if result is None and failure_state is not None:
+            try:
+                result = _case_result_from_disk(
+                    output,
+                    digest,
+                    expected_contract=analysis_contract,
+                )
+            except (OSError, TypeError, ValueError):
+                _remove_unsealed_follow_on_case(
+                    output,
+                    digest,
+                    expected_contract=analysis_contract,
+                )
+                nodes[digest]["state"] = failure_state
+                if failure_type is not None:
+                    nodes[digest]["error_type"] = failure_type
+                    errors.add(f"{digest}:child_analysis_failed:{failure_type}")
+                continue
+
+        if result is None:
+            raise ValueError("follow-on child結果を確定できません")
+        nodes[digest]["state"] = "analyzed"
+        nodes[digest]["case_state"] = result.get("case_state")
+        if result.get("case_state") == "complete":
+            strict_complete_digests.add(digest)
+        if monotonic() >= deadline:
+            wall_clock_exhausted = True
+            while queue:
+                pending = queue.popleft()
+                nodes[pending["sha256"]]["state"] = "wall_clock_limit"
+            break
+        discover(digest)
 
     # rootを先に評価し、別rootと同じSHAの保持payloadを入力順序へ依存せず再利用する。
     for root_digest in roots:
@@ -7376,7 +7480,9 @@ def _bounded_partial_case_footprint(
         raise ValueError("partial case予算が不正です")
     total_bytes = 0
     total_entries = 0
-    pending = [case_dir]
+    # LongPathsEnabledに依存せず、保持payloadのfull SHA-256 file名を走査する。
+    # case directory自体が短くても、p/<sha256>.<suffix>でMAX_PATHを超え得る。
+    pending = [_extended_length_path(case_dir)]
     while pending:
         if time.monotonic() >= deadline:
             return total_bytes, total_entries, "wall_clock_limit"
@@ -7389,7 +7495,7 @@ def _bounded_partial_case_footprint(
                 total_entries += 1
                 if total_entries > MAX_DIRECT_CLI_PARTIAL_CASE_ENTRIES:
                     return total_bytes, total_entries, "case_entry_limit"
-                path = Path(entry.path)
+                path = _extended_length_path(Path(entry.path))
                 ensure_no_reparse_components(path)
                 # WindowsのDirEntry.stat()は通常fileでもst_nlink=0を返す場合が
                 # あるため、hardlink境界はPath.lstat()の値で検証する。

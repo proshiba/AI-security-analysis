@@ -41,6 +41,7 @@ MAX_REFERENCE_ROWS = 16384
 MAX_API_SIGNATURE_BYTES = 1024
 MAX_API_SIGNATURE_ITEMS = 64
 MAX_API_SIGNATURE_DEPTH = 3
+MAX_RESOURCE_RECIPE_CANDIDATES = 64
 
 # framework APIの完全な呼出signatureだけを解釈する。sample内同名methodは対象外。
 _API_SIGNATURES = {
@@ -716,16 +717,27 @@ def _validated_proxy_helper(pe, data, helper_token, mapping, owners):
     """delegateを最後の引数で受けるside-effect-free trampolineだけを受理する。"""
 
     row, instructions = _method_body(pe, data, helper_token)
-    if not instructions or instructions[0]["opcode"] not in {"br", "br.s"}:
-        raise RecipeError("proxy_helper_entry_branch_missing")
-    try:
-        target_offset = int(instructions[0]["operand"], 0)
-    except ValueError as exc:
-        raise RecipeError("proxy_helper_entry_branch_invalid") from exc
-    starts = [
-        n for n, item in enumerate(instructions) if item["offset"] == target_offset
-    ]
-    start = _unique(starts, "proxy_helper_branch_target_ambiguous")
+    if not instructions:
+        raise RecipeError("proxy_helper_body_empty")
+    if instructions[0]["opcode"] in {"br", "br.s"}:
+        try:
+            target_offset = int(instructions[0]["operand"], 0)
+        except ValueError as exc:
+            raise RecipeError("proxy_helper_entry_branch_invalid") from exc
+        starts = [
+            n for n, item in enumerate(instructions) if item["offset"] == target_offset
+        ]
+        start = _unique(starts, "proxy_helper_branch_target_ambiguous")
+    else:
+        if any(
+            item["opcode"] == "switch"
+            or item["opcode"].startswith(
+                ("br", "beq", "bne", "bge", "bgt", "ble", "blt", "leave")
+            )
+            for item in instructions
+        ):
+            raise RecipeError("proxy_helper_straight_line_branch_present")
+        start = 0
     stack_count = mapping["stack_argument_count"]
     reachable = instructions[start:]
     if len(reachable) != stack_count + 3:
@@ -815,13 +827,21 @@ def _rewrite_proxy_calls(pe, data, instructions, proxy_map, owners, helper_cache
             output.append(item)
             index += 1
             continue
-        if item["offset"] in branch_targets:
-            raise RecipeError("proxy_field_load_is_branch_target")
+        if caller["offset"] in branch_targets:
+            raise RecipeError("proxy_helper_call_is_branch_target")
         key = (helper_token, field)
         if key not in helper_cache:
             helper_cache[key] = _validated_proxy_helper(
                 pe, data, helper_token, mapping, owners
             )
+        placeholder = dict(item)
+        placeholder.update(
+            opcode="nop",
+            operand="None",
+            token=None,
+            resolved_token=None,
+            parameter_count=None,
+        )
         replacement = dict(caller)
         replacement.update(
             opcode=mapping["call_kind"],
@@ -830,7 +850,9 @@ def _rewrite_proxy_calls(pe, data, instructions, proxy_map, owners, helper_cache
             resolved_token=mapping["api"],
             parameter_count=mapping["parameter_count"],
         )
-        output.append(replacement)
+        # ldsfldのoffsetをnopとして残す。ここがbranch targetでもCFGの入口を
+        # 変えず、直後のhelper callだけをreview済みdirect callへ置換する。
+        output.extend((placeholder, replacement))
         rewrites.append(
             {
                 "field_token": field,
@@ -924,7 +946,33 @@ def _dominance(il: list[dict], required: list[int], sink: int, deadline, clock) 
         raise RecipeError("recipe_does_not_dominate_assembly_load")
 
 
-def _recipe(method: dict, deadline, clock) -> dict:
+def _resource_bindings(method: dict) -> list[tuple[str, int, int]]:
+    """method内のliteral resource→stream local候補を上限付きで列挙する。"""
+
+    il = method["instructions"]
+    resources: list[tuple[str, int, int]] = []
+    for n in range(len(il) - 2):
+        if (
+            il[n]["opcode"] == "ldstr"
+            and _call(
+                il[n + 1],
+                "System.Reflection.Assembly::GetManifestResourceStream",
+            )
+            and (stream := _local(il[n + 2], "stloc")) is not None
+        ):
+            resources.append((il[n]["string"], stream, n + 1))
+            if len(resources) > MAX_RESOURCE_RECIPE_CANDIDATES:
+                raise RecipeError("resource_recipe_candidate_limit")
+    return resources
+
+
+def _recipe(
+    method: dict,
+    deadline,
+    clock,
+    *,
+    resource_binding: tuple[str, int, int] | None = None,
+) -> dict:
     il = method["instructions"]
     if len(il) > MAX_METHOD_INSTRUCTIONS:
         raise RecipeError("method_instruction_limit")
@@ -947,19 +995,16 @@ def _recipe(method: dict, deadline, clock) -> dict:
                 raise RecipeError("key_literal_size_limit")
             literal_locals[v] = (base64.b64decode(text, validate=True), n)
             span(n, n + 2)
-    resources = []
-    for n in range(len(il) - 2):
-        if (
-            il[n]["opcode"] == "ldstr"
-            and _call(
-                il[n + 1], "System.Reflection.Assembly::GetManifestResourceStream"
-            )
-            and (stream := _local(il[n + 2], "stloc")) is not None
-        ):
-            resources.append((il[n]["string"], stream, n + 1))
-    resource_name, stream, resource_at = _unique(
-        resources, "resource_binding_ambiguous"
-    )
+    resources = _resource_bindings(method)
+    if resource_binding is None:
+        resource_name, stream, resource_at = _unique(
+            resources,
+            "resource_binding_ambiguous",
+        )
+    else:
+        if resource_binding not in resources:
+            raise RecipeError("resource_binding_not_in_method")
+        resource_name, stream, resource_at = resource_binding
     span(resource_at - 1, resource_at + 1)
     array_candidates = []
     for n in range(len(il) - 4):
@@ -1293,6 +1338,88 @@ def _recipe(method: dict, deadline, clock) -> dict:
     }
 
 
+def _recipe_candidates(method: dict, deadline, clock) -> list[dict]:
+    """resource候補ごとに完全chainを検証し、成立したrecipeだけを返す。"""
+
+    bindings = _resource_bindings(method)
+    if not bindings:
+        raise RecipeError("resource_binding_missing")
+    recipes: list[dict] = []
+    failures: list[str] = []
+    for binding in bindings:
+        _check_time(deadline, clock)
+        try:
+            recipes.append(
+                _recipe(
+                    method,
+                    deadline,
+                    clock,
+                    resource_binding=binding,
+                )
+            )
+        except RecipeError as exc:
+            if str(exc) == "elapsed_time_limit":
+                raise
+            failures.append(str(exc))
+    if recipes:
+        return recipes
+    if len(bindings) == 1 and failures:
+        raise RecipeError(failures[0])
+    raise RecipeError("resource_binding_no_complete_chain")
+
+
+def _recover_recipe_payload(
+    recipe: dict,
+    resources: dict[str, bytes],
+    *,
+    deadline,
+    clock,
+) -> tuple[bytes, bytes]:
+    """検証済みrecipeのresourceだけを有界に復号し、managed PEを返す。"""
+
+    encrypted = resources.get(recipe["resource_name"])
+    if (
+        not isinstance(encrypted, bytes)
+        or not encrypted
+        or len(encrypted) > MAX_RESOURCE
+        or len(encrypted) % 8
+    ):
+        raise RecipeError("ciphertext_bounds")
+    key, iv = recipe["key"], recipe["iv"]
+    parity_free = [
+        bytes(v & 0xFE for v in key[n : n + 8]) for n in range(0, len(key), 8)
+    ]
+    if any(a == b for a, b in pairwise(parity_free)):
+        raise RecipeError("degenerate_tripledes_key")
+    effective_key = key + key[:8] if len(key) == 16 else key
+    _check_time(deadline, clock)
+    decryptor = Cipher(TripleDES(effective_key), modes.CBC(iv)).decryptor()
+    clear = decryptor.update(encrypted) + decryptor.finalize()
+    padding = clear[-1]
+    if not 1 <= padding <= 8 or clear[-padding:] != bytes([padding]) * padding:
+        raise RecipeError("pkcs7_padding_invalid")
+    clear = clear[:-padding]
+    if len(clear) < 5:
+        raise RecipeError("length_prefix_missing")
+    expected = struct.unpack_from("<i", clear)[0]
+    if not 0 < expected <= MAX_OUTPUT:
+        raise RecipeError("declared_output_limit")
+    inflate = zlib.decompressobj(zlib.MAX_WBITS + 16)
+    payload = inflate.decompress(clear[4:], expected + 1)
+    _check_time(deadline, clock)
+    if (
+        len(payload) != expected
+        or not inflate.eof
+        or inflate.unused_data
+        or inflate.unconsumed_tail
+    ):
+        raise RecipeError("gzip_length_or_eof_invalid")
+    extent = inspect_structural_pe_extent(payload, max_extent=MAX_OUTPUT)
+    if extent.extent is None or not has_clr_metadata(payload):
+        raise RecipeError("decoded_managed_pe_invalid")
+    return encrypted, payload
+
+
 def recover_model(
     data: bytes,
     methods: list[dict],
@@ -1327,50 +1454,82 @@ def recover_model(
                 _call(i, "System.Security.Cryptography.TripleDES::Create")
                 for i in method["instructions"]
             ):
-                recipes.append(_recipe(method, deadline, clock))
+                recipes.extend(_recipe_candidates(method, deadline, clock))
+                if len(recipes) > MAX_RESOURCE_RECIPE_CANDIDATES:
+                    raise RecipeError("resource_recipe_candidate_limit")
         if not recipes:
             return report, []
-        recipe = _unique(recipes, "multiple_resource_recipes")
-        encrypted = resources.get(recipe["resource_name"])
-        if (
-            not isinstance(encrypted, bytes)
-            or not encrypted
-            or len(encrypted) > MAX_RESOURCE
-            or len(encrypted) % 8
-        ):
-            raise RecipeError("ciphertext_bounds")
-        key, iv = recipe["key"], recipe["iv"]
-        parity_free = [
-            bytes(v & 0xFE for v in key[n : n + 8]) for n in range(0, len(key), 8)
-        ]
-        if any(a == b for a, b in pairwise(parity_free)):
-            raise RecipeError("degenerate_tripledes_key")
-        effective_key = key + key[:8] if len(key) == 16 else key
-        _check_time(deadline, clock)
-        decryptor = Cipher(TripleDES(effective_key), modes.CBC(iv)).decryptor()
-        clear = decryptor.update(encrypted) + decryptor.finalize()
-        padding = clear[-1]
-        if not 1 <= padding <= 8 or clear[-padding:] != bytes([padding]) * padding:
-            raise RecipeError("pkcs7_padding_invalid")
-        clear = clear[:-padding]
-        if len(clear) < 5:
-            raise RecipeError("length_prefix_missing")
-        expected = struct.unpack_from("<i", clear)[0]
-        if not 0 < expected <= MAX_OUTPUT:
-            raise RecipeError("declared_output_limit")
-        inflate = zlib.decompressobj(zlib.MAX_WBITS + 16)
-        payload = inflate.decompress(clear[4:], expected + 1)
-        _check_time(deadline, clock)
-        if (
-            len(payload) != expected
-            or not inflate.eof
-            or inflate.unused_data
-            or inflate.unconsumed_tail
-        ):
-            raise RecipeError("gzip_length_or_eof_invalid")
-        extent = inspect_structural_pe_extent(payload, max_extent=MAX_OUTPUT)
-        if extent.extent is None or not has_clr_metadata(payload):
-            raise RecipeError("decoded_managed_pe_invalid")
+        unique_recipes: dict[tuple[object, ...], dict] = {}
+        for recipe in recipes:
+            identity = (
+                recipe["resource_name"],
+                recipe["key"],
+                recipe["iv"],
+                recipe["method_token"],
+                recipe["sink_offset"],
+                recipe["transform_kind"],
+            )
+            unique_recipes.setdefault(identity, recipe)
+        recipes = list(unique_recipes.values())
+        material_sizes: dict[tuple[object, ...], int] = {}
+        for recipe in recipes:
+            material = (
+                recipe["resource_name"],
+                recipe["key"],
+                recipe["iv"],
+            )
+            encrypted_candidate = resources.get(recipe["resource_name"])
+            if isinstance(encrypted_candidate, bytes):
+                material_sizes.setdefault(material, len(encrypted_candidate))
+        if sum(material_sizes.values()) > MAX_INPUT:
+            raise RecipeError("resource_candidate_work_limit")
+
+        decoded_materials: dict[tuple[object, ...], tuple[bytes, bytes]] = {}
+        recovered: dict[str, list[tuple[dict, bytes, bytes]]] = {}
+        rejection_reasons: Counter[str] = Counter()
+        for recipe in recipes:
+            _check_time(deadline, clock)
+            material = (
+                recipe["resource_name"],
+                recipe["key"],
+                recipe["iv"],
+            )
+            try:
+                decoded = decoded_materials.get(material)
+                if decoded is None:
+                    decoded = _recover_recipe_payload(
+                        recipe,
+                        resources,
+                        deadline=deadline,
+                        clock=clock,
+                    )
+                    decoded_materials[material] = decoded
+                encrypted_candidate, payload_candidate = decoded
+            except RecipeError as exc:
+                if str(exc) == "elapsed_time_limit":
+                    raise
+                rejection_reasons[str(exc)] += 1
+                continue
+            digest = hashlib.sha256(payload_candidate).hexdigest()
+            recovered.setdefault(digest, []).append(
+                (recipe, encrypted_candidate, payload_candidate)
+            )
+        if not recovered:
+            if len(recipes) == 1 and len(rejection_reasons) == 1:
+                raise RecipeError(next(iter(rejection_reasons)))
+            raise RecipeError("resource_candidate_outputs_missing")
+        if len(recovered) != 1:
+            raise RecipeError("multiple_distinct_recovered_payloads")
+        recovered_candidates = next(iter(recovered.values()))
+        recipe, encrypted, payload = min(
+            recovered_candidates,
+            key=lambda item: (
+                item[0]["method_token"],
+                item[0]["sink_offset"],
+                item[0]["resource_name"],
+                item[0]["transform_kind"],
+            ),
+        )
         report.update(
             {
                 "status": "recovered",
@@ -1380,8 +1539,8 @@ def recover_model(
                 "resource_name_sha256": hashlib.sha256(
                     recipe["resource_name"].encode()
                 ).hexdigest(),
-                "key_size": len(key),
-                "iv_size": len(iv),
+                "key_size": len(recipe["key"]),
+                "iv_size": len(recipe["iv"]),
                 "method_token": recipe["method_token"],
                 "method_rva": recipe["method_rva"],
                 "transform_kind": recipe["transform_kind"],
@@ -1393,6 +1552,14 @@ def recover_model(
                 "runtime_declared_length_check_confirmed": False,
                 "recovered_sha256": hashlib.sha256(payload).hexdigest(),
                 "recovered_size": len(payload),
+                "resource_recipe_candidate_count": len(recipes),
+                "resource_recipe_recovered_count": len(recovered_candidates),
+                "resource_recipe_identical_output_collapsed": (
+                    len(recovered_candidates) > 1
+                ),
+                "resource_recipe_rejection_reason_counts": dict(
+                    sorted(rejection_reasons.items())
+                ),
                 "candidate_only": True,
             }
         )

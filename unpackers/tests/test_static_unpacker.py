@@ -1881,6 +1881,13 @@ def test_sevenzip_inventory_rejects_descriptor_fields_after_member_boundary(
         ("Symbolic Link = target.dll", "symbolic_link"),
         ("Hard Link = target.dll", "hard_link"),
         ("Alternate Stream = payload.dll:stage", "alternate_stream"),
+        ("Copy Link = target.dll", "copy_link"),
+        ("Symbolic Link = -", "symbolic_link"),
+        ("Hard Link = -", "hard_link"),
+        ("Copy Link = -", "copy_link"),
+        ("Symbolic Link =  ", "symbolic_link"),
+        ("Alternate Stream = false", "alternate_stream"),
+        ("Copy Link = 0", "copy_link"),
     ],
 )
 def test_sevenzip_inventory_preserves_unsafe_link_metadata_for_preflight_rejection(
@@ -1918,6 +1925,39 @@ def test_sevenzip_inventory_preserves_unsafe_link_metadata_for_preflight_rejecti
             "attributes": "A",
             record_key: True,
         }
+    ]
+
+
+def test_sevenzip_inventory_omits_exact_rar5_false_link_sentinels(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RAR5の通常memberが出す空値と``-``だけを属性なしとして扱う。"""
+
+    executable = tmp_path / "7z.exe"
+    executable.write_bytes(b"fixture")
+    listing = (
+        "Path = input.rar\nType = Rar5\nPhysical Size = 64\n"
+        "----------\nPath = payload.js\nSize = 16\nAttributes = A\n"
+        "Symbolic Link = \nHard Link = \nAlternate Stream = -\n"
+        "Copy Link = \n"
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "_run_static_tool_process",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=listing,
+            stderr="",
+        ),
+    )
+
+    report = unpacker.sevenzip_inventory(b"fixture", executable)
+
+    assert report["status"] == "listed"
+    assert report["member_layout_ambiguous"] is False
+    assert report["_member_records"] == [
+        {"name": "payload.js", "size": 16, "attributes": "A"}
     ]
 
 
@@ -2239,7 +2279,10 @@ def test_sevenzip_member_namespace_conflicts_still_block_the_whole_archive(
     assert artifacts == []
 
 
-@pytest.mark.parametrize("metadata_key", ["symbolic_link", "hard_link", "alternate_stream"])
+@pytest.mark.parametrize(
+    "metadata_key",
+    ["symbolic_link", "hard_link", "alternate_stream", "copy_link"],
+)
 def test_sevenzip_link_or_ads_member_stops_before_extraction(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2273,6 +2316,56 @@ def test_sevenzip_link_or_ads_member_stops_before_extraction(
         "_run_static_tool_process",
         lambda *_args, **_kwargs: pytest.fail(
             "link/ADS memberを含むarchiveで外部抽出してはならない"
+        ),
+    )
+
+    report, artifacts = unpacker.sevenzip_extract(
+        b"7zfixture",
+        tmp_path / "7z.exe",
+        max_members=8,
+        max_member_size=1024,
+        max_total_size=1024,
+    )
+
+    assert report["status"] == "unsafe_member_path_blocked"
+    assert report["external_extraction_started"] is False
+    assert artifacts == []
+
+
+@pytest.mark.parametrize("metadata_value", [False, None, "", "-"])
+def test_sevenzip_normalized_link_key_presence_still_blocks_extraction(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    metadata_value: object,
+) -> None:
+    """parserを迂回した曖昧なlink属性はfalsey値でもfail closedにする。"""
+
+    records = [
+        {
+            "name": "safe/payload.dll",
+            "size": 10,
+            "attributes": "A",
+            "copy_link": metadata_value,
+        }
+    ]
+    monkeypatch.setattr(
+        unpacker,
+        "sevenzip_inventory",
+        lambda *_args, **_kwargs: {
+            "status": "listed",
+            "archive_types": ["Rar5"],
+            "members": ["safe/payload.dll"],
+            "total_members": 1,
+            "declared_total_size": 10,
+            "archive_unlock_attempted": False,
+            "_member_records": records,
+        },
+    )
+    monkeypatch.setattr(
+        unpacker,
+        "_run_static_tool_process",
+        lambda *_args, **_kwargs: pytest.fail(
+            "曖昧なlink属性を含むarchiveで外部抽出してはならない"
         ),
     )
 

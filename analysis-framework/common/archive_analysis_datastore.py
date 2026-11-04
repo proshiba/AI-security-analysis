@@ -88,18 +88,11 @@ def _same_file_identity(first: os.stat_result, second: os.stat_result) -> bool:
     try:
         return os.path.samestat(first, second)
     except (AttributeError, OSError):
-        return (
-            first.st_dev == second.st_dev
-            and first.st_ino != 0
-            and first.st_ino == second.st_ino
-        )
+        return first.st_dev == second.st_dev and first.st_ino != 0 and first.st_ino == second.st_ino
 
 
 def _is_reparse_metadata(metadata: os.stat_result) -> bool:
-    return bool(
-        getattr(metadata, "st_file_attributes", 0)
-        & FILE_ATTRIBUTE_REPARSE_POINT
-    )
+    return bool(getattr(metadata, "st_file_attributes", 0) & FILE_ATTRIBUTE_REPARSE_POINT)
 
 
 def _validate_regular_source_metadata(
@@ -243,9 +236,7 @@ def _reject_host_credential_name(relative: PurePosixPath) -> None:
 
 def _walk_directory(root: Path) -> list[tuple[Path, PurePosixPath]]:
     results: list[tuple[Path, PurePosixPath]] = []
-    stack: list[tuple[Path, PurePosixPath]] = [
-        (_extended_length_path(root), PurePosixPath())
-    ]
+    stack: list[tuple[Path, PurePosixPath]] = [(_extended_length_path(root), PurePosixPath())]
     while stack:
         directory, relative_directory = stack.pop()
         with os.scandir(directory) as entries:
@@ -347,6 +338,61 @@ def build_manifest(
     }
 
 
+def source_tree_commitment(files: Sequence[SourceFile]) -> dict[str, Any]:
+    """archive入力treeを相対path・size・SHA-256のcanonical commitmentへ固定する。"""
+
+    records = [{"path": item.archive_name, "size": item.size, "sha256": item.sha256} for item in files]
+    payload = json.dumps(
+        records,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return {
+        "source_tree_sha256": hashlib.sha256(payload).hexdigest(),
+        "file_count": len(files),
+        "total_size": sum(item.size for item in files),
+    }
+
+
+def verify_expected_source_tree(
+    files: Sequence[SourceFile],
+    *,
+    expected_source_tree_sha256: str | None,
+    expected_file_count: int | None,
+    expected_total_size: int | None,
+) -> dict[str, Any]:
+    """staging helperのtree commitmentをarchive作成前に再照合する。"""
+
+    expected = (
+        expected_source_tree_sha256,
+        expected_file_count,
+        expected_total_size,
+    )
+    if all(value is None for value in expected):
+        return source_tree_commitment(files)
+    if any(value is None for value in expected):
+        raise DatastoreError("source tree commitment引数は3項目すべて指定してください")
+    if (
+        not isinstance(expected_source_tree_sha256, str)
+        or re.fullmatch(r"[0-9a-f]{64}", expected_source_tree_sha256) is None
+        or type(expected_file_count) is not int
+        or expected_file_count <= 0
+        or type(expected_total_size) is not int
+        or expected_total_size <= 0
+    ):
+        raise DatastoreError("source tree commitment引数の型または範囲が不正です")
+    observed = source_tree_commitment(files)
+    if observed != {
+        "source_tree_sha256": expected_source_tree_sha256,
+        "file_count": expected_file_count,
+        "total_size": expected_total_size,
+    }:
+        raise DatastoreError("archive入力treeがstaging時のcommitmentと一致しません")
+    return observed
+
+
 def manifest_bytes(manifest: dict[str, Any]) -> bytes:
     return (json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
@@ -391,9 +437,7 @@ def create_encrypted_archive(
                             size += len(chunk)
                             member.write(chunk)
                 if size != item.size or digest.hexdigest() != item.sha256:
-                    raise DatastoreError(
-                        f"archive作成中にsource内容が変更されました: {item.source}"
-                    )
+                    raise DatastoreError(f"archive作成中にsource内容が変更されました: {item.source}")
 
 
 def verify_encrypted_archive(
@@ -480,12 +524,20 @@ def build_upload_command(
     archive_sha256: str,
     manifest_sha256: str,
     target: str,
+    source_tree_sha256: str | None = None,
 ) -> list[str]:
     """SSE-S3と検証用metadataを付けるAWS CLI upload commandを構築する。"""
 
-    metadata = (
-        f"archive-sha256={archive_sha256},manifest-sha256={manifest_sha256},analysis-target={validate_target(target)}"
-    )
+    metadata_items = [
+        f"archive-sha256={archive_sha256}",
+        f"manifest-sha256={manifest_sha256}",
+        f"analysis-target={validate_target(target)}",
+    ]
+    if source_tree_sha256 is not None:
+        if re.fullmatch(r"[0-9a-f]{64}", source_tree_sha256) is None:
+            raise DatastoreError("source tree SHA-256が不正です")
+        metadata_items.append(f"source-tree-sha256={source_tree_sha256}")
+    metadata = ",".join(metadata_items)
     return [
         os.fspath(aws_cli),
         "s3",
@@ -534,6 +586,7 @@ def verify_head_object(
     archive_sha256: str,
     manifest_sha256: str,
     target: str,
+    source_tree_sha256: str | None = None,
 ) -> None:
     """S3側のsize、SSE-S3、検証用metadataを照合する。"""
 
@@ -549,6 +602,8 @@ def verify_head_object(
         failures.append("manifest-sha256")
     if metadata.get("analysis-target") != target:
         failures.append("analysis-target")
+    if source_tree_sha256 is not None and metadata.get("source-tree-sha256") != source_tree_sha256:
+        failures.append("source-tree-sha256")
     if failures:
         raise DatastoreError("S3 upload後検証に失敗しました: " + ", ".join(failures))
 
@@ -563,6 +618,7 @@ def upload_archive(
     archive_sha256: str,
     manifest_sha256: str,
     target: str,
+    source_tree_sha256: str | None = None,
 ) -> dict[str, Any]:
     """IAMロールを確認してuploadし、HeadObjectで結果を検証する。"""
 
@@ -585,6 +641,7 @@ def upload_archive(
         archive_sha256=archive_sha256,
         manifest_sha256=manifest_sha256,
         target=target,
+        source_tree_sha256=source_tree_sha256,
     )
     completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if completed.returncode != 0:
@@ -612,6 +669,7 @@ def upload_archive(
         archive_sha256=archive_sha256,
         manifest_sha256=manifest_sha256,
         target=target,
+        source_tree_sha256=source_tree_sha256,
     )
     return {
         "account": str(identity.get("Account", "")),
@@ -634,20 +692,14 @@ def _validate_report_path(
     """upload検証reportが公開リポジトリへ保存されないことを確認する。"""
 
     report = path.expanduser().resolve(strict=False)
-    repository = (
-        repository_root.resolve()
-        if repository_root is not None
-        else Path(__file__).resolve().parents[2]
-    )
+    repository = repository_root.resolve() if repository_root is not None else Path(__file__).resolve().parents[2]
     try:
         relative = report.relative_to(repository)
     except ValueError:
         return report
     if relative.parts and relative.parts[0].casefold() == ".work":
         return report
-    raise DatastoreError(
-        "upload検証reportはリポジトリ外または無視対象の.work配下へ保存してください"
-    )
+    raise DatastoreError("upload検証reportはリポジトリ外または無視対象の.work配下へ保存してください")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -662,6 +714,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--prefix", default=DEFAULT_PREFIX, help="S3 object key prefix")
     parser.add_argument("--region", default=DEFAULT_REGION, help="S3 bucketのAWS region")
     parser.add_argument("--aws-cli", type=Path, help="aws.exeの明示path")
+    parser.add_argument(
+        "--expected-source-tree-sha256",
+        help="staging helperが固定したarchive入力treeのSHA-256",
+    )
+    parser.add_argument(
+        "--expected-file-count",
+        type=int,
+        help="staging helperが固定したarchive入力file数",
+    )
+    parser.add_argument(
+        "--expected-total-size",
+        type=int,
+        help="staging helperが固定したarchive入力の合計byte数",
+    )
     parser.add_argument(
         "--report",
         type=Path,
@@ -678,6 +744,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     report_path = _validate_report_path(args.report) if args.report else None
     created_at = datetime.now(timezone.utc)
     files = collect_source_files(args.source)
+    source_tree = verify_expected_source_tree(
+        files,
+        expected_source_tree_sha256=args.expected_source_tree_sha256,
+        expected_file_count=args.expected_file_count,
+        expected_total_size=args.expected_total_size,
+    )
     manifest = build_manifest(target=target, created_at=created_at, files=files)
     manifest_payload = manifest_bytes(manifest)
     manifest_sha256 = hashlib.sha256(manifest_payload).hexdigest()
@@ -701,6 +773,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             archive_sha256=archive_sha256,
             manifest_sha256=manifest_sha256,
             target=target,
+            source_tree_sha256=source_tree["source_tree_sha256"],
         )
         report = {
             "schema_version": "analysis-datastore-upload-report/v1",
@@ -713,6 +786,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             "archive_size": archive_path.stat().st_size,
             "file_count": manifest["file_count"],
             "total_uncompressed_size": manifest["total_uncompressed_size"],
+            "source_tree_sha256": source_tree["source_tree_sha256"],
+            "source_tree_commitment_verified": args.expected_source_tree_sha256 is not None,
             "s3_verification": s3,
             "local_source_deleted": False,
             "local_archive_retained": bool(args.keep_local_archive),

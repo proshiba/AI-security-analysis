@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 """PureRAT terminal schema registryのcodec・extractor共通契約を検証する。"""
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from extractors.purehvnc_schema import (
     TERMINAL_FIELD_RULES,
     TERMINAL_SCHEMA_PROFILE_EXPLICIT_FIELDS_1_TO_9,
     TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELD_7,
+    TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELDS_7_9,
     TerminalFieldKind,
     terminal_default_elided_fields,
     terminal_schema_profile,
@@ -25,7 +27,11 @@ if str(FAMILY_DIR) not in sys.path:
 import purerat_441_protocol as protocol
 
 
-def _terminal_fields(*, include_field_7: bool = True) -> extractor.ParsedProtobufFields:
+def _terminal_fields(
+    *,
+    include_field_7: bool = True,
+    include_field_9: bool = True,
+) -> extractor.ParsedProtobufFields:
     fields: dict[int, list[object]] = {
         1: [b"c2.example.test"],
         2: [443, 56001],
@@ -34,11 +40,12 @@ def _terminal_fields(*, include_field_7: bool = True) -> extractor.ParsedProtobu
         5: [1],
         6: [0],
         8: [b"APPDATA"],
-        9: [b"fixture-mutex"],
         10: [1],
     }
     if include_field_7:
         fields[7] = [b""]
+    if include_field_9:
+        fields[9] = [b"fixture-mutex"]
     wire_types = {
         number: [0 if number in {2, 5, 6, 10} else 2] * len(values)
         for number, values in fields.items()
@@ -96,6 +103,15 @@ def test_shared_profiles_preserve_explicit_and_field_7_elided_contracts() -> Non
     assert terminal_default_elided_fields(_schema_profile(elided)) == (7,)
     assert extractor._terminal_schema_profile(elided) == (
         TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELD_7
+    )
+
+    dual_elided = _terminal_fields(include_field_7=False, include_field_9=False)
+    assert _schema_profile(dual_elided) == (
+        TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELDS_7_9
+    )
+    assert terminal_default_elided_fields(_schema_profile(dual_elided)) == (7, 9)
+    assert extractor._terminal_schema_profile(dual_elided) == (
+        TERMINAL_SCHEMA_PROFILE_V4_DEFAULT_ELIDED_FIELDS_7_9
     )
 
 
