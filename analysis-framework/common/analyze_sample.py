@@ -146,6 +146,7 @@ import static_implementation_commitment  # noqa: E402
 import static_layer_pipeline as static_layers  # noqa: E402
 import structural_candidates as structural_candidate_aggregation  # noqa: E402
 import terminal_payload_acquisition  # noqa: E402
+import sanitized_failure_diagnostic  # noqa: E402
 from analysis_contract import (  # noqa: E402
     PIPELINE_CONTRACT_VERSION,
     _extended_length_path,
@@ -7397,6 +7398,49 @@ def _direct_cli_worker_failure_document(error: BaseException) -> dict[str, Any]:
     }
 
 
+def _publish_private_failure_diagnostic(output: Path, document: object) -> bool:
+    """既存outcome schemaと独立した無害化済み診断をprivate出力だけへ残す。"""
+
+    try:
+        ensure_no_reparse_components(output)
+        normalized = output.resolve(strict=True)
+        repository = REPOSITORY_ROOT.resolve(strict=True)
+        if normalized == repository or repository in normalized.parents:
+            return False
+        ensure_no_reparse_components(normalized)
+        if not normalized.is_dir():
+            return False
+        diagnostic = sanitized_failure_diagnostic.validate_diagnostic(document)
+        encoded = _encoded_json_document(diagnostic)
+        if len(encoded) > sanitized_failure_diagnostic.MAXIMUM_DIAGNOSTIC_BYTES:
+            return False
+        destination = normalized / sanitized_failure_diagnostic.ARTIFACT_NAME
+        if os.path.lexists(destination):
+            ensure_no_reparse_components(destination)
+            information = destination.lstat()
+            if not stat.S_ISREG(information.st_mode) or information.st_nlink != 1:
+                return False
+        _atomic_replace_json(
+            destination,
+            diagnostic,
+        )
+        return True
+    except BaseException:  # noqa: BLE001 - 補助診断は元のfatal結果を覆してはならない
+        return False
+
+
+def _record_private_failure_diagnostic(output: Path, error: BaseException) -> bool:
+    """診断生成自体が失敗しても、例外本文を出さず元fatalを維持する。"""
+
+    try:
+        document = sanitized_failure_diagnostic.build_diagnostic(
+            error, repository_root=REPOSITORY_ROOT,
+        )
+        return _publish_private_failure_diagnostic(output, document)
+    except BaseException:  # noqa: BLE001 - 元fatalのreasonと終了codeを維持する
+        return False
+
+
 def _parse_direct_cli_worker_failure(raw: bytes) -> dict[str, Any]:
     """workerの失敗応答を完全一致schemaとallowlistで検証する。"""
 
@@ -7775,6 +7819,7 @@ def _clear_direct_cli_failure_artifacts(output: Path, *, exit_code: int) -> bool
         for name in (
             DIRECT_CLI_OUTCOME_ARTIFACT,
             DIRECT_CLI_PARTIAL_SUMMARY_ARTIFACT,
+            sanitized_failure_diagnostic.ARTIFACT_NAME,
         ):
             path = output / name
             try:
@@ -7840,6 +7885,18 @@ def _direct_cli_worker_main() -> int:
                 maximum_size=MAX_DIRECT_CLI_FAILURE,
             )
         except (OSError, TypeError, ValueError):
+            pass
+        try:
+            diagnostic = sanitized_failure_diagnostic.build_diagnostic(
+                exc, repository_root=REPOSITORY_ROOT,
+            )
+            diagnostic_raw = _encoded_json_document(diagnostic)
+            _write_private_regular_file(
+                response_root / sanitized_failure_diagnostic.WORKER_ARTIFACT_NAME,
+                diagnostic_raw,
+                maximum_size=sanitized_failure_diagnostic.MAXIMUM_DIAGNOSTIC_BYTES,
+            )
+        except BaseException:  # noqa: BLE001 - 補助診断の失敗は元fatalへ影響させない
             pass
         return 2
     try:
@@ -7995,6 +8052,17 @@ def _run_isolated_cli(argv: Sequence[str] | None) -> int:
                         else None
                     ),
                 )
+                try:
+                    diagnostic = _strict_json_object_bytes(
+                        _read_private_regular_file(
+                            temporary_root / sanitized_failure_diagnostic.WORKER_ARTIFACT_NAME,
+                            maximum_size=sanitized_failure_diagnostic.MAXIMUM_DIAGNOSTIC_BYTES,
+                        ),
+                        label="private failure diagnostic",
+                    )
+                    _publish_private_failure_diagnostic(output, diagnostic)
+                except BaseException:  # noqa: BLE001 - worker診断は必須のfatal契約と分離する
+                    pass
                 return 2
             try:
                 response_raw = _read_private_regular_file(
@@ -8129,6 +8197,8 @@ def main(argv: list[str] | None = None) -> int:
             if output is not None
             else False
         )
+        if output is not None:
+            _record_private_failure_diagnostic(output, exc)
         print(
             json.dumps(
                 {

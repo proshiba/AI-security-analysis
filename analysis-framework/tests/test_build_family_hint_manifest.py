@@ -21,6 +21,18 @@ SHA256 = "a" * 64
 SECOND_SHA256 = "b" * 64
 
 
+def test_salat_provider_label_is_only_an_unverified_exact_hash_hint() -> None:
+    result = build_collection_manifest_document(
+        {"selected_hashes": [SHA256], "selected_metadata": [{"sha256_hash": SHA256, "signature": "SalatStealer", "tags": ["Salat"]}]},
+        source="in_memory_fixture",
+    )
+    assert len(result["samples"][SHA256]) == 1
+    hint = result["samples"][SHA256][0]
+    assert hint["family"] == "salatstealer"
+    assert hint["confidence"] == "unverified"
+    assert "reported_signature" in hint["provenance"]
+
+
 def test_collection_document_api_is_pure_and_path_independent() -> None:
     manifest = build_collection_manifest_document(
         {

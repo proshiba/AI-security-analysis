@@ -3605,6 +3605,53 @@ _APPROVED_HIGHER_ORDER_CALLBACKS = frozenset(
     }
 )
 _APPROVED_IN_MEMORY_READER_CONSTRUCTORS = frozenset({"io.BytesIO", "olefile.OleFileIO", "zipfile.ZipFile"})
+_SALAT_STATIC_REVIEWED_CALL_EXPRESSIONS: dict[
+    tuple[str, str, str],
+    tuple[str, ...],
+] = {
+    ("analysis-framework/malware/salatstealer/static_profile.py", "reachable:_copied_tables", "source.reg_name"): (
+        "source.reg_name(source.operands[0].reg)",
+    ),
+    ("analysis-framework/malware/salatstealer/static_profile.py", "reachable:_decode_endpoint", "image.bytes_at"): (
+        "image.bytes_at(table, 516)",
+    ),
+    ("analysis-framework/malware/salatstealer/static_profile.py", "reachable:_decode_endpoint", "integer.bit_length"): (
+        "integer.bit_length()",
+    ),
+    ("analysis-framework/malware/salatstealer/static_profile.py", "reachable:_decode_endpoint", "pow"): (
+        "pow(ciphertext, 65537, modulus)",
+    ),
+    ("analysis-framework/malware/salatstealer/static_profile.py", "reachable:_endpoint_arrays", "first.reg_name"): (
+        "first.reg_name(first.operands[0].reg)",
+    ),
+    ("analysis-framework/malware/salatstealer/static_profile.py", "reachable:_endpoint_arrays", "image.instructions"): (
+        "image.instructions('main.getEp')",
+    ),
+    ("analysis-framework/malware/salatstealer/static_profile.py", "reachable:_key_material", "image.bytes_at"): (
+        "image.bytes_at(seed_args[0], 4)",
+        "image.bytes_at(suffix[12], suffix[16])",
+    ),
+    ("analysis-framework/malware/salatstealer/static_profile.py", "reachable:_key_material", "image.instructions"): (
+        "image.instructions('main.GetHWID')",
+    ),
+    ("analysis-framework/malware/salatstealer/static_profile.py", "reachable:_verified_helpers", "image.instructions"): (
+        "image.instructions('main.gb')",
+        "image.instructions('main.dec')",
+        "image.instructions('main.md5str')",
+        "image.instructions('main.getEp')",
+        "image.instructions('main.initConnection')",
+        "image.instructions('main.c2Server')",
+    ),
+    ("analysis-framework/malware/salatstealer/static_profile.py", "reachable:decrypt_gcm", "cryptography.hazmat.primitives.ciphers.aead.AESGCM"): (
+        "AESGCM(key)",
+    ),
+    ("analysis-framework/malware/salatstealer/static_profile.py", "reachable:recover", "decoder.disasm"): (
+        "decoder.disasm(self.data[function.offset:function.offset + function.size], function.va)",
+    ),
+    ("analysis-framework/malware/salatstealer/static_profile.py", "reachable:recover", "modulus.bit_length"): (
+        "modulus.bit_length()",
+    ),
+}
 _REVIEWED_REPOSITORY_DATA_READS = {
     (
         "extractors/profiled_family.py",
@@ -3624,6 +3671,10 @@ _REVIEWED_REPOSITORY_DATA_READS = {
     ),
 }
 _REVIEWED_SOURCE_CALLS = {
+    **{
+        key: "Salat Go32の有界PE bytes・静的命令・固定指数RSA・AES-GCM認証処理だけをexact ASTへ限定する"
+        for key in _SALAT_STATIC_REVIEWED_CALL_EXPRESSIONS
+    },
     (
         "extractors/valleyrat/msi_ahk_aes_gcm.py",
         "reachable:_cab_members",
@@ -6759,6 +6810,19 @@ def _reviewed_source_call_shape_allowed(
     }
     if supplied_strings & _DANGEROUS_REFLECTION_ATTRIBUTES:
         return False
+    reviewed_expressions = _SALAT_STATIC_REVIEWED_CALL_EXPRESSIONS.get(key)
+    if reviewed_expressions is not None:
+        # 汎用method名を全handlerへ許可せず、レビュー済みSalat parserの現在の
+        # 呼び出し式そのものへ束縛する。引数やreceiverが変われば再監査となる。
+        rendered = ast.dump(node, include_attributes=False)
+        return any(
+            rendered
+            == ast.dump(
+                ast.parse(expression, mode="eval").body,
+                include_attributes=False,
+            )
+            for expression in reviewed_expressions
+        )
     aes_gcm_source = "extractors/valleyrat/msi_ahk_aes_gcm.py"
     if key == (
         aes_gcm_source,
